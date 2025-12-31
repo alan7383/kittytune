@@ -6,7 +6,7 @@ hi everyone! welcome to **kittytune**. if you are looking for a **better, cuter,
 
 it's not just a music player; it's a complete upgrade over the official app. cleaner design, audio effects, real lyrics, and it plays your local files too.
 
-i just released the very first version! you can grab the **apk** right now in the [releases](https://github.com/alananasss/KittyTune/releases) tab.
+i just released the very first version! you can grab the **apk** right now in the [releases](https://github.com/alan7383/kittytune/releases) tab.
 
 ---
 
