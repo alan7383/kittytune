@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KittyTune</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_library">Bibliothèque</string>
+    <string name="nav_welcome">Bienvenue</string>
+    <string name="nav_login">Connexion</string>
+
+    <!-- General Actions -->
+    <string name="btn_cancel">Annuler</string>
+    <string name="btn_confirm">Confirmer</string>
+    <string name="btn_save">Enregistrer</string>
+    <string name="btn_delete">Supprimer</string>
+    <string name="btn_create">Créer</string>
+    <string name="btn_close">Fermer</string>
+    <string name="btn_play">Lecture</string>
+    <string name="btn_pause">Pause</string>
+    <string name="btn_shuffle">Aléatoire</string>
+    <string name="btn_download">Télécharger</string>
+    <string name="btn_downloaded">Téléchargé</string>
+    <string name="btn_share">Partager</string>
+    <string name="btn_options">Options</string>
+    <string name="btn_ok">OK</string>
+    <string name="loading">Chargement...</string>
+    <string name="error_generic">Une erreur est survenue</string>
+    <string name="success_generic">Opération réussie</string>
+    <string name="all_filters">Tout</string>
+
+    <!-- Welcome & Login -->
+    <string name="welcome_title">Bienvenue sur\nSoundTune</string>
+    <string name="welcome_subtitle">Découvrez, streamez et téléchargez vos musiques préférées sans limite.</string>
+    <string name="login_soundcloud">Se connecter avec SoundCloud</string>
+    <string name="login_guest">Continuer en tant qu\'invité</string>
+    <string name="guest_loading">Initialisation de la session invité...</string>
+    <string name="login_title">Connexion SoundCloud</string>
+
+    <!-- Home -->
+    <string name="search_hint">Rechercher titres, artistes...</string>
+    <string name="search_library_hint">Rechercher dans la bibliothèque</string>
+    <string name="home_recently_played">Écoutés récemment</string>
+    <string name="home_section_similar">Similaire à %1$s</string>
+    <string name="home_section_similar_sub">Parce que vous avez écouté ce titre</string>
+    <string name="home_section_new_crew">New Crew</string>
+    <string name="home_section_new_crew_sub">Artistes à découvrir basés sur vos goûts</string>
+    <string name="home_trending">Tendances Mondiales</string>
+    <string name="home_charts">Classements</string>
+    <string name="no_results">Aucun résultat</string>
+    <string name="radio">Radio</string>
+    <string name="untitled_track">Titre inconnu</string>
+    <string name="unknown_artist">Artiste inconnu</string>
+    <string name="unknown_user">Utilisateur</string>
+
+    <!-- Library -->
+    <string name="lib_playlists">Playlists</string>
+    <string name="lib_artists">Artistes</string>
+    <string name="lib_liked_tracks">Titres aimés</string>
+    <string name="lib_liked_subtitle">Playlist • Automatique</string>
+    <string name="lib_liked_subtitle_local">Local • Sur cet appareil</string>
+    <string name="lib_liked_subtitle_syncing">Mise à jour...</string>
+    <string name="lib_downloads">Titres téléchargés</string>
+    <string name="lib_downloads_subtitle">Hors ligne • Automatique</string>
+    <string name="lib_local_media">Médias Locaux</string>
+    <string name="lib_local_media_subtitle">Tous vos fichiers audio</string>
+    <string name="lib_create_playlist_title">Nouvelle Playlist</string>
+    <string name="lib_create_playlist_hint">Nom de la playlist</string>
+    <string name="lib_offline_mode">Mode Hors Ligne • Accès aux téléchargements</string>
+    <string name="lib_guest_mode">Mode Invité • Se connecter pour synchroniser</string>
+    <string name="sort_date_added">Date d\'ajout</string>
+    <string name="me_artist">Moi</string>
+    <string name="guest_user">Invité</string>
+    <string name="logout_guest">Quitter le mode invité</string>
+
+    <!-- Player -->
+    <string name="player_playing_now">LECTURE EN COURS</string>
+    <string name="player_queue">File d\'attente</string>
+    <string name="player_lyrics">Paroles</string>
+    <string name="player_audio_settings">Réglages Audio</string>
+    <string name="player_special_effects">Effets Spéciaux</string>
+    <string name="player_pitch">Pitch</string>
+    <string name="player_speed">Vitesse</string>
+    <string name="effect_bass_boost">Bass Boost</string>
+    <string name="effect_8d">Audio 8D</string>
+    <string name="effect_muffled">Étouffé</string>
+    <string name="effect_reverb">Reverb</string>
+    <string name="menu_play_next">Lire ensuite</string>
+    <string name="menu_add_queue">Ajouter à la file</string>
+    <string name="menu_add_playlist">Ajouter à une playlist</string>
+    <string name="menu_go_artist">Artiste</string>
+    <string name="menu_track_radio">Radio liée</string>
+    <string name="menu_details">Détails</string>
+    <string name="menu_comments">Commentaires</string>
+    <string name="context_playlist">Playlist • %1$s</string>
+    <string name="context_station">Station • %1$s</string>
+    <string name="menu_shuffle">Mélanger</string>
+    <string name="menu_repeat">Répéter</string>
+    <string name="menu_repeat_all">Répéter (Tout)</string>
+    <string name="menu_repeat_one">Répéter (1)</string>
+    <string name="menu_remove">Retirer</string>
+    <string name="menu_cancel_download">Annuler</string>
+    <string name="menu_delete_download">Supprimer</string>
+
+    <!-- Lyrics -->
+    <string name="lyrics_no_data">Aucune parole disponible</string>
+    <string name="lyrics_manual_search">Rechercher manuellement</string>
+    <string name="lyrics_wrong">Mauvaises paroles ?</string>
+    <string name="lyrics_search_hint">Titre artiste...</string>
+
+    <!-- Profile & Details -->
+    <string name="profile_followers">Abonnés</string>
+    <string name="profile_tracks">Titres</string>
+    <string name="profile_edit">Modifier le profil</string>
+    <string name="profile_edit_title">Modifier le profil</string>
+    <string name="profile_name">Nom d\'affichage</string>
+    <string name="profile_bio">Bio</string>
+    <string name="profile_city">Ville / Pays</string>
+    <string name="profile_tab_popular">Populaires</string>
+    <string name="profile_tab_tracks">Derniers titres</string>
+    <string name="profile_tab_albums">Albums</string>
+    <string name="profile_tab_playlists">Playlists</string>
+    <string name="profile_tab_likes">J\'aime de %1$s</string>
+    <string name="profile_tab_reposts">Reposts</string>
+    <string name="profile_about">À propos</string>
+    <string name="profile_similar_artists">Vous aimerez peut-être aussi</string>
+    <string name="detail_track_title">Détails du titre</string>
+    <string name="detail_likers">J\'aime</string>
+    <string name="detail_reposters">Reposts</string>
+    <string name="detail_in_playlists">Dans les playlists</string>
+    <string name="detail_related">Titres similaires</string>
+    <string name="detail_no_one_yet">Personne pour le moment.</string>
+    <string name="detail_no_public_playlist">Aucune playlist publique trouvée.</string>
+    <string name="detail_no_similar">Aucun titre similaire trouvé.</string>
+    <string name="detail_file_info">Informations du fichier</string>
+    <string name="detail_format">Format</string>
+    <string name="detail_size">Taille</string>
+    <string name="detail_duration">Durée</string>
+    <string name="detail_location">Emplacement</string>
+    <string name="detail_external_storage">Stockage Externe</string>
+    <string name="detail_local_file">Fichier Local</string>
+    <string name="detail_unknown">Inconnue</string>
+    <string name="detail_stats_plays">Lectures</string>
+    <string name="detail_stats_likes">J\'aime</string>
+    <string name="detail_stats_reposts">Reposts</string>
+    <string name="detail_show_more">Voir plus</string>
+    <string name="detail_show_less">Voir moins</string>
+    <string name="detail_see_similar">Voir titres similaires &amp; fans</string>
+    <string name="detail_see_comments">Voir les commentaires (%1$s)</string>
+    <string name="detail_release_date">Sortie</string>
+    <string name="detail_genre">Genre</string>
+    <string name="detail_description">Description</string>
+    <string name="detail_tags">Tags</string>
+
+    <!-- Settings Categories -->
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_cat_appearance">Apparence</string>
+    <string name="settings_cat_playback">Lecture</string>
+    <string name="settings_cat_audio">Audio</string>
+    <string name="settings_cat_general">Général</string>
+    <string name="settings_cat_source">Source</string>
+
+    <!-- Appearance Settings -->
+    <string name="pref_appearance_title">Apparence</string>
+    <string name="pref_appearance_subtitle">Thème, écran de démarrage, lecteur, langue</string>
+    <string name="pref_start_screen">Écran de démarrage</string>
+    <string name="pref_theme_dynamic">Thème Dynamique (Material You)</string>
+    <string name="pref_theme_dynamic_sub">Utiliser les couleurs de votre fond d\'écran.</string>
+    <string name="pref_theme_mode">Mode de thème</string>
+    <string name="pref_theme_pure_black">Noir Profond (AMOLED)</string>
+    <string name="pref_theme_pure_black_sub">Économise la batterie sur les écrans OLED.</string>
+    <string name="pref_player_style">Arrière-plan du lecteur</string>
+    <string name="pref_language">Langue</string>
+    <string name="pref_language_sub">Changer la langue de l\'application</string>
+
+    <!-- Theme Modes -->
+    <string name="theme_system">Par défaut (Système)</string>
+    <string name="theme_light">Clair</string>
+    <string name="theme_dark">Sombre</string>
+    <string name="lang_french">Français</string>
+    <string name="lang_english">English</string>
+    <string name="lang_hungarian">Magyar</string>
+
+    <!-- Player Styles -->
+    <string name="style_theme">Thème (Couleur unie)</string>
+    <string name="style_gradient">Dégradé dynamique</string>
+    <string name="style_blur">Pochette floue</string>
+
+    <!-- Lyrics Settings -->
+    <string name="pref_lyrics_title">Paroles</string>
+    <string name="pref_lyrics_subtitle">Taille, alignement, source</string>
+    <string name="pref_lyrics_local">Préférer les fichiers locaux</string>
+    <string name="pref_lyrics_local_sub">Priorité aux paroles intégrées (ID3).</string>
+    <string name="pref_lyrics_align">Position du texte</string>
+    <string name="pref_lyrics_size">Taille de la police</string>
+    <string name="align_left">Gauche</string>
+    <string name="align_center">Centré (Par défaut)</string>
+    <string name="align_right">Droite</string>
+    <string name="pref_lyrics_reset">Réinitialiser</string>
+
+    <!-- Audio Settings -->
+    <string name="pref_audio_title">Lecteur et Audio</string>
+    <string name="pref_audio_subtitle">Autoplay, qualité et persistance</string>
+    <string name="pref_autoplay">Radio Automatique</string>
+    <string name="pref_autoplay_sub">Ajouter des titres similaires à la fin.</string>
+    <string name="pref_persist_queue">File d\'attente persistante</string>
+    <string name="pref_persist_queue_sub">Sauvegarder la file après redémarrage.</string>
+    <string name="pref_quality">Qualité de streaming</string>
+    <string name="quality_high">Haute (Par défaut)</string>
+    <string name="quality_low">Économie de données</string>
+    <string name="quality_high_sub">Meilleure qualité possible (128kbps+)</string>
+    <string name="quality_low_sub">Priorité aux formats légers (Opus/HLS)</string>
+
+    <!-- Local Media Settings -->
+    <string name="pref_local_title">Médias Locaux</string>
+    <string name="pref_local_subtitle">Gérer tous les fichiers audio locaux</string>
+    <string name="pref_local_enable">Activer les médias locaux</string>
+    <string name="pref_local_enable_sub">Afficher les fichiers audio de l\'appareil.</string>
+    <string name="pref_local_folders">Dossiers sources</string>
+    <string name="pref_local_add">Ajouter un dossier</string>
+    <string name="pref_local_scan">Analyser la bibliothèque</string>
+    <string name="pref_local_scanning">Analyse en cours...</string>
+    <string name="pref_local_info">Les fichiers de tous les dossiers listés seront scannés.</string>
+    <string name="pref_local_no_folder">Aucun dossier sélectionné.</string>
+    <string name="pref_local_scan_status_waiting">En attente</string>
+    <string name="pref_local_scan_status_prep">Préparation...</string>
+    <string name="pref_local_scan_status_searching">Recherche des fichiers...</string>
+    <string name="pref_local_scan_status_no_folder">Aucun dossier sélectionné</string>
+    <string name="pref_local_scan_status_no_files">Aucun fichier audio trouvé</string>
+    <string name="pref_local_scan_status_found">%1$d fichiers trouvés. Analyse...</string>
+    <string name="pref_local_scan_status_analyzing">Analyse %1$d / %2$d</string>
+    <string name="pref_local_scan_status_saving">Enregistrement...</string>
+    <string name="pref_local_scan_status_done">Terminé !</string>
+    <string name="pref_local_scan_status_error">Erreur: %1$s</string>
+
+
+    <!-- Storage Settings -->
+    <string name="pref_storage_title">Stockage &amp; Données</string>
+    <string name="pref_storage_subtitle">Gérer les téléchargements et le cache</string>
+    <string name="storage_usage">Utilisation</string>
+    <string name="storage_used">utilisés</string>
+    <string name="storage_free">libres</string>
+    <string name="storage_location">Emplacement des téléchargements</string>
+    <string name="storage_reset">Réinitialiser</string>
+    <string name="storage_cat_audio">Musiques</string>
+    <string name="storage_cat_images">Pochettes &amp; Images</string>
+    <string name="storage_cat_cache">Cache temporaire</string>
+    <string name="storage_cat_db">Base de données</string>
+    <string name="storage_legend_app">SoundTune</string>
+    <string name="storage_legend_system">Système &amp; Autres</string>
+    <string name="storage_internal_mem">Mémoire interne</string>
+    <string name="storage_internal_mem_sub">/ %1$s</string>
+    <string name="storage_sd_card">Carte SD / Externe</string>
+    <string name="storage_custom_folder">Dossier personnalisé</string>
+    <string name="storage_change_btn">Changer</string>
+    <string name="storage_db_subtitle">Index et paramètres</string>
+    <string name="storage_loading">Chargement...</string>
+    <string name="dialog_clean_title">Nettoyer le stockage ?</string>
+    <string name="dialog_clean_audio_msg">Voulez-vous supprimer toutes les musiques téléchargées ? Elles devront être retéléchargées pour être écoutées hors ligne.</string>
+    <string name="dialog_clean_images_msg">Supprimer les images ? Les pochettes d\'album disparaîtront jusqu\'à la prochaine synchronisation.</string>
+    <string name="dialog_clean_cache_msg">Vider le cache de l\'application ? Cela libère de l\'espace sans affecter vos téléchargements.</string>
+
+    <!-- Backup Settings -->
+    <string name="pref_backup_title">Sauvegarder et Restaurer</string>
+    <string name="pref_backup_subtitle">Exporter ou importer vos données</string>
+    <string name="backup_action">Sauvegarder</string>
+    <string name="restore_action">Restaurer</string>
+    <string name="backup_desc">Exporter vos playlists, favoris, historique et préférences dans un fichier.</string>
+    <string name="restore_desc">Importer un fichier .backup pour récupérer vos données.</string>
+    <string name="backup_info">La sauvegarde inclut vos playlists locales, vos titres \'J\'aime\', votre historique d\'écoute, vos succès et vos préférences.\n\nLes fichiers audio téléchargés ne sont PAS inclus dans le fichier de sauvegarde pour économiser de l\'espace, mais les références sont conservées.</string>
+    <string name="backup_info_guest">Fonctionne même en mode Invité. Utile pour transférer vos données vers un autre appareil.</string>
+    <string name="backup_success">Sauvegarde réussie !</string>
+    <string name="restore_success">Restauration réussie ! Redémarrez l\'application.</string>
+    <string name="backup_error">Erreur : %1$s</string>
+    <string name="backup_in_progress">Traitement en cours...</string>
+    <string name="backup_toast_success">Sauvegarde terminée</string>
+    <string name="backup_toast_error">Erreur de sauvegarde</string>
+    <string name="restore_toast_success">Restauration terminée. Veuillez redémarrer.</string>
+    <string name="restore_toast_error">Erreur de restauration</string>
+
+    <!-- About -->
+    <string name="pref_about_title">À propos</string>
+    <string name="pref_about_subtitle">Version, licences et informations</string>
+    <string name="about_version">Version</string>
+    <string name="about_github">Voir sur GitHub</string>
+    <string name="about_licenses">Licences open source</string>
+    <string name="about_bug_report">Soumettre un rapport de bug</string>
+    <string name="about_help">Aide et support</string>
+    <string name="about_contact">Autres demandes</string>
+    <string name="about_contact_copy">Appuyez pour copier l\'e-mail</string>
+    <string name="about_contact_copied">E-mail copié !</string>
+    <string name="about_app_info">Informations sur l\'application</string>
+    <string name="about_device_info">Informations sur l\'appareil</string>
+    <string name="about_package_name">Nom du paquet</string>
+    <string name="about_device_model">Modèle</string>
+    <string name="about_android_version">Version Android (API %1$d)</string>
+    <string name="about_expand">Étendre</string>
+    <string name="about_collapse">Réduire</string>
+
+    <!-- Achievements -->
+    <string name="achievements_title">Succès</string>
+    <string name="achievements_subtitle">%1$d / %2$d débloqués</string>
+    <string name="achievements_current_level">Niveau Actuel</string>
+    <string name="achievements_reset_progress">Réinitialiser la progression</string>
+    <string name="achievements_status_done">Terminé</string>
+    <string name="achievements_secret_title">Secret</string>
+
+    <!-- Achievement Categories -->
+    <string name="ach_cat_time">⏳ Endurance &amp; Temps</string>
+    <string name="ach_cat_volume">📊 Volume de Lecture</string>
+    <string name="ach_cat_loyalty">🔥 Séries (Streaks)</string>
+    <string name="ach_cat_collection">📚 Bibliothèque</string>
+    <string name="ach_cat_player">🎛️ Maîtrise du Lecteur</string>
+    <string name="ach_cat_hardcore">💀 Mode Titan</string>
+    <string name="ach_cat_secret">🔒 Mystères</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_reset_achievements_title">Réinitialiser les succès ?</string>
+    <string name="dialog_reset_achievements_msg">Attention ! Vous allez perdre toute votre progression, votre niveau et vos badges. Cette action est irréversible.</string>
+    <string name="dialog_reset_achievements_confirm">Continuer</string>
+    <string name="dialog_reset_achievements_final_title">Êtes-vous VRAIMENT sûr ?</string>
+    <string name="dialog_reset_achievements_final_msg">C\'est votre dernière chance. Tout sera effacé pour toujours.</string>
+    <string name="dialog_reset_achievements_final_confirm">TOUT EFFACER</string>
+    <string name="dialog_logout_title">Se déconnecter ?</string>
+    <string name="dialog_logout_msg">Vous retournerez à l\'écran de bienvenue.</string>
+    <string name="dialog_delete_playlist_title">Supprimer la playlist ?</string>
+    <string name="dialog_delete_playlist_from_lib_title">Retirer de la bibliothèque ?</string>
+    <string name="dialog_delete_playlist_msg">Cette action est irréversible.</string>
+    <string name="dialog_remove_download_title">Supprimer le téléchargement ?</string>
+    <string name="dialog_remove_download_msg">Les fichiers audio seront supprimés, mais la playlist restera dans votre bibliothèque.</string>
+    <string name="dialog_rename_playlist_title">Renommer la playlist</string>
+    <string name="dialog_rename_playlist_hint">Nouveau nom</string>
+    <string name="dialog_comment_soon">L\'envoi de commentaires arrive bientôt !</string>
+    <string name="dialog_like_soon">Les likes arrivent bientôt !</string>
+
+    <!-- Miscellaneous -->
+    <string name="playlist_num_tracks">%1$d titres</string>
+    <string name="playlist_by_user">Par %1$s</string>
+    <string name="add_to_playlist_title_single">Ajouter à une playlist</string>
+    <string name="add_to_playlist_title_multi">Ajouter %1$d titres à...</string>
+    <string name="add_to_playlist_new">Nouvelle playlist</string>
+    <string name="add_comment_hint">Ajouter un commentaire...</string>
+    <string name="comment_no_comments">Aucun commentaire pour le moment</string>
+    <string name="comment_relative_time_now">À l\'instant</string>
+    <string name="comment_relative_time_minutes_ago">"il y a %1$d min"</string>
+    <string name="comment_relative_time_hours_ago">"il y a %1$d h"</string>
+    <string name="comment_relative_time_days_ago">"il y a %1$d j"</string>
+    <string name="comment_relative_time_weeks_ago">"il y a %1$d sem."</string>
+    <string name="comment_relative_time_months_ago">"il y a %1$d mois"</string>
+    <string name="comment_relative_time_years_ago">"il y a %1$d an(s)"</string>
+    <string name="profile_menu_title">SoundTune</string>
+    <string name="profile_menu_manage_account">Voir mon profil</string>
+    <string name="profile_menu_login">Se connecter à un compte</string>
+    <string name="profile_menu_achievements">Succès &amp; Récompenses</string>
+    <string name="profile_menu_settings">Paramètres</string>
+    <string name="profile_menu_logout">Se déconnecter</string>
+    <string name="profile_menu_guest_desc">Données locales uniquement</string>
+    <string name="profile_menu_badge_new">Nouveau</string>
+
+    <string name="completion_legend">LÉGENDE</string>
+    <string name="completion_message">Vous avez terminé SoundTune.</string>
+    <string name="completion_thanks">Merci.</string>
+    <string name="completion_thanks_message">"Terminer tous les succès est un exploit que peu accompliront. Votre dévouement et votre passion pour la musique sont la raison d\'être de cette application.\n\nMerci d\'avoir fait ce voyage avec nous.\n\n~ Alan :3"</string>
+    <string name="completion_continue">Appuyez n\'importe où pour continuer</string>
+
+    <!-- AJOUTS POUR L'ÉCRAN DE PROFIL -->
+    <string name="profile_playlists_by_user">Playlists de %1$s</string>
+    <string name="profile_likes_by_user">%1$s a aimé</string>
+    <string name="profile_latest_tracks">Derniers titres</string>
+    <string name="profile_update_success">Profil mis à jour</string>
+    <string name="profile_update_error">Erreur: %1$s</string>
+    <string name="btn_back">Retour</string>
+    <string name="btn_follow">Suivre</string>
+    <string name="share_via">Partager via</string>
+    <string name="profile_banner">Bannière</string>
+    <string name="profile_avatar">Avatar</string>
+    <string name="btn_save_changes">Enregistrer les modifications</string>
+    <string name="btn_see_all">Voir tout</string>
+    <string name="generic_title">Titre</string>
+    <string name="generic_artist">Artiste</string>
+
+    <!-- Achievements -->
+    <string name="ach_time_1h_title">Échauffement</string>
+    <string name="ach_time_1h_desc">1 heure d\'écoute</string>
+    <string name="ach_time_24h_title">24 Chrono</string>
+    <string name="ach_time_24h_desc">24 heures d\'écoute cumulées</string>
+    <string name="ach_time_100h_title">SoundCloud Addict</string>
+    <string name="ach_time_100h_desc">100 heures d\'écoute</string>
+    <string name="ach_time_500h_title">Demi-Mille</string>
+    <string name="ach_time_500h_desc">500 heures (20 jours) d\'écoute</string>
+    <string name="ach_time_1000h_title">Vétéran</string>
+    <string name="ach_time_1000h_desc">1000 heures d\'écoute</string>
+    <string name="ach_time_2500h_title">Grand Maître</string>
+    <string name="ach_time_2500h_desc">2500 heures d\'écoute</string>
+    <string name="ach_time_5000h_title">L\'Éternel</string>
+    <string name="ach_time_5000h_desc">5000 heures d\'écoute</string>
+    <string name="ach_time_10000h_title">Transcendance</string>
+    <string name="ach_time_10000h_desc">10 000 heures. La règle de la maîtrise.</string>
+
+    <string name="ach_plays_1_title">Premier Pas</string>
+    <string name="ach_plays_1_desc">Écouter 1 titre</string>
+    <string name="ach_plays_100_title">Curieux</string>
+    <string name="ach_plays_100_desc">100 lectures</string>
+    <string name="ach_plays_1000_title">Explorateur</string>
+    <string name="ach_plays_1000_desc">1 000 lectures</string>
+    <string name="ach_plays_5000_title">Mélomane</string>
+    <string name="ach_plays_5000_desc">5 000 lectures</string>
+    <string name="ach_plays_10000_title">Machine</string>
+    <string name="ach_plays_10000_desc">10 000 lectures</string>
+    <string name="ach_plays_20000_title">Visionnaire</string>
+    <string name="ach_plays_20000_desc">20 000 lectures</string>
+    <string name="ach_plays_50000_title">Oracle</string>
+    <string name="ach_plays_50000_desc">50 000 lectures</string>
+    <string name="ach_plays_100000_title">Dieu du Son</string>
+    <string name="ach_plays_100000_desc">100 000 lectures. Le boss final.</string>
+
+    <string name="ach_streak_7_title">Semaine complète</string>
+    <string name="ach_streak_7_desc">7 jours consécutifs</string>
+    <string name="ach_streak_30_title">Habitué</string>
+    <string name="ach_streak_30_desc">1 mois (30 jours) consécutifs</string>
+    <string name="ach_streak_100_title">Centenaire</string>
+    <string name="ach_streak_100_desc">100 jours consécutifs.</string>
+    <string name="ach_streak_200_title">Double Centenaire</string>
+    <string name="ach_streak_200_desc">200 jours consécutifs.</string>
+    <string name="ach_streak_365_title">Année Parfaite</string>
+    <string name="ach_streak_365_desc">365 jours consécutifs.</string>
+    <string name="ach_streak_500_title">Invincible</string>
+    <string name="ach_streak_500_desc">500 jours consécutifs.</string>
+    <string name="ach_early_bird_title">Lève-tôt</string>
+    <string name="ach_early_bird_desc">Écouter 10 fois entre 5h et 8h</string>
+    <string name="ach_night_owl_title">Oiseau de Nuit</string>
+    <string name="ach_night_owl_desc">Écouter 10 fois entre 3h et 5h</string>
+    <string name="ach_lunch_break_title">Pause Déj</string>
+    <string name="ach_lunch_break_desc">Écouter 10 fois entre 12h et 13h</string>
+
+    <string name="ach_liker_50_title">Passionné</string>
+    <string name="ach_liker_50_desc">Liker 50 titres</string>
+    <string name="ach_liker_1000_title">Cœur d\'Or</string>
+    <string name="ach_liker_1000_desc">Liker 1000 titres</string>
+    <string name="ach_liker_5000_title">Amour Infini</string>
+    <string name="ach_liker_5000_desc">Liker 5000 titres</string>
+    <string name="ach_playlist_creator_title">Selecta</string>
+    <string name="ach_playlist_creator_desc">Créer 5 playlists locales</string>
+    <string name="ach_playlist_god_title">Architecte</string>
+    <string name="ach_playlist_god_desc">Créer 50 playlists locales</string>
+    <string name="ach_download_100_title">Data Hoarder</string>
+    <string name="ach_download_100_desc">Télécharger 100 titres</string>
+    <string name="ach_download_1000_title">Serveur</string>
+    <string name="ach_download_1000_desc">Télécharger 1000 titres</string>
+
+    <string name="ach_skipper_100_title">Zappeur</string>
+    <string name="ach_skipper_100_desc">Passer 100 titres</string>
+    <string name="ach_skipper_1000_title">Jamais Satisfait</string>
+    <string name="ach_skipper_1000_desc">Passer 1000 titres</string>
+    <string name="ach_bass_addict_title">Bass Addict</string>
+    <string name="ach_bass_addict_desc">Écouter 10h avec le Bass Boost</string>
+    <string name="ach_speed_demon_title">Nightcore Fan</string>
+    <string name="ach_speed_demon_desc">Écouter 1h en vitesse > 1.2x</string>
+    <string name="ach_social_star_title">Viral</string>
+    <string name="ach_social_star_desc">Partager 50 titres</string>
+
+    <string name="ach_obsessed_50_title">Obsédé</string>
+    <string name="ach_obsessed_50_desc">Écouter le MÊME titre 50 fois</string>
+    <string name="ach_obsessed_200_title">Folie Pure</string>
+    <string name="ach_obsessed_200_desc">Écouter le MÊME titre 200 fois</string>
+    <string name="ach_night_shift_pro_title">Vampire</string>
+    <string name="ach_night_shift_pro_desc">Écouter 500 heures la nuit (22h-06h)</string>
+    <string name="ach_marathon_title">Marathonien</string>
+    <string name="ach_marathon_desc">Écouter 8h d\'affilée sans fermer l\'app</string>
+    <string name="ach_no_skip_50_title">Concentration</string>
+    <string name="ach_no_skip_50_desc">Écouter 50 titres sans skip</string>
+    <string name="achievements_reset_success">Succès réinitialisés.</string>
+    <string name="ach_secret_desc">\?</string>
+    <string name="ach_developer_title">Hacker</string>
+    <string name="ach_weekend_warrior_title">Weekend Warrior</string>
+    <string name="ach_ghost_title">Fantôme</string>
+    <string name="ach_lucky7_title">Jackpot</string>
+    <string name="ach_glitch_title">Glitch in the Matrix</string>
+    <string name="align_center_simple">Centré</string>
+
+    <string name="storage_used_formatted">%1$s utilisés</string>
+    <string name="storage_free_formatted">%1$s libres</string>
+    <string name="storage_change_cta">Appuyer pour changer</string>
+
+    <!-- Licenses Screen -->
+    <string name="about_licenses_title">Licences Open Source</string>
+    <string name="license_author_prefix">par %1$s</string>
+    <string name="open_in_new">Ouvrir dans une nouvelle fenêtre</string>
+
+    <!-- Player Screen & Associated Sheets -->
+    <string name="player_like_action">Aimer</string>
+    <string name="player_effects">Effets</string>
+    <string name="menu_remove_local_q">Retirer ?</string>
+    <string name="menu_remove_local_body">Ce fichier ne sera plus listé dans l\'application (le fichier ne sera pas effacé du téléphone).</string>
+    <string name="menu_remove_download_q">Supprimer le téléchargement ?</string>
+    <string name="menu_remove_download_body">Ce titre sera retiré de votre stockage local.</string>
+    <string name="comment_anonymous">Anonyme</string>
+    <string name="comment_default_avatar">Avatar par défaut</string>
+    <string name="comment_send_action">Envoyer</string>
+    <string name="time_now">À l\'instant</string>
+    <string name="time_minutes_ago">il y a %1$d min</string>
+    <string name="time_hours_ago">il y a %1$d h</string>
+    <string name="time_days_ago">il y a %1$d j</string>
+    <string name="time_weeks_ago">il y a %1$d sem.</string>
+    <string name="time_months_ago">il y a %1$d mois</string>
+    <string name="time_one_year_ago">il y a 1 an</string>
+    <string name="time_years_ago">il y a %1$d ans</string>
+    <string name="detail_file_size_formatted">%.2f Mo</string>
+
+    <!-- Notifications -->
+    <string name="settings_cat_notifications">Notifications</string>
+    <string name="pref_achievement_popups">Pop-ups de succès</string>
+    <string name="pref_achievement_popups_sub">Afficher une notification lors d\'un succès.</string>
+    <string name="achievement_unlocked">Succès déverrouillé</string>
+    <string name="achievement_xp">%1$d XP</string>
+    <string name="streak_popup_title">Série quotidienne</string>
+    <string name="streak_popup_subtitle">%1$d Jour(s)</string>
+    <string name="test_notification_triggered">Notification de test déclenchée !</string>
+
+    <!-- Credits & Community -->
+    <string name="about_credits">Crédits</string>
+    <string name="about_role_dev">Créateur &amp; Développeur Principal</string>
+    <string name="about_role_translation">Traduction hongroise &amp; relecture</string>
+    <string name="about_translate_title">Traduire KittyTune</string>
+    <string name="about_translate_desc">Vous voulez l\'appli dans votre langue ? ( ◕▿◕ )\nOuvrez une Pull Request sur GitHub !</string>
+    <string name="about_made_with">Fait avec ( ˘ ³˘)♥ par Alan</string>
+</resources>
