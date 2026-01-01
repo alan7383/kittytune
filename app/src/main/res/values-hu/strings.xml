@@ -463,7 +463,7 @@
     <string name="ach_obsessed_200_title">Tiszta Őrület</string>
     <string name="ach_obsessed_200_desc">Hallgasd UGYANAZT a számot 200-szor</string>
     <string name="ach_night_shift_pro_title">Vámpír</string>
-    <string name="ach_night_shift_pro_desc">Hallgass 500 órát éjjel (22-06h)</string>
+    <string name="ach_night_shift_pro_desc">Hallgass zenét 8 órán át megszakítás nélkül 22:00-tól 06:00-ig</string>
     <string name="ach_marathon_title">Maratonista</string>
     <string name="ach_marathon_desc">Hallgass zenét 8 órán át az app bezárása nélkül</string>
     <string name="ach_no_skip_50_title">Fókusz</string>

@@ -1,6 +1,6 @@
 ================================================================================
 PROJET : /home/alan/AndroidStudioProjects/KittyTune/app/src/main
-DATE   : mer. 31 déc. 2025 17:07:59 CET
+DATE   : mer. 31 déc. 2025 23:15:06 CET
 ================================================================================
 
 RÉSUMÉ :
@@ -380,20 +380,17 @@ FICHIER : ./java/com/alananasss/kittytune/data/AchievementManager.kt
             val isNewDay = currentYear != lastYear || currentDayOfYear != lastDayOfYear
     
             if (isNewDay) {
-                // C'est un nouveau jour, on calcule la nouvelle série
                 val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
                 val isConsecutive = (lastYear == yesterday.get(Calendar.YEAR) && lastDayOfYear == yesterday.get(Calendar.DAY_OF_YEAR))
     
                 currentStreak = if (isConsecutive) currentStreak + 1 else 1
     
-                // Sauvegarde le nouvel état
                 prefs.edit()
                     .putInt("last_streak_day_of_year", currentDayOfYear)
                     .putInt("last_streak_year", currentYear)
                     .putInt("current_streak_count", currentStreak)
                     .apply()
     
-                // Envoie la notification de série
                 scope.launch {
                     val popupPrefs = PlayerPreferences(context)
                     if (popupPrefs.getAchievementPopupsEnabled()) {
@@ -408,16 +405,12 @@ FICHIER : ./java/com/alananasss/kittytune/data/AchievementManager.kt
                     }
                 }
     
-                // Gère le succès du week-end
                 val dayOfWeek = now.get(Calendar.DAY_OF_WEEK)
                 if (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY) {
                     increment("weekend_warrior")
                 }
             }
     
-            // --- CORRECTION PRINCIPALE ---
-            // Met à jour l'affichage et la sauvegarde de la progression pour TOUS les succès de série,
-            // que ce soit un nouveau jour ou un simple redémarrage.
             val streakDefs = definitions.filter { it.category == AchievementCategory.LOYALTY && it.id.startsWith("streak_") }
             streakDefs.forEach { def ->
                 if (_progressFlow.value[def.id]?.isUnlocked == false) {
@@ -521,7 +514,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
     import java.util.Date
     import java.util.Locale
     
-    // Modèle global de sauvegarde
+    // Global backup model
     data class FullBackupData(
         val version: Int = 1,
         val timestamp: Long = System.currentTimeMillis(),
@@ -530,9 +523,9 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
         val playlistRefs: List<PlaylistTrackCrossRef>,
         val savedArtists: List<LocalArtist>,
         val history: List<HistoryItem>,
-        val likedTracks: List<Track>, // Depuis LikeRepository
-        val achievements: Map<String, Any?>, // Depuis AchievementManager SharedPreferences
-        val playerPrefs: Map<String, Any?> // Depuis PlayerPreferences
+        val likedTracks: List<Track>,
+        val achievements: Map<String, Any?>,
+        val playerPrefs: Map<String, Any?>
     )
     
     object BackupManager {
@@ -541,24 +534,10 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
         suspend fun createBackup(context: Context, uri: Uri) {
             withContext(Dispatchers.IO) {
                 val db = AppDatabase.getDatabase(context).downloadDao()
-    
-                // 1. Récupération des données DB
-                // Note: On utilise first() sur les Flows pour avoir l'état instantané
-                val tracks = db.getAllTracks().first() // Attention: getAllTracks filtre les paths vides, on veut peut-être tout ici.
-                // Pour le backup, on veut vraiment tout ce qui est en base, on va créer une requête spécifique ou utiliser l'existant.
-                // On va utiliser getOrphanTracksList combiné aux tracks de playlist pour être sûr, ou simplement tout ce qu'on a.
-                // Pour simplifier et être sûr, on suppose que getAllTracks est suffisant, sinon on peut ajouter une requête brute dans le DAO.
-    
-                // On va récupérer les playlists
+                val tracks = db.getAllTracks().first()
                 val playlists = db.getAllPlaylists().first()
-    
-                // Pour les Refs, on n'a pas de méthode directe "getAllRefs", on va devoir l'ajouter dans le DAO ou faire avec.
-                // AJOUT REQUIS DANS AppDatabase : @Query("SELECT * FROM playlist_track_cross_ref")
-                // Comme je ne peux pas modifier ton AppDatabase.kt facilement sans te redonner tout le fichier,
-                // on va ruser : On itère sur les playlists pour choper les refs.
                 val allRefs = mutableListOf<PlaylistTrackCrossRef>()
                 playlists.forEach { playlist ->
-                    // Cette partie est un peu lourde sans requête directe, mais fonctionnelle
                     val tracksInPlaylist = db.getTracksForPlaylistSync(playlist.id)
                     tracksInPlaylist.forEach { track ->
                         val ref = db.getRef(playlist.id, track.id)
@@ -568,15 +547,10 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
     
                 val artists = db.getAllSavedArtists().first()
                 val history = db.getHistory().first()
-    
-                // 2. Récupération des Likes (Repository)
                 val likes = LikeRepository.likedTracks.value
-    
-                // 3. Récupération des Préférences (Achievements & Player)
                 val achievementPrefs = context.getSharedPreferences("achievements_prefs", Context.MODE_PRIVATE).all
                 val playerPrefsMap = context.getSharedPreferences("player_state", Context.MODE_PRIVATE).all
     
-                // 4. Construction de l'objet
                 val backupData = FullBackupData(
                     localTracks = tracks,
                     localPlaylists = playlists,
@@ -588,7 +562,6 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
                     playerPrefs = playerPrefsMap
                 )
     
-                // 5. Écriture du fichier
                 val jsonString = gson.toJson(backupData)
                 context.contentResolver.openOutputStream(uri)?.use { output ->
                     output.write(jsonString.toByteArray())
@@ -601,15 +574,12 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
                 val db = AppDatabase.getDatabase(context).downloadDao()
                 val contentResolver = context.contentResolver
     
-                // 1. Lecture du fichier
                 val jsonString = contentResolver.openInputStream(uri)?.use { inputStream ->
                     BufferedReader(InputStreamReader(inputStream)).readText()
                 } ?: throw Exception("Impossible de lire le fichier")
     
                 val data: FullBackupData = gson.fromJson(jsonString, FullBackupData::class.java)
     
-                // 2. Restauration DB (On nettoie tout avant pour éviter les conflits ?)
-                // C'est plus sûr de "merger" ou d'écraser. Ici on va tenter d'écraser intelligemment.
     
                 // Tracks
                 data.localTracks.forEach { db.insertTrack(it) }
@@ -626,17 +596,15 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
                 // History
                 data.history.forEach { db.insertHistory(it) }
     
-                // 3. Restauration Likes
                 LikeRepository.replaceAllLikes(data.likedTracks)
     
                 // 4. Restauration Preferences
                 restorePrefs(context, "achievements_prefs", data.achievements)
                 restorePrefs(context, "player_state", data.playerPrefs)
     
-                // 5. Ré-init des managers pour prendre en compte les changements
+                // 5. Re-initializing managers to take changes into account
                 withContext(Dispatchers.Main) {
                     AchievementManager.init(context)
-                    // On pourrait avoir besoin de recharger d'autres composants si nécessaire
                 }
             }
         }
@@ -644,17 +612,14 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
         private fun restorePrefs(context: Context, prefName: String, map: Map<String, Any?>) {
             val prefs = context.getSharedPreferences(prefName, Context.MODE_PRIVATE)
             val editor = prefs.edit()
-            editor.clear() // On efface les anciennes prefs pour être propre
+            editor.clear()
     
             map.forEach { (key, value) ->
                 when (value) {
                     is Boolean -> editor.putBoolean(key, value)
                     is Float -> editor.putFloat(key, value)
-                    is Int -> editor.putInt(key, value.toInt()) // Gson convertit parfois les entiers en Double
+                    is Int -> editor.putInt(key, value.toInt())
                     is Double -> {
-                        // Cas délicat : Gson parse les nombres en Double par défaut
-                        // On doit deviner si c'était un Long ou un Int à l'origine
-                        // ou on cast en Long si la clé le suggère
                         if (key.contains("time") || key.contains("date") || key.contains("position")) {
                             editor.putLong(key, value.toLong())
                         } else {
@@ -663,11 +628,9 @@ FICHIER : ./java/com/alananasss/kittytune/data/BackupManager.kt
                     }
                     is String -> editor.putString(key, value)
                     is Long -> editor.putLong(key, value)
-                    // Les Sets de String sont complexes à sérialiser/désérialiser en JSON simple,
-                    // souvent convertis en List par Gson. On gère le cas simple ici.
                 }
             }
-            editor.commit() // Commit synchrone pour être sûr
+            editor.commit()
         }
     
         fun getBackupFileName(): String {
@@ -738,14 +701,13 @@ FICHIER : ./java/com/alananasss/kittytune/data/DownloadManager.kt
             prefs = PlayerPreferences(context)
         }
     
-        // --- UTILITAIRE NOM DE FICHIER ---
+        // --- UTILITY FILE NAME ---
         private fun sanitizeFilename(name: String): String {
             // Remplace les caractères interdits par des underscores
             return name.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
         }
     
-        // --- GESTION FICHIERS (Interne vs Externe) ---
-    
+        // --- FILE MANAGEMENT (Internal vs External) ---
         private fun getOutputStreamForFile(fileName: String, mimeType: String): Pair<OutputStream, String> {
             val customUriStr = prefs.getDownloadLocation()
     
@@ -755,7 +717,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/DownloadManager.kt
                     val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
                         ?: throw Exception("Impossible d'accéder au dossier externe")
     
-                    // Si le fichier existe déjà, on le supprime pour le recréer proprement
+                    // If the file already exists, we delete it and recreate it properly
                     val existing = rootDoc.findFile(fileName)
                     if (existing != null) existing.delete()
     
@@ -771,7 +733,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/DownloadManager.kt
                     throw e
                 }
             } else {
-                // Stockage interne public (Music folder de l'app ou FilesDir)
+                // Public internal storage (App's Music folder or FilesDir)
                 val file = File(context.filesDir, fileName)
                 return Pair(FileOutputStream(file), file.absolutePath)
             }
@@ -793,8 +755,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/DownloadManager.kt
             }
         }
     
-        // --- NETTOYAGE ---
-    
+        // --- CLEANING ---
         fun removeAllContent(includeAudio: Boolean, includeImages: Boolean) {
             scope.launch {
                 val allTracks = database.downloadDao().getAllTracks().first()
@@ -823,7 +784,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/DownloadManager.kt
             }
         }
     
-        // --- PLAYLISTS & DB --- (Code inchangé pour cette partie)
+        // --- PLAYLISTS & DB ---
         fun createUserPlaylist(name: String): Long {
             val newId = -(System.currentTimeMillis())
             val playlist = LocalPlaylist(id = newId, title = name, artist = "Moi", artworkUrl = "", trackCount = 0, isUserCreated = true)
@@ -901,76 +862,71 @@ FICHIER : ./java/com/alananasss/kittytune/data/DownloadManager.kt
             }
         }
     
-        // --- CŒUR DU TÉLÉCHARGEMENT AVEC METADATA & NOM PROPRE ---
-    
+        // --- HEART OF THE DOWNLOAD WITH METADATA & PROPER NAME ---
         private fun startDownloadJob(track: Track) {
             val job = scope.launch {
-                // Fichiers temporaires dans le cache (invisibles pour l'utilisateur)
+                // Temporary files in the cache (invisible to the user)
                 val tempAudioFile = File(context.cacheDir, "temp_${track.id}.mp3")
                 val tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
                 val taggedAudioFile = File(context.cacheDir, "tagged_${track.id}.mp3")
     
-                // Fichier image interne (Pour l'affichage dans l'app uniquement)
+                // Internal image file (For display in the app only)
                 val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
     
                 try {
                     _downloadProgress.update { it + (track.id to 0) }
                     val streamUrl = resolveStreamUrl(track)
     
-                    // 1. Télécharger l'audio brut en temporaire
+                    // 1. Download the raw audio temporarily
                     downloadFileToStream(streamUrl, FileOutputStream(tempAudioFile)) { p ->
                         _downloadProgress.update { c -> c + (track.id to p) }
                     }
     
-                    // 2. Télécharger l'image brute en temporaire
+                    // 2. Download the raw image temporarily
                     downloadFileToStream(track.fullResArtwork, FileOutputStream(tempImageFile)) { _ -> }
     
-                    // 3. Sauvegarder l'image en INTERNE pour l'app (pour ne pas polluer la galerie)
+                    // 3. Save the image INTERNALLY for the app (to avoid cluttering the gallery)
                     if (tempImageFile.exists()) {
                         tempImageFile.copyTo(internalArtFile, overwrite = true)
                     }
     
-                    // 4. INJECTION DES METADONNÉES (ID3 Tags) via mp3agic
+                    // 4. INJECTION OF METADATA (ID3 Tags) via mp3agic
                     try {
                         val mp3file = Mp3File(tempAudioFile)
                         val id3v2Tag = if (mp3file.hasId3v2Tag()) mp3file.id3v2Tag else ID3v24Tag()
                         mp3file.id3v2Tag = id3v2Tag
     
-                        // Métadonnées
+                        // Metadata
                         id3v2Tag.title = track.title ?: "Titre Inconnu"
                         id3v2Tag.artist = track.user?.username ?: "Artiste Inconnu"
                         id3v2Tag.album = "SoundTune"
                         id3v2Tag.comment = "Téléchargé avec KittyTune"
     
-                        // Injection de la pochette dans le MP3
+                        // Injecting the album art into the MP3
                         val imageBytes = tempImageFile.readBytes()
                         id3v2Tag.setAlbumImage(imageBytes, "image/jpeg")
     
                         mp3file.save(taggedAudioFile.absolutePath)
                     } catch (e: Exception) {
                         Log.e("DownloadManager", "Erreur tagging ID3: ${e.message}")
-                        // Fallback: si le tagging échoue (ex: format AAC/Opus non supporté par mp3agic), on copie le fichier brut
                         tempAudioFile.copyTo(taggedAudioFile, overwrite = true)
                     }
     
-                    // 5. Copie vers la destination finale (Public)
+                    // 5. Copy to final destination (Public)
     
-                    // Construction d'un nom de fichier propre : "Artiste - Titre.mp3"
+                    // Creating a clean filename: "Artist - Title.mp3"
                     val cleanArtist = sanitizeFilename(track.user?.username ?: "Artiste")
                     val cleanTitle = sanitizeFilename(track.title ?: "Titre")
                     val finalFileName = "$cleanArtist - $cleanTitle.mp3"
     
                     val (audioStream, audioPath) = getOutputStreamForFile(finalFileName, "audio/mpeg")
     
-                    // Copie du fichier final (taggé) vers le stockage utilisateur
+                    // Copy of the final (tagged) file to user storage
                     FileInputStream(taggedAudioFile).use { input ->
                         audioStream.use { output ->
                             input.copyTo(output)
                         }
                     }
-    
-                    // 6. Update DB
-                    // Note: localArtworkPath pointe vers le fichier interne caché, pas vers un jpg public
                     val localTrack = LocalTrack(
                         id = track.id,
                         title = track.title ?: "?",
@@ -1182,10 +1138,10 @@ FICHIER : ./java/com/alananasss/kittytune/data/LikeRepository.kt
     import kotlinx.coroutines.flow.update
     
     object LikeRepository {
-        private const val PREF_NAME = "soundtune_likes_v3" // v3 pour forcer un refresh propre
+        private const val PREF_NAME = "soundtune_likes_v3"
         private const val KEY_LIKED_TRACKS = "liked_tracks_full"
-        private const val KEY_PRIORITY_IDS = "saved_priority_ids" // Likes locaux non-synchro
-        private const val KEY_DELETED_IDS = "saved_deleted_ids"   // Unlikes locaux non-synchro
+        private const val KEY_PRIORITY_IDS = "saved_priority_ids"
+        private const val KEY_DELETED_IDS = "saved_deleted_ids"
     
         private lateinit var prefs: SharedPreferences
         private val gson = Gson()
@@ -1207,7 +1163,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LikeRepository.kt
         fun addLike(track: Track) {
             deletedIds.remove(track.id)
             priorityIds.add(track.id)
-            // Ajout immédiat en haut de liste pour l'UI
+            // Added immediately to the top of the list for the UI
             _likedTracks.update { current ->
                 listOf(track.copy(isLiked = true)) + current.filterNot { it.id == track.id }
             }
@@ -1217,7 +1173,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LikeRepository.kt
         fun removeLike(trackId: Long) {
             priorityIds.remove(trackId)
             deletedIds.add(trackId)
-            // Retrait immédiat pour l'UI
+            // Immediate removal for the UI
             _likedTracks.update { current ->
                 current.filterNot { it.id == trackId }
             }
@@ -1228,28 +1184,26 @@ FICHIER : ./java/com/alananasss/kittytune/data/LikeRepository.kt
             return _likedTracks.value.any { it.id == trackId }
         }
     
-        // --- LE NOUVEAU SYSTÈME DE SYNC "SILENCIEUX" ---
-    
-        // Cette fonction ne met plus à jour le Flow à chaque page.
-        // Elle remplace TOUT une fois que c'est fini.
+        // This function no longer updates the Flow on every page.
+        // It replaces EVERYTHING once it's finished.
         fun replaceAllLikes(serverTracks: List<Track>) {
             val serverIds = serverTracks.map { it.id }.toSet()
     
-            // 1. On nettoie nos priorités locales si le serveur les connait
+            // 1. We clean up our local priorities if the server knows them
             val syncedVips = priorityIds.filter { serverIds.contains(it) }
             if (syncedVips.isNotEmpty()) {
                 priorityIds.removeAll(syncedVips.toSet())
             }
     
-            // 2. On reconstruit la liste finale
-            // D'abord les likes locaux récents (Priorité)
+            // 2. We rebuild the final list
+            // First, recent local likes (Priority)
             val localVips = _likedTracks.value.filter { priorityIds.contains(it.id) }
     
-            // Ensuite les tracks du serveur (en enlevant ceux qu'on a supprimé localement)
+            // Then the server tracks (removing those that were deleted locally)
             val validServerTracks = serverTracks.filterNot { deletedIds.contains(it.id) }
                 .map { it.copy(isLiked = true) }
     
-            // 3. Mise à jour atomique
+            // 3. Atomic Update
             val finalList = localVips + validServerTracks
     
             _likedTracks.value = finalList
@@ -1316,7 +1270,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/AppDatabase.kt
     
     @Dao
     interface DownloadDao {
-        // --- PISTES ---
+        // --- TRACKS ---
         @Insert(onConflict = OnConflictStrategy.IGNORE)
         suspend fun insertTrack(track: LocalTrack)
     
@@ -1329,9 +1283,8 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/AppDatabase.kt
         @Query("DELETE FROM downloaded_tracks WHERE id = :trackId")
         suspend fun deleteTrack(trackId: Long)
     
-        // --- CORRECTION ICI ---
-        // On ne retourne QUE les titres qui ont un chemin audio valide (non vide)
-        // Cela empêche les titres ajoutés aux playlists d'apparaître dans "Téléchargements" s'ils ne sont pas téléchargés.
+        // We only return tracks with a valid (non-empty) audio path.
+        // This prevents tracks added to playlists from appearing in "Downloads" if they haven't been downloaded.
         @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != ''")
         fun getAllTracks(): Flow<List<LocalTrack>>
     
@@ -1378,7 +1331,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/AppDatabase.kt
         @Query("SELECT * FROM downloaded_tracks WHERE id NOT IN (SELECT trackId FROM playlist_track_cross_ref)")
         suspend fun getOrphanTracksList(): List<LocalTrack>
     
-        // --- RELATIONS ---
+        // --- RELATIONSHIPS ---
         @Transaction
         @Query("""
             SELECT downloaded_tracks.* FROM downloaded_tracks 
@@ -1388,7 +1341,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/AppDatabase.kt
         """)
         fun getTracksForPlaylist(playlistId: Long): Flow<List<LocalTrack>>
     
-        // --- ARTISTES ---
+        // --- ARTISTS ---
         @Insert(onConflict = OnConflictStrategy.REPLACE)
         suspend fun insertArtist(artist: LocalArtist)
     
@@ -1404,7 +1357,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/AppDatabase.kt
         @Query("SELECT * FROM saved_artists ORDER BY savedAt DESC")
         fun getAllSavedArtists(): Flow<List<LocalArtist>>
     
-        // --- HISTORIQUE ---
+        // --- HISTORY ---
         @Insert(onConflict = OnConflictStrategy.REPLACE)
         suspend fun insertHistory(item: HistoryItem)
     
@@ -1414,7 +1367,6 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/AppDatabase.kt
         @Query("DELETE FROM play_history WHERE id = :itemId")
         suspend fun deleteHistoryItem(itemId: String)
     
-        // Ajoute cette méthode pour récupérer la liste brute (pas de Flow)
         @Query("""
         SELECT downloaded_tracks.* FROM downloaded_tracks 
         INNER JOIN playlist_track_cross_ref ON downloaded_tracks.id = playlist_track_cross_ref.trackId 
@@ -1477,7 +1429,6 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/Entities.kt
         val trackCount: Int,
         val isUserCreated: Boolean = false,
         val localCoverPath: String? = null,
-        // C'EST ICI LA CLÉ DU SUCCÈS : Date d'ajout locale
         val addedAt: Long = System.currentTimeMillis()
     )
     
@@ -1530,13 +1481,13 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
     
     object LocalMediaRepository {
     
+        // observable states for the ui
         private val _isScanning = MutableStateFlow(false)
         val isScanning = _isScanning.asStateFlow()
     
-        private val _scanProgress = MutableStateFlow("") // Initialisé à vide
+        private val _scanProgress = MutableStateFlow("")
         val scanProgress = _scanProgress.asStateFlow()
     
-        // MODIFICATION : La fonction prend maintenant un Context en paramètre
         suspend fun scanLocalMedia(context: Context) {
             if (_isScanning.value) return
             _isScanning.value = true
@@ -1547,6 +1498,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
                     val prefs = PlayerPreferences(context)
                     val uriSet = prefs.getLocalMediaUris()
     
+                    // check if the user actually selected some folders
                     if (uriSet.isEmpty()) {
                         _scanProgress.value = context.getString(R.string.pref_local_scan_status_no_folder)
                         _isScanning.value = false
@@ -1558,6 +1510,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
     
                     _scanProgress.value = context.getString(R.string.pref_local_scan_status_searching)
     
+                    // dig through the folders recursively
                     uriSet.forEach { uriStr ->
                         try {
                             val treeUri = Uri.parse(uriStr)
@@ -1581,6 +1534,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
                     val tracksToInsert = mutableListOf<LocalTrack>()
                     var processed = 0
     
+                    // now process each file to get metadata
                     foundFiles.forEach { file ->
                         processed++
                         if (processed % 10 == 0) {
@@ -1612,6 +1566,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
             }
         }
     
+        // recursive helper to find audio files
         private fun collectAudioFiles(dir: DocumentFile, list: MutableList<DocumentFile>) {
             dir.listFiles()?.forEach { file ->
                 if (file.isDirectory) {
@@ -1621,6 +1576,8 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
                     val name = file.name?.lowercase() ?: ""
     
                     val isAudioMime = type.startsWith("audio/")
+    
+                    // check extensions manually just in case
                     val isAudioExtension = name.endsWith(".mp3") ||
                             name.endsWith(".flac") ||
                             name.endsWith(".wav") ||
@@ -1646,6 +1603,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
             return try {
                 retriever.setDataSource(context, uri)
     
+                // extract title, artist, cover art...
                 val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
                     ?: file.name?.substringBeforeLast(".")
                     ?: context.getString(R.string.untitled_track)
@@ -1659,6 +1617,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
                 val artworkBytes = retriever.embeddedPicture
                 var artworkPath = ""
     
+                // save embedded art to disk so glide can load it
                 if (artworkBytes != null) {
                     val fileName = "local_art_${file.name.hashCode()}.jpg"
                     val artFile = File(context.filesDir, fileName)
@@ -1668,6 +1627,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
                     artworkPath = artFile.absolutePath
                 }
     
+                // generate a unique negative id for local tracks
                 var id = uri.toString().hashCode().toLong()
                 if (id > 0) id *= -1
                 if (id == 0L) id = -1L
@@ -1690,6 +1650,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/LocalMediaRepository.kt
         }
     
         fun isLocalTrack(id: Long): Boolean {
+            // local tracks have negative ids
             return id < 0 && id > -9000000000000000000
         }
     }
@@ -1708,13 +1669,11 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/PlayerPreferences.kt
     import com.google.gson.Gson
     import com.google.gson.reflect.TypeToken
     
-    // Enums existants...
     enum class AppThemeMode { SYSTEM, LIGHT, DARK }
     enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR }
     enum class StartDestination { HOME, LIBRARY }
     enum class LyricsAlignment { LEFT, CENTER, RIGHT }
     
-    // --- NOUVEL ENUM LANGUE ---
     enum class AppLanguage(val code: String) {
         SYSTEM("system"),
         FRENCH("fr"),
@@ -1727,7 +1686,6 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/PlayerPreferences.kt
         private val gson = Gson()
     
         companion object {
-            // ... (Clés existantes inchangées) ...
             private const val KEY_TRACK_JSON = "last_track_json"
             private const val KEY_POSITION = "last_position"
             private const val KEY_QUEUE_JSON = "last_queue_full_json"
@@ -1746,8 +1704,6 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/PlayerPreferences.kt
             private const val KEY_PLAYER_STYLE = "player_background_style"
             private const val KEY_LOCAL_MEDIA_ENABLED = "local_media_enabled"
             private const val KEY_LOCAL_MEDIA_URIS_SET = "local_media_uris_set_v2"
-    
-            // --- PAROLES ---
             private const val KEY_LYRICS_PREFER_LOCAL = "lyrics_prefer_local"
             private const val KEY_LYRICS_ALIGNMENT = "lyrics_alignment"
             private const val KEY_LYRICS_FONT_SIZE = "lyrics_font_size"
@@ -1758,7 +1714,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/PlayerPreferences.kt
         fun getAchievementPopupsEnabled(): Boolean = prefs.getBoolean(KEY_ACHIEVEMENT_POPUPS, false) // désactivé par défaut
         fun setAchievementPopupsEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_ACHIEVEMENT_POPUPS, enabled).apply()
     
-        // --- GESTION LANGUE ---
+        // --- LANGUAGE MANAGEMENT ---
         fun getAppLanguage(): AppLanguage {
             val code = prefs.getString(KEY_APP_LANGUAGE, AppLanguage.SYSTEM.code)
             return AppLanguage.entries.find { it.code == code } ?: AppLanguage.SYSTEM
@@ -1768,7 +1724,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/PlayerPreferences.kt
             prefs.edit().putString(KEY_APP_LANGUAGE, language.code).apply()
         }
     
-        // --- PAROLES ---
+        // --- LYRICS ---
     
         fun getLyricsPreferLocal(): Boolean = prefs.getBoolean(KEY_LYRICS_PREFER_LOCAL, false)
         fun setLyricsPreferLocal(enabled: Boolean) = prefs.edit().putBoolean(KEY_LYRICS_PREFER_LOCAL, enabled).apply()
@@ -1779,22 +1735,14 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/PlayerPreferences.kt
         }
         fun setLyricsAlignment(align: LyricsAlignment) = prefs.edit().putString(KEY_LYRICS_ALIGNMENT, align.name).apply()
     
-        // Taille par défaut : 26f (sp)
+        // Default size: 26f (sp)
         fun getLyricsFontSize(): Float = prefs.getFloat(KEY_LYRICS_FONT_SIZE, 26f)
         fun setLyricsFontSize(size: Float) = prefs.edit().putFloat(KEY_LYRICS_FONT_SIZE, size).apply()
-    
-    
-        // --- LE RESTE DU FICHIER EST INCHANGÉ ---
-        // (Garde tout le reste de tes méthodes existantes ci-dessous)
-    
-        // ... Local Media getters ...
         fun getLocalMediaEnabled(): Boolean = prefs.getBoolean(KEY_LOCAL_MEDIA_ENABLED, false)
         fun setLocalMediaEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_LOCAL_MEDIA_ENABLED, enabled).apply()
         fun getLocalMediaUris(): Set<String> = prefs.getStringSet(KEY_LOCAL_MEDIA_URIS_SET, emptySet()) ?: emptySet()
         fun addLocalMediaUri(uri: String) { val c = getLocalMediaUris().toMutableSet(); c.add(uri); prefs.edit().putStringSet(KEY_LOCAL_MEDIA_URIS_SET, c).apply() }
         fun removeLocalMediaUri(uri: String) { val c = getLocalMediaUris().toMutableSet(); c.remove(uri); prefs.edit().putStringSet(KEY_LOCAL_MEDIA_URIS_SET, c).apply() }
-    
-        // ... Apparence getters ...
         fun getStartDestination(): StartDestination { val n = prefs.getString(KEY_START_DESTINATION, StartDestination.HOME.name); return try { StartDestination.valueOf(n!!) } catch (e: Exception) { StartDestination.HOME } }
         fun setStartDestination(dest: StartDestination) = prefs.edit().putString(KEY_START_DESTINATION, dest.name).apply()
         fun getDynamicTheme(): Boolean = prefs.getBoolean(KEY_DYNAMIC_THEME, true)
@@ -1805,16 +1753,12 @@ FICHIER : ./java/com/alananasss/kittytune/data/local/PlayerPreferences.kt
         fun setPureBlack(enabled: Boolean) = prefs.edit().putBoolean(KEY_PURE_BLACK, enabled).apply()
         fun getPlayerStyle(): PlayerBackgroundStyle { val n = prefs.getString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.BLUR.name); return try { PlayerBackgroundStyle.valueOf(n!!) } catch (e: Exception) { PlayerBackgroundStyle.BLUR } }
         fun setPlayerStyle(style: PlayerBackgroundStyle) = prefs.edit().putString(KEY_PLAYER_STYLE, style.name).apply()
-    
-        // ... Audio getters ...
         fun getAutoplayEnabled(): Boolean = prefs.getBoolean(KEY_AUTOPLAY_STATION, true)
         fun setAutoplayEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_AUTOPLAY_STATION, enabled).apply()
         fun getAudioQuality(): String = prefs.getString(KEY_AUDIO_QUALITY, "HIGH") ?: "HIGH"
         fun setAudioQuality(quality: String) = prefs.edit().putString(KEY_AUDIO_QUALITY, quality).apply()
         fun getPersistentQueueEnabled(): Boolean = prefs.getBoolean(KEY_PERSISTENT_QUEUE, true)
         fun setPersistentQueueEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_PERSISTENT_QUEUE, enabled).apply()
-    
-        // ... Save/Restore methods ...
         fun savePlaybackState(track: Track?, position: Long, queue: List<Track>, context: PlaybackContext?, shuffleEnabled: Boolean, repeatMode: RepeatMode) {
             if (!getPersistentQueueEnabled()) {
                 val editor = prefs.edit()
@@ -1869,7 +1813,8 @@ FICHIER : ./java/com/alananasss/kittytune/data/MediaButtonReceiver.kt
                     }
                 }
                 "ACTION_PREVIOUS" -> {
-                    // Logique "Smart Previous" (comme Spotify)
+                    // smart previous logic
+                    // restart song if we are more than 3s in
                     if (player.currentPosition > 3000) {
                         player.seekTo(0)
                     } else if (player.hasPreviousMediaItem()) {
@@ -1880,7 +1825,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/MediaButtonReceiver.kt
                 }
                 "ACTION_STOP" -> {
                     player.pause()
-                    // Tu pourrais aussi arrêter le service ici si besoin
+                    // could also kill the service here but pause is fine for now
                 }
             }
         }
@@ -1916,7 +1861,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/MusicManager.kt
                 return _player!!
             }
     
-        // --- AJOUT : Stocke la piste en cours pour le Service ---
+        // need to store the current track here so the service can access it
         var currentTrack: Track? = null
     
         private val eightDProcessor = EightDAudioProcessor()
@@ -1937,6 +1882,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/MusicManager.kt
                             enableFloatOutput: Boolean,
                             enableAudioTrackPlaybackParams: Boolean
                         ): AudioSink {
+                            // hook up our custom processors chain here
                             return DefaultAudioSink.Builder(context)
                                 .setAudioProcessors(arrayOf(fxProcessor, reverbProcessor, eightDProcessor))
                                 .setEnableFloatOutput(enableFloatOutput)
@@ -1952,15 +1898,18 @@ FICHIER : ./java/com/alananasss/kittytune/data/MusicManager.kt
                         .build(),
                     true
                 )
-                .setHandleAudioBecomingNoisy(true)
+                .setHandleAudioBecomingNoisy(true) // pause when headphones are unplugged
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .build()
         }
     
         fun applyEffects(state: AudioEffectsState) {
             if (_player == null) return
+    
+            // if pitch is enabled (nightcore style), it follows speed
             val pitch = if (state.isPitchEnabled) state.speed else 1f
             _player?.playbackParameters = PlaybackParameters(state.speed, pitch)
+    
             eightDProcessor.setEnabled(state.is8DEnabled)
             fxProcessor.setEffects(state.isMuffledEnabled, state.isBassBoostEnabled)
             reverbProcessor.setEnabled(state.isReverbEnabled)
@@ -1995,20 +1944,14 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/LongIdAdapter.kt
                 return 0L
             }
     
-            // Cas 1 : C'est déjà un nombre (Playlist standard)
             if (reader.peek() == JsonToken.NUMBER) {
                 return reader.nextLong()
             }
     
-            // Cas 2 : C'est une String (Radio / Station)
             if (reader.peek() == JsonToken.STRING) {
                 val str = reader.nextString()
-                // On essaie de convertir directement
                 val simpleLong = str.toLongOrNull()
                 if (simpleLong != null) return simpleLong
-    
-                // Si ça échoue, c'est probablement un URN type "soundcloud:system-playlists:..."
-                // On prend ce qu'il y a après le dernier ":"
                 if (str.contains(":")) {
                     val parts = str.split(":")
                     return parts.lastOrNull()?.toLongOrNull() ?: 0L
@@ -2049,7 +1992,6 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/LrcLibApi.kt
             @Query("duration") duration: Long
         ): LrcLibResponse
     
-        // NOUVEAU : Endpoint de recherche
         @GET("search")
         suspend fun searchLyrics(
             @Query("q") query: String
@@ -2092,7 +2034,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/RetrofitClient.kt
                 val originalRequest = chain.request()
                 val token = tokenManager.getAccessToken()
     
-                // Utilisation de Config.CLIENT_ID (qui est maintenant dynamique)
+                // Using Config.CLIENT_ID
                 val newUrl = originalRequest.url.newBuilder()
                     .addQueryParameter("client_id", Config.CLIENT_ID)
                     .build()
@@ -2147,27 +2089,23 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/SoundCloudApi.kt
         @GET("me")
         suspend fun getMe(): User
     
-        // --- HOME & DÉCOUVERTE ---
-    
-        // Le Top 50 Global (ou par genre) - MODIFIÉ pour accepter 'kind' (top ou trending)
+        // --- HOME & DISCOVERY ---
         @GET("charts")
         suspend fun getCharts(
-            @Query("kind") kind: String = "top", // "top" ou "trending"
+            @Query("kind") kind: String = "top",
             @Query("genre") genre: String = "soundcloud:genres:all-music",
             @Query("limit") limit: Int = 20,
             @Query("linked_partitioning") linkedPartitioning: Int = 1
         ): ChartsResponse
     
-        // Le flux des abonnements (Stream)
+        // The subscription stream
         @GET("stream")
         suspend fun getMyStream(
             @Query("limit") limit: Int = 20,
             @Query("linked_partitioning") linkedPartitioning: Int = 1
         ): StreamResponse
     
-        // ... (Tout le reste du fichier est inchangé, copie le reste ci-dessous)
-    
-        // --- DÉTAILS TRACK ---
+        // --- TRACK DETAILS ---
         @GET("tracks/{trackId}/likers")
         suspend fun getTrackLikers(
             @Path("trackId") trackId: Long,
@@ -2186,7 +2124,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/SoundCloudApi.kt
             @Query("limit") limit: Int = 50
         ): InPlaylistCollection
     
-        // --- PAGINATION GÉNÉRIQUE ---
+        // --- GENERIC PAGINATION ---
         @GET
         suspend fun getLikersNextPage(@Url url: String): LikerCollection
     
@@ -2213,7 +2151,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/SoundCloudApi.kt
         @GET
         suspend fun getRepostsNextPage(@Url url: String): RepostCollection
     
-        // --- RECHERCHE ---
+        // --- RESEARCH ---
         @GET("search/tracks")
         suspend fun searchTracks(
             @Query("q") query: String,
@@ -2257,7 +2195,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/SoundCloudApi.kt
             @Query("limit") limit: Int = 20
         ): UserPlaylistsResponse
     
-        // --- FAVORIS ---
+        // --- FAVORITES ---
         @GET("users/{userId}/track_likes")
         suspend fun getUserTrackLikes(
             @Path("userId") userId: Long,
@@ -2296,7 +2234,6 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/SoundCloudApi.kt
         @GET("system-playlists/soundcloud:system-playlists:artist-stations:{userId}")
         suspend fun getArtistStation(@Path("userId") userId: Long): Playlist
     
-        // --- HOME & PROFIL ---
         @GET("tracks/{trackId}/related")
         suspend fun getRelatedTracks(
             @Path("trackId") trackId: Long,
@@ -2328,7 +2265,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/network/SoundCloudApi.kt
             @Query("limit") limit: Int = 20
         ): UserPlaylistsResponse
     
-        // --- COMMENTAIRES ---
+        // --- COMMENTS ---
         @GET("tracks/{trackId}/comments")
         suspend fun getTrackComments(
             @Path("trackId") trackId: Long,
@@ -2395,7 +2332,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/PlaybackService.kt
             private const val NOTIFICATION_ID = 1001
             private const val CHANNEL_ID = "soundtune_playback_channel"
             private const val ACTION_CUSTOM_LIKE = "ACTION_CUSTOM_LIKE"
-            // --- AJOUT : Action pour forcer le rafraîchissement ---
+            // added: action to force a refresh
             const val ACTION_FORCE_UPDATE = "com.alananasss.kittytune.ACTION_FORCE_UPDATE"
         }
     
@@ -2422,10 +2359,10 @@ FICHIER : ./java/com/alananasss/kittytune/data/PlaybackService.kt
             }
         }
     
-        // --- AJOUT : Gestionnaire de commandes ---
+        // command handler
         override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
             if (intent?.action == ACTION_FORCE_UPDATE) {
-                // Le ViewModel nous dit que tout est prêt, on affiche le panneau !
+                // viewmodel told us it's ready, show the panel
                 updateNotification()
             }
             if (intent != null) {
@@ -2443,7 +2380,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/PlaybackService.kt
             } else {
                 LikeRepository.addLike(track)
             }
-            // Mise à jour immédiate
+            // update immediately
             updateNotification()
         }
     
@@ -2478,7 +2415,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/PlaybackService.kt
                 override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) { updateNotification() }
             })
     
-            // Initialisation de base
+            // basic init
             updateCompatState()
             updateCompatMetadata()
             startForeground(NOTIFICATION_ID, buildNotification())
@@ -2489,7 +2426,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/PlaybackService.kt
             updateCompatState()
             updateCompatMetadata()
     
-            // IMPORTANT : On notifie le système
+            // important: notify the system
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.notify(NOTIFICATION_ID, buildNotification())
         }
@@ -2640,7 +2577,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/SessionManager.kt
     
         private var ghostWebView: WebView? = null
     
-        // NOUVEAU : Pour savoir si on a un ID valide
+        // track if we actually have a valid id yet
         private val _isClientIdValid = MutableStateFlow(false)
         val isClientIdValid = _isClientIdValid.asStateFlow()
     
@@ -2650,17 +2587,16 @@ FICHIER : ./java/com/alananasss/kittytune/data/SessionManager.kt
             CookieManager.getInstance().flush()
             Log.d(TAG, "👻 Navigateur Fantôme attaché.")
     
-            // Vérifie si on a déjà un ID valide au démarrage
+            // check if we already have a good id at startup
             checkIdValidity()
     
-            // On lance immédiatement
+            // start immediately
             reloadSession()
             startKeepAliveCycle()
         }
     
         private fun checkIdValidity() {
-            // Si l'ID n'est pas celui de secours, on considère qu'il est bon (ou qu'on en a un)
-            // On pourrait être plus strict, mais ça suffit pour l'instant
+            // if id isn't the fallback one, assume it's good enough for now
             _isClientIdValid.value = Config.CLIENT_ID != Config.FALLBACK_ID
         }
     
@@ -2681,11 +2617,11 @@ FICHIER : ./java/com/alananasss/kittytune/data/SessionManager.kt
                             val uri = Uri.parse(url)
                             val capturedId = uri.getQueryParameter("client_id")
                             if (!capturedId.isNullOrEmpty()) {
-                                // Si c'est un nouvel ID, on met à jour
+                                // if it's a new id, update it
                                 if (capturedId != Config.CLIENT_ID) {
                                     Config.updateClientId(context, capturedId)
                                 }
-                                // On signale que c'est bon !
+                                // signal that we're good to go
                                 _isClientIdValid.value = true
                             }
                         } catch (e: Exception) {
@@ -2760,7 +2696,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/TokenManager.kt
             private const val KEY_REFRESH_TOKEN = "refresh_token"
             private const val KEY_TOKEN_TIMESTAMP = "token_timestamp"
             private const val KEY_IS_GUEST_MODE = "is_guest_mode"
-            // Validité du token : 30 minutes avant de considérer qu'il faut rafraîchir
+            // consider token stale after 30 mins
             private const val TOKEN_VALIDITY_MS = 30 * 60 * 1000L
         }
     
@@ -2769,7 +2705,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/TokenManager.kt
                 .putString(KEY_ACCESS_TOKEN, accessToken)
                 .putString(KEY_REFRESH_TOKEN, refreshToken)
                 .putLong(KEY_TOKEN_TIMESTAMP, System.currentTimeMillis())
-                .putBoolean(KEY_IS_GUEST_MODE, false) // Si on sauve des tokens, on n'est plus invité
+                .putBoolean(KEY_IS_GUEST_MODE, false) // not a guest anymore if we have tokens
                 .apply()
         }
     
@@ -2787,7 +2723,7 @@ FICHIER : ./java/com/alananasss/kittytune/data/TokenManager.kt
         fun isTokenExpired(): Boolean {
             val timestamp = prefs.getLong(KEY_TOKEN_TIMESTAMP, 0)
             val now = System.currentTimeMillis()
-            // Si pas de timestamp (0) ou si délai dépassé
+            // check if timestamp is missing or too old
             return timestamp == 0L || (now - timestamp) > TOKEN_VALIDITY_MS
         }
     
@@ -2796,13 +2732,12 @@ FICHIER : ./java/com/alananasss/kittytune/data/TokenManager.kt
         }
     
         fun logout() {
-            // On garde le fait qu'on a déjà lancé l'app (donc on ne réaffiche pas le welcome screen mais le login/home guest)
-            // Mais ici on veut juste tout nettoyer pour retourner à l'état initial ou invité
+            // clean slate
             prefs.edit()
                 .remove(KEY_ACCESS_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
                 .remove(KEY_TOKEN_TIMESTAMP)
-                .putBoolean(KEY_IS_GUEST_MODE, false) // On reset le guest mode pour permettre de rechoisir ou forcer le retour au welcome
+                .putBoolean(KEY_IS_GUEST_MODE, false) // reset guest flag to force a choice/login again
                 .apply()
         }
     }
@@ -2816,12 +2751,12 @@ FICHIER : ./java/com/alananasss/kittytune/domain/Models.kt
     import com.google.gson.annotations.JsonAdapter
     import com.google.gson.annotations.SerializedName
     
-    // --- NOUVEAUX MODÈLES POUR LES DÉTAILS DU TITRE ---
+    // track details stuff
     data class LikerCollection(val collection: List<User>, val next_href: String?)
     data class ReposterCollection(val collection: List<User>, val next_href: String?)
     data class InPlaylistCollection(val collection: List<Playlist>, val next_href: String?)
     
-    // --- MODÈLES HOME AVANCÉS (CHARTS & STREAM) ---
+    // advanced home models (charts & stream)
     data class ChartsResponse(
         val collection: List<ChartItem>,
         val next_href: String?
@@ -2841,11 +2776,11 @@ FICHIER : ./java/com/alananasss/kittytune/domain/Models.kt
         val type: String, // "track", "track-repost", "playlist", "playlist-repost"
         val track: Track?,
         val playlist: Playlist?,
-        val user: User?, // Celui qui a reposté/posté
+        val user: User?, // who posted or reposted this
         @SerializedName("created_at") val createdAt: String?
     )
     
-    // --- MODÈLES COMMENTAIRES ---
+    // comments section
     data class CommentCollection(
         val collection: List<Comment>,
         val next_href: String?
@@ -2869,10 +2804,10 @@ FICHIER : ./java/com/alananasss/kittytune/domain/Models.kt
     )
     data class CommentBody(
         val body: String,
-        val timestamp: Long // Position actuelle en ms
+        val timestamp: Long // current position in ms
     )
     
-    // --- MODÈLE TRACK ---
+    // the main track model
     data class Track(
         val id: Long,
         val title: String?,
@@ -2895,13 +2830,14 @@ FICHIER : ./java/com/alananasss/kittytune/domain/Models.kt
     ) {
         val fullResArtwork: String
             get() {
+                // try to get better quality art
                 if (artworkUrl != null) return artworkUrl.replace("large", "t500x500")
                 if (user != null && user.avatarUrl != null) return user.avatarUrl.replace("large", "t500x500")
                 return "https://picsum.photos/200"
             }
     }
     
-    // --- AUTRES MODÈLES ---
+    // other random models
     data class TrackLikesResponse(val collection: List<TrackLikeItem>, val next_href: String?)
     data class TrackLikeItem(val track: Track)
     data class PlaylistLikesResponse(val collection: List<PlaylistLikeItem>, val next_href: String?)
@@ -2914,10 +2850,12 @@ FICHIER : ./java/com/alananasss/kittytune/domain/Models.kt
     data class UpdateProfileRequest(val username: String?, val description: String?, val city: String?, @SerializedName("country_code") val countryCode: String?, @SerializedName("first_name") val firstName: String? = null, @SerializedName("last_name") val lastName: String? = null)
     
     data class Playlist(@JsonAdapter(LongIdAdapter::class) val id: Long, val title: String?, @SerializedName("artwork_url") val artworkUrl: String?, @SerializedName("calculated_artwork_url") val calculatedArtworkUrl: String?, @SerializedName("track_count") val trackCount: Int?, val user: User?, val tracks: List<Track>? = null, @SerializedName("is_album") val isAlbum: Boolean = false, @SerializedName("permalink_url") val permalinkUrl: String? = null, @SerializedName("created_at") val createdAt: String? = null, @SerializedName("last_modified") val lastModified: String? = null) {
+        // logic to find best available cover art
         val fullResArtwork: String get() { if (!artworkUrl.isNullOrEmpty()) return artworkUrl.replace("large", "t500x500"); if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.replace("large", "t500x500"); if (!tracks.isNullOrEmpty()) { val firstTrackArt = tracks[0].fullResArtwork; if (!firstTrackArt.contains("picsum")) return firstTrackArt }; return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200" }
     }
     
     data class User(val id: Long, val username: String?, @SerializedName("avatar_url") val avatarUrl: String?, val city: String? = null, @SerializedName("country_code") val countryCode: String? = null, @SerializedName("followers_count") val followersCount: Int = 0, @SerializedName("followings_count") val followingsCount: Int = 0, @SerializedName("track_count") val trackCount: Int = 0, @SerializedName("description") val description: String? = null, @SerializedName("permalink_url") val permalinkUrl: String? = null, val visuals: Visuals? = null, @SerializedName("public_favorites_count") private val _publicFavoritesCount: Int? = 0, @SerializedName("likes_count") private val _likesCount: Int? = 0, @SerializedName("favorites_count") private val _favoritesCount: Int? = 0) {
+        // api returns different field names for likes sometimes
         val likesCount: Int get() = when { (_publicFavoritesCount ?: 0) > 0 -> _publicFavoritesCount!!; (_likesCount ?: 0) > 0 -> _likesCount!!; (_favoritesCount ?: 0) > 0 -> _favoritesCount!!; else -> 0 }
         val bannerUrl: String? get() = visuals?.visuals?.firstOrNull()?.visualUrl
     }
@@ -2962,8 +2900,8 @@ FICHIER : ./java/com/alananasss/kittytune/MainActivity.kt
     
     class MainActivity : ComponentActivity() {
     
-        // --- MISE EN PLACE DE LA LANGUE ---
-        // Cette méthode est appelée AVANT onCreate. C'est ici qu'on force la langue.
+        // --- setup language ---
+        // called before onCreate, this is where we force the locale
         override fun attachBaseContext(newBase: Context) {
             super.attachBaseContext(LocaleUtils.updateBaseContextLocale(newBase))
         }
@@ -2972,7 +2910,7 @@ FICHIER : ./java/com/alananasss/kittytune/MainActivity.kt
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean -> }
     
-        // Listener pour détecter les changements de préférences
+        // listen for pref changes to update theme instantly
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled") {
                 refreshThemeState()
@@ -2982,7 +2920,7 @@ FICHIER : ./java/com/alananasss/kittytune/MainActivity.kt
         private lateinit var preferences: PlayerPreferences
         private lateinit var sharedPrefs: SharedPreferences
     
-        // États observables pour recomposer le thème
+        // observable states to trigger theme recomposition
         private var themeModeState by mutableStateOf(AppThemeMode.SYSTEM)
         private var dynamicColorState by mutableStateOf(true)
         private var pureBlackState by mutableStateOf(false)
@@ -3000,19 +2938,19 @@ FICHIER : ./java/com/alananasss/kittytune/MainActivity.kt
                 window.isNavigationBarContrastEnforced = false
             }
     
-            // --- INITIALISATIONS ---
+            // --- init stuff ---
             Config.init(applicationContext)
             LikeRepository.init(applicationContext)
             DownloadManager.init(applicationContext)
             HistoryRepository.init(applicationContext)
             AchievementManager.init(applicationContext)
     
-            // Init preferences et listener
+            // init prefs and listener
             preferences = PlayerPreferences(applicationContext)
             sharedPrefs = applicationContext.getSharedPreferences("player_state", Context.MODE_PRIVATE)
             sharedPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
     
-            // Charge l'état initial
+            // load initial state
             refreshThemeState()
     
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -3020,7 +2958,7 @@ FICHIER : ./java/com/alananasss/kittytune/MainActivity.kt
             }
     
             setContent {
-                // On passe les états au thème
+                // pass states to the theme
                 SoundTuneTheme(
                     themeMode = themeModeState,
                     dynamicColor = dynamicColorState,
@@ -3168,7 +3106,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/Shimmer.kt
     import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.material3.MaterialTheme
     import androidx.compose.runtime.Composable
-    import androidx.compose.ui.Alignment // <-- L'IMPORT QUI MANQUAIT
+    import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.composed
     import androidx.compose.ui.draw.clip
@@ -3177,7 +3115,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/Shimmer.kt
     import androidx.compose.ui.graphics.Color
     import androidx.compose.ui.unit.dp
     
-    // Fonction principale pour créer l'effet de balayage lumineux
+    // the magic gradient that moves across the screen
     @Composable
     private fun ShimmerBrush(targetValue: Float = 1000f): Brush {
         val shimmerColors = listOf(
@@ -3202,16 +3140,16 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/Shimmer.kt
         )
     }
     
-    // Un Modifier réutilisable pour appliquer l'effet de shimmer
+    // easy extension to slap the shimmer on any composable
     fun Modifier.shimmerBackground(shape: androidx.compose.ui.graphics.Shape): Modifier = composed {
         this
             .background(ShimmerBrush(), shape)
             .clip(shape)
     }
     
-    // --- SQUELETTES DE BASE ---
+    // --- basic building blocks ---
     
-    // Squelette pour une ligne de texte
+    // just looks like a line of text
     @Composable
     fun ShimmerLine(modifier: Modifier = Modifier) {
         Box(
@@ -3221,7 +3159,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/Shimmer.kt
         )
     }
     
-    // Squelette pour une carte (image, etc.)
+    // generic box placeholder
     @Composable
     fun ShimmerBox(modifier: Modifier = Modifier) {
         Box(
@@ -3230,9 +3168,9 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/Shimmer.kt
     }
     
     
-    // --- SQUELETTES SPÉCIFIQUES ---
+    // --- specific skeletons ---
     
-    // Squelette imitant un TrackListItem
+    // pretend this is a song row in a list
     @Composable
     fun TrackListItemShimmer(modifier: Modifier = Modifier) {
         Row(
@@ -3258,7 +3196,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/Shimmer.kt
         }
     }
     
-    // Squelette imitant une carte carrée (Playlist / Album)
+    // square card placeholder (playlists/albums)
     @Composable
     fun SquareCardShimmer(modifier: Modifier = Modifier) {
         Column(modifier = modifier.width(140.dp)) {
@@ -3274,7 +3212,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/Shimmer.kt
         }
     }
     
-    // Squelette imitant un cercle (Artiste)
+    // round placeholder for artist profiles
     @Composable
     fun ArtistCircleShimmer(modifier: Modifier = Modifier) {
         Column(
@@ -3328,11 +3266,11 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/UltimateCompletionOverlay.kt
     
     @Composable
     fun UltimateCompletionOverlay(onDismiss: () -> Unit) {
-        var phase by remember { mutableStateOf(0) } // 0: Animation, 1: Message de remerciement
+        var phase by remember { mutableStateOf(0) } // 0: animation, 1: thank you message
     
-        // Timer pour passer à la phase 2 après l'animation
+        // timer to switch to phase 2 after animation
         LaunchedEffect(Unit) {
-            delay(8000) // Laisse l'animation tourner 8 secondes
+            delay(8000) // let it run for 8 seconds
             phase = 1
         }
     
@@ -3346,10 +3284,10 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/UltimateCompletionOverlay.kt
                 ) { onDismiss() },
             contentAlignment = Alignment.Center
         ) {
-            // --- PHASE 1 : ANIMATION ---
+            // --- PHASE 1: ANIMATION ---
             AnimatedVisibility(visible = phase == 0, enter = fadeIn(), exit = fadeOut()) {
                 Box(contentAlignment = Alignment.Center) {
-                    // Rayons de lumière
+                    // light rays
                     val infiniteTransition = rememberInfiniteTransition(label = "rays")
                     val rotation by infiniteTransition.animateFloat(
                         initialValue = 0f,
@@ -3380,7 +3318,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/UltimateCompletionOverlay.kt
                         }
                     }
     
-                    // Disque d'Or
+                    // golden record
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(contentAlignment = Alignment.Center) {
                             val scale by infiniteTransition.animateFloat(
@@ -3415,7 +3353,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/common/UltimateCompletionOverlay.kt
                 }
             }
     
-            // --- PHASE 2 : REMERCIEMENTS ---
+            // --- PHASE 2: THANKS ---
             AnimatedVisibility(visible = phase == 1, enter = fadeIn(animationSpec = tween(1000))) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -4029,7 +3967,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
     import kotlinx.coroutines.flow.first
     import kotlinx.coroutines.launch
     
-    // --- CLASSES UI HOME ---
+    // ui models
     data class HomeSection(
         val title: String,
         val subtitle: String? = null,
@@ -4041,7 +3979,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
         TRACKS_ROW, ARTISTS_ROW, STATIONS_ROW
     }
     
-    // --- CLASSES CACHE ---
+    // cache stuff
     data class HomeCacheData(
         val user: User?,
         val sections: List<HomeSectionCache>
@@ -4056,7 +3994,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
         val users: List<User> = emptyList()
     )
     
-    // --- RECHERCHE ---
+    // search modes
     enum class SearchFilter {
         ALL, TRACKS, ARTISTS, PLAYLISTS
     }
@@ -4067,23 +4005,23 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
         private val gson = Gson()
         private val tokenManager = TokenManager(application)
     
-        // Helper pour récupérer les strings
+        // helper to get strings easily
         private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
         private fun getString(resId: Int, vararg args: Any): String = getApplication<Application>().getString(resId, *args)
     
         var userProfile by mutableStateOf<User?>(null)
     
-        // Home standard data
+        // main home data
         val homeSections = mutableStateListOf<HomeSection>()
         val historyFlow = HistoryRepository.getHistory()
     
-        // --- ÉTATS DE RECHERCHE ---
+        // --- search state ---
         var isSearching by mutableStateOf(false)
         var searchQuery by mutableStateOf("")
         var activeFilter by mutableStateOf(SearchFilter.ALL)
         var isSearchLoading by mutableStateOf(false)
     
-        // Résultats de recherche
+        // search results
         val searchResultsTracks = mutableStateListOf<Track>()
         val searchResultsArtists = mutableStateListOf<User>()
         val searchResultsPlaylists = mutableStateListOf<Playlist>()
@@ -4095,11 +4033,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
             loadData()
         }
     
-        // --- LOGIQUE DE RECHERCHE ---
+        // --- search logic ---
         fun onSearchQueryChanged(query: String) {
             searchQuery = query
             if (query.isBlank()) { clearSearchResults(); return }
             searchJob?.cancel()
+            // debounce logic
             searchJob = viewModelScope.launch { delay(500); performSearch(query) }
         }
         fun activateSearch() { isSearching = true }
@@ -4113,6 +4052,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
                 coroutineScope {
                     when (activeFilter) {
                         SearchFilter.ALL -> {
+                            // parallel requests for all types
                             val tracksDef = async { try { api.searchTracks(query, limit = 5).collection } catch (e: Exception) { emptyList() } }
                             val usersDef = async { try { api.searchUsers(query, limit = 5).collection } catch (e: Exception) { emptyList() } }
                             val playlistsDef = async { try { api.searchPlaylists(query, limit = 5).collection } catch (e: Exception) { emptyList() } }
@@ -4128,7 +4068,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
             } catch (e: Exception) { e.printStackTrace() } finally { isSearchLoading = false }
         }
     
-        // --- CACHE ---
+        // --- cache handling ---
         private fun loadFromCache() {
             try {
                 val json = prefs.getString("cached_home_data", null)
@@ -4137,6 +4077,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
                     userProfile = data.user
                     if (data.sections.isNotEmpty()) {
                         homeSections.clear()
+                        // rebuild section objects from cache
                         data.sections.forEach { section ->
                             val content: List<Any> = when (section.type) {
                                 SectionType.TRACKS_ROW -> section.tracks
@@ -4153,6 +4094,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
         private fun saveToCache() {
             viewModelScope.launch {
                 try {
+                    // flatten everything for gson
                     val sectionsCache = homeSections.map { section -> HomeSectionCache(section.title, section.subtitle, section.type, section.content.filterIsInstance<Track>(), section.content.filterIsInstance<Playlist>(), section.content.filterIsInstance<User>()) }
                     val data = HomeCacheData(userProfile, sectionsCache)
                     prefs.edit().putString("cached_home_data", gson.toJson(data)).apply()
@@ -4160,20 +4102,23 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
             }
         }
     
-        // --- CHARGEMENT ---
+        // --- loading stuff ---
         fun loadData() {
             viewModelScope.launch {
                 val token = tokenManager.getAccessToken()
+                // check if we are logged in or just a guest
                 if (token.isNullOrEmpty()) loadGuestData() else loadAuthenticatedData()
             }
         }
     
-        // --- INTELLIGENCE : RECO BASÉE SUR L'HISTORIQUE ---
+        // --- smart recommendations based on history ---
         private suspend fun fetchHistoryBasedSection(): HomeSection? {
             return try {
                 val history = HistoryRepository.getHistory().first()
                 val recentTracks = history.filter { it.type == "TRACK" }.take(10)
                 if (recentTracks.isEmpty()) return null
+    
+                // pick a random recent track and find similar stuff
                 val seedItem = recentTracks.random()
                 val related = api.getRelatedTracks(seedItem.numericId, limit = 15).collection
     
@@ -4194,13 +4139,16 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
     
             try {
                 coroutineScope {
+                    // fake radio stations
                     val stationSeeds = sourceTracks.shuffled().take(6)
                     val stationItems = stationSeeds.map { track -> Playlist(track.id, "Station: ${track.title}", track.fullResArtwork, null, 0, track.user, null) }
                     if (stationItems.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_section_similar, username), null, stationItems, SectionType.STATIONS_ROW))
     
+                    // more tracks you might like
                     val seed1 = sourceTracks.take(10).randomOrNull() ?: sourceTracks.first()
                     val relatedDef1 = async { try { api.getRelatedTracks(seed1.id, limit = 15).collection } catch (e: Exception) { emptyList() } }
     
+                    // discovery artists
                     val newCrewDef = async {
                         val artists = sourceTracks.mapNotNull { it.user }.distinctBy { it.id }.shuffled().take(8)
                         val similarArtists = try {
@@ -4229,6 +4177,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
                 coroutineScope {
                     val genericSectionsDef = async { fetchGenericGuestSections() }
                     val personalSectionsDef = async {
+                        // if they liked stuff locally, we can still personalize
                         if (localLikes.isNotEmpty()) fetchPersonalizedSections(localLikes, getString(R.string.guest_user)) else emptyList()
                     }
                     val historySectionDef = async { fetchHistoryBasedSection() }
@@ -4245,6 +4194,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
                 if (allSections.isNotEmpty()) {
                     homeSections.clear(); homeSections.addAll(allSections); saveToCache()
                 } else {
+                    // retry if failed first time
                     delay(2000)
                     if (homeSections.isEmpty()) loadGuestData()
                 }
@@ -4254,6 +4204,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
         private suspend fun fetchGenericGuestSections(): List<HomeSection> {
             val sections = mutableListOf<HomeSection>()
             try {
+                // standard soundcloud charts
                 coroutineScope {
                     val trendingDef = async { try { api.getCharts(kind = "trending", genre = "soundcloud:genres:all-music").collection.mapNotNull { it.track } } catch(e:Exception){ emptyList() } }
                     val globalChartsDef = async { try { api.searchPlaylists("Billboard Hot 100", limit = 10).collection } catch(e:Exception){ emptyList() } }
@@ -4286,6 +4237,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
                 val allSections = mutableListOf<HomeSection>()
     
                 coroutineScope {
+                    // get the user stream (feed)
                     val streamDef = async {
                         try {
                             api.getMyStream(limit = 20).collection
@@ -4295,6 +4247,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/HomeViewModel.kt
                         } catch (e: Exception) { emptyList() }
                     }
     
+                    // get likes from api or local if plenty
                     val localLikes = LikeRepository.likedTracks.value
                     val sourceLikes = if (localLikes.size > 20) localLikes else {
                         try { api.getUserTrackLikes(me.id, limit = 50).collection.map { it.track } } catch(e:Exception) { emptyList() }
@@ -4481,7 +4434,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/TagViewModel.kt
                 try {
                     val cleanTag = currentTagName.replace("#", "").trim()
     
-                    // Appel simplifié : on force le tri "recent" (nouveautés)
+                    // simple call: force "recent" sort to get new stuff
                     val result = api.searchTracksStrict(
                         query = cleanTag,
                         tag = cleanTag,
@@ -4526,6 +4479,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/home/TagViewModel.kt
             return rawTracks.filter { track ->
                 val rawTags = track.tagList ?: ""
                 val genre = track.genre ?: ""
+                // double check that the track actually matches the tag
                 rawTags.contains(tag, ignoreCase = true) ||
                         genre.contains(tag, ignoreCase = true)
             }
@@ -4602,12 +4556,14 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
         val lifecycleOwner = LocalLifecycleOwner.current
     
         val listState = rememberLazyGridState()
+        // collapse fab text when scrolling
         val fabExpanded by remember {
             derivedStateOf {
                 listState.firstVisibleItemIndex == 0
             }
         }
     
+        // keep an eye on network status
         DisposableEffect(context) {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val networkCallback = object : ConnectivityManager.NetworkCallback() {
@@ -4629,6 +4585,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
             libraryViewModel.loadData()
         }
     
+        // refresh when coming back to the screen
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
@@ -4689,6 +4646,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
         val showLogin = libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode
         val isGuest = libraryViewModel.isGuestUser
     
+        // if not logged in and not a guest, block access
         if (showLogin && !isGuest) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -4709,6 +4667,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
                         .statusBarsPadding()
                         .padding(top = 16.dp, bottom = 8.dp)
                 ) {
+                    // offline banner
                     if (libraryViewModel.isOfflineMode) {
                         Row(
                             modifier = Modifier
@@ -4726,6 +4685,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
                         }
                     }
     
+                    // guest banner
                     if (isGuest && !libraryViewModel.isOfflineMode) {
                         Row(
                             modifier = Modifier
@@ -4756,6 +4716,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
                 }
             },
             floatingActionButton = {
+                // bump up fab so miniplayer doesn't cover it
                 val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
     
                 ExtendedFloatingActionButton(
@@ -4800,7 +4761,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
         val columns = if (viewModel.isGridLayout) GridCells.Fixed(2) else GridCells.Fixed(1)
         val isSyncing by viewModel.isSyncing.collectAsState()
     
-        // Récupérer les strings AVANT de les utiliser dans la logique
+        // grab strings here before using them in logic
         val playlistsFilter = stringResource(R.string.lib_playlists)
         val shouldShowPlaylists = viewModel.selectedFilter == null || viewModel.selectedFilter == playlistsFilter
     
@@ -4854,6 +4815,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
             items(viewModel.displayedItems) { item ->
                 when (item) {
                     is LibraryItem.PlaylistItem -> {
+                        // local playlists have negative ids
                         val id = if(item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
                         DynamicPlaylistCard(
                             playlist = item.playlist,
@@ -4935,7 +4897,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
         val playlistsLabel = stringResource(R.string.lib_playlists)
         val artistsLabel = stringResource(R.string.lib_artists)
     
-        // Déplacé APRÈS les appels à stringResource()
+        // moved after stringResource calls
         val filters = remember(playlistsLabel, artistsLabel) {
             listOf(playlistsLabel, artistsLabel)
         }
@@ -5017,7 +4979,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/LibraryScreen.kt
                         }
                     }
                 }
-                // --- CORRECTION APPLIQUÉE ICI ---
+                // fix applied here
                 if (isLoading) {
                     Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                         LinearProgressIndicator(
@@ -5433,6 +5395,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
         val storageTrigger by DownloadManager.storageTrigger.collectAsState()
         var localDownloadRefreshKey by remember { mutableIntStateOf(0) }
     
+        // extract numeric id from compound strings
         val cleanIdStr = playlistId.replace("station_artist:", "")
             .replace("station:", "")
             .replace("local_playlist:", "")
@@ -5489,6 +5452,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
             }
         }
     
+        // --- MAIN DATA LOADING ---
         LaunchedEffect(playlistId) {
             isLoading = true
             tracks.clear()
@@ -5504,7 +5468,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                             val user = api.getMe()
                             playlistUser = user
                         } catch (e: Exception) {
-                            playlistUser = User(0, context.getString(R.string.me_artist), null) // Fallback
+                            playlistUser = User(0, context.getString(R.string.me_artist), null) // fallback
                         }
                         isLoading = false
                     }
@@ -5524,6 +5488,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                         isLocalPlaylist = false
     
                         val allTracks = db.getAllTracks().first()
+                        // only grab files with negative ids (local scans)
                         val localFileTracks = allTracks.filter { it.id < 0 }
     
                         tracks.addAll(localFileTracks.map { local ->
@@ -5541,6 +5506,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                     else -> {
                         val localPlaylist = if (currentIdLong != 0L) db.getPlaylist(currentIdLong) else null
                         if (localPlaylist != null) {
+                            // LOAD FROM DB
                             playlistTitle = localPlaylist.title
                             playlistCover = localPlaylist.localCoverPath ?: localPlaylist.artworkUrl
                             playlistUser = User(0, localPlaylist.artist, null)
@@ -5557,6 +5523,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                                 }
                             }
                         } else {
+                            // LOAD FROM NETWORK
                             if (currentIdLong > 0L) {
                                 val isArtistStation = playlistId.startsWith("station_artist:")
                                 val isTrackStation = playlistId.startsWith("station:")
@@ -5570,6 +5537,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                                 playlistUser = playlistObj.user
                                 val rawTracks = playlistObj.tracks ?: emptyList()
     
+                                // soundcloud sometimes returns incomplete track objects in playlists
+                                // we need to fetch full details for those
                                 val incompleteIds = rawTracks.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
                                 if (incompleteIds.isNotEmpty()) {
                                     val fetchedTracksMap = mutableMapOf<Long, Track>()
@@ -5751,7 +5720,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                                     onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList(), 0, playbackContext) },
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                                     shape = RoundedCornerShape(50),
-                                    modifier = Modifier.weight(1f).height(50.dp) // MODIFICATION : Ajout de weight
+                                    modifier = Modifier.weight(1f).height(50.dp) // added weight
                                 ) {
                                     Icon(Icons.Default.PlayArrow, null)
                                     Spacer(Modifier.width(8.dp))
@@ -5759,15 +5728,15 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                                         stringResource(R.string.btn_play),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        maxLines = 1, // MODIFICATION : Ajout de maxLines
-                                        overflow = TextOverflow.Ellipsis // MODIFICATION : Ajout de l'overflow
+                                        maxLines = 1, // added maxLines
+                                        overflow = TextOverflow.Ellipsis // added overflow
                                     )
                                 }
                                 FilledTonalButton(
                                     onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList().shuffled(), context = playbackContext) },
                                     colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.onSurface),
                                     shape = RoundedCornerShape(50),
-                                    modifier = Modifier.weight(1f).height(50.dp) // MODIFICATION : Ajout de weight
+                                    modifier = Modifier.weight(1f).height(50.dp) // added weight
                                 ) {
                                     Icon(Icons.Default.Shuffle, null)
                                     Spacer(Modifier.width(8.dp))
@@ -5775,8 +5744,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                                         stringResource(R.string.btn_shuffle),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
-                                        maxLines = 1, // MODIFICATION : Ajout de maxLines
-                                        overflow = TextOverflow.Ellipsis // MODIFICATION : Ajout de l'overflow
+                                        maxLines = 1, // added maxLines
+                                        overflow = TextOverflow.Ellipsis // added overflow
                                     )
                                 }
                             }
@@ -5817,6 +5786,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/library/PlaylistDetailScreen.kt
                                     .graphicsLayer { translationY = offsetY; scaleX = scale; scaleY = scale; shadowElevation = elevation.toPx() }
                                     .background(if (isDragging) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent)
                                     .pointerInput(Unit) {
+                                        // only allow drag reordering on custom playlists
                                         if (isUserCreated) {
                                             detectDragGesturesAfterLongPress(
                                                 onDragStart = { isDragging = true; view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS) },
@@ -6448,6 +6418,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
     import kotlinx.coroutines.delay
     import kotlinx.coroutines.launch
     
+    // helps finding the activity from context wrapper
     private fun Context.findActivity(): Activity? = when (this) {
         is Activity -> this
         is ContextWrapper -> baseContext.findActivity()
@@ -6477,14 +6448,14 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
         val allAchievementsUnlocked by AchievementManager.isAllUnlocked.collectAsState()
         var showCompletionScreen by remember { mutableStateOf(false) }
     
-        // 1. On initialise l'état avec la valeur actuelle
+        // 1. init state with current value
         var showPopups by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
     
-        // 2. On ajoute un écouteur en temps réel sur les préférences
+        // 2. real-time listener for prefs changes
         DisposableEffect(Unit) {
             val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
             val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                // Si la clé "achievement_popups_enabled" change, on met à jour l'état immédiatement
+                // update state immediately if this key changes
                 if (key == "achievement_popups_enabled") {
                     showPopups = prefs.getAchievementPopupsEnabled()
                 }
@@ -6495,19 +6466,20 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             }
         }
     
-        // --- CORRECTION : Utilisation de deux variables d'état ---
+        // --- fix: use two state vars to handle exit anim ---
         var currentNotification by remember { mutableStateOf<AchievementNotification?>(null) }
         var animatingNotification by remember { mutableStateOf<AchievementNotification?>(null) }
     
-        // Maintient les données de la notification pendant l'animation de sortie
+        // keep data alive during exit animation
         if (currentNotification != null) {
             animatingNotification = currentNotification
         }
-        // --- FIN DE LA CORRECTION ---
+        // --- end fix ---
     
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
+                    // refresh stuff when app comes back
                     SessionManager.reloadSession()
                     showPopups = prefs.getAchievementPopupsEnabled()
                     AchievementManager.checkDailyStreak()
@@ -6521,6 +6493,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             if (showPopups) {
                 AchievementNotificationManager.notifications.collect { notification ->
                     currentNotification = notification
+                    // show popup for 5s
                     delay(5000)
                     currentNotification = null
                 }
@@ -6533,6 +6506,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             }
         }
     
+        // invisible webview to keep session alive
         AndroidView(
             factory = { ctx ->
                 WebView(ctx).apply {
@@ -6544,6 +6518,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             modifier = Modifier.size(1.dp)
         )
     
+        // check login status on startup
         LaunchedEffect(Unit) {
             val tokenManager = TokenManager(context)
             delay(500)
@@ -6565,6 +6540,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             isAppReady = true
         }
     
+        // wait for valid client id before letting guest in
         LaunchedEffect(isGuestLoading, isClientIdValid) {
             if (isGuestLoading && isClientIdValid) {
                 val tm = TokenManager(context)
@@ -6578,6 +6554,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             }
         }
     
+        // keep screen awake for lyrics
         if (playerViewModel.showLyricsSheet) {
             DisposableEffect(Unit) {
                 val window = context.findActivity()?.window
@@ -6586,6 +6563,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             }
         }
     
+        // handle navigation requests from viewmodel
         LaunchedEffect(playerViewModel.navigateToPlaylistId) {
             playerViewModel.navigateToPlaylistId?.let { destinationId ->
                 playerViewModel.isPlayerExpanded = false
@@ -6599,6 +6577,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
             }
         }
     
+        // close lyrics instead of app
         BackHandler(enabled = playerViewModel.showLyricsSheet) {
             playerViewModel.showLyricsSheet = false
             playerViewModel.isSearchingLyrics = false
@@ -6613,6 +6592,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
     
         if (!isAppReady) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                // show skeleton while loading
                 Box(modifier = Modifier.statusBarsPadding()) { HomeScreenShimmer() }
             }
         } else {
@@ -6625,6 +6605,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
                 Scaffold(
                     snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                     bottomBar = {
+                        // hide nav bar if player is full screen
                         if (!isLoginOrWelcome) {
                             AnimatedVisibility(visible = showBottomUi, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
                                 NavigationBar(tonalElevation = 0.dp, containerColor = MaterialTheme.colorScheme.surface) {
@@ -6653,6 +6634,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
                         }
                     }
                 ) { innerPadding ->
+                    // navigation graph
                     NavHost(navController = navController, startDestination = startDestination, modifier = Modifier.padding(innerPadding)) {
                         composable(Screen.Welcome.route) {
                             WelcomeScreen(
@@ -6737,15 +6719,18 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
                         composable("storage") { StorageScreen(onBackClick = { navController.popBackStack() }) }
                     }
     
+                    // show miniplayer above nav bar
                     AnimatedVisibility(visible = showBottomUi && playerViewModel.currentTrack != null, enter = slideInVertically(initialOffsetY = { it }), exit = slideOutVertically(targetOffsetY = { it }), modifier = Modifier.align(Alignment.BottomCenter).padding(innerPadding)) {
                         MiniPlayer(viewModel = playerViewModel, onClick = { playerViewModel.isPlayerExpanded = true })
                     }
                 }
     
+                // slide up animation for full player
                 AnimatedVisibility(visible = playerViewModel.isPlayerExpanded, enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(400, easing = FastOutSlowInEasing)) + fadeIn(animationSpec = tween(400)), exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(350, easing = FastOutLinearInEasing)) + fadeOut(animationSpec = tween(350)), modifier = Modifier.fillMaxSize()) {
                     PlayerScreen(viewModel = playerViewModel, onClose = { playerViewModel.isPlayerExpanded = false })
                 }
     
+                // lyrics overlay
                 AnimatedVisibility(visible = playerViewModel.showLyricsSheet, enter = slideInVertically(initialOffsetY = { it }, animationSpec = tween(300)) + fadeIn(animationSpec = tween(300)), exit = slideOutVertically(targetOffsetY = { it }, animationSpec = tween(300)) + fadeOut(animationSpec = tween(300)), modifier = Modifier.fillMaxSize().zIndex(10f)) {
                     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                         playerViewModel.currentTrack?.let { track ->
@@ -6761,6 +6746,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
                     }
                 }
     
+                // various bottom sheets
                 if (playerViewModel.showMenuSheet) { ModalBottomSheet(onDismissRequest = { playerViewModel.showMenuSheet = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) { MenuSheetContent(playerViewModel); Spacer(Modifier.height(32.dp)) } }
                 if (playerViewModel.showAddToPlaylistSheet) { ModalBottomSheet(onDismissRequest = { playerViewModel.showAddToPlaylistSheet = false }, containerColor = MaterialTheme.colorScheme.surfaceContainer, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) { AddToPlaylistContent(playerViewModel); Spacer(Modifier.height(32.dp)) } }
                 if (playerViewModel.showDetailsSheet) { ModalBottomSheet(onDismissRequest = { playerViewModel.showDetailsSheet = false }, containerColor = MaterialTheme.colorScheme.surface, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)) { playerViewModel.selectedTrackForSheet?.let { DetailsSheetContent(it, { playerViewModel.showDetailsSheet = false }, { playerViewModel.openComments() }, playerViewModel) } } }
@@ -6788,17 +6774,17 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
                 AnimatedVisibility(
                     visible = currentNotification != null,
                     enter = slideInVertically(
-                        // Arrive depuis le haut (hors écran)
+                        // drop from top
                         initialOffsetY = { -it },
-                        // Effet de RESSORT (Spring) pour le rebond "cool"
+                        // bouncy spring effect
                         animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy, // Le rebond modéré
-                            stiffness = Spring.StiffnessLow // Vitesse naturelle
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
                         )
                     ) + fadeIn(
                         animationSpec = tween(300)
                     ) + scaleIn(
-                        // Léger effet de zoom à l'apparition (pop)
+                        // slight zoom in
                         initialScale = 0.8f,
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -6806,25 +6792,25 @@ FICHIER : ./java/com/alananasss/kittytune/ui/MainScreen.kt
                         )
                     ),
                     exit = slideOutVertically(
-                        // Repart vers le haut rapidement
+                        // slide back up fast
                         targetOffsetY = { -it },
                         animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing)
                     ) + fadeOut(
                         animationSpec = tween(durationMillis = 200)
                     ) + scaleOut(
-                        // Rétrécit légèrement en partant
+                        // shrink a bit
                         targetScale = 0.8f,
                         animationSpec = tween(durationMillis = 300)
                     ),
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .statusBarsPadding()
-                        .padding(top = 12.dp) // Un peu de marge sous la barre d'état
+                        .padding(top = 12.dp)
                         .zIndex(11f)
-                        // Ajoute une ombre portée pour détacher le popup du fond
+                        // shadow to make it pop
                         .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color.Black)
                 ) {
-                    // CORRECTION : Utilisation de la variable stable pour l'animation de sortie
+                    // use stable var for exit anim
                     animatingNotification?.let {
                         AchievementPopup(notification = it)
                     }
@@ -6863,7 +6849,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
     import kotlin.math.cos
     import kotlin.math.sin
     
-    // --- 1. PROCESSEUR 8D (Auto-Pan) ---
+    // --- 1. 8D AUDIO (Auto-Pan) ---
     class EightDAudioProcessor : BaseAudioProcessor() {
         private var enabled = false
         private var time: Double = 0.0
@@ -6874,14 +6860,14 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
         }
     
         override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-            return inputAudioFormat // Pas de changement de format
+            return inputAudioFormat // no format change
         }
     
         override fun queueInput(inputBuffer: ByteBuffer) {
             val remaining = inputBuffer.remaining()
             if (remaining == 0) return
     
-            // CORRECTION ICI : Si désactivé, on copie l'entrée vers la sortie (Pass-through)
+            // if disabled, just pass through
             if (!enabled) {
                 val buffer = replaceOutputBuffer(remaining)
                 buffer.put(inputBuffer)
@@ -6889,21 +6875,21 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
                 return
             }
     
-            // On s'assure d'avoir assez de place
+            // make sure we have room
             val buffer = replaceOutputBuffer(remaining)
     
             while (inputBuffer.hasRemaining()) {
-                // Traitement stéréo (2 channels requis pour le 8D)
+                // stereo required for 8d effect
                 if (inputAudioFormat.channelCount == 2) {
-                    // Lecture des samples (16-bit PCM)
+                    // read 16-bit pcm
                     val left = inputBuffer.getShort().toFloat()
                     val right = inputBuffer.getShort().toFloat()
     
-                    // Algorithme 8D (Oscillation simple)
-                    time += 0.00001 // Vitesse de rotation
-                    val pan = sin(time) // -1.0 à 1.0
+                    // simple oscillator logic
+                    time += 0.00001 // rotation speed
+                    val pan = sin(time) // -1.0 to 1.0
     
-                    // Modulation du volume
+                    // volume modulation
                     val leftVol = (1.0 - pan) / 2.0
                     val rightVol = (1.0 + pan) / 2.0
     
@@ -6913,7 +6899,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
                     buffer.putShort(newLeft)
                     buffer.putShort(newRight)
                 } else {
-                    // Si mono, on copie juste
+                    // mono pass-through
                     buffer.putShort(inputBuffer.getShort())
                 }
             }
@@ -6921,13 +6907,13 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
         }
     }
     
-    // --- 2. PROCESSEUR MULTI-EFFETS (Bass Boost + Muffled) ---
+    // --- 2. MULTI-FX (Bass Boost + Muffled) ---
     class FxAudioProcessor : BaseAudioProcessor() {
     
         private var isMuffled = false
         private var isBassBoost = false
     
-        // Variables d'état du filtre
+        // filter state variables
         private var x1 = 0f; private var x2 = 0f
         private var y1 = 0f; private var y2 = 0f
         private var b0 = 0f; private var b1 = 0f; private var b2 = 0f
@@ -6950,8 +6936,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
             val fs = inputAudioFormat.sampleRate.toFloat().coerceAtLeast(44100f)
     
             if (isMuffled) {
-                // --- LOW PASS FILTER (Etouffé) ---
-                val f0 = 800f // Fréquence de coupure (Hz)
+                // --- LOW PASS FILTER (Muffled) ---
+                val f0 = 800f // cutoff freq
                 val q = 0.707f
                 val w0 = (2.0 * PI * f0 / fs).toFloat()
                 val alpha = (sin(w0) / (2.0 * q)).toFloat()
@@ -6966,8 +6952,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
     
             } else if (isBassBoost) {
                 // --- LOW SHELF FILTER (Bass Boost) ---
-                val f0 = 100f // Fréquence à booster
-                val gain = 10f // Gain en dB
+                val f0 = 100f // boost freq
+                val gain = 10f // gain in dB
                 val S = 1f
                 val A = Math.pow(10.0, gain / 40.0).toFloat()
                 val w0 = (2.0 * PI * f0 / fs).toFloat()
@@ -6996,7 +6982,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
             val remaining = inputBuffer.remaining()
             if (remaining == 0) return
     
-            // CORRECTION ICI : Si aucun effet actif, on copie l'entrée vers la sortie (Pass-through)
+            // pass-through if no effects active
             if (!isMuffled && !isBassBoost) {
                 val buffer = replaceOutputBuffer(remaining)
                 buffer.put(inputBuffer)
@@ -7009,41 +6995,41 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
             while (inputBuffer.hasRemaining()) {
                 val x = inputBuffer.getShort().toFloat()
     
-                // Filtre BiQuad
+                // biquad filter implementation
                 val y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
     
-                // Mise à jour des états
+                // update state
                 x2 = x1
                 x1 = x
                 y2 = y1
                 y1 = y
     
-                // Clipping
+                // hard clipping to avoid overflow
                 val out = y.coerceIn(Short.MIN_VALUE.toFloat(), Short.MAX_VALUE.toFloat()).toInt().toShort()
                 buffer.putShort(out)
             }
             buffer.flip()
         }
     }
-    // --- 3. PROCESSEUR REVERB (Echo/Delay simple) ---
+    // --- 3. REVERB (Simple Delay Line) ---
     class ReverbAudioProcessor : BaseAudioProcessor() {
         private var enabled = false
         private var buffer: ShortArray = ShortArray(0)
         private var cursor = 0
-        // Paramètres : 44100Hz * 0.1s = ~4410 samples de retard
-        private val delayMs = 150 // Durée de l'écho
-        private val decay = 0.5f  // Puissance de l'écho (0.0 à 1.0)
+        // params: 150ms delay, 0.5 decay
+        private val delayMs = 150
+        private val decay = 0.5f
     
         fun setEnabled(enabled: Boolean) {
             if (this.enabled != enabled) {
                 this.enabled = enabled
-                // Reset du buffer si on désactive
+                // clear buffer on disable
                 if (!enabled) buffer = ShortArray(0)
             }
         }
     
         override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
-            // Calcul de la taille du buffer de retard (Delay line)
+            // calculate buffer size based on sample rate
             val bufferSize = (inputAudioFormat.sampleRate * (delayMs / 1000.0) * inputAudioFormat.channelCount).toInt()
             buffer = ShortArray(bufferSize)
             cursor = 0
@@ -7066,18 +7052,18 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/audio/AudioProcessors.kt
             while (inputBuffer.hasRemaining()) {
                 val inputSample = inputBuffer.getShort()
     
-                // Récupère l'écho du passé
+                // get the past sample
                 val delayedSample = buffer[cursor]
     
-                // Mixage : Son actuel + (Echo * Decay)
-                // On sature (clamp) pour éviter le grésillement
+                // mix: input + (echo * decay)
+                // clamp to avoid crackling
                 val outputSample = (inputSample + delayedSample * decay).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
     
-                // On écrit dans le buffer de sortie
+                // write output
                 outputBuffer.putShort(outputSample)
     
-                // On remet le sample actuel dans le buffer de retard pour le futur
-                buffer[cursor] = outputSample // Feedback loop pour reverb longue
+                // feed back into delay line
+                buffer[cursor] = outputSample
     
                 cursor++
                 if (cursor >= buffer.size) cursor = 0
@@ -7369,7 +7355,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/lyrics/LyricsUtils.kt
     import java.io.File
     import java.util.regex.Pattern
     
-    // La classe de données est définie ici
+    // basic holder for a timed line
     data class LyricLine(
         val text: String,
         val startTime: Long,
@@ -7378,6 +7364,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/lyrics/LyricsUtils.kt
     
     object LyricsUtils {
     
+        // standard lrc regex: [mm:ss.xx] lyrics
         private val LRC_PATTERN = Pattern.compile("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})\\](.*)")
     
         fun parseLrc(lrcContent: String, totalDurationMs: Long): List<LyricLine> {
@@ -7390,6 +7377,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/lyrics/LyricsUtils.kt
                     val min = matcher.group(1)?.toLong() ?: 0
                     val sec = matcher.group(2)?.toLong() ?: 0
                     val msStr = matcher.group(3) ?: "00"
+                    // handle 2 digit vs 3 digit milliseconds
                     val ms = if (msStr.length == 2) msStr.toLong() * 10 else msStr.toLong()
     
                     val text = matcher.group(4)?.trim() ?: ""
@@ -7403,6 +7391,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/lyrics/LyricsUtils.kt
     
             if (parsedLines.isEmpty()) return emptyList()
     
+            // calculate end times based on the next line
             return parsedLines.mapIndexed { index, current ->
                 val nextTime = if (index < parsedLines.size - 1) {
                     parsedLines[index + 1].startTime
@@ -7415,7 +7404,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/lyrics/LyricsUtils.kt
     
         private data class ParsedLineTemp(val text: String, val startTime: Long)
     
-        // --- EXTRACTION LOCALE (C'est la fonction qui manquait à cause du conflit) ---
+        // --- local extraction ---
         fun extractLocalLyrics(filePath: String): String? {
             return try {
                 val file = File(filePath)
@@ -7424,7 +7413,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/lyrics/LyricsUtils.kt
                 val mp3file = Mp3File(filePath)
                 if (mp3file.hasId3v2Tag()) {
                     val tag = mp3file.id3v2Tag
-                    // mp3agic gère les paroles non synchronisées (USLT) via getLyrics()
+                    // mp3agic handles the uslt tag magic
                     tag.lyrics
                 } else {
                     null
@@ -7558,8 +7547,6 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerModels.kt
 ================================================================================
     package com.alananasss.kittytune.ui.player
     
-    // Toutes les classes de données liées au lecteur sont maintenant ici
-    
     enum class RepeatMode { NONE, ALL, ONE }
     
     data class AudioEffectsState(
@@ -7587,7 +7574,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
     import android.net.Uri
     import android.provider.OpenableColumns
     import android.view.HapticFeedbackConstants
-    import android.widget.Toast // <-- IMPORT AJOUTÉ
+    import android.widget.Toast
     import androidx.activity.compose.BackHandler
     import androidx.compose.animation.*
     import androidx.compose.animation.core.*
@@ -7673,6 +7660,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
         onClose: () -> Unit
     ) {
         val track = viewModel.currentTrack ?: return
+        // handle back press if lyrics sheet is open
         BackHandler(enabled = !viewModel.showLyricsSheet, onBack = onClose)
     
         val context = LocalContext.current
@@ -7701,6 +7689,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
                 .background(MaterialTheme.colorScheme.background)
                 .pointerInput(Unit) { detectTapGestures { } }
         ) {
+            // dynamic background based on settings
             when (backgroundStyle) {
                 PlayerBackgroundStyle.BLUR -> {
                     Crossfade(
@@ -7757,6 +7746,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
                     ) {
                         PlayerHeader(onClose, viewModel)
                         Spacer(modifier = Modifier.weight(1f))
+    
+                        // album art with shadow
                         AsyncImage(
                             model = track.fullResArtwork,
                             contentDescription = null,
@@ -7764,6 +7755,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
                             modifier = Modifier.fillMaxWidth().aspectRatio(1f).shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (backgroundStyle == PlayerBackgroundStyle.THEME) Color.Black else animatedColor).clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
                         )
                         Spacer(modifier = Modifier.height(32.dp))
+    
+                        // track info with marquee
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -7790,15 +7783,17 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
                         PlayerControls(viewModel = viewModel, animatedMainColor = animatedColor, onEffectsClick = { showEffectsSheet = true }, onQueueClick = { scope.launch { if (queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded) queueSheetState.bottomSheetState.partialExpand() else queueSheetState.bottomSheetState.expand() } })
                         Spacer(modifier = Modifier.weight(1f))
                     }
+    
+                    // overlay to close queue when tapping outside
                     if (isQueueOpen) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(Color.Transparent)
-                                .zIndex(2f) // S'assure d'être au-dessus des boutons du lecteur
+                                .zIndex(2f) // keep above player controls
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
-                                    indication = null // Pas d'effet d'onde au clic
+                                    indication = null
                                 ) {
                                     scope.launch { queueSheetState.bottomSheetState.partialExpand() }
                                 }
@@ -7926,6 +7921,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
                 }
             }
     
+            // build grid items list
             val gridItems = remember(viewModel.isMenuContextFromPlayer, isLocalFile, viewModel.menuContextPlaylistId) {
                 mutableListOf<DockOptionItem>().apply {
                     if (viewModel.isMenuContextFromPlayer) {
@@ -7976,6 +7972,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
                     var tint = inactiveColor
                     var text = item.text
     
+                    // highlight active states
                     if (item.text == stringResource(R.string.menu_shuffle) && viewModel.shuffleEnabled) {
                         tint = activeColor
                     }
@@ -8210,6 +8207,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
             if (!isDragging) {
                 val target = currentPos
                 val distance = kotlin.math.abs(progressState.value - target)
+                // snap if too far
                 if (distance > 2000f) {
                     progressState.animateTo(target, tween(400, easing = FastOutSlowInEasing))
                 } else {
@@ -8278,6 +8276,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 IconButton(onClick = { viewModel.smartPrevious() }, modifier = Modifier.size(48.dp)) { Icon(Icons.Rounded.SkipPrevious, null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(36.dp)) }
     
+                // bouncy play button
                 Box(modifier = Modifier.height(72.dp).width(buttonWidth).clip(CircleShape).background(buttonColor).clickable { viewModel.togglePlayPause() }, contentAlignment = Alignment.Center) {
                     if (viewModel.isLoading) CircularProgressIndicator(color = contentColor, modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
                     else AnimatedContent(targetState = viewModel.isPlaying, transitionSpec = { (scaleIn() + fadeIn()).togetherWith(scaleOut() + fadeOut()) }, label = "icon") { isPlaying ->
@@ -8694,6 +8693,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
                     val ext = uri.path?.substringAfterLast('.', "")?.uppercase()
                     fileFormatStr = if (!ext.isNullOrEmpty()) ext else "MP3/Audio"
     
+                    // get local file size
                     val cursor = context.contentResolver.query(uri, null, null, null, null)
                     cursor?.use {
                         if (it.moveToFirst()) {
@@ -8829,6 +8829,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerScreen.kt
         onMentionClick: (String) -> Unit
     ) {
         var isExpanded by remember { mutableStateOf(false) }
+        // regex for links and mentions
         val urlPattern = Pattern.compile("((https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])")
         val mentionPattern = Pattern.compile("@[\\w-]+")
         val annotatedString = buildAnnotatedString {
@@ -8928,6 +8929,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
         private val _uiEvent = MutableSharedFlow<String>()
         val uiEvent = _uiEvent.asSharedFlow()
     
+        // player ui states
         var currentUserId: Long = 0L
         var currentTrack by mutableStateOf<Track?>(null)
         var isPlaying by mutableStateOf(false)
@@ -8940,12 +8942,15 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
     
         var currentContext by mutableStateOf<PlaybackContext?>(null)
     
+        // audio effects
         var effectsState by mutableStateOf(playerPrefs.getLastEffects())
     
+        // queue logic
         var repeatMode by mutableStateOf(playerPrefs.getLastRepeatMode())
         var shuffleEnabled by mutableStateOf(playerPrefs.getLastShuffleEnabled())
         private var isAutoplayRadioLoading by mutableStateOf(false)
     
+        // bottom sheets states
         var showMenuSheet by mutableStateOf(false)
         var navigateToPlaylistId by mutableStateOf<String?>(null)
         var trackForMenu by mutableStateOf<Track?>(null)
@@ -8964,6 +8969,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
         var tracksToAddInBulk by mutableStateOf<List<Track>?>(null)
         val userPlaylists = mutableStateListOf<LocalPlaylist>()
     
+        // queue data
         private val _originalQueue = mutableListOf<Track>()
         private val _queue = mutableListOf<Track>()
         val queue: List<Track> get() = _queue
@@ -8980,13 +8986,13 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
         var manualSearchQuery by mutableStateOf("")
         val lyricSearchResults = mutableStateListOf<LrcLibResponse>()
     
-        // Nouveaux états Paroles (Settings)
+        // lyrics settings
         var lyricsFontSize by mutableFloatStateOf(playerPrefs.getLyricsFontSize())
         var lyricsAlignment by mutableStateOf(playerPrefs.getLyricsAlignment())
     
         private var pendingSeekPosition: Long? = null
     
-        // Helper pour récupérer les strings
+        // helper to get strings
         private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
         private fun getString(resId: Int, vararg args: Any): String = getApplication<Application>().getString(resId, *args)
     
@@ -8999,6 +9005,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
             MusicManager.onNextClick = { playNext(manual = true) }
             MusicManager.onPreviousClick = { smartPrevious() }
     
+            // sync like state
             viewModelScope.launch {
                 LikeRepository.likedTracks.collect { likedList ->
                     currentTrack?.let { track ->
@@ -9024,6 +9031,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                         AchievementManager.increment("no_skip_50")
                         AchievementManager.increment("plays_1")
     
+                        // handle repeat one vs next track
                         if (repeatMode == RepeatMode.ONE) {
                             AchievementManager.increment("obsessed_50")
                             AchievementManager.increment("obsessed_200")
@@ -9042,6 +9050,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                 }
             })
     
+            // load user playlists for the add menu
             viewModelScope.launch {
                 DownloadManager.getAllPlaylistsFlow().collect { playlists ->
                     userPlaylists.clear()
@@ -9052,7 +9061,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
             restoreSession()
         }
     
-        // --- SETTERS PAROLES ---
+        // --- LYRICS SETTINGS ---
         fun updateLyricsFontSize(size: Float) {
             lyricsFontSize = size
             playerPrefs.setLyricsFontSize(size)
@@ -9106,6 +9115,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                 var localLyricsFound = false
     
                 if (preferLocal) {
+                    // check for embedded lyrics in local file
                     if (track.id < 0) {
                         val localTrack = DownloadManager.getLocalTrack(track.id)
                         if (localTrack != null && File(localTrack.localAudioPath).exists()) {
@@ -9138,10 +9148,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                     }
                 }
     
+                // fetch from web if no local lyrics
                 if (!localLyricsFound) {
                     try {
                         val results = LrcLibClient.api.searchLyrics(query)
                         val trackDurationSec = (track.durationMs ?: 0L) / 1000.0
+                        // try to match duration to find the best sync
                         val bestMatch = results.filter { abs(it.duration - trackDurationSec) < 4.0 }.find { !it.syncedLyrics.isNullOrEmpty() } ?: results.firstOrNull()
                         processLyricsResponse(bestMatch, track.durationMs ?: 0L)
                     } catch (e: Exception) {
@@ -9157,6 +9169,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
         }
         fun searchLyricsManual(query: String) { if (query.isBlank()) return; isLyricsLoading = true; lyricSearchResults.clear(); viewModelScope.launch(Dispatchers.IO) { try { val results = LrcLibClient.api.searchLyrics(query); withContext(Dispatchers.Main) { lyricSearchResults.addAll(results) } } catch (e: Exception) { e.printStackTrace() } finally { withContext(Dispatchers.Main) { isLyricsLoading = false } } } }
         fun selectLyricResult(result: LrcLibResponse) { viewModelScope.launch(Dispatchers.IO) { processLyricsResponse(result, duration) } }
+        // remove junk like (official video) for better search
         private fun cleanTitleNoise(title: String): String = title.replace(Regex("\\(.*?\\)|\\[.*?\\]"), "").replace(Regex("(?i)(official video|lyrics|ft\\.|feat\\.|prod\\.)"), "").trim()
         fun openLyrics(targetTrack: Track? = null) { val target = targetTrack ?: currentTrack ?: return; if (target.id != currentTrack?.id) playPlaylist(listOf(target), 0); showMenuSheet = false; showLyricsSheet = true }
     
@@ -9171,6 +9184,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
             currentQueueIndex = index; val trackToPlay = _queue[index]; isLoading = true; duration = trackToPlay.durationMs ?: 0L; currentPosition = 0L
             viewModelScope.launch {
                 var finalTrack = trackToPlay
+                // fetch full info if needed (missing stream url)
                 if (trackToPlay.user?.id == 0L || trackToPlay.media == null) {
                     try { val fullTrackList = api.getTracksByIds(trackToPlay.id.toString()); if (fullTrackList.isNotEmpty()) { finalTrack = fullTrackList[0]; _queue[index] = finalTrack; if (!_originalQueue.contains(finalTrack)) { val originalIndex = _originalQueue.indexOfFirst { it.id == finalTrack.id }; if (originalIndex != -1) _originalQueue[originalIndex] = finalTrack }; updateQueueState() } } catch (e: Exception) { e.printStackTrace() }
                 }
@@ -9194,6 +9208,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                     val autoPlayEnabled = playerPrefs.getAutoplayEnabled()
                     if (autoPlayEnabled) {
                         viewModelScope.launch {
+                            // try to fetch station for endless playback
                             fetchAndQueueRadio()
                             val newNextIndex = currentQueueIndex + 1
                             if (newNextIndex < _queue.size) playTrackAtIndex(newNextIndex, addToHistory = false)
@@ -9220,10 +9235,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
         fun togglePlayPause() { if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play() }
         fun seekTo(position: Long) { exoPlayer.seekTo(position); currentPosition = position; saveStateAsync() }
     
+        // complex logic to play from file, cache or network
         private suspend fun playRobustly(track: Track, autoPlay: Boolean = true, startPosition: Long = 0L) {
             viewModelScope.launch(Dispatchers.IO) {
                 val bitmap = loadBitmap(track.fullResArtwork)
                 if (bitmap != null) {
+                    // extract vibe color from album art
                     Palette.from(bitmap).generate { palette ->
                         val nightModeFlags = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
                         val isDarkMode = nightModeFlags == Configuration.UI_MODE_NIGHT_YES
@@ -9267,6 +9284,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
             return darkness >= 0.5
         }
     
+        // finds the actual audio url
         private suspend fun resolveAndPlay(track: Track, artworkBitmap: Bitmap?, useToken: Boolean, autoPlay: Boolean = true, startPosition: Long = 0L) {
             val localFile = File(context.filesDir, "track_${track.id}.mp3")
             if (localFile.exists() && localFile.length() > 0) {
@@ -9290,6 +9308,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                 if (fetched.isNotEmpty()) validTrack = fetched[0] else throw Exception("Impossible de récupérer les infos")
             }
     
+            // try to find the best quality stream
             val transcodings = validTrack.media?.transcodings ?: throw Exception("Aucun format")
             val qualityPref = playerPrefs.getAudioQuality()
             val target = if (qualityPref == "HIGH") {
@@ -9303,6 +9322,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
         private fun buildMediaItem(track: Track, uri: Uri, bitmap: Bitmap?): MediaItem { val metadataBuilder = MediaMetadata.Builder().setTitle(track.title ?: "Unknown").setArtist(track.user?.username ?: "Unknown").setArtworkUri(Uri.parse(track.fullResArtwork)); if (bitmap != null) { val stream = ByteArrayOutputStream(); bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream); metadataBuilder.setArtworkData(stream.toByteArray(), MediaMetadata.PICTURE_TYPE_FRONT_COVER) }; return MediaItem.Builder().setUri(uri).setMediaId(track.id.toString()).setMediaMetadata(metadataBuilder.build()).build() }
         private suspend fun preparePlayer(mediaItem: MediaItem, startPos: Long, autoPlay: Boolean) { withContext(Dispatchers.Main) { exoPlayer.setMediaItem(mediaItem); exoPlayer.prepare(); if (startPos > 0) exoPlayer.seekTo(startPos); if (autoPlay) { startPlaybackServiceSafe(); exoPlayer.play() }; MusicManager.applyEffects(effectsState) } }
         private fun startPlaybackServiceSafe() { try { val intent = Intent(context, PlaybackService::class.java); if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent) else context.startService(intent) } catch (e: Exception) { e.printStackTrace() } }
+    
+        // audio effects toggles
         fun setCustomSpeed(speed: Float) { val r = (speed * 10).roundToInt() / 10f; effectsState = effectsState.copy(speed = r); applyEffectsAndSave() }
         fun togglePitchEnabled(e: Boolean) { effectsState = effectsState.copy(isPitchEnabled = e); applyEffectsAndSave() }
         fun toggle8D() { effectsState = effectsState.copy(is8DEnabled = !effectsState.is8DEnabled); applyEffectsAndSave() }
@@ -9342,6 +9363,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                 }
             }
         }
+    
+        // bring back the state from last time
         private fun restoreSession() {
             viewModelScope.launch(Dispatchers.IO) {
                 try {
@@ -9367,12 +9390,11 @@ FICHIER : ./java/com/alananasss/kittytune/ui/player/PlayerViewModel.kt
                             currentContext = lastContext
                             currentTrack = lastTrack
     
-                            // IMPORTANT : On définit la piste courante dans le Singleton
-                            // C'est ce qui manquait ! Le Service a besoin de ça dès le démarrage
-                            // pour afficher la notif et gérer le bouton Like correctement.
+                            // crucial: let the service know what track we have immediately
+                            // this fixes the notification and like button state
                             MusicManager.currentTrack = lastTrack
     
-                            // On vérifie le like initialement
+                            // check like status
                             isLiked = LikeRepository.isTrackLiked(lastTrack.id)
     
                             loadLyrics(lastTrack)
@@ -9455,10 +9477,10 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
     import com.alananasss.kittytune.utils.AppUtils
     import kotlinx.coroutines.launch
     
-    // Modèle de données pour les contributeurs
+    // helper model for credits list
     data class Contributor(
         val name: String,
-        val roleResId: Int, // Utilise une ressource string pour la traduction
+        val roleResId: Int, // using resource id for translation
         val url: String
     )
     
@@ -9474,12 +9496,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
         var showLicensesDialog by remember { mutableStateOf(false) }
         var showCreditsSheet by remember { mutableStateOf(false) }
     
-        // --- LISTE DES CONTRIBUTEURS ---
-        // C'est ici que tu ajouteras les futurs gens
+        // --- CONTRIBUTORS LIST ---
+        // add people here
         val contributors = listOf(
             Contributor("alananasss", R.string.about_role_dev, "https://github.com/alan7383"),
             Contributor("mattdotcat", R.string.about_role_translation, "https://t.me/b37246")
-            // Contributor("Nouveau", R.string.role, "url"),
+            // Contributor("New", R.string.role, "url"),
         )
     
         if (showLicensesDialog) {
@@ -9556,7 +9578,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // --- HEADER (LOGO CHAT) ---
+                // --- HEADER (CAT LOGO) ---
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -9565,7 +9587,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
                 ) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.tertiaryContainer, // Couleur différente pour le fun
+                        color = MaterialTheme.colorScheme.tertiaryContainer, // different color for fun
                         modifier = Modifier.size(88.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -9614,22 +9636,22 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
                     }
                 }
     
-                // --- SECTION PRINCIPALE (CARTE UNIQUE) ---
+                // --- MAIN CARD ---
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                     shape = RoundedCornerShape(24.dp)
                 ) {
                     Column {
-                        // Bouton CRÉDITS (Ouvre le BottomSheet)
+                        // credits button
                         SettingsLinkRow(
-                            icon = Icons.Rounded.Groups, // Icône de groupe
+                            icon = Icons.Rounded.Groups,
                             title = stringResource(R.string.about_credits),
                             onClick = { showCreditsSheet = true }
                         )
     
                         HorizontalDivider(color = MaterialTheme.colorScheme.surface)
     
-                        // Bouton GITHUB
+                        // github
                         SettingsLinkRow(
                             icon = Icons.Rounded.Code,
                             title = stringResource(R.string.about_github),
@@ -9638,7 +9660,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
     
                         HorizontalDivider(color = MaterialTheme.colorScheme.surface)
     
-                        // Bouton BUGS
+                        // bug report
                         SettingsLinkRow(
                             icon = Icons.Rounded.BugReport,
                             title = stringResource(R.string.about_bug_report),
@@ -9647,7 +9669,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
     
                         HorizontalDivider(color = MaterialTheme.colorScheme.surface)
     
-                        // Bouton LICENCES
+                        // licenses
                         SettingsLinkRow(
                             icon = Icons.AutoMirrored.Filled.OpenInNew,
                             title = stringResource(R.string.about_licenses),
@@ -9656,19 +9678,19 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
                     }
                 }
     
-                // --- CARTE TRADUCTION ---
+                // --- TRANSLATION CARD ---
                 Card(
                     onClick = { uriHandler.openUri("https://github.com/alananasss/KittyTune/pulls") },
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                     shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier.fillMaxWidth() // S'assure que la carte prend toute la largeur
+                    modifier = Modifier.fillMaxWidth() // ensure card takes full width
                 ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth() // La ligne prend toute la largeur disponible dans la carte
+                            .fillMaxWidth() // row takes full width available in card
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center // <--- LE FIX : Centre le contenu horizontalement
+                        horizontalArrangement = Arrangement.Center // <--- FIX: centers content horizontally
                     ) {
                         Text(
                             text = "( ◕▿◕ )",
@@ -9677,7 +9699,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
                             modifier = Modifier.padding(end = 16.dp)
                         )
                         Column(
-                            horizontalAlignment = Alignment.Start // Le texte reste aligné à gauche par rapport à lui-même
+                            horizontalAlignment = Alignment.Start // text aligns left relative to itself
                         ) {
                             Text(
                                 text = stringResource(R.string.about_translate_title),
@@ -9694,7 +9716,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
                     }
                 }
     
-                // --- INFO TECHNIQUES (Discret) ---
+                // --- TECH INFO (Hidden) ---
                 ExpandableTechInfo(packageName = context.packageName)
     
                 Spacer(Modifier.height(32.dp))
@@ -9713,8 +9735,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
         }
     }
     
-    // Les fonctions utilitaires (SettingsLinkRow, ExpandableTechInfo) restent identiques
-    // Je les remets ici pour que le copier-coller soit complet
+    // utility functions
     
     @Composable
     fun SettingsLinkRow(icon: ImageVector, title: String, onClick: () -> Unit) {
@@ -9729,9 +9750,9 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AboutScreen.kt
             Spacer(Modifier.width(16.dp))
             Text(title, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack, // Utilisation d'une flèche vers la droite (inversée selon locale)
+                Icons.AutoMirrored.Filled.ArrowBack, // using arrow back but flipped for right arrow
                 null,
-                modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = 180f }, // Hack simple pour flèche droite
+                modifier = Modifier.size(16.dp).graphicsLayer { rotationZ = 180f }, // simple hack for right arrow
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
@@ -9827,6 +9848,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
         val levelProgress = (currentXP.toFloat() / neededXP.toFloat()).coerceIn(0f, 1f)
         val animatedProgress by animateFloatAsState(targetValue = levelProgress, animationSpec = tween(1500), label = "progress")
     
+        // organize by category for cleaner display
         val groupedAchievements = remember { AchievementManager.definitions.groupBy { it.category } }
     
         var showResetDialog1 by remember { mutableStateOf(false) }
@@ -9854,7 +9876,6 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
                         onClick = {
                             AchievementManager.resetAll()
                             showResetDialog2 = false
-                            // CORRECTION : Utilisation de la ressource String
                             Toast.makeText(context, context.getString(R.string.achievements_reset_success), Toast.LENGTH_SHORT).show()
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
@@ -9888,6 +9909,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
                 contentPadding = PaddingValues(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
+                // --- LEVEL CARD ---
                 item {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -9924,10 +9946,10 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
                     }
                 }
     
+                // --- CATEGORIES ---
                 for ((category, achievements) in groupedAchievements) {
                     item {
                         Column {
-                            // CORRECTION : Utilisation de stringResource pour le titre de la catégorie
                             PaddingTitle(stringResource(category.titleResId))
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -10025,7 +10047,6 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
     
                 Column {
                     Text(
-                        // CORRECTION : Utilisation de stringResource pour le titre du succès
                         text = stringResource(def.titleResId),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
@@ -10034,7 +10055,6 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        // CORRECTION : Utilisation de stringResource pour la description
                         text = stringResource(def.descriptionResId),
                         style = MaterialTheme.typography.bodySmall,
                         color = contentColor.copy(alpha = 0.7f),
@@ -10103,7 +10123,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    stringResource(R.string.ach_secret_desc), // Utilise la ressource corrigée
+                    stringResource(R.string.ach_secret_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
@@ -10111,6 +10131,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AchievementsScreen.kt
         }
     }
     
+    // pretty format for big numbers or time
     fun formatValue(id: String, value: Int): String {
         return if (id.startsWith("time_")) {
             val h = value / 3600
@@ -10159,7 +10180,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AppearanceSettingsScreen.kt
     ) {
         val context = LocalContext.current
         val prefs = remember { PlayerPreferences(context) }
-        // On récupère le PlayerViewModel pour connaître l'état du Mini-Player
+        // grab player vm to know if we need padding
         val playerViewModel: PlayerViewModel = viewModel()
     
         var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
@@ -10312,8 +10333,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AppearanceSettingsScreen.kt
                     onClick = { showPlayerStyleDialog = true }
                 )
     
-                // SUPPRESSION DE LA CATEGORIE EN DOUBLE : La catégorie "Notifications" et son contenu sont retirés d'ici.
-                // On garde seulement celle qui est bien placée.
+                // removed duplicate category here
     
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
     
@@ -10330,9 +10350,9 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/AppearanceSettingsScreen.kt
                     }
                 )
     
-                // CORRECTION DU PADDING : Ajout d'un Spacer pour le Mini-Player
+                // fix padding overlap with mini player
                 if (playerViewModel.currentTrack != null) {
-                    Spacer(modifier = Modifier.height(80.dp)) // 64dp pour le lecteur + 16dp de marge
+                    Spacer(modifier = Modifier.height(80.dp)) // 64dp player + 16dp margin
                 }
             }
         }
@@ -10797,7 +10817,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/BackupViewModel.kt
 ================================================================================
 FICHIER : ./java/com/alananasss/kittytune/ui/profile/LicensesScreen.kt
 ================================================================================
-    // CHEMIN : app/src/main/java/com/alananasss/kittytune/ui/profile/LicensesScreen.kt
+    // CHEMIN : app/src/main/java/com/alananasss.kittytune.ui/profile/LicensesScreen.kt
     
     package com.alananasss.kittytune.ui.profile
     
@@ -10824,7 +10844,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/LicensesScreen.kt
     import androidx.compose.ui.window.DialogProperties
     import com.alananasss.kittytune.R
     
-    // Le modèle de données reste inchangé
+    // just keeping it simple
     data class OpenSourceLibrary(
         val name: String,
         val author: String,
@@ -10838,9 +10858,9 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/LicensesScreen.kt
         val context = LocalContext.current
         val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     
-        // La liste des bibliothèques reste en dur car ce sont des noms propres
+        // list of awesome stuff we use
         val libraries = listOf(
-            // --- Jetpack Compose & UI ---
+            // --- jetpack compose & ui ---
             OpenSourceLibrary("Jetpack Compose", "Google", url = "https://developer.android.com/jetpack/compose"),
             OpenSourceLibrary("Material Components for Android", "Google", url = "https://github.com/material-components/material-components-android"),
             OpenSourceLibrary("AndroidX Activity & Core", "Google", url = "https://developer.android.com/jetpack/androidx"),
@@ -10848,23 +10868,23 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/LicensesScreen.kt
             OpenSourceLibrary("AndroidX Navigation", "Google", url = "https://developer.android.com/jetpack/androidx/releases/navigation"),
             OpenSourceLibrary("Palette API", "Google", url = "https://developer.android.com/training/material/palette-colors"),
     
-            // --- Core & Langage ---
+            // --- core & language ---
             OpenSourceLibrary("Kotlin", "JetBrains", url = "https://kotlinlang.org/"),
             OpenSourceLibrary("Kotlin Coroutines", "JetBrains", url = "https://github.com/Kotlin/kotlinx.coroutines"),
     
-            // --- Réseau ---
+            // --- networking ---
             OpenSourceLibrary("Retrofit", "Square, Inc.", url = "https://square.github.io/retrofit/"),
             OpenSourceLibrary("OkHttp", "Square, Inc.", url = "https://square.github.io/okhttp/"),
             OpenSourceLibrary("Gson", "Google", url = "https://github.com/google/gson"),
     
-            // --- Base de données ---
+            // --- database ---
             OpenSourceLibrary("Room", "Google", url = "https://developer.android.com/jetpack/androidx/releases/room"),
     
-            // --- Média & Images ---
+            // --- media & images ---
             OpenSourceLibrary("Media3 (ExoPlayer)", "Google", url = "https://developer.android.com/jetpack/androidx/releases/media3"),
             OpenSourceLibrary("Coil (Image Loading)", "Coil Contributors", url = "https://coil-kt.github.io/coil/"),
     
-            // --- Utilitaires ---
+            // --- utils ---
             OpenSourceLibrary("OSS Licenses Plugin", "Google", license="The 3-Clause BSD License", url = "https://github.com/google/play-services-plugins/tree/master/oss-licenses-plugin")
         ).sortedBy { it.name }
     
@@ -10875,11 +10895,9 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/LicensesScreen.kt
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        // MODIFICATION : Utilisation de la ressource
                         title = { Text(stringResource(R.string.about_licenses_title), fontWeight = FontWeight.Bold) },
                         navigationIcon = {
                             IconButton(onClick = onDismiss) {
-                                // MODIFICATION : Utilisation de la ressource
                                 Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.btn_close))
                             }
                         },
@@ -10927,14 +10945,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/LicensesScreen.kt
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = library.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    // MODIFICATION : Utilisation de la ressource avec placeholder
                     Text(text = stringResource(R.string.license_author_prefix, library.author), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(4.dp))
                     Text(text = library.license, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                 }
                 Icon(
                     imageVector = Icons.Rounded.OpenInNew,
-                    // MODIFICATION : Ajout d'une description pour l'accessibilité
                     contentDescription = stringResource(R.string.open_in_new),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
@@ -11615,10 +11631,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
     
         val user = profileViewModel.user
     
+        // handle back press if a section is expanded
         BackHandler(enabled = expandedSection != null) {
             expandedSection = null
         }
     
+        // create playback context for this artist
         val artistText = stringResource(R.string.generic_artist)
         val artistPlaybackContext = remember(user, artistText) {
             user?.let {
@@ -11634,6 +11652,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
             if (profileViewModel.isLoading && user == null) {
                 ProfileScreenShimmer(onBackClick)
             } else if (user != null) {
+                // overlay for expanded sections
                 AnimatedVisibility(
                     visible = expandedSection != null,
                     enter = slideInHorizontally { it },
@@ -11648,6 +11667,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
                         else -> "" to emptyList<Track>()
                     }
     
+                    // don't use artist context for liked tracks (confusing)
                     val contextForList = if (expandedSection == "likes") null else artistPlaybackContext
     
                     FullListScreen(
@@ -11677,6 +11697,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
                         )
                     }
     
+                    // bio section
                     if (!user.description.isNullOrBlank()) {
                         item {
                             Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
@@ -11722,7 +11743,6 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
                     }
     
                     if (profileViewModel.playlists.isNotEmpty()) {
-                        // --- CORRECTION ICI ---
                         item {
                             val name = user.username ?: stringResource(R.string.generic_artist)
                             SectionTitle(stringResource(R.string.profile_playlists_by_user, name))
@@ -11735,7 +11755,6 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
                     }
     
                     if (profileViewModel.likedTracks.isNotEmpty()) {
-                        // --- CORRECTION ICI ---
                         item {
                             val name = user.username ?: stringResource(R.string.generic_artist)
                             SectionTitle(title = stringResource(R.string.profile_likes_by_user, name), showMore = true, onMoreClick = { expandedSection = "likes" })
@@ -11765,6 +11784,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
                     }
                 }
     
+                // dynamic app bar logic
                 val showBarBackground by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 300 } }
                 val barColor by animateColorAsState(if (showBarBackground) MaterialTheme.colorScheme.surface.copy(alpha = 0.98f) else Color.Transparent, label = "bar")
                 val contentColor by animateColorAsState(if (showBarBackground) MaterialTheme.colorScheme.onSurface else Color.White, label = "content")
@@ -12011,8 +12031,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
                                 Text(
                                     stringResource(R.string.btn_shuffle),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    maxLines = 1, // Ajouté
-                                    overflow = TextOverflow.Ellipsis // Ajouté
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                             FilledTonalButton(
@@ -12026,8 +12046,8 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileScreen.kt
                                 Text(
                                     stringResource(R.string.radio),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    maxLines = 1, // Ajouté
-                                    overflow = TextOverflow.Ellipsis // Ajouté
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -12431,14 +12451,14 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
     import kotlinx.coroutines.coroutineScope
     import kotlinx.coroutines.launch
     
-    // MODIFICATION : Le titre est retiré, il sera géré par la vue avec les ressources.
+    // tabs logic handled by view, title stripped
     enum class ProfileTab {
         POPULAR,
         TRACKS,
         ALBUMS,
         PLAYLISTS,
         LIKES,
-        REPOSTS // Ajouté pour la cohérence
+        REPOSTS
     }
     
     class ProfileViewModel(application: Application) : AndroidViewModel(application) {
@@ -12449,7 +12469,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
         var isLoading by mutableStateOf(true)
         var selectedTab by mutableStateOf(ProfileTab.POPULAR)
     
-        // Listes de données
+        // all the content lists
         val popularTracks = mutableStateListOf<Track>()
         val allTracks = mutableStateListOf<Track>()
         val repostedTracks = mutableStateListOf<Track>()
@@ -12460,11 +12480,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
     
         var artistStationId: Long? = null
     
-        // Helper pour récupérer les strings depuis le ViewModel
+        // helper to get strings inside viewmodel
         private fun getString(@StringRes resId: Int): String = getApplication<Application>().getString(resId)
         private fun getString(@StringRes resId: Int, vararg formatArgs: Any): String = getApplication<Application>().getString(resId, *formatArgs)
     
     
+        // helper to page through all tracks if needed
         private suspend fun fetchAllUserTracks(userId: Long): List<Track> {
             val allUserTracks = mutableListOf<Track>()
             try {
@@ -12472,6 +12493,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
                 allUserTracks.addAll(firstPage.collection.filterNotNull())
                 var nextUrl = firstPage.next_href
                 var pageCount = 0
+                // safety limit to avoid infinite loops
                 while (nextUrl != null && pageCount < 20) {
                     val nextPage = api.getUserTracksNextPage(nextUrl)
                     allUserTracks.addAll(nextPage.collection.filterNotNull())
@@ -12489,13 +12511,15 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
                 isLoading = true
                 isCurrentUser = false
                 try {
+                    // check if it's me
                     try {
                         val me = api.getMe()
                         if (me.id == userId) {
                             isCurrentUser = true
                         }
-                    } catch (e: Exception) { /* Ignoré */ }
+                    } catch (e: Exception) { /* ignore */ }
     
+                    // avoid flickering if we reload same user
                     if (user?.id != userId) {
                         user = api.getUser(userId)
                     } else {
@@ -12504,6 +12528,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
                     }
     
                     coroutineScope {
+                        // parallel fetching of everything
                         val popDef = async { try { api.getUserTopTracks(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
                         val tracksDef = async { fetchAllUserTracks(userId) }
                         val repostsDef = async {
@@ -12537,6 +12562,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
                             try {
                                 val station = try { api.getArtistStation(userId) } catch (e: Exception) { null }
                                 if (station != null) artistStationId = station.id
+                                // find related artists via tracks
                                 val related = api.getRelatedTracks(station?.tracks?.firstOrNull()?.id ?: 0, limit = 20)
                                 artists = related.collection.mapNotNull { it.user }.filter { it.id != userId }.distinctBy { it.id }.shuffled().take(10)
                             } catch (_: Exception) { }
@@ -12568,6 +12594,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
             val oldUser = user ?: return
     
             viewModelScope.launch {
+                // optimistic update
                 user = oldUser.copy(username = username, description = bio, city = city)
     
                 try {
@@ -12583,13 +12610,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/ProfileViewModel.kt
                         user = updatedUser
                     }
     
-                    // MODIFICATION : Utilisation des ressources
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
     
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    // rollback on error
                     user = oldUser
-                    // MODIFICATION : Utilisation des ressources
                     Toast.makeText(getApplication(), getString(R.string.profile_update_error, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
@@ -12628,7 +12654,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/SettingsScreen.kt
     fun SettingsScreen(
         navController: NavController,
         onBackClick: () -> Unit,
-        playerViewModel: PlayerViewModel // Paramètre ajouté
+        playerViewModel: PlayerViewModel // needed to check for mini player
     ) {
         Scaffold(
             topBar = {
@@ -12643,15 +12669,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/SettingsScreen.kt
             }
         ) { innerPadding ->
     
-            // --- CORRECTION PRINCIPALE ICI ---
-            // On calcule un padding pour le bas de la liste si le mini-lecteur est visible.
+            // calculate padding so mini player doesn't hide the last item
             val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
-            // On ajoute un peu d'espace supplémentaire pour l'esthétique
             val bottomPadding = miniPlayerHeight + 16.dp
     
             LazyColumn(
                 modifier = Modifier.padding(innerPadding),
-                // On applique le padding au contenu interne de la liste
                 contentPadding = PaddingValues(bottom = bottomPadding)
             ) {
                 item {
@@ -13230,12 +13253,12 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/StorageViewModel.kt
         private val context = application.applicationContext
         private val prefs = PlayerPreferences(context)
     
-        // États globaux
+        // global stats
         var usedSpace by mutableLongStateOf(0L)
         var freeSpace by mutableLongStateOf(0L)
         var totalSpace by mutableLongStateOf(0L)
     
-        // Détails par catégorie
+        // detailed breakdown
         var audioSize by mutableLongStateOf(0L)
         var imageSize by mutableLongStateOf(0L)
         var cacheSize by mutableLongStateOf(0L)
@@ -13256,6 +13279,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/StorageViewModel.kt
                 val path = targetFile ?: Environment.getDataDirectory()
                 val stat = StatFs(path.absolutePath)
     
+                // disk stats
                 totalSpace = stat.blockCountLong * stat.blockSizeLong
                 freeSpace = stat.availableBlocksLong * stat.blockSizeLong
                 usedSpace = totalSpace - freeSpace
@@ -13270,6 +13294,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/StorageViewModel.kt
             var iSize = 0L
     
             if (uriStr == null) {
+                // internal storage scan
                 context.filesDir.listFiles()?.forEach { file ->
                     when {
                         file.name.endsWith(".mp3") || file.name.startsWith("track_") -> aSize += file.length()
@@ -13277,6 +13302,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/StorageViewModel.kt
                     }
                 }
             } else {
+                // external/custom folder scan
                 try {
                     val uri = Uri.parse(uriStr)
                     val docFile = DocumentFile.fromTreeUri(context, uri)
@@ -13355,6 +13381,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/StorageViewModel.kt
         fun onFolderSelected(uri: Uri) {
             val takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             try {
+                // make sure we keep access after reboot
                 context.contentResolver.takePersistableUriPermission(uri, takeFlags)
             } catch (e: Exception) { e.printStackTrace() }
             prefs.saveDownloadLocation(uri.toString())
@@ -13365,6 +13392,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/profile/StorageViewModel.kt
             val oldUriStr = prefs.getDownloadLocation()
             if (oldUriStr != null) {
                 try {
+                    // release permission if we don't use it anymore
                     context.contentResolver.releasePersistableUriPermission(
                         Uri.parse(oldUriStr),
                         Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -13419,7 +13447,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/theme/Theme.kt
         primary = Purple80,
         secondary = PurpleGrey80,
         tertiary = Pink80,
-        background = Color(0xFF1E1E1E), // Gris foncé par défaut
+        background = Color(0xFF1E1E1E), // default dark grey
         surface = Color(0xFF1E1E1E)
     )
     
@@ -13431,7 +13459,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/theme/Theme.kt
     
     @Composable
     fun SoundTuneTheme(
-        // Paramètres injectés depuis MainActivity
+        // params injected from main activity
         themeMode: AppThemeMode = AppThemeMode.SYSTEM,
         dynamicColor: Boolean = true,
         pureBlack: Boolean = false,
@@ -13439,14 +13467,14 @@ FICHIER : ./java/com/alananasss/kittytune/ui/theme/Theme.kt
     ) {
         val systemInDark = isSystemInDarkTheme()
     
-        // 1. Déterminer si on est en mode sombre
+        // 1. figure out if we need dark mode
         val useDarkTheme = when (themeMode) {
             AppThemeMode.SYSTEM -> systemInDark
             AppThemeMode.LIGHT -> false
             AppThemeMode.DARK -> true
         }
     
-        // 2. Choisir le schéma de base
+        // 2. pick base scheme (monet if available)
         val baseColorScheme = when {
             dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
                 val context = LocalContext.current
@@ -13456,14 +13484,14 @@ FICHIER : ./java/com/alananasss/kittytune/ui/theme/Theme.kt
             else -> LightColorScheme
         }
     
-        // 3. Appliquer l'option "Noir Profond" (Uniquement si thème sombre)
+        // 3. apply amoled black if requested (dark mode only)
         val finalColorScheme = if (useDarkTheme && pureBlack) {
             baseColorScheme.copy(
                 background = Color.Black,
                 surface = Color.Black,
                 surfaceContainer = Color.Black,
                 surfaceContainerLow = Color.Black,
-                surfaceContainerHigh = Color(0xFF121212) // Légère nuance pour les cartes
+                surfaceContainerHigh = Color(0xFF121212) // slight tint for cards
             )
         } else {
             baseColorScheme
@@ -13476,7 +13504,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/theme/Theme.kt
                 window.statusBarColor = Color.Transparent.toArgb()
                 window.navigationBarColor = Color.Transparent.toArgb()
     
-                // Gestion des icônes de la barre d'état
+                // handle status bar icons color
                 val insetsController = WindowCompat.getInsetsController(window, view)
                 insetsController.isAppearanceLightStatusBars = !useDarkTheme
                 insetsController.isAppearanceLightNavigationBars = !useDarkTheme
@@ -13846,19 +13874,19 @@ FICHIER : ./java/com/alananasss/kittytune/ui/track/TrackDetailViewModel.kt
         var track by mutableStateOf<Track?>(null)
         var isLoading by mutableStateOf(true)
     
-        // Données
+        // data holders
         val likers = mutableStateListOf<User>()
         val reposters = mutableStateListOf<User>()
         val inPlaylists = mutableStateListOf<Playlist>()
         val relatedTracks = mutableStateListOf<Track>()
     
-        // Curseurs de pagination (Next Href)
+        // pagination cursors (next_href)
         private var likersNextUrl: String? = null
         private var repostersNextUrl: String? = null
         private var playlistsNextUrl: String? = null
         private var relatedNextUrl: String? = null
     
-        // États de chargement "Load More" individuels
+        // individual loading states for infinite scroll
         var isLikersLoadingMore by mutableStateOf(false)
         var isRepostersLoadingMore by mutableStateOf(false)
         var isPlaylistsLoadingMore by mutableStateOf(false)
@@ -13868,7 +13896,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/track/TrackDetailViewModel.kt
             if (trackId == 0L) return
             viewModelScope.launch {
                 isLoading = true
-                // Reset des listes et curseurs
+                // clean slate
                 likers.clear(); likersNextUrl = null
                 reposters.clear(); repostersNextUrl = null
                 inPlaylists.clear(); playlistsNextUrl = null
@@ -13878,7 +13906,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/track/TrackDetailViewModel.kt
                     coroutineScope {
                         val trackDef = async { api.getTracksByIds(trackId.toString()).firstOrNull() }
     
-                        // On récupère l'objet complet (pas juste .collection) pour avoir le next_href
+                        // fetch full objects (not just collection) to get next_href
                         val likersResponseDef = async { try { api.getTrackLikers(trackId) } catch (e: Exception) { null } }
                         val repostersResponseDef = async { try { api.getTrackReposters(trackId) } catch (e: Exception) { null } }
                         val playlistsResponseDef = async { try { api.getTrackInPlaylists(trackId) } catch (e: Exception) { null } }
@@ -13911,7 +13939,7 @@ FICHIER : ./java/com/alananasss/kittytune/ui/track/TrackDetailViewModel.kt
             }
         }
     
-        // --- FONCTIONS LOAD MORE ---
+        // --- load more functions ---
     
         fun loadMoreLikers() {
             if (isLikersLoadingMore || likersNextUrl == null) return
@@ -13978,10 +14006,9 @@ FICHIER : ./java/com/alananasss/kittytune/utils/AppUtils.kt
         fun getAppVersion(context: Context): String {
             return try {
                 val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-                // Correction : On gère le cas où versionName est null
                 packageInfo.versionName ?: "1.0.0"
             } catch (e: PackageManager.NameNotFoundException) {
-                "1.0.0" // Version par défaut en cas d'erreur
+                "1.0.0"
             }
         }
     }
@@ -13999,7 +14026,7 @@ FICHIER : ./java/com/alananasss/kittytune/utils/Config.kt
         private const val PREFS_NAME = "app_config"
         private const val KEY_CLIENT_ID = "dynamic_client_id"
     
-        // On le met public (const val dans l'objet)
+        // keeping this public just in case
         const val FALLBACK_ID = "7K3no7iJj8d02d20Z26Z26Z26Z26Z26"
     
         const val BASE_URL = "https://api-v2.soundcloud.com/"
@@ -14010,9 +14037,9 @@ FICHIER : ./java/com/alananasss/kittytune/utils/Config.kt
     
         fun init(context: Context) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            // On essaie de récupérer l'ancien, sinon fallback
+            // try to load saved id, otherwise default to fallback
             CLIENT_ID = prefs.getString(KEY_CLIENT_ID, FALLBACK_ID) ?: FALLBACK_ID
-            Log.d("Config", "Client ID initialisé: $CLIENT_ID")
+            Log.d("Config", "Client ID initialized: $CLIENT_ID")
         }
     
         fun updateClientId(context: Context, newId: String) {
@@ -14020,7 +14047,7 @@ FICHIER : ./java/com/alananasss/kittytune/utils/Config.kt
                 CLIENT_ID = newId
                 val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 prefs.edit().putString(KEY_CLIENT_ID, newId).apply()
-                Log.d("Config", "🔥 NOUVEAU CLIENT ID CAPTURÉ : $newId")
+                Log.d("Config", "🔥 FRESH CLIENT ID SNAGGED: $newId")
             }
         }
     }
@@ -14038,23 +14065,23 @@ FICHIER : ./java/com/alananasss/kittytune/utils/LocaleUtils.kt
     
     object LocaleUtils {
         fun updateBaseContextLocale(context: Context): Context {
-            // 1. Récupérer la langue préférée depuis nos préférences
+            // grab the language pref
             val prefs = PlayerPreferences(context)
             val language = prefs.getAppLanguage()
     
-            // 2. Si l'utilisateur veut la langue du système, on ne touche à rien
+            // if system default, don't touch anything
             if (language == AppLanguage.SYSTEM) return context
     
-            // 3. Sinon, on force la Locale
+            // otherwise force the locale
             val locale = Locale(language.code)
             Locale.setDefault(locale)
     
-            // 4. On crée une nouvelle configuration pour le contexte
+            // create a new config with this locale
             val config = Configuration(context.resources.configuration)
             config.setLocale(locale)
             config.setLayoutDirection(locale)
     
-            // 5. On retourne le contexte modifié
+            // return the modded context
             return context.createConfigurationContext(config)
         }
     }
@@ -14096,10 +14123,10 @@ FICHIER : ./java/com/alananasss/kittytune/utils/TimeUtils.kt
         val seconds = totalSeconds % 60
     
         return if (hours > 0) {
-            // Format pour les longues durées (ex: 2h 14min)
+            // long stuff format (like 2h 14min)
             String.format(Locale.getDefault(), "%dh %02dmin", hours, minutes)
         } else {
-            // Format standard pour les chansons (ex: 03:45)
+            // standard song format (03:45)
             String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
         }
     }
@@ -14797,8 +14824,6 @@ FICHIER : ./res/values-fr/strings.xml
         <string name="ach_ghost_title">Fantôme</string>
         <string name="ach_lucky7_title">Jackpot</string>
         <string name="ach_glitch_title">Glitch in the Matrix</string>
-    
-        <!-- AJOUTS POUR LYRICS SETTINGS -->
         <string name="align_center_simple">Centré</string>
     
         <string name="storage_used_formatted">%1$s utilisés</string>
@@ -15215,8 +15240,6 @@ FICHIER : ./res/values-hu/strings.xml
         <string name="completion_thanks">Köszönjük.</string>
         <string name="completion_thanks_message">"Minden siker teljesítése olyan tett, amit kevesen érnek el. Az Ön elkötelezettsége és zene iránti szenvedélye az oka ennek az alkalmazásnak.\n\nKöszönjük, hogy velünk tartott ezen az úton.\n\n~ Alan :3"</string>
         <string name="completion_continue">Koppintson bárhova a folytatáshoz</string>
-    
-        <!-- AJOUTS POUR L'ÉCRAN DE PROFIL -->
         <string name="profile_playlists_by_user">%1$s lejátszási listái</string>
         <string name="profile_likes_by_user">%1$s kedvelte</string>
         <string name="profile_latest_tracks">Legutóbbi számok</string>
@@ -15871,8 +15894,6 @@ FICHIER : ./res/values/strings.xml
         <string name="ach_ghost_title">Ghost</string>
         <string name="ach_lucky7_title">Jackpot</string>
         <string name="ach_glitch_title">Glitch in the Matrix</string>
-    
-        <!-- AJOUTS POUR LYRICS SETTINGS -->
         <string name="align_center_simple">Center</string>
     
         <string name="storage_used_formatted">%1$s used</string>

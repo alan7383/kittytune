@@ -90,7 +90,7 @@ object AchievementManager {
         Achievement("social_star", AchievementCategory.PLAYER, R.string.ach_social_star_title, R.string.ach_social_star_desc, "🌐", 50, xpReward = 1000),
         Achievement("obsessed_50", AchievementCategory.HARDCORE, R.string.ach_obsessed_50_title, R.string.ach_obsessed_50_desc, "🔄", 50, xpReward = 1000),
         Achievement("obsessed_200", AchievementCategory.HARDCORE, R.string.ach_obsessed_200_title, R.string.ach_obsessed_200_desc, "😵‍💫", 200, xpReward = 10000),
-        Achievement("night_shift_pro", AchievementCategory.HARDCORE, R.string.ach_night_shift_pro_title, R.string.ach_night_shift_pro_desc, "🧛", 1800000, xpReward = 15000),
+        Achievement("night_shift_pro", AchievementCategory.HARDCORE, R.string.ach_night_shift_pro_title, R.string.ach_night_shift_pro_desc, "🧛", 28800, xpReward = 15000), // 8 hours
         Achievement("marathon", AchievementCategory.HARDCORE, R.string.ach_marathon_title, R.string.ach_marathon_desc, "🏃", 28800, xpReward = 5000),
         Achievement("no_skip_50", AchievementCategory.HARDCORE, R.string.ach_no_skip_50_title, R.string.ach_no_skip_50_desc, "🧘", 50, xpReward = 1000),
         Achievement("developer", AchievementCategory.SECRET, R.string.ach_developer_title, R.string.ach_secret_desc, "💻", 10, isSecret = true, xpReward = 1000),
@@ -146,8 +146,17 @@ object AchievementManager {
     fun addPlayTime(seconds: Int, isGuest: Boolean, speed: Float) {
         definitions.filter { it.category == AchievementCategory.TIME }.forEach { increment(it.id, seconds) }
         if (isGuest) increment("ghost", seconds)
+
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        if (hour >= 22 || hour <= 6) increment("night_shift_pro", seconds)
+        if (hour >= 22 || hour < 6) {
+            increment("night_shift_pro", seconds)
+        } else {
+            if (_progressFlow.value["night_shift_pro"]?.isUnlocked == false) {
+                prefs.edit().putInt("curr_night_shift_pro", 0).apply()
+                updateFlow("night_shift_pro", AchievementProgress("night_shift_pro", 0, false))
+            }
+        }
+
         increment("marathon", seconds)
         if (speed >= 1.2f) increment("speed_demon", seconds)
     }
@@ -198,12 +207,9 @@ object AchievementManager {
         val streakDefs = definitions.filter { it.category == AchievementCategory.LOYALTY && it.id.startsWith("streak_") }
         streakDefs.forEach { def ->
             if (_progressFlow.value[def.id]?.isUnlocked == false) {
-                // Sauvegarde la progression pour la persistance
                 prefs.edit().putInt("curr_${def.id}", currentStreak).apply()
-                // Met à jour l'interface pour la session actuelle
                 updateFlow(def.id, AchievementProgress(def.id, currentStreak, false))
             }
-            // Vérifie si le succès doit être déverrouillé
             if (currentStreak >= def.targetValue) {
                 unlock(def.id)
             }
@@ -218,6 +224,18 @@ object AchievementManager {
     fun trackSkipped() {
         prefs.edit().putInt("curr_no_skip_50", 0).apply()
         updateFlow("no_skip_50", AchievementProgress("no_skip_50", 0, false))
+    }
+
+    fun resetSessionAchievements() {
+        // Seuls les succès qui DOIVENT être faits en une seule session sont listés ici.
+        // Vampire n'en fait plus partie car sa logique de reset est basée sur l'heure.
+        val sessionAchievements = listOf("marathon", "no_skip_50")
+        sessionAchievements.forEach { id ->
+            if (_progressFlow.value[id]?.isUnlocked == false) {
+                prefs.edit().putInt("curr_$id", 0).apply()
+                updateFlow(id, AchievementProgress(id, 0, false))
+            }
+        }
     }
 
     private fun unlock(id: String) {

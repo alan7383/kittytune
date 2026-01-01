@@ -40,6 +40,29 @@ import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.Achievement
 import com.alananasss.kittytune.data.AchievementManager
+import java.util.Locale
+
+private fun formatDisplayValue(value: Int, achievementId: String): String {
+    val timeBasedIds = listOf("marathon", "night_shift_pro", "bass_addict", "speed_demon", "ghost")
+    val isTimeBased = achievementId.startsWith("time_") || timeBasedIds.contains(achievementId)
+
+    if (isTimeBased) {
+        val hours = value / 3600
+        val minutes = (value % 3600) / 60
+        return when {
+            hours >= 10 -> "${hours}h"
+            hours > 0 -> {
+                val decimal = (value % 3600) / 360.0f
+                String.format(Locale.US, "%.1fh", hours + decimal)
+            }
+            minutes > 0 -> "${minutes}m"
+            else -> "${value}s"
+        }
+    }
+
+    return if (value >= 1000) String.format(Locale.US, "%.0fk", value / 1000f) else value.toString()
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,7 +174,6 @@ fun AchievementsScreen(onBackClick: () -> Unit) {
                 }
             }
 
-            // --- CATEGORIES ---
             for ((category, achievements) in groupedAchievements) {
                 item {
                     Column {
@@ -270,8 +292,8 @@ fun AchievementCardHorizontal(def: Achievement, current: Int, isUnlocked: Boolea
             }
 
             Column {
-                val displayCurrent = formatValue(def.id, current)
-                val displayTarget = formatValue(def.id, def.targetValue)
+                val displayCurrent = formatDisplayValue(current, def.id)
+                val displayTarget = formatDisplayValue(def.targetValue, def.id)
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(
@@ -333,16 +355,5 @@ fun SecretAchievementCardHorizontal() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
-    }
-}
-
-// pretty format for big numbers or time
-fun formatValue(id: String, value: Int): String {
-    return if (id.startsWith("time_")) {
-        val h = value / 3600
-        val m = (value % 3600) / 60
-        if (h > 0) "${h}h${if(m>0) "${m}m" else ""}" else "${m}m"
-    } else {
-        if (value >= 1000) String.format("%.1fk", value / 1000f) else "$value"
     }
 }

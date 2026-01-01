@@ -24,6 +24,7 @@ import com.alananasss.kittytune.MainActivity
 import com.alananasss.kittytune.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 class PlaybackService : MediaSessionService() {
@@ -46,9 +47,9 @@ class PlaybackService : MediaSessionService() {
         override fun onPause() { MusicManager.player.pause() }
         override fun onStop() { MusicManager.player.stop(); stopSelf() }
         override fun onSkipToNext() { MusicManager.onNextClick?.invoke() }
+        // MODIFIÉ : La logique est maintenant entièrement gérée par le PlayerViewModel via le MusicManager
         override fun onSkipToPrevious() {
-            if (MusicManager.player.currentPosition > 3000) MusicManager.player.seekTo(0)
-            else MusicManager.onPreviousClick?.invoke()
+            MusicManager.onPreviousClick?.invoke()
         }
         override fun onSeekTo(pos: Long) { MusicManager.player.seekTo(pos) }
 
@@ -80,8 +81,7 @@ class PlaybackService : MediaSessionService() {
         } else {
             LikeRepository.addLike(track)
         }
-        // update immediately
-        updateNotification()
+        // La mise à jour est maintenant automatique grâce au collecteur de flux
     }
 
     @OptIn(UnstableApi::class)
@@ -89,6 +89,15 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         MusicManager.init(this)
         createNotificationChannel()
+
+        // AJOUTÉ : Observe les changements de "likes" en temps réel
+        serviceScope.launch {
+            LikeRepository.likedTracks.collect {
+                if (::mediaSessionCompat.isInitialized) {
+                    updateNotification()
+                }
+            }
+        }
 
         val sessionIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -135,7 +144,7 @@ class PlaybackService : MediaSessionService() {
         val player = MusicManager.player
         val state = if (player.isPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
 
-        val currentId = player.currentMediaItem?.mediaId?.toLongOrNull() ?: 0L
+        val currentId = MusicManager.currentTrack?.id ?: 0L // Utilise la source de vérité
         val isLiked = LikeRepository.isTrackLiked(currentId)
 
         val likeIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline

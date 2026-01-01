@@ -72,6 +72,7 @@ class MainActivity : ComponentActivity() {
         DownloadManager.init(applicationContext)
         HistoryRepository.init(applicationContext)
         AchievementManager.init(applicationContext)
+        AchievementManager.resetSessionAchievements()
 
         // init prefs and listener
         preferences = PlayerPreferences(applicationContext)

@@ -465,7 +465,7 @@
     <string name="ach_obsessed_200_title">Pure Madness</string>
     <string name="ach_obsessed_200_desc">Listen to the SAME track 200 times</string>
     <string name="ach_night_shift_pro_title">Vampire</string>
-    <string name="ach_night_shift_pro_desc">Listen for 500 hours at night (10pm-6am)</string>
+    <string name="ach_night_shift_pro_desc">Listen for 8h straight from 10pm to 6am</string>
     <string name="ach_marathon_title">Marathon Runner</string>
     <string name="ach_marathon_desc">Listen for 8h straight without closing the app</string>
     <string name="ach_no_skip_50_title">Focus</string>

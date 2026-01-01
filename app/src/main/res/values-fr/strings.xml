@@ -463,7 +463,7 @@
     <string name="ach_obsessed_200_title">Folie Pure</string>
     <string name="ach_obsessed_200_desc">Écouter le MÊME titre 200 fois</string>
     <string name="ach_night_shift_pro_title">Vampire</string>
-    <string name="ach_night_shift_pro_desc">Écouter 500 heures la nuit (22h-06h)</string>
+    <string name="ach_night_shift_pro_desc">Écouter 8h d\'affilée de 22h à 6h</string>
     <string name="ach_marathon_title">Marathonien</string>
     <string name="ach_marathon_desc">Écouter 8h d\'affilée sans fermer l\'app</string>
     <string name="ach_no_skip_50_title">Concentration</string>
