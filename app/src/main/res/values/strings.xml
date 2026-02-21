@@ -855,6 +855,10 @@
     <string name="font_preset_elegant">Elegant</string>
     <string name="font_preset_playful">Playful</string>
     <string name="font_preset_wide">Wide</string>
+
+    <string name="captcha_done">I completed the Captcha</string>
+    <string name="cancel">Cancel</string>
+    <string name="security_check">Security Check</string>
     
     </resources>
 

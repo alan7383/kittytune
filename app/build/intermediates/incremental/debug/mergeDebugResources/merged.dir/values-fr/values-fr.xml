@@ -195,6 +195,8 @@
     <string msgid="6107532579223922871" name="call_notification_incoming_text">"Appel entrant"</string>
     <string msgid="8623827134497363134" name="call_notification_ongoing_text">"Appel en cours"</string>
     <string msgid="59049573811482460" name="call_notification_screening_text">"Filtrage d\'un appel entrant"</string>
+    <string name="cancel">Annuler</string>
+    <string name="captcha_done">J\'ai fini le Captcha</string>
     <string name="category_genre_afro">Afro</string>
     <string name="category_genre_afrocuban">Afro-cubain</string>
     <string name="category_genre_alt">Alternatif &amp; Indé</string>
@@ -779,6 +781,7 @@
     <string name="search_section_moods">Humeurs et moments</string>
     <string name="search_source_soundcloud">SoundCloud</string>
     <string name="search_source_youtube">YouTube</string>
+    <string name="security_check">Vérification de sécurité</string>
     <string msgid="6043586758067023" name="selected">"Sélectionné"</string>
     <string name="settings_cat_appearance">Apparence</string>
     <string name="settings_cat_audio">Audio</string>

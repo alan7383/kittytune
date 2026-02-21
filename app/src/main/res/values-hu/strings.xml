@@ -847,7 +847,10 @@
     <string name="font_preset_elegant">Elegáns</string>
     <string name="font_preset_playful">Játékos</string>
     <string name="font_preset_wide">Széles</string>
-    
+
+    <string name="captcha_done">Befejeztem a Captcha-t</string>
+    <string name="cancel">Mégse</string>
+    <string name="security_check">Biztonsági ellenőrzés</string>
     </resources>
 
 
