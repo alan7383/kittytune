@@ -1,0 +1,39 @@
+    package com.alananasss.kittytune.ui.profile
+    
+    import android.app.Application
+    import androidx.compose.runtime.getValue
+    import androidx.compose.runtime.mutableStateListOf
+    import androidx.compose.runtime.mutableStateOf
+    import androidx.compose.runtime.setValue
+    import androidx.lifecycle.AndroidViewModel
+    import androidx.lifecycle.viewModelScope
+    import com.alananasss.kittytune.data.network.RetrofitClient
+    import com.alananasss.kittytune.domain.Conversation
+    import kotlinx.coroutines.launch
+    
+    class ConversationsViewModel(application: Application) : AndroidViewModel(application) {
+        private val api = RetrofitClient.create(application)
+    
+        val conversations = mutableStateListOf<Conversation>()
+        var isLoading by mutableStateOf(true)
+        var currentUserId: Long = 0L
+    
+        fun loadConversations() {
+            viewModelScope.launch {
+                isLoading = true
+                try {
+                    val me = api.getMe()
+                    currentUserId = me.id
+                    val response = api.getConversations(me.id)
+                    conversations.clear()
+                    conversations.addAll(response.collection)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+
