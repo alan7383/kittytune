@@ -1,11 +1,11 @@
 ﻿================================================================================
 PROJET : C:\AndroidStudioProjects\KittyTune
-DATE   : 02/21/2026 11:26:12
+DATE   : 02/21/2026 12:49:38
 ================================================================================
 
 RÉSUMÉ :
 ----------------------------------------
-Dossiers scannés (approx) : 71
+Dossiers scannés (approx) : 75
 Fichiers texte trouvés    : 190
 
 ARBORESCENCE :
@@ -17,6 +17,12 @@ ARBORESCENCE :
 │   └── [sessions]
 ├── [app]
 │   ├── [release]
+│   │   ├── [baselineProfiles]
+│   │   │   ├── [0]
+│   │   │   │   └── app-release.dm
+│   │   │   └── [1]
+│   │   │       └── app-release.dm
+│   │   ├── app-release.apk
 │   │   └── output-metadata.json
 │   ├── [src]
 │   │   ├── [androidTest]
@@ -184,6 +190,8 @@ ARBORESCENCE :
 │   │   │   │   │   ├── widget_preview_mini.xml
 │   │   │   │   │   ├── widget_preview_normal.xml
 │   │   │   │   │   └── widget_preview_search.xml
+│   │   │   │   ├── [font]
+│   │   │   │   │   └── google_sans_flex.ttf
 │   │   │   │   ├── [mipmap-anydpi-v26]
 │   │   │   │   │   ├── ic_launcher.xml
 │   │   │   │   │   └── ic_launcher_round.xml
@@ -326,46 +334,43 @@ FICHIER : \AndroidStudioProjects\KittyTune\.github\PULL_REQUEST_TEMPLATE.md
 ================================================================================
 FICHIER : \AndroidStudioProjects\KittyTune\app\release\output-metadata.json
 ================================================================================
+    {
+      "version": 3,
+      "artifactType": {
+        "type": "APK",
+        "kind": "Directory"
+      },
+      "applicationId": "com.alananasss.kittytune",
+      "variantName": "release",
+      "elements": [
         {
-          "version": 3,
-          "artifactType": {
-            "type": "APK",
-            "kind": "Directory"
-          },
-          "applicationId": "com.alananasss.kittytune",
-          "variantName": "release",
-          "elements": [
-            {
-              "type": "SINGLE",
-              "filters": [],
-              "attributes": [],
-              "versionCode": 1,
-              "versionName": "2.18.7",
-              "outputFile": "app-release.apk"
-            }
-          ],
-          "elementType": "File",
-          "baselineProfiles": [
-            {
-              "minApi": 28,
-              "maxApi": 30,
-              "baselineProfiles": [
-                "baselineProfiles/1/app-release.dm"
-              ]
-            },
-            {
-              "minApi": 31,
-              "maxApi": 2147483647,
-              "baselineProfiles": [
-                "baselineProfiles/0/app-release.dm"
-              ]
-            }
-          ],
-          "minSdkVersionForDexing": 26
+          "type": "SINGLE",
+          "filters": [],
+          "attributes": [],
+          "versionCode": 1,
+          "versionName": "2.19.1",
+          "outputFile": "app-release.apk"
         }
-    
-    
-    
+      ],
+      "elementType": "File",
+      "baselineProfiles": [
+        {
+          "minApi": 28,
+          "maxApi": 30,
+          "baselineProfiles": [
+            "baselineProfiles/1/app-release.dm"
+          ]
+        },
+        {
+          "minApi": 31,
+          "maxApi": 2147483647,
+          "baselineProfiles": [
+            "baselineProfiles/0/app-release.dm"
+          ]
+        }
+      ],
+      "minSdkVersionForDexing": 26
+    }
 
 
 ================================================================================
@@ -694,7 +699,35 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
     
             private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
             private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
+            private const val KEY_CUSTOM_FONT_ENABLED = "custom_font_enabled"
+            private const val KEY_FONT_WGHT = "font_wght"
+            private const val KEY_FONT_WDTH = "font_wdth"
+            private const val KEY_FONT_SLNT = "font_slnt"
+            private const val KEY_FONT_ROND = "font_rond"
+            private const val KEY_FONT_GRAD = "font_grad"
+            private const val KEY_FONT_OPSZ = "font_opsz"
         }
+    
+        fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, false)
+        fun setCustomFontEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled).apply()
+    
+        fun getFontWght() = prefs.getInt(KEY_FONT_WGHT, 400)
+        fun setFontWght(value: Int) = prefs.edit().putInt(KEY_FONT_WGHT, value).apply()
+    
+        fun getFontWdth() = prefs.getFloat(KEY_FONT_WDTH, 100f)
+        fun setFontWdth(value: Float) = prefs.edit().putFloat(KEY_FONT_WDTH, value).apply()
+    
+        fun getFontSlnt() = prefs.getFloat(KEY_FONT_SLNT, 0f)
+        fun setFontSlnt(value: Float) = prefs.edit().putFloat(KEY_FONT_SLNT, value).apply()
+    
+        fun getFontRond() = prefs.getFloat(KEY_FONT_ROND, 0f)
+        fun setFontRond(value: Float) = prefs.edit().putFloat(KEY_FONT_ROND, value).apply()
+    
+        fun getFontGrad() = prefs.getFloat(KEY_FONT_GRAD, 0f)
+        fun setFontGrad(value: Float) = prefs.edit().putFloat(KEY_FONT_GRAD, value).apply()
+    
+        fun getFontOpsz() = prefs.getFloat(KEY_FONT_OPSZ, 14f)
+        fun setFontOpsz(value: Float) = prefs.edit().putFloat(KEY_FONT_OPSZ, value).apply()
     
         fun getDiscordStatusDisplay(): DiscordStatusDisplay {
             val name = prefs.getString(KEY_DISCORD_STATUS_DISPLAY, DiscordStatusDisplay.ACTIVITY.name)
@@ -823,44 +856,59 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
 ================================================================================
 FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kittytune\data\network\GithubApi.kt
 ================================================================================
-        package com.alananasss.kittytune.data.network
-        
-        import com.google.gson.annotations.SerializedName
-        import retrofit2.Retrofit
-        import retrofit2.converter.gson.GsonConverterFactory
-        import retrofit2.http.GET
-        
-        data class GithubRelease(
-            @SerializedName("tag_name") val tagName: String,
-            @SerializedName("body") val body: String, // Changelog
-            @SerializedName("assets") val assets: List<GithubAsset>
-        )
-        
-        data class GithubAsset(
-            @SerializedName("browser_download_url") val downloadUrl: String,
-            @SerializedName("content_type") val contentType: String,
-            @SerializedName("size") val size: Long
-        )
-        
-        interface GithubApiService {
-            @GET("repos/alan7383/kittytune/releases/latest")
-            suspend fun getLatestRelease(): GithubRelease
+    package com.alananasss.kittytune.data.network
+    
+    import com.alananasss.kittytune.BuildConfig
+    import com.google.gson.annotations.SerializedName
+    import okhttp3.OkHttpClient
+    import okhttp3.Interceptor
+    import retrofit2.Retrofit
+    import retrofit2.converter.gson.GsonConverterFactory
+    import retrofit2.http.GET
+    
+    data class GithubRelease(
+        @SerializedName("tag_name") val tagName: String,
+        @SerializedName("body") val body: String,
+        @SerializedName("assets") val assets: List<GithubAsset>
+    )
+    
+    data class GithubAsset(
+        @SerializedName("name") val name: String,
+        @SerializedName("url") val apiUrl: String,
+        @SerializedName("browser_download_url") val browserDownloadUrl: String,
+        @SerializedName("content_type") val contentType: String,
+        @SerializedName("size") val size: Long
+    )
+    
+    interface GithubApiService {
+        @GET("repos/alan7383/kittytune/releases/latest")
+        suspend fun getLatestRelease(): GithubRelease
+    }
+    
+    object GithubClient {
+        private const val BASE_URL = "https://api.github.com/"
+    
+        private val authInterceptor = Interceptor { chain ->
+            val request = chain.request().newBuilder()
+                .addHeader("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
+                .addHeader("Accept", "application/vnd.github.v3+json")
+                .build()
+            chain.proceed(request)
         }
-        
-        object GithubClient {
-            private const val BASE_URL = "https://api.github.com/"
-        
-            val api: GithubApiService by lazy {
-                Retrofit.Builder()
-                    .baseUrl(BASE_URL)
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build()
-                    .create(GithubApiService::class.java)
-            }
+    
+        private val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .build()
+    
+        val api: GithubApiService by lazy {
+            Retrofit.Builder()
+                .baseUrl(BASE_URL)
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .create(GithubApiService::class.java)
         }
-    
-    
-    
+    }
 
 
 ================================================================================
@@ -5584,242 +5632,200 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
 ================================================================================
 FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kittytune\data\UpdateManager.kt
 ================================================================================
-        package com.alananasss.kittytune.data
-        
-        import android.content.Context
-        import android.content.Intent
-        import android.util.Log
-        import androidx.core.content.FileProvider
-        import com.alananasss.kittytune.data.network.GithubRelease
-        import com.alananasss.kittytune.utils.AppUtils
-        import com.google.gson.Gson
-        import kotlinx.coroutines.Dispatchers
-        import kotlinx.coroutines.flow.MutableStateFlow
-        import kotlinx.coroutines.flow.asStateFlow
-        import kotlinx.coroutines.withContext
-        import okhttp3.OkHttpClient
-        import okhttp3.Request
-        import java.io.File
-        import java.io.FileOutputStream
-        
-        enum class UpdateStatus {
-            IDLE, CHECKING, AVAILABLE, DOWNLOADING, READY_TO_INSTALL, ERROR, NO_UPDATE
-        }
-        
-        object UpdateManager {
-            private val _status = MutableStateFlow(UpdateStatus.IDLE)
-            val status = _status.asStateFlow()
-        
-            private val _downloadProgress = MutableStateFlow(0f)
-            val downloadProgress = _downloadProgress.asStateFlow()
-        
-            private val _downloadSize = MutableStateFlow(0L)
-            val downloadSize = _downloadSize.asStateFlow()
-        
-            var releaseInfo: GithubRelease? = null
-            var downloadedApkFile: File? = null
-        
-            private const val PREFS_NAME = "update_cache"
-            private const val KEY_ETAG = "github_etag"
-            private const val KEY_LAST_CHECK = "last_check_time"
-            private const val KEY_CACHED_JSON = "cached_release_json"
-        
-            private val client = OkHttpClient()
-            private val gson = Gson()
-        
-            private const val AUTO_CHECK_COOLDOWN_MS = 15 * 60 * 1000L
-        
-            suspend fun checkForUpdate(context: Context, isManual: Boolean = false) {
-                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        
-                if (!isManual) {
-                    val lastCheck = prefs.getLong(KEY_LAST_CHECK, 0L)
-                    val now = System.currentTimeMillis()
-                    if (now - lastCheck < AUTO_CHECK_COOLDOWN_MS) {
-                        return
-                    }
-                    prefs.edit().putLong(KEY_LAST_CHECK, now).apply()
-                }
-        
-                _status.value = UpdateStatus.CHECKING
-                try {
-                    val currentVersion = AppUtils.getAppVersion(context).replace("v", "")
-        
-                    val release = fetchLatestReleaseWithETag(context, prefs)
-        
-                    if (release == null) {
-                        _status.value = if (isManual) UpdateStatus.ERROR else UpdateStatus.IDLE
-                        return
-                    }
-        
-                    releaseInfo = release
-                    val remoteVersion = release.tagName.replace("v", "")
-        
-                    if (isNewerVersion(currentVersion, remoteVersion)) {
-                        _status.value = UpdateStatus.AVAILABLE
-                    } else {
-                        _status.value = if (isManual) UpdateStatus.NO_UPDATE else UpdateStatus.IDLE
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    _status.value = if (isManual) UpdateStatus.ERROR else UpdateStatus.IDLE
-                }
-            }
-        
-            private suspend fun fetchLatestReleaseWithETag(context: Context, prefs: android.content.SharedPreferences): GithubRelease? {
-                return withContext(Dispatchers.IO) {
-                    val cachedETag = prefs.getString(KEY_ETAG, null)
-        
-                    val requestBuilder = Request.Builder()
-                        .url("https://api.github.com/repos/alan7383/kittytune/releases/latest")
-                        .header("Accept", "application/vnd.github.v3+json")
-        
-                    if (cachedETag != null) {
-                        requestBuilder.header("If-None-Match", cachedETag)
-                    }
-        
-                    try {
-                        val response = client.newCall(requestBuilder.build()).execute()
-        
-                        when (response.code) {
-                            304 -> {
-                                Log.d("UpdateManager", "304 Not Modified - Using Cache")
-                                val cachedJson = prefs.getString(KEY_CACHED_JSON, null)
-                                response.close()
-        
-                                if (cachedJson != null) {
-                                    return@withContext gson.fromJson(cachedJson, GithubRelease::class.java)
-                                }
-                                return@withContext null
-                            }
-                            200 -> {
-                                val newETag = response.header("ETag")
-                                val body = response.body?.string()
-                                response.close()
-        
-                                if (body != null) {
-                                    prefs.edit()
-                                        .putString(KEY_ETAG, newETag)
-                                        .putString(KEY_CACHED_JSON, body)
-                                        .apply()
-        
-                                    Log.d("UpdateManager", "200 OK - Cache Updated")
-                                    return@withContext gson.fromJson(body, GithubRelease::class.java)
-                                }
-                            }
-                            403 -> {
-                                Log.e("UpdateManager", "Rate Limit Exceeded (403)")
-                                response.close()
-                                val cachedJson = prefs.getString(KEY_CACHED_JSON, null)
-                                if (cachedJson != null) {
-                                    return@withContext gson.fromJson(cachedJson, GithubRelease::class.java)
-                                }
-                            }
-                            else -> {
-                                response.close()
-                            }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        val cachedJson = prefs.getString(KEY_CACHED_JSON, null)
-                        if (cachedJson != null) {
-                            return@withContext gson.fromJson(cachedJson, GithubRelease::class.java)
-                        }
-                    }
-        
-                    return@withContext null
-                }
-            }
-        
-        
-            suspend fun downloadUpdate(context: Context) {
-                val asset = releaseInfo?.assets?.find {
-                    it.contentType == "application/vnd.android.package-archive" || it.downloadUrl.endsWith(".apk")
-                }
-                if (asset == null) {
-                    _status.value = UpdateStatus.ERROR
+    package com.alananasss.kittytune.data
+    
+    import android.content.Context
+    import android.content.Intent
+    import android.net.Uri
+    import androidx.core.content.FileProvider
+    import com.alananasss.kittytune.BuildConfig
+    import com.alananasss.kittytune.data.network.GithubClient
+    import com.alananasss.kittytune.data.network.GithubRelease
+    import com.alananasss.kittytune.utils.AppUtils
+    import com.google.gson.Gson
+    import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.flow.MutableStateFlow
+    import kotlinx.coroutines.flow.asStateFlow
+    import kotlinx.coroutines.withContext
+    import okhttp3.OkHttpClient
+    import okhttp3.Request
+    import java.io.File
+    import java.io.FileOutputStream
+    import kotlin.math.max
+    
+    enum class UpdateStatus {
+        IDLE, CHECKING, AVAILABLE, DOWNLOADING, READY_TO_INSTALL, ERROR, NO_UPDATE
+    }
+    
+    object UpdateManager {
+        private val _status = MutableStateFlow(UpdateStatus.IDLE)
+        val status = _status.asStateFlow()
+    
+        private val _downloadProgress = MutableStateFlow(0f)
+        val downloadProgress = _downloadProgress.asStateFlow()
+    
+        private val _downloadSize = MutableStateFlow(0L)
+        val downloadSize = _downloadSize.asStateFlow()
+    
+        var releaseInfo: GithubRelease? = null
+        var downloadedApkFile: File? = null
+    
+        private const val PREFS_NAME = "update_cache"
+        private const val KEY_LAST_CHECK = "last_check_time"
+    
+        private val client = OkHttpClient()
+        private const val AUTO_CHECK_COOLDOWN_MS = 15 * 60 * 1000L
+    
+        suspend fun checkForUpdate(context: Context, isManual: Boolean = false) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    
+            if (!isManual) {
+                val lastCheck = prefs.getLong(KEY_LAST_CHECK, 0L)
+                val now = System.currentTimeMillis()
+                if (now - lastCheck < AUTO_CHECK_COOLDOWN_MS) {
                     return
                 }
-        
-                _status.value = UpdateStatus.DOWNLOADING
-                _downloadProgress.value = 0f
-                _downloadSize.value = asset.size
-        
-                withContext(Dispatchers.IO) {
-                    try {
-                        val request = Request.Builder().url(asset.downloadUrl).build()
-                        val response = client.newCall(request).execute()
-                        val body = response.body ?: throw Exception("Empty body")
-        
-                        val totalSize = body.contentLength()
-                        val file = File(context.getExternalFilesDir(null), "update.apk")
-                        if (file.exists()) file.delete()
-        
-                        body.byteStream().use { input ->
-                            FileOutputStream(file).use { output ->
-                                val buffer = ByteArray(8 * 1024)
-                                var bytesCopied = 0L
-                                var read: Int
-                                while (input.read(buffer).also { read = it } >= 0) {
-                                    output.write(buffer, 0, read)
-                                    bytesCopied += read
-                                    _downloadProgress.value =
-                                        if (totalSize > 0) bytesCopied.toFloat() / totalSize.toFloat() else 0f
-                                }
-                                output.flush()
-                            }
-                        }
-                        downloadedApkFile = file
-                        _status.value = UpdateStatus.READY_TO_INSTALL
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        _status.value = UpdateStatus.ERROR
-                    } finally {
-                        _downloadSize.value = 0L
-                    }
-                }
+                prefs.edit().putLong(KEY_LAST_CHECK, now).apply()
             }
-        
-            fun installUpdate(context: Context) {
-                val file = downloadedApkFile ?: return
+    
+            _status.value = UpdateStatus.CHECKING
+    
+            try {
+                val currentVersion = AppUtils.getAppVersion(context).replace("v", "")
+                val release = GithubClient.api.getLatestRelease()
+    
+                releaseInfo = release
+                val remoteVersion = release.tagName.replace("v", "")
+    
+                if (isNewerVersion(currentVersion, remoteVersion)) {
+                    _status.value = UpdateStatus.AVAILABLE
+                } else {
+                    _status.value = if (isManual) UpdateStatus.NO_UPDATE else UpdateStatus.IDLE
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _status.value = if (isManual) UpdateStatus.ERROR else UpdateStatus.IDLE
+            }
+        }
+    
+        suspend fun downloadUpdate(context: Context) {
+            val asset = releaseInfo?.assets?.find {
+                it.name.endsWith(".apk", ignoreCase = true)
+            }
+    
+            if (asset == null) {
+                _status.value = UpdateStatus.ERROR
+                return
+            }
+    
+            _status.value = UpdateStatus.DOWNLOADING
+            _downloadProgress.value = 0f
+            _downloadSize.value = asset.size
+    
+            withContext(Dispatchers.IO) {
                 try {
-                    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "application/vnd.android.package-archive")
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    val noRedirectClient = client.newBuilder()
+                        .followRedirects(false)
+                        .followSslRedirects(false)
+                        .build()
+    
+                    val requestGitHub = Request.Builder()
+                        .url(asset.apiUrl)
+                        .header("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
+                        .header("Accept", "application/octet-stream")
+                        .build()
+    
+                    var response = noRedirectClient.newCall(requestGitHub).execute()
+    
+                    if (response.code == 302) {
+                        val downloadUrl = response.header("Location")
+                        response.close()
+    
+                        if (downloadUrl != null) {
+                            val requestS3 = Request.Builder()
+                                .url(downloadUrl)
+                                .build()
+    
+                            response = client.newCall(requestS3).execute()
+                        } else {
+                            throw Exception("Redirect without location")
+                        }
                     }
-                    context.startActivity(intent)
+    
+                    if (!response.isSuccessful) {
+                        throw Exception("HTTP Error ${response.code}")
+                    }
+    
+                    val body = response.body ?: throw Exception("Empty body")
+                    val totalSize = body.contentLength()
+                    val file = File(context.getExternalFilesDir(null), "update.apk")
+                    if (file.exists()) file.delete()
+    
+                    body.byteStream().use { input ->
+                        FileOutputStream(file).use { output ->
+                            val buffer = ByteArray(8 * 1024)
+                            var bytesCopied = 0L
+                            var read: Int
+                            while (input.read(buffer).also { read = it } >= 0) {
+                                output.write(buffer, 0, read)
+                                bytesCopied += read
+                                if (totalSize > 0) {
+                                    _downloadProgress.value = bytesCopied.toFloat() / totalSize.toFloat()
+                                }
+                            }
+                            output.flush()
+                        }
+                    }
+    
+                    downloadedApkFile = file
+                    _status.value = UpdateStatus.READY_TO_INSTALL
+    
                 } catch (e: Exception) {
                     e.printStackTrace()
                     _status.value = UpdateStatus.ERROR
-                }
-            }
-        
-            fun dismiss() {
-                _status.value = UpdateStatus.IDLE
-                _downloadProgress.value = 0f
-                _downloadSize.value = 0L
-            }
-        
-            private fun isNewerVersion(current: String, remote: String): Boolean {
-                return try {
-                    val v1 = current.split(".").map { it.toIntOrNull() ?: 0 }
-                    val v2 = remote.split(".").map { it.toIntOrNull() ?: 0 }
-                    for (i in 0 until maxOf(v1.size, v2.size)) {
-                        val v1Part = v1.getOrElse(i) { 0 }
-                        val v2Part = v2.getOrElse(i) { 0 }
-                        if (v2Part > v1Part) return true
-                        if (v2Part < v1Part) return false
-                    }
-                    false
-                } catch (e: Exception) {
-                    false
+                } finally {
+                    _downloadSize.value = 0L
                 }
             }
         }
     
+        fun installUpdate(context: Context) {
+            val file = downloadedApkFile ?: return
+            try {
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/vnd.android.package-archive")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                }
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _status.value = UpdateStatus.ERROR
+            }
+        }
     
+        fun dismiss() {
+            _status.value = UpdateStatus.IDLE
+            _downloadProgress.value = 0f
+            _downloadSize.value = 0L
+        }
     
+        private fun isNewerVersion(current: String, remote: String): Boolean {
+            return try {
+                val v1 = current.split(".").map { it.toIntOrNull() ?: 0 }
+                val v2 = remote.split(".").map { it.toIntOrNull() ?: 0 }
+                for (i in 0 until max(v1.size, v2.size)) {
+                    val v1Part = v1.getOrElse(i) { 0 }
+                    val v2Part = v2.getOrElse(i) { 0 }
+                    if (v2Part > v1Part) return true
+                    if (v2Part < v1Part) return false
+                }
+                false
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
 
 
 ================================================================================
@@ -6965,7 +6971,7 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
         ) {
             val context = LocalContext.current
             val apkAsset = remember(release) {
-                release.assets.find { it.contentType == "application/vnd.android.package-archive" || it.downloadUrl.endsWith(".apk") }
+                release.assets.find { it.name.endsWith(".apk", ignoreCase = true) }
             }
             val fileSizeMb = remember(apkAsset) {
                 apkAsset?.let { Formatter.formatFileSize(context, it.size) }
@@ -17239,22 +17245,35 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
                     showLyricsSheet = true
                 }
             }
-        
+    
             private fun loadLyrics(track: Track) {
                 lyricsLines.clear()
                 lyricsOffset = 0L
                 showLyricsOffsetControls = false
                 isLyricsLoading = true
                 isSearchingLyrics = false
-        
-                val cleanTitle = cleanTitleNoise(track.title ?: "")
-                val query = "$cleanTitle ${track.user?.username ?: ""}"
-                manualSearchQuery = query
-        
+    
+                val originalTitle = track.title ?: ""
+                val cleanTitle = cleanTitleNoise(originalTitle)
+                val uploader = track.user?.username ?: ""
+    
+                val searchQueries = mutableListOf<String>()
+    
+                if (cleanTitle.contains(" - ")) {
+                    searchQueries.add(cleanTitle)
+                    searchQueries.add(cleanTitle.substringAfter(" - ").trim())
+                    searchQueries.add("$cleanTitle $uploader".trim())
+                } else {
+                    searchQueries.add("$cleanTitle $uploader".trim())
+                    searchQueries.add(cleanTitle)
+                }
+    
+                manualSearchQuery = searchQueries.first()
+    
                 viewModelScope.launch(Dispatchers.IO) {
                     val preferLocal = playerPrefs.getLyricsPreferLocal()
                     var localLyricsFound = false
-        
+    
                     if (preferLocal) {
                         val localTrack = DownloadManager.getLocalTrack(track.id)
                         if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
@@ -17271,11 +17290,24 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
                             }
                         }
                     }
-        
+    
                     if (!localLyricsFound) {
                         try {
-                            val results = LrcLibClient.api.searchLyrics(query)
                             val trackDurationSec = (track.durationMs ?: 0L) / 1000.0
+                            var results: List<LrcLibResponse> = emptyList()
+    
+                            for (query in searchQueries) {
+                                if (query.isBlank()) continue
+                                results = LrcLibClient.api.searchLyrics(query)
+    
+                                if (results.isNotEmpty()) {
+                                    withContext(Dispatchers.Main) {
+                                        manualSearchQuery = query
+                                    }
+                                    break
+                                }
+                            }
+    
                             val bestMatch = results.filter { abs(it.duration - trackDurationSec) < 4.0 }.find { !it.syncedLyrics.isNullOrEmpty() } ?: results.firstOrNull()
                             processLyricsResponse(bestMatch, track.durationMs ?: 0L)
                         } catch (e: Exception) {
@@ -17284,7 +17316,7 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
                     }
                 }
             }
-        
+    
             fun adjustLyricsOffset(amount: Long) {
                 lyricsOffset += amount
             }
@@ -19277,339 +19309,476 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
 ================================================================================
 FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kittytune\ui\profile\AppearanceSettingsScreen.kt
 ================================================================================
-        package com.alananasss.kittytune.ui.profile
-        
-        import android.app.Activity
-        import android.content.Context
-        import android.content.Intent
-        import androidx.compose.animation.AnimatedVisibility
-        import androidx.compose.animation.expandVertically
-        import androidx.compose.animation.fadeIn
-        import androidx.compose.animation.fadeOut
-        import androidx.compose.animation.shrinkVertically
-        import androidx.compose.foundation.clickable
-        import androidx.compose.foundation.isSystemInDarkTheme
-        import androidx.compose.foundation.layout.*
-        import androidx.compose.foundation.lazy.LazyColumn
-        import androidx.compose.material.icons.Icons
-        import androidx.compose.material.icons.rounded.*
-        import androidx.compose.material3.*
-        import androidx.compose.runtime.*
-        import androidx.compose.ui.Alignment
-        import androidx.compose.ui.Modifier
-        import androidx.compose.ui.graphics.Shape
-        import androidx.compose.ui.platform.LocalContext
-        import androidx.compose.ui.res.stringResource
-        import androidx.compose.ui.unit.dp
-        import com.alananasss.kittytune.R
-        import com.alananasss.kittytune.data.local.AppLanguage
-        import com.alananasss.kittytune.data.local.AppThemeMode
-        import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
-        import com.alananasss.kittytune.data.local.PlayerPreferences
-        import com.alananasss.kittytune.data.local.StartDestination
-        import com.alananasss.kittytune.ui.common.SettingsGroup
-        import com.alananasss.kittytune.ui.common.SettingsGroupTitle
-        import com.alananasss.kittytune.ui.common.SettingsItem
-        import com.alananasss.kittytune.ui.common.SettingsScaffold
-        import com.alananasss.kittytune.ui.common.getSettingsShape
-        
-        @Composable
-        fun AppearanceSettingsScreen(
-            onBackClick: () -> Unit
-        ) {
-            val context = LocalContext.current
-            val prefs = remember { PlayerPreferences(context) }
-            val isSystemDark = isSystemInDarkTheme()
-        
-            var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
-            var dynamicTheme by remember { mutableStateOf(prefs.getDynamicTheme()) }
-            var themeMode by remember { mutableStateOf(prefs.getThemeMode()) }
-            var pureBlack by remember { mutableStateOf(prefs.getPureBlack()) }
-            var playerStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
-            var appLanguage by remember { mutableStateOf(prefs.getAppLanguage()) }
-            var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
-            var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
-        
-            var showThemeDialog by remember { mutableStateOf(false) }
-            var showPlayerStyleDialog by remember { mutableStateOf(false) }
-            var showStartDestDialog by remember { mutableStateOf(false) }
-            var showLanguageDialog by remember { mutableStateOf(false) }
-        
-            // Logic to determine if pure black option should be visible
-            val isPureBlackVisible = themeMode == AppThemeMode.DARK || (themeMode == AppThemeMode.SYSTEM && isSystemDark)
-        
-            // --- DIALOGS ---
-        
-            if (showThemeDialog) {
-                AlertDialog(
-                    onDismissRequest = { showThemeDialog = false },
-                    title = { Text(stringResource(R.string.pref_theme_mode)) },
-                    text = {
-                        Column {
-                            ThemeRadioButton(stringResource(R.string.theme_system), AppThemeMode.SYSTEM, themeMode) { themeMode = it; prefs.setThemeMode(it); showThemeDialog = false }
-                            ThemeRadioButton(stringResource(R.string.theme_light), AppThemeMode.LIGHT, themeMode) { themeMode = it; prefs.setThemeMode(it); showThemeDialog = false }
-                            ThemeRadioButton(stringResource(R.string.theme_dark), AppThemeMode.DARK, themeMode) { themeMode = it; prefs.setThemeMode(it); showThemeDialog = false }
-                        }
-                    },
-                    confirmButton = { TextButton(onClick = { showThemeDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-                )
-            }
-        
-            if (showStartDestDialog) {
-                AlertDialog(
-                    onDismissRequest = { showStartDestDialog = false },
-                    title = { Text(stringResource(R.string.pref_start_screen)) },
-                    text = {
-                        Column {
-                            StartDestRadioButton(stringResource(R.string.nav_home), StartDestination.HOME, startDestination) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
-                            StartDestRadioButton(stringResource(R.string.nav_library), StartDestination.LIBRARY, startDestination) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
-                        }
-                    },
-                    confirmButton = { TextButton(onClick = { showStartDestDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-                )
-            }
-        
-            if (showPlayerStyleDialog) {
-                AlertDialog(
-                    onDismissRequest = { showPlayerStyleDialog = false },
-                    title = { Text(stringResource(R.string.pref_player_style)) },
-                    text = {
-                        Column {
-                            PlayerStyleRadioButton(stringResource(R.string.style_theme), PlayerBackgroundStyle.THEME, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
-                            PlayerStyleRadioButton(stringResource(R.string.style_gradient), PlayerBackgroundStyle.GRADIENT, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
-                            PlayerStyleRadioButton(stringResource(R.string.style_blur), PlayerBackgroundStyle.BLUR, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
-                        }
-                    },
-                    confirmButton = { TextButton(onClick = { showPlayerStyleDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-                )
-            }
-        
-            if (showLanguageDialog) {
-                AlertDialog(
-                    onDismissRequest = { showLanguageDialog = false },
-                    title = { Text(stringResource(R.string.pref_language)) },
-                    text = {
-                        Column {
-                            LanguageRadioButton(stringResource(R.string.theme_system), AppLanguage.SYSTEM, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                            LanguageRadioButton(stringResource(R.string.lang_french), AppLanguage.FRENCH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                            LanguageRadioButton(stringResource(R.string.lang_english), AppLanguage.ENGLISH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                            LanguageRadioButton(stringResource(R.string.lang_hungarian), AppLanguage.HUNGARIAN, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
-                        }
-                    },
-                    confirmButton = { TextButton(onClick = { showLanguageDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-                )
-            }
-        
-            // --- MAIN UI ---
-        
-            SettingsScaffold(
-                title = stringResource(R.string.pref_appearance_title),
-                onBackClick = onBackClick
-            ) { innerPadding ->
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 100.dp)
-                ) {
-        
-                    // SECTION: GENERAL
-                    item {
-                        SettingsGroup(
-                            title = stringResource(R.string.settings_cat_general),
-                            items = listOf(
-                                { shape ->
-                                    SettingsItem(
-                                        shape = shape,
-                                        title = stringResource(R.string.pref_start_screen),
-                                        subtitle = if (startDestination == StartDestination.HOME) stringResource(R.string.nav_home) else stringResource(R.string.nav_library),
-                                        icon = Icons.Rounded.Home,
-                                        onClick = { showStartDestDialog = true }
-                                    )
-                                },
-                                { shape ->
-                                    SettingsItem(
-                                        shape = shape,
-                                        title = stringResource(R.string.pref_language),
-                                        subtitle = stringResource(R.string.pref_language_sub),
-                                        icon = Icons.Rounded.Language,
-                                        onClick = { showLanguageDialog = true }
-                                    )
-                                },
-                                { shape ->
-                                    SettingsItem(
-                                        shape = shape,
-                                        title = stringResource(R.string.pref_auto_update),
-                                        subtitle = stringResource(R.string.pref_auto_update_sub),
-                                        icon = Icons.Rounded.SystemUpdate,
-                                        hasSwitch = true,
-                                        switchState = autoUpdate,
-                                        onSwitchChange = {
-                                            autoUpdate = it
-                                            prefs.setAutoUpdateEnabled(it)
-                                        }
-                                    )
-                                }
-                            )
-                        )
+    package com.alananasss.kittytune.ui.profile
+    
+    import android.app.Activity
+    import android.content.Context
+    import android.content.Intent
+    import androidx.compose.animation.AnimatedVisibility
+    import androidx.compose.animation.expandVertically
+    import androidx.compose.animation.fadeIn
+    import androidx.compose.animation.fadeOut
+    import androidx.compose.animation.shrinkVertically
+    import androidx.compose.foundation.clickable
+    import androidx.compose.foundation.isSystemInDarkTheme
+    import androidx.compose.foundation.layout.*
+    import androidx.compose.foundation.lazy.LazyColumn
+    import androidx.compose.foundation.lazy.LazyRow
+    import androidx.compose.foundation.rememberScrollState
+    import androidx.compose.foundation.verticalScroll
+    import androidx.compose.material.icons.Icons
+    import androidx.compose.material.icons.rounded.*
+    import androidx.compose.material3.*
+    import androidx.compose.runtime.*
+    import androidx.compose.ui.Alignment
+    import androidx.compose.ui.Modifier
+    import androidx.compose.ui.graphics.Shape
+    import androidx.compose.ui.platform.LocalContext
+    import androidx.compose.ui.res.stringResource
+    import androidx.compose.ui.text.font.FontWeight
+    import androidx.compose.ui.unit.dp
+    import com.alananasss.kittytune.R
+    import com.alananasss.kittytune.data.local.AppLanguage
+    import com.alananasss.kittytune.data.local.AppThemeMode
+    import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
+    import com.alananasss.kittytune.data.local.PlayerPreferences
+    import com.alananasss.kittytune.data.local.StartDestination
+    import com.alananasss.kittytune.ui.common.SettingsGroup
+    import com.alananasss.kittytune.ui.common.SettingsGroupTitle
+    import com.alananasss.kittytune.ui.common.SettingsItem
+    import com.alananasss.kittytune.ui.common.SettingsScaffold
+    import com.alananasss.kittytune.ui.common.getSettingsShape
+    
+    @Composable
+    fun AppearanceSettingsScreen(
+        onBackClick: () -> Unit
+    ) {
+        val context = LocalContext.current
+        val prefs = remember { PlayerPreferences(context) }
+        val isSystemDark = isSystemInDarkTheme()
+    
+        var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
+        var dynamicTheme by remember { mutableStateOf(prefs.getDynamicTheme()) }
+        var themeMode by remember { mutableStateOf(prefs.getThemeMode()) }
+        var pureBlack by remember { mutableStateOf(prefs.getPureBlack()) }
+        var playerStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
+        var appLanguage by remember { mutableStateOf(prefs.getAppLanguage()) }
+        var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
+        var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
+        var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
+    
+        var showThemeDialog by remember { mutableStateOf(false) }
+        var showPlayerStyleDialog by remember { mutableStateOf(false) }
+        var showStartDestDialog by remember { mutableStateOf(false) }
+        var showLanguageDialog by remember { mutableStateOf(false) }
+        var showFontConfigDialog by remember { mutableStateOf(false) }
+    
+        val isPureBlackVisible = themeMode == AppThemeMode.DARK || (themeMode == AppThemeMode.SYSTEM && isSystemDark)
+    
+        if (showThemeDialog) {
+            AlertDialog(
+                onDismissRequest = { showThemeDialog = false },
+                title = { Text(stringResource(R.string.pref_theme_mode)) },
+                text = {
+                    Column {
+                        ThemeRadioButton(stringResource(R.string.theme_system), AppThemeMode.SYSTEM, themeMode) { themeMode = it; prefs.setThemeMode(it); showThemeDialog = false }
+                        ThemeRadioButton(stringResource(R.string.theme_light), AppThemeMode.LIGHT, themeMode) { themeMode = it; prefs.setThemeMode(it); showThemeDialog = false }
+                        ThemeRadioButton(stringResource(R.string.theme_dark), AppThemeMode.DARK, themeMode) { themeMode = it; prefs.setThemeMode(it); showThemeDialog = false }
                     }
-        
-                    // SECTION: APPEARANCE (Custom implementation for Animation)
-                    item {
-                        // This parent Column adds the necessary padding for the title and the items below
-                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                            SettingsGroupTitle(stringResource(R.string.settings_cat_appearance))
-        
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        
-                                // Total items visible in this group (changes dynamically)
-                                val totalVisibleItems = if (isPureBlackVisible) 3 else 2
-        
-                                // 1. Dynamic Theme (Always Top)
+                },
+                confirmButton = { TextButton(onClick = { showThemeDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+            )
+        }
+    
+        if (showStartDestDialog) {
+            AlertDialog(
+                onDismissRequest = { showStartDestDialog = false },
+                title = { Text(stringResource(R.string.pref_start_screen)) },
+                text = {
+                    Column {
+                        StartDestRadioButton(stringResource(R.string.nav_home), StartDestination.HOME, startDestination) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
+                        StartDestRadioButton(stringResource(R.string.nav_library), StartDestination.LIBRARY, startDestination) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showStartDestDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+            )
+        }
+    
+        if (showPlayerStyleDialog) {
+            AlertDialog(
+                onDismissRequest = { showPlayerStyleDialog = false },
+                title = { Text(stringResource(R.string.pref_player_style)) },
+                text = {
+                    Column {
+                        PlayerStyleRadioButton(stringResource(R.string.style_theme), PlayerBackgroundStyle.THEME, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
+                        PlayerStyleRadioButton(stringResource(R.string.style_gradient), PlayerBackgroundStyle.GRADIENT, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
+                        PlayerStyleRadioButton(stringResource(R.string.style_blur), PlayerBackgroundStyle.BLUR, playerStyle) { playerStyle = it; prefs.setPlayerStyle(it); showPlayerStyleDialog = false }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showPlayerStyleDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+            )
+        }
+    
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                title = { Text(stringResource(R.string.pref_language)) },
+                text = {
+                    Column {
+                        LanguageRadioButton(stringResource(R.string.theme_system), AppLanguage.SYSTEM, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
+                        LanguageRadioButton(stringResource(R.string.lang_french), AppLanguage.FRENCH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
+                        LanguageRadioButton(stringResource(R.string.lang_english), AppLanguage.ENGLISH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
+                        LanguageRadioButton(stringResource(R.string.lang_hungarian), AppLanguage.HUNGARIAN, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showLanguageDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+            )
+        }
+    
+        if (showFontConfigDialog) {
+            var wght by remember { mutableFloatStateOf(prefs.getFontWght().toFloat()) }
+            var wdth by remember { mutableFloatStateOf(prefs.getFontWdth()) }
+            var slnt by remember { mutableFloatStateOf(prefs.getFontSlnt()) }
+            var rond by remember { mutableFloatStateOf(prefs.getFontRond()) }
+            var grad by remember { mutableFloatStateOf(prefs.getFontGrad()) }
+            var opsz by remember { mutableFloatStateOf(prefs.getFontOpsz()) }
+    
+            fun applyPreset(pWght: Float, pWdth: Float, pSlnt: Float, pRond: Float, pGrad: Float, pOpsz: Float) {
+                wght = pWght; prefs.setFontWght(pWght.toInt())
+                wdth = pWdth; prefs.setFontWdth(pWdth)
+                slnt = pSlnt; prefs.setFontSlnt(pSlnt)
+                rond = pRond; prefs.setFontRond(pRond)
+                grad = pGrad; prefs.setFontGrad(pGrad)
+                opsz = pOpsz; prefs.setFontOpsz(pOpsz)
+            }
+    
+            AlertDialog(
+                onDismissRequest = { showFontConfigDialog = false },
+                title = { Text(stringResource(R.string.dialog_font_settings_title), fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_default)) }
+                                )
+                            }
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(600f, 100f, 0f, 100f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_rounded)) }
+                                )
+                            }
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(250f, 105f, 0f, 0f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_elegant)) }
+                                )
+                            }
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(900f, 110f, 0f, 50f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_chunky)) }
+                                )
+                            }
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(500f, 140f, 0f, 0f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_wide)) }
+                                )
+                            }
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(750f, 95f, -8f, 100f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_playful)) }
+                                )
+                            }
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(600f, 75f, 0f, 0f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_compact)) }
+                                )
+                            }
+                            item {
+                                AssistChip(
+                                    onClick = { applyPreset(500f, 100f, -10f, 0f, 0f, 14f) },
+                                    label = { Text(stringResource(R.string.font_preset_slanted)) }
+                                )
+                            }
+                        }
+    
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+    
+                        Column {
+                            Text(stringResource(R.string.dialog_font_weight, wght.toInt()), style = MaterialTheme.typography.labelLarge)
+                            Slider(value = wght, onValueChange = { wght = it; prefs.setFontWght(it.toInt()) }, valueRange = 100f..1000f)
+                        }
+                        Column {
+                            Text(stringResource(R.string.dialog_font_width, wdth.toInt()), style = MaterialTheme.typography.labelLarge)
+                            Slider(value = wdth, onValueChange = { wdth = it; prefs.setFontWdth(it) }, valueRange = 25f..151f)
+                        }
+                        Column {
+                            Text(stringResource(R.string.dialog_font_slant, slnt.toInt()), style = MaterialTheme.typography.labelLarge)
+                            Slider(value = slnt, onValueChange = { slnt = it; prefs.setFontSlnt(it) }, valueRange = -10f..0f)
+                        }
+                        Column {
+                            Text(stringResource(R.string.dialog_font_roundness, rond.toInt()), style = MaterialTheme.typography.labelLarge)
+                            Slider(value = rond, onValueChange = { rond = it; prefs.setFontRond(it) }, valueRange = 0f..100f)
+                        }
+                        Column {
+                            Text(stringResource(R.string.dialog_font_grade, grad.toInt()), style = MaterialTheme.typography.labelLarge)
+                            Slider(value = grad, onValueChange = { grad = it; prefs.setFontGrad(it) }, valueRange = -200f..150f)
+                        }
+                        Column {
+                            Text(stringResource(R.string.dialog_font_optical_size, opsz.toInt()), style = MaterialTheme.typography.labelLarge)
+                            Slider(value = opsz, onValueChange = { opsz = it; prefs.setFontOpsz(it) }, valueRange = 8f..144f)
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showFontConfigDialog = false }) { Text(stringResource(R.string.btn_close)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) }) {
+                        Text(stringResource(R.string.btn_reset))
+                    }
+                }
+            )
+        }
+    
+        SettingsScaffold(
+            title = stringResource(R.string.pref_appearance_title),
+            onBackClick = onBackClick
+        ) { innerPadding ->
+            LazyColumn(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 100.dp)
+            ) {
+                item {
+                    SettingsGroup(
+                        title = stringResource(R.string.settings_cat_general),
+                        items = listOf(
+                            { shape ->
                                 SettingsItem(
-                                    shape = getSettingsShape(totalVisibleItems, 0),
-                                    title = stringResource(R.string.pref_theme_dynamic),
-                                    subtitle = stringResource(R.string.pref_theme_dynamic_sub),
-                                    icon = Icons.Rounded.ColorLens,
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_start_screen),
+                                    subtitle = if (startDestination == StartDestination.HOME) stringResource(R.string.nav_home) else stringResource(R.string.nav_library),
+                                    icon = Icons.Rounded.Home,
+                                    onClick = { showStartDestDialog = true }
+                                )
+                            },
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_language),
+                                    subtitle = stringResource(R.string.pref_language_sub),
+                                    icon = Icons.Rounded.Language,
+                                    onClick = { showLanguageDialog = true }
+                                )
+                            },
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_auto_update),
+                                    subtitle = stringResource(R.string.pref_auto_update_sub),
+                                    icon = Icons.Rounded.SystemUpdate,
                                     hasSwitch = true,
-                                    switchState = dynamicTheme,
-                                    onSwitchChange = { dynamicTheme = it; prefs.setDynamicTheme(it) }
+                                    switchState = autoUpdate,
+                                    onSwitchChange = {
+                                        autoUpdate = it
+                                        prefs.setAutoUpdateEnabled(it)
+                                    }
                                 )
-        
-                                // 2. Theme Mode
+                            }
+                        )
+                    )
+                }
+    
+                item {
+                    SettingsGroup(
+                        title = stringResource(R.string.settings_cat_typography),
+                        items = buildList {
+                            add { shape ->
                                 SettingsItem(
-                                    shape = getSettingsShape(totalVisibleItems, 1),
-                                    title = stringResource(R.string.pref_theme_mode),
-                                    subtitle = when(themeMode) {
-                                        AppThemeMode.SYSTEM -> stringResource(R.string.theme_system)
-                                        AppThemeMode.LIGHT -> stringResource(R.string.theme_light)
-                                        AppThemeMode.DARK -> stringResource(R.string.theme_dark)
-                                    },
-                                    icon = Icons.Rounded.DarkMode,
-                                    onClick = { showThemeDialog = true }
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_font_custom_title),
+                                    subtitle = stringResource(R.string.pref_font_custom_subtitle),
+                                    icon = Icons.Rounded.FontDownload,
+                                    hasSwitch = true,
+                                    switchState = customFontEnabled,
+                                    onSwitchChange = {
+                                        customFontEnabled = it
+                                        prefs.setCustomFontEnabled(it)
+                                    }
                                 )
-        
-                                // 3. Pure Black (Animated)
-                                AnimatedVisibility(
-                                    visible = isPureBlackVisible,
-                                    enter = expandVertically() + fadeIn(),
-                                    exit = shrinkVertically() + fadeOut()
-                                ) {
+                            }
+                            if (customFontEnabled) {
+                                add { shape ->
                                     SettingsItem(
-                                        shape = getSettingsShape(3, 2), // Always Bottom Shape when visible
-                                        title = stringResource(R.string.pref_theme_pure_black),
-                                        subtitle = stringResource(R.string.pref_theme_pure_black_sub),
-                                        icon = Icons.Rounded.Contrast,
-                                        hasSwitch = true,
-                                        switchState = pureBlack,
-                                        onSwitchChange = { pureBlack = it; prefs.setPureBlack(it) }
+                                        shape = shape,
+                                        title = stringResource(R.string.pref_font_variations_title),
+                                        subtitle = stringResource(R.string.pref_font_variations_subtitle),
+                                        icon = Icons.Rounded.Tune,
+                                        onClick = { showFontConfigDialog = true }
                                     )
                                 }
                             }
                         }
-                    }
-        
-                    // SECTION: PLAYBACK VISUALS
-                    item {
-                        SettingsGroup(
-                            title = stringResource(R.string.settings_cat_playback),
-                            items = listOf(
-                                { shape ->
-                                    SettingsItem(
-                                        shape = shape,
-                                        title = stringResource(R.string.pref_player_style),
-                                        subtitle = when(playerStyle) {
-                                            PlayerBackgroundStyle.THEME -> stringResource(R.string.style_theme)
-                                            PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.style_gradient)
-                                            PlayerBackgroundStyle.BLUR -> stringResource(R.string.style_blur)
-                                        },
-                                        icon = Icons.Rounded.Wallpaper,
-                                        onClick = { showPlayerStyleDialog = true }
-                                    )
-                                }
+                    )
+                }
+    
+                item {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        SettingsGroupTitle(stringResource(R.string.settings_cat_appearance))
+    
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    
+                            val totalVisibleItems = if (isPureBlackVisible) 3 else 2
+    
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, 0),
+                                title = stringResource(R.string.pref_theme_dynamic),
+                                subtitle = stringResource(R.string.pref_theme_dynamic_sub),
+                                icon = Icons.Rounded.ColorLens,
+                                hasSwitch = true,
+                                switchState = dynamicTheme,
+                                onSwitchChange = { dynamicTheme = it; prefs.setDynamicTheme(it) }
                             )
-                        )
-                    }
-        
-                    // SECTION: NOTIFICATIONS
-                    item {
-                        SettingsGroup(
-                            title = stringResource(R.string.settings_cat_notifications),
-                            items = listOf(
-                                { shape ->
-                                    SettingsItem(
-                                        shape = shape,
-                                        title = stringResource(R.string.pref_achievement_popups),
-                                        subtitle = stringResource(R.string.pref_achievement_popups_sub),
-                                        icon = Icons.Rounded.EmojiEvents,
-                                        hasSwitch = true,
-                                        switchState = achievementPopupsEnabled,
-                                        onSwitchChange = {
-                                            achievementPopupsEnabled = it
-                                            prefs.setAchievementPopupsEnabled(it)
-                                        }
-                                    )
-                                }
+    
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, 1),
+                                title = stringResource(R.string.pref_theme_mode),
+                                subtitle = when(themeMode) {
+                                    AppThemeMode.SYSTEM -> stringResource(R.string.theme_system)
+                                    AppThemeMode.LIGHT -> stringResource(R.string.theme_light)
+                                    AppThemeMode.DARK -> stringResource(R.string.theme_dark)
+                                },
+                                icon = Icons.Rounded.DarkMode,
+                                onClick = { showThemeDialog = true }
                             )
-                        )
+    
+                            AnimatedVisibility(
+                                visible = isPureBlackVisible,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                SettingsItem(
+                                    shape = getSettingsShape(3, 2),
+                                    title = stringResource(R.string.pref_theme_pure_black),
+                                    subtitle = stringResource(R.string.pref_theme_pure_black_sub),
+                                    icon = Icons.Rounded.Contrast,
+                                    hasSwitch = true,
+                                    switchState = pureBlack,
+                                    onSwitchChange = { pureBlack = it; prefs.setPureBlack(it) }
+                                )
+                            }
+                        }
                     }
+                }
+    
+                item {
+                    SettingsGroup(
+                        title = stringResource(R.string.settings_cat_playback),
+                        items = listOf(
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_player_style),
+                                    subtitle = when(playerStyle) {
+                                        PlayerBackgroundStyle.THEME -> stringResource(R.string.style_theme)
+                                        PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.style_gradient)
+                                        PlayerBackgroundStyle.BLUR -> stringResource(R.string.style_blur)
+                                    },
+                                    icon = Icons.Rounded.Wallpaper,
+                                    onClick = { showPlayerStyleDialog = true }
+                                )
+                            }
+                        )
+                    )
+                }
+    
+                item {
+                    SettingsGroup(
+                        title = stringResource(R.string.settings_cat_notifications),
+                        items = listOf(
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_achievement_popups),
+                                    subtitle = stringResource(R.string.pref_achievement_popups_sub),
+                                    icon = Icons.Rounded.EmojiEvents,
+                                    hasSwitch = true,
+                                    switchState = achievementPopupsEnabled,
+                                    onSwitchChange = {
+                                        achievementPopupsEnabled = it
+                                        prefs.setAchievementPopupsEnabled(it)
+                                    }
+                                )
+                            }
+                        )
+                    )
                 }
             }
         }
-        
-        // --- HELPER FUNCTIONS ---
-        
-        fun restartApp(context: Context) {
-            if (context is Activity) {
-                context.recreate()
-            } else {
-                val packageManager = context.packageManager
-                val intent = packageManager.getLaunchIntentForPackage(context.packageName)
-                val componentName = intent?.component
-                val mainIntent = Intent.makeRestartActivityTask(componentName)
-                context.startActivity(mainIntent)
-                Runtime.getRuntime().exit(0)
-            }
-        }
-        
-        @Composable
-        fun ThemeRadioButton(text: String, mode: AppThemeMode, selected: AppThemeMode, onSelect: (AppThemeMode) -> Unit) {
-            Row(Modifier.fillMaxWidth().clickable { onSelect(mode) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = (mode == selected), onClick = null)
-                Spacer(Modifier.width(8.dp))
-                Text(text)
-            }
-        }
-        
-        @Composable
-        fun PlayerStyleRadioButton(text: String, style: PlayerBackgroundStyle, selected: PlayerBackgroundStyle, onSelect: (PlayerBackgroundStyle) -> Unit) {
-            Row(Modifier.fillMaxWidth().clickable { onSelect(style) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = (style == selected), onClick = null)
-                Spacer(Modifier.width(8.dp))
-                Text(text)
-            }
-        }
-        
-        @Composable
-        fun StartDestRadioButton(text: String, dest: StartDestination, selected: StartDestination, onSelect: (StartDestination) -> Unit) {
-            Row(Modifier.fillMaxWidth().clickable { onSelect(dest) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = (dest == selected), onClick = null)
-                Spacer(Modifier.width(8.dp))
-                Text(text)
-            }
-        }
-        
-        @Composable
-        fun LanguageRadioButton(text: String, lang: AppLanguage, selected: AppLanguage, onSelect: (AppLanguage) -> Unit) {
-            Row(Modifier.fillMaxWidth().clickable { onSelect(lang) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = (lang == selected), onClick = null)
-                Spacer(Modifier.width(8.dp))
-                Text(text)
-            }
-        }
+    }
     
+    fun restartApp(context: Context) {
+        if (context is Activity) {
+            context.recreate()
+        } else {
+            val packageManager = context.packageManager
+            val intent = packageManager.getLaunchIntentForPackage(context.packageName)
+            val componentName = intent?.component
+            val mainIntent = Intent.makeRestartActivityTask(componentName)
+            context.startActivity(mainIntent)
+            Runtime.getRuntime().exit(0)
+        }
+    }
     
+    @Composable
+    fun ThemeRadioButton(text: String, mode: AppThemeMode, selected: AppThemeMode, onSelect: (AppThemeMode) -> Unit) {
+        Row(Modifier.fillMaxWidth().clickable { onSelect(mode) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(selected = (mode == selected), onClick = null)
+            Spacer(Modifier.width(8.dp))
+            Text(text)
+        }
+    }
     
+    @Composable
+    fun PlayerStyleRadioButton(text: String, style: PlayerBackgroundStyle, selected: PlayerBackgroundStyle, onSelect: (PlayerBackgroundStyle) -> Unit) {
+        Row(Modifier.fillMaxWidth().clickable { onSelect(style) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(selected = (style == selected), onClick = null)
+            Spacer(Modifier.width(8.dp))
+            Text(text)
+        }
+    }
+    
+    @Composable
+    fun StartDestRadioButton(text: String, dest: StartDestination, selected: StartDestination, onSelect: (StartDestination) -> Unit) {
+        Row(Modifier.fillMaxWidth().clickable { onSelect(dest) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(selected = (dest == selected), onClick = null)
+            Spacer(Modifier.width(8.dp))
+            Text(text)
+        }
+    }
+    
+    @Composable
+    fun LanguageRadioButton(text: String, lang: AppLanguage, selected: AppLanguage, onSelect: (AppLanguage) -> Unit) {
+        Row(Modifier.fillMaxWidth().clickable { onSelect(lang) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            RadioButton(selected = (lang == selected), onClick = null)
+            Spacer(Modifier.width(8.dp))
+            Text(text)
+        }
+    }
 
 
 ================================================================================
@@ -26210,6 +26379,7 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
             themeMode: AppThemeMode = AppThemeMode.SYSTEM,
             dynamicColor: Boolean = true,
             pureBlack: Boolean = false,
+            typography: androidx.compose.material3.Typography = Typography,
             content: @Composable () -> Unit
         ) {
             val systemInDark = isSystemInDarkTheme()
@@ -26260,7 +26430,7 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
         
             MaterialTheme(
                 colorScheme = finalColorScheme,
-                typography = Typography,
+                typography = typography,
                 content = content
             )
         }
@@ -26272,43 +26442,56 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
 ================================================================================
 FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kittytune\ui\theme\Type.kt
 ================================================================================
-        package com.alananasss.kittytune.ui.theme
-        
-        import androidx.compose.material3.Typography
-        import androidx.compose.ui.text.TextStyle
-        import androidx.compose.ui.text.font.FontFamily
-        import androidx.compose.ui.text.font.FontWeight
-        import androidx.compose.ui.unit.sp
-        
-        // Set of Material typography styles to start with
-        val Typography = Typography(
-            bodyLarge = TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.Normal,
-                fontSize = 16.sp,
-                lineHeight = 24.sp,
-                letterSpacing = 0.5.sp
+    package com.alananasss.kittytune.ui.theme
+    
+    import androidx.compose.material3.Typography
+    import androidx.compose.ui.text.ExperimentalTextApi
+    import androidx.compose.ui.text.font.Font
+    import androidx.compose.ui.text.font.FontFamily
+    import androidx.compose.ui.text.font.FontVariation
+    import com.alananasss.kittytune.R
+    
+    val Typography = Typography()
+    
+    @OptIn(ExperimentalTextApi::class)
+    fun getDynamicTypography(
+        useCustomFont: Boolean,
+        wght: Int, wdth: Float, slnt: Float, rond: Float, grad: Float, opsz: Float
+    ): Typography {
+        if (!useCustomFont) return Typography
+    
+        val customFamily = FontFamily(
+            Font(
+                resId = R.font.google_sans_flex,
+                variationSettings = FontVariation.Settings(
+                    FontVariation.weight(wght),
+                    FontVariation.width(wdth),
+                    FontVariation.slant(slnt),
+                    FontVariation.Setting("ROND", rond),
+                    FontVariation.Setting("GRAD", grad),
+                    FontVariation.Setting("opsz", opsz)
+                )
             )
-            /* Other default text styles to override
-            titleLarge = TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.Normal,
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
-                letterSpacing = 0.sp
-            ),
-            labelSmall = TextStyle(
-                fontFamily = FontFamily.Default,
-                fontWeight = FontWeight.Medium,
-                fontSize = 11.sp,
-                lineHeight = 16.sp,
-                letterSpacing = 0.5.sp
-            )
-            */
         )
     
-    
-    
+        return Typography(
+            displayLarge = Typography.displayLarge.copy(fontFamily = customFamily),
+            displayMedium = Typography.displayMedium.copy(fontFamily = customFamily),
+            displaySmall = Typography.displaySmall.copy(fontFamily = customFamily),
+            headlineLarge = Typography.headlineLarge.copy(fontFamily = customFamily),
+            headlineMedium = Typography.headlineMedium.copy(fontFamily = customFamily),
+            headlineSmall = Typography.headlineSmall.copy(fontFamily = customFamily),
+            titleLarge = Typography.titleLarge.copy(fontFamily = customFamily),
+            titleMedium = Typography.titleMedium.copy(fontFamily = customFamily),
+            titleSmall = Typography.titleSmall.copy(fontFamily = customFamily),
+            bodyLarge = Typography.bodyLarge.copy(fontFamily = customFamily),
+            bodyMedium = Typography.bodyMedium.copy(fontFamily = customFamily),
+            bodySmall = Typography.bodySmall.copy(fontFamily = customFamily),
+            labelLarge = Typography.labelLarge.copy(fontFamily = customFamily),
+            labelMedium = Typography.labelMedium.copy(fontFamily = customFamily),
+            labelSmall = Typography.labelSmall.copy(fontFamily = customFamily)
+        )
+    }
 
 
 ================================================================================
@@ -29299,14 +29482,14 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
             private val requestPermissionLauncher = registerForActivityResult(
                 ActivityResultContracts.RequestPermission()
             ) { /* Permission result handled implicitly by flow */ }
-        
-            // Watch for theme changes in preferences to trigger recomposition
+    
             private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-                if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled") {
+                if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
+                    key == "custom_font_enabled" || key?.startsWith("font_") == true) {
                     refreshThemeState()
                 }
             }
-        
+    
             private lateinit var preferences: PlayerPreferences
             private lateinit var sharedPrefs: SharedPreferences
         
@@ -29317,6 +29500,13 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
             private val _shouldOpenSearch = MutableStateFlow(false)
             private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
             private var showPopups by mutableStateOf(false)
+            private var customFontEnabledState by mutableStateOf(false)
+            private var fontWghtState by mutableIntStateOf(400)
+            private var fontWdthState by mutableFloatStateOf(100f)
+            private var fontSlntState by mutableFloatStateOf(0f)
+            private var fontRondState by mutableFloatStateOf(0f)
+            private var fontGradState by mutableFloatStateOf(0f)
+            private var fontOpszState by mutableFloatStateOf(14f)
         
             override fun onCreate(savedInstanceState: Bundle?) {
                 super.onCreate(savedInstanceState)
@@ -29397,11 +29587,16 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
                             lifecycleOwner.lifecycle.removeObserver(observer)
                         }
                     }
+    
+                    val dynamicTypography = com.alananasss.kittytune.ui.theme.getDynamicTypography(
+                        customFontEnabledState, fontWghtState, fontWdthState, fontSlntState, fontRondState, fontGradState, fontOpszState
+                    )
         
                     SoundTuneTheme(
                         themeMode = themeModeState,
                         dynamicColor = dynamicColorState,
-                        pureBlack = pureBlackState
+                        pureBlack = pureBlackState,
+                        typography = dynamicTypography
                     ) {
                         // Update Manager UI Logic
                         val updateStatus by UpdateManager.status.collectAsState()
@@ -29473,6 +29668,13 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\java\com\alananasss\kitt
                 themeModeState = preferences.getThemeMode()
                 dynamicColorState = preferences.getDynamicTheme()
                 pureBlackState = preferences.getPureBlack()
+                customFontEnabledState = preferences.getCustomFontEnabled()
+                fontWghtState = preferences.getFontWght()
+                fontWdthState = preferences.getFontWdth()
+                fontSlntState = preferences.getFontSlnt()
+                fontRondState = preferences.getFontRond()
+                fontGradState = preferences.getFontGrad()
+                fontOpszState = preferences.getFontOpsz()
             }
         
             override fun onDestroy() {
@@ -30935,6 +31137,29 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\res\values\strings.xml
             <string name="libraries_count_format">%1$d Libraries</string>
             <string name="no_libraries_found">No libraries found</string>
             <string name="license_unknown">Unknown license</string>
+    
+        <!-- TYPOGRAPHY -->
+        <string name="settings_cat_typography">Typography</string>
+        <string name="pref_font_custom_title">Google Sans Flex</string>
+        <string name="pref_font_custom_subtitle">Use custom variable font</string>
+        <string name="pref_font_variations_title">Font Variations</string>
+        <string name="pref_font_variations_subtitle">Adjust weight, width, roundness…</string>
+        <string name="dialog_font_settings_title">Font Settings</string>
+        <string name="dialog_font_weight">Weight (wght): %1$d</string>
+        <string name="dialog_font_width">Width (wdth): %1$d</string>
+        <string name="dialog_font_slant">Slant (slnt): %1$d</string>
+        <string name="dialog_font_roundness">Roundness (ROND): %1$d</string>
+        <string name="dialog_font_grade">Grade (GRAD): %1$d</string>
+        <string name="dialog_font_optical_size">Optical Size (opsz): %1$d</string>
+        <string name="btn_reset">Reset</string>
+        <string name="font_preset_default">Default</string>
+        <string name="font_preset_rounded">Rounded</string>
+        <string name="font_preset_compact">Compact</string>
+        <string name="font_preset_slanted">Slanted</string>
+        <string name="font_preset_chunky">Chunky</string>
+        <string name="font_preset_elegant">Elegant</string>
+        <string name="font_preset_playful">Playful</string>
+        <string name="font_preset_wide">Wide</string>
         
         </resources>
     
@@ -31787,6 +32012,29 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\res\values-fr\strings.xm
             <string name="libraries_count_format">%1$d Bibliothèques</string>
             <string name="no_libraries_found">Aucune bibliothèque trouvée</string>
             <string name="license_unknown">Licence inconnue</string>
+    
+        <!-- TYPOGRAPHY -->
+        <string name="settings_cat_typography">Typographie</string>
+        <string name="pref_font_custom_title">Google Sans Flex</string>
+        <string name="pref_font_custom_subtitle">Utiliser la police variable</string>
+        <string name="pref_font_variations_title">Variations de la police</string>
+        <string name="pref_font_variations_subtitle">Ajuster l\'épaisseur, la largeur, l\'arrondi…</string>
+        <string name="dialog_font_settings_title">Réglages de la police</string>
+        <string name="dialog_font_weight">Épaisseur (wght) : %1$d</string>
+        <string name="dialog_font_width">Largeur (wdth) : %1$d</string>
+        <string name="dialog_font_slant">Inclinaison (slnt) : %1$d</string>
+        <string name="dialog_font_roundness">Arrondi (ROND) : %1$d</string>
+        <string name="dialog_font_grade">Graisse (GRAD) : %1$d</string>
+        <string name="dialog_font_optical_size">Taille optique (opsz) : %1$d</string>
+        <string name="btn_reset">Réinitialiser</string>
+        <string name="font_preset_default">Défaut</string>
+        <string name="font_preset_rounded">Arrondi</string>
+        <string name="font_preset_compact">Compact</string>
+        <string name="font_preset_slanted">Incliné</string>
+        <string name="font_preset_chunky">Massif</string>
+        <string name="font_preset_elegant">Élégant</string>
+        <string name="font_preset_playful">Ludique</string>
+        <string name="font_preset_wide">Large</string>
         
         </resources>
     
@@ -32623,6 +32871,29 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\src\main\res\values-hu\strings.xm
             <string name="libraries_count_format">%1$d Könyvtár</string>
             <string name="no_libraries_found">Nem található könyvtár</string>
             <string name="license_unknown">Ismeretlen licenc</string>
+    
+        <!-- TYPOGRAPHY -->
+        <string name="settings_cat_typography">Tipográfia</string>
+        <string name="pref_font_custom_title">Google Sans Flex</string>
+        <string name="pref_font_custom_subtitle">Egyedi variálható betűtípus használata</string>
+        <string name="pref_font_variations_title">Betűtípus variációk</string>
+        <string name="pref_font_variations_subtitle">Vastagság, szélesség, kerekítés állítása…</string>
+        <string name="dialog_font_settings_title">Betűtípus beállításai</string>
+        <string name="dialog_font_weight">Vastagság (wght): %1$d</string>
+        <string name="dialog_font_width">Szélesség (wdth): %1$d</string>
+        <string name="dialog_font_slant">Dőlés (slnt): %1$d</string>
+        <string name="dialog_font_roundness">Kerekítés (ROND): %1$d</string>
+        <string name="dialog_font_grade">Fokozat (GRAD): %1$d</string>
+        <string name="dialog_font_optical_size">Optikai méret (opsz): %1$d</string>
+        <string name="btn_reset">Alaphelyzet</string>
+        <string name="font_preset_default">Alap</string>
+        <string name="font_preset_rounded">Kerekített</string>
+        <string name="font_preset_compact">Kompakt</string>
+        <string name="font_preset_slanted">Dőlt</string>
+        <string name="font_preset_chunky">Masszív</string>
+        <string name="font_preset_elegant">Elegáns</string>
+        <string name="font_preset_playful">Játékos</string>
+        <string name="font_preset_wide">Széles</string>
         
         </resources>
     
@@ -32978,6 +33249,7 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\build.gradle.kts
             localProperties.load(FileInputStream(localPropertiesFile))
         }
         val invidiousUrl = localProperties.getProperty("INVIDIOUS_URL") ?: "https://invidious.io"
+        val githubToken = localProperties.getProperty("GITHUB_TOKEN") ?: ""
         
         extensions.configure<ApplicationExtension> {
             namespace = "com.alananasss.kittytune"
@@ -32988,10 +33260,11 @@ FICHIER : \AndroidStudioProjects\KittyTune\app\build.gradle.kts
                 minSdk = 26
                 targetSdk = 36
                 versionCode = 1
-                versionName = "2.18.7"
+                versionName = "2.19.1"
         
                 testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
                 buildConfigField("String", "MY_INVIDIOUS_URL", "\"$invidiousUrl\"")
+                buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
             }
         
             buildTypes {
@@ -35591,6 +35864,7 @@ FICHIER : \AndroidStudioProjects\KittyTune\build.gradle.kts
             alias(libs.plugins.android.application) apply false
             alias(libs.plugins.kotlin.android) apply false
             alias(libs.plugins.kotlin.compose) apply false
+            alias(libs.plugins.aboutlibraries) apply false
         }
     
     
@@ -35750,6 +36024,7 @@ FICHIER : \AndroidStudioProjects\KittyTune\local.properties
         #Sat Jan 03 17:01:06 CET 2026
         sdk.dir=C\:\\Users\\alananasss\\AppData\\Local\\Android\\Sdk
         INVIDIOUS_URL=http://invidious-de-fou.duckdns.org:3000
+    GITHUB_TOKEN=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
     
     
     

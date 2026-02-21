@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-2:/values-v24/values-v24.xml",
+            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-3:/values-v24/values-v24.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\30a797042c93e23cc7f4706ee7ba6f65\\workspace\\transformed\\media3-session-1.9.2\\res\\values-v24\\values-v24.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\305b82c4c7bbb988c4e95aab938572ed\\workspace\\transformed\\media3-session-1.9.2\\res\\values-v24\\values-v24.xml",
                     "from": {
                         "startLines": "2,3,4,5",
                         "startColumns": "4,4,4,4",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\3feced90ca7187db71731086082721b4\\workspace\\transformed\\appcompat-1.6.1\\res\\values-v24\\values-v24.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\704b0d267a486a1fc7228a86b99117ec\\workspace\\transformed\\appcompat-1.6.1\\res\\values-v24\\values-v24.xml",
                     "from": {
                         "startLines": "2,3",
                         "startColumns": "4,4",
