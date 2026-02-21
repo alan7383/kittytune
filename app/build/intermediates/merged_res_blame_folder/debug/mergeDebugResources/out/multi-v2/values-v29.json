@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-2:/values-v29/values-v29.xml",
+            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-3:/values-v29/values-v29.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\5c05e7968b485a96ec620e8622f28880\\workspace\\transformed\\glance-appwidget-1.1.1\\res\\values-v29\\values-v29.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\ecd32b5222613f65148c63ea9d2b6b71\\workspace\\transformed\\glance-appwidget-1.1.1\\res\\values-v29\\values-v29.xml",
                     "from": {
                         "startLines": "2,5,19,22,25,26,27",
                         "startColumns": "4,4,4,4,4,4,4",

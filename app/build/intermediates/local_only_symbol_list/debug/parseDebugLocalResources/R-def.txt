@@ -22,6 +22,7 @@ font google_sans_flex
 mipmap ic_launcher
 mipmap ic_launcher_foreground
 mipmap ic_launcher_round
+raw aboutlibraries
 raw rain
 string about_app_info
 string about_bug_report

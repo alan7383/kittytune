@@ -1,20 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-2:/values-v23/values-v23.xml",
+            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-3:/values-v23/values-v23.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\35b174605e5821eb192bad2c2925c0da\\workspace\\transformed\\work-runtime-2.7.1\\res\\values-v23\\values-v23.xml",
-                    "from": {
-                        "startLines": "2,3",
-                        "startColumns": "4,4",
-                        "startOffsets": "55,121",
-                        "endColumns": "65,62",
-                        "endOffsets": "116,179"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\3feced90ca7187db71731086082721b4\\workspace\\transformed\\appcompat-1.6.1\\res\\values-v23\\values-v23.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\704b0d267a486a1fc7228a86b99117ec\\workspace\\transformed\\appcompat-1.6.1\\res\\values-v23\\values-v23.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,20,34,35,36,39,43,44,45,46",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -33,7 +23,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\5c05e7968b485a96ec620e8622f28880\\workspace\\transformed\\glance-appwidget-1.1.1\\res\\values-v23\\values-v23.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\ecd32b5222613f65148c63ea9d2b6b71\\workspace\\transformed\\glance-appwidget-1.1.1\\res\\values-v23\\values-v23.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -47,6 +37,16 @@
                         "startOffsets": "184",
                         "endColumns": "55",
                         "endOffsets": "235"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\b9fca0a21ef914b1a9ed7db300192fc8\\workspace\\transformed\\work-runtime-2.7.1\\res\\values-v23\\values-v23.xml",
+                    "from": {
+                        "startLines": "2,3",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,121",
+                        "endColumns": "65,62",
+                        "endOffsets": "116,179"
                     }
                 }
             ]
