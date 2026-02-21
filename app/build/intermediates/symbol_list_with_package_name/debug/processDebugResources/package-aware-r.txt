@@ -2659,6 +2659,8 @@ string call_notification_hang_up_action
 string call_notification_incoming_text
 string call_notification_ongoing_text
 string call_notification_screening_text
+string cancel
+string captcha_done
 string category_genre_afro
 string category_genre_afrocuban
 string category_genre_alt
@@ -3248,6 +3250,7 @@ string search_section_genres
 string search_section_moods
 string search_source_soundcloud
 string search_source_youtube
+string security_check
 string selected
 string settings_cat_appearance
 string settings_cat_audio

@@ -159,6 +159,8 @@
     <string name="btn_see_all">Összes</string>
     <string name="btn_share">Megosztás</string>
     <string name="btn_shuffle">Shuffle</string>
+    <string name="cancel">Mégse</string>
+    <string name="captcha_done">Befejeztem a Captcha-t</string>
     <string name="category_genre_afro">Afro</string>
     <string name="category_genre_afrocuban">Afro-kubai</string>
     <string name="category_genre_alt">Alternatív &amp; Indie</string>
@@ -628,6 +630,7 @@
     <string name="search_section_moods">Hangulatok és pillanatok</string>
     <string name="search_source_soundcloud">SoundCloud</string>
     <string name="search_source_youtube">YouTube</string>
+    <string name="security_check">Biztonsági ellenőrzés</string>
     <string name="settings_cat_appearance">Megjelenés</string>
     <string name="settings_cat_audio">Audio</string>
     <string name="settings_cat_general">Általános</string>

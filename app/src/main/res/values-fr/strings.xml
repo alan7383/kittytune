@@ -847,6 +847,10 @@
     <string name="font_preset_elegant">Élégant</string>
     <string name="font_preset_playful">Ludique</string>
     <string name="font_preset_wide">Large</string>
+
+    <string name="captcha_done">J\'ai fini le Captcha</string>
+    <string name="cancel">Annuler</string>
+    <string name="security_check">Vérification de sécurité</string>
     
     </resources>
 

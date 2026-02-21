@@ -183,6 +183,8 @@ string btn_save_changes
 string btn_see_all
 string btn_share
 string btn_shuffle
+string cancel
+string captcha_done
 string category_genre_afro
 string category_genre_afrocuban
 string category_genre_alt
@@ -657,6 +659,7 @@ string search_section_genres
 string search_section_moods
 string search_source_soundcloud
 string search_source_youtube
+string security_check
 string settings_cat_appearance
 string settings_cat_audio
 string settings_cat_general

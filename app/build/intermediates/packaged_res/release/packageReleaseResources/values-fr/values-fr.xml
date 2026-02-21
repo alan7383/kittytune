@@ -159,6 +159,8 @@
     <string name="btn_see_all">Voir tout</string>
     <string name="btn_share">Partager</string>
     <string name="btn_shuffle">Aléatoire</string>
+    <string name="cancel">Annuler</string>
+    <string name="captcha_done">J\'ai fini le Captcha</string>
     <string name="category_genre_afro">Afro</string>
     <string name="category_genre_afrocuban">Afro-cubain</string>
     <string name="category_genre_alt">Alternatif &amp; Indé</string>
@@ -628,6 +630,7 @@
     <string name="search_section_moods">Humeurs et moments</string>
     <string name="search_source_soundcloud">SoundCloud</string>
     <string name="search_source_youtube">YouTube</string>
+    <string name="security_check">Vérification de sécurité</string>
     <string name="settings_cat_appearance">Apparence</string>
     <string name="settings_cat_audio">Audio</string>
     <string name="settings_cat_general">Général</string>
