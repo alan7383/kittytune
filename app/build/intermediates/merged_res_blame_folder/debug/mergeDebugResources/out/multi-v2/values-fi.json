@@ -1,44 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-2:/values-fi/values-fi.xml",
+            "outputFile": "com.alananasss.kittytune.app-mergeDebugResources-3:/values-fi/values-fi.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\f27ea872ef77cfffb1b5d5737022aebc\\workspace\\transformed\\media3-exoplayer-1.9.2\\res\\values-fi\\values-fi.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9,10",
-                        "startColumns": "4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,120,179,241,308,385,455,549,641",
-                        "endColumns": "64,58,61,66,76,69,93,91,70",
-                        "endOffsets": "115,174,236,303,380,450,544,636,707"
-                    },
-                    "to": {
-                        "startLines": "61,62,63,64,65,66,67,68,69",
-                        "startColumns": "4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "5774,5839,5898,5960,6027,6104,6174,6268,6360",
-                        "endColumns": "64,58,61,66,76,69,93,91,70",
-                        "endOffsets": "5834,5893,5955,6022,6099,6169,6263,6355,6426"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\3feced90ca7187db71731086082721b4\\workspace\\transformed\\appcompat-1.6.1\\res\\values-fi\\values-fi.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "105,213,313,422,508,613,731,817,896,987,1080,1175,1269,1363,1456,1552,1651,1742,1836,1916,2023,2124,2221,2327,2427,2525,2675,2775",
-                        "endColumns": "107,99,108,85,104,117,85,78,90,92,94,93,93,92,95,98,90,93,79,106,100,96,105,99,97,149,99,80",
-                        "endOffsets": "208,308,417,503,608,726,812,891,982,1075,1170,1264,1358,1451,1547,1646,1737,1831,1911,2018,2119,2216,2322,2422,2520,2670,2770,2851"
-                    },
-                    "to": {
-                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,152",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "105,213,313,422,508,613,731,817,896,987,1080,1175,1269,1363,1456,1552,1651,1742,1836,1916,2023,2124,2221,2327,2427,2525,2675,15191",
-                        "endColumns": "107,99,108,85,104,117,85,78,90,92,94,93,93,92,95,98,90,93,79,106,100,96,105,99,97,149,99,80",
-                        "endOffsets": "208,308,417,503,608,726,812,891,982,1075,1170,1264,1358,1451,1547,1646,1737,1831,1911,2018,2119,2216,2322,2422,2520,2670,2770,15267"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\0e40ef6a129657710dbf2e2160c743c2\\workspace\\transformed\\foundation\\res\\values-fi\\values-fi.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\4bc9e618036b50b8387d4b386f1c4b10\\workspace\\transformed\\foundation\\res\\values-fi\\values-fi.xml",
                     "from": {
                         "startLines": "2,3,4",
                         "startColumns": "4,4,4",
@@ -55,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\a3edc346de8a8cd6ba95fc3c053a7134\\workspace\\transformed\\material3\\res\\values-fi\\values-fi.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\e6fd5857f018539357a277ccab8ff749\\workspace\\transformed\\material3\\res\\values-fi\\values-fi.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -72,24 +38,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\a00c63fff3ce7f07bbd216a873aafc6c\\workspace\\transformed\\material\\res\\values-fi\\values-fi.xml",
-                    "from": {
-                        "startLines": "2",
-                        "startColumns": "4",
-                        "startOffsets": "55",
-                        "endColumns": "90",
-                        "endOffsets": "141"
-                    },
-                    "to": {
-                        "startLines": "141",
-                        "startColumns": "4",
-                        "startOffsets": "14277",
-                        "endColumns": "90",
-                        "endOffsets": "14363"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\203c27e1b0832664f8f0942c59af230f\\workspace\\transformed\\ui\\res\\values-fi\\values-fi.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\8df65d4756015cbd4d0d319773bd6a55\\workspace\\transformed\\ui\\res\\values-fi\\values-fi.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -106,7 +55,24 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\cfa9d55021f2802750241e7fa36fe95c\\workspace\\transformed\\core-1.17.0\\res\\values-fi\\values-fi.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\4b42263d084e872a2e215d8b56911a21\\workspace\\transformed\\material\\res\\values-fi\\values-fi.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "90",
+                        "endOffsets": "141"
+                    },
+                    "to": {
+                        "startLines": "141",
+                        "startColumns": "4",
+                        "startOffsets": "14277",
+                        "endColumns": "90",
+                        "endOffsets": "14363"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\7661fd35e0fefbfa8b318138a1adcf45\\workspace\\transformed\\core-1.17.0\\res\\values-fi\\values-fi.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -123,24 +89,41 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\5c05e7968b485a96ec620e8622f28880\\workspace\\transformed\\glance-appwidget-1.1.1\\res\\values-fi\\values-fi.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\bd5b96283399b6aad601a0ef7f3e3711\\workspace\\transformed\\media3-exoplayer-1.9.2\\res\\values-fi\\values-fi.xml",
                     "from": {
-                        "startLines": "2,3,4",
-                        "startColumns": "4,4,4",
-                        "startOffsets": "55,259,369",
-                        "endColumns": "203,109,122",
-                        "endOffsets": "254,364,487"
+                        "startLines": "2,3,4,5,6,7,8,9,10",
+                        "startColumns": "4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,120,179,241,308,385,455,549,641",
+                        "endColumns": "64,58,61,66,76,69,93,91,70",
+                        "endOffsets": "115,174,236,303,380,450,544,636,707"
                     },
                     "to": {
-                        "startLines": "70,71,72",
-                        "startColumns": "4,4,4",
-                        "startOffsets": "6431,6635,6745",
-                        "endColumns": "203,109,122",
-                        "endOffsets": "6630,6740,6863"
+                        "startLines": "61,62,63,64,65,66,67,68,69",
+                        "startColumns": "4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "5774,5839,5898,5960,6027,6104,6174,6268,6360",
+                        "endColumns": "64,58,61,66,76,69,93,91,70",
+                        "endOffsets": "5834,5893,5955,6022,6099,6169,6263,6355,6426"
                     }
                 },
                 {
-                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\30a797042c93e23cc7f4706ee7ba6f65\\workspace\\transformed\\media3-session-1.9.2\\res\\values-fi\\values-fi.xml",
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\704b0d267a486a1fc7228a86b99117ec\\workspace\\transformed\\appcompat-1.6.1\\res\\values-fi\\values-fi.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "105,213,313,422,508,613,731,817,896,987,1080,1175,1269,1363,1456,1552,1651,1742,1836,1916,2023,2124,2221,2327,2427,2525,2675,2775",
+                        "endColumns": "107,99,108,85,104,117,85,78,90,92,94,93,93,92,95,98,90,93,79,106,100,96,105,99,97,149,99,80",
+                        "endOffsets": "208,308,417,503,608,726,812,891,982,1075,1170,1264,1358,1451,1547,1646,1737,1831,1911,2018,2119,2216,2322,2422,2520,2670,2770,2851"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,152",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "105,213,313,422,508,613,731,817,896,987,1080,1175,1269,1363,1456,1552,1651,1742,1836,1916,2023,2124,2221,2327,2427,2525,2675,15191",
+                        "endColumns": "107,99,108,85,104,117,85,78,90,92,94,93,93,92,95,98,90,93,79,106,100,96,105,99,97,149,99,80",
+                        "endOffsets": "208,308,417,503,608,726,812,891,982,1075,1170,1264,1358,1451,1547,1646,1737,1831,1911,2018,2119,2216,2322,2422,2520,2670,2770,15267"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\305b82c4c7bbb988c4e95aab938572ed\\workspace\\transformed\\media3-session-1.9.2\\res\\values-fi\\values-fi.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -154,6 +137,23 @@
                         "startOffsets": "4011,4278,4388,4463,4573,4662,4753,4828,4917,5006,5088,5156,5255,5335,5429,5503,5598,5679,14368,14439,14507,14591,14677,14764",
                         "endColumns": "76,109,74,109,88,90,74,88,88,81,67,98,79,93,73,94,80,94,70,67,83,85,86,90",
                         "endOffsets": "4083,4383,4458,4568,4657,4748,4823,4912,5001,5083,5151,5250,5330,5424,5498,5593,5674,5769,14434,14502,14586,14672,14759,14850"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\alananasss\\.gradle\\caches\\9.3.1\\transforms\\ecd32b5222613f65148c63ea9d2b6b71\\workspace\\transformed\\glance-appwidget-1.1.1\\res\\values-fi\\values-fi.xml",
+                    "from": {
+                        "startLines": "2,3,4",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,259,369",
+                        "endColumns": "203,109,122",
+                        "endOffsets": "254,364,487"
+                    },
+                    "to": {
+                        "startLines": "70,71,72",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "6431,6635,6745",
+                        "endColumns": "203,109,122",
+                        "endOffsets": "6630,6740,6863"
                     }
                 }
             ]

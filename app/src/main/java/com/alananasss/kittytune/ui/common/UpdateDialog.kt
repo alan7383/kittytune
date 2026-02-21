@@ -36,7 +36,7 @@
     ) {
         val context = LocalContext.current
         val apkAsset = remember(release) {
-            release.assets.find { it.contentType == "application/vnd.android.package-archive" || it.downloadUrl.endsWith(".apk") }
+            release.assets.find { it.name.endsWith(".apk", ignoreCase = true) }
         }
         val fileSizeMb = remember(apkAsset) {
             apkAsset?.let { Formatter.formatFileSize(context, it.size) }
