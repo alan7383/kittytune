@@ -824,6 +824,29 @@
         <string name="libraries_count_format">%1$d Könyvtár</string>
         <string name="no_libraries_found">Nem található könyvtár</string>
         <string name="license_unknown">Ismeretlen licenc</string>
+
+    <!-- TYPOGRAPHY -->
+    <string name="settings_cat_typography">Tipográfia</string>
+    <string name="pref_font_custom_title">Google Sans Flex</string>
+    <string name="pref_font_custom_subtitle">Egyedi variálható betűtípus használata</string>
+    <string name="pref_font_variations_title">Betűtípus variációk</string>
+    <string name="pref_font_variations_subtitle">Vastagság, szélesség, kerekítés állítása…</string>
+    <string name="dialog_font_settings_title">Betűtípus beállításai</string>
+    <string name="dialog_font_weight">Vastagság (wght): %1$d</string>
+    <string name="dialog_font_width">Szélesség (wdth): %1$d</string>
+    <string name="dialog_font_slant">Dőlés (slnt): %1$d</string>
+    <string name="dialog_font_roundness">Kerekítés (ROND): %1$d</string>
+    <string name="dialog_font_grade">Fokozat (GRAD): %1$d</string>
+    <string name="dialog_font_optical_size">Optikai méret (opsz): %1$d</string>
+    <string name="btn_reset">Alaphelyzet</string>
+    <string name="font_preset_default">Alap</string>
+    <string name="font_preset_rounded">Kerekített</string>
+    <string name="font_preset_compact">Kompakt</string>
+    <string name="font_preset_slanted">Dőlt</string>
+    <string name="font_preset_chunky">Masszív</string>
+    <string name="font_preset_elegant">Elegáns</string>
+    <string name="font_preset_playful">Játékos</string>
+    <string name="font_preset_wide">Széles</string>
     
     </resources>
 

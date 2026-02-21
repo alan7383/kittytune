@@ -832,6 +832,29 @@
         <string name="libraries_count_format">%1$d Libraries</string>
         <string name="no_libraries_found">No libraries found</string>
         <string name="license_unknown">Unknown license</string>
+
+    <!-- TYPOGRAPHY -->
+    <string name="settings_cat_typography">Typography</string>
+    <string name="pref_font_custom_title">Google Sans Flex</string>
+    <string name="pref_font_custom_subtitle">Use custom variable font</string>
+    <string name="pref_font_variations_title">Font Variations</string>
+    <string name="pref_font_variations_subtitle">Adjust weight, width, roundness…</string>
+    <string name="dialog_font_settings_title">Font Settings</string>
+    <string name="dialog_font_weight">Weight (wght): %1$d</string>
+    <string name="dialog_font_width">Width (wdth): %1$d</string>
+    <string name="dialog_font_slant">Slant (slnt): %1$d</string>
+    <string name="dialog_font_roundness">Roundness (ROND): %1$d</string>
+    <string name="dialog_font_grade">Grade (GRAD): %1$d</string>
+    <string name="dialog_font_optical_size">Optical Size (opsz): %1$d</string>
+    <string name="btn_reset">Reset</string>
+    <string name="font_preset_default">Default</string>
+    <string name="font_preset_rounded">Rounded</string>
+    <string name="font_preset_compact">Compact</string>
+    <string name="font_preset_slanted">Slanted</string>
+    <string name="font_preset_chunky">Chunky</string>
+    <string name="font_preset_elegant">Elegant</string>
+    <string name="font_preset_playful">Playful</string>
+    <string name="font_preset_wide">Wide</string>
     
     </resources>
 

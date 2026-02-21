@@ -154,6 +154,7 @@
     <string name="btn_options">Options</string>
     <string name="btn_pause">Pause</string>
     <string name="btn_play">Play</string>
+    <string name="btn_reset">Reset</string>
     <string name="btn_save">Save</string>
     <string name="btn_save_changes">Save changes</string>
     <string name="btn_see_all">See all</string>
@@ -300,6 +301,13 @@
     <string name="dialog_delete_playlist_from_lib_title">Remove from library?</string>
     <string name="dialog_delete_playlist_msg">This action cannot be undone.</string>
     <string name="dialog_delete_playlist_title">Delete playlist?</string>
+    <string name="dialog_font_grade">Grade (GRAD): %1$d</string>
+    <string name="dialog_font_optical_size">Optical Size (opsz): %1$d</string>
+    <string name="dialog_font_roundness">Roundness (ROND): %1$d</string>
+    <string name="dialog_font_settings_title">Font Settings</string>
+    <string name="dialog_font_slant">Slant (slnt): %1$d</string>
+    <string name="dialog_font_weight">Weight (wght): %1$d</string>
+    <string name="dialog_font_width">Width (wdth): %1$d</string>
     <string name="dialog_remove_download_msg">Audio files will be deleted, but the playlist will remain in your library.</string>
     <string name="dialog_remove_download_title">Delete download?</string>
     <string name="dialog_rename_playlist_hint">New name</string>
@@ -360,6 +368,14 @@
     <string name="fallback_invidious">Private Server (Invidious)</string>
     <string name="fallback_newpipe">Native (NewPipe)</string>
     <string name="filter_all">All</string>
+    <string name="font_preset_chunky">Chunky</string>
+    <string name="font_preset_compact">Compact</string>
+    <string name="font_preset_default">Default</string>
+    <string name="font_preset_elegant">Elegant</string>
+    <string name="font_preset_playful">Playful</string>
+    <string name="font_preset_rounded">Rounded</string>
+    <string name="font_preset_slanted">Slanted</string>
+    <string name="font_preset_wide">Wide</string>
     <string name="format_default">Audio</string>
     <string name="format_fallback">MP3/Audio</string>
     <string name="generic_artist">Artist</string>
@@ -510,6 +526,10 @@
     <string name="pref_discord_subtitle">Rich Presence</string>
     <string name="pref_discord_title">Discord Integration</string>
     <string name="pref_fallback_mode">Unlock Method</string>
+    <string name="pref_font_custom_subtitle">Use custom variable font</string>
+    <string name="pref_font_custom_title">Google Sans Flex</string>
+    <string name="pref_font_variations_subtitle">Adjust weight, width, roundness…</string>
+    <string name="pref_font_variations_title">Font Variations</string>
     <string name="pref_language">Language</string>
     <string name="pref_language_sub">App language</string>
     <string name="pref_local_add">Add Folder</string>
@@ -620,6 +640,7 @@
     <string name="settings_cat_notifications">Notifications</string>
     <string name="settings_cat_playback">Playback</string>
     <string name="settings_cat_source">Library</string>
+    <string name="settings_cat_typography">Typography</string>
     <string name="settings_title">Settings</string>
     <string name="share_via">Share via</string>
     <string name="sort_date_added">Date Added</string>

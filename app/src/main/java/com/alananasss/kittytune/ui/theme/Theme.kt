@@ -37,6 +37,7 @@
         themeMode: AppThemeMode = AppThemeMode.SYSTEM,
         dynamicColor: Boolean = true,
         pureBlack: Boolean = false,
+        typography: androidx.compose.material3.Typography = Typography,
         content: @Composable () -> Unit
     ) {
         val systemInDark = isSystemInDarkTheme()
@@ -87,7 +88,7 @@
     
         MaterialTheme(
             colorScheme = finalColorScheme,
-            typography = Typography,
+            typography = typography,
             content = content
         )
     }

@@ -153,6 +153,7 @@
     <string name="btn_options">Options</string>
     <string name="btn_pause">Pause</string>
     <string name="btn_play">Lecture</string>
+    <string name="btn_reset">Réinitialiser</string>
     <string name="btn_save">Enregistrer</string>
     <string name="btn_save_changes">Sauvegarder</string>
     <string name="btn_see_all">Voir tout</string>
@@ -299,6 +300,13 @@
     <string name="dialog_delete_playlist_from_lib_title">Retirer de la bibliothèque ?</string>
     <string name="dialog_delete_playlist_msg">Cette action est irréversible.</string>
     <string name="dialog_delete_playlist_title">Supprimer la playlist ?</string>
+    <string name="dialog_font_grade">Graisse (GRAD) : %1$d</string>
+    <string name="dialog_font_optical_size">Taille optique (opsz) : %1$d</string>
+    <string name="dialog_font_roundness">Arrondi (ROND) : %1$d</string>
+    <string name="dialog_font_settings_title">Réglages de la police</string>
+    <string name="dialog_font_slant">Inclinaison (slnt) : %1$d</string>
+    <string name="dialog_font_weight">Épaisseur (wght) : %1$d</string>
+    <string name="dialog_font_width">Largeur (wdth) : %1$d</string>
     <string name="dialog_remove_download_msg">Le fichier audio sera supprimé, mais le titre restera dans votre bibliothèque.</string>
     <string name="dialog_remove_download_title">Supprimer le téléchargement ?</string>
     <string name="dialog_rename_playlist_hint">Nouveau nom</string>
@@ -356,6 +364,14 @@
     <string name="fallback_invidious">Serveur Privé (Invidious)</string>
     <string name="fallback_newpipe">Natif (NewPipe)</string>
     <string name="filter_all">Tout</string>
+    <string name="font_preset_chunky">Massif</string>
+    <string name="font_preset_compact">Compact</string>
+    <string name="font_preset_default">Défaut</string>
+    <string name="font_preset_elegant">Élégant</string>
+    <string name="font_preset_playful">Ludique</string>
+    <string name="font_preset_rounded">Arrondi</string>
+    <string name="font_preset_slanted">Incliné</string>
+    <string name="font_preset_wide">Large</string>
     <string name="format_default">Audio</string>
     <string name="format_fallback">MP3/Audio</string>
     <string name="generic_artist">Artiste</string>
@@ -504,6 +520,10 @@
     <string name="pref_discord_subtitle">Rich Presence</string>
     <string name="pref_discord_title">Intégration Discord</string>
     <string name="pref_fallback_mode">Méthode de déblocage</string>
+    <string name="pref_font_custom_subtitle">Utiliser la police variable</string>
+    <string name="pref_font_custom_title">Google Sans Flex</string>
+    <string name="pref_font_variations_subtitle">Ajuster l\'épaisseur, la largeur, l\'arrondi…</string>
+    <string name="pref_font_variations_title">Variations de la police</string>
     <string name="pref_language">Langue</string>
     <string name="pref_language_sub">Langue de l\'interface</string>
     <string name="pref_local_add">Ajouter un dossier</string>
@@ -614,6 +634,7 @@
     <string name="settings_cat_notifications">Notifications</string>
     <string name="settings_cat_playback">Lecture</string>
     <string name="settings_cat_source">Bibliothèque</string>
+    <string name="settings_cat_typography">Typographie</string>
     <string name="settings_title">Paramètres</string>
     <string name="share_via">Partager via</string>
     <string name="sort_date_added">Date d\'ajout</string>

@@ -153,6 +153,7 @@
     <string name="btn_options">Opciók</string>
     <string name="btn_pause">Szünet</string>
     <string name="btn_play">Lejátszás</string>
+    <string name="btn_reset">Alaphelyzet</string>
     <string name="btn_save">Mentés</string>
     <string name="btn_save_changes">Mentés</string>
     <string name="btn_see_all">Összes</string>
@@ -299,6 +300,13 @@
     <string name="dialog_delete_playlist_from_lib_title">Eltávolítja a könyvtárból?</string>
     <string name="dialog_delete_playlist_msg">Ez a művelet nem vonható vissza.</string>
     <string name="dialog_delete_playlist_title">Playlist törlése?</string>
+    <string name="dialog_font_grade">Fokozat (GRAD): %1$d</string>
+    <string name="dialog_font_optical_size">Optikai méret (opsz): %1$d</string>
+    <string name="dialog_font_roundness">Kerekítés (ROND): %1$d</string>
+    <string name="dialog_font_settings_title">Betűtípus beállításai</string>
+    <string name="dialog_font_slant">Dőlés (slnt): %1$d</string>
+    <string name="dialog_font_weight">Vastagság (wght): %1$d</string>
+    <string name="dialog_font_width">Szélesség (wdth): %1$d</string>
     <string name="dialog_remove_download_msg">A hangfájlok törlődnek, de a lista a könyvtárban marad.</string>
     <string name="dialog_remove_download_title">Letöltés törlése?</string>
     <string name="dialog_rename_playlist_hint">Új név</string>
@@ -356,6 +364,14 @@
     <string name="fallback_invidious">Privát Szerver (Invidious)</string>
     <string name="fallback_newpipe">Natív (NewPipe)</string>
     <string name="filter_all">Mind</string>
+    <string name="font_preset_chunky">Masszív</string>
+    <string name="font_preset_compact">Kompakt</string>
+    <string name="font_preset_default">Alap</string>
+    <string name="font_preset_elegant">Elegáns</string>
+    <string name="font_preset_playful">Játékos</string>
+    <string name="font_preset_rounded">Kerekített</string>
+    <string name="font_preset_slanted">Dőlt</string>
+    <string name="font_preset_wide">Széles</string>
     <string name="format_default">Audió</string>
     <string name="format_fallback">MP3/Audió</string>
     <string name="generic_artist">Előadó</string>
@@ -504,6 +520,10 @@
     <string name="pref_discord_subtitle">Rich Presence</string>
     <string name="pref_discord_title">Discord integráció</string>
     <string name="pref_fallback_mode">Feloldási mód</string>
+    <string name="pref_font_custom_subtitle">Egyedi variálható betűtípus használata</string>
+    <string name="pref_font_custom_title">Google Sans Flex</string>
+    <string name="pref_font_variations_subtitle">Vastagság, szélesség, kerekítés állítása…</string>
+    <string name="pref_font_variations_title">Betűtípus variációk</string>
     <string name="pref_language">Nyelv</string>
     <string name="pref_language_sub">App nyelve</string>
     <string name="pref_local_add">Mappa hozzáadása</string>
@@ -614,6 +634,7 @@
     <string name="settings_cat_notifications">Értesítések</string>
     <string name="settings_cat_playback">Lejátszás</string>
     <string name="settings_cat_source">Könyvtár</string>
+    <string name="settings_cat_typography">Tipográfia</string>
     <string name="settings_title">Beállítások</string>
     <string name="share_via">Megosztás...</string>
     <string name="sort_date_added">Hozzáadás dátuma</string>
