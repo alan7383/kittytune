@@ -1,0 +1,1274 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>KittyTune ✧ Open Source Music Player</title>
+        <meta name="description" content="A privacy-focused music client built with Jetpack Compose. Stream SoundCloud & YouTube or play local files with real-time effects like Nightcore and 8D. No ads, just vibes.">
+        <meta name="keywords" content="KittyTune, FOSS, Android Music Player, Material You, SoundCloud Client, Nightcore, Audio FX, Jetpack Compose, Ad-free, Indie App">
+        
+        <link rel="canonical" href="https://alan7383.github.io/kittytune/" />
+        <meta name="theme-color" content="#141218">
+        <meta property="og:title" content="KittyTune ( ◡‿◡ *)">
+        <meta property="og:description" content="The cozy hybrid music player. SoundCloud, YouTube, Local Files, and Audio FX in a beautiful Material You interface.">
+        <meta property="og:image" content="https://alan7383.github.io/kittytune/preview-image.jpg">
+        <meta property="og:url" content="https://alan7383.github.io/kittytune/">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="KittyTune">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="KittyTune ✧ Audio & Vibes">
+        <meta name="twitter:description" content="Open source music player for Android. Built by a music lover, for music lovers.">
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          "name": "KittyTune",
+          "operatingSystem": "Android",
+          "applicationCategory": "MultimediaApplication",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          },
+          "description": "An open-source hybrid music player featuring SoundCloud, YouTube playback, and real-time audio effects.",
+            "downloadUrl": "https://github.com/alan7383/kittytune/releases",
+            "author": {
+                "@type": "Person",
+                "name": "alan7383"
+            },
+            "license": "GPL-3.0 License" 
+            }
+        </script>    
+    
+        <!-- Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Outfit:wght@300;500;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
+        <style>
+            :root {
+                /* --- M3 Design Tokens (Dark Theme) --- */
+                --md-sys-color-primary: #d0bcff;
+                --md-sys-color-on-primary: #381e72;
+                --md-sys-color-primary-container: #4f378b;
+                --md-sys-color-on-primary-container: #eaddff;
+                
+                --md-sys-color-secondary: #ccc2dc;
+                --md-sys-color-on-secondary: #332d41;
+                
+                --md-sys-color-tertiary: #efb8c8;
+                --md-sys-color-on-tertiary: #492532;
+    
+                /* Surfaces */
+                --md-sys-color-background: #0f0d13;
+                --md-sys-color-surface: #141218;
+                --md-sys-color-surface-container-low: #1d1b20;
+                --md-sys-color-surface-container: #211f26;
+                --md-sys-color-surface-container-high: #2b2930;
+                --md-sys-color-surface-container-highest: #36343b;
+                
+                --md-sys-color-on-surface: #e6e1e5;
+                --md-sys-color-on-surface-variant: #cac4d0;
+                --md-sys-color-outline: #938f99;
+                --md-sys-color-outline-variant: #49454f;
+                
+                /* Shapes */
+                --radius-full: 9999px;
+                --radius-xl: 42px; 
+                --radius-l: 28px;
+                --radius-m: 16px;
+                
+                /* Typography */
+                --font-display: 'Outfit', sans-serif;
+                --font-body: 'Roboto Flex', sans-serif;
+            }
+    
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+            body {
+                background-color: var(--md-sys-color-background);
+                color: var(--md-sys-color-on-surface);
+                font-family: var(--font-body);
+                overflow-x: hidden;
+                -webkit-font-smoothing: antialiased;
+            }
+    
+            /* --- Animations & Loader --- */
+            #app-wrapper {
+                opacity: 0;
+                transform: translateY(20px);
+                transition: opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.2, 0, 0, 1);
+            }
+            
+            #app-wrapper.loaded { opacity: 1; transform: translateY(0); }
+    
+            #loading-screen {
+                position: fixed; inset: 0;
+                background-color: var(--md-sys-color-background); 
+                display: flex; justify-content: center; align-items: center;
+                z-index: 9999;
+                transition: opacity 0.5s ease, visibility 0.5s;
+            }
+            #loading-screen.hidden { opacity: 0; visibility: hidden; }
+            
+            .loader-svg-container { width: 80px; height: 80px; }
+    
+            /* --- Typography --- */
+            h1, h2, h3, h4 { font-family: var(--font-display); }
+    
+            .display-large {
+                font-size: clamp(3.5rem, 8vw, 6rem);
+                font-weight: 800;
+                line-height: 1.0;
+                letter-spacing: -0.04em;
+                background: linear-gradient(180deg, #fff 0%, var(--md-sys-color-on-surface-variant) 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+    
+            .headline-large {
+                font-size: clamp(2.5rem, 5vw, 4rem);
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                color: var(--md-sys-color-on-surface);
+                line-height: 1.1;
+            }
+    
+            /* --- Buttons --- */
+            .btn {
+                display: inline-flex; align-items: center; justify-content: center;
+                padding: 0 32px; height: 56px;
+                border-radius: var(--radius-full);
+                font-weight: 600; text-decoration: none;
+                transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+                gap: 12px; border: none; cursor: pointer;
+                font-family: var(--font-display); font-size: 1.1rem;
+                position: relative; overflow: hidden;
+            }
+            .btn-primary {
+                background-color: var(--md-sys-color-primary);
+                color: var(--md-sys-color-on-primary);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            }
+            .btn-primary:hover {
+                box-shadow: 0 6px 20px rgba(208, 188, 255, 0.4);
+                transform: scale(1.02);
+            }
+            .btn-secondary {
+                background-color: transparent;
+                border: 1px solid var(--md-sys-color-outline);
+                color: var(--md-sys-color-primary);
+            }
+            .btn-secondary:hover {
+                border-color: var(--md-sys-color-primary);
+                background-color: var(--md-sys-color-surface-container-low);
+            }
+    
+            .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    
+            /* --- Header --- */
+            header.navbar {
+                padding: 24px 0;
+                display: flex; justify-content: space-between; align-items: center;
+                position: relative; z-index: 100;
+            }
+            .logo {
+                font-family: var(--font-display);
+                font-size: 1.5rem; font-weight: 800;
+                color: var(--md-sys-color-on-surface);
+                letter-spacing: -0.05em;
+                display: flex; align-items: center; gap: 8px;
+            }
+            .logo span { color: var(--md-sys-color-primary); }
+    
+            /* --- Hero --- */
+            .hero {
+                padding: 80px 0 100px;
+                text-align: center;
+                position: relative;
+            }
+            .hero-kaomoji {
+                font-size: clamp(3rem, 6vw, 5rem);
+                display: block; margin-bottom: 24px;
+                color: var(--md-sys-color-secondary);
+                font-weight: 300;
+                animation: float 6s ease-in-out infinite;
+            }
+            .hero p {
+                font-size: clamp(1.1rem, 2vw, 1.4rem);
+                color: var(--md-sys-color-on-surface-variant);
+                max-width: 680px; margin: 24px auto 48px;
+                line-height: 1.5; font-weight: 400;
+            }
+    
+            /* --- Player Preview (Adaptive Glass Design) --- */
+            .web-player-preview {
+                background: rgba(30, 27, 33, 0.75);
+                backdrop-filter: blur(24px);
+                -webkit-backdrop-filter: blur(24px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                
+                border-radius: 32px;
+                padding: 32px; /* Réduit (était 40px) */
+                max-width: 400px; /* Base mobile */
+                margin: 0 auto 80px; /* Marge bas réduite */
+                box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+                
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                position: relative;
+                overflow: hidden;
+                transition: all 0.3s ease;
+            }
+    
+            /* --- Layout Blocks --- */
+            .player-top { 
+                width: 100%; display: flex; flex-direction: column; 
+                align-items: center; margin-bottom: 20px; 
+            }
+            .player-middle { 
+                width: 100%; display: flex; flex-direction: column; 
+                align-items: center; margin-bottom: 20px; 
+            }
+            .player-bottom { width: 100%; }
+    
+            /* --- Album Art --- */
+            .album-art-wrapper {
+                width: 180px; /* Plus compact (était 220px) */
+                height: 180px;
+                border-radius: 20px;
+                position: relative;
+                box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+                z-index: 2;
+                flex-shrink: 0;
+            }
+            .album-art-wrapper img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
+    
+            /* Glow effect behind art */
+            .art-glow {
+                position: absolute;
+                inset: 0;
+                background: var(--art-url) center/cover no-repeat;
+                
+                filter: blur(35px) saturate(1.5);
+                opacity: 0.5;
+                z-index: -1;
+                transform: scale(1.1);
+                border-radius: 50%;
+            }
+    
+            .play-overlay {
+                position: absolute; inset: 0; background: rgba(0,0,0,0.3);
+                border-radius: 20px;
+                display: flex; align-items: center; justify-content: center;
+                opacity: 0; transition: opacity 0.3s; cursor: pointer;
+            }
+            .album-art-wrapper:hover .play-overlay { opacity: 1; }
+    
+            /* --- Track Info --- */
+            .track-info { margin-top: 20px; width: 100%; }
+            .info-header { margin-bottom: 6px; }
+    
+            .badge-source {
+                background: rgba(255, 85, 0, 0.15);
+                color: #ff5500;
+                padding: 4px 10px;
+                border-radius: 50px;
+                font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+                display: inline-flex; align-items: center; gap: 4px;
+            }
+    
+            .track-info h3 { 
+                font-size: 1.5rem; margin-bottom: 4px; color: var(--md-sys-color-on-surface);
+                font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            .track-info p { 
+                color: var(--md-sys-color-on-surface-variant); font-size: 1rem; font-weight: 500;
+            }
+    
+            /* --- Controls --- */
+            .play-fab-large {
+                width: 72px; height: 72px;
+                border-radius: 50%;
+                background: var(--md-sys-color-primary);
+                color: var(--md-sys-color-on-primary);
+                border: none; cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                box-shadow: 0 6px 16px rgba(208, 188, 255, 0.25);
+                transition: transform 0.2s;
+                font-size: 42px; 
+            }
+    
+            .play-fab-large .material-icons-round {
+                font-size: 42px; 
+                line-height: 1;
+            }
+            
+            .play-fab-large:hover { transform: scale(1.05); }
+    
+            @media (min-width: 900px) {
+                .play-fab-large { width: 88px; height: 88px; margin-bottom: 20px; }
+                .play-fab-large .material-icons-round { font-size: 48px; }
+            }
+    
+            .waveform {
+                display: flex; align-items: center; gap: 4px; height: 24px; 
+                margin-top: 16px; opacity: 0.6;
+            }
+            .bar {
+                width: 4px; background: var(--md-sys-color-on-surface); 
+                border-radius: 2px; height: 100%;
+                animation: wave 1.2s ease-in-out infinite; animation-play-state: paused;
+            }
+            .waveform.playing .bar { animation-play-state: running; background: var(--md-sys-color-primary); }
+            .bar:nth-child(odd) { height: 60%; }
+    
+            /* --- Progress --- */
+            .progress-row {
+                display: flex; align-items: center; gap: 12px;
+                color: var(--md-sys-color-on-surface-variant);
+                font-size: 0.75rem; font-weight: 600; font-family: monospace;
+                margin-bottom: 16px;
+            }
+            .progress-container { flex: 1; height: 16px; display: flex; align-items: center; cursor: pointer; }
+            .progress-track { width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+            .progress-fill { width: 0%; height: 100%; background: var(--md-sys-color-primary); border-radius: 4px; }
+    
+            /* --- FX Rack --- */
+            .fx-rack { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+            .effect-chip {
+                padding: 6px 14px;
+                border-radius: 10px;
+                border: 1px solid rgba(255,255,255,0.1);
+                background: transparent;
+                color: var(--md-sys-color-on-surface-variant);
+                font-size: 0.8rem; font-weight: 600;
+                cursor: pointer; transition: all 0.2s;
+            }
+            .effect-chip:hover { background: rgba(255,255,255,0.05); }
+            .effect-chip.active { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; }
+    
+            .speed-control {
+                display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+                background: rgba(0,0,0,0.2); border-radius: 10px;
+            }
+            .speed-control span { font-size: 14px; color: var(--md-sys-color-primary); }
+            #speed-value { font-size: 0.8rem; min-width: 28px; }
+            .mini-slider { width: 50px; height: 20px; accent-color: var(--md-sys-color-primary); }
+    
+            /* --- DESKTOP TRANSFORMATION (Horizontal Layout) --- */
+            @media (min-width: 900px) {
+                .web-player-preview {
+                    max-width: 850px; /* Plus large */
+                    flex-direction: row; /* Horizontal */
+                    text-align: left;
+                    align-items: stretch;
+                    padding: 0; /* On utilise le padding interne des enfants */
+                }
+    
+                /* Partie Gauche : Art + Info */
+                .player-top {
+                    flex: 0 0 300px;
+                    background: rgba(0,0,0,0.15); /* Légère séparation visuelle */
+                    padding: 32px;
+                    margin-bottom: 0;
+                    justify-content: center;
+                    border-right: 1px solid rgba(255,255,255,0.05);
+                }
+                
+                .album-art-wrapper { width: 140px; height: 140px; margin-bottom: 0; }
+                .track-info { margin-top: 24px; }
+                .track-info h3 { font-size: 1.4rem; }
+    
+                /* Partie Droite : Contrôles + FX */
+                .web-player-preview > div:not(.player-top) {
+                    /* On regroupe virtuellement le reste */
+                }
+                
+                /* On force les blocs Middle et Bottom à s'afficher à droite */
+                /* Petite astuce CSS Grid pour éviter de changer le HTML */
+                .web-player-preview {
+                    display: grid;
+                    grid-template-columns: 280px 1fr;
+                    grid-template-rows: 1fr auto;
+                    grid-template-areas: 
+                        "sidebar controls"
+                        "sidebar controls";
+                }
+    
+                .player-top { grid-area: sidebar; height: 100%; border-right: 1px solid rgba(255,255,255,0.08); }
+                
+                /* Conteneur pour la partie droite */
+                .player-middle { 
+                    grid-column: 2; grid-row: 1; 
+                    padding: 40px 40px 10px; 
+                    justify-content: flex-end; /* Pousse vers le bas */
+                    margin-bottom: 0;
+                }
+                
+                .player-bottom {
+                    grid-column: 2; grid-row: 2;
+                    padding: 10px 40px 40px;
+                }
+    
+                /* Réajustements Desktop */
+                .play-fab-large { width: 80px; height: 80px; margin-bottom: 20px; }
+                .waveform { width: 100%; justify-content: center; height: 32px; }
+                .fx-rack { justify-content: flex-start; }
+                .progress-row { margin-top: 10px; }
+            }
+    
+            /* --- Expressive Features Grid --- */
+            .features-section { padding: 40px 0; }
+            .section-header { text-align: center; margin-bottom: 80px; }
+            .section-header p { color: var(--md-sys-color-outline); margin-top: 12px; font-size: 1.3rem; }
+    
+            .expressive-grid {
+                display: grid;
+                grid-template-columns: repeat(12, 1fr);
+                gap: 24px;
+                grid-auto-rows: minmax(280px, auto);
+            }
+    
+            .expressive-card {
+                background: var(--md-sys-color-surface-container-low);
+                border-radius: var(--radius-xl);
+                padding: 32px;
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                transition: all 0.4s cubic-bezier(0.2,0,0,1);
+                border: 1px solid rgba(255,255,255,0.03);
+                cursor: default;
+            }
+            
+            .expressive-card:hover {
+                transform: translateY(-8px);
+                background: var(--md-sys-color-surface-container);
+                border-color: var(--md-sys-color-outline-variant);
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            }
+    
+            /* Large Background Kaomoji */
+            .kaomoji-hero {
+                position: absolute;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%) rotate(-5deg);
+                font-size: clamp(6rem, 10vw, 10rem);
+                font-weight: 900;
+                color: var(--md-sys-color-on-surface);
+                opacity: 0.03; 
+                white-space: nowrap;
+                pointer-events: none;
+                transition: all 0.5s ease;
+                font-family: var(--font-display);
+            }
+    
+            .expressive-card:hover .kaomoji-hero {
+                opacity: 0.1;
+                transform: translate(-50%, -50%) rotate(0deg) scale(1.1);
+                color: var(--md-sys-color-primary);
+            }
+    
+            .card-content { position: relative; z-index: 2; }
+            .card-icon {
+                font-size: 40px; color: var(--md-sys-color-primary);
+                margin-bottom: 24px;
+                background: var(--md-sys-color-surface-container-high);
+                width: 72px; height: 72px;
+                border-radius: 24px;
+                display: flex; align-items: center; justify-content: center;
+            }
+            .expressive-card h3 { font-size: 1.8rem; margin-bottom: 12px; color: var(--md-sys-color-on-surface); line-height: 1.1; }
+            .expressive-card p { font-size: 1.1rem; color: var(--md-sys-color-on-surface-variant); line-height: 1.5; }
+    
+            .span-4 { grid-column: span 4; }
+            .span-6 { grid-column: span 6; }
+            .span-8 { grid-column: span 8; }
+            
+            .variant-primary:hover .kaomoji-hero { color: var(--md-sys-color-primary); }
+            .variant-secondary:hover .kaomoji-hero { color: var(--md-sys-color-secondary); }
+            .variant-tertiary:hover .kaomoji-hero { color: var(--md-sys-color-tertiary); }
+    
+            .showcase-section { 
+                padding: 100px 0 60px; 
+                overflow: hidden; 
+            }
+    
+            .showcase-row {
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 80px; 
+                align-items: center;
+                margin-bottom: 160px;
+                opacity: 0; 
+                transform: translateY(60px);
+                transition: all 0.8s cubic-bezier(0.2, 0, 0, 1);
+            }
+    
+            .showcase-row:last-child {
+                margin-bottom: 0;
+            }
+    
+            .showcase-row.visible { opacity: 1; transform: translateY(0); }
+            .showcase-row.reverse .text-col { order: 2; }
+            
+            .step-number {
+                font-size: 6rem; font-weight: 900; color: var(--md-sys-color-surface-container-highest);
+                line-height: 1; margin-bottom: -20px; font-family: var(--font-display);
+                position: relative; z-index: -1; opacity: 0.5;
+            }
+            .text-col h3 { font-size: 3rem; margin-bottom: 24px; line-height: 1.1; }
+            .text-col p { font-size: 1.25rem; color: var(--md-sys-color-on-surface-variant); line-height: 1.6; }
+            .highlight { color: var(--md-sys-color-primary); font-weight: 600; display: inline-block; margin-top: 16px; border: 1px solid var(--md-sys-color-outline-variant); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; }
+    
+            /* --- NEW CLEAN PHONE DESIGN (Matte, No Notch) --- */
+            .showcase-image-wrapper {
+                position: relative;
+                display: flex; justify-content: center; align-items: center;
+            }
+    
+            .phone-mockup {
+                width: 320px;
+                margin: 0 auto;
+                aspect-ratio: 9/19.5;
+                background: #000;
+                /* Modern simple rounded corners */
+                border-radius: 40px; 
+                /* Subtle bezel without gloss */
+                border: 8px solid #2b2930;
+                box-shadow: 
+                    0 0 0 1px #000,
+                    0 30px 60px rgba(0,0,0,0.5);
+                position: relative; 
+                overflow: hidden;
+                transition: transform 0.5s cubic-bezier(0.2, 0, 0, 1);
+            }
+    
+            .showcase-row:hover .phone-mockup { 
+                transform: translateY(-15px) scale(1.02);
+            }
+    
+            .phone-mockup img { 
+                width: 100%; height: 100%; object-fit: cover; 
+                border-radius: 32px; /* Inner radius matching bezel */
+                display: block;
+            }
+    
+            /* --- Premium Kaomoji Badges (Dark Glassmorphism M3 Style) --- */
+            .kaomoji-badge {
+                position: absolute;
+                z-index: 20;
+                
+                /* Layout */
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                padding: 10px 24px 10px 10px; /* Asymmetrical padding for the icon */
+                
+                /* Shape & Surface (Dark Glass) */
+                background: rgba(30, 27, 33, 0.65); /* Semi-transparent dark background */
+                backdrop-filter: blur(12px);        /* Background blur */
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 50px;                /* Full pill shape */
+                border: 1px solid rgba(255, 255, 255, 0.08); /* Subtle border */
+                
+                /* Shadows for depth */
+                box-shadow: 
+                    0 8px 32px rgba(0,0,0,0.5),
+                    inset 0 1px 1px rgba(255,255,255,0.1);
+    
+                /* Animation */
+                animation: float-badge 7s ease-in-out infinite;
+                transition: all 0.3s ease;
+                cursor: default;
+            }
+    
+            /* Badge icon container */
+            .badge-icon-circle {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                
+                /* Dynamic colors based on variant */
+                background: var(--badge-surface, #332d41);
+                color: var(--badge-color, #d0bcff);
+                
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            }
+    
+            .badge-icon-circle .material-icons-round {
+                font-size: 22px;
+            }
+    
+            /* The Kaomoji text */
+            .badge-text {
+                font-family: var(--font-display);
+                font-weight: 600;
+                font-size: 1.1rem;
+                color: var(--md-sys-color-on-surface);
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+            }
+    
+            /* Hover Interaction */
+            .showcase-row:hover .kaomoji-badge {
+                transform: translateY(-5px) scale(1.05);
+                background: rgba(45, 40, 50, 0.8);
+                border-color: var(--badge-color); /* Border brightens slightly */
+            }
+    
+            /* --- Badge Color Variants (Subtle & Dark) --- */
+    
+            /* 1. Primary (Violet) */
+            .variant-1 {
+                --badge-surface: var(--md-sys-color-primary-container); 
+                --badge-color: var(--md-sys-color-on-primary-container);
+                top: 15%; right: -30px;
+                animation-delay: 0s;
+            }
+    
+            /* 2. Secondary (Gray/Bluish) */
+            .variant-2 {
+                --badge-surface: var(--md-sys-color-secondary);
+                --badge-color: var(--md-sys-color-on-secondary);
+                bottom: 20%; left: -40px;
+                animation-delay: 1.5s;
+            }
+    
+            /* 3. Tertiary (Pink/Warm) */
+            .variant-3 {
+                --badge-surface: var(--md-sys-color-tertiary);
+                --badge-color: var(--md-sys-color-on-tertiary);
+                bottom: -25px; left: 50%; margin-left: -90px;
+                animation-delay: 3s;
+            }
+    
+            /* 4. Surface (Neutral/Gold) */
+            .variant-4 {
+                --badge-surface: #4a4458;
+                --badge-color: #ffd8e4;
+                top: 20%; right: -40px;
+                animation-delay: 4.5s;
+            }
+    
+            @keyframes float-badge {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-12px); }
+            }
+    
+            @media (max-width: 900px) {
+                .kaomoji-badge { display: none; }
+            }
+            /* --- Footer --- */
+            footer {
+                background: var(--md-sys-color-surface-container);
+                padding: 80px 0 40px;
+                border-top-left-radius: var(--radius-xl);
+                border-top-right-radius: var(--radius-xl);
+                margin-top: 60px;
+            }
+            .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 60px; }
+            .footer-brand h4 { font-size: 1.8rem; margin-bottom: 16px; color: var(--md-sys-color-on-surface); }
+            .footer-brand span { color: var(--md-sys-color-primary); }
+            .footer-col h5 { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; color: var(--md-sys-color-on-surface); }
+            .footer-col ul { list-style: none; }
+            .footer-col li { margin-bottom: 16px; }
+            .footer-col a { color: var(--md-sys-color-on-surface-variant); text-decoration: none; transition: color 0.2s; font-size: 1rem; }
+            .footer-col a:hover { color: var(--md-sys-color-primary); }
+    
+            /* Mobile */
+            @media (max-width: 900px) {
+                .player-header { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+                .track-info { align-items: center; margin-bottom: 16px; }
+                .play-btn-center-wrapper { order: -1; margin-bottom: 24px; }
+                .expressive-grid { display: flex; flex-direction: column; gap: 16px; }
+                .showcase-row, .showcase-row.reverse { grid-template-columns: 1fr; text-align: center; gap: 40px; margin-bottom: 100px; }
+                .showcase-row.reverse .text-col { order: 0; }
+                .step-number { font-size: 4rem; }
+                .phone-mockup { width: 280px; }
+                .kaomoji-badge { display: none; } /* Hide floating badges on mobile to prevent overflow */
+            }
+    
+            @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+            @keyframes wave { 0%, 100% { height: 10px; } 50% { height: 32px; } }
+    
+            .philosophy-section {
+                text-align: center;
+                padding: 60px 24px 100px; 
+                background: transparent;
+                position: relative;
+            }
+            .philosophy-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px 16px;
+                border-radius: 50px;
+                background: rgba(208, 188, 255, 0.1);
+                color: var(--md-sys-color-primary);
+                font-size: 0.9rem;
+                font-weight: 600;
+                margin-bottom: 24px;
+                border: 1px solid rgba(208, 188, 255, 0.2);
+            }
+    
+            .philosophy-content h2 {
+                font-size: clamp(2.5rem, 5vw, 3.5rem);
+                margin-bottom: 24px;
+                color: var(--md-sys-color-on-surface);
+            }
+    
+            .philosophy-grid {
+                display: flex;
+                justify-content: center;
+                gap: 40px;
+                flex-wrap: wrap;
+                margin-top: 60px;
+            }
+    
+            .philosophy-item {
+                max-width: 300px;
+                text-align: left;
+            }
+    
+            .philosophy-item h4 {
+                font-size: 1.25rem;
+                margin-bottom: 12px;
+                color: var(--md-sys-color-on-surface);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+    
+            .philosophy-item p {
+                color: var(--md-sys-color-on-surface-variant);
+                line-height: 1.6;
+            }
+        </style>
+    </head>
+    <body>
+    
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="loader-svg-container">
+                <svg width="100%" height="100%" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#d0bcff" 
+                          d="M20.9 10.4 21.4 9.5 21.9 8.7 22.5 7.8 23.2 7.2 24.2 7 25.1 7.4 25.7 8.1 26.2 9 26.8 9.8 27.3 10.6 28.1 11.2 29 11.3 30 11 30.9 10.6 31.8 10.3 32.8 9.9 33.7 10 34.5 10.6 34.9 11.5 34.8 12.5 34.8 13.5 34.7 14.5 34.7 15.5 35.2 16.3 36 16.8 37 17.1 37.9 17.3 38.9 17.5 39.8 17.9 40.4 18.7 40.5 19.7 40 20.5 39.4 21.3 38.7 22 38.1 22.8 37.6 23.7 37.7 24.6 38.3 25.5 38.9 26.2 39.6 27 40.2 27.7 40.5 28.7 40.3 29.6 39.5 30.3 38.6 30.6 37.6 30.8 36.7 31 35.7 31.3 35 31.9 34.6 32.8 34.7 33.8 34.8 34.8 34.9 35.8 34.8 36.8 34.3 37.6 33.4 38.1 32.4 38 31.5 37.6 30.6 37.2 29.7 36.9 28.7 36.6 27.8 36.9 27.1 37.6 26.6 38.5 26.1 39.3 25.5 40.2 24.8 40.8 23.8 41 22.9 40.6 22.3 39.9 21.8 39 21.2 38.2 20.7 37.4 19.9 36.8 19 36.7 18 37 17.1 37.4 16.2 37.7 15.2 38.1 14.3 38 13.5 37.4 13.1 36.5 13.2 35.5 13.2 34.5 13.3 33.5 13.3 32.5 12.8 31.7 12 31.2 11 31 10.1 30.7 9.1 30.5 8.2 30.1 7.6 29.3 7.5 28.3 8 27.5 8.7 26.7 9.3 26 9.9 25.2 10.4 24.3 10.3 23.4 9.7 22.5 9.1 21.8 8.4 21 7.8 20.3 7.5 19.3 7.7 18.4 8.5 17.7 9.4 17.4 10.4 17.2 11.3 17 12.3 16.7 13 16.1 13.4 15.2 13.3 14.2 13.2 13.1 12.2 13.2 11.2 13.7 10.4 14.6 9.9 15.6 10 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z">
+                        <animate attributeName="d" dur="5s" repeatCount="indefinite" calcMode="spline" keySplines="0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8" keyTimes="0; 0.14; 0.14; 0.29; 0.29; 0.43; 0.43; 0.57; 0.57; 0.71; 0.71; 0.86; 0.86; 1" values="M20.9 10.4 21.4 9.5 21.9 8.7 22.5 7.8 23.2 7.2 24.2 7 25.1 7.4 25.7 8.1 26.2 9 26.8 9.8 27.3 10.6 28.1 11.2 29 11.3 30 11 30.9 10.6 31.8 10.3 32.8 9.9 33.7 10 34.5 10.6 34.9 11.5 34.8 12.5 34.8 13.5 34.7 14.5 34.7 15.5 35.2 16.3 36 16.8 37 17.1 37.9 17.3 38.9 17.5 39.8 17.9 40.4 18.7 40.5 19.7 40 20.5 39.4 21.3 38.7 22 38.1 22.8 37.6 23.7 37.7 24.6 38.3 25.5 38.9 26.2 39.6 27 40.2 27.7 40.5 28.7 40.3 29.6 39.5 30.3 38.6 30.6 37.6 30.8 36.7 31 35.7 31.3 35 31.9 34.6 32.8 34.7 33.8 34.8 34.8 34.9 35.8 34.8 36.8 34.3 37.6 33.4 38.1 32.4 38 31.5 37.6 30.6 37.2 29.7 36.9 28.7 36.6 27.8 36.9 27.1 37.6 26.6 38.5 26.1 39.3 25.5 40.2 24.8 40.8 23.8 41 22.9 40.6 22.3 39.9 21.8 39 21.2 38.2 20.7 37.4 19.9 36.8 19 36.7 18 37 17.1 37.4 16.2 37.7 15.2 38.1 14.3 38 13.5 37.4 13.1 36.5 13.2 35.5 13.2 34.5 13.3 33.5 13.3 32.5 12.8 31.7 12 31.2 11 31 10.1 30.7 9.1 30.5 8.2 30.1 7.6 29.3 7.5 28.3 8 27.5 8.7 26.7 9.3 26 9.9 25.2 10.4 24.3 10.3 23.4 9.7 22.5 9.1 21.8 8.4 21 7.8 20.3 7.5 19.3 7.7 18.4 8.5 17.7 9.4 17.4 10.4 17.2 11.3 17 12.3 16.7 13 16.1 13.4 15.2 13.3 14.2 13.2 13.1 12.2 13.2 11.2 13.7 10.4 14.6 9.9 15.6 10 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z; M20.3 8.6 21.1 8 22 7.6 23 7.3 23 7.3 24 7.2 25 7.3 25.9 7.5 26.8 8 27.6 8.6 28.4 9.1 28.4 9.1 29.3 9.6 30.3 9.8 31.3 9.9 32.3 10 33.3 10.2 34.2 10.6 34.2 10.6 35 11.2 35.7 11.9 36.3 12.7 36.7 13.6 36.9 14.6 37.2 15.5 37.2 15.5 37.6 16.5 38.2 17.3 38.9 18 39.6 18.7 40.2 19.5 40.6 20.4 40.6 20.4 40.9 21.3 41 22.3 40.9 23.3 40.6 24.3 40.2 25.2 39.8 26.1 39.8 26.1 39.5 27 39.4 28 39.5 29 39.6 30 39.5 31 39.3 32 39.3 32 38.9 32.9 38.3 33.7 37.6 34.4 36.8 35 35.9 35.4 35 35.8 35 35.8 34.1 36.3 33.4 37 32.9 37.9 32.3 38.7 31.6 39.4 30.8 40 30.8 40 29.9 40.4 28.9 40.7 27.9 40.8 27 40.7 26 40.4 25 40.1 25 40.1 24 40 23 40.1 22.1 40.4 21.1 40.7 20.1 40.8 19.1 40.7 19.1 40.7 18.2 40.5 17.3 40 16.4 39.5 15.7 38.8 15.2 37.9 14.6 37.1 14.6 37.1 13.9 36.4 13.1 35.8 12.2 35.4 11.3 35 10.5 34.4 9.7 33.8 9.7 33.8 9.1 32.9 8.7 32 8.5 31.1 8.4 30.1 8.5 29.1 8.6 28.1 8.6 28.1 8.5 27.1 8.3 26.1 7.8 25.2 7.4 24.3 7.1 23.4 7 22.4 7 22.4 7.1 21.4 7.3 20.4 7.8 19.5 8.3 18.7 9.1 18 9.8 17.3 9.8 17.3 10.4 16.5 10.8 15.6 11 14.6 11.3 13.7 11.7 12.8 12.2 11.9 12.2 11.9 12.9 11.2 13.8 10.7 14.7 10.2 15.6 10 16.6 9.9 17.6 9.8 17.6 9.8 18.6 9.6 19.5 9.2Z; M18.6 9.6 19.5 9.2 20.3 8.6 21.1 8 22 7.6 23 7.3 24 7.2 25 7.3 25.9 7.5 26.8 8 27.6 8.6 28.4 9.1 29.3 9.6 30.3 9.8 31.3 9.9 32.3 10 33.3 10.2 34.2 10.6 35 11.2 35.7 11.9 36.3 12.7 36.7 13.6 36.9 14.6 37.2 15.5 37.6 16.4 38.2 17.3 38.9 18 39.6 18.7 40.2 19.5 40.6 20.4 40.9 21.3 41 22.3 40.9 23.3 40.6 24.3 40.2 25.2 39.8 26.1 39.5 27 39.4 28 39.5 29 39.6 30 39.5 31 39.3 32 38.9 32.9 38.3 33.7 37.6 34.4 36.8 35 35.9 35.4 35 35.8 34.1 36.3 33.4 37 32.9 37.9 32.3 38.7 31.6 39.4 30.8 40 29.9 40.4 28.9 40.7 27.9 40.8 27 40.7 26 40.4 25 40.1 24 40 23 40.1 22.1 40.4 21.1 40.7 20.1 40.8 19.1 40.7 18.2 40.5 17.3 40 16.4 39.5 15.7 38.8 15.2 37.9 14.6 37.1 13.9 36.4 13.1 35.8 12.2 35.4 11.3 35 10.5 34.4 9.7 33.8 9.1 32.9 8.7 32 8.5 31.1 8.4 30.1 8.5 29.1 8.6 28.1 8.5 27.1 8.3 26.1 7.8 25.2 7.4 24.3 7.1 23.4 7 22.4 7.1 21.4 7.3 20.4 7.8 19.5 8.3 18.7 9.1 18 9.8 17.3 10.4 16.5 10.8 15.6 11 14.6 11.3 13.7 11.7 12.8 12.2 11.9 12.9 11.2 13.8 10.7 14.7 10.2 15.6 10 16.6 9.9 17.6 9.8Z; M18.6 9.9 19.5 9.4 20.3 8.8 21.1 8.2 22 7.8 23 7.6 23.9 7.5 24.9 7.6 25.9 7.8 26.8 8.2 27.6 8.7 28.5 9.3 29.3 9.9 30.1 10.5 30.9 11 31.7 11.6 32.5 12.2 33.3 12.8 33.7 13.1 34.1 13.3 34.9 13.9 35.7 14.5 36.6 15 37.4 15.6 38.2 16.2 39 16.8 39.7 17.5 40.2 18.3 40.7 19.2 40.9 20.1 41 21.1 40.9 22.1 40.7 23.1 40.3 24 40 24.9 39.7 25.9 39.4 26.8 39 27.8 38.7 28.7 38.4 29.6 38.1 30.6 37.8 31.5 37.5 32.5 37.2 33.4 36.9 34.4 36.6 35.3 36.2 36.2 35.7 37.1 35 37.8 34.3 38.4 33.4 38.9 32.5 39.3 31.5 39.5 30.5 39.5 30 39.5 29.5 39.5 28.5 39.5 27.5 39.5 26.5 39.5 25.5 39.4 24.5 39.4 23.6 39.4 22.6 39.4 21.6 39.5 20.6 39.5 19.6 39.5 18.6 39.5 17.6 39.5 16.6 39.5 15.6 39.3 14.7 39 13.8 38.5 13.1 37.9 12.4 37.2 11.9 36.3 11.5 35.4 11.2 34.5 10.9 33.5 10.6 32.6 10.3 31.6 10 30.7 9.7 29.7 9.3 28.8 9 27.9 8.7 26.9 8.4 26 8 25 7.7 24.1 7.4 23.2 7.1 22.2 7.1 21.7 7 21.2 7.1 20.2 7.3 19.3 7.7 18.4 8.3 17.5 8.9 16.8 9.7 16.2 10.5 15.6 11.4 15.1 12.2 14.5 13 14 13.8 13.4 14.6 12.8 15.4 12.3 16.2 11.7 17 11.1 17.8 10.5Z; M15.4 12.3 16.2 11.7 17 11.1 17.8 10.5 18.6 9.9 19.5 9.4 20.3 8.8 21.1 8.3 22 7.8 23 7.6 23.9 7.5 24.9 7.6 25.9 7.8 26.8 8.2 27.6 8.7 28.5 9.3 29.3 9.9 30.1 10.5 30.9 11 31.7 11.6 32.5 12.2 33.3 12.8 34.1 13.3 34.9 13.9 35.7 14.5 36.6 15 37.4 15.6 38.2 16.2 39 16.8 39.7 17.5 40.2 18.3 40.7 19.2 40.9 20.1 41 21.1 40.9 22.1 40.7 23.1 40.3 24 40 24.9 39.7 25.9 39.4 26.8 39 27.8 38.7 28.7 38.4 29.6 38.1 30.6 37.8 31.5 37.5 32.5 37.2 33.4 36.9 34.4 36.6 35.3 36.2 36.2 35.7 37.1 35 37.8 34.3 38.4 33.4 38.9 32.5 39.3 31.5 39.4 30.5 39.5 29.5 39.5 28.5 39.5 27.5 39.5 26.5 39.5 25.5 39.4 24.5 39.4 23.6 39.4 22.6 39.4 21.6 39.5 20.6 39.5 19.6 39.5 18.6 39.5 17.6 39.5 16.6 39.5 15.6 39.3 14.7 39 13.8 38.5 13.1 37.9 12.4 37.2 11.9 36.3 11.5 35.4 11.2 34.5 10.9 33.5 10.6 32.6 10.3 31.6 10 30.7 9.7 29.7 9.3 28.8 9 27.9 8.7 26.9 8.4 26 8 25 7.7 24.1 7.4 23.2 7.1 22.2 7 21.2 7.1 20.2 7.3 19.3 7.7 18.4 8.3 17.5 8.9 16.8 9.7 16.2 10.5 15.6 11.4 15.1 12.2 14.5 13 14 13.8 13.4 14.6 12.8Z; M17 12.8 17.7 12.1 18.5 11.5 19.3 10.9 20.1 10.5 20.2 10.4 21.1 10 22 9.7 23 9.4 24 9.2 25 9 26 9 27 9 27.6 9.1 28 9.1 28.9 9.3 29.9 9.6 30.9 9.9 31.8 10.3 32.6 10.8 33.5 11.3 34.3 11.9 34.6 12.2 35 12.6 35.7 13.3 36.4 14.1 36.9 14.9 37.4 15.8 37.9 16.6 38.3 17.6 38.6 18.5 38.6 18.7 38.8 19.5 38.9 20.5 39 21.5 39 22.5 38.9 23.5 38.7 24.5 38.5 25.4 38.2 26.3 38.2 26.4 37.8 27.3 37.4 28.2 36.8 29.1 36.2 29.9 35.6 30.6 34.9 31.3 34.2 32 33.8 32.5 33.5 32.8 32.8 33.5 32.1 34.2 31.4 34.9 30.7 35.6 29.9 36.2 29.1 36.8 28.2 37.3 27.9 37.5 27.4 37.8 26.4 38.2 25.5 38.5 24.5 38.7 23.5 38.9 22.5 39 21.5 39 20.5 38.9 20.4 38.9 19.5 38.8 18.6 38.6 17.6 38.3 16.7 37.9 15.8 37.5 14.9 37 14.1 36.4 13.4 35.8 13.3 35.8 12.6 35.1 12 34.3 11.3 33.5 10.8 32.7 10.3 31.8 9.9 30.9 9.6 30 9.4 29.3 9.3 29 9.1 28 9 27 9 26 9 25 9.2 24 9.4 23 9.6 22.1 9.8 21.7 10 21.1 10.4 20.2 10.9 19.4 11.4 18.5 12.1 17.8 12.7 17 13.4 16.3 14.2 15.6 14.2 15.5 14.9 14.9 15.6 14.2 16.3 13.5Z; M33.5 11.3 34.3 11.9 35 12.6 35.3 12.8 35.7 13.3 36.4 14.1 36.9 14.9 37.4 15.8 37.9 16.6 38.3 17.6 38.3 17.7 38.6 18.5 38.8 19.5 38.9 20.5 39 21.5 39 22.5 38.9 23.5 38.9 23.5 38.7 24.5 38.5 25.4 38.2 26.4 37.8 27.3 37.4 28.2 36.9 28.9 36.8 29.1 36.2 29.9 35.6 30.6 34.9 31.3 34.2 32 33.5 32.8 33.1 33.2 32.8 33.5 32.1 34.2 31.4 34.9 30.7 35.6 29.9 36.2 29.1 36.8 28.7 37 28.2 37.3 27.4 37.8 26.4 38.2 25.5 38.5 24.5 38.7 23.5 38.9 23.3 38.9 22.5 39 21.5 39 20.5 38.9 19.5 38.8 18.6 38.6 17.6 38.3 17.6 38.3 16.7 37.9 15.8 37.5 14.9 37 14.1 36.4 13.3 35.8 12.7 35.2 12.6 35.1 12 34.3 11.3 33.5 10.8 32.7 10.3 31.8 9.9 30.9 9.7 30.3 9.6 29.9 9.3 29 9.1 28 9 27 9 26 9 25 9.1 24.5 9.2 24 9.4 23 9.6 22.1 10 21.1 10.4 20.2 10.9 19.4 11.1 19.1 11.5 18.5 12.1 17.7 12.7 17 13.5 16.3 14.2 15.6 14.9 14.9 14.8 15.6 14.2 16.3 13.5 17 12.8 17.7 12.1 18.5 11.5 19.3 11 19.3 10.9 20.2 10.4 21.1 10 22 9.7 23 9.4 24 9.2 24.7 9.1 25 9 26 9 27 9 28 9.1 28.9 9.3 29.9 9.6 30.4 9.7 30.9 9.9 31.8 10.3 32.6 10.8Z; M33.2 11.1 34.2 11.2 35.1 11.4 36 11.9 36.6 12.7 36.8 13.7 36.9 14.7 36.9 15.7 37 16.7 37.1 17.7 37.3 18.6 37.9 19.4 38.5 20.2 39.2 20.9 39.8 21.7 40.5 22.4 40.9 23.3 41 24.3 40.7 25.2 40.1 26 39.4 26.8 38.8 27.5 38.1 28.3 37.5 29.1 37.1 30 37 31 37 31.9 36.9 32.9 36.8 33.9 36.7 34.9 36.2 35.8 35.5 36.4 34.5 36.8 33.6 36.8 32.6 36.9 31.6 37 30.6 37.1 29.6 37.2 28.8 37.7 28 38.4 27.3 39 26.5 39.7 25.8 40.3 24.9 40.8 23.9 41 23 40.8 22.1 40.2 21.4 39.6 20.6 38.9 19.9 38.3 19.1 37.6 18.3 37.2 17.3 37 16.3 37 15.3 36.9 14.3 36.8 13.3 36.7 12.4 36.4 11.7 35.7 11.3 34.8 11.2 33.8 11.1 32.8 11 31.8 11 30.8 10.9 29.9 10.4 29 9.8 28.2 9.1 27.5 8.5 26.7 7.8 26 7.3 25.1 7 24.2 7.1 23.2 7.6 22.3 8.2 21.6 8.9 20.8 9.5 20.1 10.2 19.3 10.7 18.5 10.9 17.5 11 16.5 11.1 15.6 11.1 14.6 11.2 13.6 11.5 12.6 12.1 11.9 13 11.4 13.9 11.2 14.9 11.1 15.9 11 16.9 11 17.9 10.9 18.8 10.6 19.6 10 20.4 9.3 21.1 8.6 21.9 8 22.6 7.4 23.6 7 24.6 7.1 25.5 7.5 26.2 8.1 27 8.7Z; M27.7 9.4 28.5 10 29.3 10.6 30.2 10.9 31.2 11 32.2 11.1 33.2 11.1 34.2 11.2 35.1 11.4 36 11.9 36.6 12.7 36.8 13.7 36.9 14.7 36.9 15.7 37 16.7 37.1 17.7 37.3 18.6 37.9 19.4 38.5 20.2 39.2 20.9 39.8 21.7 40.5 22.4 40.9 23.3 41 24.3 40.7 25.2 40.1 26 39.4 26.8 38.8 27.5 38.1 28.3 37.5 29.1 37.1 30 37 31 37 31.9 36.9 32.9 36.8 33.9 36.7 34.9 36.2 35.8 35.5 36.4 34.5 36.8 33.6 36.9 32.6 36.9 31.6 37 30.6 37.1 29.6 37.2 28.8 37.7 28 38.4 27.3 39 26.5 39.7 25.8 40.3 24.9 40.8 23.9 41 23 40.8 22.1 40.2 21.4 39.6 20.6 38.9 19.9 38.3 19.1 37.6 18.3 37.2 17.3 37 16.3 37 15.3 36.9 14.3 36.8 13.3 36.7 12.4 36.4 11.7 35.7 11.3 34.8 11.2 33.8 11.1 32.8 11 31.8 11 30.8 10.9 29.9 10.4 29 9.8 28.2 9.1 27.5 8.5 26.7 7.8 26 7.3 25.1 7 24.2 7.1 23.2 7.6 22.3 8.2 21.6 8.9 20.8 9.5 20.1 10.2 19.3 10.7 18.5 10.9 17.5 11 16.5 11.1 15.6 11.1 14.6 11.2 13.6 11.5 12.6 12.1 11.9 13 11.4 13.9 11.2 14.9 11.1 15.9 11 16.9 11 17.9 10.9 18.8 10.6 19.6 10 20.4 9.3 21.1 8.6 21.9 8 22.6 7.4 23.6 7 24.6 7.1 25.5 7.5 26.2 8.1 27 8.7Z; M27.9 10.6 28.8 10.3 29.8 10.1 30.8 10 31.8 10.1 32.7 10.3 33.7 10.6 34.6 11.1 34.8 11.3 35.4 11.7 36.1 12.4 36.7 13.1 37.2 14 37.6 14.9 37.9 15.9 38 16.9 38 17.9 37.8 18.8 37.5 19.8 37.1 20.7 36.8 21.6 36.5 22.6 36.4 23.6 36.4 24.4 36.4 24.6 36.5 25.5 36.8 26.5 37.2 27.4 37.6 28.3 37.8 29.3 38 30.3 38 31.3 37.8 32.3 37.6 33.2 37.2 34.1 36.6 35 36 35.7 35.3 36.4 34.4 37 34.1 37.2 33.6 37.4 32.6 37.8 31.6 37.9 30.6 38 29.7 37.9 28.7 37.7 27.8 37.3 26.8 36.9 25.9 36.6 24.9 36.4 23.9 36.4 22.9 36.4 22 36.6 21 37 20.1 37.4 20.1 37.4 19.2 37.7 18.2 37.9 17.2 38 16.2 37.9 15.3 37.7 14.3 37.4 13.4 36.9 12.6 36.3 11.9 35.6 11.3 34.9 10.8 34 10.4 33.1 10.1 32.1 10 31.1 10 30.2 10.2 29.2 10.5 28.2 10.9 27.3 11.2 26.4 11.5 25.4 11.6 24.4 11.6 23.4 11.5 22.5 11.2 21.5 10.8 20.6 10.4 19.7 10.2 18.7 10 17.7 10 16.7 10.2 15.7 10.4 14.8 10.8 13.9 11.4 13 12 12.3 12.7 11.6 13.6 11 14.4 10.6 15.4 10.2 16.4 10.1 17.4 10 18.3 10.1 19.3 10.3 20.2 10.7 21.2 11.1 22.1 11.4 23.1 11.6 24.1 11.6 25.1 11.6 26 11.4 27 11 27.9 10.6 28.8 10.3 29.8 10.1 30.8 10 31.8 10.1 32.7 10.3 33.7 10.6 34.6 11.1 35.4 11.7 36.1 12.4 36.7 13.1 37.2 14 37.6 14.9 37.9 15.9 38 16.9 38 17.8 37.8 18.8 37.5 19.8 37.1 20.7 36.8 21.6 36.5 22.6 36.4 23.6 36.4 24.6 36.5 25.5 36.8 26.5 37.2 27.4 37.6 28.3 37.8 29.3 38 30.3 38 31.3 37.8 32.3 37.6 33.2 37.2 34.1 36.6 35Z"></animate>
+                        <animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="5s" repeatCount="indefinite" calcMode="spline" keySplines="0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8" keyTimes="0; 0.14; 0.29; 0.43; 0.57; 0.71; 0.86; 1" values="0 24 24; 154 24 24; 309 24 24; 463 24 24; 617 24 24; 771 24 24; 926 24 24; 1080 24 24"></animateTransform>
+                    </path>
+                </svg>
+            </div>
+        </div>
+    
+        <div id="app-wrapper">
+            <div class="container">
+                <header class="navbar">
+                    <div class="logo">
+                        <span class="material-icons-round">music_note</span>
+                        kittytune
+                    </div>
+                    <a href="#" id="download-btn-header" class="btn btn-primary">
+                        <span class="material-icons-round">download</span>
+                        Get App
+                    </a>
+                </header>
+                    <section class="hero">
+                        <span class="hero-kaomoji">( ◡‿◡ *)</span>
+                        <h1 class="display-large">Your Music.<br>Your Rules.</h1>
+                        
+                        <p>
+                            A cozy, privacy-focused player built for music lovers.<br>
+                            SoundCloud, YouTube & Local files. No ads, just vibes.
+                        </p>
+                            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <a href="#" class="latest-download-link btn btn-primary">
+                            <span class="material-icons-round">android</span>
+                            Download APK
+                        </a>
+                        <a href="https://github.com/alan7383/kittytune" target="_blank" class="btn btn-secondary">
+                            <span class="material-icons-round">code</span>
+                            Source
+                        </a>
+                    </div>
+                </section>
+    
+                <!-- Player Component (Redesigned) -->
+                <div class="web-player-preview">
+                    <audio id="real-audio-player" src="https://files.catbox.moe/opckjg.mp3" crossorigin="anonymous" preload="metadata"></audio>
+                    
+                    <!-- Top: Art & Info -->
+                    <div class="player-top">
+                    <div class="album-art-wrapper" id="play-trigger-art" style="--art-url: url('https://i1.sndcdn.com/artworks-000220245014-vddtkh-t500x500.jpg');">
+                        <img src="https://i1.sndcdn.com/artworks-000220245014-vddtkh-t500x500.jpg" alt="Artwork">
+                        <div class="art-glow"></div>
+                        <div class="play-overlay">
+                            <span class="material-icons-round">play_arrow</span>
+                        </div>
+                    </div>
+    
+                        <div class="track-info">
+                            <div class="info-header">
+                                <span class="badge-source"><span class="material-icons-round" style="font-size: 12px;">cloud</span> SoundCloud</span>
+                            </div>
+                            <h3>юность</h3>
+                            <p>эхопрокуренныхподъездов</p>
+                        </div>
+                    </div>
+    
+                    <!-- Middle: Controls & Waveform -->
+                    <div class="player-middle">
+                        <!-- Main Play Button (Floating) -->
+                        <button id="main-play-btn" class="play-fab-large">
+                            <span class="material-icons-round">play_arrow</span>
+                        </button>
+    
+                        <div class="waveform" id="visualizer">
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                        </div>
+                    </div>
+    
+                    <!-- Bottom: FX & Scrubber -->
+                    <div class="player-bottom">
+                        
+                        <!-- Progress -->
+                        <div class="progress-row">
+                            <span id="current-time">0:00</span>
+                            <div class="progress-container" id="progress-container">
+                                <div class="progress-track">
+                                    <div class="progress-fill" id="progress-fill"></div>
+                                </div>
+                            </div>
+                            <span id="total-duration">--:--</span>
+                        </div>
+    
+                        <!-- FX Rack (Chips) -->
+                        <div class="fx-rack">
+                            <button class="effect-chip" id="btn-8d">8D</button>
+                            <button class="effect-chip" id="btn-bass">Bass</button>
+                            <button class="effect-chip" id="btn-reverb">Reverb</button>
+                            <button class="effect-chip" id="btn-muffled">Muffled</button>
+                            
+                            <div class="speed-control">
+                                <span class="material-icons-round">speed</span>
+                                <span id="speed-value">1.0x</span>
+                                <input type="range" id="speed-slider" min="0.5" max="1.5" step="0.05" value="1.0" class="mini-slider">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Features Bento Grid -->
+                <section class="features-section">
+                    <div class="section-header">
+                        <h2 class="headline-large">Why KittyTune?</h2>
+                        <p>Designed for power users, simplified for everyone.</p>
+                    </div>
+    
+            <div class="expressive-grid">
+                <div class="expressive-card span-8 variant-primary">
+                    <div class="kaomoji-hero">( ✧ω✧ )</div>
+                    <div class="card-content">
+                        <div class="card-icon"><span class="material-icons-round">tune</span></div>
+                        <h3>Tinker with Sound</h3>
+                        <p>Make it yours with Nightcore mode, 8D Audio, and Pitch control. Real-time effects engine.</p>
+                    </div>
+                </div>
+    
+                <div class="expressive-card span-4 variant-secondary">
+                    <div class="kaomoji-hero">(˘ω˘)</div>
+                    <div class="card-content">
+                        <div class="card-icon"><span class="material-icons-round">lyrics</span></div>
+                        <h3>Synced Lyrics</h3>
+                        <p>Real-time lyrics from LrcLib.</p>
+                    </div>
+                </div>
+    
+                <div class="expressive-card span-4 variant-tertiary">
+                    <div class="kaomoji-hero">( ⌐■_■ )</div>
+                    <div class="card-content">
+                        <div class="card-icon"><span class="material-icons-round">hub</span></div>
+                        <h3>Hybrid Core</h3>
+                        <p>Seamless fallback to YouTube if a track is blocked.</p>
+                    </div>
+                </div>
+    
+                <div class="expressive-card span-8 variant-primary">
+                    <div class="kaomoji-hero">( •̀ᴗ•́ )و</div>
+                    <div class="card-content">
+                        <div class="card-icon"><span class="material-icons-round">emoji_events</span></div>
+                        <h3>RPG System</h3>
+                        <p>Earn XP, level up, and unlock unique badges like "Vampire" or "Obsessed".</p>
+                    </div>
+                </div>
+                
+                <div class="expressive-card span-6 variant-secondary">
+                    <div class="kaomoji-hero">( O . O )</div>
+                    <div class="card-content">
+                        <div class="card-icon"><span class="material-icons-round">widgets</span></div>
+                        <h3>Dynamic Widgets</h3>
+                        <p>Beautiful home screen widgets that adapt to your wallpaper colors.</p>
+                    </div>
+                </div>
+    
+                <div class="expressive-card span-6 variant-tertiary">
+                    <div class="kaomoji-hero">( ✖ _ ✖ )</div>
+                    <div class="card-content">
+                        <div class="card-icon"><span class="material-icons-round">security</span></div>
+                        <h3>Ghost Mode</h3>
+                        <p>Listen privately without an account. No tracking, no history saved.</p>
+                    </div>
+                </div>
+            </div>
+                </section>
+            </div>
+    
+            <!-- Showcase Section -->
+            <section class="showcase-section">
+                <div class="container">
+                    
+                    <!-- Row 1: UI -->
+                    <div class="showcase-row">
+                        <div class="text-col">
+                            <div class="step-number">01</div>
+                            <h3>Material You UI.</h3>
+                            <p>The interface adapts to your system colors. Clean, spacious, and responsive design that feels native to Android 12+.</p>
+                            <div class="highlight">#DynamicColors</div>
+                        </div>
+                        <div class="showcase-image-wrapper">
+                            <!-- Badge 1 (Violet) -->
+                            <div class="kaomoji-badge variant-1">
+                                <div class="badge-icon-circle">
+                                    <span class="material-icons-round">palette</span>
+                                </div>
+                                <span class="badge-text">( ✯◡✯ )</span>
+                            </div>
+                            
+                            <div class="phone-mockup">
+                                <img src="https://i.postimg.cc/FHZ4YvsR/Screenshot_20260208_152429.png" alt="UI Screenshot">
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Row 2: Audio (Reverse Layout) -->
+                    <div class="showcase-row reverse">
+                        <div class="text-col">
+                            <div class="step-number">02</div>
+                            <h3>Deep Audio Control.</h3>
+                            <p>Adjust speed, pitch, and enable effects like 8D Audio or Bass Boost directly from the player drawer.</p>
+                            <div class="highlight">#PowerUser</div>
+                        </div>
+                        <div class="showcase-image-wrapper">
+                            <!-- Badge 2 (Gray/Bluish) -->
+                            <div class="kaomoji-badge variant-2">
+                                <div class="badge-icon-circle">
+                                    <span class="material-icons-round">equalizer</span>
+                                </div>
+                                <span class="badge-text">〜(￣▽￣〜)</span>
+                            </div>
+    
+                            <div class="phone-mockup">
+                                <img src="https://i.postimg.cc/g2DWxpky/Screenshot_20260208_152435.png" alt="Audio Settings">
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Row 3: Lyrics -->
+                    <div class="showcase-row">
+                        <div class="text-col">
+                            <div class="step-number">03</div>
+                            <h3>Lyrics in Motion.</h3>
+                            <p>Follow along with time-synced lyrics. If they're missing, use the built-in manual search to find the right LRC file.</p>
+                            <div class="highlight">#KaraokeMode</div>
+                        </div>
+                        <div class="showcase-image-wrapper">
+                            <!-- Badge 3 (Pink/Warm) -->
+                            <div class="kaomoji-badge variant-3">
+                                <div class="badge-icon-circle">
+                                    <span class="material-icons-round">mic_external_on</span>
+                                </div>
+                                <span class="badge-text">(*´○`)o¶♪</span>
+                            </div>
+    
+                            <div class="phone-mockup">
+                                <img src="https://i.postimg.cc/Sxrhn4NW/Screenshot_20260208_152444.png" alt="Lyrics Screen">
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Row 4: Gamification (Reverse Layout) -->
+                    <div class="showcase-row reverse">
+                        <div class="text-col">
+                            <div class="step-number">04</div>
+                            <h3>Profile & Rewards.</h3>
+                            <p>Track your listening habits and unlock achievements. Your profile evolves as you listen more.</p>
+                            <div class="highlight">#LevelUp</div>
+                        </div>
+                        <div class="showcase-image-wrapper">
+                            <!-- Badge 4 (Neutral/Gold) -->
+                            <div class="kaomoji-badge variant-4">
+                                <div class="badge-icon-circle">
+                                    <span class="material-icons-round">star</span>
+                                </div>
+                                <span class="badge-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
+                            </div>
+    
+                            <div class="phone-mockup">
+                                <img src="https://i.postimg.cc/cLmSvW4w/Screenshot_20260208_152458.png" alt="Profile Screen">
+                            </div>
+                        </div>
+                    </div>
+    
+                </div>
+            </section>
+    
+            <section class="philosophy-section">
+                <div class="container">
+                    <div class="philosophy-badge">
+                        <span class="material-icons-round" style="font-size: 16px;">public</span>
+                        100% Free & Open Source
+                    </div>
+                    
+                    <div class="philosophy-content">
+                        <h2>No Ads. No Trackers.<br>Just Music.</h2>
+                        <p style="max-width: 600px; margin: 0 auto; color: var(--md-sys-color-on-surface-variant);">
+                            KittyTune is my passion project. I don't want your data, and I definitely don't want to show you ads. Built with Jetpack Compose & ❤️.
+                        </p>
+                    </div>
+    
+                    <div class="philosophy-grid">
+                        <div class="philosophy-item">
+                            <h4><span class="material-icons-round" style="color: var(--md-sys-color-tertiary);">security</span> Privacy First</h4>
+                            <p>Permissions are kept to a minimum. What you listen to stays on your device.</p>
+                        </div>
+                        <div class="philosophy-item">
+                            <h4><span class="material-icons-round" style="color: var(--md-sys-color-primary);">translate</span> Community Driven</h4>
+                            <p>
+                                Available in French, English, Hungarian... <br>
+                                Missing yours? <a href="https://github.com/alan7383/kittytune/pulls" target="_blank" style="color: var(--md-sys-color-primary); text-decoration: none; border-bottom: 1px solid var(--md-sys-color-primary);">Add your own language</a> via a Pull Request.
+                            </p>
+                        </div>
+                        <div class="philosophy-item">
+                            <h4><span class="material-icons-round" style="color: var(--md-sys-color-secondary);">palette</span> Material 3 Design</h4>
+                            <p>Built with the latest Material 3 guidelines. The UI automatically adapts to your wallpaper using Dynamic Colors for a truly native feel.</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 60px;">
+                        <a href="https://github.com/alan7383/kittytune" class="btn btn-secondary" style="border-color: var(--md-sys-color-outline-variant);">
+                            <span class="material-icons-round">star</span>
+                            Star on GitHub
+                        </a>
+                    </div>
+                </div>
+            </section>
+    
+            <footer>
+                <div class="container">
+                    <div class="footer-grid">
+                        <div class="footer-brand">
+                            <h4><span>kittytune</span> ( > . < )</h4>
+                            <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.95rem;">
+                            Made by <strong style="color: var(--md-sys-color-primary);">alan7383</strong>.<br>
+                        Keep the vibe alive.
+                                            </p>
+                        </div>
+                        <div class="footer-col">
+                            <h5>Links</h5>
+                            <ul>
+                                <li><a href="https://github.com/alan7383/kittytune">GitHub</a></li>
+                                <li><a href="https://github.com/alan7383/kittytune/releases">Releases</a></li>
+                            </ul>
+                        </div>
+                        <div class="footer-col">
+                            <h5>Download</h5>
+                            <ul>
+                                <li><a href="#" class="latest-download-link">APK (Latest)</a></li>
+                                <li><a href="https://github.com/alan7383/kittytune/issues">Report Issue</a></li>
+                            </ul>
+                        </div>
+                        </div>
+                        <div style="text-align: center; color: var(--md-sys-color-outline); font-size: 0.8rem; margin-top: 40px; opacity: 0.6;">
+                            GPL-3.0 License • 2026 • ( > . < )
+                        </div>
+                    </div>
+                </footer>
+        </div>
+    
+        <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loader = document.getElementById('loading-screen');
+            const appWrapper = document.getElementById('app-wrapper');
+    
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                appWrapper.classList.add('loaded');
+                setTimeout(() => loader.style.display = 'none', 500);
+            }, 800);
+    
+            // --- Audio Logic ---
+            const audio = document.getElementById('real-audio-player');
+            const mainPlayBtn = document.getElementById('main-play-btn');
+            const playTriggerArt = document.getElementById('play-trigger-art');
+            const visualizer = document.getElementById('visualizer');
+            const progressFill = document.getElementById('progress-fill');
+            const progressContainer = document.getElementById('progress-container');
+            const currentTimeEl = document.getElementById('current-time');
+            const totalDurationEl = document.getElementById('total-duration');
+            const speedSlider = document.getElementById('speed-slider');
+            const speedValue = document.getElementById('speed-value');
+    
+            // Audio Context for FX
+            let audioCtx, sourceNode, pannerNode, oscillatorLFO, bassFilter, muffledFilter, reverbGain, delayNode;
+            let isAudioContextSetup = false;
+            let activeFX = { is8D: false, isBass: false, isReverb: false, isMuffled: false };
+    
+            // FX Buttons
+            const setupBtn = (id, key) => {
+                document.getElementById(id).addEventListener('click', function() {
+                    activeFX[key] = !activeFX[key];
+                    this.classList.toggle('active');
+                    if(!isAudioContextSetup && !audio.paused) setupAudioContext();
+                    updateFX();
+                });
+            };
+            setupBtn('btn-8d', 'is8D');
+            setupBtn('btn-bass', 'isBass');
+            setupBtn('btn-reverb', 'isReverb');
+            setupBtn('btn-muffled', 'isMuffled');
+    
+            function setupAudioContext() {
+                if(isAudioContextSetup) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                sourceNode = audioCtx.createMediaElementSource(audio);
+    
+                pannerNode = audioCtx.createStereoPanner();
+                oscillatorLFO = audioCtx.createOscillator();
+                oscillatorLFO.frequency.value = 0.1; 
+                bassFilter = audioCtx.createBiquadFilter();
+                bassFilter.type = 'lowshelf'; bassFilter.frequency.value = 100;
+                muffledFilter = audioCtx.createBiquadFilter();
+                muffledFilter.type = 'lowpass'; muffledFilter.frequency.value = 20000;
+                
+                const reverbInput = audioCtx.createGain();
+                delayNode = audioCtx.createDelay(1.0); delayNode.delayTime.value = 0.15;
+                const feedback = audioCtx.createGain(); feedback.gain.value = 0.5;
+                reverbGain = audioCtx.createGain(); reverbGain.gain.value = 0;
+    
+                reverbInput.connect(delayNode); delayNode.connect(feedback); feedback.connect(delayNode); delayNode.connect(reverbGain);
+    
+                sourceNode.connect(pannerNode).connect(bassFilter).connect(muffledFilter);
+                muffledFilter.connect(audioCtx.destination);
+                muffledFilter.connect(reverbInput);
+                reverbGain.connect(audioCtx.destination);
+    
+                oscillatorLFO.start();
+                isAudioContextSetup = true;
+            }
+    
+            function updateFX() {
+                if(!audioCtx) return;
+                const now = audioCtx.currentTime;
+                if(activeFX.is8D) { try{ oscillatorLFO.connect(pannerNode.pan); }catch(e){} } 
+                else { try{ oscillatorLFO.disconnect(pannerNode.pan); }catch(e){} pannerNode.pan.value = 0; }
+                bassFilter.gain.linearRampToValueAtTime(activeFX.isBass ? 15 : 0, now + 0.1);
+                muffledFilter.frequency.linearRampToValueAtTime(activeFX.isMuffled ? 800 : 20000, now + 0.1);
+                reverbGain.gain.linearRampToValueAtTime(activeFX.isReverb ? 1.0 : 0, now + 0.1);
+            }
+    
+            function togglePlay() {
+                if(!isAudioContextSetup) setupAudioContext();
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+    
+                if(audio.paused) {
+                    audio.play();
+                    mainPlayBtn.innerHTML = '<span class="material-icons-round">pause</span>';
+                    mainPlayBtn.classList.add('playing');
+                    visualizer.classList.add('playing');
+                    playTriggerArt.classList.remove('paused');
+                } else {
+                    audio.pause();
+                    mainPlayBtn.innerHTML = '<span class="material-icons-round">play_arrow</span>';
+                    mainPlayBtn.classList.remove('playing');
+                    visualizer.classList.remove('playing');
+                    playTriggerArt.classList.add('paused');
+                }
+            }
+    
+            mainPlayBtn.addEventListener('click', togglePlay);
+            playTriggerArt.addEventListener('click', togglePlay);
+    
+            speedSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                audio.playbackRate = val;
+                audio.preservesPitch = false; 
+                audio.mozPreservesPitch = false;
+                audio.webkitPreservesPitch = false; 
+    
+                speedValue.textContent = val.toFixed(2) + 'x';
+            });
+            audio.addEventListener('timeupdate', () => {
+                const percent = (audio.currentTime / audio.duration) * 100;
+                if(!isNaN(percent)) progressFill.style.width = percent + '%';
+                currentTimeEl.textContent = formatTime(audio.currentTime);
+            });
+    
+            progressContainer.addEventListener('click', (e) => {
+                const rect = progressContainer.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                audio.currentTime = pos * audio.duration;
+            });
+    
+            audio.addEventListener('loadedmetadata', () => totalDurationEl.textContent = formatTime(audio.duration));
+            audio.addEventListener('ended', () => {
+                mainPlayBtn.innerHTML = '<span class="material-icons-round">play_arrow</span>';
+                mainPlayBtn.classList.remove('playing');
+                visualizer.classList.remove('playing');
+                progressFill.style.width = '0%';
+            });
+    
+            const formatTime = s => {
+                if(isNaN(s)) return "0:00";
+                const m = Math.floor(s/60), sec = Math.floor(s%60);
+                return `${m}:${sec<10?'0':''}${sec}`;
+            };
+    
+            fetch('https://api.github.com/repos/alan7383/kittytune/releases/latest')
+                .then(r => r.json())
+                .then(data => {
+                    const apk = data.assets.find(a => a.name.endsWith('.apk'));
+                    if(apk) {
+                        document.querySelectorAll('.latest-download-link, #download-btn-header').forEach(el => el.href = apk.browser_download_url);
+                    }
+                });
+    
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if(entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.2 });
+    
+            document.querySelectorAll('.showcase-row').forEach(el => observer.observe(el));
+        });
+        </script>
+    </body>
+    </html>
+
+
