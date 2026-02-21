@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+        <!-- Fond extérieur (couleur surface) -->
+        <item>
+            <shape android:shape="rectangle">
+                <solid android:color="#FFFBFE" />
+                <corners android:radius="32dp" />
+            </shape>
+        </item>
+    
+        <!-- Pilule intérieure pour la recherche -->
+        <item android:right="64dp" android:left="8dp" android:top="8dp" android:bottom="8dp">
+            <shape android:shape="rectangle">
+                <solid android:color="#E7E0EC" />
+                <corners android:radius="24dp" />
+            </shape>
+        </item>
+    
+        <!-- Cercle pour l'icône à droite -->
+        <item android:left="220dp" android:right="8dp" android:top="8dp" android:bottom="8dp">
+            <shape android:shape="oval">
+                <solid android:color="#E7E0EC" />
+            </shape>
+        </item>
+    
+        <!-- Texte placeholder "Search KittyTune" -->
+        <item
+            android:width="120dp"
+            android:height="12dp"
+            android:left="52dp"
+            android:gravity="center_vertical">
+            <shape android:shape="rectangle">
+                <solid android:color="#49454F" />
+                <corners android:radius="6dp"/>
+            </shape>
+        </item>
+    
+        <!-- Icône de recherche -->
+        <item
+            android:width="20dp"
+            android:height="20dp"
+            android:left="24dp"
+            android:gravity="center_vertical">
+            <bitmap android:src="@drawable/ic_search_widget" android:tint="#49454F"/>
+        </item>
+    
+        <!-- Icône monochrome à droite -->
+        <item
+            android:width="32dp"
+            android:height="32dp"
+            android:right="16dp"
+            android:gravity="center_vertical|right">
+            <bitmap android:src="@drawable/ic_launcher_monochrome" android:tint="#49454F"/>
+        </item>
+    </layer-list>
+
+
