@@ -52,14 +52,14 @@
         private val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { /* Permission result handled implicitly by flow */ }
-    
-        // Watch for theme changes in preferences to trigger recomposition
+
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled") {
+            if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
+                key == "custom_font_enabled" || key?.startsWith("font_") == true) {
                 refreshThemeState()
             }
         }
-    
+
         private lateinit var preferences: PlayerPreferences
         private lateinit var sharedPrefs: SharedPreferences
     
@@ -70,6 +70,13 @@
         private val _shouldOpenSearch = MutableStateFlow(false)
         private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
         private var showPopups by mutableStateOf(false)
+        private var customFontEnabledState by mutableStateOf(false)
+        private var fontWghtState by mutableIntStateOf(400)
+        private var fontWdthState by mutableFloatStateOf(100f)
+        private var fontSlntState by mutableFloatStateOf(0f)
+        private var fontRondState by mutableFloatStateOf(0f)
+        private var fontGradState by mutableFloatStateOf(0f)
+        private var fontOpszState by mutableFloatStateOf(14f)
     
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
@@ -150,11 +157,16 @@
                         lifecycleOwner.lifecycle.removeObserver(observer)
                     }
                 }
+
+                val dynamicTypography = com.alananasss.kittytune.ui.theme.getDynamicTypography(
+                    customFontEnabledState, fontWghtState, fontWdthState, fontSlntState, fontRondState, fontGradState, fontOpszState
+                )
     
                 SoundTuneTheme(
                     themeMode = themeModeState,
                     dynamicColor = dynamicColorState,
-                    pureBlack = pureBlackState
+                    pureBlack = pureBlackState,
+                    typography = dynamicTypography
                 ) {
                     // Update Manager UI Logic
                     val updateStatus by UpdateManager.status.collectAsState()
@@ -226,6 +238,13 @@
             themeModeState = preferences.getThemeMode()
             dynamicColorState = preferences.getDynamicTheme()
             pureBlackState = preferences.getPureBlack()
+            customFontEnabledState = preferences.getCustomFontEnabled()
+            fontWghtState = preferences.getFontWght()
+            fontWdthState = preferences.getFontWdth()
+            fontSlntState = preferences.getFontSlnt()
+            fontRondState = preferences.getFontRond()
+            fontGradState = preferences.getFontGrad()
+            fontOpszState = preferences.getFontOpsz()
         }
     
         override fun onDestroy() {

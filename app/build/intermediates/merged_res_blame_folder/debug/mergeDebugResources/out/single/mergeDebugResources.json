@@ -68,6 +68,10 @@
         "source": "C:\\Users\\alananasss\\.gradle\\daemon\\9.3.1\\com.alananasss.kittytune.app-main-6:\\mipmap-hdpi\\ic_launcher_round.webp"
     },
     {
+        "merged": "com.alananasss.kittytune.app-debug-4:/font_google_sans_flex.ttf.flat",
+        "source": "com.alananasss.kittytune.app-main-6:/font/google_sans_flex.ttf"
+    },
+    {
         "merged": "C:\\Users\\alananasss\\.gradle\\daemon\\9.3.1\\com.alananasss.kittytune.app-debug-4:\\font_google_sans_flex.ttf.flat",
         "source": "C:\\Users\\alananasss\\.gradle\\daemon\\9.3.1\\com.alananasss.kittytune.app-main-6:\\font\\google_sans_flex.ttf"
     },

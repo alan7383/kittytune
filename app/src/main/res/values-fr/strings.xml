@@ -824,6 +824,29 @@
         <string name="libraries_count_format">%1$d Bibliothèques</string>
         <string name="no_libraries_found">Aucune bibliothèque trouvée</string>
         <string name="license_unknown">Licence inconnue</string>
+
+    <!-- TYPOGRAPHY -->
+    <string name="settings_cat_typography">Typographie</string>
+    <string name="pref_font_custom_title">Google Sans Flex</string>
+    <string name="pref_font_custom_subtitle">Utiliser la police variable</string>
+    <string name="pref_font_variations_title">Variations de la police</string>
+    <string name="pref_font_variations_subtitle">Ajuster l\'épaisseur, la largeur, l\'arrondi…</string>
+    <string name="dialog_font_settings_title">Réglages de la police</string>
+    <string name="dialog_font_weight">Épaisseur (wght) : %1$d</string>
+    <string name="dialog_font_width">Largeur (wdth) : %1$d</string>
+    <string name="dialog_font_slant">Inclinaison (slnt) : %1$d</string>
+    <string name="dialog_font_roundness">Arrondi (ROND) : %1$d</string>
+    <string name="dialog_font_grade">Graisse (GRAD) : %1$d</string>
+    <string name="dialog_font_optical_size">Taille optique (opsz) : %1$d</string>
+    <string name="btn_reset">Réinitialiser</string>
+    <string name="font_preset_default">Défaut</string>
+    <string name="font_preset_rounded">Arrondi</string>
+    <string name="font_preset_compact">Compact</string>
+    <string name="font_preset_slanted">Incliné</string>
+    <string name="font_preset_chunky">Massif</string>
+    <string name="font_preset_elegant">Élégant</string>
+    <string name="font_preset_playful">Ludique</string>
+    <string name="font_preset_wide">Large</string>
     
     </resources>
 
