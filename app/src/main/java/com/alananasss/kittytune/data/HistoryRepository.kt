@@ -19,11 +19,11 @@
             appContext = context.applicationContext
             database = AppDatabase.getDatabase(context)
         }
-    
+
         fun addToHistory(track: Track) {
             scope.launch {
                 val safeSource = (track.source as? String) ?: "soundcloud"
-    
+
                 val item = HistoryItem(
                     id = "track:${track.id}",
                     numericId = track.id,
@@ -38,7 +38,7 @@
                 database.downloadDao().insertHistory(item)
             }
         }
-    
+
         fun addToHistory(playlist: Playlist, isStation: Boolean = false, isProfile: Boolean = false) {
             scope.launch {
                 // fix: explicit handling of special IDs to ensure correct UI rendering

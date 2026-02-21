@@ -6,6 +6,7 @@
     import android.content.ContextWrapper
     import android.content.SharedPreferences
     import android.view.View
+    import androidx.compose.ui.text.font.FontWeight
     import android.view.ViewGroup
     import android.view.WindowManager
     import android.webkit.CookieManager
@@ -62,6 +63,8 @@
     import com.alananasss.kittytune.ui.library.PlaylistFansScreen
     import com.alananasss.kittytune.ui.login.LoginScreen
     import com.alananasss.kittytune.ui.login.WelcomeScreen
+    import com.alananasss.kittytune.R
+
     import com.alananasss.kittytune.ui.navigation.Screen
     import com.alananasss.kittytune.ui.navigation.clippedComposable
     import com.alananasss.kittytune.ui.player.*
@@ -168,18 +171,69 @@
                 showCompletionScreen = true
             }
         }
-    
-        AndroidView(
-            factory = { ctx ->
-                WebView(ctx).apply {
-                    visibility = View.GONE
-                    layoutParams = ViewGroup.LayoutParams(1, 1)
-                    SessionManager.attachGhost(this, ctx)
+
+// --- GESTION DU CAPTCHA DATADOME ---
+        val showCaptchaWebView by SessionManager.showCaptchaFlow.collectAsState()
+
+        Box(modifier = Modifier.fillMaxSize().zIndex(100f)) {
+            // La WebView fantôme
+            AndroidView(
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                        SessionManager.attachGhost(this, ctx)
+                    }
+                },
+                modifier = if (showCaptchaWebView) {
+                    Modifier.fillMaxSize().background(Color.White)
+                } else {
+                    Modifier.offset(x = (-10000).dp, y = (-10000).dp).size(10.dp)
                 }
-            },
-            modifier = Modifier.size(1.dp)
-        )
-    
+            )
+
+            // Les boutons d'action (affichés uniquement si le captcha est à l'écran)
+            AnimatedVisibility(
+                visible = showCaptchaWebView,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 48.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Button(
+                            onClick = { SessionManager.retryPendingAction() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text(stringResource(R.string.captcha_done), fontWeight = FontWeight.Bold)
+                        }
+                        FilledTonalButton(
+                            onClick = { SessionManager.cancelCaptcha() },
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        ) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
+                }
+            }
+        }
+        // --- FIN GESTION DU CAPTCHA ---
+
         LaunchedEffect(Unit) {
             val tokenManager = TokenManager(context)
             delay(500)
@@ -852,7 +906,7 @@
                         Scaffold(
                             topBar = {
                                 TopAppBar(
-                                    title = { Text("Security Check") },
+                                    title = { Text(stringResource(R.string.security_check)) },
                                     navigationIcon = {
                                         IconButton(onClick = { playerViewModel.onCaptchaSolved() }) {
                                             Icon(Icons.Default.Close, contentDescription = "Close")
