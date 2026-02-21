@@ -1,0 +1,310 @@
+    package com.alananasss.kittytune.domain
+    
+    import com.alananasss.kittytune.data.network.LongIdAdapter
+    import com.google.gson.annotations.JsonAdapter
+    import com.google.gson.annotations.SerializedName
+    
+    // collections
+    data class LikerCollection(val collection: List<User>, val next_href: String?)
+    data class ReposterCollection(val collection: List<User>, val next_href: String?)
+    data class InPlaylistCollection(val collection: List<Playlist>, val next_href: String?)
+    
+    // home / stream
+    data class ChartsResponse(val collection: List<ChartItem>, val next_href: String?)
+    data class ChartItem(val track: Track?, val score: Double?)
+    data class StreamResponse(val collection: List<StreamItem>, val next_href: String?)
+    data class StreamItem(
+        val type: String,
+        val track: Track?,
+        val playlist: Playlist?,
+        val user: User?,
+        @SerializedName("created_at") val createdAt: String?
+    )
+    
+    // comments
+    data class CommentCollection(val collection: List<Comment>, val next_href: String?)
+    
+    data class Comment(
+        val id: Long,
+        val body: String,
+        @SerializedName("created_at") val createdAt: String,
+        @SerializedName("timestamp") val trackTimestamp: Long?,
+        val user: User?,
+    
+        val track: Track? = null,
+    
+        // likes
+        @SerializedName("likes_count", alternate = ["favoritings_count"]) val _likesCount: Int? = null,
+        @SerializedName("reaction_stats") val reactionStats: ReactionStats? = null,
+        @SerializedName("user_favorite") val isLiked: Boolean = false,
+    
+        // nested replies (threaded=1)
+        @SerializedName("replies") val replies: List<Comment>? = null
+    ) {
+        val likesCount: Int
+            get() {
+                if (_likesCount != null) return _likesCount
+                return reactionStats?.counts?.sumOf { it.count } ?: 0
+            }
+    
+        // modified copy for optimistic updates
+        fun copy(
+            isLiked: Boolean = this.isLiked,
+            likesCount: Int = this.likesCount,
+            replies: List<Comment>? = this.replies
+        ): Comment {
+            return Comment(
+                id = this.id,
+                body = this.body,
+                createdAt = this.createdAt,
+                trackTimestamp = this.trackTimestamp,
+                user = this.user,
+                track = this.track,
+                _likesCount = likesCount,
+                reactionStats = null,
+                isLiked = isLiked,
+                replies = replies
+            )
+        }
+    }
+    
+    data class RepostCaptionRequest(
+        val caption: String
+    )
+    
+    data class ActivitiesResponse(val collection: List<ActivityItem>, val next_href: String?)
+    
+    data class ActivityItem(
+        val type: String,
+        @SerializedName("created_at") val createdAt: String,
+        val user: User?, // user who performed the action
+        val track: Track?, // if linked to a track
+        val playlist: Playlist?, // if linked to a playlist
+        val comment: Comment? // if mention
+    )
+    
+    // messaging
+    
+    data class ConversationResponse(
+        val collection: List<Conversation>,
+        val next_href: String?
+    )
+    
+    data class Conversation(
+        val id: String, // format "myId:otherId"
+        @SerializedName("last_message") val lastMessage: Message?,
+        val users: List<User> // participants
+    ) {
+        // helper to find the other user
+        fun getOtherUser(myId: Long): User? {
+            return users.find { it.id != myId }
+        }
+    }
+    
+    data class MessageResponse(
+        val collection: List<Message>,
+        val next_href: String?
+    )
+    
+    data class Message(
+        val content: String?,
+        @SerializedName("conversation_id") val conversationId: String?,
+        val sender: User?,
+        @SerializedName("sent_at") val sentAt: String? = null
+    )
+    
+    // payload for sending messages
+    data class SendMessageRequest(
+        val contents: String
+    )
+    
+    // interactions
+    data class GraphQlRequest(
+        @SerializedName("operationName") val operationName: String,
+        @SerializedName("query") val query: String,
+        @SerializedName("variables") val variables: Any
+    )
+    
+    data class GraphQlVariablesInteraction(
+        @SerializedName("input") val input: InteractionInput
+    )
+    
+    data class GraphQlVariablesUserCheck(
+        @SerializedName("parentUrn") val parentUrn: String,
+        @SerializedName("interactionTypeUrn") val interactionTypeUrn: String = "sc:interactiontype:reaction",
+        @SerializedName("targetUrns") val targetUrns: List<String>
+    )
+    
+    data class InteractionInput(
+        @SerializedName("parentUrn") val parentUrn: String,
+        @SerializedName("targetUrn") val targetUrn: String,
+        @SerializedName("interactionTypeUrn") val interactionTypeUrn: String = "sc:interactiontype:reaction",
+        @SerializedName("interactionTypeValueUrn") val interactionTypeValueUrn: String = "sc:interactiontypevalue:like"
+    )
+    
+    data class GraphQlResponseUserInteractions(
+        @SerializedName("data") val data: UserInteractionsData?
+    )
+    
+    data class UserInteractionsData(
+        @SerializedName("user") val user: List<UserInteractionNode>?
+    )
+    
+    data class UserInteractionNode(
+        @SerializedName("targetUrn") val targetUrn: String,
+        @SerializedName("userInteraction") val userInteraction: Any?,
+        @SerializedName("interactionCounts") val interactionCounts: List<InteractionCountNode>?
+    )
+    
+    data class InteractionCountNode(
+        @SerializedName("count") val count: Int,
+        @SerializedName("interactionTypeValueUrn") val type: String
+    )
+    
+    data class ReactionStats(val counts: List<ReactionCount>?)
+    data class ReactionCount(val count: Int, @SerializedName("interaction_type_urn") val urn: String?)
+    
+    // track
+    data class Track(
+        val id: Long,
+        val title: String?,
+        @SerializedName("artwork_url") val artworkUrl: String?,
+        @SerializedName("duration") val durationMs: Long?,
+        val user: User?,
+        val media: Media? = null,
+        @SerializedName("user_favorite") val isLiked: Boolean = false,
+        @SerializedName("genre") val genre: String? = null,
+        @SerializedName("permalink_url") val permalinkUrl: String? = null,
+        @SerializedName("description") val description: String? = null,
+        @SerializedName("tag_list") val tagList: String? = null,
+        @SerializedName("created_at") val createdAt: String? = null,
+        @SerializedName("release_date") val releaseDate: String? = null,
+        @SerializedName("playback_count") val playbackCount: Int = 0,
+        @SerializedName("likes_count") val likesCount: Int = 0,
+        @SerializedName("reposts_count") val repostsCount: Int = 0,
+        @SerializedName("comment_count") val commentCount: Int = 0,
+    
+        // fields to detect soundcloud go restrictions
+        @SerializedName("policy") val policy: String? = null,
+        @SerializedName("monetization_model") val monetizationModel: String? = null,
+    
+        // fixed: source is now nullable to prevent gson crashes
+        val source: String? = "soundcloud",
+        val likedAt: Long? = null
+    ) {
+        val fullResArtwork: String
+            get() {
+                if (artworkUrl != null) return artworkUrl.replace("large", "t500x500")
+                if (user != null && user.avatarUrl != null) return user.avatarUrl.replace("large", "t500x500")
+                return "https://picsum.photos/200"
+            }
+    }
+    
+    // misc responses
+    data class TrackLikesResponse(val collection: List<TrackLikeItem>, val next_href: String?)
+    data class TrackLikeItem(
+        val track: Track,
+        @SerializedName("created_at") val createdAt: String?
+    )
+    data class PlaylistLikesResponse(val collection: List<PlaylistLikeItem>, val next_href: String?)
+    data class PlaylistLikeItem(val playlist: Playlist, @SerializedName("created_at") val likedAt: String?)
+    data class UserPlaylistsResponse(val collection: List<Playlist>, val next_href: String?)
+    data class UserCollection(val collection: List<User>, val next_href: String?)
+    data class BasicTrackCollection(val collection: List<Track>, val next_href: String?)
+    data class RepostCollection(val collection: List<RepostItem>, val next_href: String?)
+    data class RepostItem(val type: String, @SerializedName("created_at") val createdAt: String?, val track: Track?, val playlist: Playlist?)
+    data class UpdateProfileRequest(val username: String?, val description: String?, val city: String?, @SerializedName("country_code") val countryCode: String?, @SerializedName("first_name") val firstName: String? = null, @SerializedName("last_name") val lastName: String? = null)
+    data class AvatarUpdateRequest(@SerializedName("image_data") val imageData: String)
+    
+    // legacy banner request (safety)
+    data class BannerUploadRequest(
+        @SerializedName("image_url") val imageUrl: String,
+        @SerializedName("_resource_type") val resourceType: String = "userVisual"
+    )
+    
+    // response for banner confirmation
+    data class BannerUploadResponse(
+        @SerializedName("user_urn") val userUrn: String,
+        @SerializedName("image_url") val imageUrl: String
+    )
+    
+    // playlist
+    data class Playlist(
+        @JsonAdapter(LongIdAdapter::class) val id: Long,
+        val title: String?,
+        @SerializedName("artwork_url") val artworkUrl: String?,
+        @SerializedName("calculated_artwork_url") val calculatedArtworkUrl: String?,
+        @SerializedName("track_count") val trackCount: Int?,
+        val user: User?,
+        val tracks: List<Track>? = null,
+        @SerializedName("is_album") val isAlbum: Boolean = false,
+        @SerializedName("permalink_url") val permalinkUrl: String? = null,
+        @SerializedName("created_at") val createdAt: String? = null,
+        @SerializedName("last_modified") val lastModified: String? = null,
+        @SerializedName("tag_list") val tagList: String? = null,
+        @SerializedName("genre") val genre: String? = null,
+        @SerializedName("description") val description: String? = null
+    ) {
+        val fullResArtwork: String
+            get() {
+                if (!artworkUrl.isNullOrEmpty()) return artworkUrl.replace("large", "t500x500")
+                if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.replace("large", "t500x500")
+                if (!tracks.isNullOrEmpty()) {
+                    val firstTrackArt = tracks[0].fullResArtwork
+                    if (!firstTrackArt.contains("picsum")) return firstTrackArt
+                }
+                return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200"
+            }
+    }
+    
+    // user
+    data class User(
+        val id: Long,
+        val username: String?,
+        @SerializedName("avatar_url") val avatarUrl: String?,
+        val city: String? = null,
+        @SerializedName("country_code") val countryCode: String? = null,
+        @SerializedName("followers_count") val followersCount: Int = 0,
+        @SerializedName("followings_count") val followingsCount: Int = 0,
+        @SerializedName("track_count") val trackCount: Int = 0,
+        @SerializedName("description") val description: String? = null,
+        @SerializedName("permalink_url") val permalinkUrl: String? = null,
+        val visuals: Visuals? = null,
+        @SerializedName("verified") val verified: Boolean = false,
+        @SerializedName("public_favorites_count") private val _publicFavoritesCount: Int? = 0,
+        @SerializedName("likes_count") private val _likesCount: Int? = 0,
+        @SerializedName("favorites_count") private val _favoritesCount: Int? = 0
+    ) {
+        val likesCount: Int
+            get() = when {
+                (_publicFavoritesCount ?: 0) > 0 -> _publicFavoritesCount!!
+                (_likesCount ?: 0) > 0 -> _likesCount!!
+                (_favoritesCount ?: 0) > 0 -> _favoritesCount!!
+                else -> 0
+            }
+        val bannerUrl: String? get() = visuals?.visuals?.firstOrNull()?.visualUrl
+    }
+    
+    data class Visuals(val visuals: List<VisualItem>?)
+    data class VisualItem(@SerializedName("visual_url") val visualUrl: String)
+    data class Media(val transcodings: List<Transcoding>?)
+    data class Transcoding(val url: String, val preset: String, val format: Format?)
+    data class Format(val protocol: String?, @SerializedName("mime_type") val mimeType: String?)
+    data class StreamUrlResponse(val url: String?)
+    
+    // new banner flow models
+    
+    // response from get /presign/visuals
+    data class PresignResponse(
+        @SerializedName("url") val url: String,
+        @SerializedName("fields") val fields: Map<String, String>
+    )
+    
+    // request body for post /visuals (confirm)
+    data class VisualsConfirmRequest(
+        @SerializedName("image_url") val imageUrl: String,
+        @SerializedName("_resource_type") val resourceType: String = "userVisual"
+    )
+    
+
+
