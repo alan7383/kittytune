@@ -195,6 +195,8 @@
     <string msgid="6107532579223922871" name="call_notification_incoming_text">"Bejövő hívás"</string>
     <string msgid="8623827134497363134" name="call_notification_ongoing_text">"Hívás folyamatban"</string>
     <string msgid="59049573811482460" name="call_notification_screening_text">"Bejövő hívás szűrése"</string>
+    <string name="cancel">Mégse</string>
+    <string name="captcha_done">Befejeztem a Captcha-t</string>
     <string name="category_genre_afro">Afro</string>
     <string name="category_genre_afrocuban">Afro-kubai</string>
     <string name="category_genre_alt">Alternatív &amp; Indie</string>
@@ -779,6 +781,7 @@
     <string name="search_section_moods">Hangulatok és pillanatok</string>
     <string name="search_source_soundcloud">SoundCloud</string>
     <string name="search_source_youtube">YouTube</string>
+    <string name="security_check">Biztonsági ellenőrzés</string>
     <string msgid="6043586758067023" name="selected">"Kijelölve"</string>
     <string name="settings_cat_appearance">Megjelenés</string>
     <string name="settings_cat_audio">Audio</string>

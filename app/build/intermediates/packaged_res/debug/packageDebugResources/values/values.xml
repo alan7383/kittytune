@@ -160,6 +160,8 @@
     <string name="btn_see_all">See all</string>
     <string name="btn_share">Share</string>
     <string name="btn_shuffle">Shuffle</string>
+    <string name="cancel">Cancel</string>
+    <string name="captcha_done">I completed the Captcha</string>
     <string name="category_genre_afro">Afro</string>
     <string name="category_genre_afrocuban">Afro-Cuban</string>
     <string name="category_genre_alt">Alternative &amp; Indie</string>
@@ -634,6 +636,7 @@
     <string name="search_section_moods">Moods &amp; moments</string>
     <string name="search_source_soundcloud">SoundCloud</string>
     <string name="search_source_youtube">YouTube</string>
+    <string name="security_check">Security Check</string>
     <string name="settings_cat_appearance">Appearance</string>
     <string name="settings_cat_audio">Audio</string>
     <string name="settings_cat_general">General</string>

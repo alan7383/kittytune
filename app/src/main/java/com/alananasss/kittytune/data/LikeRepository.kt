@@ -21,7 +21,9 @@
     
         private lateinit var prefs: SharedPreferences
         private lateinit var api: com.alananasss.kittytune.data.network.SoundCloudApi
+        private lateinit var appContext: Context
         private val gson = Gson()
+        private var cachedUserId: Long? = null
     
         private val scope = CoroutineScope(Dispatchers.IO)
     
@@ -48,14 +50,26 @@
         }
     
         fun init(context: Context) {
+            appContext = context.applicationContext
             prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
             api = RetrofitClient.create(context)
             loadFromPrefs()
         }
-    
+
+        private suspend fun getUserId(): Long? {
+            if (cachedUserId != null) return cachedUserId
+            return try {
+                val me = api.getMe()
+                cachedUserId = me.id
+                me.id
+            } catch (e: Exception) {
+                null
+            }
+        }
+
         fun addLike(track: Track) {
             removeFromBlacklist(track.id)
-    
+
             _likedTracks.update { current ->
                 val safeSource = (track.source as? String) ?: "soundcloud"
                 if (current.any { it.id == track.id }) {
@@ -69,23 +83,42 @@
                     (listOf(newTrack) + current).sortedByDescending { it.likedAt ?: 0L }
                 }
             }
-    
+
             scope.launch {
                 saveToPrefs()
+
+                // --- BYPASS DATADOME (AVEC LE VRAI ID) ---
+                val tokenManager = TokenManager(appContext)
+                val token = tokenManager.getAccessToken()
+                if (!token.isNullOrEmpty() && !tokenManager.isGuestMode()) {
+                    val uid = getUserId()
+                    if (uid != null) {
+                        com.alananasss.kittytune.data.SessionManager.syncLikeState(track.id, true, token, uid)
+                    }
+                }
             }
         }
-    
+
         fun removeLike(trackId: Long) {
             addToBlacklist(trackId)
-    
+
             _likedTracks.update { it.filterNot { t -> t.id == trackId } }
-    
+
             scope.launch {
                 saveToPrefs()
+
+                // --- BYPASS DATADOME (AVEC LE VRAI ID) ---
+                val tokenManager = TokenManager(appContext)
+                val token = tokenManager.getAccessToken()
+                if (!token.isNullOrEmpty() && !tokenManager.isGuestMode()) {
+                    val uid = getUserId()
+                    if (uid != null) {
+                        com.alananasss.kittytune.data.SessionManager.syncLikeState(trackId, false, token, uid)
+                    }
+                }
             }
         }
-    
-    
+
         fun isTrackLiked(trackId: Long): Boolean {
             return _likedTracks.value.any { it.id == trackId }
         }
