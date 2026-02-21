@@ -18,6 +18,7 @@ drawable ic_skip_previous
 drawable widget_preview_mini
 drawable widget_preview_normal
 drawable widget_preview_search
+font google_sans_flex
 mipmap ic_launcher
 mipmap ic_launcher_foreground
 mipmap ic_launcher_round
@@ -175,6 +176,7 @@ string btn_ok
 string btn_options
 string btn_pause
 string btn_play
+string btn_reset
 string btn_save
 string btn_save_changes
 string btn_see_all
@@ -321,6 +323,13 @@ string dialog_delete_header_title
 string dialog_delete_playlist_from_lib_title
 string dialog_delete_playlist_msg
 string dialog_delete_playlist_title
+string dialog_font_grade
+string dialog_font_optical_size
+string dialog_font_roundness
+string dialog_font_settings_title
+string dialog_font_slant
+string dialog_font_weight
+string dialog_font_width
 string dialog_remove_download_msg
 string dialog_remove_download_title
 string dialog_rename_playlist_hint
@@ -381,6 +390,14 @@ string fallback_auto
 string fallback_invidious
 string fallback_newpipe
 string filter_all
+string font_preset_chunky
+string font_preset_compact
+string font_preset_default
+string font_preset_elegant
+string font_preset_playful
+string font_preset_rounded
+string font_preset_slanted
+string font_preset_wide
 string format_default
 string format_fallback
 string generic_artist
@@ -531,6 +548,10 @@ string pref_discord_status_display
 string pref_discord_subtitle
 string pref_discord_title
 string pref_fallback_mode
+string pref_font_custom_subtitle
+string pref_font_custom_title
+string pref_font_variations_subtitle
+string pref_font_variations_title
 string pref_language
 string pref_language_sub
 string pref_local_add
@@ -641,6 +662,7 @@ string settings_cat_general
 string settings_cat_notifications
 string settings_cat_playback
 string settings_cat_source
+string settings_cat_typography
 string settings_title
 string share_via
 string sort_date_added

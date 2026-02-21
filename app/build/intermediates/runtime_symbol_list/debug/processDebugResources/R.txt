@@ -878,6 +878,7 @@ int drawable tooltip_frame_light 0x7f0700e5
 int drawable widget_preview_mini 0x7f0700e6
 int drawable widget_preview_normal 0x7f0700e7
 int drawable widget_preview_search 0x7f0700e8
+int font google_sans_flex 0x7f080000
 int id ALT 0x7f090000
 int id CTRL 0x7f090001
 int id FUNCTION 0x7f090002
@@ -2643,6 +2644,7 @@ int string btn_ok 0x7f0f00b3
 int string btn_options 0x7f0f00b4
 int string btn_pause 0x7f0f00b5
 int string btn_play 0x7f0f00b6
+int string btn_reset 0x7f0f035f
 int string btn_save 0x7f0f00b7
 int string btn_save_changes 0x7f0f00b8
 int string btn_see_all 0x7f0f00b9
@@ -2801,6 +2803,13 @@ int string dialog_delete_header_title 0x7f0f0151
 int string dialog_delete_playlist_from_lib_title 0x7f0f0152
 int string dialog_delete_playlist_msg 0x7f0f0153
 int string dialog_delete_playlist_title 0x7f0f0154
+int string dialog_font_grade 0x7f0f0353
+int string dialog_font_optical_size 0x7f0f0354
+int string dialog_font_roundness 0x7f0f0355
+int string dialog_font_settings_title 0x7f0f0356
+int string dialog_font_slant 0x7f0f0357
+int string dialog_font_weight 0x7f0f0358
+int string dialog_font_width 0x7f0f0359
 int string dialog_remove_download_msg 0x7f0f0155
 int string dialog_remove_download_title 0x7f0f0156
 int string dialog_rename_playlist_hint 0x7f0f0157
@@ -2888,6 +2897,14 @@ int string fallback_auto 0x7f0f01a8
 int string fallback_invidious 0x7f0f01a9
 int string fallback_newpipe 0x7f0f01aa
 int string filter_all 0x7f0f01ab
+int string font_preset_chunky 0x7f0f0364
+int string font_preset_compact 0x7f0f0360
+int string font_preset_default 0x7f0f0361
+int string font_preset_elegant 0x7f0f0365
+int string font_preset_playful 0x7f0f0366
+int string font_preset_rounded 0x7f0f0362
+int string font_preset_slanted 0x7f0f0363
+int string font_preset_wide 0x7f0f0367
 int string format_default 0x7f0f01ac
 int string format_fallback 0x7f0f01ad
 int string generic_artist 0x7f0f01ae
@@ -3118,6 +3135,10 @@ int string pref_discord_status_display 0x7f0f028e
 int string pref_discord_subtitle 0x7f0f028f
 int string pref_discord_title 0x7f0f0290
 int string pref_fallback_mode 0x7f0f0291
+int string pref_font_custom_subtitle 0x7f0f035a
+int string pref_font_custom_title 0x7f0f035b
+int string pref_font_variations_subtitle 0x7f0f035c
+int string pref_font_variations_title 0x7f0f035d
 int string pref_language 0x7f0f0292
 int string pref_language_sub 0x7f0f0293
 int string pref_local_add 0x7f0f0294
@@ -3232,6 +3253,7 @@ int string settings_cat_general 0x7f0f0300
 int string settings_cat_notifications 0x7f0f0301
 int string settings_cat_playback 0x7f0f0302
 int string settings_cat_source 0x7f0f0303
+int string settings_cat_typography 0x7f0f035e
 int string settings_title 0x7f0f0304
 int string share_via 0x7f0f0305
 int string snackbar_pane_title 0x7f0f0306

@@ -62,7 +62,35 @@ class PlayerPreferences(context: Context) {
 
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
+        private const val KEY_CUSTOM_FONT_ENABLED = "custom_font_enabled"
+        private const val KEY_FONT_WGHT = "font_wght"
+        private const val KEY_FONT_WDTH = "font_wdth"
+        private const val KEY_FONT_SLNT = "font_slnt"
+        private const val KEY_FONT_ROND = "font_rond"
+        private const val KEY_FONT_GRAD = "font_grad"
+        private const val KEY_FONT_OPSZ = "font_opsz"
     }
+
+    fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, false)
+    fun setCustomFontEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled).apply()
+
+    fun getFontWght() = prefs.getInt(KEY_FONT_WGHT, 400)
+    fun setFontWght(value: Int) = prefs.edit().putInt(KEY_FONT_WGHT, value).apply()
+
+    fun getFontWdth() = prefs.getFloat(KEY_FONT_WDTH, 100f)
+    fun setFontWdth(value: Float) = prefs.edit().putFloat(KEY_FONT_WDTH, value).apply()
+
+    fun getFontSlnt() = prefs.getFloat(KEY_FONT_SLNT, 0f)
+    fun setFontSlnt(value: Float) = prefs.edit().putFloat(KEY_FONT_SLNT, value).apply()
+
+    fun getFontRond() = prefs.getFloat(KEY_FONT_ROND, 0f)
+    fun setFontRond(value: Float) = prefs.edit().putFloat(KEY_FONT_ROND, value).apply()
+
+    fun getFontGrad() = prefs.getFloat(KEY_FONT_GRAD, 0f)
+    fun setFontGrad(value: Float) = prefs.edit().putFloat(KEY_FONT_GRAD, value).apply()
+
+    fun getFontOpsz() = prefs.getFloat(KEY_FONT_OPSZ, 14f)
+    fun setFontOpsz(value: Float) = prefs.edit().putFloat(KEY_FONT_OPSZ, value).apply()
 
     fun getDiscordStatusDisplay(): DiscordStatusDisplay {
         val name = prefs.getString(KEY_DISCORD_STATUS_DISPLAY, DiscordStatusDisplay.ACTIVITY.name)

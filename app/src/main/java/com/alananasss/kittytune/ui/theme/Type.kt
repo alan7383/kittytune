@@ -1,36 +1,50 @@
-    package com.alananasss.kittytune.ui.theme
-    
-    import androidx.compose.material3.Typography
-    import androidx.compose.ui.text.TextStyle
-    import androidx.compose.ui.text.font.FontFamily
-    import androidx.compose.ui.text.font.FontWeight
-    import androidx.compose.ui.unit.sp
-    
-    // Set of Material typography styles to start with
-    val Typography = Typography(
-        bodyLarge = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Normal,
-            fontSize = 16.sp,
-            lineHeight = 24.sp,
-            letterSpacing = 0.5.sp
+package com.alananasss.kittytune.ui.theme
+
+import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import com.alananasss.kittytune.R
+
+val Typography = Typography()
+
+@OptIn(ExperimentalTextApi::class)
+fun getDynamicTypography(
+    useCustomFont: Boolean,
+    wght: Int, wdth: Float, slnt: Float, rond: Float, grad: Float, opsz: Float
+): Typography {
+    if (!useCustomFont) return Typography
+
+    val customFamily = FontFamily(
+        Font(
+            resId = R.font.google_sans_flex,
+            variationSettings = FontVariation.Settings(
+                FontVariation.weight(wght),
+                FontVariation.width(wdth),
+                FontVariation.slant(slnt),
+                FontVariation.Setting("ROND", rond),
+                FontVariation.Setting("GRAD", grad),
+                FontVariation.Setting("opsz", opsz)
+            )
         )
-        /* Other default text styles to override
-        titleLarge = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Normal,
-            fontSize = 22.sp,
-            lineHeight = 28.sp,
-            letterSpacing = 0.sp
-        ),
-        labelSmall = TextStyle(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Medium,
-            fontSize = 11.sp,
-            lineHeight = 16.sp,
-            letterSpacing = 0.5.sp
-        )
-        */
     )
 
-
+    return Typography(
+        displayLarge = Typography.displayLarge.copy(fontFamily = customFamily),
+        displayMedium = Typography.displayMedium.copy(fontFamily = customFamily),
+        displaySmall = Typography.displaySmall.copy(fontFamily = customFamily),
+        headlineLarge = Typography.headlineLarge.copy(fontFamily = customFamily),
+        headlineMedium = Typography.headlineMedium.copy(fontFamily = customFamily),
+        headlineSmall = Typography.headlineSmall.copy(fontFamily = customFamily),
+        titleLarge = Typography.titleLarge.copy(fontFamily = customFamily),
+        titleMedium = Typography.titleMedium.copy(fontFamily = customFamily),
+        titleSmall = Typography.titleSmall.copy(fontFamily = customFamily),
+        bodyLarge = Typography.bodyLarge.copy(fontFamily = customFamily),
+        bodyMedium = Typography.bodyMedium.copy(fontFamily = customFamily),
+        bodySmall = Typography.bodySmall.copy(fontFamily = customFamily),
+        labelLarge = Typography.labelLarge.copy(fontFamily = customFamily),
+        labelMedium = Typography.labelMedium.copy(fontFamily = customFamily),
+        labelSmall = Typography.labelSmall.copy(fontFamily = customFamily)
+    )
+}
