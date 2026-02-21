@@ -504,22 +504,35 @@
                 showLyricsSheet = true
             }
         }
-    
+
         private fun loadLyrics(track: Track) {
             lyricsLines.clear()
             lyricsOffset = 0L
             showLyricsOffsetControls = false
             isLyricsLoading = true
             isSearchingLyrics = false
-    
-            val cleanTitle = cleanTitleNoise(track.title ?: "")
-            val query = "$cleanTitle ${track.user?.username ?: ""}"
-            manualSearchQuery = query
-    
+
+            val originalTitle = track.title ?: ""
+            val cleanTitle = cleanTitleNoise(originalTitle)
+            val uploader = track.user?.username ?: ""
+
+            val searchQueries = mutableListOf<String>()
+
+            if (cleanTitle.contains(" - ")) {
+                searchQueries.add(cleanTitle)
+                searchQueries.add(cleanTitle.substringAfter(" - ").trim())
+                searchQueries.add("$cleanTitle $uploader".trim())
+            } else {
+                searchQueries.add("$cleanTitle $uploader".trim())
+                searchQueries.add(cleanTitle)
+            }
+
+            manualSearchQuery = searchQueries.first()
+
             viewModelScope.launch(Dispatchers.IO) {
                 val preferLocal = playerPrefs.getLyricsPreferLocal()
                 var localLyricsFound = false
-    
+
                 if (preferLocal) {
                     val localTrack = DownloadManager.getLocalTrack(track.id)
                     if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
@@ -536,11 +549,24 @@
                         }
                     }
                 }
-    
+
                 if (!localLyricsFound) {
                     try {
-                        val results = LrcLibClient.api.searchLyrics(query)
                         val trackDurationSec = (track.durationMs ?: 0L) / 1000.0
+                        var results: List<LrcLibResponse> = emptyList()
+
+                        for (query in searchQueries) {
+                            if (query.isBlank()) continue
+                            results = LrcLibClient.api.searchLyrics(query)
+
+                            if (results.isNotEmpty()) {
+                                withContext(Dispatchers.Main) {
+                                    manualSearchQuery = query
+                                }
+                                break
+                            }
+                        }
+
                         val bestMatch = results.filter { abs(it.duration - trackDurationSec) < 4.0 }.find { !it.syncedLyrics.isNullOrEmpty() } ?: results.firstOrNull()
                         processLyricsResponse(bestMatch, track.durationMs ?: 0L)
                     } catch (e: Exception) {
@@ -549,7 +575,7 @@
                 }
             }
         }
-    
+
         fun adjustLyricsOffset(amount: Long) {
             lyricsOffset += amount
         }
