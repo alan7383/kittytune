@@ -567,6 +567,8 @@
     <string name="pref_start_screen">Kezdőképernyő</string>
     <string name="pref_storage_subtitle">Cache és letöltések kezelése</string>
     <string name="pref_storage_title">Tárhely</string>
+    <string name="pref_sync_likes">Like-ok szinkronizálása</string>
+    <string name="pref_sync_likes_sub">Kedvelés a SoundCloud fiókban is (Captcha-t indíthat)</string>
     <string name="pref_theme_dynamic">Dinamikus téma (Material You)</string>
     <string name="pref_theme_dynamic_sub">Igazodik a háttérképedhez</string>
     <string name="pref_theme_mode">Mód</string>

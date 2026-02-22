@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 @SuppressLint("StaticFieldLeak")
 object SessionManager {
     private const val TAG = "SessionManager"
-    private const val REFRESH_INTERVAL = 20 * 60 * 1000L // 20 minutes
+    private const val REFRESH_INTERVAL = 20 * 60 * 1000L
 
     private var ghostWebView: WebView? = null
 
@@ -32,16 +32,19 @@ object SessionManager {
     private val _sessionReadyEvent = MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
     val sessionReadyEvent = _sessionReadyEvent.asSharedFlow()
 
-    // --- NOUVEAU : Flux pour afficher le Captcha et action en attente ---
     private val _showCaptchaFlow = MutableStateFlow(false)
     val showCaptchaFlow = _showCaptchaFlow.asStateFlow()
+
     private var pendingLikeAction: (() -> Unit)? = null
 
-    // Pont de communication JS -> Kotlin
     private class AndroidBridge {
         @JavascriptInterface
         fun requestCaptcha() {
-            MainScope().launch { _showCaptchaFlow.value = true }
+            if (_showCaptchaFlow.value) return
+
+            MainScope().launch {
+                _showCaptchaFlow.value = true
+            }
         }
 
         @JavascriptInterface
@@ -57,7 +60,9 @@ object SessionManager {
         ghostWebView = webView
         setupWebView(webView, context)
         CookieManager.getInstance().flush()
-        reloadSession()
+        if (!_showCaptchaFlow.value) {
+            reloadSession()
+        }
         startKeepAliveCycle()
     }
 
@@ -69,7 +74,6 @@ object SessionManager {
         settings.databaseEnabled = true
         settings.userAgentString = Config.USER_AGENT
 
-        // On connecte l'interface Javascript
         webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
 
         webView.webViewClient = object : WebViewClient() {
@@ -92,6 +96,12 @@ object SessionManager {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 harvestCookie(url, context)
+
+                if (_showCaptchaFlow.value && url != null && (url.contains("/discover") || url.contains("/stream"))) {
+                    MainScope().launch {
+                        retryPendingAction()
+                    }
+                }
             }
         }
     }
@@ -117,13 +127,15 @@ object SessionManager {
         MainScope().launch {
             while (true) {
                 delay(REFRESH_INTERVAL)
-                reloadSession()
+                if (!_showCaptchaFlow.value) {
+                    reloadSession()
+                }
             }
         }
     }
 
     fun reloadSession() {
-        ghostWebView?.loadUrl("https://soundcloud.com/discover")
+        ghostWebView?.loadUrl("https://m.soundcloud.com/discover")
     }
 
     private fun extractValue(cookies: String, key: String): String? {
@@ -131,7 +143,6 @@ object SessionManager {
             ?.substringAfter("$key=")?.replace("\"", "")?.trim()
     }
 
-    // --- NOUVELLES FONCTIONS POUR LE CAPTCHA ---
     fun retryPendingAction() {
         _showCaptchaFlow.value = false
         pendingLikeAction?.invoke()
@@ -151,27 +162,33 @@ object SessionManager {
         val contentType = if (isLike) "'Content-Type': 'application/json; charset=utf-8'," else ""
         val bodyStr = if (isLike) "body: '{}'," else ""
 
-        // On sauvegarde l'action pour la retenter une fois le captcha validé
         pendingLikeAction = { syncLikeState(trackId, isLike, token, userId) }
 
         val js = """
-            fetch('$url', {
-                method: '$method',
-                credentials: 'include',
-                headers: {
-                    'Authorization': 'OAuth $token',
-                    'Accept': 'application/json',
-                    $contentType
-                },
-                $bodyStr
-            }).then(r => {
-                if (r.status === 403 || r.status === 401) {
+            if (window.location.hostname.includes('captcha')) {
+                AndroidBridge.requestCaptcha();
+            } else {
+                fetch('$url', {
+                    method: '$method',
+                    credentials: 'include',
+                    headers: {
+                        'Authorization': 'OAuth $token',
+                        'Accept': 'application/json',
+                        $contentType
+                    },
+                    $bodyStr
+                }).then(r => {
+                    console.log('Like Sync Status: ' + r.status);
+                    if (r.status === 403 || r.status === 401) {
+                        AndroidBridge.requestCaptcha();
+                    } else if (r.status === 200 || r.status === 201 || r.status === 204) {
+                        AndroidBridge.onLikeSuccess();
+                    }
+                }).catch(e => {
+                    console.error('Fetch Error:', e);
                     AndroidBridge.requestCaptcha();
-                    window.location.href = 'https://m.soundcloud.com/discover';
-                } else if (r.status === 200 || r.status === 201 || r.status === 204) {
-                    AndroidBridge.onLikeSuccess();
-                }
-            }).catch(e => console.error('Fetch Error:', e));
+                });
+            }
         """.trimIndent()
 
         MainScope().launch {
