@@ -69,7 +69,11 @@ class PlayerPreferences(context: Context) {
         private const val KEY_FONT_ROND = "font_rond"
         private const val KEY_FONT_GRAD = "font_grad"
         private const val KEY_FONT_OPSZ = "font_opsz"
+        private const val KEY_SYNC_LIKES = "sync_likes_enabled"
     }
+
+    fun getSyncLikesEnabled(): Boolean = prefs.getBoolean(KEY_SYNC_LIKES, false)
+    fun setSyncLikesEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_SYNC_LIKES, enabled).apply()
 
     fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, false)
     fun setCustomFontEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled).apply()

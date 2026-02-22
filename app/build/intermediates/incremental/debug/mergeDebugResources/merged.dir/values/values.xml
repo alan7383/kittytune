@@ -1650,6 +1650,8 @@
     <string name="pref_start_screen">Start Screen</string>
     <string name="pref_storage_subtitle">Cache and downloads</string>
     <string name="pref_storage_title">Storage</string>
+    <string name="pref_sync_likes">Sync Likes</string>
+    <string name="pref_sync_likes_sub">Apply likes to your SoundCloud account (may trigger Captcha)</string>
     <string name="pref_theme_dynamic">Dynamic Theme (Material You)</string>
     <string name="pref_theme_dynamic_sub">Match your wallpaper</string>
     <string name="pref_theme_mode">Theme Mode</string>

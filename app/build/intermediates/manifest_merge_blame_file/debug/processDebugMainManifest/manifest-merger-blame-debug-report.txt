@@ -1,8 +1,8 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-3    package="com.alananasss.kittytune"
+3    package="com.alananasss.kittytune.debug"
 4    android:versionCode="1"
-5    android:versionName="2.19.2" >
+5    android:versionName="2.19.3" >
 6
 7    <uses-sdk
 8        android:minSdkVersion="26"
@@ -54,12 +54,12 @@
 31
 32    <permission
 32-->[androidx.core:core:1.17.0] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\7661fd35e0fefbfa8b318138a1adcf45\workspace\transformed\core-1.17.0\AndroidManifest.xml:22:5-24:47
-33        android:name="com.alananasss.kittytune.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+33        android:name="com.alananasss.kittytune.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
 33-->[androidx.core:core:1.17.0] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\7661fd35e0fefbfa8b318138a1adcf45\workspace\transformed\core-1.17.0\AndroidManifest.xml:23:9-81
 34        android:protectionLevel="signature" />
 34-->[androidx.core:core:1.17.0] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\7661fd35e0fefbfa8b318138a1adcf45\workspace\transformed\core-1.17.0\AndroidManifest.xml:24:9-44
 35
-36    <uses-permission android:name="com.alananasss.kittytune.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+36    <uses-permission android:name="com.alananasss.kittytune.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
 36-->[androidx.core:core:1.17.0] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\7661fd35e0fefbfa8b318138a1adcf45\workspace\transformed\core-1.17.0\AndroidManifest.xml:26:5-97
 36-->[androidx.core:core:1.17.0] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\7661fd35e0fefbfa8b318138a1adcf45\workspace\transformed\core-1.17.0\AndroidManifest.xml:26:22-94
 37
@@ -257,7 +257,7 @@
 149        <provider
 150            android:name="androidx.core.content.FileProvider"
 150-->C:\AndroidStudioProjects\KittyTune\app\src\main\AndroidManifest.xml:120:17-66
-151            android:authorities="com.alananasss.kittytune.provider"
+151            android:authorities="com.alananasss.kittytune.debug.provider"
 151-->C:\AndroidStudioProjects\KittyTune\app\src\main\AndroidManifest.xml:121:17-64
 152            android:exported="false"
 152-->C:\AndroidStudioProjects\KittyTune\app\src\main\AndroidManifest.xml:122:17-41
@@ -378,7 +378,7 @@
 214-->[androidx.work:work-runtime:2.7.1] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\b9fca0a21ef914b1a9ed7db300192fc8\workspace\transformed\work-runtime-2.7.1\AndroidManifest.xml:31:9-39:20
 215            android:name="androidx.startup.InitializationProvider"
 215-->[androidx.work:work-runtime:2.7.1] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\b9fca0a21ef914b1a9ed7db300192fc8\workspace\transformed\work-runtime-2.7.1\AndroidManifest.xml:32:13-67
-216            android:authorities="com.alananasss.kittytune.androidx-startup"
+216            android:authorities="com.alananasss.kittytune.debug.androidx-startup"
 216-->[androidx.work:work-runtime:2.7.1] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\b9fca0a21ef914b1a9ed7db300192fc8\workspace\transformed\work-runtime-2.7.1\AndroidManifest.xml:33:13-68
 217            android:exported="false" >
 217-->[androidx.work:work-runtime:2.7.1] C:\Users\alananasss\.gradle\caches\9.3.1\transforms\b9fca0a21ef914b1a9ed7db300192fc8\workspace\transformed\work-runtime-2.7.1\AndroidManifest.xml:34:13-37
