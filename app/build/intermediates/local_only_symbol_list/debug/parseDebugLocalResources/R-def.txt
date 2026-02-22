@@ -596,6 +596,8 @@ string pref_quality
 string pref_start_screen
 string pref_storage_subtitle
 string pref_storage_title
+string pref_sync_likes
+string pref_sync_likes_sub
 string pref_theme_dynamic
 string pref_theme_dynamic_sub
 string pref_theme_mode

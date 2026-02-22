@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.alananasss.kittytune",
+  "applicationId": "com.alananasss.kittytune.debug",
   "variantName": "debug",
   "elements": [
     {
@@ -12,7 +12,7 @@
       "filters": [],
       "attributes": [],
       "versionCode": 1,
-      "versionName": "2.19.2",
+      "versionName": "2.19.3",
       "outputFile": "app-debug.apk"
     }
   ],
