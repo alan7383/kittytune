@@ -567,6 +567,8 @@
     <string name="pref_start_screen">Écran de démarrage</string>
     <string name="pref_storage_subtitle">Gérer le cache et les téléchargements</string>
     <string name="pref_storage_title">Stockage</string>
+    <string name="pref_sync_likes">Synchroniser les Likes</string>
+    <string name="pref_sync_likes_sub">Liker sur le compte SoundCloud (peut déclencher un Captcha)</string>
     <string name="pref_theme_dynamic">Thème Dynamique (Material You)</string>
     <string name="pref_theme_dynamic_sub">S\'adapte à votre fond d\'écran</string>
     <string name="pref_theme_mode">Mode Sombre/Clair</string>
