@@ -1,0 +1,13 @@
+local.properties
+build/
+app/build/
+kizzy/build/
+app/release/
+*.apk
+*.aab
+output-metadata.json
+.idea/
+*.iml
+.gradle/
+dump_project_context.txt
+*.log
