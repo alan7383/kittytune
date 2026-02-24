@@ -80,8 +80,10 @@
     <string name="home_section_similar_sub">Mert hallgattad ezt a számot</string>
     <string name="home_section_new_crew">Új tehetségek</string>
     <string name="home_section_new_crew_sub">Előadók az ízlésed alapján</string>
-    <string name="home_section_more_of_what_you_like">Több, amit szeretsz</string>
-    <string name="home_section_more_of_what_you_like_sub">A hallgatási szokásaid alapján</string>
+    <string name="home_rediscovery_title">Fedezd fel újra a gyűjteményed</string>
+    <string name="home_rediscovery_sub">Elfeledett kincsek a like-jaidból</string>
+    <string name="home_habits_title">A te stílusod</string>
+    <string name="home_habits_sub">A legutóbbi hallgatásaid alapján</string>
     <string name="home_station_artist_title">Rádió: %1$s</string>
     <string name="home_station_track_title">Rádió: %1$s</string>
     <string name="home_discover_stations">Felfedezés Állomásokkal</string>

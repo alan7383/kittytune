@@ -239,7 +239,7 @@
             }
         }
     }
-    
+
     @Composable
     fun HomeContent(
         homeViewModel: HomeViewModel,
@@ -249,23 +249,29 @@
     ) {
         val scrollState = rememberLazyListState()
         val allSections = homeViewModel.homeSections
-    
+
         val titleRecommended = stringResource(R.string.home_recommended_tracks)
-    
-        val titleMoreLike = stringResource(R.string.home_section_more_of_what_you_like)
+
+        val titleRediscover = stringResource(R.string.home_rediscovery_title)
+        val titleHabits = stringResource(R.string.home_habits_title)
+
         val titleStations = stringResource(R.string.home_discover_stations)
         val titleAlbums = stringResource(R.string.home_albums_for_you)
         val titleSimilarPrefix = stringResource(R.string.home_section_similar, "").trim()
-    
+
         val discoverySection = allSections.find { it.type == SectionType.DISCOVERY_ROW }
         val recommendedSection = allSections.find { it.title == titleRecommended }
-        val moreLikeSection = allSections.find { it.title == titleMoreLike }
+
+        val rediscoverSection = allSections.find { it.title == titleRediscover }
+        val habitsSection = allSections.find { it.title == titleHabits }
+
         val stationsSection = allSections.find { it.title == titleStations }
         val albumsSection = allSections.find { it.title == titleAlbums }
         val similarSection = allSections.find { it.title.startsWith(titleSimilarPrefix) }
-        val usedSections = setOfNotNull(discoverySection, recommendedSection, moreLikeSection, stationsSection, albumsSection, similarSection)
+
+        val usedSections = setOfNotNull(discoverySection, recommendedSection, rediscoverSection, habitsSection, stationsSection, albumsSection, similarSection)
         val remainingSections = allSections.filter { !usedSections.contains(it) }
-    
+
         LazyColumn(
             state = scrollState,
             contentPadding = PaddingValues(bottom = 120.dp),
@@ -278,7 +284,7 @@
                 } else {
                     homeViewModel.moodCategories.take(10)
                 }
-    
+
                 HomeFilterRow(
                     categories = categoriesToShow,
                     onCategoryClick = { category ->
@@ -288,6 +294,7 @@
                     }
                 )
             }
+
             if (history.isNotEmpty()) {
                 item {
                     StandardHorizontalSection(
@@ -323,9 +330,15 @@
                     }
                 }
             }
-            moreLikeSection?.let {
+
+            habitsSection?.let {
                 RenderHomeSection(it, onNavigate, playerViewModel)
             }
+
+            rediscoverSection?.let {
+                RenderHomeSection(it, onNavigate, playerViewModel)
+            }
+
             stationsSection?.let {
                 RenderHomeSection(it, onNavigate, playerViewModel)
             }
