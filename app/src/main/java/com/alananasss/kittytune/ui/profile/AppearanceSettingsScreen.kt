@@ -293,36 +293,42 @@ fun AppearanceSettingsScreen(
             }
 
             item {
-                SettingsGroup(
-                    title = stringResource(R.string.settings_cat_typography),
-                    items = buildList {
-                        add { shape ->
+                ->
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.settings_cat_typography))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+
+                        val totalVisibleItems = if (customFontEnabled) 2 else 1
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 0),
+                            title = stringResource(R.string.pref_font_custom_title),
+                            subtitle = stringResource(R.string.pref_font_custom_subtitle),
+                            icon = Icons.Rounded.FontDownload,
+                            hasSwitch = true,
+                            switchState = customFontEnabled,
+                            onSwitchChange = {
+                                customFontEnabled = it
+                                prefs.setCustomFontEnabled(it)
+                            }
+                        )
+
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = customFontEnabled,
+                            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+                        ) {
                             SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_font_custom_title),
-                                subtitle = stringResource(R.string.pref_font_custom_subtitle),
-                                icon = Icons.Rounded.FontDownload,
-                                hasSwitch = true,
-                                switchState = customFontEnabled,
-                                onSwitchChange = {
-                                    customFontEnabled = it
-                                    prefs.setCustomFontEnabled(it)
-                                }
+                                shape = getSettingsShape(totalVisibleItems, 1),
+                                title = stringResource(R.string.pref_font_variations_title),
+                                subtitle = stringResource(R.string.pref_font_variations_subtitle),
+                                icon = Icons.Rounded.Tune,
+                                onClick = { showFontConfigDialog = true }
                             )
                         }
-                        if (customFontEnabled) {
-                            add { shape ->
-                                SettingsItem(
-                                    shape = shape,
-                                    title = stringResource(R.string.pref_font_variations_title),
-                                    subtitle = stringResource(R.string.pref_font_variations_subtitle),
-                                    icon = Icons.Rounded.Tune,
-                                    onClick = { showFontConfigDialog = true }
-                                )
-                            }
-                        }
                     }
-                )
+                }
             }
 
             item {
