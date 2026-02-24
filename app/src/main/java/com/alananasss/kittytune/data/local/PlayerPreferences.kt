@@ -8,6 +8,9 @@ import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.RepeatMode
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
 
 enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR }
@@ -23,14 +26,14 @@ enum class AppLanguage(val code: String) {
     HUNGARIAN("hu")
 }
 
-class PlayerPreferences(context: Context) {
+class PlayerPreferences(private val context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
     private val gson = Gson()
+    private val queueFile = File(context.filesDir, "queue_cache.json")
 
     companion object {
         private const val KEY_TRACK_JSON = "last_track_json"
         private const val KEY_POSITION = "last_position"
-        private const val KEY_QUEUE_JSON = "last_queue_full_json"
         private const val KEY_EFFECTS = "audio_effects"
         private const val KEY_CONTEXT_JSON = "last_context_json"
         private const val KEY_SHUFFLE_MODE = "shuffle_mode_enabled"
@@ -193,13 +196,26 @@ class PlayerPreferences(context: Context) {
     fun savePlaybackState(track: Track?, position: Long, queue: List<Track>, context: PlaybackContext?, shuffleEnabled: Boolean, repeatMode: RepeatMode) {
         if (!getPersistentQueueEnabled()) {
             val editor = prefs.edit()
-            editor.putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled); editor.putString(KEY_REPEAT_MODE, repeatMode.name)
-            editor.remove(KEY_TRACK_JSON); editor.remove(KEY_QUEUE_JSON); editor.remove(KEY_POSITION); editor.remove(KEY_CONTEXT_JSON)
-            editor.apply(); return
+            editor.putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled)
+            editor.putString(KEY_REPEAT_MODE, repeatMode.name)
+            editor.remove(KEY_TRACK_JSON)
+            if (queueFile.exists()) queueFile.delete()
+            editor.remove(KEY_POSITION)
+            editor.remove(KEY_CONTEXT_JSON)
+            editor.apply()
+            return
         }
         val editor = prefs.edit()
         if (track != null) editor.putString(KEY_TRACK_JSON, gson.toJson(track))
-        if (queue.isNotEmpty()) editor.putString(KEY_QUEUE_JSON, gson.toJson(queue))
+        if (queue.isNotEmpty()) {
+            try {
+                FileWriter(queueFile).use { writer ->
+                    gson.toJson(queue, writer)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
         editor.putString(KEY_CONTEXT_JSON, gson.toJson(context))
         editor.putLong(KEY_POSITION, position)
         editor.putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled)
@@ -211,7 +227,22 @@ class PlayerPreferences(context: Context) {
     fun getDownloadLocation(): String? = prefs.getString(KEY_DOWNLOAD_DIR, null)
     fun getLastTrack(): Track? { if (!getPersistentQueueEnabled()) return null; val json = prefs.getString(KEY_TRACK_JSON, null) ?: return null; return try { gson.fromJson(json, Track::class.java) } catch (e: Exception) { null } }
     fun getLastPosition(): Long = prefs.getLong(KEY_POSITION, 0L)
-    fun getLastQueue(): List<Track> { if (!getPersistentQueueEnabled()) return emptyList(); val json = prefs.getString(KEY_QUEUE_JSON, null) ?: return emptyList(); val type = object : TypeToken<List<Track>>() {}.type; return try { gson.fromJson(json, type) ?: emptyList() } catch (e: Exception) { emptyList() } }
+    fun getLastQueue(): List<Track> {
+        if (!getPersistentQueueEnabled()) return emptyList()
+        if (queueFile.exists()) {
+            return try {
+                val type = object : TypeToken<List<Track>>() {}.type
+                FileReader(queueFile).use { reader ->
+                    gson.fromJson(reader, type) ?: emptyList()
+                }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        val json = prefs.getString("last_queue_full_json", null) ?: return emptyList()
+        val type = object : TypeToken<List<Track>>() {}.type
+        return try { gson.fromJson(json, type) ?: emptyList() } catch (e: Exception) { emptyList() }
+    }
     fun getLastContext(): PlaybackContext? { if (!getPersistentQueueEnabled()) return null; val json = prefs.getString(KEY_CONTEXT_JSON, null) ?: return null; return try { gson.fromJson(json, PlaybackContext::class.java) } catch (e: Exception) { null } }
     fun getLastShuffleEnabled(): Boolean = prefs.getBoolean(KEY_SHUFFLE_MODE, false)
     fun getLastRepeatMode(): RepeatMode { val modeName = prefs.getString(KEY_REPEAT_MODE, RepeatMode.NONE.name); return try { RepeatMode.valueOf(modeName ?: RepeatMode.NONE.name) } catch (e: Exception) { RepeatMode.NONE } }
