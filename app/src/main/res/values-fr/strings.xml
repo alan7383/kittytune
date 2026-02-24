@@ -80,8 +80,10 @@
     <string name="home_section_similar_sub">Basé sur vos écoutes</string>
     <string name="home_section_new_crew">Nouveaux Talents</string>
     <string name="home_section_new_crew_sub">Artistes à découvrir</string>
-    <string name="home_section_more_of_what_you_like">Plus de ce que vous aimez</string>
-    <string name="home_section_more_of_what_you_like_sub">Basé sur vos habitudes d\'écoute</string>
+    <string name="home_rediscovery_title">Redécouvrez votre collection</string>
+    <string name="home_rediscovery_sub">Pépites oubliées de vos likes</string>
+    <string name="home_habits_title">Votre Vibe</string>
+    <string name="home_habits_sub">Basé sur vos écoutes récentes</string>
     <string name="home_station_artist_title">Station : %1$s</string>
     <string name="home_station_track_title">Station : %1$s</string>
     <string name="home_discover_stations">Découvrir avec les Stations</string>
