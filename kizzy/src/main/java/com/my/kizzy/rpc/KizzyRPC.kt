@@ -40,53 +40,57 @@
             return discordWebSocket.isWebSocketConnected()
         }
     
-        suspend fun setActivity(
-            name: String,
-            state: String?,
-            details: String?,
-            largeImage: RpcImage?,
-            smallImage: RpcImage?,
-            largeText: String? = null,
-            smallText: String? = null,
-            buttons: List<Pair<String, String>>? = null,
-            startTime: Long? = null,
-            endTime: Long? = null,
-            type: Type = Type.LISTENING,
-            streamUrl: String? = null,
-            applicationId: String? = null,
-            status: String? = "online",
-            since: Long? = null,
-        ) {
-            if (!isRpcRunning()) {
-                discordWebSocket.connect()
-            }
-            val presence = Presence(
-                activities = listOf(
-                    Activity(
-                        name = name,
-                        state = state,
-                        details = details,
-                        type = type.value,
-                        timestamps = Timestamps(startTime, endTime),
-                        assets = Assets(
-                            largeImage = largeImage?.resolveImage(kizzyRepository),
-                            smallImage = smallImage?.resolveImage(kizzyRepository),
-                            largeText = largeText,
-                            smallText = smallText
-                        ),
-                        buttons = buttons?.map { it.first },
-                        metadata = Metadata(buttonUrls = buttons?.map { it.second }),
-                        applicationId = applicationId.takeIf { !buttons.isNullOrEmpty() },
-                        url = streamUrl
-                    )
-                ),
-                afk = true,
-                since = since,
-                status = status ?: "online"
-            )
-            discordWebSocket.sendActivity(presence)
+    suspend fun setActivity(
+        name: String,
+        state: String?,
+        details: String?,
+        largeImage: RpcImage?,
+        smallImage: RpcImage?,
+        largeText: String? = null,
+        smallText: String? = null,
+        buttons: List<Pair<String, String>>? = null,
+        startTime: Long? = null,
+        endTime: Long? = null,
+        type: Type = Type.PLAYING,
+        streamUrl: String? = null,
+        applicationId: String? = null,
+        status: String? = "online",
+        since: Long? = null,
+    ) {
+        if (!isRpcRunning()) {
+            discordWebSocket.connect()
         }
-    
+        val presence = Presence(
+            activities = listOf(
+                Activity(
+                    name = name,
+                    state = state,
+                    details = details,
+                    type = type.value,
+                    timestamps = if (startTime != null || endTime != null) {
+                        Timestamps(start = startTime, end = endTime)
+                    } else null,
+                    assets = Assets(
+                        // On force la résolution de l'image
+                        largeImage = largeImage?.resolveImage(kizzyRepository),
+                        smallImage = smallImage?.resolveImage(kizzyRepository),
+                        largeText = largeText,
+                        smallText = smallText
+                    ),
+                    buttons = buttons?.map { it.first },
+                    metadata = Metadata(buttonUrls = buttons?.map { it.second }),
+                    // ▼ CORRECTION MAJEURE ICI : On envoie l'ID quoi qu'il arrive ▼
+                    applicationId = applicationId, 
+                    url = streamUrl
+                )
+            ),
+            afk = true,
+            since = since,
+            status = status ?: "online"
+        )
+        discordWebSocket.sendActivity(presence)
+    }
+
         enum class Type(val value: Int) {
             PLAYING(0),
             STREAMING(1),

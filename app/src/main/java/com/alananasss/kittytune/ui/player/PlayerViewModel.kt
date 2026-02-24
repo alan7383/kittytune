@@ -44,6 +44,7 @@
     import kotlinx.coroutines.isActive
     import kotlinx.coroutines.launch
     import kotlinx.coroutines.withContext
+    import kotlinx.coroutines.Job
     import org.schabi.newpipe.extractor.ServiceList
     import org.schabi.newpipe.extractor.stream.StreamInfoItem
     import java.io.ByteArrayOutputStream
@@ -158,6 +159,8 @@
         var showLyricsOffsetControls by mutableStateOf(false)
     
         private var pendingSeekPosition: Long? = null
+        private var saveQueueJob: Job? = null
+        private var lyricsJob: Job? = null
     
         private val syncReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
@@ -506,11 +509,13 @@
         }
 
         private fun loadLyrics(track: Track) {
+            lyricsJob?.cancel()
             lyricsLines.clear()
             lyricsOffset = 0L
             showLyricsOffsetControls = false
             isLyricsLoading = true
             isSearchingLyrics = false
+            rawPlainLyrics = null
 
             val originalTitle = track.title ?: ""
             val cleanTitle = cleanTitleNoise(originalTitle)
@@ -528,8 +533,7 @@
             }
 
             manualSearchQuery = searchQueries.first()
-
-            viewModelScope.launch(Dispatchers.IO) {
+            lyricsJob = viewModelScope.launch(Dispatchers.IO) {
                 val preferLocal = playerPrefs.getLyricsPreferLocal()
                 var localLyricsFound = false
 
@@ -556,6 +560,8 @@
                         var results: List<LrcLibResponse> = emptyList()
 
                         for (query in searchQueries) {
+                            if (!isActive) return@launch
+
                             if (query.isBlank()) continue
                             results = LrcLibClient.api.searchLyrics(query)
 
@@ -567,10 +573,14 @@
                             }
                         }
 
+                        if (!isActive) return@launch
+
                         val bestMatch = results.filter { abs(it.duration - trackDurationSec) < 4.0 }.find { !it.syncedLyrics.isNullOrEmpty() } ?: results.firstOrNull()
                         processLyricsResponse(bestMatch, track.durationMs ?: 0L)
                     } catch (e: Exception) {
-                        withContext(Dispatchers.Main) { isLyricsLoading = false }
+                        if (e !is kotlinx.coroutines.CancellationException) {
+                            withContext(Dispatchers.Main) { isLyricsLoading = false }
+                        }
                     }
                 }
             }
@@ -1369,10 +1379,26 @@
     
         private fun emitUiEvent(msg: String) { viewModelScope.launch { _uiEvent.emit(msg) } }
         private fun saveStateAsync(saveQueue: Boolean = false) {
-            val t = currentTrack; val p = MusicManager.player.currentPosition; val q = if (saveQueue) _queue.toList() else emptyList(); val c = currentContext
-            viewModelScope.launch(Dispatchers.IO) { playerPrefs.savePlaybackState(t, p, q, c, shuffleEnabled, repeatMode) }
+            val t = currentTrack
+            val p = MusicManager.player.currentPosition
+            val c = currentContext
+            val s = shuffleEnabled
+            val r = repeatMode
+            if (saveQueue) {
+                saveQueueJob?.cancel()
+                saveQueueJob = viewModelScope.launch(Dispatchers.IO) {
+                    delay(500)
+                    val qSnapshot = _queue.toList()
+                    playerPrefs.savePlaybackState(t, p, qSnapshot, c, s, r)
+                }
+            } else {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val q = _queue.toList()
+                    playerPrefs.savePlaybackState(t, p, q, c, s, r)
+                }
+            }
         }
-    
+
         private fun startProgressUpdate() {
             viewModelScope.launch {
                 val tokenManager = TokenManager(context)
