@@ -518,13 +518,54 @@
                 }
             } catch (e: Exception) { null }
         }
-    
+
         private suspend fun fetchPersonalizedSections(sourceTracks: List<Track>, username: String): List<HomeSection> {
             val sections = mutableStateListOf<HomeSection>()
-            if (sourceTracks.isEmpty()) return sections
-    
+
+            val historyItems = try { HistoryRepository.getHistory().first() } catch (e: Exception) { emptyList() }
+
+            val recentTracks = historyItems.filter { it.type == "TRACK" }.take(20).map {
+                Track(it.numericId, it.title, it.imageUrl, 0L, User(0, it.subtitle, null))
+            }
+
             try {
                 coroutineScope {
+                    if (recentTracks.isNotEmpty()) {
+                        val habitSeeds = recentTracks.distinctBy { it.id }.take(10)
+                        val habitStations = habitSeeds.map { track ->
+                            Playlist(
+                                id = track.id,
+                                title = getString(R.string.home_station_track_title, track.title ?: ""),
+                                artworkUrl = track.fullResArtwork,
+                                calculatedArtworkUrl = null,
+                                trackCount = 0,
+                                user = track.user,
+                                permalinkUrl = "track_station_marker"
+                            )
+                        }
+                        if (habitStations.isNotEmpty()) {
+                            sections.add(HomeSection(getString(R.string.home_habits_title), getString(R.string.home_habits_sub), habitStations, SectionType.STATIONS_ROW))
+                        }
+                    }
+
+                    if (sourceTracks.isNotEmpty()) {
+                        val rediscoverySeeds = sourceTracks.shuffled().take(10)
+                        val rediscoveryStations = rediscoverySeeds.map { track ->
+                            Playlist(
+                                id = track.id,
+                                title = getString(R.string.home_station_track_title, track.title ?: ""),
+                                artworkUrl = track.fullResArtwork,
+                                calculatedArtworkUrl = null,
+                                trackCount = 0,
+                                user = track.user,
+                                permalinkUrl = "track_station_marker"
+                            )
+                        }
+                        if (rediscoveryStations.isNotEmpty()) {
+                            sections.add(HomeSection(getString(R.string.home_rediscovery_title), getString(R.string.home_rediscovery_sub), rediscoveryStations, SectionType.STATIONS_ROW))
+                        }
+                    }
+
                     val recommendedAlbumsDef = async {
                         val finalAlbumList = mutableListOf<Playlist>()
                         try {
@@ -535,11 +576,11 @@
                                 }.map { it.await() }.flatten()
                                 finalAlbumList.addAll(artistAlbums)
                             }
-    
+
                             val topGenres = sourceTracks.mapNotNull { it.genre }.filter { it.isNotBlank() }
                                 .groupingBy { it }.eachCount()
                                 .toList().sortedByDescending { it.second }.take(2).map { it.first }
-    
+
                             if (topGenres.isNotEmpty()) {
                                 val genreAlbums = topGenres.map { genre ->
                                     async { try { api.searchAlbums(genre, limit = 5).collection } catch (e: Exception) { emptyList() } }
@@ -551,14 +592,14 @@
                         }
                         finalAlbumList.distinctBy { it.id }.shuffled().take(10)
                     }
-    
+
                     val artistStationsDef = async {
                         val artistCandidates = sourceTracks.mapNotNull { it.user }
                             .distinctBy { it.id }
                             .filter { it.id > 0 }
                             .shuffled()
                             .take(5)
-    
+
                         if (artistCandidates.isNotEmpty()) {
                             artistCandidates.map { artist ->
                                 Playlist(
@@ -575,27 +616,14 @@
                             emptyList()
                         }
                     }
-    
-                    val stationSeeds = sourceTracks.shuffled().take(10)
-                    val stationItems = stationSeeds.map { track ->
-                        Playlist(
-                            id = track.id,
-                            title = getString(R.string.home_station_track_title, track.title ?: ""),
-                            artworkUrl = track.fullResArtwork,
-                            calculatedArtworkUrl = null,
-                            trackCount = 0,
-                            user = track.user,
-                            permalinkUrl = "track_station_marker"
-                        )
-                    }
-    
+
                     val likedByDef = async {
                         val candidateIds = sourceTracks.mapNotNull { it.user?.id }.distinct().shuffled().take(10)
                         val validatedUsersDeferred = candidateIds.map { userId ->
                             async { try { val userFull = api.getUser(userId); if (userFull.likesCount > 0) userFull else null } catch (e: Exception) { null } }
                         }
                         val validatedUsers = validatedUsersDeferred.mapNotNull { it.await() }
-    
+
                         if (validatedUsers.isNotEmpty()) {
                             validatedUsers.map { user ->
                                 Playlist(
@@ -612,7 +640,7 @@
                             emptyList()
                         }
                     }
-    
+
                     val seed1 = sourceTracks.take(10).randomOrNull() ?: sourceTracks.first()
                     val relatedDef1 = async {
                         try {
@@ -623,10 +651,7 @@
                             }
                         } catch (e: Exception) { emptyList() }
                     }
-    
-                    val relatedYoutubeDef = async {
-                        fetchYoutubeRecommendations(seed1)
-                    }
+
                     val newCrewDef = async {
                         val artists = sourceTracks.mapNotNull { it.user }.distinctBy { it.id }.shuffled().take(8)
                         val similarArtists = try {
@@ -635,36 +660,32 @@
                         } catch(e:Exception) { emptyList() }
                         (artists + similarArtists).distinctBy { it.id }.shuffled().take(10)
                     }
-    
+
                     val recommendedAlbums = recommendedAlbumsDef.await()
                     if (recommendedAlbums.isNotEmpty()) {
                         sections.add(HomeSection(getString(R.string.home_albums_for_you), null, recommendedAlbums, SectionType.STATIONS_ROW))
                     }
-    
+
                     val artistStations = artistStationsDef.await()
                     if(artistStations.isNotEmpty()){
                         sections.add(HomeSection(getString(R.string.home_discover_stations), getString(R.string.home_section_new_crew_sub), artistStations, SectionType.STATIONS_ROW))
                     }
-    
-                    if (stationItems.isNotEmpty()) {
-                        sections.add(HomeSection(getString(R.string.home_section_more_of_what_you_like), getString(R.string.home_section_more_of_what_you_like_sub), stationItems, SectionType.STATIONS_ROW))
-                    }
-    
+
                     val likedByItems = likedByDef.await()
                     if (likedByItems.isNotEmpty()) {
                         sections.add(HomeSection(getString(R.string.home_liked_by_section_title), getString(R.string.home_liked_by_section_subtitle), likedByItems, SectionType.STATIONS_ROW))
                     }
-    
+
                     val related1 = relatedDef1.await()
                     if (related1.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_section_similar, seed1.title ?: ""), getString(R.string.home_section_similar_sub), related1, SectionType.TRACKS_ROW))
-    
+
                     val newCrew = newCrewDef.await()
                     if (newCrew.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_section_new_crew), getString(R.string.home_section_new_crew_sub), newCrew, SectionType.ARTISTS_ROW))
                 }
             } catch (e: Exception) { e.printStackTrace() }
             return sections
         }
-    
+
         private suspend fun loadGuestData() {
             try {
                 userProfile = null

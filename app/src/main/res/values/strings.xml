@@ -80,8 +80,10 @@
     <string name="home_section_similar_sub">Because you listened to this track</string>
     <string name="home_section_new_crew">New Talent</string>
     <string name="home_section_new_crew_sub">Artists you might like</string>
-    <string name="home_section_more_of_what_you_like">More of what you like</string>
-    <string name="home_section_more_of_what_you_like_sub">Based on your listening habits</string>
+    <string name="home_rediscovery_title">Rediscover your collection</string>
+    <string name="home_rediscovery_sub">Forgotten gems from your likes</string>
+    <string name="home_habits_title">Your Vibe</string>
+    <string name="home_habits_sub">Based on your recent listening</string>
     <string name="home_station_artist_title">Station: %1$s</string>
     <string name="home_station_track_title">Station: %1$s</string>
     <string name="home_discover_stations">Discover with Stations</string>

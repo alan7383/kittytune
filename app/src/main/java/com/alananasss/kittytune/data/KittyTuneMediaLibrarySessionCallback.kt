@@ -323,16 +323,18 @@
                 else -> Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
             }
         }
-    
+
         private fun getRootChildren(page: Int, pageSize: Int): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             val items = mutableListOf<MediaItem>()
             items.add(createBrowsableMediaItem(LIBRARY_ROOT_ID, context.getString(R.string.nav_library)))
-            items.add(createBrowsableMediaItem(RECOMMENDATIONS_ID, context.getString(R.string.home_section_more_of_what_you_like)))
+
+            items.add(createBrowsableMediaItem(RECOMMENDATIONS_ID, context.getString(R.string.home_rediscovery_title)))
+
             items.add(createBrowsableMediaItem(GENRES_ID, context.getString(R.string.search_section_genres)))
             val pagedItems = paginate(items, page, pageSize)
             return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(pagedItems), null))
         }
-    
+
         private fun getLibraryContent(page: Int, pageSize: Int): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             return serviceScope.future {
                 val items = mutableListOf<MediaItem>()
