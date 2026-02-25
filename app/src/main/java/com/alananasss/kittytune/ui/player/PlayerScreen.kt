@@ -1,10 +1,6 @@
 package com.alananasss.kittytune.ui.player
 
 import android.content.Context
-import android.content.Intent
-import android.content.res.Configuration
-import android.graphics.Bitmap
-import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
@@ -14,10 +10,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -42,7 +36,6 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.*
 import sh.calvin.reorderable.ReorderableItem
@@ -81,17 +74,14 @@ import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Comment
 import com.alananasss.kittytune.domain.Track
-import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.utils.makeTimeString
 import com.alananasss.kittytune.ui.utils.fadingEdge
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.items
@@ -104,13 +94,11 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clipToBounds
 import kotlinx.coroutines.isActive
@@ -122,8 +110,9 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.LayoutDirection
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
-import com.alananasss.kittytune.ui.utils.fadingEdge
-import kotlin.math.abs
+import android.view.WindowManager
+import android.app.Activity
+import android.content.ContextWrapper
 
 @Composable
 fun PremiumMarqueeText(
@@ -459,6 +448,15 @@ fun PlayerScreen(
 
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
+    DisposableEffect(viewModel.showInlineLyrics) {
+        val activity = context.findActivity()
+        if (viewModel.showInlineLyrics) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
     val backgroundStyle = remember { prefs.getPlayerStyle() }
     var showLyricsButtonEnabled by remember { mutableStateOf(prefs.getShowLyricsButtonEnabled()) }
     DisposableEffect(Unit) {
@@ -1180,17 +1178,76 @@ fun QueueContent(viewModel: PlayerViewModel, isQueueOpen: Boolean, onCloseQueue:
 
 @Composable
 fun PlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
-    val view = LocalView.current; var isDragging by remember { mutableStateOf(false) }; var dragPosition by remember { mutableFloatStateOf(0f) }
-    val totalDuration = viewModel.duration.coerceAtLeast(1L).toFloat(); val currentPos = viewModel.currentPosition.coerceAtMost(viewModel.duration).toFloat()
-    val progressState = remember { Animatable(0f) }; val sliderPosition = if (isDragging) dragPosition else progressState.value
-    LaunchedEffect(currentPos, isDragging) { if (!isDragging) { val target = currentPos; val distance = kotlin.math.abs(progressState.value - target); if (distance > 2000f) progressState.animateTo(target, tween(400, easing = FastOutSlowInEasing)) else progressState.animateTo(target, tween(1000, easing = LinearEasing)) } }
+    val view = LocalView.current
+    var isDragging by remember { mutableStateOf(false) }
+    var dragPosition by remember { mutableFloatStateOf(0f) }
+
+    var lastValidDuration by remember { mutableFloatStateOf(180000f) }
+    if (viewModel.duration > 1000) {
+        lastValidDuration = viewModel.duration.toFloat()
+    }
+    val totalDuration = if (viewModel.duration > 1000) viewModel.duration.toFloat() else lastValidDuration
+
+    val rawPosition = viewModel.currentPosition.toFloat()
+
+    var currentTrackId by remember { mutableStateOf(viewModel.currentTrack?.id) }
+    var isTransitioning by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel.currentTrack?.id) {
+        if (viewModel.currentTrack?.id != currentTrackId) {
+            currentTrackId = viewModel.currentTrack?.id
+            isTransitioning = true
+            delay(1500)
+            isTransitioning = false
+        }
+    }
+
+    LaunchedEffect(rawPosition) {
+        if (isTransitioning && rawPosition < 2000f) {
+            isTransitioning = false
+        }
+    }
+
+    val targetPos = when {
+        isTransitioning -> 0f
+        rawPosition > totalDuration -> 0f
+        else -> rawPosition
+    }
+
+    val progressState = remember { Animatable(0f) }
+    val sliderPosition = if (isDragging) dragPosition else progressState.value
+    LaunchedEffect(targetPos, isDragging) {
+        if (isDragging) {
+            progressState.snapTo(dragPosition)
+        } else {
+            val currentVal = progressState.value
+            val diff = targetPos - currentVal
+            val absDiff = kotlin.math.abs(diff)
+
+            if (targetPos < 1000f && currentVal > 2000f) {
+                progressState.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
+            } else if (absDiff > 2000f) {
+                progressState.animateTo(targetPos, tween(300, easing = FastOutSlowInEasing))
+            } else if (diff > 0) {
+                progressState.animateTo(targetPos, tween(1000, easing = LinearEasing))
+            }
+        }
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Slider(
             value = sliderPosition.coerceIn(0f, totalDuration),
             valueRange = 0f..totalDuration,
-            onValueChange = { isDragging = true; dragPosition = it; viewModel.updateScrubPosition(it.toLong()); view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK) },
-            onValueChangeFinished = { viewModel.seekTo(dragPosition.toLong()); isDragging = false },
+            onValueChange = {
+                isDragging = true
+                dragPosition = it
+                viewModel.updateScrubPosition(it.toLong())
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            },
+            onValueChangeFinished = {
+                viewModel.seekTo(dragPosition.toLong())
+                isDragging = false
+            },
             colors = SliderDefaults.colors(
                 thumbColor = textColor,
                 activeTrackColor = textColor,
@@ -1199,8 +1256,16 @@ fun PlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
             modifier = Modifier.fillMaxWidth()
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(text = makeTimeString(sliderPosition.toLong()), style = MaterialTheme.typography.labelSmall, color = textColor.copy(alpha = 0.7f))
-            Text(text = makeTimeString(totalDuration.toLong()), style = MaterialTheme.typography.labelSmall, color = textColor.copy(alpha = 0.7f))
+            Text(
+                text = makeTimeString(if (isDragging) dragPosition.toLong() else progressState.value.toLong()),
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor.copy(alpha = 0.7f)
+            )
+            Text(
+                text = makeTimeString(totalDuration.toLong()),
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor.copy(alpha = 0.7f)
+            )
         }
     }
 }
@@ -1560,4 +1625,9 @@ fun parseSoundCloudTags(tagList: String?): List<String> {
     val matcher = pattern.matcher(tagList)
     while (matcher.find()) { if (matcher.group(1) != null) tags.add(matcher.group(1)!!) else tags.add(matcher.group(2)!!) }
     return tags
+}
+private fun android.content.Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
