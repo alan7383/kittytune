@@ -1531,7 +1531,7 @@
                 }
             }
         }
-    
+
         private fun startServiceSafe(context: Context, intent: Intent) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -1543,7 +1543,7 @@
                 e.printStackTrace()
             }
         }
-    
+
         private suspend fun playRobustly(index: Int, autoPlay: Boolean = true, startPosition: Long = 0L, allowSkipOnFailure: Boolean = true) {
             if (index !in _queue.indices) return
     
