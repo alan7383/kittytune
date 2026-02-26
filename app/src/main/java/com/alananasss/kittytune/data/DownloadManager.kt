@@ -411,9 +411,11 @@
                         Log.e("DownloadManager", "Failed to resolve stream URL for track: ${track.title}")
                         return@launch
                     }
-    
+
                     downloadFileToStream(streamUrl, FileOutputStream(tempAudioFile)) { p ->
-                        _downloadProgress.update { c -> c + (track.id to p) }
+                        if (isActive) {
+                            _downloadProgress.update { c -> c + (track.id to p) }
+                        }
                     }
                     downloadFileToStream(track.fullResArtwork, FileOutputStream(tempImageFile)) { _ -> }
     
@@ -490,28 +492,101 @@
             activeJobs[track.id] = job
             return job
         }
-    
-        private fun downloadFileToStream(url: String, outputStream: OutputStream, onProgress: (Int) -> Unit) {
-            val request = Request.Builder().url(url).build()
-            val response = client.newCall(request).execute()
-            val body = response.body ?: throw Exception(context.getString(R.string.error_empty_body))
-            val total = body.contentLength()
-    
-            body.byteStream().use { input ->
-                outputStream.use { output ->
-                    val buffer = ByteArray(8 * 1024)
-                    var copied = 0L
-                    var read: Int
-                    while (input.read(buffer).also { read = it } >= 0) {
-                        output.write(buffer, 0, read)
-                        copied += read
-                        if (total > 0) onProgress(((copied * 100) / total).toInt())
+
+        private suspend fun downloadFileToStream(url: String, outputStream: OutputStream, onProgress: (Int) -> Unit) {
+            val headRequest = Request.Builder()
+                .url(url)
+                .header("Range", "bytes=0-0")
+                .build()
+
+            var contentLength = -1L
+            var acceptRanges = false
+
+            try {
+                client.newCall(headRequest).execute().use { response ->
+                    if (response.isSuccessful || response.code == 206) {
+                        val contentRange = response.header("Content-Range")
+                        if (contentRange != null && contentRange.contains("/")) {
+                            contentLength = contentRange.substringAfter("/").toLongOrNull() ?: -1L
+                        }
+                        acceptRanges = response.code == 206 || response.header("Accept-Ranges") == "bytes"
                     }
-                    output.flush()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            if (contentLength <= 0 || !acceptRanges) {
+                val request = Request.Builder().url(url).build()
+                client.newCall(request).execute().use { response ->
+                    val body = response.body ?: throw Exception(context.getString(R.string.error_empty_body))
+                    val total = body.contentLength()
+
+                    body.byteStream().use { input ->
+                        val buffer = ByteArray(32 * 1024)
+                        var copied = 0L
+                        var read: Int
+                        while (input.read(buffer).also { read = it } >= 0) {
+                            outputStream.write(buffer, 0, read)
+                            copied += read
+                            if (total > 0) onProgress(((copied * 100) / total).toInt())
+                        }
+                        outputStream.flush()
+                    }
+                }
+                return
+            }
+
+            val numThreads = 3
+            val chunkSize = contentLength / numThreads
+            val tempFiles = Array(numThreads) { File(context.cacheDir, "chunk_${System.currentTimeMillis()}_$it.tmp") }
+            var totalCopied = 0L
+
+            coroutineScope {
+                val jobs = (0 until numThreads).map { i ->
+                    async(Dispatchers.IO) {
+                        val startByte = i * chunkSize
+                        val endByte = if (i == numThreads - 1) contentLength - 1 else (startByte + chunkSize - 1)
+
+                        val chunkRequest = Request.Builder()
+                            .url(url)
+                            .header("Range", "bytes=$startByte-$endByte")
+                            .build()
+
+                        client.newCall(chunkRequest).execute().use { response ->
+                            val body = response.body ?: throw Exception("Empty body in chunk $i")
+
+                            tempFiles[i].outputStream().use { fileOut ->
+                                val buffer = ByteArray(32 * 1024)
+                                var read: Int
+                                val input = body.byteStream()
+
+                                while (input.read(buffer).also { read = it } >= 0) {
+                                    fileOut.write(buffer, 0, read)
+
+                                    synchronized(this@DownloadManager) {
+                                        totalCopied += read
+                                        onProgress(((totalCopied * 100) / contentLength).toInt())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                jobs.awaitAll()
+            }
+
+            for (tempFile in tempFiles) {
+                if (tempFile.exists()) {
+                    tempFile.inputStream().use { input ->
+                        input.copyTo(outputStream, 64 * 1024)
+                    }
+                    tempFile.delete()
                 }
             }
+            outputStream.flush()
         }
-    
+
         fun deleteTrack(trackId: Long) {
             scope.launch {
                 val track = database.downloadDao().getTrack(trackId)
