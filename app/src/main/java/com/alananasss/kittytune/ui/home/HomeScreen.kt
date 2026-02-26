@@ -1124,10 +1124,12 @@
         val isLikedBy = playlist.permalinkUrl == "liked_by_marker"
         val isArtistStation = playlist.permalinkUrl == "artist_station_marker"
         val isTrackStation = playlist.permalinkUrl == "track_station_marker"
+        val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
     
         return when {
             isLikedBy -> "liked_by:${playlist.id}"
             isArtistStation -> "station_artist:${playlist.id}"
+            isYoutubeRadio -> playlist.permalinkUrl!!
             isTrackStation -> "station:${playlist.id}"
             else -> playlist.id.toString()
         }
@@ -1145,7 +1147,6 @@
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            // --- Section MOODS ---
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = stringResource(R.string.search_section_moods),
@@ -1155,12 +1156,10 @@
                 )
             }
     
-            // Utilisation simple de 'items'
             items(moods) { category ->
                 SearchCategoryCard(category = category) { onCategoryClick(category) }
             }
     
-            // --- Section GENRES ---
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = stringResource(R.string.search_section_genres),
@@ -1181,13 +1180,12 @@
         category: SearchCategory,
         onClick: () -> Unit
     ) {
-        // --- CHANGEMENT ICI : On utilise la variante SECONDAIRE ---
         val containerColor = MaterialTheme.colorScheme.secondaryContainer
         val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
     
         Card(
             onClick = onClick,
-            shape = RoundedCornerShape(28.dp), // Forme Expressive
+            shape = RoundedCornerShape(28.dp),
             colors = CardDefaults.cardColors(
                 containerColor = containerColor,
                 contentColor = contentColor
@@ -1197,7 +1195,6 @@
                 .height(110.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Icône en filigrane (Watermark)
                 Icon(
                     imageVector = category.icon,
                     contentDescription = null,
@@ -1219,7 +1216,6 @@
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    // Titre
                     Text(
                         text = category.title,
                         style = MaterialTheme.typography.titleMedium.copy(
@@ -1230,7 +1226,6 @@
                         overflow = TextOverflow.Ellipsis
                     )
     
-                    // Bouton flèche
                     Box(
                         modifier = Modifier
                             .size(32.dp)

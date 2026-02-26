@@ -42,7 +42,8 @@
     import androidx.compose.material.icons.rounded.*
     import androidx.compose.ui.graphics.vector.ImageVector
     import kotlinx.coroutines.awaitAll
-    
+    import com.zionhuang.innertube.models.WatchEndpoint
+
     data class HomeSection(
         val title: String,
         val subtitle: String? = null,
@@ -135,14 +136,20 @@
                 }
             }
         }
-    
+
         fun onSearchQueryChanged(query: String) {
             searchQuery = query
             searchJob?.cancel()
-    
+
             val trimmed = query.trim()
-            if (trimmed.startsWith("https://soundcloud.com") || trimmed.startsWith("https://on.soundcloud.com")) {
+
+            val isSoundCloudUrl = trimmed.startsWith("https://soundcloud.com") || trimmed.startsWith("https://on.soundcloud.com")
+            val isYoutubeUrl = trimmed.contains("youtube.com") || trimmed.contains("youtu.be")
+
+            if (isSoundCloudUrl) {
                 handleSoundCloudUrl(trimmed)
+            } else if (isYoutubeUrl) {
+                handleYoutubeUrl(trimmed)
             } else {
                 if (trimmed.isBlank()) {
                     clearSearchResults()
@@ -154,7 +161,7 @@
                 }
             }
         }
-    
+
         private suspend fun unshortenUrl(shortUrl: String): String = withContext(Dispatchers.IO) {
             try {
                 val client = OkHttpClient.Builder().followRedirects(true).followSslRedirects(true).build()
@@ -433,7 +440,67 @@
                 } catch (e: Exception) { e.printStackTrace() }
             }
         }
-    
+
+        private fun extractYoutubeVideoId(url: String): String? {
+            val pattern = "(?<=watch\\?v=|/videos/|embed/|youtu.be/|/v/|/e/|watch\\?v%3D|watch\\?feature=player_embedded&v=|%2Fvideos%2F|embed%\u200C\u200B2F|youtu.be%2F|%2Fv%2F)[^#&?\\n]*"
+            val compiledPattern = Pattern.compile(pattern)
+            val matcher = compiledPattern.matcher(url)
+            return if (matcher.find()) matcher.group() else null
+        }
+
+        private fun handleYoutubeUrl(url: String) {
+            isSearchLoading = true
+            clearSearchResults()
+            viewModelScope.launch {
+                try {
+                    if (url.contains("list=") || url.contains("radio")) {
+                        val encodedUrl = java.net.URLEncoder.encode(url, "UTF-8")
+                        _navigateTo.emit("playlist_detail/yt_radio:$encodedUrl")
+                        clearSearch()
+                        isSearchLoading = false
+                        return@launch
+                    }
+
+                    val videoId = extractYoutubeVideoId(url)
+                    if (videoId != null) {
+                        val result = withContext(Dispatchers.IO) {
+                            try {
+                                YouTube.next(WatchEndpoint(videoId = videoId)).getOrNull()
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
+
+                        val item = result?.items?.firstOrNull()
+
+                        val title = item?.title ?: "YouTube Track"
+                        val author = item?.artists?.firstOrNull()?.name ?: "YouTube"
+                        val art = item?.thumbnail ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
+
+                        val track = Track(
+                            id = videoId.hashCode().toLong(),
+                            title = title,
+                            user = User(0L, author, null),
+                            artworkUrl = art,
+                            durationMs = 0L,
+                            permalinkUrl = url,
+                            source = "youtube"
+                        )
+
+                        _playTrack.emit(track)
+                        clearSearch()
+                    } else {
+                        performSearch(url)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    performSearch(url)
+                } finally {
+                    isSearchLoading = false
+                }
+            }
+        }
+
         fun loadData() {
             viewModelScope.launch {
                 val token = tokenManager.getAccessToken()
@@ -525,7 +592,15 @@
             val historyItems = try { HistoryRepository.getHistory().first() } catch (e: Exception) { emptyList() }
 
             val recentTracks = historyItems.filter { it.type == "TRACK" }.take(20).map {
-                Track(it.numericId, it.title, it.imageUrl, 0L, User(0, it.subtitle, null))
+                Track(
+                    id = it.numericId,
+                    title = it.title,
+                    artworkUrl = it.imageUrl,
+                    durationMs = 0L,
+                    user = User(0, it.subtitle, null),
+                    source = it.source,
+                    permalinkUrl = it.originalUrl
+                )
             }
 
             try {
@@ -533,6 +608,8 @@
                     if (recentTracks.isNotEmpty()) {
                         val habitSeeds = recentTracks.distinctBy { it.id }.take(10)
                         val habitStations = habitSeeds.map { track ->
+                            val isYoutube = track.source == "youtube" && !track.permalinkUrl.isNullOrEmpty()
+                            val permalink = if (isYoutube) "yt_radio:${track.permalinkUrl}" else "track_station_marker"
                             Playlist(
                                 id = track.id,
                                 title = getString(R.string.home_station_track_title, track.title ?: ""),
@@ -540,7 +617,7 @@
                                 calculatedArtworkUrl = null,
                                 trackCount = 0,
                                 user = track.user,
-                                permalinkUrl = "track_station_marker"
+                                permalinkUrl = permalink
                             )
                         }
                         if (habitStations.isNotEmpty()) {
@@ -551,6 +628,8 @@
                     if (sourceTracks.isNotEmpty()) {
                         val rediscoverySeeds = sourceTracks.shuffled().take(10)
                         val rediscoveryStations = rediscoverySeeds.map { track ->
+                            val isYoutube = track.source == "youtube" && !track.permalinkUrl.isNullOrEmpty()
+                            val permalink = if (isYoutube) "yt_radio:${track.permalinkUrl}" else "track_station_marker"
                             Playlist(
                                 id = track.id,
                                 title = getString(R.string.home_station_track_title, track.title ?: ""),
@@ -558,7 +637,7 @@
                                 calculatedArtworkUrl = null,
                                 trackCount = 0,
                                 user = track.user,
-                                permalinkUrl = "track_station_marker"
+                                permalinkUrl = permalink
                             )
                         }
                         if (rediscoveryStations.isNotEmpty()) {
@@ -956,5 +1035,6 @@
             }
         }
     }
+
 
 
