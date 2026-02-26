@@ -23,11 +23,11 @@
         compileSdk = 36
     
         defaultConfig {
-            applicationId = "com.alananasss.kittytune.debug"
+            applicationId = "com.alananasss.kittytune"
             minSdk = 26
             targetSdk = 36
             versionCode = 1
-            versionName = "2.19.7"
+            versionName = "2.19.8"
     
             testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
             buildConfigField("String", "MY_INVIDIOUS_URL", "\"$invidiousUrl\"")
