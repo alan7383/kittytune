@@ -834,8 +834,10 @@
     
                                         val progress = downloadProgress[track.id]
                                         val isDownloading = progress != null
-                                        val isDownloaded = remember(track.id, downloadedIds) { track.id < 0 || downloadedIds.contains(track.id) }
-    
+                                        val isDownloaded = remember(track.id, downloadedIds) {
+                                            (track.id < 0 && track.source != "youtube") || downloadedIds.contains(track.id)
+                                        }
+
                                         if (isUserCreated) {
                                             ReorderableItem(
                                                 state = reorderableState,
