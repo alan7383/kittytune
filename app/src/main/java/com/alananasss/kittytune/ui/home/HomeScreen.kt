@@ -308,6 +308,7 @@
                                     when {
                                         historyItem.id == "likes" -> onNavigate("likes")
                                         historyItem.id == "downloads" -> onNavigate("downloads")
+                                        historyItem.id.startsWith("yt_radio:") -> onNavigate(historyItem.id)
                                         historyItem.type == "STATION" -> onNavigate(historyItem.id)
                                         historyItem.type == "PROFILE" -> onNavigate(historyItem.id)
                                         historyItem.type == "PLAYLIST" -> onNavigate(historyItem.id.replace("playlist:", ""))
