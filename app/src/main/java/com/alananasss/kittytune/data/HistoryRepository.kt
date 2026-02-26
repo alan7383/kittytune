@@ -41,21 +41,22 @@
 
         fun addToHistory(playlist: Playlist, isStation: Boolean = false, isProfile: Boolean = false) {
             scope.launch {
-                // fix: explicit handling of special IDs to ensure correct UI rendering
+                val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
                 val (stringId, type) = when {
                     isProfile -> "profile:${playlist.id}" to "PROFILE"
+                    isYoutubeRadio -> playlist.permalinkUrl!! to "STATION"
                     isStation -> "station:${playlist.id}" to "STATION"
-                    playlist.id == -1L -> "likes" to "PLAYLIST"     // logic for likes
-                    playlist.id == -2L -> "downloads" to "PLAYLIST" // logic for downloads
+                    playlist.id == -1L -> "likes" to "PLAYLIST"
+                    playlist.id == -2L -> "downloads" to "PLAYLIST"
                     playlist.id < 0 -> "playlist:${playlist.id}" to "PLAYLIST"
                     else -> "playlist:${playlist.id}" to "PLAYLIST"
                 }
-    
-                // fix: logic for clean subtitles without hardcoded strings
+
                 val finalSubtitle = when {
                     isProfile -> appContext.getString(R.string.history_type_artist)
+                    isYoutubeRadio -> "YouTube"
                     isStation -> playlist.user?.username ?: appContext.getString(R.string.history_type_station)
-                    playlist.id == -1L || playlist.id == -2L -> appContext.getString(R.string.history_source_library) // "Library"
+                    playlist.id == -1L || playlist.id == -2L -> appContext.getString(R.string.history_source_library)
                     playlist.id < 0 -> appContext.getString(R.string.history_type_local_playlist)
                     else -> playlist.user?.username ?: appContext.getString(R.string.history_source_soundcloud)
                 }

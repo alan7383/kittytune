@@ -90,37 +90,36 @@
     
                             try {
                                 runBlocking(Dispatchers.IO) {
-                                    if (trackId < 0) {
-                                        try {
-                                            val db = AppDatabase.getDatabase(context).downloadDao()
-                                            val localTrack = db.getTrack(trackId)
-                                            if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
-                                                streamUrl = localTrack.localAudioPath
-                                            }
-                                        } catch (e: Exception) {
-                                            e.printStackTrace()
+                                    try {
+                                        val db = AppDatabase.getDatabase(context).downloadDao()
+                                        val localTrack = db.getTrack(trackId)
+                                        if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
+                                            streamUrl = localTrack.localAudioPath
                                         }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
                                     }
-                                    else {
+
+                                    if (streamUrl == null) {
                                         try {
                                             var trackToResolve = if (currentTrack?.id == trackId) currentTrack
                                             else if (preloadedTrack?.id == trackId) preloadedTrack
                                             else null
-    
+
                                             val hasMediaInfo = trackToResolve?.media?.transcodings?.isNotEmpty() == true
-    
-                                            if ((trackToResolve == null || !hasMediaInfo)) {
+
+                                            if ((trackToResolve == null || !hasMediaInfo) && trackId > 0) { // Ajout de trackId > 0 pour éviter d'appeler l'API SC avec un ID YouTube négatif
                                                 val api = RetrofitClient.create(context)
                                                 val tracks = api.getTracksByIds(trackId.toString())
                                                 val fetchedTrack = tracks.firstOrNull()
-    
+
                                                 if (fetchedTrack != null) {
                                                     trackToResolve = fetchedTrack
                                                     if (currentTrack?.id == trackId) currentTrack = fetchedTrack
                                                     preloadedTrack = fetchedTrack
                                                 }
                                             }
-    
+
                                             if (trackToResolve != null) {
                                                 preloadedTrack = trackToResolve
                                                 streamUrl = StreamResolver.resolveStream(context, trackToResolve)

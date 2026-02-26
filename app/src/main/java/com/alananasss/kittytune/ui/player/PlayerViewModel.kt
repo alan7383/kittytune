@@ -951,12 +951,13 @@
             _queue.clear()
             this.currentContext = context
             MusicManager.updateContext(context)
-    
+
             val effectiveStartIndex = if (startIndex in tracks.indices) startIndex else 0
-    
+
             if (shuffleEnabled) {
                 val clickedTrack = tracks[effectiveStartIndex]
-                val rest = tracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
+                val rest =
+                    tracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
                 _queue.add(clickedTrack)
                 _queue.addAll(rest)
                 playTrackAtIndex(0, addToHistory = (context == null))
@@ -964,18 +965,39 @@
                 _queue.addAll(tracks)
                 playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null))
             }
-    
+
             updateQueueState(); saveStateAsync(saveQueue = true)
-    
+
             if (context != null) {
-                val isStation = context.navigationId.contains("station") || context.navigationId.contains("yt_radio")
+                val isStation =
+                    context.navigationId.contains("station") || context.navigationId.contains("yt_radio")
                 val isProfile = context.navigationId.contains("profile")
-                val idLong = when(context.navigationId) { "likes" -> -1L; "downloads" -> -2L; else -> context.navigationId.substringAfter(":").toLongOrNull() ?: 0L }
+                val idLong = when (context.navigationId) {
+                    "likes" -> -1L
+                    "downloads" -> -2L
+                    else -> context.navigationId.substringAfter(":").toLongOrNull() ?: 0L
+                }
                 val cleanTitle = context.displayText.substringAfter("•").trim()
-    
-                val playlistCreator = if (context.artistName != null) User(0, context.artistName, null, verified = context.isVerified) else null
-    
-                val historyPlaylist = Playlist(id = idLong, title = cleanTitle, artworkUrl = context.imageUrl, calculatedArtworkUrl = null, trackCount = tracks.size, user = playlistCreator, tracks = null)
+
+                val playlistCreator = if (context.artistName != null) User(
+                    0,
+                    context.artistName,
+                    null,
+                    verified = context.isVerified
+                ) else null
+                val safePermalink =
+                    if (context.navigationId.startsWith("yt_radio:")) context.navigationId else null
+                val historyPlaylist = Playlist(
+                    id = idLong,
+                    title = cleanTitle,
+                    artworkUrl = context.imageUrl,
+                    calculatedArtworkUrl = null,
+                    trackCount = tracks.size,
+                    user = playlistCreator,
+                    tracks = null,
+                    permalinkUrl = safePermalink
+                )
+
                 HistoryRepository.addToHistory(historyPlaylist, isStation, isProfile)
             }
         }

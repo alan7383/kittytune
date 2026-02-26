@@ -447,7 +447,13 @@ fun MainScreen(
                                 navController.navigate(id)
                             } else if (id.startsWith("genre_playlists/")) {
                                 navController.navigate(id)
-                            } else {
+                            }
+                            else if (id.startsWith("yt_radio:")) {
+                                val rawUrl = id.removePrefix("yt_radio:")
+                                val encodedUrl = android.net.Uri.encode(rawUrl)
+                                navController.navigate("playlist_detail/yt_radio:$encodedUrl")
+                            }
+                            else {
                                 navController.navigate("playlist_detail/$id")
                             }
                         })
