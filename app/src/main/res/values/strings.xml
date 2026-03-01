@@ -861,4 +861,34 @@
     <string name="no_libraries_found">No libraries found</string>
     <string name="license_unknown">Unknown license</string>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- SLEEP TIMER & CROSSFADE                                                        -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+
+    <!-- Sleep Timer -->
+    <string name="sleep_timer_title">Sleep Timer</string>
+    <string name="sleep_timer_subtitle">Stop playback after a set time</string>
+    <string name="sleep_timer_off">Off</string>
+    <string name="sleep_timer_active">Sleep timer: %1$s remaining</string>
+    <string name="sleep_timer_end_of_track">End of current track</string>
+    <string name="sleep_timer_cancel">Cancel Timer</string>
+    <string name="sleep_timer_set">Set Timer</string>
+    <string name="sleep_timer_dialog_title">Sleep Timer</string>
+    <string name="sleep_timer_custom">Custom</string>
+    <string name="sleep_timer_custom_hint">Minutes</string>
+    <string name="sleep_timer_5">5 min</string>
+    <string name="sleep_timer_10">10 min</string>
+    <string name="sleep_timer_15">15 min</string>
+    <string name="sleep_timer_20">20 min</string>
+    <string name="sleep_timer_30">30 min</string>
+    <string name="sleep_timer_45">45 min</string>
+    <string name="sleep_timer_60">1 hour</string>
+    <string name="sleep_timer_90">1h 30</string>
+    <string name="sleep_timer_minutes_format">%1$d min</string>
+    <string name="sleep_timer_hours_minutes_format">%1$dh %2$dm</string>
+    <string name="sleep_timer_started">Sleep timer set</string>
+    <string name="sleep_timer_cancelled">Sleep timer cancelled</string>
+    <string name="sleep_timer_slider_minutes">%1$d minutes</string>
+    <string name="sleep_timer_stop_at">Stops at %1$s</string>
+
 </resources>
