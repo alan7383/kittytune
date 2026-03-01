@@ -32,7 +32,6 @@ object GithubClient {
 
     private val authInterceptor = Interceptor { chain ->
         val request = chain.request().newBuilder()
-            .addHeader("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
             .addHeader("Accept", "application/vnd.github.v3+json")
             .build()
         chain.proceed(request)
