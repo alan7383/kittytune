@@ -96,9 +96,7 @@ object UpdateManager {
                     .build()
 
                 val requestGitHub = Request.Builder()
-                    .url(asset.apiUrl)
-                    .header("Authorization", "Bearer ${BuildConfig.GITHUB_TOKEN}")
-                    .header("Accept", "application/octet-stream")
+                    .url(asset.browserDownloadUrl)
                     .build()
 
                 var response = noRedirectClient.newCall(requestGitHub).execute()

@@ -16,7 +16,6 @@
         localProperties.load(FileInputStream(localPropertiesFile))
     }
     val invidiousUrl = localProperties.getProperty("INVIDIOUS_URL") ?: "https://invidious.io"
-    val githubToken = localProperties.getProperty("GITHUB_TOKEN") ?: ""
     
     extensions.configure<ApplicationExtension> {
         namespace = "com.alananasss.kittytune"
@@ -31,7 +30,6 @@
     
             testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
             buildConfigField("String", "MY_INVIDIOUS_URL", "\"$invidiousUrl\"")
-            buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
         }
     
         buildTypes {
