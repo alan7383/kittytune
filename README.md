@@ -17,7 +17,7 @@ Seamlessly unifying SoundCloud, YouTube, and local storage into a high-fidelity 
 [![Kotlin](https://img.shields.io/badge/Kotlin-100%25-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Material 3](https://img.shields.io/badge/UI-Material_3_Expressive-4285F4?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io)
 [![Android Auto](https://img.shields.io/badge/Support-Android_Auto-3DDC84?style=flat-square&logo=androidauto&logoColor=white)](https://developer.android.com/training/cars/media)
-[![License](https://img.shields.io/badge/License-GPL%20v3-blue.svg?style=flat-square&color=white)](LICENSE)
+[![License](https://img.shields.io/github/license/alan7383/kittytune?style=flat-square&color=white)](LICENSE)
 
 </div>
 
