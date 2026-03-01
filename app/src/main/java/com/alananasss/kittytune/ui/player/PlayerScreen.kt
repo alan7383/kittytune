@@ -1113,12 +1113,20 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = stringResource(R.string.sleep_timer_active, viewModel.formatSleepTimerRemaining()),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (!viewModel.sleepTimerEndOfTrack) {
+                                val activeStopTimeText = remember(viewModel.sleepTimerRemainingMs) {
+                                    val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                                    val cal = java.util.Calendar.getInstance()
+                                    cal.timeInMillis = System.currentTimeMillis() + viewModel.sleepTimerRemainingMs
+                                    sdf.format(cal.time)
+                                }
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = stringResource(R.string.sleep_timer_stop_at, activeStopTimeText),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             Spacer(Modifier.height(12.dp))
                             FilledTonalButton(
                                 onClick = {
