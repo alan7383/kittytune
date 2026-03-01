@@ -20,3 +20,5 @@ lint-results-*.xml
 dump_project_context.txt
 *.hprof
 *.prof
+/app/release/
+*.dm
