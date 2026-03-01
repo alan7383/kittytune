@@ -861,4 +861,33 @@
     <string name="no_libraries_found">Aucune bibliothèque trouvée</string>
     <string name="license_unknown">Licence inconnue</string>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- SLEEP TIMER                                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+
+    <string name="sleep_timer_title">Minuteur de veille</string>
+    <string name="sleep_timer_subtitle">Arrêter la lecture après un temps défini</string>
+    <string name="sleep_timer_off">Désactivé</string>
+    <string name="sleep_timer_active">Minuteur : %1$s restants</string>
+    <string name="sleep_timer_end_of_track">Fin du titre actuel</string>
+    <string name="sleep_timer_cancel">Annuler le minuteur</string>
+    <string name="sleep_timer_set">Définir le minuteur</string>
+    <string name="sleep_timer_dialog_title">Minuteur de veille</string>
+    <string name="sleep_timer_custom">Personnalisé</string>
+    <string name="sleep_timer_custom_hint">Minutes</string>
+    <string name="sleep_timer_5">5 min</string>
+    <string name="sleep_timer_10">10 min</string>
+    <string name="sleep_timer_15">15 min</string>
+    <string name="sleep_timer_20">20 min</string>
+    <string name="sleep_timer_30">30 min</string>
+    <string name="sleep_timer_45">45 min</string>
+    <string name="sleep_timer_60">1 heure</string>
+    <string name="sleep_timer_90">1h 30</string>
+    <string name="sleep_timer_minutes_format">%1$d min</string>
+    <string name="sleep_timer_hours_minutes_format">%1$dh %2$dm</string>
+    <string name="sleep_timer_started">Minuteur défini</string>
+    <string name="sleep_timer_cancelled">Minuteur annulé</string>
+    <string name="sleep_timer_slider_minutes">%1$d minutes</string>
+    <string name="sleep_timer_stop_at">S\'arrête à %1$s</string>
+
 </resources>
