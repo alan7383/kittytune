@@ -73,10 +73,18 @@ class PlayerPreferences(private val context: Context) {
         private const val KEY_FONT_GRAD = "font_grad"
         private const val KEY_FONT_OPSZ = "font_opsz"
         private const val KEY_SYNC_LIKES = "sync_likes_enabled"
+        private const val KEY_CROSSFADE_ENABLED = "crossfade_enabled"
+        private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
     }
 
     fun getSyncLikesEnabled(): Boolean = prefs.getBoolean(KEY_SYNC_LIKES, false)
     fun setSyncLikesEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_SYNC_LIKES, enabled).apply()
+
+    fun getCrossfadeEnabled(): Boolean = prefs.getBoolean(KEY_CROSSFADE_ENABLED, false)
+    fun setCrossfadeEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_CROSSFADE_ENABLED, enabled).apply()
+
+    fun getCrossfadeDuration(): Int = prefs.getInt(KEY_CROSSFADE_DURATION, 5)
+    fun setCrossfadeDuration(seconds: Int) = prefs.edit().putInt(KEY_CROSSFADE_DURATION, seconds.coerceIn(1, 12)).apply()
 
     fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, false)
     fun setCustomFontEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled).apply()

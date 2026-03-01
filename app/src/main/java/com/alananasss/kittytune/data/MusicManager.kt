@@ -108,7 +108,7 @@
 
                                             val hasMediaInfo = trackToResolve?.media?.transcodings?.isNotEmpty() == true
 
-                                            if ((trackToResolve == null || !hasMediaInfo) && trackId > 0) { // Ajout de trackId > 0 pour éviter d'appeler l'API SC avec un ID YouTube négatif
+                                            if ((trackToResolve == null || !hasMediaInfo) && trackId > 0) {
                                                 val api = RetrofitClient.create(context)
                                                 val tracks = api.getTracksByIds(trackId.toString())
                                                 val fetchedTrack = tracks.firstOrNull()
@@ -199,6 +199,7 @@
                 }
             })
         }
+    
     
         fun applyEffects(state: AudioEffectsState) {
             if (_player == null) return
