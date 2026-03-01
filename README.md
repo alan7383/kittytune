@@ -1,4 +1,4 @@
-<img src="https://github.com/user-attachments/assets/af2b1f31-3086-4d22-994d-d392b0d1bbb2" alt="KittyTune Logo" align="right"/>
+<img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/app/src/main/ic_launcher-playstore.png" alt="KittyTune Logo" width="150" align="right"/>
 
 <div align="center">
 
