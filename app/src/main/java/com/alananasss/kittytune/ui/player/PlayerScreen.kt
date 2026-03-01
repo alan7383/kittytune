@@ -62,6 +62,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import android.content.SharedPreferences
 import androidx.compose.ui.unit.dp
@@ -113,6 +114,8 @@ import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
 import android.view.WindowManager
 import android.app.Activity
 import android.content.ContextWrapper
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 
 @Composable
 fun PremiumMarqueeText(
@@ -767,6 +770,8 @@ fun PlayerScreen(
                 Spacer(Modifier.height(32.dp))
             }
         }
+
+        SleepTimerDialog(viewModel)
     }
 }
 
@@ -957,6 +962,9 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId!! < 0) {
                     add(DockOptionItem(Icons.Outlined.Delete, context.getString(R.string.menu_remove)) { viewModel.removeFromContextPlaylist(viewModel.menuContextPlaylistId!!, track) })
                 }
+                if (viewModel.isMenuContextFromPlayer) {
+                    add(DockOptionItem(Icons.Rounded.Bedtime, context.getString(R.string.sleep_timer_title)) { viewModel.showSleepTimerDialog = true })
+                }
             }
         }
 
@@ -976,6 +984,10 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                         com.alananasss.kittytune.ui.player.RepeatMode.ONE -> stringResource(R.string.menu_repeat_one)
                         else -> stringResource(R.string.menu_repeat)
                     }
+                }
+                if (item.text == stringResource(R.string.sleep_timer_title) && viewModel.isSleepTimerActive) {
+                    tint = activeColor
+                    text = viewModel.formatSleepTimerRemaining()
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { item.onClick() }) {
                     Icon(item.icon, null, modifier = Modifier.size(32.dp), tint = tint)
@@ -1046,6 +1058,223 @@ fun AddToPlaylistContent(viewModel: PlayerViewModel) {
             }
         }
     }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun SleepTimerDialog(viewModel: PlayerViewModel) {
+    if (!viewModel.showSleepTimerDialog) return
+
+    var sliderValue by remember { mutableFloatStateOf(30f) }
+    var showCustomInput by remember { mutableStateOf(false) }
+    var customMinutes by remember { mutableStateOf("") }
+    val selectedMinutes = sliderValue.toInt()
+    val calendar = remember(selectedMinutes) {
+        java.util.Calendar.getInstance().apply {
+            add(java.util.Calendar.MINUTE, selectedMinutes)
+        }
+    }
+    val stopTimeText = remember(selectedMinutes) {
+        val sdf = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        sdf.format(calendar.time)
+    }
+
+    AlertDialog(
+        onDismissRequest = { viewModel.showSleepTimerDialog = false },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = RoundedCornerShape(28.dp),
+        icon = {
+            Icon(
+                Icons.Rounded.Bedtime,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+        },
+        title = null,
+        text = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Active timer banner
+                if (viewModel.isSleepTimerActive) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = viewModel.formatSleepTimerRemaining(),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.sleep_timer_active, viewModel.formatSleepTimerRemaining()),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            FilledTonalButton(
+                                onClick = {
+                                    viewModel.cancelSleepTimer()
+                                    viewModel.showSleepTimerDialog = false
+                                },
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Rounded.Close, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(stringResource(R.string.sleep_timer_cancel))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(20.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                // Duration display
+                Text(
+                    text = stringResource(R.string.sleep_timer_slider_minutes, selectedMinutes),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.sleep_timer_stop_at, stopTimeText),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                // Slider
+                val view = LocalView.current
+                var lastStepValue by remember { mutableIntStateOf(sliderValue.toInt()) }
+                Slider(
+                    value = sliderValue,
+                    onValueChange = {
+                        val newStep = it.toInt()
+                        if (newStep != lastStepValue) {
+                            lastStepValue = newStep
+                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        }
+                        sliderValue = it
+                    },
+                    valueRange = 5f..120f,
+                    steps = 22,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(stringResource(R.string.sleep_timer_5), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.sleep_timer_hours_minutes_format, 2, 0).replace(" 0m", "").replace(" 0p", ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Quick pick chips
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf(15, 30, 45, 60, 90).forEach { mins ->
+                        val label = when (mins) {
+                            60 -> stringResource(R.string.sleep_timer_60)
+                            90 -> stringResource(R.string.sleep_timer_90)
+                            else -> stringResource(R.string.sleep_timer_minutes_format, mins)
+                        }
+                        FilterChip(
+                            selected = selectedMinutes == mins,
+                            onClick = { sliderValue = mins.toFloat() },
+                            label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    // End of track chip
+                    FilterChip(
+                        selected = viewModel.sleepTimerEndOfTrack,
+                        onClick = { viewModel.startSleepTimerEndOfTrack() },
+                        label = { Text(stringResource(R.string.sleep_timer_end_of_track), style = MaterialTheme.typography.labelMedium) },
+                        leadingIcon = { Icon(Icons.Rounded.MusicNote, null, Modifier.size(16.dp)) },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    // Custom chip
+                    FilterChip(
+                        selected = showCustomInput,
+                        onClick = { showCustomInput = !showCustomInput },
+                        label = { Text(stringResource(R.string.sleep_timer_custom), style = MaterialTheme.typography.labelMedium) },
+                        leadingIcon = { Icon(Icons.Rounded.Edit, null, Modifier.size(16.dp)) },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                // Custom input
+                AnimatedVisibility(
+                    visible = showCustomInput,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = customMinutes,
+                            onValueChange = { newVal -> customMinutes = newVal.filter { it.isDigit() }.take(4) },
+                            label = { Text(stringResource(R.string.sleep_timer_custom_hint)) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        FilledTonalButton(
+                            onClick = {
+                                val minutes = customMinutes.toLongOrNull()
+                                if (minutes != null && minutes > 0) {
+                                    viewModel.startSleepTimer(minutes * 60 * 1000L)
+                                }
+                            },
+                            enabled = customMinutes.isNotBlank() && (customMinutes.toLongOrNull() ?: 0) > 0,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(stringResource(R.string.btn_ok))
+                        }
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { viewModel.showSleepTimerDialog = false }) {
+                Text(stringResource(R.string.btn_cancel))
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    viewModel.startSleepTimer(selectedMinutes.toLong() * 60 * 1000L)
+                },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(stringResource(R.string.btn_ok))
+            }
+        }
+    )
 }
 
 @Composable

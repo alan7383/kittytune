@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -299,10 +301,18 @@ fun AppearanceSettingsScreen(
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
 
-                        val totalVisibleItems = if (customFontEnabled) 2 else 1
+                        val customFontBottomRadius by animateDpAsState(
+                            targetValue = if (customFontEnabled) 4.dp else 24.dp,
+                            label = "CustomFontCornerAnimation"
+                        )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 0),
+                            shape = RoundedCornerShape(
+                                topStart = 24.dp,
+                                topEnd = 24.dp,
+                                bottomStart = customFontBottomRadius,
+                                bottomEnd = customFontBottomRadius
+                            ),
                             title = stringResource(R.string.pref_font_custom_title),
                             subtitle = stringResource(R.string.pref_font_custom_subtitle),
                             icon = Icons.Rounded.FontDownload,
@@ -320,7 +330,12 @@ fun AppearanceSettingsScreen(
                             exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
                         ) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 1),
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 24.dp,
+                                    bottomEnd = 24.dp
+                                ),
                                 title = stringResource(R.string.pref_font_variations_title),
                                 subtitle = stringResource(R.string.pref_font_variations_subtitle),
                                 icon = Icons.Rounded.Tune,
@@ -349,8 +364,18 @@ fun AppearanceSettingsScreen(
                             onSwitchChange = { dynamicTheme = it; prefs.setDynamicTheme(it) }
                         )
 
+                        val themeModeBottomRadius by animateDpAsState(
+                            targetValue = if (isPureBlackVisible) 4.dp else 24.dp,
+                            label = "ThemeModeCornerAnimation"
+                        )
+
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 1),
+                            shape = RoundedCornerShape(
+                                topStart = 4.dp,
+                                topEnd = 4.dp,
+                                bottomStart = themeModeBottomRadius,
+                                bottomEnd = themeModeBottomRadius
+                            ),
                             title = stringResource(R.string.pref_theme_mode),
                             subtitle = when(themeMode) {
                                 AppThemeMode.SYSTEM -> stringResource(R.string.theme_system)
@@ -367,7 +392,12 @@ fun AppearanceSettingsScreen(
                             exit = shrinkVertically() + fadeOut()
                         ) {
                             SettingsItem(
-                                shape = getSettingsShape(3, 2),
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 24.dp,
+                                    bottomEnd = 24.dp
+                                ),
                                 title = stringResource(R.string.pref_theme_pure_black),
                                 subtitle = stringResource(R.string.pref_theme_pure_black_sub),
                                 icon = Icons.Rounded.Contrast,

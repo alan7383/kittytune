@@ -861,4 +861,33 @@
     <string name="no_libraries_found">Nem található könyvtár</string>
     <string name="license_unknown">Ismeretlen licenc</string>
 
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- SLEEP TIMER                                                                      -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+
+    <string name="sleep_timer_title">Alváskapcsoló</string>
+    <string name="sleep_timer_subtitle">Lejátszás leállítása egy adott idő után</string>
+    <string name="sleep_timer_off">Kikapcsolva</string>
+    <string name="sleep_timer_active">Alváskapcsoló: %1$s van hátra</string>
+    <string name="sleep_timer_end_of_track">Jelenlegi szám vége</string>
+    <string name="sleep_timer_cancel">Alváskapcsoló törlése</string>
+    <string name="sleep_timer_set">Alváskapcsoló beállítása</string>
+    <string name="sleep_timer_dialog_title">Alváskapcsoló</string>
+    <string name="sleep_timer_custom">Egyéni</string>
+    <string name="sleep_timer_custom_hint">Perc</string>
+    <string name="sleep_timer_5">5 perc</string>
+    <string name="sleep_timer_10">10 perc</string>
+    <string name="sleep_timer_15">15 perc</string>
+    <string name="sleep_timer_20">20 perc</string>
+    <string name="sleep_timer_30">30 perc</string>
+    <string name="sleep_timer_45">45 perc</string>
+    <string name="sleep_timer_60">1 óra</string>
+    <string name="sleep_timer_90">1ó 30p</string>
+    <string name="sleep_timer_minutes_format">%1$d perc</string>
+    <string name="sleep_timer_hours_minutes_format">%1$dó %2$dp</string>
+    <string name="sleep_timer_started">Alváskapcsoló beállítva</string>
+    <string name="sleep_timer_cancelled">Alváskapcsoló törölve</string>
+    <string name="sleep_timer_slider_minutes">%1$d perc</string>
+    <string name="sleep_timer_stop_at">Leáll ekkor: %1$s</string>
+
 </resources>

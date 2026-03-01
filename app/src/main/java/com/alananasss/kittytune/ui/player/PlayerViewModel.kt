@@ -157,6 +157,13 @@
         var showInlineLyrics by mutableStateOf(false)
         var lyricsOffset by mutableLongStateOf(0L)
         var showLyricsOffsetControls by mutableStateOf(false)
+
+        // Sleep Timer
+        var sleepTimerRemainingMs by mutableLongStateOf(0L)
+        var sleepTimerEndOfTrack by mutableStateOf(false)
+        var showSleepTimerDialog by mutableStateOf(false)
+        val isSleepTimerActive: Boolean get() = sleepTimerRemainingMs > 0L || sleepTimerEndOfTrack
+        private var sleepTimerJob: Job? = null
     
         private var pendingSeekPosition: Long? = null
         private var saveQueueJob: Job? = null
@@ -209,7 +216,15 @@
                 if (state == Player.STATE_ENDED) {
                     AchievementManager.increment("no_skip_50")
                     incrementPlayCount()
-    
+
+                    // Sleep timer: end of track mode
+                    if (sleepTimerEndOfTrack) {
+                        cancelSleepTimer()
+                        MusicManager.player.pause()
+                        emitUiEvent(getString(R.string.sleep_timer_cancelled))
+                        return
+                    }
+
                     if (repeatMode == RepeatMode.ONE) {
                         AchievementManager.increment("obsessed_50")
                         AchievementManager.increment("obsessed_200")
@@ -311,14 +326,27 @@
             MusicManager.player.addListener(playerListener)
             MusicManager.applyEffects(effectsState)
             applyRepeatMode()
+
     
             MusicManager.onNextClick = { playNext(manual = true) }
             MusicManager.onPreviousClick = { smartPrevious() }
     
-            MusicManager.onTrackChange = { newTrack ->
+            MusicManager.onTrackChange = trackChangeHandler@{ newTrack ->
+                // Sleep timer: end of track mode — stop here
+                if (sleepTimerEndOfTrack) {
+                    cancelSleepTimer()
+                    viewModelScope.launch(Dispatchers.Main) {
+                        MusicManager.player.pause()
+                        isPlaying = false
+                    }
+                    emitUiEvent(getString(R.string.sleep_timer_cancelled))
+                    return@trackChangeHandler
+                }
+
                 showInlineLyrics = false
                 lyricsLines.clear()
                 rawPlainLyrics = null
+
                 var finalTrack = newTrack
     
                 val currentMediaItem = MusicManager.player.currentMediaItem
@@ -1432,6 +1460,16 @@
                         }
                         AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
                         if (effectsState.isBassBoostEnabled) AchievementManager.increment("bass_addict", 1)
+
+                        // Sleep timer countdown
+                        if (sleepTimerRemainingMs > 0L) {
+                            sleepTimerRemainingMs -= 1000L
+                            if (sleepTimerRemainingMs <= 0L) {
+                                sleepTimerRemainingMs = 0L
+                                MusicManager.player.pause()
+                                emitUiEvent(getString(R.string.sleep_timer_cancelled))
+                            }
+                        }
                     } catch (e: Exception) {
                     }
                     delay(1000)
@@ -1442,6 +1480,42 @@
         fun updateScrubPosition(position: Long) {
             isScrubbing = true
             currentPosition = position
+        }
+
+        // ─── Sleep Timer ────────────────────────────────────────────
+
+        fun startSleepTimer(durationMs: Long) {
+            sleepTimerJob?.cancel()
+            sleepTimerEndOfTrack = false
+            sleepTimerRemainingMs = durationMs
+            showSleepTimerDialog = false
+            emitUiEvent(getString(R.string.sleep_timer_started))
+        }
+
+        fun startSleepTimerEndOfTrack() {
+            sleepTimerJob?.cancel()
+            sleepTimerRemainingMs = 0L
+            sleepTimerEndOfTrack = true
+            showSleepTimerDialog = false
+            emitUiEvent(getString(R.string.sleep_timer_started))
+        }
+
+        fun cancelSleepTimer() {
+            sleepTimerJob?.cancel()
+            sleepTimerRemainingMs = 0L
+            sleepTimerEndOfTrack = false
+        }
+
+        fun formatSleepTimerRemaining(): String {
+            if (sleepTimerEndOfTrack) return getString(R.string.sleep_timer_end_of_track)
+            val totalSeconds = sleepTimerRemainingMs / 1000
+            val hours = totalSeconds / 3600
+            val minutes = (totalSeconds % 3600) / 60
+            return if (hours > 0) {
+                getString(R.string.sleep_timer_hours_minutes_format, hours.toInt(), minutes.toInt())
+            } else {
+                getString(R.string.sleep_timer_minutes_format, minutes.toInt())
+            }
         }
     
     
