@@ -1227,7 +1227,7 @@
             }
 
             .avium-hero-left {
-                padding: 48px 32px;
+                padding: 40px 24px;
                 /* Smaller padding inside the info card */
                 align-items: center;
                 /* Center text on mobile */
@@ -1237,6 +1237,21 @@
             .avium-hero-title {
                 font-size: clamp(2.5rem, 8vw, 3.5rem);
                 /* Slightly smaller title */
+            }
+
+            .avium-hero-desc {
+                margin-bottom: 32px;
+            }
+
+            .avium-hero-buttons {
+                flex-direction: column;
+                width: 100%;
+                gap: 12px;
+            }
+
+            .avium-hero-buttons .avium-btn-download {
+                width: 100%;
+                justify-content: center;
             }
 
             .avium-hero-right {
@@ -1299,6 +1314,12 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
+        }
+
+        .avium-hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
         }
 
         .avium-btn-download:hover {
@@ -1371,10 +1392,11 @@
             <div class="avium-hero-container">
                 <div class="avium-hero-left">
                     <h1 class="avium-hero-title">KittyTune</h1>
-                    <p class="avium-hero-desc">A powerful <strong>Material 3 Expressive</strong> music player. Stream
+                    <p class="avium-hero-desc">A powerful <strong>Material 3 Expressive</strong> SoundCloud and YouTube
+                        music player. Stream
                         your tracks, tweak real-time <strong>Sound FX</strong>, and enjoy a vibrant, ad-free experience!
                         (^・ω・^ )</p>
-                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <div class="avium-hero-buttons">
                         <a href="#" class="latest-download-link avium-btn-download">
                             Download
                         </a>
@@ -1449,9 +1471,11 @@
                     <div class="expressive-card span-6 variant-tertiary">
                         <div class="kaomoji-hero">( ✖ _ ✖ )</div>
                         <div class="card-content">
-                            <div class="card-icon"><span class="material-icons-round">security</span></div>
-                            <h3>Ghost Mode</h3>
-                            <p>Listen privately without an account. No tracking, no history saved.</p>
+                            <div class="card-icon"><span class="material-icons-round">sync</span></div>
+                            <h3>SoundCloud Sync</h3>
+                            <p>Log in with your existing SoundCloud account. Sync your playlists, liked tracks, and
+                                history seamlessly across devices. A true open-source alternative with zero telemetry.
+                            </p>
                         </div>
                     </div>
                 </div>
