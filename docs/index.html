@@ -1193,6 +1193,139 @@
             color: var(--md-sys-color-on-surface-variant);
             line-height: 1.6;
         }
+
+        @font-face {
+            font-family: 'Google Sans Flex';
+            src: url('google_sans_flex.ttf') format('truetype');
+            font-weight: 100 900;
+        }
+
+        .avium-hero-section {
+            padding: 20px 24px 60px;
+            /* added horizontal padding */
+        }
+
+        .avium-hero-container {
+            display: grid;
+            grid-template-columns: 0.86fr 1.14fr;
+            /* Make left text block slightly smaller than right image block */
+            gap: 24px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .avium-hero-container {
+                grid-template-columns: 1fr;
+                /* Stack vertically */
+                gap: 16px;
+            }
+
+            .avium-hero-section {
+                padding: 10px 16px 40px;
+                /* Reduce outer padding */
+            }
+
+            .avium-hero-left {
+                padding: 48px 32px;
+                /* Smaller padding inside the info card */
+                align-items: center;
+                /* Center text on mobile */
+                text-align: center;
+            }
+
+            .avium-hero-title {
+                font-size: clamp(2.5rem, 8vw, 3.5rem);
+                /* Slightly smaller title */
+            }
+
+            .avium-hero-right {
+                min-height: 350px;
+                /* Shorter image container so it doesn't take the whole screen vertically */
+            }
+
+            .avium-hero-img {
+                object-position: center top;
+                /* Focus on the top part of the app for mobile views */
+            }
+        }
+
+        .avium-hero-left,
+        .avium-hero-right {
+            background-color: var(--md-sys-color-surface-container);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            display: flex;
+        }
+
+        .avium-hero-left {
+            padding: 80px 48px;
+            /* Slightly taller */
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+        }
+
+        .avium-hero-title {
+            font-family: 'Google Sans Flex', sans-serif;
+            font-size: clamp(3rem, 6vw, 4.5rem);
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+        }
+
+        .avium-hero-desc {
+            font-size: 1.1rem;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 48px;
+            line-height: 1.6;
+            max-width: 480px;
+        }
+
+        .avium-btn-download {
+            background-color: var(--md-sys-color-primary);
+            /* Violet Color */
+            color: var(--md-sys-color-on-primary);
+            padding: 16px 36px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: var(--font-body);
+            transition: transform 0.2s, filter 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .avium-btn-download:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+            box-shadow: 0 4px 12px rgba(208, 188, 255, 0.3);
+        }
+
+        .avium-hero-right {
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            position: relative;
+            min-height: 550px;
+            /* Taller to show more image */
+            overflow: hidden;
+        }
+
+        .avium-hero-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            /* Center to show both sides */
+            display: block;
+            border-radius: var(--radius-xl);
+        }
     </style>
 </head>
 
@@ -1232,106 +1365,33 @@
                     Get App
                 </a>
             </header>
-            <section class="hero">
-                <span class="hero-kaomoji">( ◡‿◡ *)</span>
-                <h1 class="display-large">Your Music.<br>Your Rules.</h1>
+        </div>
 
-                <p>
-                    A cozy, privacy-focused player built for music lovers.<br>
-                    SoundCloud, YouTube & Local files. No ads, just vibes.
-                </p>
-                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                    <a href="#" class="latest-download-link btn btn-primary">
-                        <span class="material-icons-round">android</span>
-                        Download APK
-                    </a>
-                    <a href="https://github.com/alan7383/kittytune" target="_blank" class="btn btn-secondary">
-                        <span class="material-icons-round">code</span>
-                        Source
-                    </a>
-                </div>
-            </section>
-
-            <!-- Player Component (Redesigned) -->
-            <div class="web-player-preview">
-                <audio id="real-audio-player" src="https://files.catbox.moe/opckjg.mp3" crossorigin="anonymous"
-                    preload="metadata"></audio>
-
-                <!-- Top: Art & Info -->
-                <div class="player-top">
-                    <div class="album-art-wrapper" id="play-trigger-art"
-                        style="--art-url: url('https://i1.sndcdn.com/artworks-000220245014-vddtkh-t500x500.jpg');">
-                        <img src="https://i1.sndcdn.com/artworks-000220245014-vddtkh-t500x500.jpg" alt="Artwork">
-                        <div class="art-glow"></div>
-                        <div class="play-overlay">
-                            <span class="material-icons-round">play_arrow</span>
-                        </div>
-                    </div>
-
-                    <div class="track-info">
-                        <div class="info-header">
-                            <span class="badge-source"><span class="material-icons-round"
-                                    style="font-size: 12px;">cloud</span> SoundCloud</span>
-                        </div>
-                        <h3>юность</h3>
-                        <p>эхопрокуренныхподъездов</p>
+        <section class="avium-hero-section">
+            <div class="avium-hero-container">
+                <div class="avium-hero-left">
+                    <h1 class="avium-hero-title">KittyTune</h1>
+                    <p class="avium-hero-desc">A powerful <strong>Material 3 Expressive</strong> music player. Stream
+                        your tracks, tweak real-time <strong>Sound FX</strong>, and enjoy a vibrant, ad-free experience!
+                        (^・ω・^ )</p>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                        <a href="#" class="latest-download-link avium-btn-download">
+                            Download
+                        </a>
+                        <a href="https://github.com/alan7383/kittytune" target="_blank" class="avium-btn-download"
+                            style="background-color: transparent; border: 1px solid var(--md-sys-color-outline); color: var(--md-sys-color-primary); box-shadow: none;">
+                            <span class="material-icons-round">code</span> Source
+                        </a>
                     </div>
                 </div>
 
-                <!-- Middle: Controls & Waveform -->
-                <div class="player-middle">
-                    <!-- Main Play Button (Floating) -->
-                    <button id="main-play-btn" class="play-fab-large">
-                        <span class="material-icons-round">play_arrow</span>
-                    </button>
-
-                    <div class="waveform" id="visualizer">
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                        <div class="bar"></div>
-                    </div>
-                </div>
-
-                <!-- Bottom: FX & Scrubber -->
-                <div class="player-bottom">
-
-                    <!-- Progress -->
-                    <div class="progress-row">
-                        <span id="current-time">0:00</span>
-                        <div class="progress-container" id="progress-container">
-                            <div class="progress-track">
-                                <div class="progress-fill" id="progress-fill"></div>
-                            </div>
-                        </div>
-                        <span id="total-duration">--:--</span>
-                    </div>
-
-                    <!-- FX Rack (Chips) -->
-                    <div class="fx-rack">
-                        <button class="effect-chip" id="btn-8d">8D</button>
-                        <button class="effect-chip" id="btn-bass">Bass</button>
-                        <button class="effect-chip" id="btn-reverb">Reverb</button>
-                        <button class="effect-chip" id="btn-muffled">Muffled</button>
-
-                        <div class="speed-control">
-                            <span class="material-icons-round">speed</span>
-                            <span id="speed-value">1.0x</span>
-                            <input type="range" id="speed-slider" min="0.5" max="1.5" step="0.05" value="1.0"
-                                class="mini-slider">
-                        </div>
-                    </div>
+                <div class="avium-hero-right">
+                    <img src="home.BY0cCzCQ.png" alt="KittyTune Preview" class="avium-hero-img">
                 </div>
             </div>
+        </section>
 
+        <div class="container">
             <!-- Features Bento Grid -->
             <section class="features-section">
                 <div class="section-header">
@@ -1616,134 +1676,6 @@
                 appWrapper.classList.add('loaded');
                 setTimeout(() => loader.style.display = 'none', 500);
             }, 800);
-
-            // --- Audio Logic ---
-            const audio = document.getElementById('real-audio-player');
-            const mainPlayBtn = document.getElementById('main-play-btn');
-            const playTriggerArt = document.getElementById('play-trigger-art');
-            const visualizer = document.getElementById('visualizer');
-            const progressFill = document.getElementById('progress-fill');
-            const progressContainer = document.getElementById('progress-container');
-            const currentTimeEl = document.getElementById('current-time');
-            const totalDurationEl = document.getElementById('total-duration');
-            const speedSlider = document.getElementById('speed-slider');
-            const speedValue = document.getElementById('speed-value');
-
-            // Audio Context for FX
-            let audioCtx, sourceNode, pannerNode, oscillatorLFO, bassFilter, muffledFilter, reverbGain, delayNode;
-            let isAudioContextSetup = false;
-            let activeFX = { is8D: false, isBass: false, isReverb: false, isMuffled: false };
-
-            // FX Buttons
-            const setupBtn = (id, key) => {
-                document.getElementById(id).addEventListener('click', function () {
-                    activeFX[key] = !activeFX[key];
-                    this.classList.toggle('active');
-                    if (!isAudioContextSetup && !audio.paused) setupAudioContext();
-                    updateFX();
-                });
-            };
-            setupBtn('btn-8d', 'is8D');
-            setupBtn('btn-bass', 'isBass');
-            setupBtn('btn-reverb', 'isReverb');
-            setupBtn('btn-muffled', 'isMuffled');
-
-            function setupAudioContext() {
-                if (isAudioContextSetup) return;
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
-                sourceNode = audioCtx.createMediaElementSource(audio);
-
-                pannerNode = audioCtx.createStereoPanner();
-                oscillatorLFO = audioCtx.createOscillator();
-                oscillatorLFO.frequency.value = 0.1;
-                bassFilter = audioCtx.createBiquadFilter();
-                bassFilter.type = 'lowshelf'; bassFilter.frequency.value = 100;
-                muffledFilter = audioCtx.createBiquadFilter();
-                muffledFilter.type = 'lowpass'; muffledFilter.frequency.value = 20000;
-
-                const reverbInput = audioCtx.createGain();
-                delayNode = audioCtx.createDelay(1.0); delayNode.delayTime.value = 0.15;
-                const feedback = audioCtx.createGain(); feedback.gain.value = 0.5;
-                reverbGain = audioCtx.createGain(); reverbGain.gain.value = 0;
-
-                reverbInput.connect(delayNode); delayNode.connect(feedback); feedback.connect(delayNode); delayNode.connect(reverbGain);
-
-                sourceNode.connect(pannerNode).connect(bassFilter).connect(muffledFilter);
-                muffledFilter.connect(audioCtx.destination);
-                muffledFilter.connect(reverbInput);
-                reverbGain.connect(audioCtx.destination);
-
-                oscillatorLFO.start();
-                isAudioContextSetup = true;
-            }
-
-            function updateFX() {
-                if (!audioCtx) return;
-                const now = audioCtx.currentTime;
-                if (activeFX.is8D) { try { oscillatorLFO.connect(pannerNode.pan); } catch (e) { } }
-                else { try { oscillatorLFO.disconnect(pannerNode.pan); } catch (e) { } pannerNode.pan.value = 0; }
-                bassFilter.gain.linearRampToValueAtTime(activeFX.isBass ? 15 : 0, now + 0.1);
-                muffledFilter.frequency.linearRampToValueAtTime(activeFX.isMuffled ? 800 : 20000, now + 0.1);
-                reverbGain.gain.linearRampToValueAtTime(activeFX.isReverb ? 1.0 : 0, now + 0.1);
-            }
-
-            function togglePlay() {
-                if (!isAudioContextSetup) setupAudioContext();
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-
-                if (audio.paused) {
-                    audio.play();
-                    mainPlayBtn.innerHTML = '<span class="material-icons-round">pause</span>';
-                    mainPlayBtn.classList.add('playing');
-                    visualizer.classList.add('playing');
-                    playTriggerArt.classList.remove('paused');
-                } else {
-                    audio.pause();
-                    mainPlayBtn.innerHTML = '<span class="material-icons-round">play_arrow</span>';
-                    mainPlayBtn.classList.remove('playing');
-                    visualizer.classList.remove('playing');
-                    playTriggerArt.classList.add('paused');
-                }
-            }
-
-            mainPlayBtn.addEventListener('click', togglePlay);
-            playTriggerArt.addEventListener('click', togglePlay);
-
-            speedSlider.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                audio.playbackRate = val;
-                audio.preservesPitch = false;
-                audio.mozPreservesPitch = false;
-                audio.webkitPreservesPitch = false;
-
-                speedValue.textContent = val.toFixed(2) + 'x';
-            });
-            audio.addEventListener('timeupdate', () => {
-                const percent = (audio.currentTime / audio.duration) * 100;
-                if (!isNaN(percent)) progressFill.style.width = percent + '%';
-                currentTimeEl.textContent = formatTime(audio.currentTime);
-            });
-
-            progressContainer.addEventListener('click', (e) => {
-                const rect = progressContainer.getBoundingClientRect();
-                const pos = (e.clientX - rect.left) / rect.width;
-                audio.currentTime = pos * audio.duration;
-            });
-
-            audio.addEventListener('loadedmetadata', () => totalDurationEl.textContent = formatTime(audio.duration));
-            audio.addEventListener('ended', () => {
-                mainPlayBtn.innerHTML = '<span class="material-icons-round">play_arrow</span>';
-                mainPlayBtn.classList.remove('playing');
-                visualizer.classList.remove('playing');
-                progressFill.style.width = '0%';
-            });
-
-            const formatTime = s => {
-                if (isNaN(s)) return "0:00";
-                const m = Math.floor(s / 60), sec = Math.floor(s % 60);
-                return `${m}:${sec < 10 ? '0' : ''}${sec}`;
-            };
 
             fetch('https://api.github.com/repos/alan7383/kittytune/releases/latest')
                 .then(r => r.json())
