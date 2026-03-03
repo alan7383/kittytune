@@ -132,6 +132,19 @@
                                         prefs.setLyricsPreferLocal(it)
                                     }
                                 )
+                            },
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_lyrics_precise),
+                                    subtitle = stringResource(R.string.pref_lyrics_precise_sub),
+                                    icon = Icons.Rounded.Description,
+                                    hasSwitch = true,
+                                    switchState = playerViewModel.isPreciseLyricsSearchEnabled,
+                                    onSwitchChange = {
+                                        playerViewModel.togglePreciseLyricsSearch(it)
+                                    }
+                                )
                             }
                         )
                     )

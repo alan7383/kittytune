@@ -28,6 +28,8 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.*
     import com.alananasss.kittytune.data.local.LocalPlaylist
+    import com.alananasss.kittytune.ui.common.AchievementNotificationManager
+    import com.alananasss.kittytune.ui.common.AchievementNotification
     import com.alananasss.kittytune.data.local.LyricsAlignment
     import com.alananasss.kittytune.data.local.PlayerPreferences
     import com.alananasss.kittytune.data.network.LrcLibClient
@@ -143,6 +145,7 @@
         val queueState = mutableStateListOf<Track>()
         var currentQueueIndex by mutableIntStateOf(-1)
     
+        var isPreciseLyricsSearchEnabled by mutableStateOf(playerPrefs.getPreciseLyricsSearchEnabled())
         var showLyricsSheet by mutableStateOf(false)
         var lyricsLines = mutableStateListOf<LyricLine>()
         var isLyricsLoading by mutableStateOf(false)
@@ -338,6 +341,7 @@
                     viewModelScope.launch(Dispatchers.Main) {
                         MusicManager.player.pause()
                         isPlaying = false
+                        showSleepTimerIslandNotification(isStarted = false)
                     }
                     emitUiEvent(getString(R.string.sleep_timer_cancelled))
                     return@trackChangeHandler
@@ -518,6 +522,12 @@
             lyricsAlignment = alignment
             playerPrefs.setLyricsAlignment(alignment)
         }
+
+        fun togglePreciseLyricsSearch(enabled: Boolean) {
+            isPreciseLyricsSearchEnabled = enabled
+            playerPrefs.setPreciseLyricsSearchEnabled(enabled)
+            currentTrack?.let { loadLyrics(it) }
+        }
     
         fun openLyrics(targetTrack: Track? = null, forceSheet: Boolean = false) {
             val target = targetTrack ?: currentTrack ?: return
@@ -551,12 +561,16 @@
 
             val searchQueries = mutableListOf<String>()
 
-            if (cleanTitle.contains(" - ")) {
-                searchQueries.add(cleanTitle)
-                searchQueries.add(cleanTitle.substringAfter(" - ").trim())
-                searchQueries.add("$cleanTitle $uploader".trim())
+            if (isPreciseLyricsSearchEnabled) {
+                if (cleanTitle.contains(" - ")) {
+                    searchQueries.add(cleanTitle)
+                    searchQueries.add(cleanTitle.substringAfter(" - ").trim())
+                    searchQueries.add("$cleanTitle $uploader".trim())
+                } else {
+                    searchQueries.add("$cleanTitle $uploader".trim())
+                    searchQueries.add(cleanTitle)
+                }
             } else {
-                searchQueries.add("$cleanTitle $uploader".trim())
                 searchQueries.add(cleanTitle)
             }
 
@@ -1467,6 +1481,7 @@
                             if (sleepTimerRemainingMs <= 0L) {
                                 sleepTimerRemainingMs = 0L
                                 MusicManager.player.pause()
+                                showSleepTimerIslandNotification(isStarted = false)
                                 emitUiEvent(getString(R.string.sleep_timer_cancelled))
                             }
                         }
@@ -1489,6 +1504,7 @@
             sleepTimerEndOfTrack = false
             sleepTimerRemainingMs = durationMs
             showSleepTimerDialog = false
+            showSleepTimerIslandNotification(isStarted = true, durationText = formatSleepTimerRemaining())
             emitUiEvent(getString(R.string.sleep_timer_started))
         }
 
@@ -1497,6 +1513,7 @@
             sleepTimerRemainingMs = 0L
             sleepTimerEndOfTrack = true
             showSleepTimerDialog = false
+            showSleepTimerIslandNotification(isStarted = true, durationText = getString(R.string.sleep_timer_end_of_track))
             emitUiEvent(getString(R.string.sleep_timer_started))
         }
 
@@ -1515,6 +1532,26 @@
                 getString(R.string.sleep_timer_hours_minutes_format, hours.toInt(), minutes.toInt())
             } else {
                 getString(R.string.sleep_timer_minutes_format, minutes.toInt())
+            }
+        }
+    
+        private fun showSleepTimerIslandNotification(isStarted: Boolean, durationText: String? = null) {
+            viewModelScope.launch {
+                val title = getString(R.string.sleep_timer_island_title)
+                val subtitle = if (isStarted) {
+                    getString(R.string.sleep_timer_island_started_subtitle, durationText ?: "")
+                } else {
+                    getString(R.string.sleep_timer_island_finished_subtitle)
+                }
+    
+                AchievementNotificationManager.showNotification(
+                    AchievementNotification(
+                        title = title,
+                        subtitle = subtitle,
+                        iconEmoji = "🌙",
+                        xpReward = null
+                    )
+                )
             }
         }
     

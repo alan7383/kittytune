@@ -529,6 +529,8 @@
     <string name="pref_lyrics_subtitle">Megjelenítés és forrás</string>
     <string name="pref_lyrics_local">Helyi fájlok előnyben</string>
     <string name="pref_lyrics_local_sub">Beágyazott (ID3) szövegek használata</string>
+    <string name="pref_lyrics_precise">Precíz keresés</string>
+    <string name="pref_lyrics_precise_sub">Művész + cím használata a pontosabb eredményekért</string>
     <string name="pref_lyrics_align">Igazítás</string>
     <string name="pref_lyrics_size">Méret</string>
     <string name="pref_lyrics_show_button">Dalszöveg gomb megjelenítése</string>
@@ -889,5 +891,7 @@
     <string name="sleep_timer_cancelled">Alváskapcsoló törölve</string>
     <string name="sleep_timer_slider_minutes">%1$d perc</string>
     <string name="sleep_timer_stop_at">Leáll ekkor: %1$s</string>
-
+    <string name="sleep_timer_island_title">Alváskapcsoló</string>
+    <string name="sleep_timer_island_started_subtitle">Időzítő beállítva: %1$s</string>
+    <string name="sleep_timer_island_finished_subtitle">Az időzítő lejárt</string>
 </resources>

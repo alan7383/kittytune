@@ -529,6 +529,8 @@
     <string name="pref_lyrics_subtitle">Display &amp; Source</string>
     <string name="pref_lyrics_local">Prefer local files</string>
     <string name="pref_lyrics_local_sub">Use embedded ID3 tags if available</string>
+    <string name="pref_lyrics_precise">Precise Search</string>
+    <string name="pref_lyrics_precise_sub">Use artist + title for more accurate results</string>
     <string name="pref_lyrics_align">Alignment</string>
     <string name="pref_lyrics_size">Size</string>
     <string name="pref_lyrics_show_button">Show lyrics button</string>
@@ -890,5 +892,7 @@
     <string name="sleep_timer_cancelled">Sleep timer cancelled</string>
     <string name="sleep_timer_slider_minutes">%1$d minutes</string>
     <string name="sleep_timer_stop_at">Stops at %1$s</string>
-
+    <string name="sleep_timer_island_title">Sleep Timer</string>
+    <string name="sleep_timer_island_started_subtitle">Timer set for %1$s</string>
+    <string name="sleep_timer_island_finished_subtitle">Timer finished</string>
 </resources>
