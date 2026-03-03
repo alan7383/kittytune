@@ -529,6 +529,8 @@
     <string name="pref_lyrics_subtitle">Affichage et source</string>
     <string name="pref_lyrics_local">Priorité aux fichiers locaux</string>
     <string name="pref_lyrics_local_sub">Utiliser les tags ID3 intégrés si disponibles</string>
+    <string name="pref_lyrics_precise">Recherche précise</string>
+    <string name="pref_lyrics_precise_sub">Utiliser artiste + titre pour des résultats plus précis</string>
     <string name="pref_lyrics_align">Alignement</string>
     <string name="pref_lyrics_size">Taille</string>
     <string name="pref_lyrics_show_button">Afficher le bouton paroles</string>
@@ -889,5 +891,7 @@
     <string name="sleep_timer_cancelled">Minuteur annulé</string>
     <string name="sleep_timer_slider_minutes">%1$d minutes</string>
     <string name="sleep_timer_stop_at">S\'arrête à %1$s</string>
-
+    <string name="sleep_timer_island_title">Minuteur de veille</string>
+    <string name="sleep_timer_island_started_subtitle">Minuteur défini pour %1$s</string>
+    <string name="sleep_timer_island_finished_subtitle">Minuteur terminé</string>
 </resources>
