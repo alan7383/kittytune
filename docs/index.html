@@ -1218,7 +1218,7 @@
             .avium-hero-container {
                 grid-template-columns: 1fr;
                 /* Stack vertically */
-                gap: 12px;
+                gap: 16px;
             }
 
             .avium-hero-section {
@@ -1226,52 +1226,42 @@
                 /* Reduce outer padding */
             }
 
-            .avium-hero-left,
-            .avium-hero-right {
-                border-radius: var(--radius-l);
-            }
-
             .avium-hero-left {
-                padding: 32px 24px;
+                padding: 40px 24px;
                 /* Smaller padding inside the info card */
-                align-items: flex-start;
-                /* Left align text on mobile */
-                text-align: left;
+                align-items: center;
+                /* Center text on mobile */
+                text-align: center;
             }
 
             .avium-hero-title {
-                font-size: 2.5rem;
+                font-size: clamp(2.5rem, 8vw, 3.5rem);
                 /* Slightly smaller title */
-                margin-bottom: 16px;
             }
 
             .avium-hero-desc {
-                margin-bottom: 24px;
-                font-size: 1.05rem;
+                margin-bottom: 32px;
             }
 
             .avium-hero-buttons {
-                flex-direction: row;
-                width: auto;
+                flex-direction: column;
+                width: 100%;
                 gap: 12px;
             }
 
             .avium-hero-buttons .avium-btn-download {
-                width: auto;
-                padding: 12px 28px;
+                width: 100%;
+                justify-content: center;
             }
 
             .avium-hero-right {
-                min-height: auto;
-                /* Size container to fit the full image */
+                min-height: 350px;
+                /* Shorter image container so it doesn't take the whole screen vertically */
             }
 
             .avium-hero-img {
-                height: auto;
-                width: 100%;
-                object-fit: contain;
-                /* Display completely without crop */
-                object-position: center;
+                object-position: center top;
+                /* Focus on the top part of the app for mobile views */
             }
         }
 
