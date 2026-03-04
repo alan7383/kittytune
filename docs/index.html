@@ -57,7 +57,7 @@
 
     <style>
         :root {
-            /* --- M3 Design Tokens (Dark Theme) --- */
+            /* --- M3 Expressive Design Tokens (Dark Theme) --- */
             --md-sys-color-primary: #d0bcff;
             --md-sys-color-on-primary: #381e72;
             --md-sys-color-primary-container: #4f378b;
@@ -91,6 +91,12 @@
             /* Typography */
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Roboto Flex', sans-serif;
+
+            /* M3 Expressive extras */
+            --glow-primary: rgba(208, 188, 255, 0.15);
+            --glow-tertiary: rgba(239, 184, 200, 0.12);
+            --ease-expressive: cubic-bezier(0.2, 0, 0, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         * {
@@ -105,6 +111,50 @@
             font-family: var(--font-body);
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+        }
+
+
+        /* --- Scroll Reveal --- */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.7s var(--ease-expressive), transform 0.7s var(--ease-expressive);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 {
+            transition-delay: 0.1s;
+        }
+
+        .reveal-delay-2 {
+            transition-delay: 0.2s;
+        }
+
+        .reveal-delay-3 {
+            transition-delay: 0.3s;
+        }
+
+        .reveal-delay-4 {
+            transition-delay: 0.4s;
+        }
+
+        .reveal-delay-5 {
+            transition-delay: 0.5s;
+        }
+
+        /* --- Shimmer line accent --- */
+        @keyframes shimmer-slide {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(200%);
+            }
         }
 
         /* --- Animations & Loader --- */
@@ -670,29 +720,51 @@
         .expressive-grid {
             display: grid;
             grid-template-columns: repeat(12, 1fr);
-            gap: 24px;
+            gap: 20px;
             grid-auto-rows: minmax(280px, auto);
         }
 
         .expressive-card {
-            background: var(--md-sys-color-surface-container-low);
+            background: linear-gradient(135deg, rgba(29, 27, 32, 0.9), rgba(33, 31, 38, 0.7));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-radius: var(--radius-xl);
-            padding: 32px;
+            padding: 36px;
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
-            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.5s var(--ease-expressive);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             cursor: default;
         }
 
+        /* Gradient border glow on hover */
+        .expressive-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-xl);
+            padding: 1px;
+            background: linear-gradient(135deg, transparent, transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            transition: background 0.5s ease;
+            pointer-events: none;
+        }
+
+        .expressive-card:hover::before {
+            background: linear-gradient(135deg, var(--card-accent, var(--md-sys-color-primary)), transparent 60%);
+        }
+
         .expressive-card:hover {
-            transform: translateY(-8px);
-            background: var(--md-sys-color-surface-container);
-            border-color: var(--md-sys-color-outline-variant);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(-6px) scale(1.01);
+            box-shadow:
+                0 24px 48px rgba(0, 0, 0, 0.35),
+                0 0 80px var(--card-glow, rgba(208, 188, 255, 0.06));
+            border-color: rgba(255, 255, 255, 0.08);
         }
 
         /* Large Background Kaomoji */
@@ -701,20 +773,20 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-5deg);
-            font-size: clamp(6rem, 10vw, 10rem);
+            font-size: clamp(5rem, 10vw, 9rem);
             font-weight: 900;
             color: var(--md-sys-color-on-surface);
             opacity: 0.03;
             white-space: nowrap;
             pointer-events: none;
-            transition: all 0.5s ease;
+            transition: all 0.6s var(--ease-expressive);
             font-family: var(--font-display);
         }
 
         .expressive-card:hover .kaomoji-hero {
-            opacity: 0.1;
-            transform: translate(-50%, -50%) rotate(0deg) scale(1.1);
-            color: var(--md-sys-color-primary);
+            opacity: 0.08;
+            transform: translate(-50%, -50%) rotate(0deg) scale(1.15);
+            color: var(--card-accent, var(--md-sys-color-primary));
         }
 
         .card-content {
@@ -723,29 +795,39 @@
         }
 
         .card-icon {
-            font-size: 40px;
-            color: var(--md-sys-color-primary);
+            font-size: 36px;
+            color: var(--card-accent, var(--md-sys-color-primary));
             margin-bottom: 24px;
-            background: var(--md-sys-color-surface-container-high);
-            width: 72px;
-            height: 72px;
-            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.04);
+            width: 68px;
+            height: 68px;
+            border-radius: 22px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.4s var(--ease-expressive);
+        }
+
+        .expressive-card:hover .card-icon {
+            background: rgba(208, 188, 255, 0.08);
+            border-color: rgba(208, 188, 255, 0.15);
+            box-shadow: 0 0 24px var(--card-glow, rgba(208, 188, 255, 0.1));
+            transform: scale(1.05);
         }
 
         .expressive-card h3 {
-            font-size: 1.8rem;
+            font-size: 1.7rem;
             margin-bottom: 12px;
             color: var(--md-sys-color-on-surface);
-            line-height: 1.1;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
         }
 
         .expressive-card p {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             color: var(--md-sys-color-on-surface-variant);
-            line-height: 1.5;
+            line-height: 1.55;
         }
 
         .span-4 {
@@ -760,16 +842,19 @@
             grid-column: span 8;
         }
 
-        .variant-primary:hover .kaomoji-hero {
-            color: var(--md-sys-color-primary);
+        .variant-primary {
+            --card-accent: var(--md-sys-color-primary);
+            --card-glow: rgba(208, 188, 255, 0.08);
         }
 
-        .variant-secondary:hover .kaomoji-hero {
-            color: var(--md-sys-color-secondary);
+        .variant-secondary {
+            --card-accent: var(--md-sys-color-secondary);
+            --card-glow: rgba(204, 194, 220, 0.08);
         }
 
-        .variant-tertiary:hover .kaomoji-hero {
-            color: var(--md-sys-color-tertiary);
+        .variant-tertiary {
+            --card-accent: var(--md-sys-color-tertiary);
+            --card-glow: rgba(239, 184, 200, 0.08);
         }
 
         .showcase-section {
@@ -1143,7 +1228,7 @@
 
         .philosophy-section {
             text-align: center;
-            padding: 60px 24px 100px;
+            padding: 80px 24px 120px;
             background: transparent;
             position: relative;
         }
@@ -1152,37 +1237,61 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 50px;
-            background: rgba(208, 188, 255, 0.1);
+            background: linear-gradient(135deg, rgba(208, 188, 255, 0.12), rgba(239, 184, 200, 0.08));
             color: var(--md-sys-color-primary);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 24px;
-            border: 1px solid rgba(208, 188, 255, 0.2);
+            margin-bottom: 28px;
+            border: 1px solid rgba(208, 188, 255, 0.15);
+            backdrop-filter: blur(12px);
+            letter-spacing: 0.02em;
         }
 
         .philosophy-content h2 {
             font-size: clamp(2.5rem, 5vw, 3.5rem);
             margin-bottom: 24px;
             color: var(--md-sys-color-on-surface);
+            letter-spacing: -0.02em;
         }
 
         .philosophy-grid {
             display: flex;
             justify-content: center;
-            gap: 40px;
+            gap: 24px;
             flex-wrap: wrap;
             margin-top: 60px;
         }
 
         .philosophy-item {
-            max-width: 300px;
+            max-width: 320px;
             text-align: left;
+            padding: 28px;
+            background: linear-gradient(135deg, rgba(29, 27, 32, 0.8), rgba(33, 31, 38, 0.5));
+            backdrop-filter: blur(16px);
+            border-radius: var(--radius-l);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--md-sys-color-primary);
+            transition: all 0.4s var(--ease-expressive);
+        }
+
+        .philosophy-item:nth-child(2) {
+            border-left-color: var(--md-sys-color-secondary);
+        }
+
+        .philosophy-item:nth-child(3) {
+            border-left-color: var(--md-sys-color-tertiary);
+        }
+
+        .philosophy-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.08);
         }
 
         .philosophy-item h4 {
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             margin-bottom: 12px;
             color: var(--md-sys-color-on-surface);
             display: flex;
@@ -1193,6 +1302,7 @@
         .philosophy-item p {
             color: var(--md-sys-color-on-surface-variant);
             line-height: 1.6;
+            font-size: 0.95rem;
         }
 
         @font-face {
@@ -1375,6 +1485,7 @@
         </div>
     </div>
 
+
     <div id="app-wrapper">
         <div class="container">
             <header class="navbar">
@@ -1418,66 +1529,67 @@
         <div class="container">
             <!-- Features Bento Grid -->
             <section class="features-section">
-                <div class="section-header">
+                <div class="section-header reveal">
                     <h2 class="headline-large">Why KittyTune?</h2>
-                    <p>Designed for power users, simplified for everyone.</p>
+                    <p>Built for the ones who actually care about their music experience.</p>
                 </div>
 
                 <div class="expressive-grid">
-                    <div class="expressive-card span-8 variant-primary">
-                        <div class="kaomoji-hero">( ✧ω✧ )</div>
+                    <div class="expressive-card span-8 variant-primary reveal reveal-delay-1">
+                        <div class="kaomoji-hero">( ^-^)~</div>
                         <div class="card-content">
                             <div class="card-icon"><span class="material-icons-round">tune</span></div>
-                            <h3>Tinker with Sound</h3>
-                            <p>Make it yours with Nightcore mode, 8D Audio, and Pitch control. Real-time effects engine.
-                            </p>
+                            <h3>Real-time Sound FX</h3>
+                            <p>Nightcore, 8D Audio, pitch shifting, bass boost... you name it. Tweak everything on the
+                                fly while your track is playing. It just works.</p>
                         </div>
                     </div>
 
-                    <div class="expressive-card span-4 variant-secondary">
-                        <div class="kaomoji-hero">(˘ω˘)</div>
+                    <div class="expressive-card span-4 variant-secondary reveal reveal-delay-2">
+                        <div class="kaomoji-hero">(-_-) zzZ</div>
                         <div class="card-content">
                             <div class="card-icon"><span class="material-icons-round">lyrics</span></div>
                             <h3>Synced Lyrics</h3>
-                            <p>Real-time lyrics from LrcLib.</p>
+                            <p>Real-time lyrics straight from LrcLib. No manual sync needed.</p>
                         </div>
                     </div>
 
-                    <div class="expressive-card span-4 variant-tertiary">
-                        <div class="kaomoji-hero">( ⌐■_■ )</div>
+                    <div class="expressive-card span-4 variant-tertiary reveal reveal-delay-1">
+                        <div class="kaomoji-hero">( o_O)?</div>
                         <div class="card-content">
                             <div class="card-icon"><span class="material-icons-round">hub</span></div>
-                            <h3>Hybrid Core</h3>
-                            <p>Seamless fallback to YouTube if a track is blocked.</p>
+                            <h3>Hybrid Playback</h3>
+                            <p>SoundCloud blocked a track? KittyTune silently falls back to YouTube. You won't even
+                                notice.</p>
                         </div>
                     </div>
 
-                    <div class="expressive-card span-8 variant-primary">
-                        <div class="kaomoji-hero">( •̀ᴗ•́ )و</div>
+                    <div class="expressive-card span-8 variant-primary reveal reveal-delay-2">
+                        <div class="kaomoji-hero">d(-_-)b</div>
                         <div class="card-content">
                             <div class="card-icon"><span class="material-icons-round">emoji_events</span></div>
-                            <h3>RPG System</h3>
-                            <p>Earn XP, level up, and unlock unique badges like "Vampire" or "Obsessed".</p>
+                            <h3>RPG-style Progression</h3>
+                            <p>Earn XP by listening, level up your profile, and collect badges like "Night Owl" or
+                                "Obsessed". Because why not make music fun.</p>
                         </div>
                     </div>
 
-                    <div class="expressive-card span-6 variant-secondary">
-                        <div class="kaomoji-hero">( O . O )</div>
+                    <div class="expressive-card span-6 variant-secondary reveal reveal-delay-1">
+                        <div class="kaomoji-hero">(=^.^=)</div>
                         <div class="card-content">
                             <div class="card-icon"><span class="material-icons-round">widgets</span></div>
-                            <h3>Dynamic Widgets</h3>
-                            <p>Beautiful home screen widgets that adapt to your wallpaper colors.</p>
+                            <h3>Living Widgets</h3>
+                            <p>Home screen widgets that adapt to your wallpaper palette. Looks native, feels native.</p>
                         </div>
                     </div>
 
-                    <div class="expressive-card span-6 variant-tertiary">
-                        <div class="kaomoji-hero">( ✖ _ ✖ )</div>
+                    <div class="expressive-card span-6 variant-tertiary reveal reveal-delay-2">
+                        <div class="kaomoji-hero">(~_~;)</div>
                         <div class="card-content">
                             <div class="card-icon"><span class="material-icons-round">sync</span></div>
-                            <h3>SoundCloud Sync</h3>
-                            <p>Log in with your existing SoundCloud account. Sync your playlists, liked tracks, and
-                                history seamlessly across devices. A true open-source alternative with zero telemetry.
-                            </p>
+                            <h3>Full SoundCloud Sync</h3>
+                            <p>Log in with your SoundCloud account. Playlists, likes, history, everything syncs. Zero
+                                telemetry, zero data harvesting. Promise.</p>
                         </div>
                     </div>
                 </div>
@@ -1492,9 +1604,9 @@
                 <div class="showcase-row">
                     <div class="text-col">
                         <div class="step-number">01</div>
-                        <h3>Material You UI.</h3>
-                        <p>The interface adapts to your system colors. Clean, spacious, and responsive design that feels
-                            native to Android 12+.</p>
+                        <h3>Material You, for real.</h3>
+                        <p>Colors pulled straight from your wallpaper. The whole UI adapts to your vibe, clean,
+                            spacious, and native to Android 12+. No weird third-party look.</p>
                         <div class="highlight">#DynamicColors</div>
                     </div>
                     <div class="showcase-image-wrapper">
@@ -1516,9 +1628,9 @@
                 <div class="showcase-row reverse">
                     <div class="text-col">
                         <div class="step-number">02</div>
-                        <h3>Deep Audio Control.</h3>
-                        <p>Adjust speed, pitch, and enable effects like 8D Audio or Bass Boost directly from the player
-                            drawer.</p>
+                        <h3>Audio, your way.</h3>
+                        <p>Speed, pitch, 8D Audio, bass boost, all accessible from the player drawer. Mess around with
+                            it, find your sweet spot.</p>
                         <div class="highlight">#PowerUser</div>
                     </div>
                     <div class="showcase-image-wrapper">
@@ -1541,9 +1653,9 @@
                 <div class="showcase-row">
                     <div class="text-col">
                         <div class="step-number">03</div>
-                        <h3>Lyrics in Motion.</h3>
-                        <p>Follow along with time-synced lyrics. If they're missing, use the built-in manual search to
-                            find the right LRC file.</p>
+                        <h3>Lyrics that follow along.</h3>
+                        <p>Time-synced lyrics, scrolling in real-time. Missing from the database? Search and load your
+                            own LRC file. Simple.</p>
                         <div class="highlight">#KaraokeMode</div>
                     </div>
                     <div class="showcase-image-wrapper">
@@ -1565,9 +1677,9 @@
                 <div class="showcase-row reverse">
                     <div class="text-col">
                         <div class="step-number">04</div>
-                        <h3>Profile & Rewards.</h3>
-                        <p>Track your listening habits and unlock achievements. Your profile evolves as you listen more.
-                        </p>
+                        <h3>Your profile, evolving.</h3>
+                        <p>Track your listening stats, collect achievements, and watch your profile grow over time. The
+                            more you listen, the cooler it gets.</p>
                         <div class="highlight">#LevelUp</div>
                     </div>
                     <div class="showcase-image-wrapper">
@@ -1599,18 +1711,18 @@
                 <div class="philosophy-content">
                     <h2>No Ads. No Trackers.<br>Just Music.</h2>
                     <p style="max-width: 600px; margin: 0 auto; color: var(--md-sys-color-on-surface-variant);">
-                        KittyTune is my passion project. I don't want your data, and I definitely don't want to show you
-                        ads. Built with Jetpack Compose & ❤️.
+                        KittyTune is a passion project. I don't want your data, and I'm definitely not going to shove
+                        ads in your face. Built with Jetpack Compose, maintained with care.
                     </p>
                 </div>
 
                 <div class="philosophy-grid">
-                    <div class="philosophy-item">
+                    <div class="philosophy-item reveal reveal-delay-1">
                         <h4><span class="material-icons-round"
                                 style="color: var(--md-sys-color-tertiary);">security</span> Privacy First</h4>
-                        <p>Permissions are kept to a minimum. What you listen to stays on your device.</p>
+                        <p>Minimal permissions. What you listen to stays on your device. Period.</p>
                     </div>
-                    <div class="philosophy-item">
+                    <div class="philosophy-item reveal reveal-delay-2">
                         <h4><span class="material-icons-round"
                                 style="color: var(--md-sys-color-primary);">translate</span> Community Driven</h4>
                         <p>
@@ -1620,11 +1732,11 @@
                                 your own language</a> via a Pull Request.
                         </p>
                     </div>
-                    <div class="philosophy-item">
+                    <div class="philosophy-item reveal reveal-delay-3">
                         <h4><span class="material-icons-round"
-                                style="color: var(--md-sys-color-secondary);">palette</span> Material 3 Design</h4>
-                        <p>Built with the latest Material 3 guidelines. The UI automatically adapts to your wallpaper
-                            using Dynamic Colors for a truly native feel.</p>
+                                style="color: var(--md-sys-color-secondary);">palette</span> Material 3 Expressive</h4>
+                        <p>Built with the latest Material 3 guidelines. Dynamic Colors, fluid motion, premium surfaces.
+                            Feels like it belongs on your phone.</p>
                     </div>
                 </div>
 
@@ -1718,9 +1830,9 @@
                         observer.unobserve(entry.target);
                     }
                 });
-            }, { threshold: 0.2 });
+            }, { threshold: 0.15 });
 
-            document.querySelectorAll('.showcase-row').forEach(el => observer.observe(el));
+            document.querySelectorAll('.showcase-row, .reveal').forEach(el => observer.observe(el));
         });
     </script>
 </body>
