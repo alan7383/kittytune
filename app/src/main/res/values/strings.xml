@@ -895,4 +895,52 @@
     <string name="sleep_timer_island_title">Sleep Timer</string>
     <string name="sleep_timer_island_started_subtitle">Timer set for %1$s</string>
     <string name="sleep_timer_island_finished_subtitle">Timer finished</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- LISTENING STATS                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+
+    <string name="profile_menu_listening_stats">Listening Stats</string>
+    <string name="listening_stats_title">Listening Stats</string>
+    <string name="listening_stats_subtitle">Your listening habits</string>
+
+    <string name="listening_stats_period_week">This Week</string>
+    <string name="listening_stats_period_month">This Month</string>
+    <string name="listening_stats_period_all">All Time</string>
+
+    <string name="listening_stats_time_listened">Time Listened</string>
+    <string name="listening_stats_plays">Plays</string>
+    <string name="listening_stats_unique_tracks">Tracks</string>
+    <string name="listening_stats_unique_artists">Artists</string>
+
+    <string name="listening_stats_top_tracks">Top Tracks</string>
+    <string name="listening_stats_top_artists">Top Artists</string>
+    <string name="listening_stats_top_track_label">Top Track</string>
+    <string name="listening_stats_top_artist_label">Top Artist</string>
+    <string name="listening_stats_play_count">%1$d plays</string>
+
+    <string name="listening_stats_habits">Listening Habits</string>
+    <string name="listening_stats_manual_replays">Manual Replays</string>
+    <string name="listening_stats_manual_replays_desc">Songs you restarted with back</string>
+    <string name="listening_stats_skip_rate">Skip Rate</string>
+    <string name="listening_stats_skip_rate_desc">%1$d songs skipped</string>
+    <string name="listening_stats_completion_rate">Completion</string>
+    <string name="listening_stats_completion_rate_desc">Songs fully completed</string>
+    <string name="listening_stats_repeat_loops">Repeat Loops</string>
+    <string name="listening_stats_repeat_loops_desc">Repeat One auto-replays</string>
+    <string name="listening_stats_avg_listen">Avg. Listen</string>
+    <string name="listening_stats_avg_listen_desc">Per track duration</string>
+    <string name="listening_stats_total_sessions">Total Events</string>
+    <string name="listening_stats_total_sessions_desc">All playback events</string>
+
+    <string name="listening_stats_insights">Insights</string>
+    <string name="listening_stats_insight_top_track">%1$s is your favorite, you played it %2$d times!</string>
+    <string name="listening_stats_insight_replays">You manually replayed songs %1$d times, that\'s dedication!</string>
+    <string name="listening_stats_insight_skips">You skip %1$s%% of songs, quite selective!</string>
+    <string name="listening_stats_insight_repeat">You used Repeat One %1$d times, obsession unlocked!</string>
+    <string name="listening_stats_insight_variety">You explored %1$d different artists, eclectic taste!</string>
+
+    <string name="listening_stats_empty_title">No stats yet</string>
+    <string name="listening_stats_empty_desc">Start listening to see your stats here!</string>
+
 </resources>

@@ -127,9 +127,66 @@
     
         @Query("DELETE FROM play_history")
         suspend fun clearHistory()
+
+        // listening stats
+        @Insert
+        suspend fun insertStatsEvent(event: ListeningStatsEvent)
+
+        @Query("SELECT * FROM listening_stats WHERE timestamp >= :since ORDER BY timestamp DESC")
+        suspend fun getEventsAfter(since: Long): List<ListeningStatsEvent>
+
+        @Query("SELECT trackId, trackTitle, artistName, artworkUrl, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND eventType IN ('PLAY_COMPLETE', 'MANUAL_REPLAY', 'REPEAT_ONE_LOOP') GROUP BY trackId ORDER BY playCount DESC LIMIT :limit")
+        suspend fun getTopTracksAfter(since: Long, limit: Int = 10): List<TopTrackResult>
+
+        @Query("SELECT artistName, MAX(artistAvatarUrl) as artworkUrl, MAX(artistId) as artistId, MAX(artistPermalink) as artistPermalink, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND eventType IN ('PLAY_COMPLETE', 'MANUAL_REPLAY', 'REPEAT_ONE_LOOP') GROUP BY artistName HAVING SUM(listenDurationMs) >= 60000 ORDER BY totalListenMs DESC LIMIT :limit")
+        suspend fun getTopArtistsAfter(since: Long, limit: Int = 10): List<TopArtistResult>
+
+        @Query("SELECT trackId, trackTitle, artistName, artworkUrl, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND timestamp < :until AND eventType IN ('PLAY_COMPLETE', 'MANUAL_REPLAY', 'REPEAT_ONE_LOOP') GROUP BY trackId ORDER BY playCount DESC LIMIT :limit")
+        suspend fun getTopTracksBetween(since: Long, until: Long, limit: Int = 1): List<TopTrackResult>
+
+        @Query("SELECT artistName, MAX(artistAvatarUrl) as artworkUrl, MAX(artistId) as artistId, MAX(artistPermalink) as artistPermalink, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND timestamp < :until AND eventType IN ('PLAY_COMPLETE', 'MANUAL_REPLAY', 'REPEAT_ONE_LOOP') GROUP BY artistName HAVING SUM(listenDurationMs) >= 60000 ORDER BY totalListenMs DESC LIMIT :limit")
+        suspend fun getTopArtistsBetween(since: Long, until: Long, limit: Int = 1): List<TopArtistResult>
+
+        @Query("SELECT COALESCE(SUM(listenDurationMs), 0) FROM listening_stats WHERE timestamp >= :since")
+        suspend fun getTotalListenTimeAfter(since: Long): Long
+
+        @Query("SELECT COUNT(*) FROM listening_stats WHERE eventType = :type AND timestamp >= :since")
+        suspend fun getEventCountByType(type: String, since: Long): Int
+
+        @Query("SELECT COUNT(*) FROM listening_stats WHERE timestamp >= :since")
+        suspend fun getTotalEventsAfter(since: Long): Int
+
+        @Query("SELECT COUNT(DISTINCT trackId) FROM listening_stats WHERE timestamp >= :since")
+        suspend fun getUniqueTracksAfter(since: Long): Int
+
+        @Query("SELECT COUNT(DISTINCT artistName) FROM listening_stats WHERE timestamp >= :since")
+        suspend fun getUniqueArtistsAfter(since: Long): Int
+
+        @Query("DELETE FROM listening_stats")
+        suspend fun clearStats()
     }
-    
-    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class], version = 8, exportSchema = false)
+
+    data class TopTrackResult(
+        val trackId: Long,
+        val trackTitle: String,
+        val artistName: String,
+        val artworkUrl: String,
+        val source: String,
+        val playCount: Int,
+        val totalListenMs: Long
+    )
+
+    data class TopArtistResult(
+        val artistName: String,
+        val artworkUrl: String,
+        val artistId: Long?,
+        val artistPermalink: String?,
+        val source: String,
+        val playCount: Int,
+        val totalListenMs: Long
+    )
+
+    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class], version = 11, exportSchema = false)
     abstract class AppDatabase : RoomDatabase() {
         abstract fun downloadDao(): DownloadDao
     

@@ -58,4 +58,21 @@
         val originalUrl: String? = null
     )
 
+    @Entity(tableName = "listening_stats")
+    data class ListeningStatsEvent(
+        @PrimaryKey(autoGenerate = true) val id: Long = 0,
+        val trackId: Long,
+        val trackTitle: String,
+        val artistName: String,
+        val artistId: Long? = null,
+        val artistPermalink: String? = null,
+        val artistAvatarUrl: String? = null,
+        val artworkUrl: String,
+        val source: String = "soundcloud",
+        val eventType: String,          // PLAY_COMPLETE, SKIP_NEXT, SKIP_PREVIOUS, MANUAL_REPLAY, REPEAT_ONE_LOOP
+        val listenDurationMs: Long = 0,
+        val trackDurationMs: Long = 0,
+        val timestamp: Long = System.currentTimeMillis()
+    )
+
 

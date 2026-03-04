@@ -894,4 +894,50 @@
     <string name="sleep_timer_island_title">Alváskapcsoló</string>
     <string name="sleep_timer_island_started_subtitle">Időzítő beállítva: %1$s</string>
     <string name="sleep_timer_island_finished_subtitle">Az időzítő lejárt</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- LISTENING STATS                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+
+    <string name="profile_menu_listening_stats">Hallgatási statisztikák</string>
+    <string name="listening_stats_title">Hallgatási statisztikák</string>
+    <string name="listening_stats_subtitle">A zenehallgatási szokásaid</string>
+
+    <string name="listening_stats_period_week">Ez a hét</string>
+    <string name="listening_stats_period_month">Ez a hónap</string>
+    <string name="listening_stats_period_all">Összesen</string>
+
+    <string name="listening_stats_time_listened">Hallgatási idő</string>
+    <string name="listening_stats_plays">Lejátszások</string>
+    <string name="listening_stats_unique_tracks">Számok</string>
+    <string name="listening_stats_unique_artists">Előadók</string>
+
+    <string name="listening_stats_top_tracks">Top számok</string>
+    <string name="listening_stats_top_artists">Top előadók</string>
+    <string name="listening_stats_play_count">%1$d lejátszás</string>
+
+    <string name="listening_stats_habits">Hallgatási szokások</string>
+    <string name="listening_stats_manual_replays">Kézi visszajátszás</string>
+    <string name="listening_stats_manual_replays_desc">Visszagombbal újraindított számok</string>
+    <string name="listening_stats_skip_rate">Skip arány</string>
+    <string name="listening_stats_skip_rate_desc">%1$d szám kihagyva</string>
+    <string name="listening_stats_completion_rate">Befejezés</string>
+    <string name="listening_stats_completion_rate_desc">Teljes egészében meghallgatott számok</string>
+    <string name="listening_stats_repeat_loops">Repeat hurkok</string>
+    <string name="listening_stats_repeat_loops_desc">Repeat One automatikus ismétlések</string>
+    <string name="listening_stats_avg_listen">Átl. hallgatás</string>
+    <string name="listening_stats_avg_listen_desc">Számonkénti időtartam</string>
+    <string name="listening_stats_total_sessions">Összes esemény</string>
+    <string name="listening_stats_total_sessions_desc">Minden lejátszási esemény</string>
+
+    <string name="listening_stats_insights">Érdekességek</string>
+    <string name="listening_stats_insight_top_track">A(z) %1$s a kedvenced, %2$d alkalommal játszottad le!</string>
+    <string name="listening_stats_insight_replays">%1$d alkalommal indítottál el újra számot kézzel, ez az elszántság!</string>
+    <string name="listening_stats_insight_skips">A számok %1$s%%-át kihagyod, elég válogatós vagy!</string>
+    <string name="listening_stats_insight_repeat">%1$d alkalommal használtad a Repeat One-t, megszállottság feloldva!</string>
+    <string name="listening_stats_insight_variety">%1$d különböző előadót hallgattál, eklektikus ízlés!</string>
+
+    <string name="listening_stats_empty_title">Még nincsenek statisztikák</string>
+    <string name="listening_stats_empty_desc">Kezdj el zenét hallgatni, hogy itt lássad a statisztikáidat!</string>
+
 </resources>

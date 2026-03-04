@@ -685,6 +685,29 @@ fun MainScreen(
                         AchievementsScreen { navController.popBackStack() }
                     }
 
+                    clippedComposable("listening_stats") {
+                        ListeningStatsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onTrackClick = { track ->
+                                if (track.source == "soundcloud") {
+                                    val stubTrack = com.alananasss.kittytune.domain.Track(
+                                        id = track.trackId,
+                                        title = track.trackTitle,
+                                        user = com.alananasss.kittytune.domain.User(0, track.artistName, null),
+                                        artworkUrl = track.artworkUrl,
+                                        durationMs = 0L
+                                    )
+                                    playerViewModel.playPlaylist(listOf(stubTrack), 0)
+                                }
+                            },
+                            onArtistClick = { artist ->
+                                if (artist.source == "soundcloud") {
+                                    playerViewModel.resolveAndNavigateToArtist(artist.artistName, artist.artistId)
+                                }
+                            }
+                        )
+                    }
+
                     clippedComposable("settings") {
                         SettingsScreen(navController, { navController.popBackStack() }, playerViewModel)
                     }
@@ -895,6 +918,7 @@ fun MainScreen(
                         onNotificationsClick = { navController.navigate("notifications") },
                         onMessagesClick = { navController.navigate("conversations") },
                         onAchievementsClick = { navController.navigate("achievements") },
+                        onListeningStatsClick = { navController.navigate("listening_stats") },
                         onSettingsClick = { navController.navigate("settings") },
                         onLogoutClick = {
                             if (isGuest) {

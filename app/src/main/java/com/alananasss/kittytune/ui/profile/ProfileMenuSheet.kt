@@ -7,6 +7,7 @@
     import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.rounded.Logout
+    import androidx.compose.material.icons.rounded.BarChart
     import androidx.compose.material.icons.rounded.Close
     import androidx.compose.material.icons.rounded.EmojiEvents
     import androidx.compose.material.icons.rounded.Notifications
@@ -34,6 +35,7 @@
         onNotificationsClick: () -> Unit,
         onMessagesClick: () -> Unit,
         onAchievementsClick: () -> Unit,
+        onListeningStatsClick: () -> Unit,
         onSettingsClick: () -> Unit,
         onLogoutClick: () -> Unit
     ) {
@@ -153,24 +155,32 @@
                         }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-    
+
                     MenuRowItem(
                         icon = Icons.Rounded.EmojiEvents,
                         label = stringResource(R.string.profile_menu_achievements),
-                        onClick = { onDismiss(); onAchievementsClick() },
+                        onClick = { onDismiss(); onAchievementsClick() }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
+
+                    MenuRowItem(
+                        icon = Icons.Rounded.BarChart,
+                        label = stringResource(R.string.profile_menu_listening_stats),
+                        onClick = { onDismiss(); onListeningStatsClick() },
                         isNew = true
                     )
-    
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-    
+
                     MenuRowItem(
                         icon = Icons.Rounded.Settings,
                         label = stringResource(R.string.profile_menu_settings),
                         onClick = { onDismiss(); onSettingsClick() }
                     )
-    
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-    
+
                     if (!isGuest) {
                         MenuRowItem(
                             icon = Icons.AutoMirrored.Rounded.Logout,

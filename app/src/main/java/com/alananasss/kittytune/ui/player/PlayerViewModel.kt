@@ -33,6 +33,7 @@ import com.alananasss.kittytune.ui.common.AchievementNotification
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.network.LrcLibClient
+import com.alananasss.kittytune.data.ListeningStatsRepository
 import com.alananasss.kittytune.data.network.LrcLibResponse
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.*
@@ -161,6 +162,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var lyricsOffset by mutableLongStateOf(0L)
     var showLyricsOffsetControls by mutableStateOf(false)
 
+    var currentSessionListenMs = 0L
+
     // Sleep Timer
     var sleepTimerRemainingMs by mutableLongStateOf(0L)
     var sleepTimerEndOfTrack by mutableStateOf(false)
@@ -219,6 +222,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             if (state == Player.STATE_ENDED) {
                 AchievementManager.increment("no_skip_50")
                 incrementPlayCount()
+
+                // Record listening stats
+                currentTrack?.let { track ->
+                    val listenMs = track.durationMs ?: MusicManager.player.duration
+                    if (repeatMode == RepeatMode.ONE) {
+                        ListeningStatsRepository.recordEvent(track, "REPEAT_ONE_LOOP", listenMs)
+                    } else {
+                        ListeningStatsRepository.recordEvent(track, "PLAY_COMPLETE", listenMs)
+                    }
+                }
 
                 // Sleep timer: end of track mode
                 if (sleepTimerEndOfTrack) {
@@ -289,6 +302,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
+            currentSessionListenMs = 0L // reset listen time on track change
             if (mediaItem == null) return
 
             val trackId = parseIdFromMediaId(mediaItem.mediaId)
@@ -746,14 +760,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         loadComments(refresh = true)
     }
 
-    fun resolveAndNavigateToArtist(username: String) {
+    fun resolveAndNavigateToArtist(username: String, artistId: Long? = null) {
         showDetailsSheet = false
         showMenuSheet = false
         showCommentsSheet = false
         isPlayerExpanded = false
+        
+        if (artistId != null && artistId > 0) {
+            navigateToPlaylistId = "profile:$artistId"
+            return
+        }
 
-        val cleanName = username.replace("@", "").trim()
+        val cleanName = username.replace("@", "")
+            .replace(Regex("[\\p{C}\\p{Zl}\\p{Zp}]"), "")
+            .trim()
+            
         if (cleanName.isBlank()) return
+        
         viewModelScope.launch {
             try {
                 val resolvedObject = api.resolveUrl("https://soundcloud.com/$cleanName")
@@ -1086,6 +1109,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             incrementPlayCount()
         }
 
+        // Record skip stats
+        if (manual) {
+            currentTrack?.let { track ->
+                ListeningStatsRepository.recordEvent(track, "SKIP_NEXT", player.currentPosition)
+            }
+        }
+
         val nextIndex = currentQueueIndex + 1
 
         if (manual) {
@@ -1216,9 +1246,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         if (player.currentPosition > 3000) {
+            // User is restarting the same track — this is a manual replay
+            if (currentSessionListenMs >= 30_000L) {
+                currentTrack?.let { track ->
+                    ListeningStatsRepository.recordEvent(track, "MANUAL_REPLAY", player.currentPosition)
+                }
+            }
+            currentSessionListenMs = 0L
             currentPosition = 0L
             player.seekTo(0)
         } else {
+            // User is going to previous track
+            currentTrack?.let { track ->
+                ListeningStatsRepository.recordEvent(track, "SKIP_PREVIOUS", player.currentPosition)
+            }
             val realIndex = player.currentMediaItemIndex
 
             val activeIndex = if (realIndex >= 0 && realIndex < _queue.size) realIndex else currentQueueIndex
@@ -1471,6 +1512,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 try {
                     if (!isScrubbing) {
                         currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
+                        currentSessionListenMs += 1000L
                     }
                     AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
                     if (effectsState.isBassBoostEnabled) AchievementManager.increment("bass_addict", 1)
