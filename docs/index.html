@@ -1218,7 +1218,7 @@
             .avium-hero-container {
                 grid-template-columns: 1fr;
                 /* Stack vertically */
-                gap: 16px;
+                gap: 12px;
             }
 
             .avium-hero-section {
@@ -1226,42 +1226,52 @@
                 /* Reduce outer padding */
             }
 
+            .avium-hero-left,
+            .avium-hero-right {
+                border-radius: var(--radius-l);
+            }
+
             .avium-hero-left {
-                padding: 40px 24px;
+                padding: 32px 24px;
                 /* Smaller padding inside the info card */
-                align-items: center;
-                /* Center text on mobile */
-                text-align: center;
+                align-items: flex-start;
+                /* Left align text on mobile */
+                text-align: left;
             }
 
             .avium-hero-title {
-                font-size: clamp(2.5rem, 8vw, 3.5rem);
+                font-size: 2.5rem;
                 /* Slightly smaller title */
+                margin-bottom: 16px;
             }
 
             .avium-hero-desc {
-                margin-bottom: 32px;
+                margin-bottom: 24px;
+                font-size: 1.05rem;
             }
 
             .avium-hero-buttons {
-                flex-direction: column;
-                width: 100%;
+                flex-direction: row;
+                width: auto;
                 gap: 12px;
             }
 
             .avium-hero-buttons .avium-btn-download {
-                width: 100%;
-                justify-content: center;
+                width: auto;
+                padding: 12px 28px;
             }
 
             .avium-hero-right {
-                min-height: 350px;
-                /* Shorter image container so it doesn't take the whole screen vertically */
+                min-height: auto;
+                /* Size container to fit the full image */
             }
 
             .avium-hero-img {
-                object-position: center top;
-                /* Focus on the top part of the app for mobile views */
+                height: auto;
+                width: 100%;
+                object-fit: contain;
+                /* Display completely without crop */
+                object-position: center;
             }
         }
 
