@@ -24,6 +24,7 @@
     import com.alananasss.kittytune.data.DownloadManager
     import com.alananasss.kittytune.data.HistoryRepository
     import com.alananasss.kittytune.data.LikeRepository
+    import com.alananasss.kittytune.data.ListeningStatsRepository
     import com.alananasss.kittytune.data.RepostRepository
     import com.alananasss.kittytune.data.TokenManager
     import com.alananasss.kittytune.data.UpdateManager
@@ -97,6 +98,7 @@
             LikeRepository.init(applicationContext)
             DownloadManager.init(applicationContext)
             HistoryRepository.init(applicationContext)
+            ListeningStatsRepository.init(applicationContext)
             AchievementManager.init(applicationContext)
             RepostRepository.init(applicationContext)
             AchievementManager.resetSessionAchievements()

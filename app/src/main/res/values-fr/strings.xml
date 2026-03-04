@@ -894,4 +894,50 @@
     <string name="sleep_timer_island_title">Minuteur de veille</string>
     <string name="sleep_timer_island_started_subtitle">Minuteur défini pour %1$s</string>
     <string name="sleep_timer_island_finished_subtitle">Minuteur terminé</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- LISTENING STATS                                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+
+    <string name="profile_menu_listening_stats">Stats d\'écoute</string>
+    <string name="listening_stats_title">Stats d\'écoute</string>
+    <string name="listening_stats_subtitle">Vos habitudes musicales</string>
+
+    <string name="listening_stats_period_week">Cette semaine</string>
+    <string name="listening_stats_period_month">Ce mois</string>
+    <string name="listening_stats_period_all">Tout</string>
+
+    <string name="listening_stats_time_listened">Temps écouté</string>
+    <string name="listening_stats_plays">Écoutes</string>
+    <string name="listening_stats_unique_tracks">Titres</string>
+    <string name="listening_stats_unique_artists">Artistes</string>
+
+    <string name="listening_stats_top_tracks">Top Titres</string>
+    <string name="listening_stats_top_artists">Top Artistes</string>
+    <string name="listening_stats_play_count">%1$d écoutes</string>
+
+    <string name="listening_stats_habits">Habitudes d\'écoute</string>
+    <string name="listening_stats_manual_replays">Replays manuels</string>
+    <string name="listening_stats_manual_replays_desc">Titres relancés avec retour</string>
+    <string name="listening_stats_skip_rate">Taux de skip</string>
+    <string name="listening_stats_skip_rate_desc">%1$d titres passés</string>
+    <string name="listening_stats_completion_rate">Finition</string>
+    <string name="listening_stats_completion_rate_desc">Titres écoutés en entier</string>
+    <string name="listening_stats_repeat_loops">Boucles Repeat</string>
+    <string name="listening_stats_repeat_loops_desc">Replays auto en mode Repeat One</string>
+    <string name="listening_stats_avg_listen">Durée moy.</string>
+    <string name="listening_stats_avg_listen_desc">Par titre écouté</string>
+    <string name="listening_stats_total_sessions">Total évènements</string>
+    <string name="listening_stats_total_sessions_desc">Tous les évènements de lecture</string>
+
+    <string name="listening_stats_insights">Insights</string>
+    <string name="listening_stats_insight_top_track">%1$s est votre favori, écouté %2$d fois !</string>
+    <string name="listening_stats_insight_replays">Vous avez relancé des titres %1$d fois, quelle dévotion !</string>
+    <string name="listening_stats_insight_skips">Vous passez %1$s%% des titres, exigeant !</string>
+    <string name="listening_stats_insight_repeat">Vous avez utilisé Repeat One %1$d fois, obsession activée !</string>
+    <string name="listening_stats_insight_variety">Vous écoutez %1$d artistes différents, goûts éclectiques !</string>
+
+    <string name="listening_stats_empty_title">Pas encore de stats</string>
+    <string name="listening_stats_empty_desc">Commencez à écouter pour voir vos stats !</string>
+
 </resources>
