@@ -3,6 +3,8 @@
 Hey! Thanks for wanting to help out with KittyTune. I really appreciate it!
 
 
+★ Golden rule: Keep the cat spirit.
+
 ## Building the project
 1. Clone the repo: `git clone https://github.com/alan7383/kittytune.git`
 2. Open it in Android Studio (make sure you're using **JDK 17**).
