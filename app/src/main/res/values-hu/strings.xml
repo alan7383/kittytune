@@ -457,6 +457,11 @@
     <string name="settings_cat_source">Könyvtár</string>
     <string name="settings_cat_notifications">Értesítések</string>
 
+    <string name="pref_privacy_title">Adatvédelem és Követés</string>
+    <string name="pref_privacy_subtitle">Hallgatási statisztikák és előzmények kezelése</string>
+    <string name="pref_privacy_tracking_title">Hallgatási előzmények engedélyezése</string>
+    <string name="pref_privacy_tracking_subtitle">Kövesd nyomon a legtöbbet hallgatott számaidat és előadóidat.</string>
+
     <!-- APPEARANCE -->
     <string name="pref_appearance_title">Megjelenés</string>
     <string name="pref_appearance_subtitle">Téma, színek, nyelv</string>

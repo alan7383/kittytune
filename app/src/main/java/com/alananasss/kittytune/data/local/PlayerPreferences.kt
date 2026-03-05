@@ -32,6 +32,7 @@ class PlayerPreferences(private val context: Context) {
     private val queueFile = File(context.filesDir, "queue_cache.json")
 
     companion object {
+        const val KEY_LISTENING_STATS_ENABLED = "listening_stats_enabled"
         private const val KEY_TRACK_JSON = "last_track_json"
         private const val KEY_POSITION = "last_position"
         private const val KEY_EFFECTS = "audio_effects"
@@ -201,6 +202,8 @@ class PlayerPreferences(private val context: Context) {
     fun setPlayerStyle(style: PlayerBackgroundStyle) = prefs.edit().putString(KEY_PLAYER_STYLE, style.name).apply()
     fun getAutoplayEnabled(): Boolean = prefs.getBoolean(KEY_AUTOPLAY_STATION, true)
     fun setAutoplayEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_AUTOPLAY_STATION, enabled).apply()
+    fun getListeningStatsEnabled(): Boolean = prefs.getBoolean(KEY_LISTENING_STATS_ENABLED, true)
+    fun setListeningStatsEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_LISTENING_STATS_ENABLED, enabled).apply()
     fun getAudioQuality(): String = prefs.getString(KEY_AUDIO_QUALITY, "HIGH") ?: "HIGH"
     fun setAudioQuality(quality: String) = prefs.edit().putString(KEY_AUDIO_QUALITY, quality).apply()
     fun getPersistentQueueEnabled(): Boolean = prefs.getBoolean(KEY_PERSISTENT_QUEUE, true)
