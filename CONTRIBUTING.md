@@ -2,6 +2,8 @@
 
 Hey! Thanks for wanting to help out with KittyTune. I really appreciate it!
 
+### ★ The Golden Rule
+**Respect the cat spirit.**
 
 ## Building the project
 1. Clone the repo: `git clone https://github.com/alan7383/kittytune.git`
