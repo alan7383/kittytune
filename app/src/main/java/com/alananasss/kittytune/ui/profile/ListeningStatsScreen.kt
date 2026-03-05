@@ -33,6 +33,8 @@ import com.alananasss.kittytune.data.local.TopArtistResult
 import com.alananasss.kittytune.data.local.TopTrackResult
 import java.util.Locale
 import java.util.Calendar
+import androidx.compose.ui.platform.LocalContext
+import com.alananasss.kittytune.data.local.PlayerPreferences
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,8 +49,92 @@ fun ListeningStatsScreen(
     val isLoading = viewModel.isLoading
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var isTrackingEnabled by remember { mutableStateOf(prefs.getListeningStatsEnabled()) }
+
     LaunchedEffect(Unit) {
         viewModel.refreshStats()
+    }
+
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_privacy_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.pref_privacy_subtitle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                            Text(
+                                text = stringResource(R.string.pref_privacy_tracking_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.pref_privacy_tracking_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isTrackingEnabled,
+                            onCheckedChange = { 
+                                isTrackingEnabled = it
+                                prefs.setListeningStatsEnabled(it)
+                            },
+                            thumbContent = {
+                                if (isTrackingEnabled) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Close,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        tint = MaterialTheme.colorScheme.surfaceContainerHighest
+                                    )
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSettingsDialog = false }) {
+                    Text(stringResource(R.string.btn_close))
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -77,6 +163,15 @@ fun ListeningStatsScreen(
                         )
                     ) {
                         Icon(Icons.Rounded.ArrowBack, stringResource(R.string.btn_close))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showSettingsDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = stringResource(R.string.pref_privacy_title),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 scrollBehavior = scrollBehavior,

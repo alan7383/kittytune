@@ -457,6 +457,11 @@
     <string name="settings_cat_source">Bibliothèque</string>
     <string name="settings_cat_notifications">Notifications</string>
 
+    <string name="pref_privacy_title">Confidentialité &amp; Suivi</string>
+    <string name="pref_privacy_subtitle">Gérez vos statistiques d\'écoute et votre historique</string>
+    <string name="pref_privacy_tracking_title">Activer l\'historique d\'écoute</string>
+    <string name="pref_privacy_tracking_subtitle">Gardez une trace de vos titres et artistes les plus écoutés.</string>
+
     <!-- APPEARANCE -->
     <string name="pref_appearance_title">Apparence</string>
     <string name="pref_appearance_subtitle">Thème, couleurs, langue</string>
