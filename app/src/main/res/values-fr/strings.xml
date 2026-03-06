@@ -945,4 +945,11 @@
     <string name="listening_stats_empty_title">Pas encore de stats</string>
     <string name="listening_stats_empty_desc">Commencez à écouter pour voir vos stats !</string>
 
+    <string name="listening_stats_duration_zero">Aucune donnée</string>
+    <string name="listening_stats_duration_days_hrs">%1$dj %2$dh</string>
+    <string name="listening_stats_duration_hr_min">%1$dh %2$dm</string>
+    <string name="listening_stats_duration_min_sec">%1$dm %2$ds</string>
+    <string name="listening_stats_duration_min">%1$dm</string>
+    <string name="listening_stats_duration_sec">%1$ds</string>
+
 </resources>

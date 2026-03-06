@@ -2,9 +2,12 @@ package com.alananasss.kittytune.ui.profile
 
 import android.content.Intent
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -104,10 +107,19 @@ fun DiscordSettingsScreen(
                         SettingsGroupTitle(stringResource(R.string.discord_options_header))
 
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            val visibleItems = if (isEnabled) 2 else 1
+                            val animatedBottomRadius by animateDpAsState(
+                                targetValue = if (isEnabled) 4.dp else 24.dp,
+                                animationSpec = tween(400),
+                                label = "DiscordRpcCornerAnimation"
+                            )
 
                             SettingsItem(
-                                shape = getSettingsShape(visibleItems, 0),
+                                shape = RoundedCornerShape(
+                                    topStart = 24.dp,
+                                    topEnd = 24.dp,
+                                    bottomStart = animatedBottomRadius,
+                                    bottomEnd = animatedBottomRadius
+                                ),
                                 title = stringResource(R.string.discord_enable_rpc),
                                 subtitle = stringResource(R.string.discord_enable_rpc_desc),
                                 icon = Icons.Rounded.Cable,

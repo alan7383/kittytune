@@ -390,11 +390,11 @@ private fun HeroStatsCard(
     uniqueTracks: Int,
     uniqueArtists: Int
 ) {
-    val targetMinutes = (totalListenTimeMs / 60000f)
-    val animatedMinutes by animateFloatAsState(
-        targetValue = targetMinutes,
+    val targetSeconds = (totalListenTimeMs / 1000f)
+    val animatedSeconds by animateFloatAsState(
+        targetValue = targetSeconds,
         animationSpec = tween(1500),
-        label = "minutes"
+        label = "seconds"
     )
 
     Card(
@@ -420,7 +420,7 @@ private fun HeroStatsCard(
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = formatDuration(animatedMinutes.toLong()),
+                    text = formatDurationMs((animatedSeconds * 1000).toLong()),
                     style = MaterialTheme.typography.displayMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-2).sp
@@ -562,7 +562,7 @@ private fun TopTrackCard(track: TopTrackResult, onClick: () -> Unit = {}) {
                     )
                 }
                 Text(
-                    text = formatMinutes(track.totalListenMs),
+                    text = formatDurationMs(track.totalListenMs),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -613,7 +613,7 @@ private fun TopArtistCard(artist: TopArtistResult, onClick: () -> Unit = {}) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = formatMinutes(artist.totalListenMs),
+                    text = formatDurationMs(artist.totalListenMs),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
@@ -676,7 +676,7 @@ private fun HabitsGrid(stats: PeriodStats) {
             HabitCard(
                 icon = Icons.Rounded.Timer,
                 title = stringResource(R.string.listening_stats_avg_listen),
-                value = if (stats.totalEvents > 0) formatMinutes(stats.totalListenTimeMs / stats.totalEvents) else "0s",
+                value = if (stats.totalEvents > 0) formatDurationMs(stats.totalListenTimeMs / stats.totalEvents) else stringResource(R.string.listening_stats_duration_zero),
                 subtitle = stringResource(R.string.listening_stats_avg_listen_desc),
                 modifier = Modifier.weight(1f)
             )
@@ -860,29 +860,20 @@ private fun SectionTitle(text: String) {
 
 // ─── Formatting Helpers ───────────────────────────────────────────
 
-private fun formatDuration(minutes: Long): String {
-    val hours = minutes / 60
-    val mins = minutes % 60
-    return when {
-        hours >= 24 -> {
-            val days = hours / 24
-            val remainingHours = hours % 24
-            "${days}d ${remainingHours}h"
-        }
-        hours > 0 -> "${hours}h ${mins}m"
-        else -> "${mins}m"
-    }
-}
-
-private fun formatMinutes(ms: Long): String {
+@Composable
+private fun formatDurationMs(ms: Long): String {
+    if (ms == 0L) return stringResource(R.string.listening_stats_duration_zero)
     val totalSeconds = ms / 1000
-    val hours = totalSeconds / 3600
+    val days = totalSeconds / 86400
+    val hours = (totalSeconds % 86400) / 3600
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
+
     return when {
-        hours > 0 -> String.format(Locale.US, "%dh %dm", hours, minutes)
-        minutes > 0 -> String.format(Locale.US, "%dm %ds", minutes, seconds)
-        else -> String.format(Locale.US, "%ds", seconds)
+        days > 0 -> stringResource(R.string.listening_stats_duration_days_hrs, days, hours)
+        hours > 0 -> stringResource(R.string.listening_stats_duration_hr_min, hours, minutes)
+        minutes > 0 -> stringResource(R.string.listening_stats_duration_min_sec, minutes, seconds)
+        else -> stringResource(R.string.listening_stats_duration_sec, seconds)
     }
 }
 
@@ -943,7 +934,7 @@ private fun TimelineChunkCard(
                         imageUrl = artist.artworkUrl,
                         title = artist.artistName,
                         subtitle = stringResource(R.string.listening_stats_play_count, artist.playCount),
-                        badgeText = formatMinutes(artist.totalListenMs),
+                        badgeText = formatDurationMs(artist.totalListenMs),
                         onClick = { if (artist.source == "soundcloud") onArtistClick(artist) },
                         isCircularImage = true
                     )
