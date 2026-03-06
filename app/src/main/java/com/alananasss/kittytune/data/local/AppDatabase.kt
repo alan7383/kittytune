@@ -156,7 +156,7 @@
         @Query("SELECT COUNT(*) FROM listening_stats WHERE timestamp >= :since")
         suspend fun getTotalEventsAfter(since: Long): Int
 
-        @Query("SELECT COUNT(DISTINCT trackId) FROM listening_stats WHERE timestamp >= :since")
+        @Query("SELECT COUNT(*) FROM (SELECT trackId FROM listening_stats WHERE timestamp >= :since GROUP BY trackId HAVING SUM(listenDurationMs) > 3000) AS filtered_tracks")
         suspend fun getUniqueTracksAfter(since: Long): Int
 
         @Query("SELECT COUNT(DISTINCT artistName) FROM listening_stats WHERE timestamp >= :since")

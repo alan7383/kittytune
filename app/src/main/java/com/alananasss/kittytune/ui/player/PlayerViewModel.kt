@@ -225,15 +225,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                 // Record listening stats
                 currentTrack?.let { track ->
-                    if (playerPrefs.getListeningStatsEnabled()) {
-                        val listenMs = track.durationMs ?: MusicManager.player.duration
-                        val threshold = minOf(30_000L, listenMs / 2)
-                        if (currentSessionListenMs >= threshold) {
-                            if (repeatMode == RepeatMode.ONE) {
-                                ListeningStatsRepository.recordEvent(track, "REPEAT_ONE_LOOP", listenMs)
-                            } else {
-                                ListeningStatsRepository.recordEvent(track, "PLAY_COMPLETE", listenMs)
-                            }
+                    if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
+                        if (repeatMode == RepeatMode.ONE) {
+                            ListeningStatsRepository.recordEvent(track, "REPEAT_ONE_LOOP", currentSessionListenMs)
+                        } else {
+                            ListeningStatsRepository.recordEvent(track, "PLAY_COMPLETE", currentSessionListenMs)
                         }
                     }
                 }
@@ -1120,12 +1116,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         // Record skip stats
         if (manual) {
             currentTrack?.let { track ->
-                if (playerPrefs.getListeningStatsEnabled()) {
-                    val duration = track.durationMs ?: player.duration
-                    val threshold = minOf(30_000L, duration / 2)
-                    if (currentSessionListenMs >= threshold) {
-                        ListeningStatsRepository.recordEvent(track, "SKIP_NEXT", player.currentPosition)
-                    }
+                if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
+                    ListeningStatsRepository.recordEvent(track, "SKIP_NEXT", currentSessionListenMs)
                 }
             }
         }
@@ -1262,12 +1254,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (player.currentPosition > 3000) {
             // User is restarting the same track — this is a manual replay
             currentTrack?.let { track ->
-                if (playerPrefs.getListeningStatsEnabled()) {
-                    val duration = track.durationMs ?: player.duration
-                    val threshold = minOf(30_000L, duration / 2)
-                    if (currentSessionListenMs >= threshold) {
-                        ListeningStatsRepository.recordEvent(track, "MANUAL_REPLAY", player.currentPosition)
-                    }
+                if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
+                    ListeningStatsRepository.recordEvent(track, "MANUAL_REPLAY", currentSessionListenMs)
                 }
             }
             currentSessionListenMs = 0L
@@ -1276,12 +1264,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             // User is going to previous track
             currentTrack?.let { track ->
-                if (playerPrefs.getListeningStatsEnabled()) {
-                    val duration = track.durationMs ?: player.duration
-                    val threshold = minOf(30_000L, duration / 2)
-                    if (currentSessionListenMs >= threshold) {
-                        ListeningStatsRepository.recordEvent(track, "SKIP_PREVIOUS", player.currentPosition)
-                    }
+                if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
+                    ListeningStatsRepository.recordEvent(track, "SKIP_PREVIOUS", currentSessionListenMs)
                 }
             }
             val realIndex = player.currentMediaItemIndex

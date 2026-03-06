@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -366,6 +367,7 @@ fun AppearanceSettingsScreen(
 
                         val themeModeBottomRadius by animateDpAsState(
                             targetValue = if (isPureBlackVisible) 4.dp else 24.dp,
+                            animationSpec = tween(400),
                             label = "ThemeModeCornerAnimation"
                         )
 
