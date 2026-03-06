@@ -1,36 +1,28 @@
 # Contributing to KittyTune ( ◡‿◡ *)
 
-Hey! Thanks for wanting to help out with KittyTune. I really appreciate it!
+Hey! Thanks for wanting to help out!
 
-### ★ The Golden Rule
-**Respect the cat spirit.**
-
-## Building the project
-1. Clone the repo: `git clone https://github.com/alan7383/kittytune.git`
-2. Open it in Android Studio (make sure you're using **JDK 17**).
-3. Build and run! (or just ` ./gradlew assembleDebug` in the terminal).
-
----
+## Building
+1. Clone: `git clone https://github.com/alan7383/kittytune.git`
+2. Open in Android Studio (use **JDK 17**).
+3. Build & run (or `./gradlew assembleDebug`).
 
 ## Translations ♬
-I'd love for KittyTune to be available in more languages. The easiest way to help:
-1. Open `app/src/main/res/values/strings.xml` in Android Studio.
-2. Click **"Open editor"** (top-right).
-3. Click the **Globe icon** to add your language and fill in the blanks.
-4. Open a PR!
+Want to add a language?
+1. Open `app/src/main/res/values/strings.xml`.
+2. Click **"Open editor"** (top-right) -> **Globe icon** to add your language.
+3. Translate and open a PR!
 
 **Huge thanks to:**
-• **French & English:** [alananasss](https://github.com/alan7383) (me!)
-• **Hungarian:** [mattdotcat](https://t.me/b37246)
+• **English & French:** [alananasss](https://github.com/alan7383)
+• **Hungarian:** mattdotcat
 
-(Want your name here? Help translate!)
-
----
+*(Help translate to get your name here!)*
 
 ## Coding stuff
 • **UI:** Jetpack Compose (Material 3). Try to match the current vibe!
 • **Architecture:** MVVM. Keep the logic out of the UI.
 • **Commits:** Just be clear about what you changed (e.g., `feat: added sleep timer`).
 
-Got questions? Open a Discussion or join the Telegram. 
+Got questions? Open a Discussion on GitHub.
 Happy coding! ♬ ( ˘ ɜ˘)
