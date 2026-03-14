@@ -79,6 +79,20 @@ class PlayerPreferences(private val context: Context) {
         private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
     }
 
+    private fun getSafeFloat(key: String, default: Float): Float {
+        return try {
+            prefs.getFloat(key, default)
+        } catch (e: ClassCastException) {
+            try {
+                val fallback = prefs.getInt(key, default.toInt()).toFloat()
+                prefs.edit().putFloat(key, fallback).apply()
+                fallback
+            } catch (e2: Exception) {
+                default
+            }
+        }
+    }
+
     fun getSyncLikesEnabled(): Boolean = prefs.getBoolean(KEY_SYNC_LIKES, false)
     fun setSyncLikesEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_SYNC_LIKES, enabled).apply()
 
@@ -94,19 +108,19 @@ class PlayerPreferences(private val context: Context) {
     fun getFontWght() = prefs.getInt(KEY_FONT_WGHT, 400)
     fun setFontWght(value: Int) = prefs.edit().putInt(KEY_FONT_WGHT, value).apply()
 
-    fun getFontWdth() = prefs.getFloat(KEY_FONT_WDTH, 100f)
+    fun getFontWdth() = getSafeFloat(KEY_FONT_WDTH, 100f)
     fun setFontWdth(value: Float) = prefs.edit().putFloat(KEY_FONT_WDTH, value).apply()
 
-    fun getFontSlnt() = prefs.getFloat(KEY_FONT_SLNT, 0f)
+    fun getFontSlnt() = getSafeFloat(KEY_FONT_SLNT, 0f)
     fun setFontSlnt(value: Float) = prefs.edit().putFloat(KEY_FONT_SLNT, value).apply()
 
-    fun getFontRond() = prefs.getFloat(KEY_FONT_ROND, 0f)
+    fun getFontRond() = getSafeFloat(KEY_FONT_ROND, 0f)
     fun setFontRond(value: Float) = prefs.edit().putFloat(KEY_FONT_ROND, value).apply()
 
-    fun getFontGrad() = prefs.getFloat(KEY_FONT_GRAD, 0f)
+    fun getFontGrad() = getSafeFloat(KEY_FONT_GRAD, 0f)
     fun setFontGrad(value: Float) = prefs.edit().putFloat(KEY_FONT_GRAD, value).apply()
 
-    fun getFontOpsz() = prefs.getFloat(KEY_FONT_OPSZ, 14f)
+    fun getFontOpsz() = getSafeFloat(KEY_FONT_OPSZ, 14f)
     fun setFontOpsz(value: Float) = prefs.edit().putFloat(KEY_FONT_OPSZ, value).apply()
 
     fun getDiscordStatusDisplay(): DiscordStatusDisplay {
@@ -183,7 +197,7 @@ class PlayerPreferences(private val context: Context) {
     }
     fun setLyricsAlignment(align: LyricsAlignment) = prefs.edit().putString(KEY_LYRICS_ALIGNMENT, align.name).apply()
 
-    fun getLyricsFontSize(): Float = prefs.getFloat(KEY_LYRICS_FONT_SIZE, 26f)
+    fun getLyricsFontSize(): Float = getSafeFloat(KEY_LYRICS_FONT_SIZE, 26f)
     fun setLyricsFontSize(size: Float) = prefs.edit().putFloat(KEY_LYRICS_FONT_SIZE, size).apply()
     fun getLocalMediaEnabled(): Boolean = prefs.getBoolean(KEY_LOCAL_MEDIA_ENABLED, false)
     fun setLocalMediaEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_LOCAL_MEDIA_ENABLED, enabled).apply()
