@@ -112,18 +112,33 @@
             loadProgress()
             checkCompletion()
         }
-    
+
         private fun loadProgress() {
             val newMap = mutableMapOf<String, AchievementProgress>()
             definitions.forEach { def ->
-                val current = prefs.getInt("curr_${def.id}", 0)
-                val unlocked = prefs.getBoolean("unlocked_${def.id}", false)
-                val time = prefs.getLong("time_${def.id}", 0)
+                val current = try {
+                    prefs.getInt("curr_${def.id}", 0)
+                } catch (e: Exception) {
+                    prefs.getLong("curr_${def.id}", 0L).toInt()
+                }
+
+                val unlocked = try {
+                    prefs.getBoolean("unlocked_${def.id}", false)
+                } catch (e: Exception) {
+                    false
+                }
+
+                val time = try {
+                    prefs.getLong("time_${def.id}", 0L)
+                } catch (e: Exception) {
+                    prefs.getInt("time_${def.id}", 0).toLong()
+                }
+
                 newMap[def.id] = AchievementProgress(def.id, current, unlocked, time)
             }
             _progressFlow.value = newMap
         }
-    
+
         fun resetAll() {
             prefs.edit().clear().apply()
             _isAllUnlocked.value = false
