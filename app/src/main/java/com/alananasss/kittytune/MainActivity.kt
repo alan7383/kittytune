@@ -32,8 +32,6 @@
     import com.alananasss.kittytune.data.local.AppThemeMode
     import com.alananasss.kittytune.data.local.PlayerPreferences
     import com.alananasss.kittytune.ui.MainScreen
-    import com.alananasss.kittytune.ui.common.UpdateAvailableDialog
-    import com.alananasss.kittytune.ui.common.UpdateProgressDialog
     import com.alananasss.kittytune.ui.theme.SoundTuneTheme
     import com.alananasss.kittytune.utils.Config
     import com.alananasss.kittytune.utils.LocaleUtils
@@ -44,7 +42,7 @@
     import com.zionhuang.innertube.models.YouTubeLocale
     import kotlinx.coroutines.GlobalScope
     
-    class MainActivity : ComponentActivity() {
+    class gMainActivity : ComponentActivity() {
     
         override fun attachBaseContext(newBase: Context) {
             super.attachBaseContext(LocaleUtils.updateBaseContextLocale(newBase))
@@ -170,46 +168,12 @@
                     pureBlack = pureBlackState,
                     typography = dynamicTypography
                 ) {
-                    // Update Manager UI Logic
-                    val updateStatus by UpdateManager.status.collectAsState()
-                    val downloadProgress by UpdateManager.downloadProgress.collectAsState()
-                    val totalDownloadSize by UpdateManager.downloadSize.collectAsState()
-                    val releaseInfo = UpdateManager.releaseInfo
-    
                     LaunchedEffect(Unit) {
                         if (preferences.getAutoUpdateEnabled()) {
                             UpdateManager.checkForUpdate(applicationContext, isManual = false)
                         }
                     }
-    
-                    if (updateStatus == UpdateStatus.AVAILABLE && releaseInfo != null) {
-                        UpdateAvailableDialog(
-                            release = releaseInfo!!,
-                            onDownload = {
-                                scope.launch { UpdateManager.downloadUpdate(applicationContext) }
-                            },
-                            onDismiss = { UpdateManager.dismiss() },
-                            onDisableAutoUpdate = {
-                                preferences.setAutoUpdateEnabled(false)
-                                UpdateManager.dismiss()
-                            }
-                        )
-                    }
-    
-                    if (updateStatus == UpdateStatus.DOWNLOADING) {
-                        UpdateProgressDialog(
-                            progress = downloadProgress,
-                            totalSize = totalDownloadSize,
-                            status = stringResource(R.string.update_downloading)
-                        )
-                    }
-    
-                    if (updateStatus == UpdateStatus.READY_TO_INSTALL) {
-                        LaunchedEffect(Unit) {
-                            UpdateManager.installUpdate(applicationContext)
-                            UpdateManager.dismiss()
-                        }
-                    }
+
     
                     // Main App Content
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

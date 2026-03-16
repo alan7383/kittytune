@@ -8,6 +8,9 @@
     import androidx.compose.foundation.lazy.grid.rememberLazyGridState
     import androidx.compose.foundation.shape.CircleShape
     import androidx.compose.foundation.shape.RoundedCornerShape
+    import androidx.compose.foundation.lazy.grid.GridItemSpan
+    import androidx.compose.material3.ContainedLoadingIndicator
+    import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.filled.ArrowBack
     import androidx.compose.material3.*
@@ -114,11 +117,16 @@
                             onClick = { onPlaylistClick(playlist.id) }
                         )
                     }
-    
+
                     if (viewModel.isLoadingMore) {
-                        item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator()
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ContainedLoadingIndicator()
                             }
                         }
                     }

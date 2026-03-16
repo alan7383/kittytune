@@ -70,7 +70,7 @@
         ) { innerPadding ->
             if (viewModel.isLoading) {
                 Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    ContainedLoadingIndicator()
                 }
             } else if (viewModel.conversations.isEmpty()) {
                 Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {

@@ -71,7 +71,7 @@
     
             if (viewModel.isLoading && viewModel.activities.isEmpty()) {
                 Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    ContainedLoadingIndicator()
                 }
             } else if (viewModel.activities.isEmpty()) {
                 Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
@@ -106,11 +106,11 @@
     
                         NotificationItemCard(item, onNavigate)
                     }
-    
+
                     if (viewModel.isLoadingMore) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
+                                LoadingIndicator(modifier = Modifier.size(28.dp), color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }

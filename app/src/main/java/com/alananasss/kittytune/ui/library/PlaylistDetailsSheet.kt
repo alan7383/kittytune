@@ -115,10 +115,10 @@
                     )
                 }
             }
-    
+
             if (viewModel.isLoading) {
                 Box(Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    ContainedLoadingIndicator()
                 }
             } else {
                 Column(

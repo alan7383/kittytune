@@ -697,13 +697,10 @@
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Spacer(Modifier.height(8.dp))
-    
-                                        LinearProgressIndicator(
+
+                                        LinearWavyProgressIndicator(
                                             progress = { currentPlaylistProgress ?: 0f },
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(6.dp)
-                                                .clip(CircleShape),
+                                            modifier = Modifier.fillMaxWidth(),
                                             color = MaterialTheme.colorScheme.primary,
                                             trackColor = MaterialTheme.colorScheme.surfaceVariant
                                         )
@@ -789,7 +786,7 @@
                                     if (isYoutubeRadio && tracksToDisplay.isEmpty()) {
                                         item {
                                             Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                                                CircularProgressIndicator()
+                                                ContainedLoadingIndicator()
                                             }
                                         }
                                     }
@@ -940,7 +937,7 @@
                                     if (playlistId.startsWith("yt_radio:") && youtubeRadioViewModel.isLoadingMore) {
                                         item {
                                             Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                                CircularProgressIndicator()
+                                                LoadingIndicator(color = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     }
@@ -1268,7 +1265,7 @@
                         .alpha(if (isDownloading) 0.3f else 1f),
                     contentScale = ContentScale.Crop
                 )
-                if (isDownloading) CircularProgressIndicator(progress = { downloadProgress / 100f }, modifier = Modifier.size(28.dp), color = Color.White, strokeWidth = 3.dp, trackColor = Color.White.copy(alpha = 0.3f))
+                if (isDownloading) CircularWavyProgressIndicator(progress = { downloadProgress / 100f }, modifier = Modifier.size(28.dp), color = Color.White, trackColor = Color.White.copy(alpha = 0.3f))
     
                 if (isCurrent && !isDownloading) {
                     Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {

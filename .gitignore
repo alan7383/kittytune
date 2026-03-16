@@ -22,3 +22,4 @@ dump_project_context.txt
 *.prof
 /app/release/
 *.dm
+.kotlin/

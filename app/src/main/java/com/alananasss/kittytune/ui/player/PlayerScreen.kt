@@ -1006,7 +1006,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.size(32.dp)) {
                             if (isDownloading) {
                                 val animatedProgress by animateFloatAsState(targetValue = (downloadProgressVal ?: 0) / 100f, label = "progress")
-                                CircularProgressIndicator(progress = { animatedProgress }, modifier = Modifier.fillMaxSize(), strokeWidth = 3.dp)
+                                CircularWavyProgressIndicator(progress = { animatedProgress }, modifier = Modifier.fillMaxSize())
                                 Icon(Icons.Outlined.Cancel, null, modifier = Modifier.size(18.dp))
                             } else {
                                 val icon = if (isDownloaded) Icons.Default.Delete else Icons.Rounded.Download
@@ -1635,7 +1635,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
-        if (comments.isEmpty() && isLoading) { Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+        if (comments.isEmpty() && isLoading) { Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) { ContainedLoadingIndicator() } }
         else if (comments.isEmpty()) { Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Rounded.ChatBubbleOutline, null, modifier = Modifier.size(80.dp), tint = MaterialTheme.colorScheme.surfaceVariant); Spacer(Modifier.height(16.dp)); Text(stringResource(R.string.comment_no_comments), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) } } }
         else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding), contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)) {
@@ -1682,7 +1682,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                         HorizontalDivider(modifier = Modifier.padding(start = 72.dp, end = 16.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
                     }
                 }
-                if (viewModel.commentNextHref != null) { item { LaunchedEffect(Unit) { viewModel.loadComments() }; Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp) } } }
+                if (viewModel.commentNextHref != null) { item { LaunchedEffect(Unit) { viewModel.loadComments() }; Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { LoadingIndicator(modifier = Modifier.size(24.dp)) } } }
             }
         }
     }

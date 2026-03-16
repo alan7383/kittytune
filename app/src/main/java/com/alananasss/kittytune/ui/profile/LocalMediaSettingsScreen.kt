@@ -266,10 +266,9 @@
                                             .height(56.dp)
                                     ) {
                                         if (isScanning) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(20.dp),
-                                                color = MaterialTheme.colorScheme.onPrimary,
-                                                strokeWidth = 2.5.dp
+                                            LoadingIndicator(
+                                                modifier = Modifier.size(24.dp),
+                                                color = MaterialTheme.colorScheme.onPrimary
                                             )
                                             Spacer(Modifier.width(12.dp))
                                             Text(
