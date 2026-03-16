@@ -513,11 +513,11 @@
                     Icon(Icons.Rounded.Search, stringResource(R.string.search_hint), tint = Color.White)
                 }
             }
-    
+
             if (viewModel.isLyricsLoading) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color.White)
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color.White)
             }
-    
+
             val searchResults = remember(viewModel.lyricSearchResults.toList()) {
                 viewModel.lyricSearchResults.toList()
             }

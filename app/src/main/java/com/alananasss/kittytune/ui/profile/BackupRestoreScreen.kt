@@ -131,7 +131,7 @@
                                 modifier = Modifier.padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                CircularProgressIndicator()
+                                LoadingIndicator(color = MaterialTheme.colorScheme.primary)
                                 Spacer(Modifier.height(16.dp))
                                 Text(stringResource(R.string.backup_in_progress))
                             }

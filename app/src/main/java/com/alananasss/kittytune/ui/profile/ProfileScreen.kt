@@ -1265,7 +1265,7 @@
                         }
                     )
                 }
-    
+
                 if (profileViewModel.isCommentsLoadingMore) {
                     item {
                         Box(
@@ -1274,9 +1274,8 @@
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp,
+                            LoadingIndicator(
+                                modifier = Modifier.size(28.dp),
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }

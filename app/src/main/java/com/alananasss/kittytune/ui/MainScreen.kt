@@ -63,6 +63,9 @@ import com.alananasss.kittytune.ui.library.PlaylistDetailScreen
 import com.alananasss.kittytune.ui.library.PlaylistFansScreen
 import com.alananasss.kittytune.ui.login.LoginScreen
 import com.alananasss.kittytune.ui.login.WelcomeScreen
+import com.alananasss.kittytune.data.UpdateManager
+import com.alananasss.kittytune.data.UpdateStatus
+import com.alananasss.kittytune.ui.common.UpdateScreen
 import com.alananasss.kittytune.R
 
 import com.alananasss.kittytune.ui.navigation.Screen
@@ -306,6 +309,19 @@ fun MainScreen(
         playerViewModel.isSearchingLyrics = false
     }
 
+    // Update Manager Logic Moved from MainActivity
+    val updateStatus by UpdateManager.status.collectAsState()
+    val downloadProgress by UpdateManager.downloadProgress.collectAsState()
+    val totalDownloadSize by UpdateManager.downloadSize.collectAsState()
+    val releaseInfo = UpdateManager.releaseInfo
+
+    LaunchedEffect(updateStatus) {
+        if (updateStatus == UpdateStatus.READY_TO_INSTALL) {
+            UpdateManager.installUpdate(context.applicationContext)
+            UpdateManager.dismiss()
+        }
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(Unit) {
         playerViewModel.uiEvent.collect { message ->
@@ -320,9 +336,12 @@ fun MainScreen(
     } else {
         Box(modifier = Modifier.fillMaxSize()) {
             val showBottomUi = !playerViewModel.isPlayerExpanded
-            val isLoginOrWelcome = currentDestination?.route == Screen.Login.route || currentDestination?.route == Screen.Welcome.route
+            val isFullScreenRoute = currentDestination?.route == Screen.Login.route ||
+                    currentDestination?.route == Screen.Welcome.route ||
+                    currentDestination?.route == "update"
 
-            val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded
+            val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
+
             val snackbarPadding by animateDpAsState(
                 targetValue = if (isMiniPlayerVisible) 90.dp else 16.dp,
                 label = "snackbarPadding"
@@ -350,7 +369,7 @@ fun MainScreen(
                     }
                 },
                 bottomBar = {
-                    if (!isLoginOrWelcome) {
+                    if (currentDestination?.route != Screen.Welcome.route && !isFullScreenRoute) {
                         AnimatedVisibility(
                             visible = showBottomUi,
                             enter = slideInVertically { it },
@@ -393,7 +412,7 @@ fun MainScreen(
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
-                    modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
+                    modifier = Modifier.padding(bottom = if (isFullScreenRoute) 0.dp else innerPadding.calculateBottomPadding()),
                     enterTransition = {
                         slideInHorizontally(initialOffsetX = { it })
                     },
@@ -765,11 +784,10 @@ fun MainScreen(
                             }
                         )
                     }
-
                 }
 
                 AnimatedVisibility(
-                    visible = showBottomUi && playerViewModel.currentTrack != null,
+                    visible = showBottomUi && playerViewModel.currentTrack != null && !isFullScreenRoute,
                     enter = slideInVertically { it },
                     exit = slideOutVertically { it },
                     modifier = Modifier
@@ -938,6 +956,36 @@ fun MainScreen(
 
             if (showCompletionScreen) {
                 UltimateCompletionOverlay(onDismiss = { showCompletionScreen = false })
+            }
+
+            if (updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING) {
+                Dialog(
+                    onDismissRequest = {
+                        if (updateStatus != UpdateStatus.DOWNLOADING) {
+                            UpdateManager.dismiss()
+                        }
+                    },
+                    properties = DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false
+                    )
+                ) {
+                    UpdateScreen(
+                        release = releaseInfo,
+                        status = updateStatus,
+                        progress = downloadProgress,
+                        totalSize = totalDownloadSize,
+                        onDownload = {
+                            scope.launch { UpdateManager.downloadUpdate(context.applicationContext) }
+                        },
+                        onDismiss = {
+                            UpdateManager.dismiss()
+                        },
+                        onBack = {
+                            UpdateManager.dismiss()
+                        }
+                    )
+                }
             }
 
             if (playerViewModel.captchaUrl != null) {

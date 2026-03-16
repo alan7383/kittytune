@@ -112,11 +112,12 @@
                         }
                     }
                 )
-    
+
                 if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    ContainedLoadingIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
-    
                 if (popupWebView != null) {
                     Dialog(
                         onDismissRequest = { popupWebView = null },

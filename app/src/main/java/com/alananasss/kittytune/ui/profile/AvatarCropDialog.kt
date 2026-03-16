@@ -334,9 +334,8 @@
                                 )
                             ) {
                                 if (isSaving) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
+                                    LoadingIndicator(
+                                        modifier = Modifier.size(20.dp),
                                         color = MaterialTheme.colorScheme.onPrimary
                                     )
                                 } else {

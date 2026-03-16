@@ -88,7 +88,7 @@
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                 when (tagViewModel.uiState) {
                     "LOADING" -> {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                        ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
                     }
                     "EMPTY" -> {
                         Text(stringResource(R.string.no_results), modifier = Modifier.align(Alignment.Center))

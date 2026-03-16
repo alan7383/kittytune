@@ -206,7 +206,7 @@ fun ListeningStatsScreen(
                             .height(200.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        ContainedLoadingIndicator()
                     }
                 }
             } else if (stats.totalEvents == 0 && selectedPeriod != StatsPeriod.ALL_TIME) {
@@ -231,7 +231,7 @@ fun ListeningStatsScreen(
                 if (viewModel.isTimelineLoading) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                            ContainedLoadingIndicator()
                         }
                     }
                 } else if (viewModel.timelineHasMore) {

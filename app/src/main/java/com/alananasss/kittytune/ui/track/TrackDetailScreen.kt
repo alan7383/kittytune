@@ -78,7 +78,7 @@
         ) { innerPadding ->
             if (detailViewModel.isLoading || track == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    ContainedLoadingIndicator()
                 }
             } else {
                 Column(modifier = Modifier.padding(innerPadding)) {
@@ -194,7 +194,7 @@
                 if (isLoadingMore) {
                     item {
                         Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            LoadingIndicator(modifier = Modifier.size(28.dp), color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -249,7 +249,7 @@
                 if (isLoadingMore) {
                     item {
                         Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            LoadingIndicator(modifier = Modifier.size(28.dp), color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -298,7 +298,7 @@
                 if (isLoadingMore) {
                     item {
                         Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            LoadingIndicator(modifier = Modifier.size(28.dp), color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
