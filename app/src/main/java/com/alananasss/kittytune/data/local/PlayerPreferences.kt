@@ -140,7 +140,7 @@ class PlayerPreferences(private val context: Context) {
     fun getDiscordRpcEnabled(): Boolean = prefs.getBoolean(KEY_DISCORD_ENABLED, false)
     fun setDiscordRpcEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_DISCORD_ENABLED, enabled).apply()
 
-    // --- FONCTIONS POUR LE LOGO ---
+    // --- LOGO FUNCTIONS ---
     fun getDiscordAssetLogo(): String? = prefs.getString(KEY_DISCORD_ASSET_LOGO, null)
     fun setDiscordAssetLogo(assetId: String?) {
         prefs.edit().putString(KEY_DISCORD_ASSET_LOGO, assetId).apply()

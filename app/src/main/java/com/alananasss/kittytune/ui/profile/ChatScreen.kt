@@ -428,7 +428,7 @@
             modifier = modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding) // ← utilise bottomPadding
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomPadding) // ← use bottomPadding
         ) {
             Row(
                 modifier = Modifier
@@ -514,18 +514,18 @@
                 val isToday = now.get(java.util.Calendar.YEAR) == msgTime.get(java.util.Calendar.YEAR) &&
                         now.get(java.util.Calendar.DAY_OF_YEAR) == msgTime.get(java.util.Calendar.DAY_OF_YEAR)
     
-                // Récupère le format d'heure préféré de l'utilisateur (12h ou 24h)
+                // Get the user's preferred time format (12h or 24h)
                 val timeFormat = DateFormat.getTimeFormat(context)
                 val timeStr = timeFormat.format(date)
     
                 if (isToday) {
-                    timeStr // Ex: "14:30" ou "2:30 PM"
+                    timeStr // e.g., "14:30" or "2:30 PM"
                 } else {
-                    // Récupère le format de date court préféré (Ex: 07/02 ou Feb 7)
+                    // Get the preferred short date format (e.g., 07/02 or Feb 7)
                     val dateFormat = DateFormat.getMediumDateFormat(context)
                     val dateStrFormatted = dateFormat.format(date)
-                    // On retire l'année pour faire plus court si on veut, ou on garde tel quel
-                    // Pour faire simple ici : Date + Heure
+                    // We remove the year to make it shorter if wanted, or keep as is
+                    // To keep it simple here: Date + Time
                     "$dateStrFormatted, $timeStr"
                 }
             } catch (e: Exception) {

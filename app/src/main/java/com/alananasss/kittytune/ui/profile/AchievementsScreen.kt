@@ -88,11 +88,11 @@
         var showResetDialog1 by remember { mutableStateOf(false) }
         var showResetDialog2 by remember { mutableStateOf(false) }
     
-        // Variable pour déclencher l'overlay (manuellement ou automatiquement)
+        // Variable to trigger the overlay (manually or automatically)
         var showCompletionOverlay by remember { mutableStateOf(false) }
     
-        // --- Logique d'affichage automatique à la complétion ---
-        // On utilise les SharedPreferences pour ne le montrer qu'une seule fois automatiquement
+        // --- Automatic display logic on completion ---
+        // We use SharedPreferences to show it only once automatically
         LaunchedEffect(isAllUnlocked) {
             if (isAllUnlocked) {
                 val prefs = context.getSharedPreferences("achievements_meta", Context.MODE_PRIVATE)
@@ -131,7 +131,7 @@
                     Button(
                         onClick = {
                             AchievementManager.resetAll()
-                            // On reset aussi le flag pour pouvoir revoir l'anim si on recommence le jeu
+                            // Reset the flag to see the animation again if the game is restarted
                             context.getSharedPreferences("achievements_meta", Context.MODE_PRIVATE)
                                 .edit().putBoolean("seen_completion_anim", false).apply()
                             showResetDialog2 = false
@@ -241,13 +241,13 @@
                             // Spacer
                             Spacer(Modifier.height(8.dp))
     
-                            // BOUTON REPLAY : Visible uniquement si tout est débloqué
+                            // REPLAY BUTTON: Only visible if everything is unlocked
                             if (isAllUnlocked) {
                                 Button(
                                     onClick = { showCompletionOverlay = true },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFFFD700), // Or
+                                        containerColor = Color(0xFFFFD700), // Gold
                                         contentColor = Color.Black
                                     ),
                                     shape = RoundedCornerShape(12.dp)
@@ -279,11 +279,11 @@
                 }
             }
     
-            // --- OVERLAY AVEC TRANSITION DOUCE ---
+            // --- OVERLAY WITH SMOOTH TRANSITION ---
             AnimatedVisibility(
                 visible = showCompletionOverlay,
-                enter = fadeIn(animationSpec = tween(1000)), // Apparition douce (1s)
-                exit = fadeOut(animationSpec = tween(1000)), // Disparition douce (1s)
+                enter = fadeIn(animationSpec = tween(1000)), // Smooth appearance (1s)
+                exit = fadeOut(animationSpec = tween(1000)), // Smooth disappearance (1s)
                 modifier = Modifier.zIndex(100f).fillMaxSize()
             ) {
                 UltimateCompletionOverlay(onDismiss = { showCompletionOverlay = false })

@@ -576,12 +576,12 @@ fun PlayerScreen(
                             .aspectRatio(1f)
                     ) { showLyrics ->
                         if (showLyrics) {
-                            // Conteneur transparent pour les paroles (Effet InnerTune)
+                            // Transparent container for lyrics (InnerTune effect)
                             Box(modifier = Modifier.fillMaxSize()) {
                                 InlineLyricsContent(viewModel = viewModel)
                             }
                         } else {
-                            // Conteneur stylisé (Carte) uniquement pour la pochette
+                            // Stylized container (Card) only for the artwork
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -666,7 +666,7 @@ fun PlayerScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.Description,
                                             contentDescription = stringResource(R.string.player_lyrics),
-                                            tint = if (viewModel.showInlineLyrics) animatedColor else iconTint.copy(alpha = 0.8f), // Couleur active
+                                            tint = if (viewModel.showInlineLyrics) animatedColor else iconTint.copy(alpha = 0.8f), // Active color
                                             modifier = Modifier.size(26.dp)
                                         )
                                     }

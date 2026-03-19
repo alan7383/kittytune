@@ -1228,7 +1228,7 @@
             }
         }
     }
-    
+
     @Composable
     fun TrackListItem(
         track: Track,
@@ -1246,57 +1246,63 @@
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         val titleWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold
-    
-        Row(
-            modifier = modifier
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .height(72.dp),
-            verticalAlignment = Alignment.CenterVertically
+
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Transparent,
+            modifier = modifier.padding(horizontal = 8.dp)
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                AsyncImage(
-                    model = track.fullResArtwork,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .alpha(if (isDownloading) 0.3f else 1f),
-                    contentScale = ContentScale.Crop
-                )
-                if (isDownloading) CircularWavyProgressIndicator(progress = { downloadProgress / 100f }, modifier = Modifier.size(28.dp), color = Color.White, trackColor = Color.White.copy(alpha = 0.3f))
-    
-                if (isCurrent && !isDownloading) {
-                    Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
-                        Icon(imageVector = Icons.Rounded.GraphicEq, contentDescription = stringResource(R.string.player_playing_now), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                    .height(72.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    AsyncImage(
+                        model = track.fullResArtwork,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .alpha(if (isDownloading) 0.3f else 1f),
+                        contentScale = ContentScale.Crop
+                    )
+                    if (isDownloading) CircularWavyProgressIndicator(progress = { downloadProgress / 100f }, modifier = Modifier.size(28.dp), color = Color.White, trackColor = Color.White.copy(alpha = 0.3f))
+
+                    if (isCurrent && !isDownloading) {
+                        Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
+                            Icon(imageVector = Icons.Rounded.GraphicEq, contentDescription = stringResource(R.string.player_playing_now), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
+                        }
                     }
                 }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = track.title ?: stringResource(R.string.untitled_track), maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = titleWeight, color = titleColor)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isDownloaded && !isDownloading) { Icon(Icons.Rounded.DownloadDone, stringResource(R.string.btn_downloaded), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(4.dp)) }
-                    Text(text = track.user?.username ?: stringResource(R.string.unknown_artist), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (showVerifiedBadge && track.user?.verified == true) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = track.title ?: stringResource(R.string.untitled_track), maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = titleWeight, color = titleColor)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isDownloaded && !isDownloading) { Icon(Icons.Rounded.DownloadDone, stringResource(R.string.btn_downloaded), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(4.dp)) }
+                        Text(text = track.user?.username ?: stringResource(R.string.unknown_artist), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (showVerifiedBadge && track.user?.verified == true) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                        }
                     }
                 }
+                if (dragModifier != Modifier) {
+                    Icon(
+                        imageVector = Icons.Rounded.DragHandle,
+                        contentDescription = stringResource(R.string.desc_move),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .padding(12.dp)
+                            .then(dragModifier)
+                    )
+                }
+                IconButton(onClick = onOptionClick, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
-            if (dragModifier != Modifier) {
-                Icon(
-                    imageVector = Icons.Rounded.DragHandle,
-                    contentDescription = stringResource(R.string.desc_move),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .size(48.dp)
-                        .padding(12.dp)
-                        .then(dragModifier)
-                )
-            }
-            IconButton(onClick = onOptionClick, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
     

@@ -484,8 +484,8 @@
                 // fix applied here
                 if (isLoading) {
                     Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth().height(4.dp),
+                        LinearWavyProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = Color.Transparent
                         )

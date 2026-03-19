@@ -90,7 +90,6 @@
                                     shape = shape,
                                     title = stringResource(R.string.pref_local_enable),
                                     subtitle = stringResource(R.string.pref_local_enable_sub),
-                                    icon = Icons.Rounded.SdStorage,
                                     hasSwitch = true,
                                     switchState = isEnabled,
                                     onSwitchChange = {
@@ -143,7 +142,6 @@
                                                 shape = shape,
                                                 title = stringResource(R.string.pref_local_no_folder),
                                                 titleColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                icon = Icons.Rounded.FolderOff
                                             )
                                         }
                                     } else {
@@ -220,7 +218,6 @@
                                 SettingsItem(
                                     shape = shape,
                                     title = stringResource(R.string.pref_local_add),
-                                    icon = Icons.Rounded.Add,
                                     onClick = { folderPicker.launch(null) },
                                     titleColor = MaterialTheme.colorScheme.primary
                                 )

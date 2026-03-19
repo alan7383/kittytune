@@ -42,7 +42,7 @@
     import com.zionhuang.innertube.models.YouTubeLocale
     import kotlinx.coroutines.GlobalScope
     
-    class gMainActivity : ComponentActivity() {
+    class MainActivity : ComponentActivity() {
     
         override fun attachBaseContext(newBase: Context) {
             super.attachBaseContext(LocaleUtils.updateBaseContextLocale(newBase))

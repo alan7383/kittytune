@@ -80,7 +80,6 @@ fun DiscordSettingsScreen(
                                 shape = shape,
                                 title = if(isLoggedIn) stringResource(R.string.discord_connected) else stringResource(R.string.discord_not_connected),
                                 subtitle = if(isLoggedIn) stringResource(R.string.discord_token_present) else stringResource(R.string.discord_connect_desc),
-                                icon = if(isLoggedIn) Icons.Rounded.Link else Icons.Rounded.LinkOff,
                                 onClick = { if(!isLoggedIn) onNavigateToLogin() }
                             )
                         },
@@ -89,7 +88,6 @@ fun DiscordSettingsScreen(
                                 SettingsItem(
                                     shape = shape,
                                     title = stringResource(R.string.discord_logout),
-                                    icon = Icons.Rounded.LinkOff,
                                     onClick = {
                                         prefs.setDiscordToken(null)
                                         prefs.setDiscordRpcEnabled(false)
@@ -122,7 +120,6 @@ fun DiscordSettingsScreen(
                                 ),
                                 title = stringResource(R.string.discord_enable_rpc),
                                 subtitle = stringResource(R.string.discord_enable_rpc_desc),
-                                icon = Icons.Rounded.Cable,
                                 hasSwitch = true,
                                 switchState = isEnabled,
                                 onSwitchChange = {
@@ -144,7 +141,6 @@ fun DiscordSettingsScreen(
                                         DiscordStatusDisplay.ARTIST -> stringResource(R.string.discord_status_artist)
                                         DiscordStatusDisplay.SONG -> stringResource(R.string.discord_status_song)
                                     },
-                                    icon = Icons.Rounded.Badge,
                                     onClick = { showStatusDialog = true }
                                 )
                             }

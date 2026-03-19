@@ -313,33 +313,33 @@
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 32.dp) // Marge du bas fixe
+                    .padding(bottom = 32.dp) // Fixed bottom margin
             ) {
                 AnimatedContent(
                     targetState = viewModel.showLyricsOffsetControls,
                     transitionSpec = {
                         if (targetState) {
-                            // Ouverture : Le panneau glisse du bas vers le haut
+                            // Opening: The panel slides from bottom to top
                             (slideInVertically { height -> height } + fadeIn())
-                                .togetherWith(fadeOut(animationSpec = tween(100))) // Le bouton disparaît vite
+                                .togetherWith(fadeOut(animationSpec = tween(100))) // Button disappears quickly
                         } else {
-                            // Fermeture : Le panneau glisse vers le bas
-                            (fadeIn(animationSpec = tween(100, delayMillis = 150))) // Le bouton réapparaît avec un petit délai
+                            // Closing: The panel slides down
+                            (fadeIn(animationSpec = tween(100, delayMillis = 150))) // Button reappears with a small delay
                                 .togetherWith(slideOutVertically { height -> height } + fadeOut())
                         }
                     },
-                    contentAlignment = Alignment.BottomCenter, // <--- CRUCIAL : Garde tout collé en bas
+                    contentAlignment = Alignment.BottomCenter, // <--- CRUCIAL: Keeps everything stuck at the bottom
                     label = "controls_anim"
                 ) { showControls ->
                     if (showControls) {
-                        // On enlève le padding vertical ici pour qu'il soit géré par la transition
-                        // et éviter le "saut" visuel
+                        // Remove vertical padding here so it's managed by the transition
+                        // to avoid visual "jumping"
                         LyricsOffsetControls(
                             offset = viewModel.lyricsOffset,
                             onAdjust = { viewModel.adjustLyricsOffset(it) },
                             onReset = { viewModel.lyricsOffset = 0L },
                             onClose = { viewModel.showLyricsOffsetControls = false },
-                            // On surcharge le modifier pour ajuster le padding spécifiquement ici
+                            // Override modifier to adjust padding specifically here
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
                     } else {
@@ -565,7 +565,7 @@
         modifier: Modifier = Modifier
     ) {
         Surface(
-            modifier = modifier.fillMaxWidth(), // Le padding est géré par le parent
+            modifier = modifier.fillMaxWidth(), // Padding is managed by the parent
             shape = RoundedCornerShape(24.dp),
             color = Color.Black.copy(alpha = 0.8f),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
@@ -586,7 +586,7 @@
                         fontWeight = FontWeight.Bold
                     )
     
-                    // Formatage propre : +0.1s, -0.5s, 0.0s
+                    // Proper formatting: +0.1s, -0.5s, 0.0s
                     val seconds = offset / 1000.0
                     val sign = if (offset > 0) "+" else ""
                     val color = if (offset == 0L) Color.White.copy(0.7f) else MaterialTheme.colorScheme.primary
@@ -596,7 +596,7 @@
                         style = MaterialTheme.typography.titleMedium,
                         color = color,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(end = 8.dp) // Petit alignement visuel
+                        modifier = Modifier.padding(end = 8.dp) // Small visual alignment
                     )
                 }
     
@@ -607,19 +607,19 @@
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // BOUTON MOINS (Répétition active)
+                    // MINUS BUTTON (Active repetition)
                     RepeatingIconButton(
                         onClick = { onAdjust(-100L) }, // -0.1s
                         icon = Icons.Rounded.Remove,
                         tint = Color.White
                     )
     
-                    // BOUTON RESET (Clic simple suffit)
+                    // RESET BUTTON (Simple click is enough)
                     TextButton(onClick = onReset) {
                         Text("RESET", color = Color.White.copy(alpha = 0.7f), fontWeight = FontWeight.SemiBold)
                     }
     
-                    // BOUTON PLUS (Répétition active)
+                    // PLUS BUTTON (Active repetition)
                     RepeatingIconButton(
                         onClick = { onAdjust(100L) }, // +0.1s
                         icon = Icons.Rounded.Add,
@@ -640,41 +640,41 @@
         val currentOnClick by rememberUpdatedState(onClick)
         val scope = rememberCoroutineScope()
     
-        // On utilise Surface au lieu de FilledIconButton pour avoir le contrôle total des touches
+        // We use Surface instead of FilledIconButton to have total control over touch events
         Surface(
-            shape = CircleShape, // Forme ronde comme un IconButton
-            color = Color.White.copy(0.1f), // Couleur du fond (gris transparent)
+            shape = CircleShape, // Round shape like an IconButton
+            color = Color.White.copy(0.1f), // Background color (translucent gray)
             modifier = modifier
-                .size(48.dp) // Taille standard d'un bouton
-                .clip(CircleShape) // Important pour l'effet visuel et le toucher
+                .size(48.dp) // Standard button size
+                .clip(CircleShape) // Important for visual effect and touch
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
-                            // Lancement de la coroutine pour la répétition
+                            // Start coroutine for repetition
                             val job = scope.launch {
-                                // 1. Clic immédiat au toucher
+                                // 1. Immediate click on touch
                                 currentOnClick()
     
-                                // 2. Délai avant de commencer la répétition (ex: 400ms)
+                                // 2. Delay before starting repetition (e.g., 400ms)
                                 delay(400)
     
-                                // 3. Boucle de répétition tant que le doigt est appuyé
+                                // 3. Repetition loop while finger is pressed
                                 while (isActive) {
                                     currentOnClick()
-                                    delay(100) // Vitesse de répétition (0.1s)
+                                    delay(100) // Repetition speed (0.1s)
                                 }
                             }
     
-                            // Attend que l'utilisateur relâche le doigt
+                            // Wait for user to release finger
                             tryAwaitRelease()
     
-                            // Annule la boucle dès que c'est relâché
+                            // Cancel loop as soon as it's released
                             job.cancel()
                         }
                     )
                 }
         ) {
-            // Centrer l'icône dans la Surface
+            // Center icon in the Surface
             Box(contentAlignment = Alignment.Center) {
                 Icon(icon, null, tint = tint)
             }

@@ -242,8 +242,8 @@
         }
     
         fun resetSessionAchievements() {
-            // Seuls les succès qui DOIVENT être faits en une seule session sont listés ici.
-            // Vampire n'en fait plus partie car sa logique de reset est basée sur l'heure.
+            // Only achievements that MUST be done in a single session are listed here.
+            // Vampire is no longer part of it because its reset logic is based on time.
             val sessionAchievements = listOf("marathon", "no_skip_50")
             sessionAchievements.forEach { id ->
                 if (_progressFlow.value[id]?.isUnlocked == false) {

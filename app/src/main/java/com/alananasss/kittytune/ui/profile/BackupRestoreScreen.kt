@@ -71,7 +71,6 @@
                                         shape = shape,
                                         title = stringResource(R.string.backup_action),
                                         subtitle = stringResource(R.string.backup_desc),
-                                        icon = Icons.Rounded.CloudUpload,
                                         onClick = { createDocumentLauncher.launch(BackupManager.getBackupFileName()) }
                                     )
                                 },
@@ -80,7 +79,6 @@
                                         shape = shape,
                                         title = stringResource(R.string.restore_action),
                                         subtitle = stringResource(R.string.restore_desc),
-                                        icon = Icons.Rounded.Restore,
                                         onClick = { openDocumentLauncher.launch(arrayOf("*/*")) }
                                     )
                                 }

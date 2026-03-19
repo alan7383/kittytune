@@ -71,7 +71,7 @@
                         Timestamps(start = startTime, end = endTime)
                     } else null,
                     assets = Assets(
-                        // On force la résolution de l'image
+                        // Force image resolution
                         largeImage = largeImage?.resolveImage(kizzyRepository),
                         smallImage = smallImage?.resolveImage(kizzyRepository),
                         largeText = largeText,
@@ -79,7 +79,7 @@
                     ),
                     buttons = buttons?.map { it.first },
                     metadata = Metadata(buttonUrls = buttons?.map { it.second }),
-                    // ▼ CORRECTION MAJEURE ICI : On envoie l'ID quoi qu'il arrive ▼
+                    // MAJOR FIX: Send applicationId regardless
                     applicationId = applicationId, 
                     url = streamUrl
                 )

@@ -51,7 +51,7 @@
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import com.alananasss.kittytune.ui.profile.ArtistAvatar
     import java.util.Locale
-    
+
     @Composable
     fun rememberDominantColor(url: String?, defaultColor: Color = MaterialTheme.colorScheme.surface): State<Color> {
         val context = LocalContext.current
@@ -250,6 +250,7 @@
                     navigationIcon = {
                         IconButton(
                             onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f)
                             )
@@ -319,7 +320,6 @@
                         }
                     }
                 } else {
-                    // --- 1. PLAYLISTS (horizontal row - "en ligne") ---
                     if (viewModel.chartPlaylists.isNotEmpty()) {
                         item {
                             Text(
