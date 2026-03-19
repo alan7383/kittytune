@@ -39,28 +39,28 @@
     @OptIn(ExperimentalTextApi::class)
     @Composable
     fun UltimateCompletionOverlay(onDismiss: () -> Unit) {
-        var phase by remember { mutableIntStateOf(0) } // 0: animation LEGEND, 1: REMERCIEMENTS
-        var canDismiss by remember { mutableStateOf(false) } // Verrouille le clic
+        var phase by remember { mutableIntStateOf(0) } // 0: LEGEND animation, 1: THANKS
+        var canDismiss by remember { mutableStateOf(false) } // Locks the click
     
-        // --- Séquence temporelle (5s + 5s = 10s total) ---
+        // --- Time sequence (5s + 5s = 10s total) ---
         LaunchedEffect(Unit) {
-            delay(5000) // 5 secondes sur l'écran LEGEND
-            phase = 1   // Transition vers les remerciements
-            delay(5000) // 5 secondes sur le texte de remerciement (lecture)
-            canDismiss = true // Débloque la sortie
+            delay(5000) // 5 seconds on the LEGEND screen
+            phase = 1   // Transition to thanks
+            delay(5000) // 5 seconds on the thanks text (reading)
+            canDismiss = true // Unlocks output
         }
     
-        // --- Animations infinies pour le décor ---
+        // --- Infinite animations for the background ---
         val infiniteTransition = rememberInfiniteTransition(label = "infinite")
     
-        // Rotation des rayons
+        // Rays rotation
         val raysRotation by infiniteTransition.animateFloat(
             initialValue = 0f, targetValue = 360f,
             animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing)),
             label = "rotation"
         )
     
-        // Pulsation du disque (Respiration)
+        // Disk pulsation (Breathing)
         val pulseScale by infiniteTransition.animateFloat(
             initialValue = 1f, targetValue = 1.1f,
             animationSpec = infiniteRepeatable(
@@ -70,9 +70,9 @@
             label = "pulse"
         )
     
-        // Particules (Génération aléatoire une seule fois)
+        // Particles (One-time random generation)
         val particles = remember { List(30) { ParticleData.random() } }
-        // Animation pour faire bouger les particules
+        // Animation to move particles
         val particleAnim by infiniteTransition.animateFloat(
             initialValue = 0f, targetValue = 2f * Math.PI.toFloat(),
             animationSpec = infiniteRepeatable(tween(5000, easing = LinearEasing)),
@@ -82,7 +82,7 @@
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black) // Fond noir pur pour le contraste
+                .background(Color.Black) // Pure black background for contrast
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
@@ -92,17 +92,17 @@
             contentAlignment = Alignment.Center
         ) {
     
-            // --- ARRIÈRE-PLAN ANIMÉ (Commun aux deux phases) ---
+            // --- ANIMATED BACKGROUND (Common to both phases) ---
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val center = this.center
     
-                // 1. Rayons de lumière divine (Tournent lentement)
+                // 1. Divine light rays (Rotating slowly)
                 val rayGradient = Brush.sweepGradient(
                     colors = listOf(Color(0xFFD4AF37), Color(0xFFFFD700), Color.Transparent),
                     center = center
                 )
     
-                // Correction ici : Suppression de with(drawContext.canvas.nativeCanvas) inutile
+                // Fix here: Removed unnecessary with(drawContext.canvas.nativeCanvas)
                 val count = 12
                 for (i in 0 until count) {
                     val angle = raysRotation + (i * (360f / count))
@@ -119,9 +119,9 @@
                     )
                 }
     
-                // 2. Particules d'or flottantes (Poussière d'étoiles)
+                // 2. Floating gold particles (Stardust)
                 particles.forEach { p ->
-                    // Mouvement orbital léger
+                    // Slight orbital movement
                     val offsetX = cos(particleAnim + p.offsetSeed) * 20.dp.toPx()
                     val offsetY = sin(particleAnim + p.offsetSeed) * 20.dp.toPx()
     
@@ -130,7 +130,7 @@
                         radius = p.radius.dp.toPx(),
                         center = Offset(
                             x = (size.width * p.relX) + offsetX,
-                            y = (size.height * p.relY) - (particleAnim * 50) // Monte doucement
+                            y = (size.height * p.relY) - (particleAnim * 50) // Rises slowly
                         ),
                         alpha = p.alpha
                     )
@@ -147,9 +147,9 @@
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Le Disque d'Or / Médaillon
+                    // The Gold Record / Medallion
                     Box(contentAlignment = Alignment.Center) {
-                        // Halo externe (Glow)
+                        // External halo (Glow)
                         Canvas(modifier = Modifier.size(240.dp).scale(pulseScale)) {
                             drawCircle(
                                 brush = Brush.radialGradient(
@@ -158,31 +158,31 @@
                             )
                         }
     
-                        // Le Disque
+                        // The Record
                         Canvas(modifier = Modifier.size(180.dp)) {
-                            // Corps du disque (Dégradé radial métallique)
+                            // Record body (Metallic radial gradient)
                             drawCircle(
                                 brush = Brush.radialGradient(
                                     colors = listOf(Color(0xFFFFE599), Color(0xFFB8860B), Color(0xFF8B6508))
                                 )
                             )
-                            // Sillons du vinyle
+                            // Vinyl grooves
                             drawCircle(Color.Black.copy(0.1f), style = Stroke(width = 30f), radius = size.width * 0.25f)
                             drawCircle(Color.Black.copy(0.1f), style = Stroke(width = 2f), radius = size.width * 0.35f)
                             drawCircle(Color.Black.copy(0.1f), style = Stroke(width = 2f), radius = size.width * 0.40f)
-                            // Centre noir
+                            // Black center
                             drawCircle(Color.Black, radius = size.width * 0.12f)
                         }
                     }
     
                     Spacer(Modifier.height(48.dp))
     
-                    // Texte LEGEND avec Dégradé (Expressive Typography)
+                    // LEGEND text with Gradient (Expressive Typography)
                     val goldTextGradient = Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFFFFE599), // Or clair
-                            Color(0xFFFFD700), // Or pur
-                            Color(0xFFB8860B)  // Or foncé
+                            Color(0xFFFFE599), // Light gold
+                            Color(0xFFFFD700), // Pure gold
+                            Color(0xFFB8860B)  // Dark gold
                         ),
                         tileMode = TileMode.Mirror
                     )
@@ -198,7 +198,7 @@
                         ),
                         modifier = Modifier.graphicsLayer {
                             shadowElevation = 20f
-                            scaleX = pulseScale // Le texte respire aussi légèrement
+                            scaleX = pulseScale // The text also breathes slightly
                             scaleY = pulseScale
                         }
                     )
@@ -216,7 +216,7 @@
                 }
             }
     
-            // --- PHASE 2: REMERCIEMENTS (5s -> Infini) ---
+            // --- PHASE 2: THANKS (5s -> Infinity) ---
             AnimatedVisibility(
                 visible = phase == 1,
                 enter = fadeIn(animationSpec = tween(1000)) + scaleIn(initialScale = 0.9f)
@@ -225,7 +225,7 @@
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.padding(48.dp)
                 ) {
-                    // Petit icône couronne ou cœur
+                    // Small crown or heart icon
                     Text(
                         text = "👑",
                         fontSize = 48.sp,
@@ -242,7 +242,7 @@
     
                     Spacer(Modifier.height(32.dp))
     
-                    // Message plus lisible
+                    // More readable message
                     Text(
                         text = stringResource(R.string.completion_thanks_message),
                         style = MaterialTheme.typography.headlineSmall.copy(
@@ -255,7 +255,7 @@
     
                     Spacer(Modifier.height(64.dp))
     
-                    // Indicateur de sortie (Apparaît seulement après les 10s totales)
+                    // Exit indicator (Appears only after total 10s)
                     AnimatedVisibility(
                         visible = canDismiss,
                         enter = fadeIn(animationSpec = tween(500)) + scaleIn()
@@ -269,7 +269,7 @@
                                 ),
                                 color = Color.White.copy(0.5f)
                             )
-                            // Petite animation de flèche ou point pour inciter au clic
+                            // Small arrow or dot animation to encourage click
                             Spacer(Modifier.height(8.dp))
                             Box(
                                 modifier = Modifier
@@ -283,7 +283,7 @@
         }
     }
     
-    // Données simples pour les particules
+    // Simple data for particles
     private data class ParticleData(
         val relX: Float,
         val relY: Float,
@@ -295,7 +295,7 @@
             fun random() = ParticleData(
                 relX = Random.nextFloat(),
                 relY = Random.nextFloat(),
-                radius = Random.nextFloat() * 4f + 1f, // Taille 1dp à 5dp
+                radius = Random.nextFloat() * 4f + 1f, // Size 1dp to 5dp
                 alpha = Random.nextFloat() * 0.6f + 0.1f,
                 offsetSeed = Random.nextFloat() * 10f
             )

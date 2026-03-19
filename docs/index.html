@@ -57,7 +57,6 @@
 
     <style>
         :root {
-            /* --- M3 Expressive Design Tokens (Dark Theme) --- */
             --md-sys-color-primary: #d0bcff;
             --md-sys-color-on-primary: #381e72;
             --md-sys-color-primary-container: #4f378b;
@@ -69,7 +68,6 @@
             --md-sys-color-tertiary: #efb8c8;
             --md-sys-color-on-tertiary: #492532;
 
-            /* Surfaces */
             --md-sys-color-background: #0f0d13;
             --md-sys-color-surface: #141218;
             --md-sys-color-surface-container-low: #1d1b20;
@@ -82,17 +80,14 @@
             --md-sys-color-outline: #938f99;
             --md-sys-color-outline-variant: #49454f;
 
-            /* Shapes */
             --radius-full: 9999px;
             --radius-xl: 42px;
             --radius-l: 28px;
             --radius-m: 16px;
 
-            /* Typography */
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Roboto Flex', sans-serif;
 
-            /* M3 Expressive extras */
             --glow-primary: rgba(208, 188, 255, 0.15);
             --glow-tertiary: rgba(239, 184, 200, 0.12);
             --ease-expressive: cubic-bezier(0.2, 0, 0, 1);
@@ -113,8 +108,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-
-        /* --- Scroll Reveal --- */
         .reveal {
             opacity: 0;
             transform: translateY(40px);
@@ -146,7 +139,6 @@
             transition-delay: 0.5s;
         }
 
-        /* --- Shimmer line accent --- */
         @keyframes shimmer-slide {
             0% {
                 transform: translateX(-100%);
@@ -157,7 +149,6 @@
             }
         }
 
-        /* --- Animations & Loader --- */
         #app-wrapper {
             opacity: 0;
             transform: translateY(20px);
@@ -190,7 +181,6 @@
             height: 80px;
         }
 
-        /* --- Typography --- */
         h1,
         h2,
         h3,
@@ -216,7 +206,6 @@
             line-height: 1.1;
         }
 
-        /* --- Buttons --- */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -264,7 +253,6 @@
             padding: 0 24px;
         }
 
-        /* --- Header --- */
         header.navbar {
             padding: 24px 0;
             display: flex;
@@ -289,7 +277,277 @@
             color: var(--md-sys-color-primary);
         }
 
-        /* --- Hero --- */
+        /* Easter egg logo icon */
+        .logo-icon-ee {
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: transform 0.15s var(--ease-spring);
+        }
+
+        .logo-icon-ee:active {
+            transform: scale(0.85);
+        }
+
+        .logo-icon-ee.wiggle {
+            animation: ee-wiggle 0.4s var(--ease-spring);
+        }
+
+        @keyframes ee-wiggle {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            25% {
+                transform: rotate(-12deg) scale(1.15);
+            }
+
+            50% {
+                transform: rotate(8deg) scale(1.1);
+            }
+
+            75% {
+                transform: rotate(-4deg);
+            }
+
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        /* --- Easter Egg Toast --- */
+        .ee-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+            pointer-events: none;
+            transition: background 0.5s ease, backdrop-filter 0.5s ease;
+        }
+
+        .ee-overlay.active {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            pointer-events: all;
+        }
+
+        .ee-card {
+            background: rgba(33, 31, 38, 0.85);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 1px solid rgba(208, 188, 255, 0.15);
+            border-radius: 32px;
+            padding: 48px 40px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+
+            opacity: 0;
+            transform: scale(0.85) translateY(30px);
+            transition: all 0.6s var(--ease-spring);
+
+            box-shadow:
+                0 32px 64px rgba(0, 0, 0, 0.6),
+                0 0 120px rgba(208, 188, 255, 0.06),
+                inset 0 1px 1px rgba(255, 255, 255, 0.08);
+        }
+
+        .ee-overlay.active .ee-card {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        /* Animated gradient border glow */
+        .ee-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 32px;
+            padding: 1.5px;
+            background: linear-gradient(135deg,
+                    var(--md-sys-color-primary),
+                    var(--md-sys-color-tertiary),
+                    var(--md-sys-color-secondary),
+                    var(--md-sys-color-primary));
+            background-size: 300% 300%;
+            animation: ee-border-glow 4s ease infinite;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes ee-border-glow {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        /* Sparkle particles behind */
+        .ee-card::after {
+            content: '✧ ✦ ✧ ✦ ✧';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            opacity: 0.03;
+            letter-spacing: 0.5rem;
+            pointer-events: none;
+            white-space: nowrap;
+            animation: ee-sparkle-drift 6s ease-in-out infinite;
+        }
+
+        @keyframes ee-sparkle-drift {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) rotate(3deg) scale(1.05);
+            }
+        }
+
+        .ee-kaomoji {
+            font-size: 3.5rem;
+            display: block;
+            margin-bottom: 20px;
+            color: var(--md-sys-color-tertiary);
+            animation: float 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 20px rgba(239, 184, 200, 0.3));
+        }
+
+        .ee-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 8px;
+            letter-spacing: 0.02em;
+        }
+
+        .ee-name {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+        }
+
+        .ee-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--md-sys-color-primary-container), rgba(79, 55, 139, 0.6));
+            color: var(--md-sys-color-on-primary-container);
+            text-decoration: none;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1rem;
+            transition: all 0.3s var(--ease-expressive);
+            border: 1px solid rgba(208, 188, 255, 0.2);
+            box-shadow: 0 4px 16px rgba(208, 188, 255, 0.15);
+        }
+
+        .ee-link:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 32px rgba(208, 188, 255, 0.3);
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .ee-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        .ee-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 20px;
+        }
+
+        .ee-close:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .ee-hint {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: var(--md-sys-color-outline);
+            opacity: 0.6;
+        }
+
+        /* --- Counter toast (small) --- */
+        .ee-counter-toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: rgba(33, 31, 38, 0.9);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-full);
+            padding: 12px 24px;
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            color: var(--md-sys-color-on-surface-variant);
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.4s var(--ease-spring);
+            pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            white-space: nowrap;
+        }
+
+        .ee-counter-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .ee-counter-toast .ee-ct-icon {
+            color: var(--md-sys-color-primary);
+            font-size: 18px;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
         .hero {
             padding: 80px 0 100px;
             text-align: center;
@@ -314,22 +572,16 @@
             font-weight: 400;
         }
 
-        /* --- Player Preview (Adaptive Glass Design) --- */
         .web-player-preview {
             background: rgba(30, 27, 33, 0.75);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-
             border-radius: 32px;
             padding: 32px;
-            /* Réduit (était 40px) */
             max-width: 400px;
-            /* Base mobile */
             margin: 0 auto 80px;
-            /* Marge bas réduite */
             box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -339,7 +591,6 @@
             transition: all 0.3s ease;
         }
 
-        /* --- Layout Blocks --- */
         .player-top {
             width: 100%;
             display: flex;
@@ -360,10 +611,8 @@
             width: 100%;
         }
 
-        /* --- Album Art --- */
         .album-art-wrapper {
             width: 180px;
-            /* Plus compact (était 220px) */
             height: 180px;
             border-radius: 20px;
             position: relative;
@@ -379,12 +628,10 @@
             border-radius: 20px;
         }
 
-        /* Glow effect behind art */
         .art-glow {
             position: absolute;
             inset: 0;
             background: var(--art-url) center/cover no-repeat;
-
             filter: blur(35px) saturate(1.5);
             opacity: 0.5;
             z-index: -1;
@@ -409,7 +656,6 @@
             opacity: 1;
         }
 
-        /* --- Track Info --- */
         .track-info {
             margin-top: 20px;
             width: 100%;
@@ -448,7 +694,6 @@
             font-weight: 500;
         }
 
-        /* --- Controls --- */
         .play-fab-large {
             width: 72px;
             height: 72px;
@@ -513,7 +758,6 @@
             height: 60%;
         }
 
-        /* --- Progress --- */
         .progress-row {
             display: flex;
             align-items: center;
@@ -548,7 +792,6 @@
             border-radius: 4px;
         }
 
-        /* --- FX Rack --- */
         .fx-rack {
             display: flex;
             flex-wrap: wrap;
@@ -603,24 +846,18 @@
             accent-color: var(--md-sys-color-primary);
         }
 
-        /* --- DESKTOP TRANSFORMATION (Horizontal Layout) --- */
         @media (min-width: 900px) {
             .web-player-preview {
                 max-width: 850px;
-                /* Plus large */
                 flex-direction: row;
-                /* Horizontal */
                 text-align: left;
                 align-items: stretch;
                 padding: 0;
-                /* On utilise le padding interne des enfants */
             }
 
-            /* Partie Gauche : Art + Info */
             .player-top {
                 flex: 0 0 300px;
                 background: rgba(0, 0, 0, 0.15);
-                /* Légère séparation visuelle */
                 padding: 32px;
                 margin-bottom: 0;
                 justify-content: center;
@@ -641,13 +878,6 @@
                 font-size: 1.4rem;
             }
 
-            /* Partie Droite : Contrôles + FX */
-            .web-player-preview>div:not(.player-top) {
-                /* On regroupe virtuellement le reste */
-            }
-
-            /* On force les blocs Middle et Bottom à s'afficher à droite */
-            /* Petite astuce CSS Grid pour éviter de changer le HTML */
             .web-player-preview {
                 display: grid;
                 grid-template-columns: 280px 1fr;
@@ -663,13 +893,11 @@
                 border-right: 1px solid rgba(255, 255, 255, 0.08);
             }
 
-            /* Conteneur pour la partie droite */
             .player-middle {
                 grid-column: 2;
                 grid-row: 1;
                 padding: 40px 40px 10px;
                 justify-content: flex-end;
-                /* Pousse vers le bas */
                 margin-bottom: 0;
             }
 
@@ -679,7 +907,6 @@
                 padding: 10px 40px 40px;
             }
 
-            /* Réajustements Desktop */
             .play-fab-large {
                 width: 80px;
                 height: 80px;
@@ -701,7 +928,6 @@
             }
         }
 
-        /* --- Expressive Features Grid --- */
         .features-section {
             padding: 40px 0;
         }
@@ -740,7 +966,6 @@
             cursor: default;
         }
 
-        /* Gradient border glow on hover */
         .expressive-card::before {
             content: '';
             position: absolute;
@@ -767,7 +992,6 @@
             border-color: rgba(255, 255, 255, 0.08);
         }
 
-        /* Large Background Kaomoji */
         .kaomoji-hero {
             position: absolute;
             top: 50%;
@@ -921,7 +1145,6 @@
             font-size: 0.9rem;
         }
 
-        /* --- NEW CLEAN PHONE DESIGN (Matte, No Notch) --- */
         .showcase-image-wrapper {
             position: relative;
             display: flex;
@@ -934,9 +1157,7 @@
             margin: 0 auto;
             aspect-ratio: 9/19.5;
             background: #000;
-            /* Modern simple rounded corners */
             border-radius: 40px;
-            /* Subtle bezel without gloss */
             border: 8px solid #2b2930;
             box-shadow:
                 0 0 0 1px #000,
@@ -955,54 +1176,35 @@
             height: 100%;
             object-fit: cover;
             border-radius: 32px;
-            /* Inner radius matching bezel */
             display: block;
         }
 
-        /* --- Premium Kaomoji Badges (Dark Glassmorphism M3 Style) --- */
         .kaomoji-badge {
             position: absolute;
             z-index: 20;
-
-            /* Layout */
             display: flex;
             align-items: center;
             gap: 16px;
             padding: 10px 24px 10px 10px;
-            /* Asymmetrical padding for the icon */
-
-            /* Shape & Surface (Dark Glass) */
             background: rgba(30, 27, 33, 0.65);
-            /* Semi-transparent dark background */
             backdrop-filter: blur(12px);
-            /* Background blur */
             -webkit-backdrop-filter: blur(12px);
             border-radius: 50px;
-            /* Full pill shape */
             border: 1px solid rgba(255, 255, 255, 0.08);
-            /* Subtle border */
-
-            /* Shadows for depth */
             box-shadow:
                 0 8px 32px rgba(0, 0, 0, 0.5),
                 inset 0 1px 1px rgba(255, 255, 255, 0.1);
-
-            /* Animation */
             animation: float-badge 7s ease-in-out infinite;
             transition: all 0.3s ease;
             cursor: default;
         }
 
-        /* Badge icon container */
         .badge-icon-circle {
             width: 44px;
             height: 44px;
             border-radius: 50%;
-
-            /* Dynamic colors based on variant */
             background: var(--badge-surface, #332d41);
             color: var(--badge-color, #d0bcff);
-
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1013,7 +1215,6 @@
             font-size: 22px;
         }
 
-        /* The Kaomoji text */
         .badge-text {
             font-family: var(--font-display);
             font-weight: 600;
@@ -1023,17 +1224,12 @@
             white-space: nowrap;
         }
 
-        /* Hover Interaction */
         .showcase-row:hover .kaomoji-badge {
             transform: translateY(-5px) scale(1.05);
             background: rgba(45, 40, 50, 0.8);
             border-color: var(--badge-color);
-            /* Border brightens slightly */
         }
 
-        /* --- Badge Color Variants (Subtle & Dark) --- */
-
-        /* 1. Primary (Violet) */
         .variant-1 {
             --badge-surface: var(--md-sys-color-primary-container);
             --badge-color: var(--md-sys-color-on-primary-container);
@@ -1042,7 +1238,6 @@
             animation-delay: 0s;
         }
 
-        /* 2. Secondary (Gray/Bluish) */
         .variant-2 {
             --badge-surface: var(--md-sys-color-secondary);
             --badge-color: var(--md-sys-color-on-secondary);
@@ -1051,7 +1246,6 @@
             animation-delay: 1.5s;
         }
 
-        /* 3. Tertiary (Pink/Warm) */
         .variant-3 {
             --badge-surface: var(--md-sys-color-tertiary);
             --badge-color: var(--md-sys-color-on-tertiary);
@@ -1061,7 +1255,6 @@
             animation-delay: 3s;
         }
 
-        /* 4. Surface (Neutral/Gold) */
         .variant-4 {
             --badge-surface: #4a4458;
             --badge-color: #ffd8e4;
@@ -1088,7 +1281,6 @@
             }
         }
 
-        /* --- Footer --- */
         .squiggle-line {
             width: 100%;
             display: block;
@@ -1151,7 +1343,6 @@
             color: var(--md-sys-color-primary);
         }
 
-        /* Mobile */
         @media (max-width: 900px) {
             .player-header {
                 grid-template-columns: 1fr;
@@ -1198,8 +1389,6 @@
             .kaomoji-badge {
                 display: none;
             }
-
-            /* Hide floating badges on mobile to prevent overflow */
         }
 
         @keyframes float {
@@ -1313,13 +1502,11 @@
 
         .avium-hero-section {
             padding: 20px 24px 60px;
-            /* added horizontal padding */
         }
 
         .avium-hero-container {
             display: grid;
             grid-template-columns: 0.86fr 1.14fr;
-            /* Make left text block slightly smaller than right image block */
             gap: 24px;
             max-width: 1600px;
             margin: 0 auto;
@@ -1328,26 +1515,21 @@
         @media (max-width: 900px) {
             .avium-hero-container {
                 grid-template-columns: 1fr;
-                /* Stack vertically */
                 gap: 16px;
             }
 
             .avium-hero-section {
                 padding: 10px 16px 40px;
-                /* Reduce outer padding */
             }
 
             .avium-hero-left {
                 padding: 40px 24px;
-                /* Smaller padding inside the info card */
                 align-items: center;
-                /* Center text on mobile */
                 text-align: center;
             }
 
             .avium-hero-title {
                 font-size: clamp(2.5rem, 8vw, 3.5rem);
-                /* Slightly smaller title */
             }
 
             .avium-hero-desc {
@@ -1367,12 +1549,10 @@
 
             .avium-hero-right {
                 min-height: 350px;
-                /* Shorter image container so it doesn't take the whole screen vertically */
             }
 
             .avium-hero-img {
                 object-position: center top;
-                /* Focus on the top part of the app for mobile views */
             }
         }
 
@@ -1386,7 +1566,6 @@
 
         .avium-hero-left {
             padding: 80px 48px;
-            /* Slightly taller */
             flex-direction: column;
             justify-content: center;
             align-items: flex-start;
@@ -1413,7 +1592,6 @@
 
         .avium-btn-download {
             background-color: var(--md-sys-color-primary);
-            /* Violet Color */
             color: var(--md-sys-color-on-primary);
             padding: 16px 36px;
             border-radius: 999px;
@@ -1445,7 +1623,6 @@
             padding: 0;
             position: relative;
             min-height: 550px;
-            /* Taller to show more image */
             overflow: hidden;
         }
 
@@ -1454,7 +1631,6 @@
             height: 100%;
             object-fit: cover;
             object-position: center;
-            /* Center to show both sides */
             display: block;
             border-radius: var(--radius-xl);
         }
@@ -1490,7 +1666,7 @@
         <div class="container">
             <header class="navbar">
                 <div class="logo">
-                    <span class="material-icons-round">music_note</span>
+                    <span class="material-icons-round logo-icon-ee" id="ee-trigger">music_note</span>
                     kittytune
                 </div>
                 <a href="#" id="download-btn-header" class="btn btn-primary">
@@ -1527,7 +1703,6 @@
         </section>
 
         <div class="container">
-            <!-- Features Bento Grid -->
             <section class="features-section">
                 <div class="section-header reveal">
                     <h2 class="headline-large">Why KittyTune?</h2>
@@ -1596,11 +1771,9 @@
             </section>
         </div>
 
-        <!-- Showcase Section -->
         <section class="showcase-section">
             <div class="container">
 
-                <!-- Row 1: UI -->
                 <div class="showcase-row">
                     <div class="text-col">
                         <div class="step-number">01</div>
@@ -1610,7 +1783,6 @@
                         <div class="highlight">#DynamicColors</div>
                     </div>
                     <div class="showcase-image-wrapper">
-                        <!-- Badge 1 (Violet) -->
                         <div class="kaomoji-badge variant-1">
                             <div class="badge-icon-circle">
                                 <span class="material-icons-round">palette</span>
@@ -1624,7 +1796,6 @@
                     </div>
                 </div>
 
-                <!-- Row 2: Audio (Reverse Layout) -->
                 <div class="showcase-row reverse">
                     <div class="text-col">
                         <div class="step-number">02</div>
@@ -1634,7 +1805,6 @@
                         <div class="highlight">#PowerUser</div>
                     </div>
                     <div class="showcase-image-wrapper">
-                        <!-- Badge 2 (Gray/Bluish) -->
                         <div class="kaomoji-badge variant-2">
                             <div class="badge-icon-circle">
                                 <span class="material-icons-round">equalizer</span>
@@ -1649,7 +1819,6 @@
                     </div>
                 </div>
 
-                <!-- Row 3: Lyrics -->
                 <div class="showcase-row">
                     <div class="text-col">
                         <div class="step-number">03</div>
@@ -1659,7 +1828,6 @@
                         <div class="highlight">#KaraokeMode</div>
                     </div>
                     <div class="showcase-image-wrapper">
-                        <!-- Badge 3 (Pink/Warm) -->
                         <div class="kaomoji-badge variant-3">
                             <div class="badge-icon-circle">
                                 <span class="material-icons-round">mic_external_on</span>
@@ -1673,7 +1841,6 @@
                     </div>
                 </div>
 
-                <!-- Row 4: Gamification (Reverse Layout) -->
                 <div class="showcase-row reverse">
                     <div class="text-col">
                         <div class="step-number">04</div>
@@ -1683,7 +1850,6 @@
                         <div class="highlight">#LevelUp</div>
                     </div>
                     <div class="showcase-image-wrapper">
-                        <!-- Badge 4 (Neutral/Gold) -->
                         <div class="kaomoji-badge variant-4">
                             <div class="badge-icon-circle">
                                 <span class="material-icons-round">star</span>
@@ -1803,6 +1969,32 @@
         </footer>
     </div>
 
+    <!-- ✧ Easter Egg Overlay ✧ -->
+    <div class="ee-overlay" id="ee-overlay">
+        <div class="ee-card">
+            <button class="ee-close" id="ee-close" aria-label="Close">
+                <span class="material-icons-round">close</span>
+            </button>
+            <span class="ee-kaomoji">( ˘ ³˘)♥</span>
+            <div class="ee-title">thanks for best dev</div>
+            <div class="ee-name">@wxrsa</div>
+            <a href="https://t.me/wxrsa" target="_blank" rel="noopener noreferrer" class="ee-link">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                </svg>
+                Open on Telegram
+            </a>
+            <div class="ee-hint">you found the secret ✧</div>
+        </div>
+    </div>
+
+    <!-- Easter Egg Counter Toast -->
+    <div class="ee-counter-toast" id="ee-counter-toast">
+        <span class="material-icons-round ee-ct-icon">music_note</span>
+        <span id="ee-counter-text"></span>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const loader = document.getElementById('loading-screen');
@@ -1833,6 +2025,79 @@
             }, { threshold: 0.15 });
 
             document.querySelectorAll('.showcase-row, .reveal').forEach(el => observer.observe(el));
+
+            // ✧ Easter Egg: 7 clicks on the logo music_note icon ✧
+            const eeTrigger = document.getElementById('ee-trigger');
+            const eeOverlay = document.getElementById('ee-overlay');
+            const eeClose = document.getElementById('ee-close');
+            const eeCounterToast = document.getElementById('ee-counter-toast');
+            const eeCounterText = document.getElementById('ee-counter-text');
+
+            let eeClicks = 0;
+            let eeTimeout = null;
+            let eeToastTimeout = null;
+            const EE_TARGET = 7;
+
+            const eeMessages = [
+                '',
+                '',
+                '',
+                `${EE_TARGET - 3} more...`,
+                `${EE_TARGET - 4} more... keep going!`,
+                `Almost there... (◕‿◕)`,
+                `One more tap!`
+            ];
+
+            eeTrigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                eeClicks++;
+
+                // Wiggle animation
+                eeTrigger.classList.remove('wiggle');
+                void eeTrigger.offsetWidth; // reflow
+                eeTrigger.classList.add('wiggle');
+
+                // Reset counter after 3s of inactivity
+                clearTimeout(eeTimeout);
+                eeTimeout = setTimeout(() => { eeClicks = 0; }, 3000);
+
+                // Show hint toasts from click 3 onwards
+                if (eeClicks >= 3 && eeClicks < EE_TARGET) {
+                    const msg = eeMessages[eeClicks] || `${EE_TARGET - eeClicks} more...`;
+                    eeCounterText.textContent = msg;
+                    eeCounterToast.classList.add('show');
+                    clearTimeout(eeToastTimeout);
+                    eeToastTimeout = setTimeout(() => {
+                        eeCounterToast.classList.remove('show');
+                    }, 1500);
+                }
+
+                // Trigger easter egg!
+                if (eeClicks >= EE_TARGET) {
+                    eeClicks = 0;
+                    eeCounterToast.classList.remove('show');
+                    eeOverlay.classList.add('active');
+                }
+            });
+
+            // Close easter egg
+            eeClose.addEventListener('click', () => {
+                eeOverlay.classList.remove('active');
+            });
+
+            eeOverlay.addEventListener('click', (e) => {
+                if (e.target === eeOverlay) {
+                    eeOverlay.classList.remove('active');
+                }
+            });
+
+            // Close with Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && eeOverlay.classList.contains('active')) {
+                    eeOverlay.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>

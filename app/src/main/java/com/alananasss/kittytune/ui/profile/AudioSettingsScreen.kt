@@ -122,7 +122,6 @@ fun AudioSettingsScreen(
                                 shape = com.alananasss.kittytune.ui.common.getSettingsShape(1, 0),
                                 title = stringResource(R.string.pref_sync_likes),
                                 subtitle = stringResource(R.string.pref_sync_likes_sub),
-                                icon = androidx.compose.material.icons.Icons.Rounded.CloudSync,
                                 hasSwitch = true,
                                 switchState = syncLikes,
                                 onSwitchChange = {
@@ -146,7 +145,6 @@ fun AudioSettingsScreen(
                             shape = getSettingsShape(totalVisibleItems, 0),
                             title = stringResource(R.string.pref_autoplay),
                             subtitle = stringResource(R.string.pref_autoplay_sub),
-                            icon = Icons.Rounded.Radio,
                             hasSwitch = true,
                             switchState = autoplayEnabled,
                             onSwitchChange = { autoplayEnabled = it; prefs.setAutoplayEnabled(it) }
@@ -156,7 +154,6 @@ fun AudioSettingsScreen(
                             shape = getSettingsShape(totalVisibleItems, 1),
                             title = stringResource(R.string.pref_persist_queue),
                             subtitle = stringResource(R.string.pref_persist_queue_sub),
-                            icon = Icons.Rounded.Save,
                             hasSwitch = true,
                             switchState = persistentQueueEnabled,
                             onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) }
@@ -166,7 +163,6 @@ fun AudioSettingsScreen(
                             shape = getSettingsShape(totalVisibleItems, 2),
                             title = stringResource(R.string.pref_youtube_fallback),
                             subtitle = stringResource(R.string.pref_youtube_fallback_sub),
-                            icon = Icons.Rounded.LockOpen,
                             hasSwitch = true,
                             switchState = youtubeFallbackEnabled,
                             onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) }
@@ -185,7 +181,6 @@ fun AudioSettingsScreen(
                                     YouTubeFallbackMode.NEWPIPE -> stringResource(R.string.fallback_newpipe)
                                     YouTubeFallbackMode.INVIDIOUS -> stringResource(R.string.fallback_invidious)
                                 },
-                                icon = Icons.Rounded.SettingsEthernet,
                                 onClick = { showFallbackModeDialog = true }
                             )
                         }
@@ -194,7 +189,6 @@ fun AudioSettingsScreen(
                             shape = getSettingsShape(totalVisibleItems, totalVisibleItems - 1),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
-                            icon = Icons.Rounded.Speed,
                             hasSwitch = true,
                             switchState = playerViewModel.isPreciseSpeedEnabled,
                             onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
@@ -212,7 +206,6 @@ fun AudioSettingsScreen(
                                 shape = shape,
                                 title = stringResource(R.string.pref_quality),
                                 subtitle = if (audioQuality == "HIGH") stringResource(R.string.quality_high) else stringResource(R.string.quality_low),
-                                icon = Icons.Rounded.HighQuality,
                                 onClick = { showQualityDialog = true }
                             )
                         }

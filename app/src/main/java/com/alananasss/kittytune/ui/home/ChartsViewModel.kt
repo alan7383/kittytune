@@ -20,7 +20,7 @@
     
     data class ArtistRanking(
         val user: User,
-        val score: Long, // On garde le score pour le tri, mais on affichera les followers
+        val score: Long, // Keep the score for sorting, but we will display the followers
         val rank: Int
     )
     
@@ -48,7 +48,7 @@
                 topArtists.clear()
     
                 try {
-                    // Récupération parallèle des playlists
+                    // Parallel playlist retrieval
                     val playlists = coroutineScope {
                         countryData.playlistUrls.map { url ->
                             async {
@@ -87,11 +87,11 @@
                 playlist.tracks?.forEach { track ->
                     val user = track.user
                     if (user != null && user.id > 0) {
-                        // On garde l'objet user le plus complet possible
+                        // Keep the user object as complete as possible
                         if (!userMap.containsKey(user.id) || (user.followersCount > (userMap[user.id]?.followersCount ?: 0))) {
                             userMap[user.id] = user
                         }
-                        // On trie quand même par popularité dans les charts (plays)
+                        // Sort by popularity in the charts (plays) anyway
                         val current = playCounts.getOrDefault(user.id, 0L)
                         playCounts[user.id] = current + track.playbackCount.toLong()
                     }

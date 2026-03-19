@@ -16,6 +16,8 @@
     import androidx.compose.ui.platform.LocalView
     import androidx.core.view.WindowCompat
     import com.alananasss.kittytune.data.local.AppThemeMode
+    import androidx.compose.material3.MotionScheme
+    import androidx.compose.material3.MaterialExpressiveTheme
     
     private val DarkColorScheme = darkColorScheme(
         primary = Purple80,
@@ -85,12 +87,12 @@
                 insetsController.isAppearanceLightNavigationBars = !useDarkTheme
             }
         }
-    
-        MaterialTheme(
+
+        MaterialExpressiveTheme(
             colorScheme = finalColorScheme,
             typography = typography,
-            content = content
+            content = content,
+            motionScheme = MotionScheme.expressive()
         )
     }
-
 

@@ -103,7 +103,7 @@ object BackupManager {
 
             LikeRepository.replaceAllLikes(data.likedTracks)
 
-            // 4. Restauration Preferences
+            // 4. Restoration of Preferences
             restorePrefs(context, "achievements_prefs", data.achievements)
             restorePrefs(context, "player_state", data.playerPrefs)
 

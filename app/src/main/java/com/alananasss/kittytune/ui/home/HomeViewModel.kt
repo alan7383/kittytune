@@ -104,6 +104,7 @@
         var activeSearchSource by mutableStateOf(SearchSource.SOUNDCLOUD)
     
         var isLoading by mutableStateOf(true)
+        var isRefreshing by mutableStateOf(false)
     
         val searchResultsTracks = mutableStateListOf<Track>()
         val searchResultsArtists = mutableStateListOf<User>()
@@ -159,6 +160,16 @@
                     delay(500)
                     performSearch(trimmed)
                 }
+            }
+        }
+
+        fun refreshData() {
+            if (isRefreshing) return
+            viewModelScope.launch {
+                isRefreshing = true
+                val token = tokenManager.getAccessToken()
+                if (token.isNullOrEmpty()) loadGuestData() else loadAuthenticatedData()
+                isRefreshing = false
             }
         }
 

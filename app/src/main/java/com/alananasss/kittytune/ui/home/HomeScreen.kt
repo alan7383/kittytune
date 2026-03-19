@@ -36,6 +36,8 @@ import androidx.compose.animation.core.animateFloatAsState
     import androidx.compose.material.icons.filled.*
     import androidx.compose.material.icons.rounded.*
     import androidx.compose.material3.*
+    import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+    import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
@@ -54,11 +56,9 @@ import androidx.compose.animation.core.animateFloatAsState
     import androidx.compose.ui.platform.LocalSoftwareKeyboardController
     import androidx.compose.ui.res.stringResource
     import androidx.compose.ui.text.font.FontWeight
-    import androidx.compose.ui.text.input.ImeAction
     import androidx.compose.ui.text.style.TextAlign
     import androidx.compose.ui.text.style.TextOverflow
     import androidx.compose.ui.unit.dp
-    import androidx.compose.ui.unit.lerp
     import androidx.compose.ui.unit.sp
     import androidx.compose.ui.util.lerp
     import coil.compose.AsyncImage
@@ -69,7 +69,6 @@ import androidx.compose.animation.core.animateFloatAsState
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.User
-    import androidx.compose.foundation.lazy.grid.itemsIndexed
     import com.alananasss.kittytune.ui.common.ArtistCircleShimmer
     import com.alananasss.kittytune.ui.common.ShimmerLine
     import com.alananasss.kittytune.ui.common.SquareCardShimmer
@@ -82,6 +81,22 @@ import androidx.compose.animation.core.animateFloatAsState
     import java.io.File
     import kotlin.math.abs
     import kotlin.math.absoluteValue
+    import androidx.compose.ui.platform.LocalHapticFeedback
+    import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+    import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+    import androidx.compose.ui.layout.onGloballyPositioned
+    import androidx.compose.ui.layout.positionInParent
+    import androidx.compose.ui.platform.LocalDensity
+    import androidx.compose.ui.geometry.CornerRadius
+    import androidx.compose.ui.geometry.Offset
+    import androidx.compose.ui.geometry.Rect
+    import androidx.compose.ui.geometry.Size
+    import androidx.compose.ui.layout.boundsInParent
+    import androidx.compose.ui.layout.onPlaced
+    import androidx.compose.foundation.LocalIndication
+    import androidx.compose.foundation.interaction.MutableInteractionSource
+    import androidx.compose.foundation.interaction.collectIsPressedAsState
+    import androidx.compose.ui.draw.drawBehind
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
     @Composable
@@ -275,11 +290,28 @@ import androidx.compose.animation.core.animateFloatAsState
                                     ContainedLoadingIndicator()
                                 }
                             } else {
-                                SearchResultsList(
-                                    homeViewModel = homeViewModel,
-                                    playerViewModel = playerViewModel,
-                                    onNavigate = onNavigate
-                                )
+                                AnimatedContent(
+                                    targetState = homeViewModel.activeFilter,
+                                    transitionSpec = {
+                                        val springSpecAlpha = spring<Float>(stiffness = Spring.StiffnessMediumLow)
+                                        val springSpecScale = spring<Float>(
+                                            dampingRatio = 0.85f,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+
+                                        (fadeIn(animationSpec = springSpecAlpha) + scaleIn(initialScale = 0.95f, animationSpec = springSpecScale))
+                                            .togetherWith(fadeOut(animationSpec = tween(150))) // The fadeOut must be fast
+                                    },
+                                    label = "FilterAnimation",
+                                    modifier = Modifier.fillMaxSize()
+                                ) { currentFilter ->
+                                    SearchResultsList(
+                                        homeViewModel = homeViewModel,
+                                        playerViewModel = playerViewModel,
+                                        onNavigate = onNavigate,
+                                        activeFilter = currentFilter
+                                    )
+                                }
                             }
                         }
                     }
@@ -294,12 +326,51 @@ import androidx.compose.animation.core.animateFloatAsState
                 if (homeViewModel.isLoading && homeViewModel.homeSections.isEmpty()) {
                     HomeScreenShimmer()
                 } else {
-                    HomeContent(
-                        homeViewModel = homeViewModel,
-                        playerViewModel = playerViewModel,
-                        history = history,
-                        onNavigate = onNavigate
-                    )
+                    val pullRefreshState = rememberPullToRefreshState()
+
+                    PullToRefreshBox(
+                        isRefreshing = homeViewModel.isRefreshing,
+                        onRefresh = { homeViewModel.refreshData() },
+                        state = pullRefreshState,
+                        modifier = Modifier.fillMaxSize(),
+                        indicator = {
+                            if (homeViewModel.isRefreshing || pullRefreshState.distanceFraction > 0f) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 16.dp)
+                                        .graphicsLayer {
+                                            val fraction = pullRefreshState.distanceFraction
+                                            alpha = fraction.coerceIn(0f, 1f)
+                                            translationY = (fraction * 20.dp.toPx()) - 20.dp.toPx()
+                                        }
+                                ) {
+                                    ContainedLoadingIndicator()
+                                }
+                            }
+                        }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val fraction = pullRefreshState.distanceFraction
+
+                                    translationY = fraction * 80.dp.toPx()
+
+                                    val scale = 1f - (fraction * 0.02f).coerceIn(0f, 0.05f)
+                                    scaleX = scale
+                                    scaleY = scale
+                                }
+                        ) {
+                            HomeContent(
+                                homeViewModel = homeViewModel,
+                                playerViewModel = playerViewModel,
+                                history = history,
+                                onNavigate = onNavigate
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -532,7 +603,7 @@ import androidx.compose.animation.core.animateFloatAsState
             }
         }
     }
-    
+
     @Composable
     fun ExplorerButton(
         icon: ImageVector,
@@ -543,15 +614,14 @@ import androidx.compose.animation.core.animateFloatAsState
     ) {
         val containerColor = baseColor.copy(alpha = 0.12f)
         val contentColor = baseColor
-    
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
             modifier = modifier
-                .clip(RoundedCornerShape(20.dp))
-                .clickable { onClick() }
         ) {
             Surface(
+                onClick = onClick,
                 shape = RoundedCornerShape(28.dp),
                 color = containerColor,
                 modifier = Modifier
@@ -567,7 +637,7 @@ import androidx.compose.animation.core.animateFloatAsState
                     )
                 }
             }
-    
+
             Spacer(Modifier.height(12.dp))
             Text(
                 text = label,
@@ -583,7 +653,8 @@ import androidx.compose.animation.core.animateFloatAsState
             )
         }
     }
-    
+
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun HomeFilterRow(
         categories: List<SearchCategory>,
@@ -595,20 +666,26 @@ import androidx.compose.animation.core.animateFloatAsState
             modifier = Modifier.padding(top = 8.dp)
         ) {
             items(categories) { category ->
-                SuggestionChip(
+                Button(
                     onClick = { onCategoryClick(category) },
-                    label = { Text(category.title, fontWeight = FontWeight.Medium) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
+                    shapes = ButtonDefaults.shapes(),
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        labelColor = MaterialTheme.colorScheme.onSurface
+                        contentColor = MaterialTheme.colorScheme.onSurface
                     ),
-                    border = null,
-                    shape = RoundedCornerShape(12.dp)
-                )
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                    modifier = Modifier.height(40.dp)
+                ) {
+                    Text(
+                        text = category.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
-    
+
     @Composable
     fun QuickHistorySection(
         history: List<HistoryItem>,
@@ -1129,7 +1206,7 @@ import androidx.compose.animation.core.animateFloatAsState
     ) {
         val containerColor = MaterialTheme.colorScheme.secondaryContainer
         val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-    
+
         Card(
             onClick = onClick,
             shape = RoundedCornerShape(28.dp),
@@ -1155,7 +1232,7 @@ import androidx.compose.animation.core.animateFloatAsState
                             alpha = 0.5f
                         }
                 )
-    
+
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1172,7 +1249,7 @@ import androidx.compose.animation.core.animateFloatAsState
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-    
+
                     Box(
                         modifier = Modifier
                             .size(32.dp)
@@ -1193,27 +1270,99 @@ import androidx.compose.animation.core.animateFloatAsState
             }
         }
     }
-    
+
     @Composable
     fun SearchFilters(activeFilter: SearchFilter, onFilterSelected: (SearchFilter) -> Unit) {
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            items(SearchFilter.entries) { filter ->
+        val haptic = LocalHapticFeedback.current
+        val filters = SearchFilter.entries
+        var boundsMap by remember { mutableStateOf<Map<SearchFilter, Rect>>(emptyMap()) }
+        val interactionSources = remember { filters.associateWith { MutableInteractionSource() } }
+        val activeBounds = boundsMap[activeFilter] ?: Rect.Zero
+        val animLeft by animateFloatAsState(targetValue = activeBounds.left, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animLeft")
+        val animRight by animateFloatAsState(targetValue = activeBounds.right, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animRight")
+        val animTop by animateFloatAsState(targetValue = activeBounds.top, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animTop")
+        val animBottom by animateFloatAsState(targetValue = activeBounds.bottom, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animBottom")
+        val activeInteractionSource = interactionSources[activeFilter]!!
+        val isActivePressed by activeInteractionSource.collectIsPressedAsState()
+        val indicatorCornerRadius by animateDpAsState(
+            targetValue = if (isActivePressed) 12.dp else 50.dp,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+            label = "indicatorCornerRadius"
+        )
+        val cornerRadiusPx = with(LocalDensity.current) { indicatorCornerRadius.toPx() }
+        val indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.drawBehind {
+                if (activeBounds.width > 0f) {
+                    drawRoundRect(
+                        color = indicatorColor,
+                        topLeft = Offset(animLeft, animTop),
+                        size = Size(animRight - animLeft, animBottom - animTop),
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                    )
+                }
+            }
+        ) {
+            filters.forEach { filter ->
                 val label = when (filter) {
-                    SearchFilter.ALL -> stringResource(R.string.all_filters)
-                    SearchFilter.TRACKS -> stringResource(R.string.profile_tracks)
-                    SearchFilter.ARTISTS -> stringResource(R.string.lib_artists)
+                    SearchFilter.ALL       -> stringResource(R.string.all_filters)
+                    SearchFilter.TRACKS    -> stringResource(R.string.profile_tracks)
+                    SearchFilter.ARTISTS   -> stringResource(R.string.lib_artists)
                     SearchFilter.PLAYLISTS -> stringResource(R.string.lib_playlists)
                 }
-                FilterChip(
-                    selected = activeFilter == filter, onClick = { onFilterSelected(filter) }, label = { Text(label, maxLines = 1) },
-                    shape = CircleShape, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer, selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer), border = null
+
+                val isSelected = activeFilter == filter
+
+                val contentColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = tween(200),
+                    label = "ContentColor"
                 )
+
+                val isThisPressed by interactionSources[filter]!!.collectIsPressedAsState()
+                val thisCornerRadius by animateDpAsState(
+                    targetValue = if (isThisPressed) 12.dp else 50.dp,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+                    label = "thisCornerRadius"
+                )
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .onPlaced { coordinates ->
+                            val rect = coordinates.boundsInParent()
+                            if (boundsMap[filter] != rect) {
+                                boundsMap = boundsMap + (filter to rect)
+                            }
+                        }
+                        .clip(RoundedCornerShape(thisCornerRadius))
+                        .clickable(
+                            interactionSource = interactionSources[filter]!!,
+                            indication = LocalIndication.current,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onFilterSelected(filter)
+                            }
+                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = contentColor,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
-    
+
     @Composable
-    fun SearchResultsList(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel, onNavigate: (String) -> Unit) {
+    fun SearchResultsList(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel, onNavigate: (String) -> Unit,  activeFilter: SearchFilter = homeViewModel.activeFilter) {
         val downloadProgress by DownloadManager.downloadProgress.collectAsState()
         val context = LocalContext.current
         when (homeViewModel.activeSearchSource) {
@@ -1227,12 +1376,12 @@ import androidx.compose.animation.core.animateFloatAsState
             }
             SearchSource.SOUNDCLOUD -> {
                 val listState = rememberLazyListState()
-                val shouldLoadMore by remember { derivedStateOf { val layoutInfo = listState.layoutInfo; val totalItems = layoutInfo.totalItemsCount; val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0; totalItems > 0 && lastVisibleItemIndex >= totalItems - 5 && homeViewModel.activeFilter != SearchFilter.ALL } }
+                val shouldLoadMore by remember { derivedStateOf { val layoutInfo = listState.layoutInfo; val totalItems = layoutInfo.totalItemsCount; val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0; totalItems > 0 && lastVisibleItemIndex >= totalItems - 5 && activeFilter != SearchFilter.ALL } }
                 LaunchedEffect(shouldLoadMore) { if (shouldLoadMore && !homeViewModel.isSearchLoadingMore) homeViewModel.loadMoreSearchResults() }
                 LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
                     if (homeViewModel.searchResultsArtists.isNotEmpty()) {
-                        if (homeViewModel.activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.lib_artists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(16.dp)) }
-                        if (homeViewModel.activeFilter == SearchFilter.ARTISTS) items(homeViewModel.searchResultsArtists) { artist -> Row(modifier = Modifier
+                        if (activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.lib_artists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(16.dp)) }
+                        if (activeFilter == SearchFilter.ARTISTS) items(homeViewModel.searchResultsArtists) { artist -> Row(modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onNavigate("profile:${artist.id}") }
                             .padding(16.dp), verticalAlignment = Alignment.CenterVertically) { ArtistAvatar(avatarUrl = artist.avatarUrl, modifier = Modifier
@@ -1245,12 +1394,12 @@ import androidx.compose.animation.core.animateFloatAsState
                         else item { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate("profile:${artist.id}") } } } }
                     }
                     if (homeViewModel.searchResultsTracks.isNotEmpty()) {
-                        if (homeViewModel.activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.profile_tracks), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) }
+                        if (activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.profile_tracks), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) }
                         itemsIndexed(homeViewModel.searchResultsTracks) { index, track -> TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = downloadProgress[track.id] != null, isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists(), downloadProgress = downloadProgress[track.id] ?: 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) }) }
                     }
                     if (homeViewModel.searchResultsPlaylists.isNotEmpty()) {
-                        if (homeViewModel.activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.lib_playlists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) }
-                        if (homeViewModel.activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist -> DynamicPlaylistCard(playlist, isGrid = false) { onNavigate(playlist.id.toString()) } }
+                        if (activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.lib_playlists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) }
+                        if (activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist -> DynamicPlaylistCard(playlist, isGrid = false) { onNavigate(playlist.id.toString()) } }
                         else item { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsPlaylists) { playlist -> SquareCard(playlist) { onNavigate(playlist.id.toString()) } } } }
                     }
                     if (homeViewModel.searchResultsTracks.isEmpty() && homeViewModel.searchResultsArtists.isEmpty() && homeViewModel.searchResultsPlaylists.isEmpty()) item { Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) } }

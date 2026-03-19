@@ -124,7 +124,6 @@
                                     shape = shape,
                                     title = stringResource(R.string.pref_lyrics_local),
                                     subtitle = stringResource(R.string.pref_lyrics_local_sub),
-                                    icon = Icons.Rounded.SdStorage,
                                     hasSwitch = true,
                                     switchState = preferLocal,
                                     onSwitchChange = {
@@ -138,7 +137,6 @@
                                     shape = shape,
                                     title = stringResource(R.string.pref_lyrics_precise),
                                     subtitle = stringResource(R.string.pref_lyrics_precise_sub),
-                                    icon = Icons.Rounded.Description,
                                     hasSwitch = true,
                                     switchState = playerViewModel.isPreciseLyricsSearchEnabled,
                                     onSwitchChange = {
@@ -163,7 +161,6 @@
                                 shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, 0),
                                 title = stringResource(R.string.pref_lyrics_show_button),
                                 subtitle = stringResource(R.string.pref_lyrics_show_button_sub),
-                                icon = Icons.Rounded.Description,
                                 hasSwitch = true,
                                 switchState = showLyricsButton,
                                 onSwitchChange = {
@@ -181,7 +178,6 @@
                                     shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, 1),
                                     title = stringResource(R.string.pref_lyrics_inline),
                                     subtitle = stringResource(R.string.pref_lyrics_inline_sub),
-                                    icon = Icons.Rounded.Article,
                                     hasSwitch = true,
                                     switchState = inlineLyrics,
                                     onSwitchChange = {
@@ -200,7 +196,6 @@
                                     LyricsAlignment.CENTER -> stringResource(R.string.align_center_simple)
                                     LyricsAlignment.RIGHT -> stringResource(R.string.align_right)
                                 },
-                                icon = Icons.Rounded.FormatAlignLeft,
                                 onClick = { showAlignmentDialog = true }
                             )
     
@@ -209,7 +204,6 @@
                                 shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, sizeIndex),
                                 title = stringResource(R.string.pref_lyrics_size),
                                 subtitle = "${fontSize.roundToInt()} sp",
-                                icon = Icons.Rounded.FormatSize,
                                 onClick = { showFontSizeDialog = true }
                             )
                         }
