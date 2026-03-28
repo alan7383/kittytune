@@ -62,6 +62,7 @@ class PlayerPreferences(private val context: Context) {
         private const val KEY_DISCORD_TOKEN = "discord_token"
         private const val KEY_DISCORD_ENABLED = "discord_rpc_enabled"
         private const val KEY_PRECISE_LYRICS_SEARCH = "precise_lyrics_search_enabled"
+        private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
 
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
@@ -175,6 +176,9 @@ class PlayerPreferences(private val context: Context) {
 
     fun getPreciseLyricsSearchEnabled(): Boolean = prefs.getBoolean(KEY_PRECISE_LYRICS_SEARCH, true)
     fun setPreciseLyricsSearchEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_PRECISE_LYRICS_SEARCH, enabled).apply()
+
+    fun hasSeenEarrapeWarning(): Boolean = prefs.getBoolean(KEY_EARRAPE_WARNING, false)
+    fun setHasSeenEarrapeWarning(seen: Boolean) = prefs.edit().putBoolean(KEY_EARRAPE_WARNING, seen).apply()
 
     fun getLyricsAlignment(): LyricsAlignment {
         val name = prefs.getString(KEY_LYRICS_ALIGNMENT, LyricsAlignment.CENTER.name)

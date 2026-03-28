@@ -915,7 +915,10 @@
 
     <string name="listening_stats_top_tracks">Top számok</string>
     <string name="listening_stats_top_artists">Top előadók</string>
+    <string name="listening_stats_top_track_label">Top Dal</string>
+    <string name="listening_stats_top_artist_label">Top Előadó</string>
     <string name="listening_stats_play_count">%1$d lejátszás</string>
+
 
     <string name="listening_stats_habits">Hallgatási szokások</string>
     <string name="listening_stats_manual_replays">Kézi visszajátszás</string>
@@ -948,4 +951,10 @@
     <string name="listening_stats_duration_min">%1$dp</string>
     <string name="listening_stats_duration_sec">%1$dmp</string>
 
+    <string name="label_intensity">Intenzitás: %d%%</string>
+    <string name="label_speed_8d">Forgási sebesség: %d%%</string>
+    <string name="label_cutoff">Szűrő: %d%%</string>
+    <string name="btn_earrape">Earrape</string>
+    <string name="warning_title">Figyelmeztetés</string>
+    <string name="earrape_warning">Ez az effekt rendkívül hangos és telített. Használja óvatosan a halláskárosodás elkerülése érdekében.</string>
 </resources>

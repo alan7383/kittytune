@@ -1,130 +1,122 @@
 package com.alananasss.kittytune.ui.player
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.SharedPreferences
 import android.net.Uri
 import android.view.HapticFeedbackConstants
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.*
+import androidx.compose.foundation.interaction.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.*
+import androidx.compose.foundation.text.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Comment
-import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
-import androidx.compose.material.icons.automirrored.rounded.QueueMusic
-import androidx.compose.material.icons.automirrored.rounded.Reply
-import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Cancel
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
-import sh.calvin.reorderable.ReorderableItem
-import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
-import android.content.SharedPreferences
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
+import androidx.compose.ui.*
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.graphics.vector.*
+import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.layout.*
+import androidx.compose.ui.platform.*
+import androidx.compose.ui.res.*
+import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.style.*
+import androidx.compose.ui.unit.*
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
+import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Comment
 import com.alananasss.kittytune.domain.Track
-import com.alananasss.kittytune.utils.makeTimeString
+import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
 import com.alananasss.kittytune.ui.utils.fadingEdge
-import kotlinx.coroutines.launch
+import com.alananasss.kittytune.utils.makeTimeString
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
+import kotlinx.coroutines.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import android.view.ViewConfiguration
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Constraints
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.draw.clipToBounds
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.delay
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.LayoutDirection
-import com.alananasss.kittytune.data.local.LyricsAlignment
-import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
-import android.view.WindowManager
-import android.app.Activity
-import android.content.ContextWrapper
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.font.FontWeight
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 
 @Composable
 fun PremiumMarqueeText(
@@ -403,7 +395,7 @@ fun PlainLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
             ),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            items(lines) { line ->
+            items(items = lines) { line ->
                 Text(
                     text = line,
                     style = MaterialTheme.typography.headlineMedium.copy(
@@ -1554,10 +1546,15 @@ fun PlayerControls(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AudioControlDock(viewModel: PlayerViewModel) {
-    val view = LocalView.current; val isPrecise = viewModel.isPreciseSpeedEnabled; var showRainVolumeDialog by remember { mutableStateOf(false) }
+    val view = LocalView.current; val isPrecise = viewModel.isPreciseSpeedEnabled
+    var showRainVolumeDialog by remember { mutableStateOf(false) }
+    var showBassBoostDialog by remember { mutableStateOf(false) }
+    var showEightDDialog by remember { mutableStateOf(false) }
+    var showMuffledDialog by remember { mutableStateOf(false) }
+    var showReverbDialog by remember { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
         Text(stringResource(R.string.player_audio_settings), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(bottom = 24.dp))
         Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.surfaceContainer).padding(20.dp)) {
@@ -1571,14 +1568,108 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
         Spacer(Modifier.height(32.dp)); Text(stringResource(R.string.player_special_effects), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 16.dp, start = 4.dp))
         FlowRow(maxItemsInEachRow = 2, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             val itemModifier = Modifier.weight(1f).fillMaxWidth()
-            FxTile(stringResource(R.string.effect_bass_boost), Icons.Rounded.Bolt, viewModel.effectsState.isBassBoostEnabled, { viewModel.toggleBassBoost() }, null, itemModifier)
-            FxTile(stringResource(R.string.effect_8d), Icons.Rounded.SurroundSound, viewModel.effectsState.is8DEnabled, { viewModel.toggle8D() }, null, itemModifier, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.onTertiary)
-            FxTile(stringResource(R.string.effect_muffled), Icons.Rounded.BlurOn, viewModel.effectsState.isMuffledEnabled, { viewModel.toggleMuffled() }, null, itemModifier, MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.onSecondary)
-            FxTile(stringResource(R.string.effect_reverb), Icons.Rounded.GraphicEq, viewModel.effectsState.isReverbEnabled, { viewModel.toggleReverb() }, null, itemModifier)
+            FxTile(stringResource(R.string.effect_bass_boost), Icons.Rounded.Bolt, viewModel.effectsState.isBassBoostEnabled, { viewModel.toggleBassBoost() }, { showBassBoostDialog = true }, itemModifier)
+            FxTile(stringResource(R.string.effect_8d), Icons.Rounded.SurroundSound, viewModel.effectsState.is8DEnabled, { viewModel.toggle8D() }, { showEightDDialog = true }, itemModifier, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.onTertiary)
+            FxTile(stringResource(R.string.effect_muffled), Icons.Rounded.BlurOn, viewModel.effectsState.isMuffledEnabled, { viewModel.toggleMuffled() }, { showMuffledDialog = true }, itemModifier, MaterialTheme.colorScheme.secondary, MaterialTheme.colorScheme.onSecondary)
+            FxTile(stringResource(R.string.effect_reverb), Icons.Rounded.GraphicEq, viewModel.effectsState.isReverbEnabled, { viewModel.toggleReverb() }, { showReverbDialog = true }, itemModifier)
             FxTile(stringResource(R.string.effect_rain), Icons.Rounded.WaterDrop, viewModel.effectsState.isRainEnabled, { viewModel.toggleRain() }, { showRainVolumeDialog = true }, itemModifier, Color(0xFF81D4FA), Color(0xFF004BA0))
         }
         Spacer(Modifier.height(32.dp))
-        if (showRainVolumeDialog) { AlertDialog(onDismissRequest = { showRainVolumeDialog = false }, icon = { Icon(Icons.Rounded.WaterDrop, null) }, title = { Text(stringResource(R.string.effect_rain)) }, text = { Column { Text(stringResource(R.string.label_volume, (viewModel.effectsState.rainVolume * 100).toInt()), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.CenterHorizontally)); Spacer(Modifier.height(16.dp)); Slider(value = viewModel.effectsState.rainVolume, onValueChange = { viewModel.setRainVolume(it) }, valueRange = 0f..1f) } }, confirmButton = { TextButton(onClick = { showRainVolumeDialog = false }) { Text(stringResource(R.string.btn_ok)) } }) }
+        if (showRainVolumeDialog) { AlertDialog(onDismissRequest = { showRainVolumeDialog = false }, icon = { Icon(Icons.Rounded.WaterDrop, null) }, title = { Text(stringResource(R.string.effect_rain)) }, text = { Column { Text(stringResource(R.string.label_volume, (viewModel.effectsState.rainVolume * 100).toInt()), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.CenterHorizontally)); Spacer(Modifier.height(16.dp)); Slider(value = viewModel.effectsState.rainVolume, onValueChange = { viewModel.setRainVolume(it); if (!viewModel.effectsState.isRainEnabled) viewModel.toggleRain() }, valueRange = 0f..1f) } }, confirmButton = { TextButton(onClick = { showRainVolumeDialog = false }) { Text(stringResource(R.string.btn_ok)) } }) }
+        if (showBassBoostDialog) {
+            var showEarrapeWarning by remember { mutableStateOf(false) }
+            AlertDialog(
+                onDismissRequest = { showBassBoostDialog = false },
+                icon = { Icon(Icons.Rounded.Bolt, null) },
+                title = { Text(stringResource(R.string.effect_bass_boost)) },
+                text = {
+                    Column {
+                        val isEarrape = viewModel.effectsState.isEarrapeEnabled
+                        Text(stringResource(R.string.label_intensity, (viewModel.effectsState.bassBoostIntensity * 100).toInt()), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.CenterHorizontally))
+                        Spacer(Modifier.height(16.dp))
+                        Slider(value = viewModel.effectsState.bassBoostIntensity, onValueChange = { viewModel.setBassBoostIntensity(it); if (!viewModel.effectsState.isBassBoostEnabled) viewModel.toggleBassBoost() }, valueRange = 0f..1f)
+                        Spacer(Modifier.height(24.dp))
+
+                        val iconScale by animateFloatAsState(
+                            targetValue = if (isEarrape) 1.25f else 1f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioHighBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ), label = "earrapeIconScale"
+                        )
+
+                        FilledTonalButton(
+                            onClick = {
+                                if (!viewModel.hasSeenEarrapeWarning()) {
+                                    showEarrapeWarning = true
+                                } else {
+                                    viewModel.toggleEarrape()
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .height(48.dp)
+                                .padding(horizontal = 8.dp),
+                            shapes = ButtonDefaults.shapes(),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = if (isEarrape) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                                contentColor = if (isEarrape) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Icon(
+                                imageVector = if (isEarrape) Icons.Rounded.VolumeUp else Icons.Rounded.VolumeOff,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.btn_earrape),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { showBassBoostDialog = false }) { Text(stringResource(R.string.btn_ok)) } }
+            )
+            if (showEarrapeWarning) {
+                var countdown by remember { mutableStateOf(5) }
+                LaunchedEffect(Unit) {
+                    while (countdown > 0) {
+                        delay(1000)
+                        countdown--
+                    }
+                }
+                AlertDialog(
+                    onDismissRequest = { showEarrapeWarning = false },
+                    title = { Text(stringResource(R.string.warning_title)) },
+                    text = { Text(stringResource(R.string.earrape_warning)) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                viewModel.setHasSeenEarrapeWarning(true)
+                                viewModel.toggleEarrape()
+                                showEarrapeWarning = false
+                            },
+                            enabled = countdown == 0
+                        ) {
+                            Text(if (countdown > 0) "${stringResource(R.string.btn_ok)} (${countdown}s)" else stringResource(R.string.btn_ok))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showEarrapeWarning = false }) { Text(stringResource(R.string.btn_cancel)) }
+                    }
+                )
+            }
+        }
+        if (showEightDDialog) { AlertDialog(onDismissRequest = { showEightDDialog = false }, icon = { Icon(Icons.Rounded.SurroundSound, null) }, title = { Text(stringResource(R.string.effect_8d)) }, text = { Column { Text(stringResource(R.string.label_speed_8d, (viewModel.effectsState.eightDSpeed * 100).toInt()), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.CenterHorizontally)); Spacer(Modifier.height(16.dp)); Slider(value = viewModel.effectsState.eightDSpeed, onValueChange = { viewModel.setEightDSpeed(it); if (!viewModel.effectsState.is8DEnabled) viewModel.toggle8D() }, valueRange = 0f..1f) } }, confirmButton = { TextButton(onClick = { showEightDDialog = false }) { Text(stringResource(R.string.btn_ok)) } }) }
+        if (showMuffledDialog) { AlertDialog(onDismissRequest = { showMuffledDialog = false }, icon = { Icon(Icons.Rounded.BlurOn, null) }, title = { Text(stringResource(R.string.effect_muffled)) }, text = { Column { Text(stringResource(R.string.label_cutoff, (viewModel.effectsState.muffledIntensity * 100).toInt()), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.CenterHorizontally)); Spacer(Modifier.height(16.dp)); Slider(value = viewModel.effectsState.muffledIntensity, onValueChange = { viewModel.setMuffledIntensity(it); if (!viewModel.effectsState.isMuffledEnabled) viewModel.toggleMuffled() }, valueRange = 0f..1f) } }, confirmButton = { TextButton(onClick = { showMuffledDialog = false }) { Text(stringResource(R.string.btn_ok)) } }) }
+        if (showReverbDialog) { AlertDialog(onDismissRequest = { showReverbDialog = false }, icon = { Icon(Icons.Rounded.GraphicEq, null) }, title = { Text(stringResource(R.string.effect_reverb)) }, text = { Column { Text(stringResource(R.string.label_intensity, (viewModel.effectsState.reverbIntensity * 100).toInt()), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.CenterHorizontally)); Spacer(Modifier.height(16.dp)); Slider(value = viewModel.effectsState.reverbIntensity, onValueChange = { viewModel.setReverbIntensity(it); if (!viewModel.effectsState.isReverbEnabled) viewModel.toggleReverb() }, valueRange = 0f..1f) } }, confirmButton = { TextButton(onClick = { showReverbDialog = false }) { Text(stringResource(R.string.btn_ok)) } }) }
     }
 }
 
@@ -1610,32 +1701,38 @@ fun FxTile(
         ), label = "iconScale"
     )
 
+    val interactionSource = remember { MutableInteractionSource() }
     var longPressConsumed by remember { mutableStateOf(false) }
+
+    if (onLongClick != null) {
+        LaunchedEffect(interactionSource, onLongClick) {
+            var longPressJob: Job? = null
+            interactionSource.interactions.collect { interaction ->
+                when (interaction) {
+                    is PressInteraction.Press -> {
+                        longPressConsumed = false
+                        longPressJob = launch {
+                            delay(android.view.ViewConfiguration.getLongPressTimeout().toLong())
+                            longPressConsumed = true
+                            onLongClick()
+                        }
+                    }
+                    is PressInteraction.Release, is PressInteraction.Cancel -> {
+                        longPressJob?.cancel()
+                    }
+                }
+            }
+        }
+    }
 
     FilledTonalButton(
         onClick = {
             if (!longPressConsumed) onClick()
             longPressConsumed = false
         },
-        modifier = modifier
-            .height(84.dp)
-            .then(
-                if (onLongClick != null) {
-                    Modifier.pointerInput(onLongClick) {
-                        awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
-                            val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                                waitForUpOrCancellation()
-                            }
-                            if (up == null) {
-                                longPressConsumed = true
-                                onLongClick()
-                            }
-                        }
-                    }
-                } else Modifier
-            ),
+        modifier = modifier.height(84.dp),
         shapes = ButtonDefaults.shapes(),
+        interactionSource = interactionSource,
         colors = ButtonDefaults.filledTonalButtonColors(
             containerColor = containerColor,
             contentColor = contentColor

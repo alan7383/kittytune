@@ -11,10 +11,15 @@
     class EightDAudioProcessor : BaseAudioProcessor() {
         private var enabled = false
         private var time: Double = 0.0
+        private var rotationSpeed: Double = 0.00001
     
         fun setEnabled(enabled: Boolean) {
             this.enabled = enabled
             if (!enabled) time = 0.0
+        }
+    
+        fun setSpeed(normalizedSpeed: Float) {
+            rotationSpeed = (0.000002 + normalizedSpeed * 0.000038).coerceIn(0.000002, 0.00004)
         }
     
         override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
@@ -50,7 +55,7 @@
                     val right = inputBuffer.getShort().toFloat()
     
                     // simple oscillator logic
-                    time += 0.00001 // rotation speed
+                    time += rotationSpeed
                     val pan = sin(time) // -1.0 to 1.0
     
                     // volume modulation
@@ -76,6 +81,8 @@
     
         private var isMuffled = false
         private var isBassBoost = false
+        private var bassBoostGain = 10f // dB
+        private var muffledCutoff = 800f // Hz
     
         // --- MUFFLED filter vars (Low Pass) ---
         // coefficients
@@ -103,6 +110,28 @@
             }
         }
     
+        fun setBassBoostGain(normalizedIntensity: Float) {
+            val newGain = (4f + normalizedIntensity * 12f).coerceIn(4f, 16f)
+            if (newGain != bassBoostGain) {
+                bassBoostGain = newGain
+                if (isBassBoost) {
+                    resetStates()
+                    calculateCoefficients()
+                }
+            }
+        }
+    
+        fun setMuffledCutoff(normalizedIntensity: Float) {
+            val newCutoff = (400f + normalizedIntensity * 1100f).coerceIn(400f, 1500f)
+            if (newCutoff != muffledCutoff) {
+                muffledCutoff = newCutoff
+                if (isMuffled) {
+                    resetStates()
+                    calculateCoefficients()
+                }
+            }
+        }
+    
         override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
             resetStates()
             calculateCoefficients()
@@ -122,7 +151,7 @@
     
             // 1. calc muffled coeffs (low pass)
             if (isMuffled) {
-                val f0 = 800f // cutoff freq
+                val f0 = muffledCutoff
                 val q = 0.707f
                 val w0 = (2.0 * PI * f0 / fs).toFloat()
                 val alpha = (sin(w0) / (2.0 * q)).toFloat()
@@ -139,7 +168,7 @@
             // 2. calc bass boost coeffs (low shelf)
             if (isBassBoost) {
                 val f0 = 100f // frequency
-                val gain = 10f // gain in dB
+                val gain = bassBoostGain
                 val S = 1f
                 val A = Math.pow(10.0, gain / 40.0).toFloat()
                 val w0 = (2.0 * PI * f0 / fs).toFloat()
@@ -210,7 +239,7 @@
         private var cursor = 0
         // params: 150ms delay, 0.5 decay
         private val delayMs = 150
-        private val decay = 0.5f
+        private var decay = 0.5f
     
         fun setEnabled(enabled: Boolean) {
             if (this.enabled != enabled) {
@@ -218,6 +247,10 @@
                 // clear buffer on disable
                 if (!enabled) buffer = ShortArray(0)
             }
+        }
+
+        fun setDecay(normalizedIntensity: Float) {
+            decay = (0.2f + normalizedIntensity * 0.6f).coerceIn(0.2f, 0.8f)
         }
     
         override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
@@ -267,6 +300,50 @@
                 if (cursor >= buffer.size) cursor = 0
             }
             outputBuffer.flip()
+        }
+    }
+
+    // --- 4. EARRAPE (Hard Clipping Distortion) ---
+    class EarrapeAudioProcessor : BaseAudioProcessor() {
+        private var enabled = false
+
+        fun setEnabled(enabled: Boolean) {
+            this.enabled = enabled
+        }
+
+        override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+            return inputAudioFormat
+        }
+
+        override fun queueInput(inputBuffer: ByteBuffer) {
+            val remaining = inputBuffer.remaining()
+            if (remaining == 0) return
+
+            if (!enabled) {
+                val buffer = replaceOutputBuffer(remaining)
+                buffer.put(inputBuffer)
+                buffer.flip()
+                return
+            }
+
+            val buffer = replaceOutputBuffer(remaining)
+
+            while (inputBuffer.hasRemaining()) {
+                val inputSample = inputBuffer.getShort().toFloat()
+                
+                // stage 1: massive boost
+                var s = inputSample * 40f
+                s = s.coerceIn(Short.MIN_VALUE.toFloat(), Short.MAX_VALUE.toFloat())
+                
+                // stage 2: boost again to "square" the wave further
+                s *= 20f
+                s = s.coerceIn(Short.MIN_VALUE.toFloat(), Short.MAX_VALUE.toFloat())
+                
+                val outputSample = (s * 0.25f).toInt().toShort()
+                
+                buffer.putShort(outputSample)
+            }
+            buffer.flip()
         }
     }
 
