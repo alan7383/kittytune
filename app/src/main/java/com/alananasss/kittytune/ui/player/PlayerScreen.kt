@@ -116,6 +116,15 @@ import android.app.Activity
 import android.content.ContextWrapper
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 fun PremiumMarqueeText(
@@ -1573,22 +1582,147 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun FxTile(label: String, icon: ImageVector, isActive: Boolean, onClick: () -> Unit, onLongClick: (() -> Unit)? = null, modifier: Modifier = Modifier, activeColor: Color = MaterialTheme.colorScheme.primary, activeContentColor: Color = MaterialTheme.colorScheme.onPrimary) {
-    val containerColor by animateColorAsState(targetValue = if (isActive) activeColor else MaterialTheme.colorScheme.surfaceContainerHigh, animationSpec = tween(300), label = "containerColor")
-    val contentColor by animateColorAsState(targetValue = if (isActive) activeContentColor else MaterialTheme.colorScheme.onSurface, animationSpec = tween(300), label = "contentColor")
-    val cornerRadius by animateDpAsState(targetValue = if (isActive) 100.dp else 20.dp, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "cornerRadius")
-    val iconScale by animateFloatAsState(targetValue = if (isActive) 1.2f else 1f, animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = Spring.StiffnessMedium), label = "iconScale")
-    Surface(modifier = modifier.height(84.dp).clip(RoundedCornerShape(cornerRadius)).combinedClickable(onClick = onClick, onLongClick = onLongClick), shape = RoundedCornerShape(cornerRadius), color = containerColor) { Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize()) { Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(28.dp).graphicsLayer { scaleX = iconScale; scaleY = iconScale }); Spacer(modifier = Modifier.height(8.dp)); Text(text = label, style = MaterialTheme.typography.labelMedium, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium, color = contentColor, maxLines = 1, overflow = TextOverflow.Ellipsis) } }
+fun FxTile(
+    label: String,
+    icon: ImageVector,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary,
+    activeContentColor: Color = MaterialTheme.colorScheme.onPrimary
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isActive) activeColor else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = tween(300), label = "containerColor"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isActive) activeContentColor else MaterialTheme.colorScheme.onSurface,
+        animationSpec = tween(300), label = "contentColor"
+    )
+    val iconScale by animateFloatAsState(
+        targetValue = if (isActive) 1.2f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioHighBouncy,
+            stiffness = Spring.StiffnessMedium
+        ), label = "iconScale"
+    )
+
+    var longPressConsumed by remember { mutableStateOf(false) }
+
+    FilledTonalButton(
+        onClick = {
+            if (!longPressConsumed) onClick()
+            longPressConsumed = false
+        },
+        modifier = modifier
+            .height(84.dp)
+            .then(
+                if (onLongClick != null) {
+                    Modifier.pointerInput(onLongClick) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            val up = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                waitForUpOrCancellation()
+                            }
+                            if (up == null) {
+                                longPressConsumed = true
+                                onLongClick()
+                            }
+                        }
+                    }
+                } else Modifier
+            ),
+        shapes = ButtonDefaults.shapes(),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        ),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(28.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun DockButton(label: String, icon: ImageVector, isActive: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val containerColor by animateColorAsState(if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh, label = "Color")
-    val contentColor by animateColorAsState(if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface, label = "ContentColor")
-    val cornerRadius by animateDpAsState(targetValue = if (isActive) 100.dp else 20.dp, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "Corner")
-    Surface(onClick = onClick, modifier = modifier.height(80.dp), shape = RoundedCornerShape(cornerRadius), color = containerColor) { Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxSize()) { val iconScale by animateFloatAsState(if (isActive) 1.1f else 1f, label = "Scale"); Icon(imageVector = icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(28.dp).graphicsLayer { scaleX = iconScale; scaleY = iconScale }); Spacer(modifier = Modifier.height(4.dp)); Text(text = label, style = MaterialTheme.typography.labelMedium, color = contentColor, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium) } }
+fun DockButton(
+    label: String,
+    icon: ImageVector,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val containerColor by animateColorAsState(
+        if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+        label = "Color"
+    )
+    val contentColor by animateColorAsState(
+        if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        label = "ContentColor"
+    )
+    val iconScale by animateFloatAsState(
+        if (isActive) 1.1f else 1f, label = "Scale"
+    )
+
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = modifier.height(80.dp),
+        shapes = ButtonDefaults.shapes(),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = containerColor,
+            contentColor = contentColor
+        ),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(28.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale
+                        scaleY = iconScale
+                    }
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

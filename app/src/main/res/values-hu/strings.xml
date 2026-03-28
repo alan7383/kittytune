@@ -519,11 +519,7 @@
     <string name="quality_high_sub">Legjobb minőség (128kbps+)</string>
     <string name="quality_low_sub">Adatspórolós mód</string>
     <string name="pref_youtube_fallback">Korlátozott számok feloldása</string>
-    <string name="pref_youtube_fallback_sub">YouTube használata Go+ számokhoz</string>
-    <string name="pref_fallback_mode">Feloldási mód</string>
-    <string name="fallback_auto">Automatikus (Ajánlott)</string>
-    <string name="fallback_newpipe">Natív (NewPipe)</string>
-    <string name="fallback_invidious">Privát Szerver (Invidious)</string>
+    <string name="pref_youtube_fallback_sub">NewPipe Extractor használata Go+ számokhoz</string>
 
     <!-- SYNC -->
     <string name="pref_sync_likes">Like-ok szinkronizálása</string>

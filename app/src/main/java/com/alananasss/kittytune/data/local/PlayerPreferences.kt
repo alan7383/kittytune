@@ -16,7 +16,6 @@ enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR }
 enum class StartDestination { HOME, LIBRARY }
 enum class LyricsAlignment { LEFT, CENTER, RIGHT }
-enum class YouTubeFallbackMode { AUTOMATIC, NEWPIPE, INVIDIOUS }
 enum class DiscordStatusDisplay { ACTIVITY, ARTIST, SONG }
 
 enum class AppLanguage(val code: String) {
@@ -58,7 +57,6 @@ class PlayerPreferences(private val context: Context) {
         private const val KEY_PRECISE_SPEED = "precise_speed_enabled"
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
-        private const val KEY_YOUTUBE_FALLBACK_MODE = "youtube_fallback_mode"
         private const val KEY_SHOW_LYRICS_BUTTON = "show_lyrics_button_enabled"
         private const val KEY_INLINE_LYRICS = "inline_lyrics_enabled"
         private const val KEY_DISCORD_TOKEN = "discord_token"
@@ -154,19 +152,6 @@ class PlayerPreferences(private val context: Context) {
 
     fun getYouTubeFallbackEnabled(): Boolean = prefs.getBoolean(KEY_YOUTUBE_FALLBACK, true)
     fun setYouTubeFallbackEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_YOUTUBE_FALLBACK, enabled).apply()
-    fun getYouTubeFallbackMode(): YouTubeFallbackMode {
-        val name = prefs.getString(KEY_YOUTUBE_FALLBACK_MODE, YouTubeFallbackMode.AUTOMATIC.name)
-        return try {
-            YouTubeFallbackMode.valueOf(name!!)
-        } catch (e: Exception) {
-            YouTubeFallbackMode.AUTOMATIC
-        }
-    }
-
-    fun setYouTubeFallbackMode(mode: YouTubeFallbackMode) {
-        prefs.edit().putString(KEY_YOUTUBE_FALLBACK_MODE, mode.name).apply()
-    }
-
     fun getAutoUpdateEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_UPDATE, true)
     fun setAutoUpdateEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_AUTO_UPDATE, enabled).apply()
 

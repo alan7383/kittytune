@@ -15,7 +15,6 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
 }
-val invidiousUrl = localProperties.getProperty("INVIDIOUS_URL") ?: "https://invidious.io"
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.alananasss.kittytune"
@@ -29,7 +28,6 @@ extensions.configure<ApplicationExtension> {
         versionName = "2.31.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "MY_INVIDIOUS_URL", "\"$invidiousUrl\"")
     }
 
     buildTypes {
