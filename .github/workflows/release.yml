@@ -64,10 +64,18 @@ jobs:
           args: --strip header -- ${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }}
 
       # ── GitHub Release ───────────────────────────────────────────────────────
+      - name: Delete existing release if present
+        run: gh release delete ${{ github.ref_name }} --yes || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write changelog to file
+        run: echo "${{ steps.cliff.outputs.content }}" > CHANGELOG_RELEASE.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "KittyTune ${{ github.ref_name }}"
-          body: ${{ steps.cliff.outputs.content }}
+          body_path: CHANGELOG_RELEASE.md
           files: app/build/outputs/apk/release/*.apk
           token: ${{ secrets.GITHUB_TOKEN }}
