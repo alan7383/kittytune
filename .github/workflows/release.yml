@@ -49,12 +49,18 @@ jobs:
             -Pandroid.injected.signing.key.password=$KEY_PASSWORD
 
       # ── Changelog (git-cliff) ────────────────────────────────────────────────
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
+          echo "tag=$PREV" >> $GITHUB_OUTPUT
+
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         id: cliff
         with:
           config: cliff.toml
-          args: --latest --strip header
+          args: ${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }} --strip header
 
       # ── GitHub Release ───────────────────────────────────────────────────────
       - name: Create GitHub Release
