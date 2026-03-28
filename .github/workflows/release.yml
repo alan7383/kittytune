@@ -53,6 +53,7 @@ jobs:
         id: prev_tag
         run: |
           PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
+          echo "Previous tag found: $PREV"
           echo "tag=$PREV" >> $GITHUB_OUTPUT
 
       - name: Generate changelog
@@ -60,7 +61,7 @@ jobs:
         id: cliff
         with:
           config: cliff.toml
-          args: ${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }} --strip header
+          args: --strip header -- ${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }}
 
       # ── GitHub Release ───────────────────────────────────────────────────────
       - name: Create GitHub Release
