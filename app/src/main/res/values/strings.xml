@@ -519,11 +519,8 @@
     <string name="quality_high_sub">Best quality (128kbps+)</string>
     <string name="quality_low_sub">Saves data on mobile networks</string>
     <string name="pref_youtube_fallback">Unlock Restricted Tracks</string>
-    <string name="pref_youtube_fallback_sub">Use YouTube for SoundCloud Go+ tracks</string>
-    <string name="pref_fallback_mode">Unlock Method</string>
-    <string name="fallback_auto">Automatic (Recommended)</string>
-    <string name="fallback_newpipe">Native (NewPipe)</string>
-    <string name="fallback_invidious">Private Server (Invidious)</string>
+    <string name="pref_youtube_fallback_sub">Via NewPipe Extractor for Go+ tracks</string>
+
 
     <!-- SYNC -->
     <string name="pref_sync_likes">Sync Likes</string>

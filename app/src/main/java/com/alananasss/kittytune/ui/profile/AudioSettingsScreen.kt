@@ -1,15 +1,8 @@
 package com.alananasss.kittytune.ui.profile
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
-import com.alananasss.kittytune.data.local.YouTubeFallbackMode
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
@@ -48,10 +40,8 @@ fun AudioSettingsScreen(
     var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
 
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
-    var fallbackMode by remember { mutableStateOf(prefs.getYouTubeFallbackMode()) }
 
     var showQualityDialog by remember { mutableStateOf(false) }
-    var showFallbackModeDialog by remember { mutableStateOf(false) }
 
     if (showQualityDialog) {
         AlertDialog(
@@ -78,27 +68,6 @@ fun AudioSettingsScreen(
                 }
             },
             confirmButton = { TextButton(onClick = { showQualityDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-        )
-    }
-
-    if (showFallbackModeDialog) {
-        AlertDialog(
-            onDismissRequest = { showFallbackModeDialog = false },
-            title = { Text(stringResource(R.string.pref_fallback_mode)) },
-            text = {
-                Column {
-                    FallbackRadioButton(stringResource(R.string.fallback_auto), YouTubeFallbackMode.AUTOMATIC, fallbackMode) {
-                        fallbackMode = it; prefs.setYouTubeFallbackMode(it); showFallbackModeDialog = false
-                    }
-                    FallbackRadioButton(stringResource(R.string.fallback_newpipe), YouTubeFallbackMode.NEWPIPE, fallbackMode) {
-                        fallbackMode = it; prefs.setYouTubeFallbackMode(it); showFallbackModeDialog = false
-                    }
-                    FallbackRadioButton(stringResource(R.string.fallback_invidious), YouTubeFallbackMode.INVIDIOUS, fallbackMode) {
-                        fallbackMode = it; prefs.setYouTubeFallbackMode(it); showFallbackModeDialog = false
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showFallbackModeDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
         )
     }
 
@@ -139,7 +108,7 @@ fun AudioSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (youtubeFallbackEnabled) 5 else 4
+                        val totalVisibleItems = 4
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -168,25 +137,8 @@ fun AudioSettingsScreen(
                             onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) }
                         )
 
-                        AnimatedVisibility(
-                            visible = youtubeFallbackEnabled,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            SettingsItem(
-                                shape = getSettingsShape(5, 3),
-                                title = stringResource(R.string.pref_fallback_mode),
-                                subtitle = when(fallbackMode) {
-                                    YouTubeFallbackMode.AUTOMATIC -> stringResource(R.string.fallback_auto)
-                                    YouTubeFallbackMode.NEWPIPE -> stringResource(R.string.fallback_newpipe)
-                                    YouTubeFallbackMode.INVIDIOUS -> stringResource(R.string.fallback_invidious)
-                                },
-                                onClick = { showFallbackModeDialog = true }
-                            )
-                        }
-
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, totalVisibleItems - 1),
+                            shape = getSettingsShape(totalVisibleItems, 3),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
@@ -213,14 +165,5 @@ fun AudioSettingsScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-fun FallbackRadioButton(text: String, mode: YouTubeFallbackMode, selected: YouTubeFallbackMode, onSelect: (YouTubeFallbackMode) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onSelect(mode) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        RadioButton(selected = (mode == selected), onClick = null)
-        Spacer(Modifier.width(8.dp))
-        Text(text)
     }
 }

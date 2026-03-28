@@ -1,0 +1,41 @@
+# KittyTune — git-cliff configuration
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+header = ""
+body = """
+## {{ version }} ({{ timestamp | date(format="%Y-%m-%d") }})
+{% for group, commits in commits | group_by(attribute="group") %}\
+### {{ group }}
+{% for commit in commits %}\
+* {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/alananasss/KittyTune/commit/{{ commit.id }}))
+{% endfor %}
+{% endfor %}\
+"""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+
+commit_parsers = [
+  { message = "^feat(\\(.+\\))?!:", group = "Breaking Changes" },
+  { message = "^fix(\\(.+\\))?!:",  group = "Breaking Changes" },
+  { message = "^feat",              group = "Features" },
+  { message = "^fix",               group = "Bug Fixes" },
+  { message = "^perf",              group = "Performance" },
+  { message = "^refactor",          group = "Refactoring" },
+  { message = "^docs",              group = "Documentation" },
+  { message = "^chore|^ci|^build",  skip = true },
+  { message = "^test",              skip = true },
+  { message = "^style",             skip = true },
+]
+
+filter_commits = true
+tag_pattern = "v[0-9]*"
+skip_tags = ""
+ignore_tags = ""
+topo_order = false
+sort_commits = "oldest"

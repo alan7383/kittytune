@@ -519,11 +519,7 @@
     <string name="quality_high_sub">Meilleure qualité (128kbps+)</string>
     <string name="quality_low_sub">Idéal pour économiser la data</string>
     <string name="pref_youtube_fallback">Débloquer les titres restreints</string>
-    <string name="pref_youtube_fallback_sub">Utiliser YouTube pour les titres Go+</string>
-    <string name="pref_fallback_mode">Méthode de déblocage</string>
-    <string name="fallback_auto">Automatique (Recommandé)</string>
-    <string name="fallback_newpipe">Natif (NewPipe)</string>
-    <string name="fallback_invidious">Serveur Privé (Invidious)</string>
+    <string name="pref_youtube_fallback_sub">Via NewPipe Extractor pour les titres Go+</string>
 
     <!-- SYNC -->
     <string name="pref_sync_likes">Synchroniser les Likes</string>
