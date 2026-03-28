@@ -25,6 +25,7 @@
     import com.alananasss.kittytune.ui.player.audio.EightDAudioProcessor
     import com.alananasss.kittytune.ui.player.audio.FxAudioProcessor
     import com.alananasss.kittytune.ui.player.audio.ReverbAudioProcessor
+    import com.alananasss.kittytune.ui.player.audio.EarrapeAudioProcessor
     import kotlinx.coroutines.CoroutineScope
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,6 +63,7 @@
         private val eightDProcessor = EightDAudioProcessor()
         private val fxProcessor = FxAudioProcessor()
         private val reverbProcessor = ReverbAudioProcessor()
+        private val earrapeProcessor = EarrapeAudioProcessor()
         var onNextClick: (() -> Unit)? = null
         var onPreviousClick: (() -> Unit)? = null
         private var rainPlayer: RainPlayer? = null
@@ -149,7 +151,7 @@
                     object : DefaultRenderersFactory(context) {
                         override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(fxProcessor, reverbProcessor, eightDProcessor))
+                                .setAudioProcessors(arrayOf(fxProcessor, reverbProcessor, eightDProcessor, earrapeProcessor))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()
@@ -206,8 +208,13 @@
             val pitch = if (state.isPitchEnabled) state.speed else 1f
             _player?.playbackParameters = PlaybackParameters(state.speed, pitch)
             eightDProcessor.setEnabled(state.is8DEnabled)
+            eightDProcessor.setSpeed(state.eightDSpeed)
             fxProcessor.setEffects(state.isMuffledEnabled, state.isBassBoostEnabled)
+            fxProcessor.setBassBoostGain(state.bassBoostIntensity)
+            fxProcessor.setMuffledCutoff(state.muffledIntensity)
             reverbProcessor.setEnabled(state.isReverbEnabled)
+            reverbProcessor.setDecay(state.reverbIntensity)
+            earrapeProcessor.setEnabled(state.isEarrapeEnabled)
             rainPlayer?.setEnabled(state.isRainEnabled)
             rainPlayer?.setVolume(state.rainVolume)
         }

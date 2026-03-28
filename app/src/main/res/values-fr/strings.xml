@@ -915,7 +915,10 @@
 
     <string name="listening_stats_top_tracks">Top Titres</string>
     <string name="listening_stats_top_artists">Top Artistes</string>
+    <string name="listening_stats_top_track_label">Top Morceau</string>
+    <string name="listening_stats_top_artist_label">Top Artiste</string>
     <string name="listening_stats_play_count">%1$d écoutes</string>
+
 
     <string name="listening_stats_habits">Habitudes d\'écoute</string>
     <string name="listening_stats_manual_replays">Replays manuels</string>
@@ -948,4 +951,10 @@
     <string name="listening_stats_duration_min">%1$dm</string>
     <string name="listening_stats_duration_sec">%1$ds</string>
 
+    <string name="label_intensity">Intensité : %d%%</string>
+    <string name="label_speed_8d">Vitesse de rotation : %d%%</string>
+    <string name="label_cutoff">Filtre : %d%%</string>
+    <string name="btn_earrape">Earrape</string>
+    <string name="warning_title">Attention</string>
+    <string name="earrape_warning">Cet effet est extrêmement fort et saturé. À utiliser avec prudence pour éviter des dommages auditifs.</string>
 </resources>

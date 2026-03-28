@@ -952,4 +952,10 @@
     <string name="listening_stats_duration_min">%1$dm</string>
     <string name="listening_stats_duration_sec">%1$ds</string>
 
+    <string name="label_intensity">Intensity: %d%%</string>
+    <string name="label_speed_8d">Rotation Speed: %d%%</string>
+    <string name="label_cutoff">Filter: %d%%</string>
+    <string name="btn_earrape">Earrape</string>
+    <string name="warning_title">Warning</string>
+    <string name="earrape_warning">This effect is extremely loud and saturated. Use with caution to avoid hearing damage.</string>
 </resources>
