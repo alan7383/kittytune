@@ -8,7 +8,7 @@ body = """
 {% for group, commits in commits | group_by(attribute="group") %}\
 ### {{ group }}
 {% for commit in commits %}\
-* {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/alananasss/KittyTune/commit/{{ commit.id }}))
+* {{ commit.message | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/alan7383/kittytune/commit/{{ commit.id }}))
 {% endfor %}
 {% endfor %}\
 """
@@ -34,8 +34,8 @@ commit_parsers = [
 ]
 
 filter_commits = true
-tag_pattern = "v?[0-9].*"
+tag_pattern = ".*"
 skip_tags = ""
 ignore_tags = ""
-topo_order = false
+topo_order = true
 sort_commits = "oldest"
