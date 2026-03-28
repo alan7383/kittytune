@@ -6,6 +6,7 @@ build/
 *.aab
 *.ap_
 *.jar
+!gradle-wrapper.jar
 *.dex
 output-metadata.json
 lint-results-*.xml
