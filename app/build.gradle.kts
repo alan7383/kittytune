@@ -79,7 +79,9 @@ dependencies {
     implementation(libs.compose.markdown)
     implementation(libs.newpipe.extractor)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-    implementation(libs.innertune)
+    implementation(libs.innertune) {
+        exclude(group = "com.github.z-huang.InnerTune", module = "kizzy")
+    }
     implementation(libs.androidx.webkit)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.guava)
