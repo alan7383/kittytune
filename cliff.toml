@@ -34,7 +34,7 @@ commit_parsers = [
 ]
 
 filter_commits = true
-tag_pattern = "v[0-9]*"
+tag_pattern = "v?[0-9].*"
 skip_tags = ""
 ignore_tags = ""
 topo_order = false
