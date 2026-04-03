@@ -1,5 +1,3 @@
-
-
 <img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/app/src/main/ic_launcher-playstore.png" alt="KittyTune Logo" width="150" align="right"/>
 
 <div align="center">
@@ -28,9 +26,9 @@
 
 ## What is this
 
-KittyTune is a music player built with **Jetpack Compose** and **Kotlin** that unifies SoundCloud, YouTube, and local files into a single library. No official APIs, no accounts required, no ads. It handles token management silently in the background so playback never interrupts, and if a track is restricted on one platform it falls back to the other automatically.
+KittyTune is a music player built with **Jetpack Compose** and **Kotlin**. It pulls SoundCloud, YouTube, and local files into one library — no official APIs, no accounts, no ads. Token refresh happens in the background so nothing interrupts playback, and if a track is blocked on one platform it tries the other automatically.
 
-It also packs desktop-grade audio effects, 8D, reverb, nightcore, bass boost, right on your phone. ( ˘ ɜ˘) ♬
+It also has 8D, reverb, nightcore, bass boost and more — stuff you'd normally only get on desktop, on your phone. ( ˘ ɜ˘) ♬
 
 ---
 
@@ -94,7 +92,7 @@ It also packs desktop-grade audio effects, 8D, reverb, nightcore, bass boost, ri
 
 ## Tech Stack
 
-Architecture follows **MVVM** with modern Android conventions.
+MVVM architecture.
 
 | Layer | Stack |
 |:---|:---|
