@@ -559,11 +559,36 @@ fun PlayerScreen(
         ) { paddingValues ->
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).systemBarsPadding(),
+                    modifier = Modifier.fillMaxSize().systemBarsPadding(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    PlayerHeader(onClose, viewModel, mainContentColor, subContentColor, animatedColor)
+                    Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        PlayerHeader(onClose, viewModel, mainContentColor, subContentColor, animatedColor)
+                    }
                     Spacer(modifier = Modifier.weight(1f))
+
+                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+                        initialPage = viewModel.currentQueueIndex.coerceAtLeast(0),
+                        pageCount = { viewModel.queueState.size.takeIf { it > 0 } ?: 1 }
+                    )
+
+                    LaunchedEffect(viewModel.currentQueueIndex) {
+                        if (viewModel.currentQueueIndex >= 0 && viewModel.currentQueueIndex != pagerState.currentPage && viewModel.currentQueueIndex < pagerState.pageCount) {
+                            try {
+                                pagerState.animateScrollToPage(viewModel.currentQueueIndex)
+                            } catch (e: Exception) {
+                                pagerState.scrollToPage(viewModel.currentQueueIndex)
+                            }
+                        }
+                    }
+
+                    LaunchedEffect(pagerState) {
+                        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+                            if (settledPage != viewModel.currentQueueIndex && settledPage in viewModel.queueState.indices) {
+                                viewModel.skipToQueueItem(settledPage)
+                            }
+                        }
+                    }
 
                     AnimatedContent(
                         targetState = viewModel.showInlineLyrics,
@@ -574,34 +599,61 @@ fun PlayerScreen(
                         label = "ArtworkLyricsToggle",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(1f)
                     ) { showLyrics ->
                         if (showLyrics) {
                             // Transparent container for lyrics (InnerTune effect)
-                            Box(modifier = Modifier.fillMaxSize()) {
+                            Box(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth().aspectRatio(1f)) {
                                 InlineLyricsContent(viewModel = viewModel)
                             }
                         } else {
-                            // Stylized container (Card) only for the artwork
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                            ) {
-                                AsyncImage(
-                                    model = track.fullResArtwork,
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
+                            if (viewModel.queueState.isNotEmpty()) {
+                                androidx.compose.foundation.pager.HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    pageSpacing = 16.dp,
+                                    contentPadding = PaddingValues(horizontal = 24.dp)
+                                ) { page ->
+                                    val pageTrack = viewModel.queueState.getOrNull(page) ?: track
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                            .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    ) {
+                                        AsyncImage(
+                                            model = pageTrack.fullResArtwork,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Stylized container (Card) only for the artwork
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 24.dp)
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    AsyncImage(
+                                        model = track.fullResArtwork,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -729,17 +781,21 @@ fun PlayerScreen(
                     }
                     Spacer(modifier = Modifier.weight(1f))
 
-                    PlayerProgress(viewModel, mainContentColor)
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                        PlayerProgress(viewModel, mainContentColor)
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    PlayerControls(
-                        viewModel = viewModel,
-                        animatedMainColor = animatedColor,
-                        contentColorOverride = mainContentColor,
-                        onEffectsClick = { showEffectsSheet = true },
-                        onQueueClick = { scope.launch { if (queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded) queueSheetState.bottomSheetState.partialExpand() else queueSheetState.bottomSheetState.expand() } }
-                    )
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                        PlayerControls(
+                            viewModel = viewModel,
+                            animatedMainColor = animatedColor,
+                            contentColorOverride = mainContentColor,
+                            onEffectsClick = { showEffectsSheet = true },
+                            onQueueClick = { scope.launch { if (queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded) queueSheetState.bottomSheetState.partialExpand() else queueSheetState.bottomSheetState.expand() } }
+                        )
+                    }
 
                     Spacer(modifier = Modifier.weight(1f))
                 }
@@ -1531,9 +1587,16 @@ fun PlayerControls(
                 Icon(Icons.Rounded.SkipPrevious, null, tint = contentColorOverride, modifier = Modifier.size(36.dp))
             }
             Box(modifier = Modifier.height(72.dp).width(buttonWidth).clip(CircleShape).background(buttonColor).clickable { viewModel.togglePlayPause() }, contentAlignment = Alignment.Center) {
-                if (viewModel.isLoading) CircularProgressIndicator(color = playIconColor, modifier = Modifier.size(24.dp), strokeWidth = 3.dp)
-                else AnimatedContent(targetState = viewModel.isPlaying, transitionSpec = { (scaleIn() + fadeIn()).togetherWith(scaleOut() + fadeOut()) }, label = "icon") { isPlaying ->
-                    Icon(imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = null, tint = playIconColor, modifier = Modifier.size(32.dp))
+                AnimatedContent(
+                    targetState = Pair(viewModel.isLoading, viewModel.isPlaying),
+                    transitionSpec = { (scaleIn() + fadeIn()).togetherWith(scaleOut() + fadeOut()) },
+                    label = "playPauseLoading"
+                ) { (isLoading, isPlaying) ->
+                    if (isLoading) {
+                        LoadingIndicator(color = playIconColor, modifier = Modifier.size(32.dp))
+                    } else {
+                        Icon(imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = null, tint = playIconColor, modifier = Modifier.size(32.dp))
+                    }
                 }
             }
             IconButton(onClick = { viewModel.playNext() }, modifier = Modifier.size(48.dp)) {
