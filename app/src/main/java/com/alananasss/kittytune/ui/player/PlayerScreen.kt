@@ -602,7 +602,7 @@ fun PlayerScreen(
                     ) { showLyrics ->
                         if (showLyrics) {
                             // Transparent container for lyrics (InnerTune effect)
-                            Box(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth().aspectRatio(1f)) {
+                            Box(modifier = Modifier.padding(24.dp).fillMaxWidth().aspectRatio(1f)) {
                                 InlineLyricsContent(viewModel = viewModel)
                             }
                         } else {
@@ -611,7 +611,7 @@ fun PlayerScreen(
                                     state = pagerState,
                                     modifier = Modifier.fillMaxWidth(),
                                     pageSpacing = 16.dp,
-                                    contentPadding = PaddingValues(horizontal = 24.dp)
+                                    contentPadding = PaddingValues(24.dp)
                                 ) { page ->
                                     val pageTrack = viewModel.queueState.getOrNull(page) ?: track
                                     Box(
@@ -634,7 +634,7 @@ fun PlayerScreen(
                                 // Stylized container (Card) only for the artwork
                                 Box(
                                     modifier = Modifier
-                                        .padding(horizontal = 24.dp)
+                                        .padding(24.dp)
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
                                         .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
@@ -651,7 +651,7 @@ fun PlayerScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
 
