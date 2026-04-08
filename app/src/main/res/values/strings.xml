@@ -465,6 +465,10 @@
     <!-- APPEARANCE -->
     <string name="pref_appearance_title">Appearance</string>
     <string name="pref_appearance_subtitle">Theme, colors, language</string>
+    <string name="pref_color_palette_title">Colors &amp; Theme</string>
+    <string name="pref_color_palette_subtitle">Customize palette, colors and specs</string>
+    <string name="color_palette_screen_title">Theme</string>
+    <string name="pref_color_style_title">Color Style</string>
     <string name="pref_start_screen">Start Screen</string>
     <string name="pref_theme_dynamic">Dynamic Theme (Material You)</string>
     <string name="pref_theme_dynamic_sub">Match your wallpaper</string>

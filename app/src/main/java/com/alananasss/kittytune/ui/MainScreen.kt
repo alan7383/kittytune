@@ -751,7 +751,14 @@ fun MainScreen(
                     }
 
                     clippedComposable("appearance_settings") {
-                        AppearanceSettingsScreen { navController.popBackStack() }
+                        AppearanceSettingsScreen(
+                            onNavigateToColors = { navController.navigate("color_palette") },
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("color_palette") {
+                        ColorPaletteScreen(onBackClick = { navController.popBackStack() })
                     }
 
                     clippedComposable("about") {

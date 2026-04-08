@@ -54,7 +54,8 @@
 
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
-                key == "custom_font_enabled" || key?.startsWith("font_") == true) {
+                key == "custom_font_enabled" || key?.startsWith("font_") == true ||
+                key == "key_color" || key == "color_style" || key == "color_spec") {
                 refreshThemeState()
             }
         }
@@ -65,6 +66,9 @@
         private var themeModeState by mutableStateOf(AppThemeMode.SYSTEM)
         private var dynamicColorState by mutableStateOf(true)
         private var pureBlackState by mutableStateOf(false)
+        private var keyColorState by mutableIntStateOf(0)
+        private var colorStyleState by mutableStateOf("TonalSpot")
+        private var colorSpecState by mutableStateOf("Default")
     
         private val _shouldOpenSearch = MutableStateFlow(false)
         private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
@@ -166,6 +170,9 @@
                     themeMode = themeModeState,
                     dynamicColor = dynamicColorState,
                     pureBlack = pureBlackState,
+                    keyColor = keyColorState,
+                    colorStyle = colorStyleState,
+                    colorSpec = colorSpecState,
                     typography = dynamicTypography
                 ) {
                     LaunchedEffect(Unit) {
@@ -204,6 +211,9 @@
             themeModeState = preferences.getThemeMode()
             dynamicColorState = preferences.getDynamicTheme()
             pureBlackState = preferences.getPureBlack()
+            keyColorState = preferences.getKeyColor()
+            colorStyleState = preferences.getColorStyle()
+            colorSpecState = preferences.getColorSpec()
             customFontEnabledState = preferences.getCustomFontEnabled()
             fontWghtState = preferences.getFontWght()
             fontWdthState = preferences.getFontWdth()

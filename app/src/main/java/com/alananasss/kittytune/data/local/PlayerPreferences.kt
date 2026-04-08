@@ -76,6 +76,9 @@ class PlayerPreferences(private val context: Context) {
         private const val KEY_SYNC_LIKES = "sync_likes_enabled"
         private const val KEY_CROSSFADE_ENABLED = "crossfade_enabled"
         private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
+        private const val KEY_KEY_COLOR = "key_color"
+        private const val KEY_COLOR_STYLE = "color_style"
+        private const val KEY_COLOR_SPEC = "color_spec"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -211,6 +214,16 @@ class PlayerPreferences(private val context: Context) {
     fun setAudioQuality(quality: String) = prefs.edit().putString(KEY_AUDIO_QUALITY, quality).apply()
     fun getPersistentQueueEnabled(): Boolean = prefs.getBoolean(KEY_PERSISTENT_QUEUE, true)
     fun setPersistentQueueEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_PERSISTENT_QUEUE, enabled).apply()
+
+    fun getKeyColor(): Int = prefs.getInt(KEY_KEY_COLOR, 0)
+    fun setKeyColor(color: Int) = prefs.edit().putInt(KEY_KEY_COLOR, color).apply()
+
+    fun getColorStyle(): String = prefs.getString(KEY_COLOR_STYLE, "TonalSpot") ?: "TonalSpot"
+    fun setColorStyle(style: String) = prefs.edit().putString(KEY_COLOR_STYLE, style).apply()
+
+    fun getColorSpec(): String = prefs.getString(KEY_COLOR_SPEC, "Default") ?: "Default"
+    fun setColorSpec(spec: String) = prefs.edit().putString(KEY_COLOR_SPEC, spec).apply()
+
     fun savePlaybackState(track: Track?, position: Long, queue: List<Track>, context: PlaybackContext?, shuffleEnabled: Boolean, repeatMode: RepeatMode) {
         if (!getPersistentQueueEnabled()) {
             val editor = prefs.edit()
