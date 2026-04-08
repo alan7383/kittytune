@@ -465,6 +465,10 @@
     <!-- APPEARANCE -->
     <string name="pref_appearance_title">Megjelenés</string>
     <string name="pref_appearance_subtitle">Téma, színek, nyelv</string>
+    <string name="pref_color_palette_title">Színek és Téma</string>
+    <string name="pref_color_palette_subtitle">Paletta és színek testreszabása</string>
+    <string name="color_palette_screen_title">Téma</string>
+    <string name="pref_color_style_title">Paletta stílusa</string>
     <string name="pref_start_screen">Kezdőképernyő</string>
     <string name="pref_theme_dynamic">Dinamikus téma (Material You)</string>
     <string name="pref_theme_dynamic_sub">Igazodik a háttérképedhez</string>

@@ -53,6 +53,7 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 
 @Composable
 fun AppearanceSettingsScreen(
+    onNavigateToColors: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -189,7 +190,7 @@ fun AppearanceSettingsScreen(
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (isPureBlackVisible) 3 else 2
+                        val totalVisibleItems = if (isPureBlackVisible) 4 else 3
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
                             title = stringResource(R.string.pref_language),
@@ -203,18 +204,8 @@ fun AppearanceSettingsScreen(
                             onClick = { showLanguageDialog = true }
                         )
 
-                        val dynamicColorBottomRadius by animateDpAsState(
-                            targetValue = if (isPureBlackVisible) 4.dp else 24.dp,
-                            animationSpec = tween(400),
-                            label = "DynamicColorCornerAnimation"
-                        )
                         SettingsItem(
-                            shape = RoundedCornerShape(
-                                topStart = 4.dp,
-                                topEnd = 4.dp,
-                                bottomStart = dynamicColorBottomRadius,
-                                bottomEnd = dynamicColorBottomRadius
-                            ),
+                            shape = getSettingsShape(totalVisibleItems, 1),
                             title = stringResource(R.string.pref_theme_dynamic),
                             subtitle = stringResource(R.string.pref_theme_dynamic_sub),
                             hasSwitch = true,
@@ -228,12 +219,7 @@ fun AppearanceSettingsScreen(
                             exit = shrinkVertically() + fadeOut()
                         ) {
                             SettingsItem(
-                                shape = RoundedCornerShape(
-                                    topStart = 4.dp,
-                                    topEnd = 4.dp,
-                                    bottomStart = 24.dp,
-                                    bottomEnd = 24.dp
-                                ),
+                                shape = getSettingsShape(totalVisibleItems, 2),
                                 title = stringResource(R.string.pref_theme_pure_black),
                                 subtitle = stringResource(R.string.pref_theme_pure_black_sub),
                                 hasSwitch = true,
@@ -241,6 +227,13 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = { pureBlack = it; prefs.setPureBlack(it) }
                             )
                         }
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, if (isPureBlackVisible) 3 else 2),
+                            title = stringResource(R.string.pref_color_palette_title),
+                            subtitle = stringResource(R.string.pref_color_palette_subtitle),
+                            onClick = onNavigateToColors
+                        )
                     }
                 }
             }

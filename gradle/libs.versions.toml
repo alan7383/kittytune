@@ -31,6 +31,7 @@ aboutlibraries = "13.2.1"
 ktor = "2.3.12"
 json = "20251224"
 material3 = "1.5.0-alpha16"
+materialKolor = "1.7.0"
 
 
 [libraries]
@@ -82,6 +83,7 @@ ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-conte
 ktor-serialization-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-client-encoding = { group = "io.ktor", name = "ktor-client-encoding", version.ref = "ktor" }
 json = { group = "org.json", name = "json", version.ref = "json" }
+material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
