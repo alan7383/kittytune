@@ -128,6 +128,13 @@ class PlaybackService : MediaSessionService() {
                 action: String,
                 extras: Bundle
             ): Boolean = false
+
+            override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo {
+                return MediaNotification.Provider.NotificationChannelInfo(
+                    CHANNEL_ID,
+                    getString(R.string.channel_name)
+                )
+            }
         })
 
         serviceScope.launch {
