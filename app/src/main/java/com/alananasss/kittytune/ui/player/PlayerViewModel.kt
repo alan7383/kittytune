@@ -1393,6 +1393,37 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         saveStateAsync(saveQueue = true)
     }
 
+    fun removeTrackFromQueue(index: Int) {
+        if (index !in 0 until _queue.size) return
+
+        val trackToRemove = _queue[index]
+
+        // 1. Remove from _queue
+        _queue.removeAt(index)
+
+        // 2. Remove from queueState
+        if (index < queueState.size) {
+            queueState.removeAt(index)
+        }
+
+        // 3. Remove from _originalQueue if present (matching by id)
+        _originalQueue.removeAll { it.id == trackToRemove.id }
+
+        // 4. Remove from Player
+        try {
+            MusicManager.player.removeMediaItem(index)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // 5. Update index if current track was moved
+        if (currentTrack != null) {
+            currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack?.id }.coerceAtLeast(0)
+        }
+
+        saveStateAsync(saveQueue = true)
+    }
+
     fun insertNext(tracks: List<Track>) {
         if (tracks.isEmpty()) return
         val insertIndex = currentQueueIndex + 1

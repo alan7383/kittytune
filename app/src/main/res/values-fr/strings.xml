@@ -237,6 +237,9 @@
 
     <string name="player_playing_now">LECTURE EN COURS</string>
     <string name="player_queue">File d\'attente</string>
+    <string name="queue_shuffle">Aléatoire</string>
+    <string name="queue_repeat">Répéter</string>
+    <string name="queue_repeat_one">Répéter un</string>
     <string name="playback_count_formatted">écoutes</string>
     <string name="player_like_action">Like</string>
     <string name="download_comment">Via KittyTune</string>

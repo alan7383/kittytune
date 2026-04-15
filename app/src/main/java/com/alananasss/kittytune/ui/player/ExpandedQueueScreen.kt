@@ -274,7 +274,6 @@ private fun SwipeToDeleteItem(
                 awaitEachGesture {
                     val velocityTracker = VelocityTracker()
 
-                    // Premier touch, ne pas consommer pour laisser passer au reorderable
                     val down = awaitFirstDown(requireUnconsumed = false)
                     velocityTracker.addPosition(down.uptimeMillis, down.position)
 
@@ -290,7 +289,6 @@ private fun SwipeToDeleteItem(
                         val deltaX = change.position.x - change.previousPosition.x
                         val deltaY = change.position.y - change.previousPosition.y
 
-                        // Déterminer la direction une seule fois
                         if (isHorizontal == null) {
                             val absX = abs(deltaX)
                             val absY = abs(deltaY)
@@ -300,7 +298,6 @@ private fun SwipeToDeleteItem(
                         }
 
                         if (isHorizontal == true) {
-                            // Geste horizontal : on consomme et on gère le swipe
                             change.consume()
                             dragStarted = true
                             velocityTracker.addPosition(change.uptimeMillis, change.position)
@@ -310,10 +307,8 @@ private fun SwipeToDeleteItem(
                                 offsetX.snapTo(newOffset)
                             }
                         }
-                        // Si vertical : on ne consomme pas → le reorderable reçoit le geste
                     }
 
-                    // Fin du geste
                     if (dragStarted) {
                         val velocity = velocityTracker.calculateVelocity().x
                         coroutineScope.launch {
@@ -329,7 +324,6 @@ private fun SwipeToDeleteItem(
                 }
             }
     ) {
-        // Background rouge
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -345,7 +339,6 @@ private fun SwipeToDeleteItem(
             )
         }
 
-        // Contenu décalé
         Box(
             modifier = Modifier.offset { IntOffset(offsetX.value.roundToInt(), 0) }
         ) {
