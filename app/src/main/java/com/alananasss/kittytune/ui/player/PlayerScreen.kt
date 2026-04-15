@@ -445,7 +445,8 @@ fun InlineLyricsContent(viewModel: PlayerViewModel) {
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onOpenExpandedQueue: () -> Unit
 ) {
     val track = viewModel.currentTrack ?: return
     BackHandler(enabled = !viewModel.showLyricsSheet, onBack = onClose)
@@ -793,7 +794,7 @@ fun PlayerScreen(
                             animatedMainColor = animatedColor,
                             contentColorOverride = mainContentColor,
                             onEffectsClick = { showEffectsSheet = true },
-                            onQueueClick = { scope.launch { if (queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded) queueSheetState.bottomSheetState.partialExpand() else queueSheetState.bottomSheetState.expand() } }
+                            onQueueClick = onOpenExpandedQueue
                         )
                     }
 

@@ -791,6 +791,13 @@ fun MainScreen(
                             }
                         )
                     }
+
+                    clippedComposable("expanded_queue") {
+                        ExpandedQueueScreen(
+                            viewModel = playerViewModel,
+                            onClose = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 AnimatedVisibility(
@@ -822,7 +829,10 @@ fun MainScreen(
             ) {
                 PlayerScreen(
                     viewModel = playerViewModel,
-                    onClose = { playerViewModel.isPlayerExpanded = false }
+                    onClose = { playerViewModel.isPlayerExpanded = false },
+                    onOpenExpandedQueue = {
+                        navController.navigate("expanded_queue")
+                    }
                 )
             }
 
