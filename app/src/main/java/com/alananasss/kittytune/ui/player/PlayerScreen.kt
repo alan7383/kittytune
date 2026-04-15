@@ -554,7 +554,8 @@ fun PlayerScreen(
                 QueueContent(
                     viewModel = viewModel,
                     isQueueOpen = isQueueVisible,
-                    onCloseQueue = { scope.launch { queueSheetState.bottomSheetState.partialExpand() } }
+                    onCloseQueue = { scope.launch { queueSheetState.bottomSheetState.partialExpand() } },
+                    onOpenExpandedQueue = onOpenExpandedQueue
                 )
             }
         ) { paddingValues ->
@@ -794,7 +795,11 @@ fun PlayerScreen(
                             animatedMainColor = animatedColor,
                             contentColorOverride = mainContentColor,
                             onEffectsClick = { showEffectsSheet = true },
-                            onQueueClick = onOpenExpandedQueue
+                            onQueueClick = {
+                                scope.launch {
+                                    queueSheetState.bottomSheetState.expand()
+                                }
+                            }
                         )
                     }
 
@@ -1344,7 +1349,12 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
 }
 
 @Composable
-fun QueueContent(viewModel: PlayerViewModel, isQueueOpen: Boolean, onCloseQueue: () -> Unit) {
+fun QueueContent(
+    viewModel: PlayerViewModel,
+    isQueueOpen: Boolean,
+    onCloseQueue: () -> Unit,
+    onOpenExpandedQueue: () -> Unit
+) {
     val view = LocalView.current
     val listState = rememberLazyListState()
 
@@ -1373,7 +1383,7 @@ fun QueueContent(viewModel: PlayerViewModel, isQueueOpen: Boolean, onCloseQueue:
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .pointerInput(Unit) { detectTapGestures { } }
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainer)
@@ -1383,14 +1393,27 @@ fun QueueContent(viewModel: PlayerViewModel, isQueueOpen: Boolean, onCloseQueue:
                         if (dragAmount > 10) onCloseQueue()
                     }
                 }
-                .padding(top = 24.dp, bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(top = 24.dp, bottom = 16.dp, start = 24.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = stringResource(R.string.player_queue),
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.padding(horizontal = 24.dp)
+                modifier = Modifier.weight(1f)
             )
+
+            IconButton(
+                onClick = {
+                    onCloseQueue()
+                    onOpenExpandedQueue()
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.OpenInFull,
+                    contentDescription = "Expand Queue",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         LazyColumn(
