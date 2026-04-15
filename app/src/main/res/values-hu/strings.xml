@@ -237,6 +237,9 @@
 
     <string name="player_playing_now">MOST SZÓL</string>
     <string name="player_queue">Queue</string>
+    <string name="queue_shuffle">Keverés</string>
+    <string name="queue_repeat">Ismétlés</string>
+    <string name="queue_repeat_one">Egy ismétlése</string>
     <string name="playback_count_formatted">lejátszás</string>
     <string name="player_like_action">Like</string>
     <string name="download_comment">Via KittyTune</string>
