@@ -979,7 +979,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         val gridItems = remember(viewModel.isMenuContextFromPlayer, isLocalFile, viewModel.menuContextPlaylistId, isReposted, track.source) {
             mutableListOf<DockOptionItem>().apply {
                 if (viewModel.isMenuContextFromPlayer) {
-                    add(DockOptionItem(Icons.Rounded.Shuffle, context.getString(R.string.menu_shuffle)) { viewModel.toggleShuffle(); viewModel.showMenuSheet = false })
+                    add(DockOptionItem(Icons.Rounded.Shuffle, context.getString(R.string.menu_shuffle)) { viewModel.toggleShuffle() })
                     add(DockOptionItem(Icons.Rounded.Repeat, context.getString(R.string.menu_repeat)) { viewModel.toggleRepeatMode() })
                 }
                 if (!viewModel.isMenuContextFromPlayer) {
