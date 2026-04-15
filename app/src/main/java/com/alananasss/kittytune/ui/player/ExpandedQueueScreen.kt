@@ -58,6 +58,16 @@ fun ExpandedQueueScreen(
     val view = LocalView.current
     val listState = rememberLazyListState()
 
+    LaunchedEffect(viewModel.currentTrack) {
+        val track = viewModel.currentTrack
+        if (track != null && queueState.isNotEmpty()) {
+            val index = queueState.indexOfFirst { it.id == track.id }
+            if (index >= 0) {
+                listState.scrollToItem(kotlin.math.max(0, index - 2))
+            }
+        }
+    }
+
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = listState,
         onMove = { from, to ->
