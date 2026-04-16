@@ -816,7 +816,7 @@ fun MainScreen(
             }
 
             AnimatedVisibility(
-                visible = playerViewModel.isPlayerExpanded,
+                visible = playerViewModel.isPlayerExpanded && currentDestination?.route != "expanded_queue",
                 enter = slideInVertically(
                     initialOffsetY = { it },
                     animationSpec = tween(400, easing = FastOutSlowInEasing)
