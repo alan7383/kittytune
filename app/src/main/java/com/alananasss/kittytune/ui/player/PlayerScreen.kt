@@ -481,18 +481,9 @@ fun PlayerScreen(
     val mainContentColor = if (isBlurMode) Color.White else MaterialTheme.colorScheme.onBackground
     val subContentColor = if (isBlurMode) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
     val iconTint = if (isBlurMode) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-    val queueSheetState = rememberBottomSheetScaffoldState()
     var showEffectsSheet by remember { mutableStateOf(false) }
+    var showQueueSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-
-    val isQueueVisible = queueSheetState.bottomSheetState.targetValue == SheetValue.Expanded ||
-            queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded
-
-    val isQueueOpen = queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded
-
-    BackHandler(enabled = isQueueOpen) {
-        scope.launch { queueSheetState.bottomSheetState.partialExpand() }
-    }
 
     val animatedColor by animateColorAsState(
         targetValue = viewModel.backgroundColor,
@@ -541,24 +532,7 @@ fun PlayerScreen(
             }
         }
 
-        BottomSheetScaffold(
-            scaffoldState = queueSheetState,
-            sheetPeekHeight = 0.dp,
-            sheetContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-            sheetShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            sheetSwipeEnabled = false,
-            sheetDragHandle = null,
-            containerColor = Color.Transparent,
-            sheetContent = {
-                QueueContent(
-                    viewModel = viewModel,
-                    isQueueOpen = isQueueVisible,
-                    onCloseQueue = { scope.launch { queueSheetState.bottomSheetState.partialExpand() } },
-                    onOpenExpandedQueue = { viewModel.navigateToExpandedQueue() }
-                )
-            }
-        ) { paddingValues ->
-            Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier.fillMaxSize().systemBarsPadding(),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -794,37 +768,12 @@ fun PlayerScreen(
                             animatedMainColor = animatedColor,
                             contentColorOverride = mainContentColor,
                             onEffectsClick = { showEffectsSheet = true },
-                            onQueueClick = {
-                                scope.launch {
-                                    if (queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded) {
-                                        queueSheetState.bottomSheetState.partialExpand()
-                                    } else {
-                                        queueSheetState.bottomSheetState.expand()
-                                    }
-                                }
-                            }
+                            onQueueClick = { showQueueSheet = true }
                         )
                     }
-
                     Spacer(modifier = Modifier.weight(1f))
                 }
-
-                if (isQueueOpen) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Transparent)
-                            .zIndex(2f)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                scope.launch { queueSheetState.bottomSheetState.partialExpand() }
-                            }
-                    )
-                }
             }
-        }
 
         if (showEffectsSheet) {
             ModalBottomSheet(
@@ -834,6 +783,25 @@ fun PlayerScreen(
             ) {
                 AudioControlDock(viewModel)
                 Spacer(Modifier.height(32.dp))
+            }
+        }
+
+        if (showQueueSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showQueueSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                QueueContent(
+                    viewModel = viewModel,
+                    isQueueOpen = true,
+                    onCloseQueue = { showQueueSheet = false },
+                    onOpenExpandedQueue = {
+                        showQueueSheet = false
+                        viewModel.navigateToExpandedQueue()
+                    }
+                )
+                Spacer(Modifier.height(16.dp))
             }
         }
 
@@ -1382,7 +1350,7 @@ fun QueueContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.6f)
+            .fillMaxHeight(0.7f)
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .pointerInput(Unit) { detectTapGestures { } }
     ) {
@@ -1390,12 +1358,6 @@ fun QueueContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainer)
-                .pointerInput(Unit) {
-                    detectVerticalDragGestures { change, dragAmount ->
-                        change.consume()
-                        if (dragAmount > 10) onCloseQueue()
-                    }
-                }
                 .padding(top = 24.dp, bottom = 16.dp, start = 24.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
