@@ -70,6 +70,8 @@ import com.alananasss.kittytune.R
 
 import com.alananasss.kittytune.ui.navigation.Screen
 import com.alananasss.kittytune.ui.navigation.clippedComposable
+import com.alananasss.kittytune.ui.navigation.ClippedScreen
+import com.alananasss.kittytune.ui.navigation.getScreenCornerRadius
 import com.alananasss.kittytune.ui.player.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.ui.profile.*
@@ -113,6 +115,18 @@ fun MainScreen(
     val allAchievementsUnlocked by AchievementManager.isAllUnlocked.collectAsState()
     var showCompletionScreen by remember { mutableStateOf(false) }
     var showPopups by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
+
+    var wasInQueue by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentDestination?.route) {
+        val route = currentDestination?.route
+        if (route == "expanded_queue") {
+            wasInQueue = true
+        } else if (wasInQueue) {
+            wasInQueue = false
+            playerViewModel.isPlayerExpanded = true
+        }
+    }
 
     DisposableEffect(Unit) {
         val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
@@ -295,6 +309,7 @@ fun MainScreen(
         playerViewModel.navigateToPlaylistId?.let { destinationId ->
             playerViewModel.isPlayerExpanded = false
             when {
+                destinationId == "expanded_queue" -> navController.navigate("expanded_queue")
                 destinationId.startsWith("profile:") -> navController.navigate("profile/${destinationId.removePrefix("profile:")}")
                 destinationId.startsWith("tag:") -> navController.navigate("tag/${destinationId.removePrefix("tag:")}")
                 destinationId.startsWith("track_detail:") -> navController.navigate("track_detail/${destinationId.removePrefix("track_detail:")}")
@@ -502,6 +517,13 @@ fun MainScreen(
                             homeViewModel.loadData()
                             navController.navigate(Screen.Home.route) { popUpTo(0) }
                         }, { navController.popBackStack() })
+                    }
+
+                    clippedComposable("expanded_queue") {
+                        ExpandedQueueScreen(
+                            viewModel = playerViewModel,
+                            onClose = { navController.popBackStack() }
+                        )
                     }
 
                     clippedComposable("genres") {
@@ -792,12 +814,7 @@ fun MainScreen(
                         )
                     }
 
-                    clippedComposable("expanded_queue") {
-                        ExpandedQueueScreen(
-                            viewModel = playerViewModel,
-                            onClose = { navController.popBackStack() }
-                        )
-                    }
+
                 }
 
                 AnimatedVisibility(
@@ -815,8 +832,9 @@ fun MainScreen(
                 }
             }
 
+
             AnimatedVisibility(
-                visible = playerViewModel.isPlayerExpanded && currentDestination?.route != "expanded_queue",
+                visible = playerViewModel.isPlayerExpanded,
                 enter = slideInVertically(
                     initialOffsetY = { it },
                     animationSpec = tween(400, easing = FastOutSlowInEasing)
@@ -829,12 +847,10 @@ fun MainScreen(
             ) {
                 PlayerScreen(
                     viewModel = playerViewModel,
-                    onClose = { playerViewModel.isPlayerExpanded = false },
-                    onOpenExpandedQueue = {
-                        navController.navigate("expanded_queue")
-                    }
+                    onClose = { playerViewModel.isPlayerExpanded = false }
                 )
             }
+
 
             AnimatedVisibility(
                 visible = playerViewModel.showLyricsSheet,
