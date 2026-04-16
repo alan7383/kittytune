@@ -797,7 +797,11 @@ fun PlayerScreen(
                             onEffectsClick = { showEffectsSheet = true },
                             onQueueClick = {
                                 scope.launch {
-                                    queueSheetState.bottomSheetState.expand()
+                                    if (queueSheetState.bottomSheetState.currentValue == SheetValue.Expanded) {
+                                        queueSheetState.bottomSheetState.partialExpand()
+                                    } else {
+                                        queueSheetState.bottomSheetState.expand()
+                                    }
                                 }
                             }
                         )
