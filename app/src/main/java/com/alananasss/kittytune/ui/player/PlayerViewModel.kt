@@ -764,6 +764,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         loadComments(refresh = true)
     }
 
+    fun navigateToExpandedQueue() {
+        showMenuSheet = false
+        showDetailsSheet = false
+        showCommentsSheet = false
+        isPlayerExpanded = false
+        navigateToPlaylistId = "expanded_queue"
+    }
+
     fun resolveAndNavigateToArtist(username: String, artistId: Long? = null) {
         showDetailsSheet = false
         showMenuSheet = false

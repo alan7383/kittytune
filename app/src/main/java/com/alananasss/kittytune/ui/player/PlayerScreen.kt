@@ -445,8 +445,7 @@ fun InlineLyricsContent(viewModel: PlayerViewModel) {
 @Composable
 fun PlayerScreen(
     viewModel: PlayerViewModel,
-    onClose: () -> Unit,
-    onOpenExpandedQueue: () -> Unit
+    onClose: () -> Unit
 ) {
     val track = viewModel.currentTrack ?: return
     BackHandler(enabled = !viewModel.showLyricsSheet, onBack = onClose)
@@ -555,7 +554,7 @@ fun PlayerScreen(
                     viewModel = viewModel,
                     isQueueOpen = isQueueVisible,
                     onCloseQueue = { scope.launch { queueSheetState.bottomSheetState.partialExpand() } },
-                    onOpenExpandedQueue = onOpenExpandedQueue
+                    onOpenExpandedQueue = { viewModel.navigateToExpandedQueue() }
                 )
             }
         ) { paddingValues ->
