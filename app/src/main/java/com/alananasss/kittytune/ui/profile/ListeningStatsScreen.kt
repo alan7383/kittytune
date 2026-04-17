@@ -264,7 +264,7 @@ fun ListeningStatsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(stats.topTracks) { track ->
-                                    TopTrackCard(track, onClick = { if (track.source == "soundcloud") onTrackClick(track) })
+                                    TopTrackCard(track, onClick = { if ((track.source ?: "soundcloud") == "soundcloud") onTrackClick(track) })
                                 }
                             }
                         }
@@ -281,7 +281,7 @@ fun ListeningStatsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 items(stats.topArtists) { artist ->
-                                    TopArtistCard(artist, onClick = { if (artist.source == "soundcloud") onArtistClick(artist) })
+                                    TopArtistCard(artist, onClick = { if ((artist.source ?: "soundcloud") == "soundcloud") onArtistClick(artist) })
                                 }
                             }
                         }
@@ -924,7 +924,7 @@ private fun TimelineChunkCard(
                         title = track.trackTitle,
                         subtitle = track.artistName,
                         badgeText = stringResource(R.string.listening_stats_play_count, track.playCount),
-                        onClick = { if (track.source == "soundcloud") onTrackClick(track) },
+                        onClick = { if ((track.source ?: "soundcloud") == "soundcloud") onTrackClick(track) },
                         isCircularImage = false
                     )
                 }
@@ -935,7 +935,7 @@ private fun TimelineChunkCard(
                         title = artist.artistName,
                         subtitle = stringResource(R.string.listening_stats_play_count, artist.playCount),
                         badgeText = formatDurationMs(artist.totalListenMs),
-                        onClick = { if (artist.source == "soundcloud") onArtistClick(artist) },
+                        onClick = { if ((artist.source ?: "soundcloud") == "soundcloud") onArtistClick(artist) },
                         isCircularImage = true
                     )
                 }
@@ -950,7 +950,7 @@ private fun TimelineChunkCard(
 @Composable
 private fun TimelineItemRow(
     label: String,
-    imageUrl: String,
+    imageUrl: String?,
     title: String,
     subtitle: String,
     badgeText: String,
