@@ -25,7 +25,7 @@
     import java.io.File
     import kotlinx.coroutines.launch
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun TagScreen(
         tagName: String,
@@ -57,7 +57,10 @@
                             )
                         },
                         navigationIcon = {
-                            IconButton(onClick = onBackClick) {
+                            IconButton(
+                                onClick = onBackClick,
+                                shapes = IconButtonDefaults.shapes()
+                            ) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_close))
                             }
                         },

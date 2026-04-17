@@ -48,7 +48,7 @@
     import java.util.regex.Pattern
     import androidx.compose.animation.core.animateDpAsState
     
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun ChatScreen(
         otherUserId: String,
@@ -109,7 +109,10 @@
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },

@@ -14,6 +14,7 @@
     import androidx.compose.material.icons.automirrored.rounded.OpenInNew
     import androidx.compose.material.icons.rounded.*
     import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
@@ -49,7 +50,7 @@
         }
     }
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun LicensesScreen(onBackClick: () -> Unit) {
         val context = LocalContext.current
@@ -106,7 +107,7 @@
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(onClick = onBackClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                         }
                     },

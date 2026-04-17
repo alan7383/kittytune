@@ -190,10 +190,13 @@ import androidx.compose.animation.core.animateFloatAsState
                                 modifier = Modifier.focusRequester(focusRequester),
                                 leadingIcon = {
                                     if (isSearching) {
-                                        IconButton(onClick = {
-                                            homeViewModel.clearSearch()
-                                            focusManager.clearFocus()
-                                        }) {
+                                        IconButton(
+                                            onClick = {
+                                                homeViewModel.clearSearch()
+                                                focusManager.clearFocus()
+                                            },
+                                            shapes = IconButtonDefaults.shapes()
+                                        ) {
                                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close))
                                         }
                                     } else {

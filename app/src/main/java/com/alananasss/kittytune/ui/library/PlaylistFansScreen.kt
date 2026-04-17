@@ -16,7 +16,7 @@
     import com.alananasss.kittytune.ui.track.UserList // importing userlist from trackdetailscreen
     import kotlinx.coroutines.launch
     
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun PlaylistFansScreen(
         playlistId: Long,
@@ -41,7 +41,10 @@
                 TopAppBar(
                     title = { Text(stringResource(R.string.menu_details), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close))
                         }
                     }

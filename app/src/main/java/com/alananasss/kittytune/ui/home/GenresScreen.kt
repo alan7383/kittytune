@@ -12,6 +12,7 @@
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.filled.ArrowBack
     import androidx.compose.material3.*
+    import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.Composable
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -22,7 +23,7 @@
     import androidx.lifecycle.viewmodel.compose.viewModel
     import com.alananasss.kittytune.R
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun GenresScreen(
         onBackClick: () -> Unit,
@@ -37,7 +38,7 @@
                 LargeTopAppBar(
                     title = { Text(stringResource(R.string.explorer_title), fontWeight = FontWeight.Bold) },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(onClick = onBackClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },

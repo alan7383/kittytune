@@ -39,7 +39,7 @@
     import kotlinx.coroutines.launch
     import java.io.File
     
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun TrackDetailScreen(
         trackId: Long,
@@ -69,7 +69,10 @@
                 TopAppBar(
                     title = { Text(stringResource(R.string.detail_track_title), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close))
                         }
                     }

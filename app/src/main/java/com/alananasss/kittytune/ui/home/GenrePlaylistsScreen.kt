@@ -36,7 +36,7 @@
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.ui.common.SquareCardShimmer
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun GenrePlaylistsScreen(
         genreTitle: String,
@@ -77,7 +77,10 @@
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },

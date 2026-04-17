@@ -29,7 +29,7 @@
     import com.alananasss.kittytune.domain.ActivityItem
     import com.alananasss.kittytune.ui.library.getRelativeTime
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun NotificationsScreen(
         onBackClick: () -> Unit,
@@ -51,6 +51,7 @@
                     navigationIcon = {
                         FilledTonalIconButton(
                             onClick = onBackClick,
+                            shapes = IconButtonDefaults.filledTonalShapes(),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant
