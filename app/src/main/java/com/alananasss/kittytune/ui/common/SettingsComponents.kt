@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
 import androidx.compose.material.icons.rounded.Check
@@ -210,12 +211,15 @@ fun SettingsScaffold(
                     Text(title, fontWeight = FontWeight.Bold, maxLines = 1)
                 },
                 navigationIcon = {
-                    // C'EST ICI LA MAGIE : L'ajout du "shapes" active l'animation "Expressive"
-                    IconButton(
+                    FilledTonalIconButton(
                         onClick = onBackClick,
-                        shapes = IconButtonDefaults.shapes()
+                        shapes = IconButtonDefaults.shapes(),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     ) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.btn_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_back))
                     }
                 },
                 scrollBehavior = scrollBehavior,
