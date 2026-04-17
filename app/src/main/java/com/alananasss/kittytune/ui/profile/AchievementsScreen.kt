@@ -66,7 +66,7 @@
         return if (value >= 1000) String.format(Locale.US, "%.0fk", value / 1000f) else value.toString()
     }
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun AchievementsScreen(onBackClick: () -> Unit) {
         val progressMap by AchievementManager.progressFlow.collectAsState()
@@ -168,6 +168,7 @@
                         navigationIcon = {
                             FilledTonalIconButton(
                                 onClick = onBackClick,
+                                shapes = IconButtonDefaults.filledTonalShapes(),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant

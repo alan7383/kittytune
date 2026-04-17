@@ -26,7 +26,7 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.TokenManager
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun LoginScreen(
         onLoginSuccess: () -> Unit,
@@ -43,7 +43,10 @@
                 TopAppBar(
                     title = { Text(stringResource(R.string.login_title)) },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_cancel))
                         }
                     }
@@ -128,7 +131,10 @@
                                 TopAppBar(
                                     title = { Text(stringResource(R.string.nav_login)) },
                                     navigationIcon = {
-                                        IconButton(onClick = { popupWebView = null }) {
+                                        IconButton(
+                                            onClick = { popupWebView = null },
+                                            shapes = IconButtonDefaults.shapes()
+                                        ) {
                                             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.btn_close))
                                         }
                                     }

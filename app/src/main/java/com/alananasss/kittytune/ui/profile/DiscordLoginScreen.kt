@@ -30,7 +30,7 @@
     const val JS_SNIPPET = "javascript:(function()%7Bvar%20i%3Ddocument.createElement('iframe')%3Bdocument.body.appendChild(i)%3Balert(i.contentWindow.localStorage.token.slice(1,-1))%7D)()"
     
     @SuppressLint("SetJavaScriptEnabled")
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun DiscordLoginScreen(
         onBackClick: () -> Unit,
@@ -46,7 +46,10 @@
                 TopAppBar(
                     title = { Text(stringResource(R.string.discord_login_title)) },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
                             Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                         }
                     }

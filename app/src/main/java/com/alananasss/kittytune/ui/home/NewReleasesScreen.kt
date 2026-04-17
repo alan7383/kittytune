@@ -13,6 +13,7 @@
     import androidx.compose.material.icons.filled.MoreVert
     import androidx.compose.material.icons.rounded.GraphicEq
     import androidx.compose.material3.*
+    import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.Composable
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
@@ -35,7 +36,7 @@
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import java.util.Locale
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun NewReleasesScreen(
         onBackClick: () -> Unit,
@@ -57,7 +58,7 @@
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(onClick = onBackClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },

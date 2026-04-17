@@ -74,7 +74,7 @@
     import sh.calvin.reorderable.ReorderableItem
     import sh.calvin.reorderable.rememberReorderableLazyListState
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun PlaylistDetailScreen(
         playlistId: String,
@@ -947,7 +947,15 @@
     
                         TopAppBar(
                             title = {},
-                            navigationIcon = { IconButton(onClick = onBackClick, modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close), tint = Color.White) } },
+                            navigationIcon = { 
+                                IconButton(
+                                    onClick = onBackClick, 
+                                    shapes = IconButtonDefaults.shapes(),
+                                    modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                ) { 
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close), tint = Color.White) 
+                                } 
+                            },
                             actions = {
                                 IconButton(
                                     onClick = { showPlaylistOptionsSheet = true },
@@ -974,7 +982,10 @@
                         TopAppBar(
                             title = { Text(stringResource(R.string.lib_playlists), fontWeight = FontWeight.Bold) },
                             navigationIcon = {
-                                IconButton(onClick = { showAllPlaylists = false }) {
+                                IconButton(
+                                    onClick = { showAllPlaylists = false },
+                                    shapes = IconButtonDefaults.shapes()
+                                ) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                                 }
                             },

@@ -39,7 +39,7 @@
     import java.io.File
     import java.util.Locale
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun GenreDetailScreen(
         genreName: String,
@@ -89,7 +89,10 @@
                 LargeTopAppBar(
                     title = { Text(viewModel.genreTitle, fontWeight = FontWeight.Bold) },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },

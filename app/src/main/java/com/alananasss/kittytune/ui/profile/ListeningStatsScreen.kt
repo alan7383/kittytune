@@ -36,7 +36,7 @@ import java.util.Calendar
 import androidx.compose.ui.platform.LocalContext
 import com.alananasss.kittytune.data.local.PlayerPreferences
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ListeningStatsScreen(
     onBackClick: () -> Unit,
@@ -157,6 +157,7 @@ fun ListeningStatsScreen(
                 navigationIcon = {
                     FilledTonalIconButton(
                         onClick = onBackClick,
+                        shapes = IconButtonDefaults.filledTonalShapes(),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant

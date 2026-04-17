@@ -34,6 +34,7 @@
     import androidx.compose.material.icons.outlined.Share
     import androidx.compose.material.icons.rounded.Verified
     import androidx.compose.material3.*
+    import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
@@ -73,7 +74,7 @@
     import java.util.Locale
     import java.util.regex.Pattern
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun ProfileScreen(
         userId: String,
@@ -298,7 +299,11 @@
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick, colors = IconButtonDefaults.iconButtonColors(containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(alpha = 0.3f), contentColor = contentColor)) {
+                        IconButton(
+                            onClick = onBackClick,
+                            shapes = IconButtonDefaults.shapes(),
+                            colors = IconButtonDefaults.iconButtonColors(containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(alpha = 0.3f), contentColor = contentColor)
+                        ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },
@@ -394,7 +399,11 @@
             CenterAlignedTopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = onBackClick, colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f), contentColor = Color.White)) {
+                    IconButton(
+                        onClick = onBackClick,
+                        shapes = IconButtonDefaults.shapes(),
+                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f), contentColor = Color.White)
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                     }
                 },
@@ -886,7 +895,7 @@
         }
     }
     
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun FullListScreen(
         title: String,
@@ -901,7 +910,7 @@
                 TopAppBar(
                     title = { Text(title, fontWeight = FontWeight.Bold) },
                     navigationIcon = {
-                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back)) }
+                        IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back)) }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
                 )
@@ -1207,7 +1216,7 @@
             }
         }
     }
-    @OptIn(ExperimentalMaterial3Api::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun FullCommentListScreen(
         comments: List<Comment>,
@@ -1225,7 +1234,7 @@
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.AutoMirrored.Filled.ArrowBack,
                                 stringResource(R.string.btn_back)
