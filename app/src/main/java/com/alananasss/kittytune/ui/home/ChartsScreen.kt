@@ -248,11 +248,12 @@
                         )
                     },
                     navigationIcon = {
-                        IconButton(
+                        FilledTonalIconButton(
                             onClick = onBackClick,
                             shapes = IconButtonDefaults.shapes(),
-                            colors = IconButtonDefaults.iconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f)
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         ) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))

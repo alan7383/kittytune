@@ -951,7 +951,7 @@
                                 IconButton(
                                     onClick = onBackClick, 
                                     shapes = IconButtonDefaults.shapes(),
-                                    modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f), contentColor = Color.White)
                                 ) { 
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close), tint = Color.White) 
                                 } 
@@ -982,9 +982,13 @@
                         TopAppBar(
                             title = { Text(stringResource(R.string.lib_playlists), fontWeight = FontWeight.Bold) },
                             navigationIcon = {
-                                IconButton(
+                                FilledTonalIconButton(
                                     onClick = { showAllPlaylists = false },
-                                    shapes = IconButtonDefaults.shapes()
+                                    shapes = IconButtonDefaults.shapes(),
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 ) {
                                     Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                                 }
