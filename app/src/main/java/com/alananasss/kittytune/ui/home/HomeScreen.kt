@@ -3,6 +3,7 @@
     import android.net.Uri
     import androidx.activity.compose.BackHandler
     import androidx.compose.animation.*
+    import androidx.compose.animation.core.Animatable
     import androidx.compose.animation.core.Spring
     import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -78,6 +79,7 @@ import androidx.compose.animation.core.animateFloatAsState
     import com.alananasss.kittytune.ui.profile.ArtistAvatar
     import com.alananasss.kittytune.ui.profile.SquareCard
     import kotlinx.coroutines.delay
+    import kotlinx.coroutines.launch
     import java.io.File
     import kotlin.math.abs
     import kotlin.math.absoluteValue
@@ -278,42 +280,50 @@ import androidx.compose.animation.core.animateFloatAsState
                                 )
                             }
 
-                            if (homeViewModel.searchQuery.isEmpty()) {
-                                SearchCategoriesGrid(
-                                    moods = homeViewModel.moodCategories,
-                                    genres = homeViewModel.genreCategories,
-                                    onCategoryClick = { category ->
-                                        val encodedTitle = Uri.encode(category.title)
-                                        val encodedQuery = Uri.encode(category.query)
-                                        onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
-                                    }
-                                )
-                            } else if (homeViewModel.isSearchLoading) {
-                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    ContainedLoadingIndicator()
-                                }
-                            } else {
-                                AnimatedContent(
-                                    targetState = homeViewModel.activeFilter,
-                                    transitionSpec = {
-                                        val springSpecAlpha = spring<Float>(stiffness = Spring.StiffnessMediumLow)
-                                        val springSpecScale = spring<Float>(
-                                            dampingRatio = 0.85f,
-                                            stiffness = Spring.StiffnessMediumLow
-                                        )
+                            // Determine the search display state for AnimatedContent
+                            val searchDisplayState = when {
+                                homeViewModel.searchQuery.isEmpty() -> "categories"
+                                homeViewModel.isSearchLoading -> "loading"
+                                else -> "results_${homeViewModel.activeFilter}"
+                            }
 
-                                        (fadeIn(animationSpec = springSpecAlpha) + scaleIn(initialScale = 0.95f, animationSpec = springSpecScale))
-                                            .togetherWith(fadeOut(animationSpec = tween(150))) // The fadeOut must be fast
-                                    },
-                                    label = "FilterAnimation",
-                                    modifier = Modifier.fillMaxSize()
-                                ) { currentFilter ->
-                                    SearchResultsList(
-                                        homeViewModel = homeViewModel,
-                                        playerViewModel = playerViewModel,
-                                        onNavigate = onNavigate,
-                                        activeFilter = currentFilter
-                                    )
+                            AnimatedContent(
+                                targetState = searchDisplayState,
+                                transitionSpec = {
+                                    val enter = fadeIn(animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) +
+                                        scaleIn(initialScale = 0.96f, animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                                    val exit = fadeOut(animationSpec = tween(200))
+                                    enter.togetherWith(exit)
+                                },
+                                label = "SearchStateAnimation",
+                                modifier = Modifier.fillMaxSize()
+                            ) { state ->
+                                when {
+                                    state == "categories" -> {
+                                        SearchCategoriesGrid(
+                                            moods = homeViewModel.moodCategories,
+                                            genres = homeViewModel.genreCategories,
+                                            onCategoryClick = { category ->
+                                                val encodedTitle = Uri.encode(category.title)
+                                                val encodedQuery = Uri.encode(category.query)
+                                                onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
+                                            }
+                                        )
+                                    }
+                                    state == "loading" -> {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            ContainedLoadingIndicator()
+                                        }
+                                    }
+                                    else -> {
+                                        val currentFilter = homeViewModel.activeFilter
+                                        SearchResultsList(
+                                            homeViewModel = homeViewModel,
+                                            playerViewModel = playerViewModel,
+                                            onNavigate = onNavigate,
+                                            activeFilter = currentFilter
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1373,7 +1383,9 @@ import androidx.compose.animation.core.animateFloatAsState
                 if (homeViewModel.searchResultsYoutube.isEmpty()) Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 else LazyColumn(contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
                     itemsIndexed(homeViewModel.searchResultsYoutube) { index, track ->
-                        TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = false, isDownloaded = false, downloadProgress = 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) })
+                        StaggeredItem(index) {
+                            TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = false, isDownloaded = false, downloadProgress = 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) })
+                        }
                     }
                 }
             }
@@ -1382,9 +1394,10 @@ import androidx.compose.animation.core.animateFloatAsState
                 val shouldLoadMore by remember { derivedStateOf { val layoutInfo = listState.layoutInfo; val totalItems = layoutInfo.totalItemsCount; val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0; totalItems > 0 && lastVisibleItemIndex >= totalItems - 5 && activeFilter != SearchFilter.ALL } }
                 LaunchedEffect(shouldLoadMore) { if (shouldLoadMore && !homeViewModel.isSearchLoadingMore) homeViewModel.loadMoreSearchResults() }
                 LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
+                    var globalIndex = 0
                     if (homeViewModel.searchResultsArtists.isNotEmpty()) {
-                        if (activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.lib_artists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(16.dp)) }
-                        if (activeFilter == SearchFilter.ARTISTS) items(homeViewModel.searchResultsArtists) { artist -> Row(modifier = Modifier
+                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx) { Text(stringResource(R.string.lib_artists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(16.dp)) } }
+                        if (activeFilter == SearchFilter.ARTISTS) items(homeViewModel.searchResultsArtists) { artist -> val idx = globalIndex++; StaggeredItem(idx) { Row(modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onNavigate("profile:${artist.id}") }
                             .padding(16.dp), verticalAlignment = Alignment.CenterVertically) { ArtistAvatar(avatarUrl = artist.avatarUrl, modifier = Modifier
@@ -1393,17 +1406,17 @@ import androidx.compose.animation.core.animateFloatAsState
                             text = "${artist.followersCount} ${stringResource(R.string.profile_followers)}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        ) } } }
-                        else item { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate("profile:${artist.id}") } } } }
+                        ) } } } }
+                        else item { val idx = globalIndex++; StaggeredItem(idx) { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate("profile:${artist.id}") } } } } }
                     }
                     if (homeViewModel.searchResultsTracks.isNotEmpty()) {
-                        if (activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.profile_tracks), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) }
-                        itemsIndexed(homeViewModel.searchResultsTracks) { index, track -> TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = downloadProgress[track.id] != null, isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists(), downloadProgress = downloadProgress[track.id] ?: 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) }) }
+                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx) { Text(stringResource(R.string.profile_tracks), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
+                        itemsIndexed(homeViewModel.searchResultsTracks) { index, track -> val idx = globalIndex++; StaggeredItem(idx) { TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = downloadProgress[track.id] != null, isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists(), downloadProgress = downloadProgress[track.id] ?: 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) }) } }
                     }
                     if (homeViewModel.searchResultsPlaylists.isNotEmpty()) {
-                        if (activeFilter == SearchFilter.ALL) item { Text(stringResource(R.string.lib_playlists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) }
-                        if (activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist -> DynamicPlaylistCard(playlist, isGrid = false) { onNavigate(playlist.id.toString()) } }
-                        else item { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsPlaylists) { playlist -> SquareCard(playlist) { onNavigate(playlist.id.toString()) } } } }
+                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx) { Text(stringResource(R.string.lib_playlists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
+                        if (activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist -> val idx = globalIndex++; StaggeredItem(idx) { DynamicPlaylistCard(playlist, isGrid = false) { onNavigate(playlist.id.toString()) } } }
+                        else item { val idx = globalIndex++; StaggeredItem(idx) { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsPlaylists) { playlist -> SquareCard(playlist) { onNavigate(playlist.id.toString()) } } } } }
                     }
                     if (homeViewModel.searchResultsTracks.isEmpty() && homeViewModel.searchResultsArtists.isEmpty() && homeViewModel.searchResultsPlaylists.isEmpty()) item { Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                     if (homeViewModel.isSearchLoadingMore) item { Box(modifier = Modifier
@@ -1414,6 +1427,27 @@ import androidx.compose.animation.core.animateFloatAsState
         }
     }
     
+    @Composable
+    fun StaggeredItem(index: Int, content: @Composable () -> Unit) {
+        val alpha = remember { Animatable(0f) }
+        val offsetY = remember { Animatable(24f) }
+        LaunchedEffect(Unit) {
+            val staggerDelay = (index * 40L).coerceAtMost(400L)
+            delay(staggerDelay)
+            launch { alpha.animateTo(1f, animationSpec = tween(280, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+            launch { offsetY.animateTo(0f, animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+        }
+        Box(
+            modifier = Modifier
+                .graphicsLayer {
+                    this.alpha = alpha.value
+                    translationY = offsetY.value * density
+                }
+        ) {
+            content()
+        }
+    }
+
     @Composable
     fun rememberMonetColor(key: String): Color {
         val isDark = isSystemInDarkTheme()
