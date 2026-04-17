@@ -603,37 +603,46 @@
                                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start) {
                                         val stableId = if (currentIdLong != 0L) currentIdLong else playlistId.hashCode().toLong()
                                         if ((isLocalPlaylist || isUserCreated) && !isYoutubeRadio) {
-                                            IconButton(onClick = { newPlaylistName = playlistTitle; showRenameDialog = true }) {
+                                            IconButton(
+                                                onClick = { newPlaylistName = playlistTitle; showRenameDialog = true },
+                                                shapes = IconButtonDefaults.shapes()
+                                            ) {
                                                 Icon(Icons.Outlined.Edit, stringResource(R.string.profile_edit), tint = MaterialTheme.colorScheme.onBackground)
                                             }
                                         }
                                         if (playlistId != "downloads" && playlistId != "likes" && playlistId != "local_files") {
     
                                             if (isUserCreated) {
-                                                IconButton(onClick = { showDeleteDialog = true }) {
+                                                IconButton(
+                                                    onClick = { showDeleteDialog = true },
+                                                    shapes = IconButtonDefaults.shapes()
+                                                ) {
                                                     Icon(Icons.Default.Delete, stringResource(R.string.btn_delete), tint = MaterialTheme.colorScheme.error)
                                                 }
                                             } else {
-                                                IconButton(onClick = {
-                                                    if (isLocalPlaylist) {
-                                                        showDeleteDialog = true
-                                                    } else {
-                                                        val tracksToSave = if (isYoutubeRadio) emptyList() else tracksToDisplay.toList()
-                                                        if (isYoutubeRadio || tracksToSave.isNotEmpty()) {
-                                                            val fakePlaylist = Playlist(
-                                                                id = stableId,
-                                                                title = playlistTitle,
-                                                                artworkUrl = playlistCover,
-                                                                calculatedArtworkUrl = null,
-                                                                trackCount = if (isYoutubeRadio) 0 else tracksToSave.size,
-                                                                user = playlistUser,
-                                                                tracks = null,
-                                                                permalinkUrl = if (isYoutubeRadio) playlistId else playlistPermalinkUrl
-                                                            )
-                                                            DownloadManager.importPlaylistToLibrary(fakePlaylist, tracksToSave)
+                                                IconButton(
+                                                    onClick = {
+                                                        if (isLocalPlaylist) {
+                                                            showDeleteDialog = true
+                                                        } else {
+                                                            val tracksToSave = if (isYoutubeRadio) emptyList() else tracksToDisplay.toList()
+                                                            if (isYoutubeRadio || tracksToSave.isNotEmpty()) {
+                                                                val fakePlaylist = Playlist(
+                                                                    id = stableId,
+                                                                    title = playlistTitle,
+                                                                    artworkUrl = playlistCover,
+                                                                    calculatedArtworkUrl = null,
+                                                                    trackCount = if (isYoutubeRadio) 0 else tracksToSave.size,
+                                                                    user = playlistUser,
+                                                                    tracks = null,
+                                                                    permalinkUrl = if (isYoutubeRadio) playlistId else playlistPermalinkUrl
+                                                                )
+                                                                DownloadManager.importPlaylistToLibrary(fakePlaylist, tracksToSave)
+                                                            }
                                                         }
-                                                    }
-                                                }) {
+                                                    },
+                                                    shapes = IconButtonDefaults.shapes()
+                                                ) {
                                                     if (isLocalPlaylist) {
                                                         Icon(Icons.Rounded.Favorite, stringResource(R.string.lib_liked_tracks), tint = MaterialTheme.colorScheme.primary)
                                                     } else {
@@ -644,7 +653,8 @@
                                         }
     
                                         if (!isYoutubeRadio && playlistId != "downloads" && tracksToDisplay.isNotEmpty()) {
-                                            IconButton(onClick = {
+                                            IconButton(
+                                                onClick = {
                                                 val targetBatchId = if (playlistId == "likes") DownloadManager.LIKES_BATCH_ID else stableId
     
                                                 if (isFullyDownloaded || isDownloadedView) {
@@ -659,7 +669,9 @@
                                                         DownloadManager.downloadPlaylist(fakePlaylist, tracks.toList())
                                                     }
                                                 }
-                                            }) {
+                                                },
+                                                shapes = IconButtonDefaults.shapes()
+                                            ) {
                                                 when {
                                                     isFullyDownloaded || isDownloadedView -> {
                                                         Icon(Icons.Rounded.Delete, stringResource(R.string.btn_delete), tint = MaterialTheme.colorScheme.error)
@@ -1317,7 +1329,13 @@
                             .then(dragModifier)
                     )
                 }
-                IconButton(onClick = onOptionClick, modifier = Modifier.size(48.dp)) { Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                IconButton(
+                    onClick = onOptionClick,
+                    modifier = Modifier.size(48.dp),
+                    shapes = IconButtonDefaults.shapes()
+                ) {
+                    Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
     }

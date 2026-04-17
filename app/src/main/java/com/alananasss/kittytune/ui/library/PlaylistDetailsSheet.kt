@@ -103,15 +103,17 @@
     
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                        .size(32.dp)
+                    modifier = Modifier.size(32.dp),
+                    shapes = IconButtonDefaults.shapes(),
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 ) {
                     Icon(
                         Icons.Rounded.Close,
                         stringResource(R.string.btn_close),
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurface
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }
@@ -165,35 +167,34 @@
                             if (tags.isNotEmpty()) {
                                 FlowRow(modifier = Modifier.fillMaxWidth()) {
                                     tags.take(10).forEach { tag ->
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.surfaceContainer,
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier
-                                                .padding(end = 8.dp, bottom = 8.dp)
-                                                .clickable {
-                                                    onDismiss()
-                                                    onNavigate("tag:$tag")
-                                                }
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
+                                        SuggestionChip(
+                                            onClick = {
+                                                onDismiss()
+                                                onNavigate("tag:$tag")
+                                            },
+                                            label = {
+                                                Text(
+                                                    text = tag.uppercase(),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            },
+                                            icon = {
                                                 Icon(
                                                     Icons.Rounded.Tag,
                                                     null,
                                                     modifier = Modifier.size(14.dp),
                                                     tint = MaterialTheme.colorScheme.primary
                                                 )
-                                                Spacer(Modifier.width(4.dp))
-                                                Text(
-                                                    text = tag.uppercase(),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                                labelColor = MaterialTheme.colorScheme.onSurface
+                                            ),
+                                            border = null,
+                                            modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
+                                        )
                                     }
                                 }
                             }
