@@ -335,6 +335,7 @@
                                 }
                                 context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share_via)))
                             },
+                            shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.iconButtonColors(containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(alpha = 0.3f), contentColor = contentColor)
                         ) {
                             Icon(Icons.Outlined.Share, stringResource(R.string.btn_share))
@@ -1004,8 +1005,11 @@
         ) {
             Text(text = title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
             if (showMore) {
-                TextButton(onClick = onMoreClick) {
-                    Text(stringResource(R.string.btn_see_all))
+                TextButton(
+                    onClick = onMoreClick,
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(stringResource(R.string.btn_see_all), fontWeight = FontWeight.Bold)
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
                 }
             }
