@@ -170,18 +170,18 @@
         val trackId: Long,
         val trackTitle: String,
         val artistName: String,
-        val artworkUrl: String,
-        val source: String,
+        val artworkUrl: String?,
+        val source: String?,
         val playCount: Int,
         val totalListenMs: Long
     )
 
     data class TopArtistResult(
         val artistName: String,
-        val artworkUrl: String,
+        val artworkUrl: String?,
         val artistId: Long?,
         val artistPermalink: String?,
-        val source: String,
+        val source: String?,
         val playCount: Int,
         val totalListenMs: Long
     )
