@@ -157,7 +157,7 @@ fun ListeningStatsScreen(
                 navigationIcon = {
                     FilledTonalIconButton(
                         onClick = onBackClick,
-                        shapes = IconButtonDefaults.filledTonalShapes(),
+                        shapes = IconButtonDefaults.shapes(),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
