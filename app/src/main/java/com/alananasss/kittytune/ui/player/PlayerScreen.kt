@@ -2084,7 +2084,7 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
             if (tags.isNotEmpty()) {
                 item {
                     Text(stringResource(R.string.detail_tags), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { tags.forEach { tag -> AssistChip(onClick = { onClose(); viewModel.navigateToTag(tag) }, label = { Text("#${tag.uppercase()}") }, colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh, labelColor = MaterialTheme.colorScheme.onSurface), border = null, shape = CircleShape) } }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { tags.forEach { tag -> AssistChip(onClick = { onClose(); viewModel.navigateToTag(tag) }, label = { Text("#${tag.uppercase()}") }, colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh, labelColor = MaterialTheme.colorScheme.onSurface), border = null, shape = RoundedCornerShape(8.dp)) } }
                     Spacer(Modifier.height(32.dp))
                 }
             }
