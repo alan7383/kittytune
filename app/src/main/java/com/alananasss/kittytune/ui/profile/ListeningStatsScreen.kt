@@ -167,7 +167,7 @@ fun ListeningStatsScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showSettingsDialog = true }) {
+                    IconButton(onClick = { showSettingsDialog = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = Icons.Rounded.Settings,
                             contentDescription = stringResource(R.string.pref_privacy_title),

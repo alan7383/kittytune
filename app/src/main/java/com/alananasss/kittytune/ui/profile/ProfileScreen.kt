@@ -310,13 +310,14 @@
                     actions = {
                         if (profileViewModel.isCurrentUser) {
                             AnimatedVisibility(visible = showBarBackground, enter = fadeIn(), exit = fadeOut()) {
-                                IconButton(onClick = { showEditSheet = true }) {
+                                IconButton(onClick = { showEditSheet = true }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(Icons.Outlined.Edit, stringResource(R.string.profile_edit), tint = contentColor)
                                 }
                             }
                         } else {
                             IconButton(
                                 onClick = { DownloadManager.toggleSaveArtist(user) },
+                                shapes = IconButtonDefaults.shapes(),
                                 colors = IconButtonDefaults.iconButtonColors(containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(alpha = 0.3f), contentColor = if(isArtistSaved != null) Color(0xFFFF4081) else contentColor)
                             ) {
                                 Icon(if (isArtistSaved != null) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, stringResource(R.string.btn_follow))
