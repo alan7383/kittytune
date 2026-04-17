@@ -1371,7 +1371,8 @@ fun QueueContent(
                 onClick = {
                     onCloseQueue()
                     onOpenExpandedQueue()
-                }
+                },
+                shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(
                     imageVector = Icons.Rounded.OpenInFull,

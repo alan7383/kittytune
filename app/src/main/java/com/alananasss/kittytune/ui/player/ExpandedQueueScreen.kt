@@ -48,7 +48,7 @@ import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExpandedQueueScreen(
     viewModel: PlayerViewModel,
@@ -86,7 +86,7 @@ fun ExpandedQueueScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Rounded.KeyboardArrowDown,
                             contentDescription = stringResource(R.string.btn_close)
@@ -99,7 +99,7 @@ fun ExpandedQueueScreen(
                     else
                         MaterialTheme.colorScheme.onSurface
 
-                    IconButton(onClick = { viewModel.toggleShuffle() }) {
+                    IconButton(onClick = { viewModel.toggleShuffle() }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = Icons.Rounded.Shuffle,
                             contentDescription = stringResource(R.string.queue_shuffle),
@@ -116,7 +116,7 @@ fun ExpandedQueueScreen(
                     else
                         MaterialTheme.colorScheme.primary
 
-                    IconButton(onClick = { viewModel.toggleRepeatMode() }) {
+                    IconButton(onClick = { viewModel.toggleRepeatMode() }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             imageVector = repeatIcon,
                             contentDescription = stringResource(R.string.queue_repeat),
