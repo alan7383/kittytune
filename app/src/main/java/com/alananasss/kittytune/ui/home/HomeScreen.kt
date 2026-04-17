@@ -1432,10 +1432,12 @@ import androidx.compose.animation.core.animateFloatAsState
         val alpha = remember { Animatable(0f) }
         val offsetY = remember { Animatable(24f) }
         LaunchedEffect(Unit) {
-            val staggerDelay = (index * 40L).coerceAtMost(400L)
+            // Apply stagger delay only to the initial items that fit on screen.
+            // Items loaded later via fast scrolling will fade in immediately without artificial waiting.
+            val staggerDelay = if (index < 12) (index * 40L) else 0L
             delay(staggerDelay)
-            launch { alpha.animateTo(1f, animationSpec = tween(280, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
-            launch { offsetY.animateTo(0f, animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+            launch { alpha.animateTo(1f, animationSpec = tween(200, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+            launch { offsetY.animateTo(0f, animationSpec = tween(250, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
         }
         Box(
             modifier = Modifier
