@@ -1,5 +1,7 @@
     package com.alananasss.kittytune.ui.track
     
+    import androidx.compose.animation.*
+    import androidx.compose.animation.core.tween
     import androidx.compose.foundation.ExperimentalFoundationApi
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
@@ -83,71 +85,81 @@
                 )
             }
         ) { innerPadding ->
-            if (detailViewModel.isLoading || track == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ContainedLoadingIndicator()
-                }
-            } else {
-                Column(modifier = Modifier.padding(innerPadding)) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = track.fullResArtwork,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                        Spacer(Modifier.width(16.dp))
-                        Column {
-                            Text(track.title ?: "", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(track.user?.username ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                if (track.user?.verified == true) {
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+            AnimatedContent(
+                targetState = detailViewModel.isLoading || track == null,
+                transitionSpec = {
+                    (fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.96f))
+                        .togetherWith(fadeOut(tween(200)))
+                },
+                label = "trackDetailContent",
+                modifier = Modifier.fillMaxSize().padding(innerPadding)
+            ) { isLoadingState ->
+                if (isLoadingState) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        ContainedLoadingIndicator()
+                    }
+                } else {
+                    Column {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = track!!.fullResArtwork,
+                                contentDescription = null,
+                                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(Modifier.width(16.dp))
+                            Column {
+                                Text(track.title ?: "", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(track.user?.username ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if (track.user?.verified == true) {
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                                    }
                                 }
                             }
                         }
-                    }
     
-                    TabRow(selectedTabIndex = pagerState.currentPage) {
-                        tabs.forEachIndexed { index, title ->
-                            Tab(
-                                selected = pagerState.currentPage == index,
-                                onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                                text = { Text(text = title) }
-                            )
+                        TabRow(selectedTabIndex = pagerState.currentPage) {
+                            tabs.forEachIndexed { index, title ->
+                                Tab(
+                                    selected = pagerState.currentPage == index,
+                                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                                    text = { Text(text = title) }
+                                )
+                            }
                         }
-                    }
     
-                    HorizontalPager(state = pagerState) { page ->
-                        when (page) {
-                            0 -> UserList(
-                                users = detailViewModel.likers,
-                                onNavigate = onNavigate,
-                                onLoadMore = { detailViewModel.loadMoreLikers() },
-                                isLoadingMore = detailViewModel.isLikersLoadingMore
-                            )
-                            1 -> UserList(
-                                users = detailViewModel.reposters,
-                                onNavigate = onNavigate,
-                                onLoadMore = { detailViewModel.loadMoreReposters() },
-                                isLoadingMore = detailViewModel.isRepostersLoadingMore
-                            )
-                            2 -> PlaylistList(
-                                playlists = detailViewModel.inPlaylists,
-                                onNavigate = onNavigate,
-                                onLoadMore = { detailViewModel.loadMorePlaylists() },
-                                isLoadingMore = detailViewModel.isPlaylistsLoadingMore
-                            )
-                            3 -> TrackList(
-                                tracks = detailViewModel.relatedTracks,
-                                playerViewModel = playerViewModel,
-                                onLoadMore = { detailViewModel.loadMoreRelated() },
-                                isLoadingMore = detailViewModel.isRelatedLoadingMore
-                            )
+                        HorizontalPager(state = pagerState) { page ->
+                            when (page) {
+                                0 -> UserList(
+                                    users = detailViewModel.likers,
+                                    onNavigate = onNavigate,
+                                    onLoadMore = { detailViewModel.loadMoreLikers() },
+                                    isLoadingMore = detailViewModel.isLikersLoadingMore
+                                )
+                                1 -> UserList(
+                                    users = detailViewModel.reposters,
+                                    onNavigate = onNavigate,
+                                    onLoadMore = { detailViewModel.loadMoreReposters() },
+                                    isLoadingMore = detailViewModel.isRepostersLoadingMore
+                                )
+                                2 -> PlaylistList(
+                                    playlists = detailViewModel.inPlaylists,
+                                    onNavigate = onNavigate,
+                                    onLoadMore = { detailViewModel.loadMorePlaylists() },
+                                    isLoadingMore = detailViewModel.isPlaylistsLoadingMore
+                                )
+                                3 -> TrackList(
+                                    tracks = detailViewModel.relatedTracks,
+                                    playerViewModel = playerViewModel,
+                                    onLoadMore = { detailViewModel.loadMoreRelated() },
+                                    isLoadingMore = detailViewModel.isRelatedLoadingMore
+                                )
+                            }
                         }
                     }
                 }

@@ -1,5 +1,9 @@
     package com.alananasss.kittytune.ui.home
     
+    import androidx.compose.animation.*
+    import androidx.compose.animation.core.Animatable
+    import androidx.compose.animation.core.FastOutSlowInEasing
+    import androidx.compose.animation.core.tween
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.LazyColumn
     import androidx.compose.foundation.lazy.itemsIndexed
@@ -10,9 +14,11 @@
     import androidx.compose.runtime.LaunchedEffect
     import androidx.compose.runtime.collectAsState
     import androidx.compose.runtime.getValue
+    import androidx.compose.runtime.remember
     import androidx.compose.runtime.rememberCoroutineScope
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
+    import androidx.compose.ui.graphics.graphicsLayer
     import androidx.compose.ui.platform.LocalContext
     import androidx.compose.ui.res.stringResource
     import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +29,7 @@
     import com.alananasss.kittytune.ui.library.TrackListItem
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import java.io.File
+    import kotlinx.coroutines.delay
     import kotlinx.coroutines.launch
     
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -93,46 +100,64 @@
             }
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                when (tagViewModel.uiState) {
-                    "LOADING" -> {
-                        ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
-                    }
-                    "EMPTY" -> {
-                        Text(stringResource(R.string.no_results), modifier = Modifier.align(Alignment.Center))
-                    }
-                    "ERROR" -> {
-                        Text(stringResource(R.string.error_generic), modifier = Modifier.align(Alignment.Center))
-                    }
-                    "SUCCESS" -> {
-                        LazyColumn(
-                            contentPadding = PaddingValues(bottom = 120.dp)
-                        ) {
-                            itemsIndexed(currentTracks) { index, track ->
-                                if (index >= currentTracks.size - 3) {
-                                    LaunchedEffect(Unit) {
-                                        tagViewModel.loadMore()
+                AnimatedContent(
+                    targetState = tagViewModel.uiState,
+                    transitionSpec = {
+                        (fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.96f))
+                            .togetherWith(fadeOut(tween(200)))
+                    },
+                    label = "tagContent",
+                    modifier = Modifier.fillMaxSize()
+                ) { state ->
+                    when (state) {
+                        "LOADING" -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                ContainedLoadingIndicator()
+                            }
+                        }
+                        "EMPTY" -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(stringResource(R.string.no_results))
+                            }
+                        }
+                        "ERROR" -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(stringResource(R.string.error_generic))
+                            }
+                        }
+                        "SUCCESS" -> {
+                            LazyColumn(
+                                contentPadding = PaddingValues(bottom = 120.dp)
+                            ) {
+                                itemsIndexed(currentTracks) { index, track ->
+                                    if (index >= currentTracks.size - 3) {
+                                        LaunchedEffect(Unit) {
+                                            tagViewModel.loadMore()
+                                        }
+                                    }
+
+                                    val progress = downloadProgress[track.id]
+                                    val isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists()
+
+                                    TagStaggeredItem(index) {
+                                        TrackListItem(
+                                            track = track,
+                                            currentlyPlayingTrack = playerViewModel.currentTrack,
+                                            index = index,
+                                            isDownloading = progress != null,
+                                            isDownloaded = isDownloaded,
+                                            downloadProgress = progress ?: 0,
+                                            onClick = {
+                                                playerViewModel.playPlaylist(currentTracks.toList(), index, context = null)
+                                            },
+                                            onOptionClick = { playerViewModel.showTrackOptions(track) }
+                                        )
                                     }
                                 }
-    
-                                val progress = downloadProgress[track.id]
-                                val isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists()
-    
-                                TrackListItem(
-                                    track = track,
-                                    currentlyPlayingTrack = playerViewModel.currentTrack,
-                                    index = index,
-                                    isDownloading = progress != null,
-                                    isDownloaded = isDownloaded,
-                                    downloadProgress = progress ?: 0,
-                                    onClick = {
-                                        playerViewModel.playPlaylist(currentTracks.toList(), index, context = null)
-                                    },
-                                    onOptionClick = { playerViewModel.showTrackOptions(track) }
-                                )
-                            }
-    
-                            item {
-                                Spacer(Modifier.height(16.dp))
+
+                                item {
+                                    Spacer(Modifier.height(16.dp))
+                                }
                             }
                         }
                     }
@@ -141,4 +166,23 @@
         }
     }
 
-
+    @Composable
+    fun TagStaggeredItem(index: Int, content: @Composable () -> Unit) {
+        val alpha = remember { Animatable(0f) }
+        val offsetY = remember { Animatable(24f) }
+        LaunchedEffect(Unit) {
+            val staggerDelay = if (index < 12) (index * 40L) else 0L
+            delay(staggerDelay)
+            launch { alpha.animateTo(1f, animationSpec = tween(200, easing = FastOutSlowInEasing)) }
+            launch { offsetY.animateTo(0f, animationSpec = tween(250, easing = FastOutSlowInEasing)) }
+        }
+        Box(
+            modifier = Modifier
+                .graphicsLayer {
+                    this.alpha = alpha.value
+                    translationY = offsetY.value * density
+                }
+        ) {
+            content()
+        }
+    }
