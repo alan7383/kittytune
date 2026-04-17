@@ -959,7 +959,8 @@
                             actions = {
                                 IconButton(
                                     onClick = { showPlaylistOptionsSheet = true },
-                                    modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                                    shapes = IconButtonDefaults.shapes(),
+                                    colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f), contentColor = Color.White)
                                 ) {
                                     Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options), tint = Color.White)
                                 }
