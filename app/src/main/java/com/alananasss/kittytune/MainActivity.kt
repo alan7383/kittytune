@@ -1,46 +1,43 @@
-    package com.alananasss.kittytune
-    
-    import android.Manifest
-    import android.content.Context
-    import android.content.Intent
-    import android.content.SharedPreferences
-    import android.os.Build
-    import android.os.Bundle
-    import androidx.activity.ComponentActivity
-    import androidx.activity.SystemBarStyle
-    import androidx.activity.compose.setContent
-    import androidx.activity.enableEdgeToEdge
-    import androidx.activity.result.contract.ActivityResultContracts
-    import androidx.compose.foundation.layout.fillMaxSize
-    import androidx.compose.material3.MaterialTheme
-    import androidx.compose.material3.Surface
-    import androidx.compose.runtime.*
-    import androidx.compose.ui.Modifier
-    import androidx.compose.ui.res.stringResource
-    import androidx.lifecycle.Lifecycle
-    import androidx.lifecycle.LifecycleEventObserver
-    import androidx.lifecycle.compose.LocalLifecycleOwner
-    import com.alananasss.kittytune.data.AchievementManager
-    import com.alananasss.kittytune.data.DownloadManager
-    import com.alananasss.kittytune.data.HistoryRepository
-    import com.alananasss.kittytune.data.LikeRepository
-    import com.alananasss.kittytune.data.ListeningStatsRepository
-    import com.alananasss.kittytune.data.RepostRepository
-    import com.alananasss.kittytune.data.TokenManager
-    import com.alananasss.kittytune.data.UpdateManager
-    import com.alananasss.kittytune.data.UpdateStatus
-    import com.alananasss.kittytune.data.local.AppThemeMode
-    import com.alananasss.kittytune.data.local.PlayerPreferences
-    import com.alananasss.kittytune.ui.MainScreen
-    import com.alananasss.kittytune.ui.theme.SoundTuneTheme
-    import com.alananasss.kittytune.utils.Config
-    import com.alananasss.kittytune.utils.LocaleUtils
-    import kotlinx.coroutines.flow.MutableStateFlow
-    import kotlinx.coroutines.flow.asStateFlow
-    import kotlinx.coroutines.launch
-    import com.zionhuang.innertube.YouTube
-    import com.zionhuang.innertube.models.YouTubeLocale
-    import kotlinx.coroutines.GlobalScope
+package com.alananasss.kittytune
+
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.alananasss.kittytune.data.AchievementManager
+import com.alananasss.kittytune.data.DownloadManager
+import com.alananasss.kittytune.data.HistoryRepository
+import com.alananasss.kittytune.data.LikeRepository
+import com.alananasss.kittytune.data.ListeningStatsRepository
+import com.alananasss.kittytune.data.RepostRepository
+import com.alananasss.kittytune.data.TokenManager
+import com.alananasss.kittytune.data.UpdateManager
+import com.alananasss.kittytune.data.UpdateStatus
+import com.alananasss.kittytune.data.local.AppThemeMode
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.MainScreen
+import com.alananasss.kittytune.ui.theme.SoundTuneTheme
+import com.alananasss.kittytune.utils.Config
+import com.alananasss.kittytune.utils.LocaleUtils
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import com.zionhuang.innertube.YouTube
+import com.zionhuang.innertube.models.YouTubeLocale
+import kotlinx.coroutines.GlobalScope
     
     class MainActivity : ComponentActivity() {
     
@@ -48,9 +45,6 @@
             super.attachBaseContext(LocaleUtils.updateBaseContextLocale(newBase))
         }
     
-        private val requestPermissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { /* Permission result handled implicitly by flow */ }
 
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
@@ -117,10 +111,6 @@
     
             refreshThemeState()
     
-            // Request notification permission for Android 13+
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
     
             handleIntent(intent)
     
