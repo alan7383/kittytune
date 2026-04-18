@@ -1,0 +1,929 @@
+﻿Reusing configuration cache.
+> Task :kizzy:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :kizzy:processResources NO-SOURCE
+> Task :app:prepareLibraryDefinitionsDebug UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :kizzy:compileKotlin UP-TO-DATE
+> Task :kizzy:compileJava NO-SOURCE
+> Task :kizzy:classes UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :kizzy:jar UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin UP-TO-DATE
+
+> Task :app:compileDebugKotlin FAILED
+./gradlew : e: file:///
+C:/AndroidStudioProject
+s/KittyTune/app/src/mai
+n/java/com/alananasss/k
+ittytune/ui/home/Charts
+Screen.kt:52:48 
+Unresolved reference 
+'ArtistAvatar'.
+Au caractère Ligne:1 : 
+1
++ ./gradlew :app:compil
+eDebugKotlin 
+--console=plain > 
+build_error.txt 2 ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (e: file:///C:   
+ /A...'ArtistAvatar    
+'.:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/ChartsScreen.kt:15
+2:25 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/ChartsScreen.kt:42
+1:13 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:37:48 Unresolved 
+reference 'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:38:48 Cannot access 
+'fun 
+SectionTitle(text: 
+String): Unit': it is 
+private in file.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:126:32 Cannot 
+access 'fun 
+SectionTitle(text: 
+String): Unit': it is 
+private in file.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:157:33 Cannot 
+access 'fun 
+SectionTitle(text: 
+String): Unit': it is 
+private in file.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:182:37 Unresolved 
+reference 'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:193:33 No parameter 
+with name 'showMore' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:194:33 No parameter 
+with name 
+'onMoreClick' found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:207:37 Unresolved 
+reference 'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:215:32 Cannot 
+access 'fun 
+SectionTitle(text: 
+String): Unit': it is 
+private in file.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/GenreDetailScreen.
+kt:222:37 Unresolved 
+reference 'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:78:4
+8 Unresolved reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:80:4
+8 Unresolved reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:81:4
+8 Unresolved reference 
+'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:227:
+49 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:1388
+:29 Unresolved 
+reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:1404
+:96 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:1415
+:137 Unresolved 
+reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:1420
+:256 Unresolved 
+reference 'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:1455
+:13 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/HomeScreen.kt:1510
+:33 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/TagScreen.kt:26:48
+ Unresolved reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+home/TagScreen.kt:139:4
+1 Unresolved reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/LibraryScreen.k
+t:52:48 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/LibraryScreen.k
+t:387:21 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/LibraryScreen.k
+t:389:21 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/LibraryScreen.k
+t:391:21 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/LibraryScreen.k
+t:556:17 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/LibraryScreen.k
+t:569:17 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:760:49 
+Unresolved reference 
+'PlaylistSquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:793:41 
+Unresolved reference 
+'EmptyPlaylistView'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:892:57 
+Unresolved reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:934:43 Syntax 
+error: Unexpected 
+tokens (use ';' to 
+separate expressions 
+on the same line).
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:935:45 
+@Composable 
+invocations can only 
+happen from the 
+context of a 
+@Composable function
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:936:49 
+Unresolved reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:954:41 'fun 
+item(key: Any? = ..., 
+contentType: Any? = 
+..., content: Composabl
+eFunction1<LazyItemScop
+e, Unit>): Unit' 
+cannot be called in 
+this context with an 
+implicit receiver. Use 
+an explicit receiver 
+if necessary.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:964:25 
+@Composable 
+invocations can only 
+happen from the 
+context of a 
+@Composable function
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:984:56 
+@Composable 
+invocations can only 
+happen from the 
+context of a 
+@Composable function
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:1026:29 
+Unresolved reference 
+'PlaylistSquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:1041:21 
+Unresolved reference 
+'PlaylistOptionsSheet'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+library/PlaylistDetailS
+creen.kt:1405:6 Syntax 
+error: Expecting '}'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ChatScreen.kt:9
+9:29 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ConversationsSc
+reen.kt:176:21 
+Unresolved reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/NotificationsSc
+reen.kt:235:21 
+Unresolved reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileMenuShee
+t.kt:65:29 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:69:48 Unresolved 
+reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:129:45 Unresolved 
+reference 'tween'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:129:105 Unresolved 
+reference 'tween'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:130:63 Unresolved 
+reference 'tween'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:136:21 Unresolved 
+reference 
+'ProfileScreenShimmer'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:146:25 Unresolved 
+reference 'FullCommentL
+istScreen'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:163:25 Unresolved 
+reference 
+'FullListScreen'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:180:25 Unresolved 
+reference 
+'ModernProfileHeader'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:201:33 Unresolved 
+reference 'ExpandableDe
+scription'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:203:52 Cannot infer 
+type for value 
+parameter 'url'. 
+Specify it explicitly.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:204:56 Cannot infer 
+type for value 
+parameter 'username'. 
+Specify it explicitly.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:214:45 No parameter 
+with name 'title' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:214:99 No parameter 
+with name 'showMore' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:214:151 No parameter 
+with name 
+'onMoreClick' found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:214:151 No value 
+passed for parameter 
+'text'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:217:33 Unresolved 
+reference 
+'ProfileTrackItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:223:45 No parameter 
+with name 'title' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:223:101 No parameter 
+with name 'showMore' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:223:118 No parameter 
+with name 
+'onMoreClick' found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:223:118 No value 
+passed for parameter 
+'text'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:226:33 Unresolved 
+reference 
+'ProfileTrackItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:232:32 Cannot access 
+'fun 
+SectionTitle(text: 
+String): Unit': it is 
+private in file.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:235:115 Unresolved 
+reference 'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:243:29 Cannot access 
+'fun 
+SectionTitle(text: 
+String): Unit': it is 
+private in file.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:247:118 Unresolved 
+reference 'SquareCard'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:255:42 No parameter 
+with name 'title' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:255:104 No parameter 
+with name 'showMore' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:255:121 No parameter 
+with name 
+'onMoreClick' found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:255:121 No value 
+passed for parameter 
+'text'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:259:33 Unresolved 
+reference 
+'ProfileTrackItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:266:42 No parameter 
+with name 'title' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:266:96 No parameter 
+with name 'showMore' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:266:113 No parameter 
+with name 
+'onMoreClick' found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:266:113 No value 
+passed for parameter 
+'text'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:270:33 Unresolved 
+reference 
+'ProfileTrackItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:277:33 No parameter 
+with name 'title' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:278:33 No parameter 
+with name 'showMore' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:279:33 No parameter 
+with name 
+'onMoreClick' found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:279:33 No value 
+passed for parameter 
+'text'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:284:33 Unresolved 
+reference 
+'UserCommentItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:298:32 Cannot access 
+'fun 
+SectionTitle(text: 
+String): Unit': it is 
+private in file.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:301:121 Unresolved 
+reference 
+'ArtistCircle'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:374:21 Unresolved 
+reference 
+'EditProfileSheet'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:378:36 Cannot infer 
+type for value 
+parameter 'name'. 
+Specify it explicitly.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:378:42 Cannot infer 
+type for value 
+parameter 'bio'. 
+Specify it explicitly.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:378:47 Cannot infer 
+type for value 
+parameter 'city'. 
+Specify it explicitly.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:411:29 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:421:37 No parameter 
+with name 'title' 
+found.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:421:37 No value 
+passed for parameter 
+'text'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:986:25 Unresolved 
+reference 
+'ProfileTrackItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:1009:9 Unresolved 
+reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+profile/ProfileScreen.k
+t:1345:6 Syntax error: 
+Expecting '}'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+track/TrackDetailScreen
+.kt:39:48 Unresolved 
+reference 
+'TrackListItem'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+track/TrackDetailScreen
+.kt:41:48 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+track/TrackDetailScreen
+.kt:203:29 Unresolved 
+reference 
+'ArtistAvatar'.
+e: file:///C:/AndroidSt
+udioProjects/KittyTune/
+app/src/main/java/com/a
+lananasss/kittytune/ui/
+track/TrackDetailScreen
+.kt:318:25 Unresolved 
+reference 
+'TrackListItem'.
+
+FAILURE: Build failed 
+with an exception.
+
+* What went wrong:
+Execution failed for 
+task ':app:compileDebug
+Kotlin'.
+> A failure occurred 
+while executing org.jet
+brains.kotlin.compilerR
+unner.btapi.BuildToolsA
+piCompilationWork
+   > Compilation 
+error. See log for 
+more details
+
+* Try:
+> Run with 
+--stacktrace option to 
+get the stack trace.
+> Run with --info or 
+--debug option to get 
+more log output.
+> Run with --scan to 
+get full insights from 
+a Build Scan (powered 
+by Develocity).
+> Get more help at http
+s://help.gradle.org.
+
+BUILD FAILED in 4s
+21 actionable tasks: 1 executed, 20 up-to-date
+Configuration cache entry reused.
