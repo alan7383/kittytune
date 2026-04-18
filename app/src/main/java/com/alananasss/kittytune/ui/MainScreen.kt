@@ -1,4 +1,4 @@
-package com.alananasss.kittytune.ui
+﻿package com.alananasss.kittytune.ui
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -105,8 +105,20 @@ fun MainScreen(
 
     val prefs = remember { PlayerPreferences(context) }
 
-    var isAppReady by remember { mutableStateOf(false) }
-    var startDestination by remember { mutableStateOf(Screen.Home.route) }
+    val tokenManager = remember { TokenManager(context) }
+
+    // On dÃ©termine la page d'accueil de maniÃ¨re instantanÃ©e et synchrone
+    var startDestination by remember {
+        mutableStateOf(
+            when {
+                !tokenManager.getAccessToken().isNullOrEmpty() || tokenManager.isGuestMode() -> {
+                    val destPref = prefs.getStartDestination()
+                    if (destPref == StartDestination.LIBRARY) Screen.Library.route else Screen.Home.route
+                }
+                else -> Screen.Welcome.route
+            }
+        )
+    }
     var isGuestLoading by remember { mutableStateOf(false) }
     var showProfileMenu by remember { mutableStateOf(false) }
     var instantiateWebView by remember { mutableStateOf(false) }
@@ -260,26 +272,13 @@ fun MainScreen(
     }
 
     LaunchedEffect(Unit) {
-        val tokenManager = TokenManager(context)
-        delay(500)
-
         val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
-        val isGuest = tokenManager.isGuestMode()
-
+        
         if (hasToken) {
             playerViewModel.fetchUserProfile()
             SessionManager.reloadSession()
-            val destPref = prefs.getStartDestination()
-            startDestination = if (destPref == StartDestination.LIBRARY) Screen.Library.route else Screen.Home.route
-        } else if (isGuest) {
-            val destPref = prefs.getStartDestination()
-            startDestination = if (destPref == StartDestination.LIBRARY) Screen.Library.route else Screen.Home.route
-        } else {
-            startDestination = Screen.Welcome.route
         }
-
-        isAppReady = true
-
+        
         delay(200)
         instantiateWebView = true
     }
@@ -344,16 +343,14 @@ fun MainScreen(
         }
     }
 
-    if (!isAppReady) {
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            Box(modifier = Modifier.statusBarsPadding()) { HomeScreenShimmer() }
-        }
-    } else {
-        Box(modifier = Modifier.fillMaxSize()) {
-            val showBottomUi = !playerViewModel.isPlayerExpanded
-            val isFullScreenRoute = currentDestination?.route == Screen.Login.route ||
-                    currentDestination?.route == Screen.Welcome.route ||
-                    currentDestination?.route == "update"
+    Box(modifier = Modifier.fillMaxSize()) {
+        val showBottomUi = !playerViewModel.isPlayerExpanded
+        
+        // CORRECTION ICI : On utilise startDestination si currentDestination est null Ã  la frame 1
+        val currentRoute = currentDestination?.route ?: startDestination
+        val isFullScreenRoute = currentRoute == Screen.Login.route ||
+                currentRoute == Screen.Welcome.route ||
+                currentRoute == "update"
 
             val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -1105,4 +1102,3 @@ fun MainScreen(
             }
         }
     }
-}
