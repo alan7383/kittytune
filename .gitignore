@@ -24,4 +24,5 @@ dump_project_context.txt
 /app/release/
 *.dm
 .kotlin/
+*.txt
 .vscode/
