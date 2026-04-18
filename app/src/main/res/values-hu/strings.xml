@@ -83,14 +83,14 @@
     <string name="home_section_new_crew">Új tehetségek</string>
     <string name="home_section_new_crew_sub">Előadók az ízlésed alapján</string>
     <string name="home_rediscovery_title">Fedezd fel újra a gyűjteményed</string>
-    <string name="home_rediscovery_sub">Elfeledett kincsek a like-jaidból</string>
+    <string name="home_rediscovery_sub">Elfeledett kincsek a kedvelt zenéidből</string>
     <string name="home_habits_title">A te stílusod</string>
     <string name="home_habits_sub">A legutóbbi hallgatásaid alapján</string>
     <string name="home_station_artist_title">Rádió: %1$s</string>
     <string name="home_station_track_title">Rádió: %1$s</string>
     <string name="home_discover_stations">Felfedezés Állomásokkal</string>
     <string name="home_artist_station_subtitle">Előadói állomás</string>
-    <string name="home_liked_by_user_title">Likolta: %1$s</string>
+    <string name="home_liked_by_user_title">%1$s kedvenc zenéi</string>
     <string name="home_liked_by_section_title">Általuk kedvelt</string>
     <string name="home_liked_by_section_subtitle">Az általad hallgatott előadók ajánlásával</string>
     <string name="home_recommended_tracks">Neked ajánlott</string>
@@ -210,7 +210,7 @@
 
     <string name="lib_playlists">Playlistek</string>
     <string name="lib_artists">Előadók</string>
-    <string name="lib_liked_tracks">Likolt zenék</string>
+    <string name="lib_liked_tracks">Kedvelt zenék</string>
     <string name="lib_liked_subtitle">Playlist • Auto</string>
     <string name="lib_liked_subtitle_local">Helyi • Ezen az eszközön</string>
     <string name="lib_liked_subtitle_syncing">Szinkron...</string>
@@ -244,7 +244,7 @@
     <string name="queue_repeat">Ismétlés</string>
     <string name="queue_repeat_one">Egy ismétlése</string>
     <string name="playback_count_formatted">lejátszás</string>
-    <string name="player_like_action">Like</string>
+    <string name="player_like_action">Tetszik</string>
     <string name="download_comment">Via KittyTune</string>
 
     <string name="player_audio_settings">Audio beállítások</string>
@@ -291,7 +291,7 @@
     <string name="menu_repeat_all">Ismétlés (Mind)</string>
     <string name="menu_repeat_one">Ismétlés (1)</string>
     <string name="menu_remove">Eltávolítás</string>
-    <string name="menu_repost">Megosztás</string>
+    <string name="menu_repost">Újraközlés</string>
     <string name="menu_reposted">Megosztva</string>
 
     <string name="menu_remove_local_q">Fájl elrejtése?</string>
@@ -301,11 +301,11 @@
     <string name="dialog_remove_download_title">Letöltés törlése?</string>
     <string name="dialog_remove_download_msg">A hangfájlok törlődnek, de a lista a könyvtárban marad</string>
 
-    <string name="dialog_repost_title">Megosztás</string>
+    <string name="dialog_repost_title">Újraközlés</string>
     <string name="dialog_repost_caption_hint">Felirat hozzáadása (opcionális)</string>
-    <string name="dialog_repost_confirm">Megosztás</string>
-    <string name="repost_success">Szám megosztva!</string>
-    <string name="dialog_repost_delete_title">Megosztás törlése?</string>
+    <string name="dialog_repost_confirm">Újraközlés</string>
+    <string name="repost_success">Szám újraközölve!</string>
+    <string name="dialog_repost_delete_title">Újraközlés törlése?</string>
     <string name="dialog_repost_delete_msg">A szám eltűnik a profilodról</string>
     <string name="sorted_by">Rendezés: %1$s</string>
     <string name="sort_newest">Legújabb</string>
@@ -321,8 +321,8 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="detail_track_title">Infó</string>
-    <string name="detail_likers">Likeok</string>
-    <string name="detail_reposters">Repostok</string>
+    <string name="detail_likers">Kedvelések</string>
+    <string name="detail_reposters">Újraközlések</string>
     <string name="detail_in_playlists">Szerepel itt</string>
     <string name="detail_related">Hasonló zenék</string>
     <string name="detail_no_one_yet">Még senki</string>
@@ -332,9 +332,9 @@
     <string name="detail_see_similar">Hasonló számok és rajongók megtekintése</string>
     <string name="detail_see_comments">Hozzászólások megtekintése (%1$s)</string>
 
-    <string name="detail_stats_plays">Play</string>
-    <string name="detail_stats_likes">Like</string>
-    <string name="detail_stats_reposts">Repost</string>
+    <string name="detail_stats_plays">Lejátszás</string>
+    <string name="detail_stats_likes">Kedvelés</string>
+    <string name="detail_stats_reposts">Újraközlés</string>
     <string name="detail_release_date">Megjelent</string>
     <string name="detail_genre">Műfaj</string>
     <string name="detail_tags">Tagek</string>
@@ -385,14 +385,14 @@
     <string name="profile_tab_popular">Népszerű</string>
     <string name="profile_tab_tracks">Számok</string>
     <string name="profile_tab_albums">Albumok</string>
-    <string name="profile_tab_likes">Likeok</string>
-    <string name="profile_tab_reposts">Repostok</string>
+    <string name="profile_tab_likes">Kedvelések</string>
+    <string name="profile_tab_reposts">Újraközlések</string>
     <string name="profile_tab_comments">Kommentek</string>
     <string name="profile_comment_on_track">– %1$s</string>
     <string name="profile_about">Névjegy</string>
 
     <string name="profile_playlists_by_user">%1$s playlistjei</string>
-    <string name="profile_likes_by_user">%1$s likejai</string>
+    <string name="profile_likes_by_user">%1$s kedvenc zenéi</string>
     <string name="profile_update_success">Profil frissítve</string>
     <string name="profile_update_error">Hiba: %1$s</string>
 
@@ -865,7 +865,7 @@
     <string name="history_source_soundcloud">SoundCloud</string>
     <string name="history_default_playlist_title">Playlist</string>
     <string name="history_source_library">Könyvtár</string>
-    <string name="history_title_likes">Likolt zenék</string>
+    <string name="history_title_likes">Kedvelt zenék</string>
     <string name="history_title_downloads">Letöltések</string>
 
     <string name="search_libraries_hint">Könyvtárak keresése…</string>
