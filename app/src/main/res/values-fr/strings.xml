@@ -56,6 +56,9 @@
     <string name="login_soundcloud">Se connecter avec SoundCloud</string>
     <string name="login_guest">Continuer en tant qu\'invité</string>
     <string name="guest_loading">Lancement de la session invité...</string>
+    <string name="permission_notifications">Notifications</string>
+    <string name="permission_notifications_description">Autoriser KittyTune à afficher les contrôles et l\'état de lecture</string>
+    <string name="permission_grant">Autoriser</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- HOME & DISCOVERY                                                                 -->

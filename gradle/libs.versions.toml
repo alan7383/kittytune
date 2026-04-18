@@ -32,6 +32,7 @@ ktor = "2.3.12"
 json = "20251224"
 material3 = "1.5.0-alpha17"
 materialKolor = "4.1.1"
+accompanist = "0.36.0"
 
 
 [libraries]
@@ -84,6 +85,7 @@ ktor-serialization-json = { group = "io.ktor", name = "ktor-serialization-kotlin
 ktor-client-encoding = { group = "io.ktor", name = "ktor-client-encoding", version.ref = "ktor" }
 json = { group = "org.json", name = "json", version.ref = "json" }
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
+accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
