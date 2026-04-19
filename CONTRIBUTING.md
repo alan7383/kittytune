@@ -1,28 +1,40 @@
 # Contributing to KittyTune ( ◡‿◡ *)
 
-Hey! Thanks for wanting to help out!
+Thanks for taking the time to help out. KittyTune is a community-driven project, and whether you're fixing a bug, suggesting a feature, or translating the app, I appreciate it.
 
-## Building
-1. Clone: `git clone https://github.com/alan7383/kittytune.git`
-2. Open in Android Studio (use **JDK 17**).
-3. Build & run (or `./gradlew assembleDebug`).
+### Getting Started
+To get the project running on your machine:
+1. **Clone the repo**: `git clone https://github.com/alan7383/kittytune.git`
+2. **Setup Environment**: You'll need **JDK 17** and a recent version of Android Studio. 
+3. **Build**: Run `./gradlew assembleDebug` or simply open the project in Android Studio and let Gradle sync.
 
-## Translations ♬
-Want to add a language?
+### Submitting a Change
+1. **Branching**: Create a new branch for your change (e.g., `feature/new-effect` or `fix/crash-on-search`).
+2. **Commit Messages**: Focus on clarity. Use prefixes like `feat:`, `fix:`, `perf:`, or `chore:` followed by a short description.
+3. **Pull Requests**: Open a PR with a brief summary of what you've adjusted and why. If it's a UI change, a screenshot or recording in the PR description helps immensely.
+
+### Code Guidelines
+- **UI Architecture**: Everything is built with **Jetpack Compose**. Avoid adding legacy XML views.
+- **Pattern**: I follow a standard **MVVM** pattern. Keep your business logic in the ViewModels and out of the UI components.
+- **Aesthetic**: Try to match the existing "Material 3 Expressive" vibe. Think fluid transitions, organic spring animations, and dynamic colors.
+- **Privacy**: Never add tracking, analytics, or required logins. KittyTune is designed to stay anonymous and private.
+
+### Translations ♬
+Translating the app is one of the most impactful ways to contribute.
 1. Open `app/src/main/res/values/strings.xml`.
-2. Click **"Open editor"** (top-right) -> **Globe icon** to add your language.
-3. Translate and open a PR!
+2. Use the **Translations Editor** in Android Studio (right-click the file -> "Open Translations Editor") to add a new Locale.
+3. Fill in the values and submit a PR. 
 
-**Huge thanks to:**
-• **English & French:** [alananasss](https://github.com/alan7383)
-• **Hungarian:** mattdotcat
+**Current maintainers:**
+- **English & French**: [alananasss](https://github.com/alan7383)
+- **Hungarian**: mattdotcat
 
-*(Help translate to get your name here!)*
+### Reporting Issues
+If you find a bug, please open an issue with:
+- A clear description of the problem.
+- Steps to reproduce it.
+- Your device model and Android version.
+- Logcat output if you have it.
 
-## Coding stuff
-• **UI:** Jetpack Compose (Material 3). Try to match the current vibe!
-• **Architecture:** MVVM. Keep the logic out of the UI.
-• **Commits:** Just be clear about what you changed (e.g., `feat: added sleep timer`).
-
-Got questions? Open a Discussion on GitHub.
-Happy coding! ♬ ( ˘ ɜ˘)
+---
+*Happy coding! ♬ ( ˘ ɜ˘)*
