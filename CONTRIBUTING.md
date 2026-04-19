@@ -22,7 +22,7 @@ To get the project running on your machine:
 ### Translations ♬
 Translating the app is the best way to help out. We use **Crowdin** to manage translations, so you don't need to touch any code.
 
-1. **Visit our project**: [KittyTune on Crowdin](https://crowdin.com/project/kittytune) (coming soon).
+1. **Visit our project**: [KittyTune on Crowdin](https://crowdin.com/project/kittytune)
 2. **Translate**: Pick your language and start typing. 
 3. **Sync**: Once translations are approved, they are automatically merged into the app via GitHub.
 
