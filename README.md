@@ -1,161 +1,58 @@
 <img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/app/src/main/ic_launcher-playstore.png" alt="KittyTune Logo" width="150" align="right"/>
 
-<div align="center">
-
 # KittyTune ( ◡‿◡ *)
 
-**SoundCloud, YouTube & local files, one player, no accounts, no ads.**
+**SoundCloud, YouTube, and local files in one place. No ads, no tracking, and zero account dependencies.**
 
-<br/>
+I built KittyTune because I was tired of jumping between different apps just to listen to my own library. It pulls SoundCloud likes, YouTube playlists, and local MP3s into a single, unified list. If a song disappears from one platform, the app automatically finds a backup on the other so your music never stops.
 
-[![Download](https://img.shields.io/badge/DOWNLOAD_APK-black?style=for-the-badge&logo=android&logoColor=white)](https://github.com/alan7383/kittytune/releases/latest)
-[![Website](https://img.shields.io/badge/WEBSITE-d0bcff?style=for-the-badge)](https://alan7383.github.io/kittytune)
+### The Core Experience
+Most players are just wrappers. I wanted KittyTune to be a standalone machine that handles the mess of modern streaming for you.
+- **Unified Library**: SoundCloud, YouTube, and local files live in the same UI. No more switching.
+- **Smart Fallback**: If a track is geo-blocked or deleted, the app resolves a backup stream from a different platform instantly.
+- **Ghost Mode**: You don't need a login. I use scraping and direct extraction to keep your data private and avoid official API limits.
+- **Gapless flow**: Background token refreshes and adjustable crossfade (up to 12s) keep the playback moving.
 
-<br/>
+### Serious Audio Engineering
+Usually, you need a desktop DAW for these effects. I've baked a custom DSP pipeline directly into the engine.
+- **DSP Suite**: Real-time 8D spatial audio, reverb with adjustable decay, and heavy bass boost.
+- **Nightcore & Vaporwave**: You can shift pitch and speed independently to change the vibe of any track.
+- **Rain Ambience**: There's a toggleable rain overlay that plays alongside your music when you need to focus.
+- **Precision**: Fine-grained speed sliders and precise seek controls for the perfectionists.
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-100%25-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
-[![Material 3](https://img.shields.io/badge/Material_3_Expressive-4285F4?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io)
-[![Android Auto](https://img.shields.io/badge/Android_Auto-3DDC84?style=flat-square&logo=androidauto&logoColor=white)](https://developer.android.com/training/cars/media)
-[![License](https://img.shields.io/badge/GPL%20v3-white.svg?style=flat-square)](LICENSE)
+### Progression & Stats
+I wanted the app to feel alive, like an RPG for your ears. The more you listen, the more your profile grows.
+- **Achievements**: Unlock over 40 badges (like "Vampire", "Night Owl", or "Ghost") and earn XP for your listener level.
+- **Real Stats**: See your play counts and genre breakdowns whenever you want. No need to wait for a yearly "wrapped" event.
+- **Discord RPC**: Automatically show what you're listening to on your Discord profile with rich media status.
+- **Backup**: Export your entire library, history, and stats to a JSON file whenever you need to move device.
 
-</div>
+### Your UI, Your Way
+KittyTune uses the latest Material 3 Expressive guidelines. It's fluid, translucent, and scales to whatever style you prefer.
+- **Dynamic Themes**: Full support for Monet (Material You), custom primary colors, and high-contrast OLED black modes.
+- **Variable Fonts**: You can tweak font weight, width, and slant directly in the settings.
+- **Adaptive**: Built-in support for home screen widgets and Android Auto.
 
-<br/>
+### Under the Hood
+- **Language**: 100% Kotlin.
+- **Interface**: Jetpack Compose (MVVM).
+- **Audio Core**: Media3 / ExoPlayer.
+- **Scrapers**: NewPipeExtractor for YouTube and custom SoundCloud resolvers.
+- **Persistence**: Room database for fast local metadata access.
 
----
+### Installation
+You won't find this on the Play Store. Download the latest APK from the [releases page](https://github.com/alan7383/kittytune/releases/latest) and install it manually. 
 
-## What is this
-
-KittyTune is a music player built with **Jetpack Compose** and **Kotlin**. It pulls SoundCloud, YouTube, and local files into one library — no official APIs, no accounts, no ads. Token refresh happens in the background so nothing interrupts playback, and if a track is blocked on one platform it tries the other automatically.
-
-It also has 8D, reverb, nightcore, bass boost and more — stuff you'd normally only get on desktop, on your phone. ( ˘ ɜ˘) ♬
-
----
-
-## Features
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### Playback
-▸ Unified library across SoundCloud, YouTube & local files
-<br/>▸ Smart platform fallback for restricted tracks
-<br/>▸ Gapless playback
-<br/>▸ Synced lyrics
-<br/>▸ Android Auto support
-<br/>▸ Lock screen & notification controls
-<br/>▸ Home screen widgets
-
-</td>
-<td width="50%" valign="top">
-
-### Audio DSP
-▸ 8D spatial audio
-<br/>▸ Reverb & echo
-<br/>▸ Nightcore / Vaporwave
-<br/>▸ Pitch shifting
-<br/>▸ Bass boost
-<br/>▸ Rain ambience
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### Search & Discovery
-▸ Cross-platform search (SoundCloud + YouTube simultaneously)
-<br/>▸ Listening stats & achievements
-<br/>▸ Playlist & history backup to JSON
-
-</td>
-<td width="50%" valign="top">
-
-### Privacy
-▸ Ghost mode — full functionality, zero login (¬‿¬)
-<br/>▸ No tracking, no telemetry
-<br/>▸ No official API dependencies
-
-</td>
-</tr>
-</table>
-
----
-
-## Screenshots
-
-| Home | Player | Lyrics | Profile |
-|:---:|:---:|:---:|:---:|
-| <img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/screenshots/home.jpg" width="200"/> | <img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/screenshots/player.jpg" width="200"/> | <img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/screenshots/lyrics.jpg" width="200"/> | <img src="https://raw.githubusercontent.com/alan7383/kittytune/refs/heads/main/screenshots/profile.jpg" width="200"/> |
-
----
-
-## Tech Stack
-
-MVVM architecture.
-
-| Layer | Stack |
-|:---|:---|
-| **Language** | Kotlin |
-| **UI** | Jetpack Compose, Material 3 Expressive |
-| **Audio** | Media3 / ExoPlayer |
-| **Database** | Room |
-| **Network** | Retrofit, OkHttp |
-| **Images** | Coil |
-| **Extractors** | NewPipeExtractor |
-
----
-
-## Install
-
-KittyTune isn't on the Play Store. Grab it from here.
-
-### APK
-1. Go to [**Releases**](https://github.com/alan7383/kittytune/releases/latest)
-2. Download `app-release.apk`
-3. Allow unknown sources if prompted, install
-
-### Build from source
+To build it yourself:
 ```bash
 git clone https://github.com/alan7383/kittytune.git
-cd kittytune
 ./gradlew assembleDebug
 ```
 
----
+### Huge thanks to
+- **NewPipe Team** for the extraction logic.
+- **InnerTune** for the research on YouTube Music search.
+- **LrcLib** for the synced lyrics API.
+- **mattdotcat** for the Hungarian translation.
 
-## Credits
-
-- **[NewPipe Team](https://github.com/TeamNewPipe/NewPipeExtractor)** - YouTube extraction
-- **[ZionHuang / InnerTune](https://github.com/z-huang/InnerTune)** - YTM research
-- **[LrcLib](https://lrclib.net)** — Lyrics provider
-
-Full list in the in-app About section.
-
-### Translations
-
-| | Language | Contributor |
-|:---|:---|:---|
-| 🇫🇷 🇬🇧 | French, English | [alananasss](https://github.com/alan7383) |
-| 🇭🇺 | Hungarian | mattdotcat |
-
-Want to add your language? Open a PR.
-
----
-
-## License
-
-[GNU General Public License v3.0](LICENSE) - educational and personal use.
-
-> [!WARNING]
-> **Not affiliated with SoundCloud or YouTube.** This is an independent project. Use at your own risk.
-
----
-
-<div align="center">
-
-**Made by [alananasss](https://github.com/alan7383)** (=^･ω･^=)
-
-<sub>If you like the project, leave a ★</sub>
-
-</div>
+*Made by [alananasss](https://github.com/alan7383). If you find this useful, drop a ★.*
