@@ -20,10 +20,13 @@ To get the project running on your machine:
 - **Privacy**: Never add tracking, analytics, or required logins. KittyTune is designed to stay anonymous and private.
 
 ### Translations ♬
-Translating the app is one of the most impactful ways to contribute.
-1. Open `app/src/main/res/values/strings.xml`.
-2. Use the **Translations Editor** in Android Studio (right-click the file -> "Open Translations Editor") to add a new Locale.
-3. Fill in the values and submit a PR. 
+Translating the app is the best way to help out. We use **Crowdin** to manage translations, so you don't need to touch any code.
+
+1. **Visit our project**: [KittyTune on Crowdin](https://crowdin.com/project/kittytune) (coming soon).
+2. **Translate**: Pick your language and start typing. 
+3. **Sync**: Once translations are approved, they are automatically merged into the app via GitHub.
+
+*If your language isn't listed, just ask in the GitHub Discussions to have it added.*
 
 **Current maintainers:**
 - **English & French**: [alananasss](https://github.com/alan7383)
