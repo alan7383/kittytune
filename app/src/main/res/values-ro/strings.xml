@@ -591,7 +591,7 @@
     <string name="about_role_dev">Creator</string>
     <string name="about_role_translation">Translation</string>
     <string name="about_translate_title">Translate the app</string>
-    <string name="about_translate_desc">Help translate on GitHub!</string>
+    <string name="about_translate_desc">Help translate on Crowdin!</string>
     <string name="about_made_with">Developed by Alan &gt;.&lt;</string>
     <string name="update_available_title">Update Available</string>
     <string name="update_available_msg">A new version (%1$s) of KittyTune is available!</string>
