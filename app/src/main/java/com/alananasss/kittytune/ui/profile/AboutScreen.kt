@@ -297,7 +297,7 @@ fun AboutScreen(
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
                     Card(
-                        onClick = { uriHandler.openUri("https://github.com/alan7383/kittytune/pulls") },
+                        onClick = { uriHandler.openUri("https://crowdin.com/project/kittytune") },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.fillMaxWidth()
