@@ -40,6 +40,7 @@ import androidx.compose.animation.core.animateFloatAsState
     import androidx.compose.material3.pulltorefresh.PullToRefreshBox
     import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
     import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.draw.clip
@@ -57,6 +58,8 @@ import androidx.compose.animation.core.animateFloatAsState
     import androidx.compose.ui.platform.LocalSoftwareKeyboardController
     import androidx.compose.ui.res.stringResource
     import androidx.compose.ui.text.font.FontWeight
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
     import androidx.compose.ui.text.style.TextAlign
     import androidx.compose.ui.text.style.TextOverflow
     import androidx.compose.ui.unit.dp
@@ -1380,10 +1383,12 @@ import androidx.compose.animation.core.animateFloatAsState
         val context = LocalContext.current
         when (homeViewModel.activeSearchSource) {
             SearchSource.YOUTUBE -> {
+                val listState = rememberLazyListState()
                 if (homeViewModel.searchResultsYoutube.isEmpty()) Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                else LazyColumn(contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
+                else LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
+                    val isScrolling = listState.isScrollInProgress
                     itemsIndexed(homeViewModel.searchResultsYoutube) { index, track ->
-                        StaggeredItem(index) {
+                        StaggeredItem(index, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
                             TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = false, isDownloaded = false, downloadProgress = 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) })
                         }
                     }
@@ -1395,9 +1400,10 @@ import androidx.compose.animation.core.animateFloatAsState
                 LaunchedEffect(shouldLoadMore) { if (shouldLoadMore && !homeViewModel.isSearchLoadingMore) homeViewModel.loadMoreSearchResults() }
                 LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
                     var globalIndex = 0
+                    val isScrolling = listState.isScrollInProgress
                     if (homeViewModel.searchResultsArtists.isNotEmpty()) {
-                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx) { Text(stringResource(R.string.lib_artists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(16.dp)) } }
-                        if (activeFilter == SearchFilter.ARTISTS) items(homeViewModel.searchResultsArtists) { artist -> val idx = globalIndex++; StaggeredItem(idx) { Row(modifier = Modifier
+                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { Text(stringResource(R.string.lib_artists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(16.dp)) } }
+                        if (activeFilter == SearchFilter.ARTISTS) items(homeViewModel.searchResultsArtists) { artist -> val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { Row(modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onNavigate("profile:${artist.id}") }
                             .padding(16.dp), verticalAlignment = Alignment.CenterVertically) { ArtistAvatar(avatarUrl = artist.avatarUrl, modifier = Modifier
@@ -1407,16 +1413,18 @@ import androidx.compose.animation.core.animateFloatAsState
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         ) } } } }
-                        else item { val idx = globalIndex++; StaggeredItem(idx) { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate("profile:${artist.id}") } } } } }
+                        else item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate("profile:${artist.id}") } } } } }
                     }
                     if (homeViewModel.searchResultsTracks.isNotEmpty()) {
-                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx) { Text(stringResource(R.string.profile_tracks), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
-                        itemsIndexed(homeViewModel.searchResultsTracks) { index, track -> val idx = globalIndex++; StaggeredItem(idx) { TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = downloadProgress[track.id] != null, isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists(), downloadProgress = downloadProgress[track.id] ?: 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) }) } }
+                        val isScrolling = listState.isScrollInProgress
+                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { Text(stringResource(R.string.profile_tracks), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
+                        itemsIndexed(homeViewModel.searchResultsTracks) { index, track -> val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = downloadProgress[track.id] != null, isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists(), downloadProgress = downloadProgress[track.id] ?: 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) }) } }
                     }
                     if (homeViewModel.searchResultsPlaylists.isNotEmpty()) {
-                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx) { Text(stringResource(R.string.lib_playlists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
-                        if (activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist -> val idx = globalIndex++; StaggeredItem(idx) { DynamicPlaylistCard(playlist, isGrid = false) { onNavigate(playlist.id.toString()) } } }
-                        else item { val idx = globalIndex++; StaggeredItem(idx) { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsPlaylists) { playlist -> SquareCard(playlist) { onNavigate(playlist.id.toString()) } } } } }
+                        val isScrolling = listState.isScrollInProgress
+                        if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { Text(stringResource(R.string.lib_playlists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
+                        if (activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist -> val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { DynamicPlaylistCard(playlist, isGrid = false) { onNavigate(playlist.id.toString()) } } }
+                        else item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsPlaylists) { playlist -> SquareCard(playlist) { onNavigate(playlist.id.toString()) } } } } }
                     }
                     if (homeViewModel.searchResultsTracks.isEmpty() && homeViewModel.searchResultsArtists.isEmpty() && homeViewModel.searchResultsPlaylists.isEmpty()) item { Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                     if (homeViewModel.isSearchLoadingMore) item { Box(modifier = Modifier
@@ -1428,22 +1436,41 @@ import androidx.compose.animation.core.animateFloatAsState
     }
     
     @Composable
-    fun StaggeredItem(index: Int, content: @Composable () -> Unit) {
-        val alpha = remember { Animatable(0f) }
-        val offsetY = remember { Animatable(24f) }
-        LaunchedEffect(Unit) {
-            // Apply stagger delay only to the initial items that fit on screen.
-            // Items loaded later via fast scrolling will fade in immediately without artificial waiting.
-            val staggerDelay = if (index < 12) (index * 40L) else 0L
-            delay(staggerDelay)
-            launch { alpha.animateTo(1f, animationSpec = tween(200, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
-            launch { offsetY.animateTo(0f, animationSpec = tween(250, easing = androidx.compose.animation.core.FastOutSlowInEasing)) }
+    fun StaggeredItem(
+        index: Int,
+        key: Any? = null,
+        isScrolling: Boolean = false,
+        content: @Composable () -> Unit
+    ) {
+        var hasAnimated by rememberSaveable(key) { mutableStateOf(false) }
+    
+        val skipAnimation = hasAnimated || index >= 8 || isScrolling
+    
+        val alpha = remember(key) { Animatable(if (skipAnimation) 1f else 0f) }
+        val offsetY = remember(key) { Animatable(if (skipAnimation) 0f else 20f) }
+        val scale = remember(key) { Animatable(if (skipAnimation) 1f else 0.95f) }
+    
+        LaunchedEffect(key) {
+            if (!skipAnimation) {
+                val staggerDelay = index * 30L
+                delay(staggerDelay)
+                val a = launch { alpha.animateTo(1f, animationSpec = tween(200)) }
+                val o = launch { offsetY.animateTo(0f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) }
+                val s = launch { scale.animateTo(1f, animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) }
+                a.join()
+                o.join()
+                s.join()
+                hasAnimated = true
+            }
         }
+        
         Box(
             modifier = Modifier
                 .graphicsLayer {
                     this.alpha = alpha.value
-                    translationY = offsetY.value * density
+                    this.translationY = offsetY.value * density
+                    this.scaleX = scale.value
+                    this.scaleY = scale.value
                 }
         ) {
             content()
