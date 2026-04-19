@@ -1,0 +1,17 @@
+# Crowdin Configuration File
+# For more info: https://support.crowdin.com/configuration-file/
+
+# Your Crowdin Project ID (find it in Project Settings -> General)
+# project_id: 'YOUR_PROJECT_ID'
+
+# API Token environment variable (set this in GitHub Secrets if using CLI/Actions)
+# api_token_env: CROWDIN_PERSONAL_TOKEN
+
+base_path: "."
+preserve_hierarchy: true
+
+files:
+  - source: /app/src/main/res/values/strings.xml
+    translation: /app/src/main/res/values-%two_letters_code%/%original_file_name%
+    # If the language code is something like 'zh-CN', Android needs 'zh-rCN' or similar. 
+    # Crowdin's GitHub integration usually handles Android locales automatically.
