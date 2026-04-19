@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- APP & CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="app_name">KittyTune</string>
     <string name="msg_retrying">Újrapróbálkozás...</string>
     <string name="success_generic">Sikeres művelet</string>
@@ -13,11 +11,9 @@
     <string name="security_check">Biztonsági ellenőrzés</string>
     <string name="no_results">Nincs találat</string>
     <string name="unknown">Ismeretlen</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- BUTTONS & ACTIONS                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="btn_ok">OK</string>
     <string name="btn_cancel">Mégse</string>
     <string name="btn_confirm">Megerősít</string>
@@ -39,19 +35,15 @@
     <string name="btn_follow">Follow</string>
     <string name="all_filters">Mind</string>
     <string name="captcha_done">Befejeztem a Captcha-t</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- NAVIGATION & AUTH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="nav_home">Főoldal</string>
     <string name="nav_library">Könyvtár</string>
     <string name="nav_welcome">Üdvözlet</string>
     <string name="nav_login">Belépés</string>
-
     <string name="welcome_title">Üdvözöl a\nKittyTune</string>
     <string name="welcome_subtitle">Fedezd fel, streameld és töltsd le kedvenceidet korlátlanul</string>
-
     <string name="login_title">SoundCloud Belépés</string>
     <string name="login_soundcloud">Belépés SoundCloud fiókkal</string>
     <string name="login_guest">Folytatás vendégként</string>
@@ -59,17 +51,13 @@
     <string name="permission_notifications">Értesítések</string>
     <string name="permission_notifications_description">Lehetővé teszi a KittyTune számára a vezérlők és az állapot megjelenítését</string>
     <string name="permission_grant">Engedélyezés</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- HOME & DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="search_hint">Keresés (szám, előadó)...</string>
-
     <string name="home_discovery_title">A nap felfedezése</string>
     <string name="home_discovery_subtitle">Friss zenék az ízlésed alapján</string>
     <string name="home_discovery_context_genre">%1$s rajongóknak</string>
-
     <string name="home_recently_played">Nemrég hallgatott</string>
     <string name="home_trending">Trending</string>
     <string name="home_charts">Toplisták</string>
@@ -77,7 +65,6 @@
     <string name="radio">Rádió</string>
     <string name="home_albums_for_you">Albumok neked</string>
     <string name="home_top_albums_query">Top Albumok</string>
-
     <string name="home_section_similar">Hasonló ehhez: %1$s</string>
     <string name="home_section_similar_sub">Mert hallgattad ezt a számot</string>
     <string name="home_section_new_crew">Új tehetségek</string>
@@ -95,15 +82,12 @@
     <string name="home_liked_by_section_subtitle">Az általad hallgatott előadók ajánlásával</string>
     <string name="home_recommended_tracks">Neked ajánlott</string>
     <string name="home_recommended_tracks_sub">Friss zenék az előzményeid alapján</string>
-
     <string name="home_hiphop">Hip-Hop &amp; Rap</string>
     <string name="home_electro">Electro House</string>
     <string name="home_pop">Pop</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- EXPLORER & SEARCH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="explorer_title">Felfedező</string>
     <string name="explorer_new_releases">Újdonságok</string>
     <string name="explorer_charts">Toplisták</string>
@@ -114,12 +98,10 @@
     <string name="search_source_youtube">YouTube</string>
     <string name="charts_select_country">Ország választása</string>
     <string name="charts_top_artists">Top Előadók</string>
-
     <string name="search_section_moods">Hangulatok és pillanatok</string>
     <string name="search_section_genres">Műfajok</string>
     <string name="genre_official_playlists">Hivatalos Playlistek</string>
     <string name="genre_community_playlists">Közösségi Playlistek</string>
-
     <!-- MOODS -->
     <string name="category_mood_feelgood">Jókedv</string>
     <string name="category_mood_calm">Nyugodt</string>
@@ -133,7 +115,6 @@
     <string name="category_mood_party">Buli</string>
     <string name="category_mood_sleep">Alvás</string>
     <string name="category_mood_sad">Szomorú</string>
-
     <!-- GENRES -->
     <string name="category_genre_afro">Afro</string>
     <string name="category_genre_alt">Alternatív &amp; Indie</string>
@@ -198,16 +179,13 @@
     <string name="category_genre_eurobeat">Eurobeat</string>
     <string name="category_genre_cloudrap">Cloud Rap</string>
     <string name="category_genre_dreamcore">Dreamcore</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- LIBRARY                                                                          -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="search_library_hint">Szűrés a könyvtárban</string>
     <string name="lib_offline_mode">Offline mód • Csak helyi adatok</string>
     <string name="lib_guest_mode">Vendég mód • Lépj be a szinkronizáláshoz</string>
     <string name="sort_date_added">Hozzáadás dátuma</string>
-
     <string name="lib_playlists">Playlistek</string>
     <string name="lib_artists">Előadók</string>
     <string name="lib_liked_tracks">Kedvelt zenék</string>
@@ -218,7 +196,6 @@
     <string name="lib_downloads_subtitle">Offline • Auto</string>
     <string name="lib_local_media">Helyi fájlok</string>
     <string name="lib_local_media_subtitle">Audio az eszközön</string>
-
     <string name="lib_create_playlist_title">Új Playlist</string>
     <string name="lib_create_playlist_hint">Playlist neve</string>
     <string name="playlist_num_tracks">%1$d szám</string>
@@ -227,17 +204,14 @@
     <string name="add_to_playlist_new">Új playlist</string>
     <string name="add_to_playlist_title_single">Hozzáadás...</string>
     <string name="add_to_playlist_title_multi">%1$d szám hozzáadása...</string>
-
     <string name="dialog_delete_playlist_title">Playlist törlése?</string>
     <string name="dialog_delete_playlist_msg">Ez a művelet nem vonható vissza</string>
     <string name="dialog_delete_playlist_from_lib_title">Eltávolítja a könyvtárból?</string>
     <string name="dialog_rename_playlist_title">Átnevezés</string>
     <string name="dialog_rename_playlist_hint">Új név</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="player_playing_now">MOST SZÓL</string>
     <string name="player_queue">Queue</string>
     <string name="queue_shuffle">Keverés</string>
@@ -246,7 +220,6 @@
     <string name="playback_count_formatted">lejátszás</string>
     <string name="player_like_action">Tetszik</string>
     <string name="download_comment">Via KittyTune</string>
-
     <string name="player_audio_settings">Audio beállítások</string>
     <string name="label_volume">Hangerő: %d%%</string>
     <string name="player_effects">Effektek</string>
@@ -257,13 +230,11 @@
     <string name="pref_precise_speed_sub">0.05x lépések 0.1x helyett</string>
     <string name="dialog_speed_value_title">Sebesség</string>
     <string name="dialog_speed_label_hint">Címke (pl. Nightcore)</string>
-
     <string name="effect_bass_boost">Bass Boost</string>
     <string name="effect_8d">8D Audio</string>
     <string name="effect_muffled">Muffled</string>
     <string name="effect_reverb">Reverb</string>
     <string name="effect_rain">Eső mód</string>
-
     <string name="player_lyrics">Dalszöveg</string>
     <string name="lyrics_no_data">Nincs dalszöveg</string>
     <string name="lyrics_manual_search">Kézi keresés</string>
@@ -273,11 +244,9 @@
     <string name="lyrics_mode_plain">Szöveg</string>
     <string name="lyrics_copy_text">Szöveg másolása</string>
     <string name="lyrics_sync">Szinkron</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- MENUS & CONTEXT                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="menu_play_next">Lejátszás következőként</string>
     <string name="menu_add_queue">Hozzáadás a sorhoz</string>
     <string name="menu_add_playlist">Hozzáadás playlisthez</string>
@@ -293,14 +262,12 @@
     <string name="menu_remove">Eltávolítás</string>
     <string name="menu_repost">Újraközlés</string>
     <string name="menu_reposted">Megosztva</string>
-
     <string name="menu_remove_local_q">Fájl elrejtése?</string>
     <string name="menu_remove_local_body">Nem jelenik meg többet az appban, de nem törlődik a telefonról</string>
     <string name="menu_remove_download_q">Letöltés törlése?</string>
     <string name="menu_remove_download_body">Az audiofájl törlődik a tárhelyről</string>
     <string name="dialog_remove_download_title">Letöltés törlése?</string>
     <string name="dialog_remove_download_msg">A hangfájlok törlődnek, de a lista a könyvtárban marad</string>
-
     <string name="dialog_repost_title">Újraközlés</string>
     <string name="dialog_repost_caption_hint">Felirat hozzáadása (opcionális)</string>
     <string name="dialog_repost_confirm">Újraközlés</string>
@@ -311,15 +278,12 @@
     <string name="sort_newest">Legújabb</string>
     <string name="sort_timestamp">Időbélyeg szerint</string>
     <string name="sort_oldest">Legrégebbi</string>
-
     <string name="context_playlist">Playlist • %1$s</string>
     <string name="context_station">Station • %1$s</string>
     <string name="context_album">Album • %1$s</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- DETAILS & METADATA                                                               -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="detail_track_title">Infó</string>
     <string name="detail_likers">Kedvelések</string>
     <string name="detail_reposters">Újraközlések</string>
@@ -331,7 +295,6 @@
     <string name="no_details_available">Még nincsenek interakciók</string>
     <string name="detail_see_similar">Hasonló számok és rajongók megtekintése</string>
     <string name="detail_see_comments">Hozzászólások megtekintése (%1$s)</string>
-
     <string name="detail_stats_plays">Lejátszás</string>
     <string name="detail_stats_likes">Kedvelés</string>
     <string name="detail_stats_reposts">Újraközlés</string>
@@ -346,7 +309,6 @@
     <string name="share_via">Megosztás...</string>
     <string name="generic_title">Cím</string>
     <string name="generic_artist">Előadó</string>
-
     <string name="detail_file_info">Forrásfájl</string>
     <string name="format_default">Audió</string>
     <string name="format_fallback">MP3/Audió</string>
@@ -358,16 +320,13 @@
     <string name="detail_unknown">Ismeretlen</string>
     <string name="detail_file_size_formatted">%.2f MB</string>
     <string name="description_local_file">Helyi fájl: %1$s</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- USER PROFILE                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="profile_name">Felhasználó</string>
     <string name="unknown_user">Ismeretlen</string>
     <string name="guest_user">Vendég</string>
     <string name="me_artist">Én</string>
-
     <string name="profile_followers">Követők</string>
     <string name="profile_tracks">Számok</string>
     <string name="profile_edit">Szerkesztés</string>
@@ -381,7 +340,6 @@
     <string name="profile_banner_upload_desc">A legjobb eredmény érdekében legalább 2480×520 pixeles képet használj. 2 MB limit</string>
     <string name="profile_latest_tracks">Legutóbbi számok</string>
     <string name="profile_similar_artists">Hasonló előadók</string>
-
     <string name="profile_tab_popular">Népszerű</string>
     <string name="profile_tab_tracks">Számok</string>
     <string name="profile_tab_albums">Albumok</string>
@@ -390,19 +348,16 @@
     <string name="profile_tab_comments">Kommentek</string>
     <string name="profile_comment_on_track">– %1$s</string>
     <string name="profile_about">Névjegy</string>
-
     <string name="profile_playlists_by_user">%1$s playlistjei</string>
     <string name="profile_likes_by_user">%1$s kedvenc zenéi</string>
     <string name="profile_update_success">Profil frissítve</string>
     <string name="profile_update_error">Hiba: %1$s</string>
-
     <string name="dialog_delete_avatar_title">Avatar törlése?</string>
     <string name="dialog_delete_avatar_msg">Biztosan törölni szeretnéd a profilképedet?</string>
     <string name="dialog_delete_header_title">Banner törlése?</string>
     <string name="dialog_delete_header_msg">Biztosan törölni szeretnéd a fejlécképet?</string>
     <string name="profile_avatar_deleted">Avatar törölve!</string>
     <string name="profile_banner_deleted">Banner törölve!</string>
-
     <string name="profile_menu_manage_account">Profilom</string>
     <string name="profile_menu_login">Belépés</string>
     <string name="profile_menu_achievements">Achievementek</string>
@@ -412,11 +367,9 @@
     <string name="profile_menu_messages">Üzenetek</string>
     <string name="profile_menu_guest_desc">Helyi adatok</string>
     <string name="profile_menu_badge_new">Új</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SOCIAL                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="add_comment_hint">Szólj hozzá...</string>
     <string name="comment_no_comments">Nincs még komment</string>
     <string name="comment_anonymous">Anonim</string>
@@ -426,11 +379,9 @@
     <string name="login_to_comment">Jelentkezz be a kommenteléshez</string>
     <string name="dialog_delete_comment_title">Komment törlése?</string>
     <string name="dialog_delete_comment_msg">Biztosan törölni szeretnéd ezt a hozzászólást?</string>
-
     <string name="messages_title">Beszélgetések</string>
     <string name="chat_hint">Írj egy üzenetet...</string>
     <string name="chat_send">Küldés</string>
-
     <string name="notifications_title">Tevékenység</string>
     <string name="notif_type_follow">%1$s követni kezdett</string>
     <string name="notif_type_like_track">%1$s kedvelte ezt: %2$s</string>
@@ -440,7 +391,6 @@
     <string name="notif_type_comment">%1$s hozzászólt ehhez: %2$s</string>
     <string name="notif_type_mention">%1$s megemlített egy kommentben</string>
     <string name="notif_unknown">Új tevékenység</string>
-
     <string name="time_now">Most</string>
     <string name="time_minutes_ago">%1$d p</string>
     <string name="time_hours_ago">%1$d ó</string>
@@ -449,11 +399,9 @@
     <string name="time_months_ago">%1$d hó</string>
     <string name="time_years_ago">%1$d év</string>
     <string name="time_one_year_ago">1 éve</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="settings_title">Beállítások</string>
     <string name="settings_cat_general">Általános</string>
     <string name="settings_cat_appearance">Megjelenés</string>
@@ -462,12 +410,10 @@
     <string name="settings_cat_audio">Audio</string>
     <string name="settings_cat_source">Könyvtár</string>
     <string name="settings_cat_notifications">Értesítések</string>
-
     <string name="pref_privacy_title">Adatvédelem és Követés</string>
     <string name="pref_privacy_subtitle">Hallgatási statisztikák és előzmények kezelése</string>
     <string name="pref_privacy_tracking_title">Hallgatási előzmények engedélyezése</string>
     <string name="pref_privacy_tracking_subtitle">Kövesd nyomon a legtöbbet hallgatott számaidat és előadóidat.</string>
-
     <!-- APPEARANCE -->
     <string name="pref_appearance_title">Megjelenés</string>
     <string name="pref_appearance_subtitle">Téma, színek, nyelv</string>
@@ -484,7 +430,6 @@
     <string name="pref_player_style">Lejátszó stílusa</string>
     <string name="pref_language">Nyelv</string>
     <string name="pref_language_sub">App nyelve</string>
-
     <string name="theme_system">Rendszer</string>
     <string name="theme_light">Világos</string>
     <string name="theme_dark">Sötét</string>
@@ -494,7 +439,6 @@
     <string name="lang_french">Français</string>
     <string name="lang_english">English</string>
     <string name="lang_hungarian">Magyar</string>
-
     <!-- TYPOGRAPHY -->
     <string name="pref_font_custom_title">Google Sans Flex</string>
     <string name="pref_font_custom_subtitle">Egyedi variálható betűtípus használata</string>
@@ -515,7 +459,6 @@
     <string name="font_preset_elegant">Elegáns</string>
     <string name="font_preset_playful">Játékos</string>
     <string name="font_preset_wide">Széles</string>
-
     <!-- AUDIO & PLAYBACK -->
     <string name="pref_audio_title">Audio &amp; Lejátszás</string>
     <string name="pref_audio_subtitle">Minőség, Autoplay, Queue</string>
@@ -530,11 +473,9 @@
     <string name="quality_low_sub">Adatspórolós mód</string>
     <string name="pref_youtube_fallback">Korlátozott számok feloldása</string>
     <string name="pref_youtube_fallback_sub">NewPipe Extractor használata Go+ számokhoz</string>
-
     <!-- SYNC -->
     <string name="pref_sync_likes">Like-ok szinkronizálása</string>
     <string name="pref_sync_likes_sub">Kedvelés a SoundCloud fiókban is (Captcha-t indíthat)</string>
-
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Dalszövegek</string>
     <string name="pref_lyrics_subtitle">Megjelenítés és forrás</string>
@@ -553,7 +494,6 @@
     <string name="align_center_simple">Középre</string>
     <string name="align_right">Jobbra</string>
     <string name="pref_lyrics_reset">Gyári</string>
-
     <!-- LOCAL FILES -->
     <string name="pref_local_title">Helyi Fájlok</string>
     <string name="pref_local_subtitle">Zenék az eszközön</string>
@@ -565,7 +505,6 @@
     <string name="pref_local_scanning">Szkennelés...</string>
     <string name="pref_local_info">Az almappák is bekerülnek</string>
     <string name="pref_local_no_folder">Nincs mappa kiválasztva</string>
-
     <string name="pref_local_scan_status_prep">Előkészítés...</string>
     <string name="pref_local_scan_status_searching">Keresés...</string>
     <string name="pref_local_scan_status_no_folder">Válassz mappát</string>
@@ -575,7 +514,6 @@
     <string name="pref_local_scan_status_saving">Mentés...</string>
     <string name="pref_local_scan_status_done">Kész!</string>
     <string name="pref_local_scan_status_error">Hiba: %1$s</string>
-
     <!-- STORAGE -->
     <string name="pref_storage_title">Tárhely</string>
     <string name="pref_storage_subtitle">Cache és letöltések kezelése</string>
@@ -599,7 +537,6 @@
     <string name="dialog_clean_audio_msg">Összes letöltött zene törlése?</string>
     <string name="dialog_clean_images_msg">Képek gyorsítótárának törlése? (Albumborítók)</string>
     <string name="dialog_clean_cache_msg">App cache ürítése?</string>
-
     <!-- BACKUP -->
     <string name="pref_backup_title">Backup &amp; Visszaállítás</string>
     <string name="pref_backup_subtitle">Playlistek és beállítások exportálása</string>
@@ -622,7 +559,6 @@
     <string name="error_create_external_file">Fájl létrehozása sikertelen</string>
     <string name="error_open_external_stream">Stream hiba</string>
     <string name="error_empty_body">Üres válasz</string>
-
     <!-- DISCORD -->
     <string name="pref_discord_title">Discord integráció</string>
     <string name="pref_discord_subtitle">Rich Presence</string>
@@ -641,7 +577,6 @@
     <string name="discord_status_activity">Tevékenység neve (KittyTune)</string>
     <string name="discord_status_artist">Előadó neve</string>
     <string name="discord_status_song">Dal címe</string>
-
     <!-- ABOUT -->
     <string name="pref_about_title">Névjegy</string>
     <string name="pref_about_subtitle">Verzió és kreditek</string>
@@ -658,7 +593,6 @@
     <string name="about_translate_title">Fordítsd le az appot</string>
     <string name="about_translate_desc">Segíts a fordításban GitHub-on!</string>
     <string name="about_made_with">Fejlesztette: Alan &gt;.&lt;</string>
-
     <string name="update_available_title">Frissítés elérhető</string>
     <string name="update_available_msg">A KittyTune új verziója (%1$s) elérhető!</string>
     <string name="update_changelog">Változások:</string>
@@ -672,11 +606,9 @@
     <string name="update_check_manual">Frissítések keresése</string>
     <string name="pref_auto_update">Auto Frissítés</string>
     <string name="pref_auto_update_sub">Verzióellenőrzés indításkor</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="achievements_title">Achievementek</string>
     <string name="achievements_subtitle">%1$d / %2$d megszerezve</string>
     <string name="achievements_current_level">Szint</string>
@@ -690,7 +622,6 @@
     <string name="ach_secret_desc">\?</string>
     <string name="pref_achievement_popups">Achievement értesítések</string>
     <string name="pref_achievement_popups_sub">Jelezzen, ha feloldasz valamit</string>
-
     <string name="ach_cat_time">Kitartás ( ˘_˘) ...</string>
     <string name="ach_cat_volume">Mennyiség ♪└( ＾ω＾ )」</string>
     <string name="ach_cat_loyalty">Streak ( 🔥_🔥 )</string>
@@ -698,7 +629,6 @@
     <string name="ach_cat_player">Tech [ ◉_◉ ]</string>
     <string name="ach_cat_hardcore">Hardcore ( ✖_✖ )</string>
     <string name="ach_cat_secret">Rejtélyek ( ¬‿¬ )</string>
-
     <!-- TIME -->
     <string name="ach_time_1h_title">Bemelegítés</string>
     <string name="ach_time_1h_desc">1 óra zene</string>
@@ -716,7 +646,6 @@
     <string name="ach_time_5000h_desc">5000 óra zene</string>
     <string name="ach_time_10000h_title">Transzcendencia</string>
     <string name="ach_time_10000h_desc">10 000 óra. A mester szint</string>
-
     <!-- PLAYS -->
     <string name="ach_plays_1_title">Első Lépés</string>
     <string name="ach_plays_1_desc">Hallgass meg 1 számot</string>
@@ -734,7 +663,6 @@
     <string name="ach_plays_50000_desc">50 000 lejátszás</string>
     <string name="ach_plays_100000_title">Hangisten</string>
     <string name="ach_plays_100000_desc">100 000 lejátszás</string>
-
     <!-- STREAK -->
     <string name="ach_streak_7_title">Teljes Hét</string>
     <string name="ach_streak_7_desc">7 nap egyhuzamban</string>
@@ -754,7 +682,6 @@
     <string name="ach_night_owl_desc">10 hallgatás 03:00 és 05:00 között</string>
     <string name="ach_lunch_break_title">Ebédszünet</string>
     <string name="ach_lunch_break_desc">10 hallgatás 12:00 és 13:00 között</string>
-
     <!-- ACTIONS -->
     <string name="ach_liker_50_title">Lelkes</string>
     <string name="ach_liker_50_desc">Likeolj 50 számot</string>
@@ -777,10 +704,9 @@
     <string name="ach_bass_addict_title">Bass Addict</string>
     <string name="ach_bass_addict_desc">10 óra Bass Boosttal</string>
     <string name="ach_speed_demon_title">Nightcore Fan</string>
-    <string name="ach_speed_demon_desc">1 óra hallgatás Speed > 1.2x</string>
+    <string name="ach_speed_demon_desc">1 óra hallgatás Speed &gt; 1.2x</string>
     <string name="ach_social_star_title">Viral</string>
     <string name="ach_social_star_desc">Ossz meg 50 számot</string>
-
     <!-- SPECIAL -->
     <string name="ach_obsessed_50_title">Megszállott</string>
     <string name="ach_obsessed_50_desc">UGYANAZ a szám 50-szer</string>
@@ -797,7 +723,6 @@
     <string name="ach_ghost_title">Szellem</string>
     <string name="ach_lucky7_title">Jackpot</string>
     <string name="ach_glitch_title">Glitch in the Matrix</string>
-
     <string name="dialog_reset_achievements_title">Reset?</string>
     <string name="dialog_reset_achievements_msg">Elveszítesz minden achievementet és szintet. Nem vonható vissza</string>
     <string name="dialog_reset_achievements_confirm">Mehet</string>
@@ -809,23 +734,19 @@
     <string name="completion_thanks">Kösz</string>
     <string name="completion_thanks_message">"Minden achievementet megszerezni nem kis teljesítmény. A zene iránti szenvedélyed miatt létezik ez az app.\n\nKöszi az utazást.\n\n~ Alan :3"</string>
     <string name="completion_continue">Koppints a folytatáshoz</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SYSTEM & NOTIFICATIONS                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="achievement_unlocked">Achievement feloldva!</string>
     <string name="achievement_xp">+%1$d XP</string>
     <string name="streak_popup_title">Streak</string>
     <string name="streak_popup_subtitle">%1$d Nap</string>
     <string name="test_notification_triggered">Teszt értesítés kiküldve</string>
-
     <string name="channel_name">Lejátszó</string>
     <string name="channel_description">Zene irányítása</string>
     <string name="notification_content_default">Lejátszás</string>
     <string name="desc_previous">Előző</string>
     <string name="action_unlike">Unlike</string>
-
     <string name="widget_default_title">KittyTune</string>
     <string name="widget_default_artist">Kész</string>
     <string name="widget_unknown">Ismeretlen</string>
@@ -835,11 +756,9 @@
     <string name="widget_mini_player_desc">Kompakt lejátszó</string>
     <string name="widget_search_desc">Keresés</string>
     <string name="widget_search_hint">Keresés</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACCESSIBILITY & EMPTY STATES                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="desc_play">Lejátszás</string>
     <string name="desc_pause">Szünet</string>
     <string name="desc_next">Következő</string>
@@ -847,7 +766,6 @@
     <string name="desc_like">Like</string>
     <string name="desc_artwork">Borító</string>
     <string name="desc_selected">Kiválasztva</string>
-
     <string name="empty_downloads_title">Még nincs itt semmi...</string>
     <string name="empty_downloads_subtitle">Tölts le zenéket offline hallgatáshoz!</string>
     <string name="empty_downloads_kaomoji">(¬_¬ )</string>
@@ -856,7 +774,6 @@
     <string name="empty_user_playlist_title">Nagy a csend... túl nagy</string>
     <string name="empty_user_playlist_subtitle">Add hozzá az első számot!</string>
     <string name="empty_user_playlist_kaomoji">( ⓛ ‿ ⓛ )</string>
-
     <string name="history_untitled_track">Névtelen</string>
     <string name="history_unknown_artist">Ismeretlen</string>
     <string name="history_type_artist">Előadó</string>
@@ -867,17 +784,15 @@
     <string name="history_source_library">Könyvtár</string>
     <string name="history_title_likes">Kedvelt zenék</string>
     <string name="history_title_downloads">Letöltések</string>
-
     <string name="search_libraries_hint">Könyvtárak keresése…</string>
     <string name="filter_all">Mind</string>
     <string name="libraries_count_format">%1$d Könyvtár</string>
     <string name="no_libraries_found">Nem található könyvtár</string>
     <string name="license_unknown">Ismeretlen licenc</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SLEEP TIMER                                                                      -->
+    <!-- SLEEP TIMER & CROSSFADE                                                        -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
+    <!-- Sleep Timer -->
     <string name="sleep_timer_title">Alváskapcsoló</string>
     <string name="sleep_timer_subtitle">Lejátszás leállítása egy adott idő után</string>
     <string name="sleep_timer_off">Kikapcsolva</string>
@@ -905,31 +820,24 @@
     <string name="sleep_timer_island_title">Alváskapcsoló</string>
     <string name="sleep_timer_island_started_subtitle">Időzítő beállítva: %1$s</string>
     <string name="sleep_timer_island_finished_subtitle">Az időzítő lejárt</string>
-
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- LISTENING STATS                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-
     <string name="profile_menu_listening_stats">Hallgatási statisztikák</string>
     <string name="listening_stats_title">Hallgatási statisztikák</string>
     <string name="listening_stats_subtitle">A zenehallgatási szokásaid</string>
-
     <string name="listening_stats_period_week">Ez a hét</string>
     <string name="listening_stats_period_month">Ez a hónap</string>
     <string name="listening_stats_period_all">Összesen</string>
-
     <string name="listening_stats_time_listened">Hallgatási idő</string>
     <string name="listening_stats_plays">Lejátszások</string>
     <string name="listening_stats_unique_tracks">Számok</string>
     <string name="listening_stats_unique_artists">Előadók</string>
-
     <string name="listening_stats_top_tracks">Top számok</string>
     <string name="listening_stats_top_artists">Top előadók</string>
     <string name="listening_stats_top_track_label">Top Dal</string>
     <string name="listening_stats_top_artist_label">Top Előadó</string>
     <string name="listening_stats_play_count">%1$d lejátszás</string>
-
-
     <string name="listening_stats_habits">Hallgatási szokások</string>
     <string name="listening_stats_manual_replays">Kézi visszajátszás</string>
     <string name="listening_stats_manual_replays_desc">Visszagombbal újraindított számok</string>
@@ -943,24 +851,20 @@
     <string name="listening_stats_avg_listen_desc">Számonkénti időtartam</string>
     <string name="listening_stats_total_sessions">Összes esemény</string>
     <string name="listening_stats_total_sessions_desc">Minden lejátszási esemény</string>
-
     <string name="listening_stats_insights">Érdekességek</string>
     <string name="listening_stats_insight_top_track">A(z) %1$s a kedvenced, %2$d alkalommal játszottad le!</string>
     <string name="listening_stats_insight_replays">%1$d alkalommal indítottál el újra számot kézzel, ez az elszántság!</string>
     <string name="listening_stats_insight_skips">A számok %1$s%%-át kihagyod, elég válogatós vagy!</string>
     <string name="listening_stats_insight_repeat">%1$d alkalommal használtad a Repeat One-t, megszállottság feloldva!</string>
     <string name="listening_stats_insight_variety">%1$d különböző előadót hallgattál, eklektikus ízlés!</string>
-
     <string name="listening_stats_empty_title">Még nincsenek statisztikák</string>
     <string name="listening_stats_empty_desc">Kezdj el zenét hallgatni, hogy itt lássad a statisztikáidat!</string>
-
     <string name="listening_stats_duration_zero">Nincs adat</string>
     <string name="listening_stats_duration_days_hrs">%1$dn %2$dó</string>
     <string name="listening_stats_duration_hr_min">%1$dó %2$dp</string>
     <string name="listening_stats_duration_min_sec">%1$dp %2$dmp</string>
     <string name="listening_stats_duration_min">%1$dp</string>
     <string name="listening_stats_duration_sec">%1$dmp</string>
-
     <string name="label_intensity">Intenzitás: %d%%</string>
     <string name="label_speed_8d">Forgási sebesség: %d%%</string>
     <string name="label_cutoff">Szűrő: %d%%</string>
