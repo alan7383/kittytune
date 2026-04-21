@@ -1673,14 +1673,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun formatSleepTimerRemaining(): String {
         if (sleepTimerEndOfTrack) return getString(R.string.sleep_timer_end_of_track)
-        val totalSeconds = sleepTimerRemainingMs / 1000
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-        return if (hours > 0) {
-            getString(R.string.sleep_timer_hours_minutes_format, hours.toInt(), minutes.toInt())
-        } else {
-            getString(R.string.sleep_timer_minutes_format, minutes.toInt())
-        }
+        return formatRemaining(sleepTimerRemainingMs)
     }
 
     private fun showSleepTimerIslandNotification(isStarted: Boolean, durationText: String? = null) {
