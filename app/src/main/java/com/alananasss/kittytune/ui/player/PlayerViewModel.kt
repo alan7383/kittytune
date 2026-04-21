@@ -1639,13 +1639,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun formatRemaining(durationMs: Long): String {
-        val totalSeconds = durationMs / 1000
+        val totalSeconds = (durationMs + 999) / 1000
         val hours = totalSeconds / 3600
         val minutes = (totalSeconds % 3600) / 60
-        return if (hours > 0) {
-            getString(R.string.sleep_timer_hours_minutes_format, hours.toInt(), minutes.toInt())
-        } else {
-            getString(R.string.sleep_timer_minutes_format, minutes.toInt())
+        val seconds = totalSeconds % 60
+
+        return when {
+            hours > 0 -> getString(R.string.sleep_timer_hours_minutes_format, hours.toInt(), minutes.toInt())
+            minutes > 0 -> getString(R.string.sleep_timer_minutes_seconds_format, minutes.toInt(), seconds.toInt())
+            else -> getString(R.string.sleep_timer_seconds_format, seconds.toInt())
         }
     }
 
