@@ -397,23 +397,28 @@
     
         private fun startDownloadJob(track: Track, subFolderName: String? = null): Job {
             val job = scope.launch {
-                val ext = if (track.source == "youtube") "m4a" else "mp3"
-                val mime = if (track.source == "youtube") "audio/mp4" else "audio/mpeg"
-
-                val tempAudioFile = File(context.cacheDir, "temp_${track.id}.$ext")
-                val tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
-                val taggedAudioFile = File(context.cacheDir, "tagged_${track.id}.$ext")
-                val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
-    
+                var tempAudioFile: File? = null
+                var tempImageFile: File? = null
+                var taggedAudioFile: File? = null
+                
                 try {
                     _downloadProgress.update { it + (track.id to 0) }
-    
+
                     val streamUrl = StreamResolver.resolveStream(context, track, forDownload = true)
-    
+
                     if (streamUrl == null) {
                         Log.e("DownloadManager", "Failed to resolve stream URL for track: ${track.title}")
                         throw Exception("Cannot resolve stream URL for download")
                     }
+
+                    val isYoutubeStream = streamUrl.contains("googlevideo.com") || track.source == "youtube"
+                    val ext = if (isYoutubeStream) "m4a" else "mp3"
+                    val mime = if (isYoutubeStream) "audio/mp4" else "audio/mpeg"
+
+                    tempAudioFile = File(context.cacheDir, "temp_${track.id}.$ext")
+                    tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
+                    taggedAudioFile = File(context.cacheDir, "tagged_${track.id}.$ext")
+                    val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
 
                     downloadFileToStream(streamUrl, FileOutputStream(tempAudioFile)) { p ->
                         if (isActive) {
@@ -487,9 +492,9 @@
                     e.printStackTrace()
                 } finally {
                     try {
-                        if (tempAudioFile.exists()) tempAudioFile.delete()
-                        if (tempImageFile.exists()) tempImageFile.delete()
-                        if (taggedAudioFile.exists()) taggedAudioFile.delete()
+                        tempAudioFile?.let { if (it.exists()) it.delete() }
+                        tempImageFile?.let { if (it.exists()) it.delete() }
+                        taggedAudioFile?.let { if (it.exists()) it.delete() }
                     } catch (e: Exception) {}
     
                     _downloadProgress.update { it - track.id }
@@ -524,7 +529,8 @@
                 e.printStackTrace()
             }
 
-            if (contentLength <= 0 || !acceptRanges) {
+            val isYoutube = url.contains("googlevideo.com") || url.contains("youtube.com")
+            if (contentLength <= 0 || !acceptRanges || isYoutube) {
                 val request = Request.Builder()
                     .url(url)
                     .header("User-Agent", com.alananasss.kittytune.utils.Config.USER_AGENT)
