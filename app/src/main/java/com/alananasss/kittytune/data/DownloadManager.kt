@@ -397,19 +397,22 @@
     
         private fun startDownloadJob(track: Track, subFolderName: String? = null): Job {
             val job = scope.launch {
-                val tempAudioFile = File(context.cacheDir, "temp_${track.id}.mp3")
+                val ext = if (track.source == "youtube") "m4a" else "mp3"
+                val mime = if (track.source == "youtube") "audio/mp4" else "audio/mpeg"
+
+                val tempAudioFile = File(context.cacheDir, "temp_${track.id}.$ext")
                 val tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
-                val taggedAudioFile = File(context.cacheDir, "tagged_${track.id}.mp3")
+                val taggedAudioFile = File(context.cacheDir, "tagged_${track.id}.$ext")
                 val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
     
                 try {
                     _downloadProgress.update { it + (track.id to 0) }
     
-                    val streamUrl = StreamResolver.resolveStream(context, track)
+                    val streamUrl = StreamResolver.resolveStream(context, track, forDownload = true)
     
                     if (streamUrl == null) {
                         Log.e("DownloadManager", "Failed to resolve stream URL for track: ${track.title}")
-                        return@launch
+                        throw Exception("Cannot resolve stream URL for download")
                     }
 
                     downloadFileToStream(streamUrl, FileOutputStream(tempAudioFile)) { p ->
@@ -423,26 +426,30 @@
                         tempImageFile.copyTo(internalArtFile, overwrite = true)
                     }
     
-                    try {
-                        val mp3file = Mp3File(tempAudioFile)
-                        val id3v2Tag = if (mp3file.hasId3v2Tag()) mp3file.id3v2Tag else ID3v24Tag()
-                        mp3file.id3v2Tag = id3v2Tag
-                        id3v2Tag.title = track.title ?: context.getString(R.string.untitled_track)
-                        id3v2Tag.artist = track.user?.username ?: context.getString(R.string.unknown_artist)
-                        id3v2Tag.album = if(subFolderName != null) subFolderName else context.getString(R.string.app_name)
-                        id3v2Tag.comment = context.getString(R.string.download_comment)
-                        val imageBytes = tempImageFile.readBytes()
-                        id3v2Tag.setAlbumImage(imageBytes, "image/jpeg")
-                        mp3file.save(taggedAudioFile.absolutePath)
-                    } catch (e: Exception) {
+                    if (ext == "mp3") {
+                        try {
+                            val mp3file = Mp3File(tempAudioFile)
+                            val id3v2Tag = if (mp3file.hasId3v2Tag()) mp3file.id3v2Tag else ID3v24Tag()
+                            mp3file.id3v2Tag = id3v2Tag
+                            id3v2Tag.title = track.title ?: context.getString(R.string.untitled_track)
+                            id3v2Tag.artist = track.user?.username ?: context.getString(R.string.unknown_artist)
+                            id3v2Tag.album = if(subFolderName != null) subFolderName else context.getString(R.string.app_name)
+                            id3v2Tag.comment = context.getString(R.string.download_comment)
+                            val imageBytes = tempImageFile.readBytes()
+                            id3v2Tag.setAlbumImage(imageBytes, "image/jpeg")
+                            mp3file.save(taggedAudioFile.absolutePath)
+                        } catch (e: Exception) {
+                            tempAudioFile.copyTo(taggedAudioFile, overwrite = true)
+                        }
+                    } else {
                         tempAudioFile.copyTo(taggedAudioFile, overwrite = true)
                     }
     
                     val cleanArtist = sanitizeFilename(track.user?.username ?: context.getString(R.string.generic_artist))
                     val cleanTitle = sanitizeFilename(track.title ?: context.getString(R.string.generic_title))
-                    val finalFileName = "$cleanArtist - $cleanTitle.mp3"
+                    val finalFileName = "$cleanArtist - $cleanTitle.$ext"
     
-                    val (audioStream, audioPath) = getOutputStreamForFile(finalFileName, "audio/mpeg", subFolderName)
+                    val (audioStream, audioPath) = getOutputStreamForFile(finalFileName, mime, subFolderName)
     
                     FileInputStream(taggedAudioFile).use { input ->
                         audioStream.use { output -> input.copyTo(output) }
@@ -496,6 +503,7 @@
         private suspend fun downloadFileToStream(url: String, outputStream: OutputStream, onProgress: (Int) -> Unit) {
             val headRequest = Request.Builder()
                 .url(url)
+                .header("User-Agent", com.alananasss.kittytune.utils.Config.USER_AGENT)
                 .header("Range", "bytes=0-0")
                 .build()
 
@@ -517,8 +525,12 @@
             }
 
             if (contentLength <= 0 || !acceptRanges) {
-                val request = Request.Builder().url(url).build()
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", com.alananasss.kittytune.utils.Config.USER_AGENT)
+                    .build()
                 client.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) throw Exception("HTTP Error ${response.code}")
                     val body = response.body ?: throw Exception(context.getString(R.string.error_empty_body))
                     val total = body.contentLength()
 
@@ -550,10 +562,12 @@
 
                         val chunkRequest = Request.Builder()
                             .url(url)
+                            .header("User-Agent", com.alananasss.kittytune.utils.Config.USER_AGENT)
                             .header("Range", "bytes=$startByte-$endByte")
                             .build()
 
                         client.newCall(chunkRequest).execute().use { response ->
+                            if (!response.isSuccessful) throw Exception("HTTP Error ${response.code}")
                             val body = response.body ?: throw Exception("Empty body in chunk $i")
 
                             tempFiles[i].outputStream().use { fileOut ->
