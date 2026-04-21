@@ -591,7 +591,7 @@
     <string name="about_role_dev">Créateur</string>
     <string name="about_role_translation">Traduction</string>
     <string name="about_translate_title">Traduire l\'app</string>
-    <string name="about_translate_desc">Contribuez aux traductions sur Crowdin !</string>
+    <string name="about_translate_desc">Help translate on Crowdin!</string>
     <string name="about_made_with">Développé par Alan &gt;.&lt;</string>
     <string name="update_available_title">Mise à jour disponible</string>
     <string name="update_available_msg">Une nouvelle version (%1$s) de KittyTune est disponible !</string>
