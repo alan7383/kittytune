@@ -85,6 +85,13 @@
     <string name="home_hiphop">Hip-Hop &amp; Rap</string>
     <string name="home_electro">Electro House</string>
     <string name="home_pop">Pop</string>
+
+    <!-- Offline Home Screen -->
+    <string name="home_offline_banner">Offline mód aktív</string>
+    <string name="home_offline_title">Hoppá, nincs kapcsolat</string>
+    <string name="home_offline_desc">A KittyTune-nak internetre van szüksége az újdonságok betöltéséhez. Addig is hallgathatod a letöltött zenéidet.</string>
+    <string name="home_offline_btn_retry">Újra</string>
+    <string name="home_offline_btn_downloads">Letöltéseim</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- EXPLORER & SEARCH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->

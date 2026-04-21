@@ -43,6 +43,7 @@
     import androidx.compose.ui.graphics.vector.ImageVector
     import kotlinx.coroutines.awaitAll
     import com.zionhuang.innertube.models.WatchEndpoint
+    import com.alananasss.kittytune.utils.NetworkUtils
 
     data class HomeSection(
         val title: String,
@@ -103,8 +104,10 @@
         var isSearchLoading by mutableStateOf(false)
         var activeSearchSource by mutableStateOf(SearchSource.SOUNDCLOUD)
     
+    
         var isLoading by mutableStateOf(true)
         var isRefreshing by mutableStateOf(false)
+        var isOfflineMode by mutableStateOf(!NetworkUtils.isInternetAvailable(application))
     
         val searchResultsTracks = mutableStateListOf<Track>()
         val searchResultsArtists = mutableStateListOf<User>()
@@ -123,10 +126,14 @@
         val genreCategories = GenreData.getGenres(application)
     
         init {
+            loadFromCache()
+            if (isOfflineMode) {
+                isLoading = false
+            }
+
             viewModelScope.launch {
                 SessionManager.isClientIdValid.collect { isReady ->
-                    if (isReady) {
-                        loadFromCache()
+                    if (isReady && !isOfflineMode) {
                         loadData()
                     }
                 }
@@ -165,6 +172,16 @@
 
         fun refreshData() {
             if (isRefreshing) return
+            
+            // Network check before loading
+            if (!NetworkUtils.isInternetAvailable(getApplication())) {
+                isOfflineMode = true
+                isRefreshing = false
+                return
+            }
+            
+            isOfflineMode = false
+            
             viewModelScope.launch {
                 isRefreshing = true
                 val token = tokenManager.getAccessToken()
@@ -513,6 +530,13 @@
         }
 
         fun loadData() {
+            if (!NetworkUtils.isInternetAvailable(getApplication())) {
+                isOfflineMode = true
+                isLoading = false
+                return
+            }
+            isOfflineMode = false
+            
             viewModelScope.launch {
                 val token = tokenManager.getAccessToken()
                 if (token.isNullOrEmpty()) loadGuestData() else loadAuthenticatedData()

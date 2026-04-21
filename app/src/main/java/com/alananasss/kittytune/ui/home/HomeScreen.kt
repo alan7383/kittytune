@@ -102,8 +102,12 @@ import kotlinx.coroutines.launch
     import androidx.compose.foundation.interaction.MutableInteractionSource
     import androidx.compose.foundation.interaction.collectIsPressedAsState
     import androidx.compose.ui.draw.drawBehind
+    import android.net.ConnectivityManager
+    import android.net.Network
+    import android.net.NetworkCapabilities
+    import android.net.NetworkRequest
 
-    @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+    @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
     @Composable
     fun HomeScreen(
         playerViewModel: PlayerViewModel,
@@ -144,6 +148,28 @@ import kotlinx.coroutines.launch
             }
         }
 
+        // Live network observer
+        val context = LocalContext.current
+        DisposableEffect(context) {
+            val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+            val networkCallback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    homeViewModel.isOfflineMode = false
+                    homeViewModel.refreshData()
+                }
+                override fun onLost(network: Network) {
+                    homeViewModel.isOfflineMode = true
+                }
+            }
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager.registerNetworkCallback(request, networkCallback)
+            onDispose {
+                connectivityManager.unregisterNetworkCallback(networkCallback)
+            }
+        }
+
         BackHandler(enabled = homeViewModel.isSearching) {
             if (isKeyboardOpen) {
                 focusManager.clearFocus()
@@ -159,237 +185,282 @@ import kotlinx.coroutines.launch
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.background)
                         .statusBarsPadding()
-                        .padding(top = 8.dp, bottom = 8.dp)
+                        .padding(top = 8.dp)
                 ) {
-                    val isSearching = homeViewModel.isSearching
-                    val searchBarPadding by animateDpAsState(
-                        targetValue = if (isSearching) 0.dp else 16.dp,
-                        label = "SearchBarPadding"
-                    )
-
-                    val searchContainerColor by animateColorAsState(
-                        targetValue = if (isSearching) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        label = "SearchBarBg"
-                    )
-
-                    SearchBar(
-                        inputField = {
-                            SearchBarDefaults.InputField(
-                                query = homeViewModel.searchQuery,
-                                onQueryChange = homeViewModel::onSearchQueryChanged,
-                                onSearch = { focusManager.clearFocus() },
-                                expanded = isSearching,
-                                onExpandedChange = {
-                                    if (it) homeViewModel.activateSearch() else {
-                                        homeViewModel.clearSearch()
-                                        focusManager.clearFocus()
-                                    }
-                                },
-                                placeholder = {
-                                    Text(
-                                        stringResource(R.string.search_hint),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                },
-                                modifier = Modifier.focusRequester(focusRequester),
-                                leadingIcon = {
-                                    if (isSearching) {
-                                        IconButton(
-                                            onClick = {
-                                                homeViewModel.clearSearch()
-                                                focusManager.clearFocus()
-                                            },
-                                            shapes = IconButtonDefaults.shapes()
-                                        ) {
-                                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close))
-                                        }
-                                    } else {
-                                        IconButton(onClick = { homeViewModel.activateSearch() }) {
-                                            Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
-                                    }
-                                },
-                                trailingIcon = {
-                                    if (isSearching) {
-                                        if (homeViewModel.searchQuery.isNotEmpty()) {
-                                            IconButton(onClick = { homeViewModel.onSearchQueryChanged("") }) {
-                                                Icon(Icons.Default.Close, stringResource(R.string.btn_close))
-                                            }
-                                        }
-                                    } else {
-                                        IconButton(onClick = {
-                                            if (userProfile != null) {
-                                                onNavigate("my_profile_menu")
-                                            } else {
-                                                onNavigate("login_required")
-                                            }
-                                        }) {
-                                            if (userProfile?.avatarUrl != null) {
-                                                ArtistAvatar(
-                                                    avatarUrl = userProfile.avatarUrl,
-                                                    modifier = Modifier.size(32.dp).clip(CircleShape)
-                                                )
-                                            } else {
-                                                Icon(
-                                                    Icons.Default.AccountCircle,
-                                                    contentDescription = stringResource(R.string.guest_user),
-                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(32.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            )
-                        },
-                        expanded = isSearching,
-                        onExpandedChange = {
-                            if (it) homeViewModel.activateSearch() else {
-                                homeViewModel.clearSearch()
-                                focusManager.clearFocus()
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = searchBarPadding),
-                        colors = SearchBarDefaults.colors(
-                            containerColor = searchContainerColor,
-                            dividerColor = Color.Transparent
-                        )
-                    ) {
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Row(
+                    Column {
+                        // Animated Offline Banner
+                        AnimatedVisibility(
+                            visible = homeViewModel.isOfflineMode && homeViewModel.homeSections.isNotEmpty(),
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.errorContainer,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                                    .padding(top = 8.dp, bottom = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                shape = RoundedCornerShape(16.dp)
                             ) {
-                                AnimatedVisibility(
-                                    visible = homeViewModel.activeSearchSource == SearchSource.SOUNDCLOUD,
-                                    enter = fadeIn(),
-                                    exit = fadeOut()
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
-                                    SearchFilters(
-                                        activeFilter = homeViewModel.activeFilter,
-                                        onFilterSelected = homeViewModel::onFilterChanged
+                                    Icon(
+                                        imageVector = Icons.Rounded.CloudOff,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                }
-                                Spacer(Modifier.weight(1f))
-                                SearchSourceSelector(
-                                    selectedSource = homeViewModel.activeSearchSource,
-                                    onSelect = homeViewModel::onSearchSourceChanged
-                                )
-                            }
-
-                            // Determine the search display state for AnimatedContent
-                            val searchDisplayState = when {
-                                homeViewModel.searchQuery.isEmpty() -> "categories"
-                                homeViewModel.isSearchLoading -> "loading"
-                                else -> "results_${homeViewModel.activeFilter}"
-                            }
-
-                            AnimatedContent(
-                                targetState = searchDisplayState,
-                                transitionSpec = {
-                                    val enter = fadeIn(animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) +
-                                        scaleIn(initialScale = 0.96f, animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing))
-                                    val exit = fadeOut(animationSpec = tween(200))
-                                    enter.togetherWith(exit)
-                                },
-                                label = "SearchStateAnimation",
-                                modifier = Modifier.fillMaxSize()
-                            ) { state ->
-                                when {
-                                    state == "categories" -> {
-                                        SearchCategoriesGrid(
-                                            moods = homeViewModel.moodCategories,
-                                            genres = homeViewModel.genreCategories,
-                                            onCategoryClick = { category ->
-                                                val encodedTitle = Uri.encode(category.title)
-                                                val encodedQuery = Uri.encode(category.query)
-                                                onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
-                                            }
-                                        )
-                                    }
-                                    state == "loading" -> {
-                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            ContainedLoadingIndicator()
-                                        }
-                                    }
-                                    else -> {
-                                        val currentFilter = homeViewModel.activeFilter
-                                        SearchResultsList(
-                                            homeViewModel = homeViewModel,
-                                            playerViewModel = playerViewModel,
-                                            onNavigate = onNavigate,
-                                            activeFilter = currentFilter
-                                        )
-                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Text(
+                                        text = stringResource(R.string.home_offline_banner),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
+
+                        val isSearching = homeViewModel.isSearching
+                        val searchBarPadding by animateDpAsState(
+                            targetValue = if (isSearching) 0.dp else 16.dp,
+                            label = "SearchBarPadding"
+                        )
+
+                        val searchContainerColor by animateColorAsState(
+                            targetValue = if (isSearching) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surfaceContainerHigh,
+                            label = "SearchBarBg"
+                        )
+
+                        SearchBar(
+                            inputField = {
+                                SearchBarDefaults.InputField(
+                                    query = homeViewModel.searchQuery,
+                                    onQueryChange = homeViewModel::onSearchQueryChanged,
+                                    onSearch = { focusManager.clearFocus() },
+                                    expanded = isSearching,
+                                    onExpandedChange = {
+                                        if (it) homeViewModel.activateSearch() else {
+                                            homeViewModel.clearSearch()
+                                            focusManager.clearFocus()
+                                        }
+                                    },
+                                    placeholder = {
+                                        Text(
+                                            text = stringResource(R.string.search_hint),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
+                                    modifier = Modifier.focusRequester(focusRequester),
+                                    leadingIcon = {
+                                        if (isSearching) {
+                                            IconButton(
+                                                onClick = {
+                                                    homeViewModel.clearSearch()
+                                                    focusManager.clearFocus()
+                                                },
+                                                shapes = IconButtonDefaults.shapes()
+                                            ) {
+                                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_close))
+                                            }
+                                        } else {
+                                            IconButton(onClick = { homeViewModel.activateSearch() }) {
+                                                Icon(Icons.Default.Search, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    },
+                                    trailingIcon = {
+                                        if (isSearching) {
+                                            if (homeViewModel.searchQuery.isNotEmpty()) {
+                                                IconButton(onClick = { homeViewModel.onSearchQueryChanged("") }) {
+                                                    Icon(Icons.Default.Close, stringResource(R.string.btn_close))
+                                                }
+                                            }
+                                        } else {
+                                            IconButton(onClick = {
+                                                if (userProfile != null) {
+                                                    onNavigate("my_profile_menu")
+                                                } else {
+                                                    onNavigate("login_required")
+                                                }
+                                            }) {
+                                                if (userProfile?.avatarUrl != null) {
+                                                    ArtistAvatar(
+                                                        avatarUrl = userProfile.avatarUrl,
+                                                        modifier = Modifier.size(32.dp).clip(CircleShape)
+                                                    )
+                                                } else {
+                                                    Icon(
+                                                        imageVector = Icons.Default.AccountCircle,
+                                                        contentDescription = stringResource(R.string.guest_user),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(32.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            },
+                            expanded = isSearching,
+                            onExpandedChange = {
+                                if (it) homeViewModel.activateSearch() else {
+                                    homeViewModel.clearSearch()
+                                    focusManager.clearFocus()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = searchBarPadding)
+                                .padding(bottom = 8.dp),
+                            colors = SearchBarDefaults.colors(
+                                containerColor = searchContainerColor,
+                                dividerColor = Color.Transparent
+                            ),
+                            content = {
+                                Column(modifier = Modifier.fillMaxSize()) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp)
+                                            .padding(top = 8.dp, bottom = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        AnimatedVisibility(
+                                            visible = homeViewModel.activeSearchSource == SearchSource.SOUNDCLOUD,
+                                            enter = fadeIn(),
+                                            exit = fadeOut()
+                                        ) {
+                                            SearchFilters(
+                                                activeFilter = homeViewModel.activeFilter,
+                                                onFilterSelected = homeViewModel::onFilterChanged
+                                            )
+                                        }
+                                        Spacer(Modifier.weight(1f))
+                                        SearchSourceSelector(
+                                            selectedSource = homeViewModel.activeSearchSource,
+                                            onSelect = homeViewModel::onSearchSourceChanged
+                                        )
+                                    }
+
+                                    // Determine the search display state for AnimatedContent
+                                    val searchDisplayState = when {
+                                        homeViewModel.searchQuery.isEmpty() -> "categories"
+                                        homeViewModel.isSearchLoading -> "loading"
+                                        else -> "results_${homeViewModel.activeFilter}"
+                                    }
+
+                                    AnimatedContent(
+                                        targetState = searchDisplayState,
+                                        transitionSpec = {
+                                            val enter = fadeIn(animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing)) +
+                                                scaleIn(initialScale = 0.96f, animationSpec = tween(320, easing = androidx.compose.animation.core.FastOutSlowInEasing))
+                                            val exit = fadeOut(animationSpec = tween(200))
+                                            enter.togetherWith(exit)
+                                        },
+                                        label = "SearchStateAnimation",
+                                        modifier = Modifier.fillMaxSize()
+                                    ) { state ->
+                                        when {
+                                            state == "categories" -> {
+                                                SearchCategoriesGrid(
+                                                    moods = homeViewModel.moodCategories,
+                                                    genres = homeViewModel.genreCategories,
+                                                    onCategoryClick = { category: SearchCategory ->
+                                                        val encodedTitle = Uri.encode(category.title)
+                                                        val encodedQuery = Uri.encode(category.query)
+                                                        onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
+                                                    }
+                                                )
+                                            }
+                                            state == "loading" -> {
+                                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                    ContainedLoadingIndicator()
+                                                }
+                                            }
+                                            else -> {
+                                                val currentFilter = homeViewModel.activeFilter
+                                                SearchResultsList(
+                                                    homeViewModel = homeViewModel,
+                                                    playerViewModel = playerViewModel,
+                                                    onNavigate = onNavigate,
+                                                    activeFilter = currentFilter
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        )
                     }
                 }
             },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { innerPadding ->
-            Box(modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-            ) {
-                if (homeViewModel.isLoading && homeViewModel.homeSections.isEmpty()) {
-                    HomeScreenShimmer()
-                } else {
-                    val pullRefreshState = rememberPullToRefreshState()
+            containerColor = MaterialTheme.colorScheme.background,
+            content = { innerPadding ->
+                Box(modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize()
+                ) {
+                    if (homeViewModel.isLoading && homeViewModel.homeSections.isEmpty() && !homeViewModel.isOfflineMode) {
+                        HomeScreenShimmer()
+                    } else if (homeViewModel.isOfflineMode && homeViewModel.homeSections.isEmpty()) {
+                        OfflineHomeView(
+                            onRetry = { homeViewModel.refreshData() },
+                            onGoToDownloads = { onNavigate("downloads") }
+                        )
+                    } else {
+                        val pullRefreshState = rememberPullToRefreshState()
 
-                    PullToRefreshBox(
-                        isRefreshing = homeViewModel.isRefreshing,
-                        onRefresh = { homeViewModel.refreshData() },
-                        state = pullRefreshState,
-                        modifier = Modifier.fillMaxSize(),
-                        indicator = {
-                            if (homeViewModel.isRefreshing || pullRefreshState.distanceFraction > 0f) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopCenter)
-                                        .padding(top = 16.dp)
-                                        .graphicsLayer {
-                                            val fraction = pullRefreshState.distanceFraction
-                                            alpha = fraction.coerceIn(0f, 1f)
-                                            translationY = (fraction * 20.dp.toPx()) - 20.dp.toPx()
-                                        }
-                                ) {
-                                    ContainedLoadingIndicator()
+                        PullToRefreshBox(
+                            isRefreshing = homeViewModel.isRefreshing,
+                            onRefresh = { homeViewModel.refreshData() },
+                            state = pullRefreshState,
+                            modifier = Modifier.fillMaxSize(),
+                            indicator = {
+                                if (homeViewModel.isRefreshing || pullRefreshState.distanceFraction > 0f) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .padding(top = 16.dp)
+                                            .graphicsLayer {
+                                                val fraction = pullRefreshState.distanceFraction
+                                                alpha = fraction.coerceIn(0f, 1f)
+                                                translationY = (fraction * 20.dp.toPx()) - 20.dp.toPx()
+                                            }
+                                    ) {
+                                        ContainedLoadingIndicator()
+                                    }
                                 }
                             }
-                        }
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    val fraction = pullRefreshState.distanceFraction
-
-                                    translationY = fraction * 80.dp.toPx()
-
-                                    val scale = 1f - (fraction * 0.02f).coerceIn(0f, 0.05f)
-                                    scaleX = scale
-                                    scaleY = scale
-                                }
                         ) {
-                            HomeContent(
-                                homeViewModel = homeViewModel,
-                                playerViewModel = playerViewModel,
-                                history = history,
-                                onNavigate = onNavigate
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        val fraction = pullRefreshState.distanceFraction
+
+                                        translationY = fraction * 80.dp.toPx()
+
+                                        val scale = 1f - (fraction * 0.02f).coerceIn(0f, 0.05f)
+                                        scaleX = scale
+                                        scaleY = scale
+                                    }
+                            ) {
+                                HomeContent(
+                                    homeViewModel = homeViewModel,
+                                    playerViewModel = playerViewModel,
+                                    history = history,
+                                    onNavigate = onNavigate
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
+        )
     }
 
     @Composable
@@ -1589,6 +1660,82 @@ import kotlinx.coroutines.launch
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun OfflineHomeView(
+        onRetry: () -> Unit,
+        onGoToDownloads: () -> Unit
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                modifier = Modifier.size(120.dp),
+                shape = RoundedCornerShape(32.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.CloudOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            Text(
+                text = stringResource(R.string.home_offline_title),
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
+                ),
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                text = stringResource(R.string.home_offline_desc),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(Modifier.height(48.dp))
+
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shapes = ButtonDefaults.shapes(),
+                contentPadding = PaddingValues(horizontal = 24.dp)
+            ) {
+                Icon(Icons.Rounded.Refresh, null)
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(R.string.home_offline_btn_retry), fontWeight = FontWeight.Bold)
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            FilledTonalButton(
+                onClick = onGoToDownloads,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shapes = ButtonDefaults.shapes(),
+                contentPadding = PaddingValues(horizontal = 24.dp)
+            ) {
+                Icon(Icons.Rounded.Download, null)
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(R.string.home_offline_btn_downloads), fontWeight = FontWeight.Bold)
             }
         }
     }
