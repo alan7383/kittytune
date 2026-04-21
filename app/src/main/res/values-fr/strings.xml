@@ -85,6 +85,13 @@
     <string name="home_hiphop">Hip-Hop &amp; Rap</string>
     <string name="home_electro">Electro House</string>
     <string name="home_pop">Pop</string>
+
+    <!-- Offline Home Screen -->
+    <string name="home_offline_title">Oups, pas de connexion</string>
+    <string name="home_offline_desc">KittyTune a besoin d\'internet pour charger les nouveautés. En attendant, tu peux écouter tes musiques téléchargées.</string>
+    <string name="home_offline_btn_retry">Réessayer</string>
+    <string name="home_offline_btn_downloads">Aller aux téléchargements</string>
+    <string name="home_offline_banner">Mode hors ligne actif</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- EXPLORER & SEARCH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
