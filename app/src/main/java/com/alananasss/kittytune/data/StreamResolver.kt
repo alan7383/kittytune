@@ -133,8 +133,11 @@
                 extractor.fetchPage()
 
                 val bestAudioStream = extractor.audioStreams
-                    .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.url != null }
+                    .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.format == org.schabi.newpipe.extractor.MediaFormat.M4A && it.url != null }
                     .maxByOrNull { it.averageBitrate }
+                    ?: extractor.audioStreams
+                        .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.url != null }
+                        .maxByOrNull { it.averageBitrate }
 
                 if (bestAudioStream == null) {
                     Log.w(TAG, "[NewPipe] No valid audio stream found.")
@@ -191,7 +194,14 @@
                 transcodings.find { it.format?.protocol == "progressive" }
                     ?: transcodings.find { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }
                     ?: transcodings.find { it.format?.protocol == "hls" }
-            } ?: return null
+            }
+
+            if (target == null) {
+                if (forDownload && prefs.getYouTubeFallbackEnabled()) {
+                    return resolveViaNewPipe(track)
+                }
+                return null
+            }
 
             val apiUrl = target?.url ?: return null
 
