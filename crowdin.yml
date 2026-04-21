@@ -12,6 +12,6 @@ preserve_hierarchy: true
 
 files:
   - source: /app/src/main/res/values/strings.xml
-    translation: /app/src/main/res/values-%two_letters_code%/%original_file_name%
+    translation: /app/src/main/res/values-%android_code%/strings.xml
     # If the language code is something like 'zh-CN', Android needs 'zh-rCN' or similar. 
     # Crowdin's GitHub integration usually handles Android locales automatically.
