@@ -398,7 +398,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 loadLyrics(finalTrack)
                 AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")
 
-                if (finalTrack.permalinkUrl.isNullOrEmpty() || finalTrack.user?.avatarUrl.isNullOrEmpty()) {
+                if (finalTrack.id > 0 && (finalTrack.permalinkUrl.isNullOrEmpty() || finalTrack.user?.avatarUrl.isNullOrEmpty())) {
                     try {
                         val fullTracks = api.getTracksByIds(finalTrack.id.toString())
                         val fullTrack = fullTracks.firstOrNull()
@@ -1093,7 +1093,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             var finalTrack = trackToPlay
-            if (finalTrack.source == "soundcloud" && (trackToPlay.user?.id == 0L || trackToPlay.media == null)) {
+            if (finalTrack.source == "soundcloud" && trackToPlay.id > 0 && (trackToPlay.user?.id == 0L || trackToPlay.media == null)) {
                 try {
                     val fullTrackList = api.getTracksByIds(trackToPlay.id.toString())
                     if (fullTrackList.isNotEmpty()) { finalTrack = fullTrackList[0]; _queue[index] = finalTrack }
