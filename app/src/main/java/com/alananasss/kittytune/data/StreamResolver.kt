@@ -71,7 +71,7 @@
                     track.media?.transcodings.isNullOrEmpty()
         }
 
-        suspend fun resolveStream(context: Context, track: Track): String? {
+        suspend fun resolveStream(context: Context, track: Track, forDownload: Boolean = false): String? {
             return withContext(Dispatchers.IO) {
                 try {
                     val localTrack = DownloadManager.getLocalTrack(track.id)
@@ -105,7 +105,7 @@
                         }
                 }
 
-                return@withContext resolveFromSoundCloud(context, track)
+                return@withContext resolveFromSoundCloud(context, track, forDownload)
             }
         }
 
@@ -165,7 +165,7 @@
             }
         }
 
-        private suspend fun resolveFromSoundCloud(context: Context, track: Track): String? {
+        private suspend fun resolveFromSoundCloud(context: Context, track: Track, forDownload: Boolean): String? {
             val prefs = PlayerPreferences(context)
             val api = RetrofitClient.create(context)
             var trackToUse = track
@@ -182,7 +182,9 @@
             val transcodings = trackToUse.media?.transcodings ?: return null
             val qualityPref = prefs.getAudioQuality()
 
-            val target = if (qualityPref == "HIGH") {
+            val target = if (forDownload) {
+                transcodings.find { it.format?.protocol == "progressive" }
+            } else if (qualityPref == "HIGH") {
                 transcodings.find { it.format?.protocol == "progressive" }
                     ?: transcodings.find { it.format?.protocol == "hls" }
             } else {
@@ -191,7 +193,7 @@
                     ?: transcodings.find { it.format?.protocol == "hls" }
             } ?: return null
 
-            val apiUrl = target.url
+            val apiUrl = target?.url ?: return null
 
             val urlWithParams = if (apiUrl.contains("?")) "$apiUrl&client_id=${Config.CLIENT_ID}" else "$apiUrl?client_id=${Config.CLIENT_ID}"
             val builder = okhttp3.Request.Builder().url(urlWithParams).header("User-Agent", Config.USER_AGENT)
@@ -210,7 +212,7 @@
                 val body = response.body?.string() ?: return null
                 val streamInfoUrl = JSONObject(body).getString("url")
 
-                if (target.format?.protocol == "hls") {
+                if (target?.format?.protocol == "hls") {
                     Log.d(TAG, "HLS Playlist URL resolved: $streamInfoUrl")
                     return streamInfoUrl
                 }
