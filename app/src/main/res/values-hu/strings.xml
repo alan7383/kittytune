@@ -827,6 +827,8 @@
     <string name="sleep_timer_island_title">Alváskapcsoló</string>
     <string name="sleep_timer_island_started_subtitle">Időzítő beállítva: %1$s</string>
     <string name="sleep_timer_island_finished_subtitle">Az időzítő lejárt</string>
+    <string name="sleep_timer_seconds_format">%1$d másodperc</string>
+    <string name="sleep_timer_minutes_seconds_format">%1$dp %2$dmp</string>
 
     <!-- Sleep Timer Fade-Out -->
     <string name="sleep_timer_fade_title">Progresszív elhalkulás</string>
