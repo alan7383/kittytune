@@ -79,6 +79,13 @@ class PlayerPreferences(private val context: Context) {
         private const val KEY_KEY_COLOR = "key_color"
         private const val KEY_COLOR_STYLE = "color_style"
         private const val KEY_COLOR_SPEC = "color_spec"
+        private const val KEY_SLEEP_TIMER_FADE_DURATION = "sleep_timer_fade_duration"
+        private const val KEY_SLEEP_TIMER_FADE_ENABLED = "sleep_timer_fade_enabled"
+
+        const val SLEEP_TIMER_FADE_DURATION_MIN = 0
+        const val SLEEP_TIMER_FADE_DURATION_MAX = 30
+        const val SLEEP_TIMER_FADE_DURATION_DEFAULT = 30
+        const val SLEEP_TIMER_FADE_UPDATE_INTERVAL_MS = 50L
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -223,6 +230,18 @@ class PlayerPreferences(private val context: Context) {
 
     fun getColorSpec(): String = prefs.getString(KEY_COLOR_SPEC, "Default") ?: "Default"
     fun setColorSpec(spec: String) = prefs.edit().putString(KEY_COLOR_SPEC, spec).apply()
+
+    fun getSleepTimerFadeEnabled(): Boolean = prefs.getBoolean(KEY_SLEEP_TIMER_FADE_ENABLED, false)
+    fun setSleepTimerFadeEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_SLEEP_TIMER_FADE_ENABLED, enabled).apply()
+
+    fun getSleepTimerFadeDuration(): Int =
+        prefs.getInt(KEY_SLEEP_TIMER_FADE_DURATION, SLEEP_TIMER_FADE_DURATION_DEFAULT)
+
+    fun setSleepTimerFadeDuration(seconds: Int) =
+        prefs.edit().putInt(KEY_SLEEP_TIMER_FADE_DURATION, seconds.coerceIn(
+            SLEEP_TIMER_FADE_DURATION_MIN,
+            SLEEP_TIMER_FADE_DURATION_MAX
+        )).apply()
 
     fun savePlaybackState(track: Track?, position: Long, queue: List<Track>, context: PlaybackContext?, shuffleEnabled: Boolean, repeatMode: RepeatMode) {
         if (!getPersistentQueueEnabled()) {

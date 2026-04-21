@@ -175,9 +175,10 @@ fun MainScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(showPopups) {
-        if (showPopups) {
-            AchievementNotificationManager.notifications.collect { notification ->
+    LaunchedEffect(Unit) {
+        AchievementNotificationManager.notifications.collect { notification ->
+            // Respect the showPopups setting for achievements, but always show sleep timer (emoji "🌙")
+            if (showPopups || notification.iconEmoji == "🌙") {
                 currentNotification = notification
                 delay(5000)
                 currentNotification = null

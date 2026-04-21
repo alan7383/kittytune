@@ -827,6 +827,11 @@
     <string name="sleep_timer_island_title">Minuteur de veille</string>
     <string name="sleep_timer_island_started_subtitle">Minuteur défini pour %1$s</string>
     <string name="sleep_timer_island_finished_subtitle">Minuteur terminé</string>
+
+    <!-- Sleep Timer Fade-Out -->
+    <string name="sleep_timer_fade_title">Fondu progressif</string>
+    <string name="sleep_timer_fade_subtitle">Le volume diminuera sur %1$d secondes</string>
+    <string name="label_duration">Durée du fondu</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- LISTENING STATS                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->

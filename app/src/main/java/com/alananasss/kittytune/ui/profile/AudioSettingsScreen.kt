@@ -1,8 +1,11 @@
 package com.alananasss.kittytune.ui.profile
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,8 +43,42 @@ fun AudioSettingsScreen(
     var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
 
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
+    var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
+    var fadeDuration by remember { mutableStateOf(prefs.getSleepTimerFadeDuration()) }
 
     var showQualityDialog by remember { mutableStateOf(false) }
+    var showFadeDurationDialog by remember { mutableStateOf(false) }
+
+    if (showFadeDurationDialog) {
+        AlertDialog(
+            onDismissRequest = { showFadeDurationDialog = false },
+            title = { Text(stringResource(R.string.sleep_timer_fade_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Slider(
+                        value = fadeDuration.toFloat(),
+                        onValueChange = {
+                            fadeDuration = it.toInt()
+                            prefs.setSleepTimerFadeDuration(it.toInt())
+                        },
+                        valueRange = PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MIN.toFloat()..PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MAX.toFloat(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showFadeDurationDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
 
     if (showQualityDialog) {
         AlertDialog(
@@ -145,6 +182,54 @@ fun AudioSettingsScreen(
                             switchState = playerViewModel.isPreciseSpeedEnabled,
                             onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
                         )
+                    }
+                }
+            }
+
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.sleep_timer_title))
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val fadeBottomRadius by animateDpAsState(
+                            targetValue = if (fadeEnabled) 4.dp else 24.dp,
+                            label = "FadeCornerAnimation"
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(
+                                topStart = 24.dp,
+                                topEnd = 24.dp,
+                                bottomStart = fadeBottomRadius,
+                                bottomEnd = fadeBottomRadius
+                            ),
+                            title = stringResource(R.string.sleep_timer_fade_title),
+                            subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                            hasSwitch = true,
+                            switchState = fadeEnabled,
+                            onSwitchChange = { 
+                                fadeEnabled = it
+                                prefs.setSleepTimerFadeEnabled(it)
+                            }
+                        )
+
+                        AnimatedVisibility(
+                            visible = fadeEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            SettingsItem(
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 24.dp,
+                                    bottomEnd = 24.dp
+                                ),
+                                title = stringResource(R.string.label_duration),
+                                subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                                onClick = { showFadeDurationDialog = true }
+                            )
+                        }
                     }
                 }
             }

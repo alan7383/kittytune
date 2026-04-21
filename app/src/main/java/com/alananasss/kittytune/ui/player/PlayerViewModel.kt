@@ -170,6 +170,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var showSleepTimerDialog by mutableStateOf(false)
     val isSleepTimerActive: Boolean get() = sleepTimerRemainingMs > 0L || sleepTimerEndOfTrack
     private var sleepTimerJob: Job? = null
+    private var preFadeVolume: Float = 1f
 
     private var pendingSeekPosition: Long? = null
     private var saveQueueJob: Job? = null
@@ -241,6 +242,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 if (sleepTimerEndOfTrack) {
                     cancelSleepTimer()
                     MusicManager.player.pause()
+                    showSleepTimerIslandNotification(isStarted = false)
                     emitUiEvent(getString(R.string.sleep_timer_cancelled))
                     return
                 }
@@ -1573,16 +1575,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
                     if (effectsState.isBassBoostEnabled || effectsState.isEarrapeEnabled) AchievementManager.increment("bass_addict", 1)
 
-                    // Sleep timer countdown
-                    if (sleepTimerRemainingMs > 0L) {
-                        sleepTimerRemainingMs -= 1000L
-                        if (sleepTimerRemainingMs <= 0L) {
-                            sleepTimerRemainingMs = 0L
-                            MusicManager.player.pause()
-                            showSleepTimerIslandNotification(isStarted = false)
-                            emitUiEvent(getString(R.string.sleep_timer_cancelled))
-                        }
-                    }
                 } catch (e: Exception) {
                 }
                 delay(1000)
@@ -1598,16 +1590,67 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     // ─── Sleep Timer ────────────────────────────────────────────
 
     fun startSleepTimer(durationMs: Long) {
-        sleepTimerJob?.cancel()
+        cancelSleepTimer()
+
+        val isFadeEnabled = playerPrefs.getSleepTimerFadeEnabled()
+        val fadeDurationSec = if (isFadeEnabled) playerPrefs.getSleepTimerFadeDuration() else 0
+        val fadeDurationMs = fadeDurationSec * 1000L
+        val totalDurationMs = durationMs
+
+        // Save current volume before any fade
+        preFadeVolume = player.volume
+
+        val startTime = System.currentTimeMillis()
+        val endTime = startTime + totalDurationMs
         sleepTimerEndOfTrack = false
-        sleepTimerRemainingMs = durationMs
+
         showSleepTimerDialog = false
-        showSleepTimerIslandNotification(isStarted = true, durationText = formatSleepTimerRemaining())
+        showSleepTimerIslandNotification(isStarted = true, durationText = formatRemaining(totalDurationMs))
         emitUiEvent(getString(R.string.sleep_timer_started))
+
+        sleepTimerJob = viewModelScope.launch(Dispatchers.Main) {
+            while (isActive) {
+                val now = System.currentTimeMillis()
+                val remaining = endTime - now
+
+                if (remaining <= 0) {
+                    // Timer elapsed: smooth cut to 0 then pause
+                    player.volume = 0f
+                    player.pause()
+                    // Restore original volume (playback is paused = no sound)
+                    player.volume = preFadeVolume
+                    sleepTimerRemainingMs = 0L
+                    showSleepTimerIslandNotification(isStarted = false)
+                    break
+                }
+
+                // Progressive fade-out zone
+                if (fadeDurationMs > 0L && remaining <= fadeDurationMs) {
+                    val fraction = (remaining.toFloat() / fadeDurationMs).coerceIn(0f, 1f)
+                    // Quadratic curve: perceived volume decreases naturally
+                    val volumeFraction = fraction * fraction
+                    player.volume = (preFadeVolume * volumeFraction).coerceIn(0f, 1f)
+                }
+
+                sleepTimerRemainingMs = remaining
+                delay(PlayerPreferences.SLEEP_TIMER_FADE_UPDATE_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun formatRemaining(durationMs: Long): String {
+        val totalSeconds = durationMs / 1000
+        val hours = totalSeconds / 3600
+        val minutes = (totalSeconds % 3600) / 60
+        return if (hours > 0) {
+            getString(R.string.sleep_timer_hours_minutes_format, hours.toInt(), minutes.toInt())
+        } else {
+            getString(R.string.sleep_timer_minutes_format, minutes.toInt())
+        }
     }
 
     fun startSleepTimerEndOfTrack() {
-        sleepTimerJob?.cancel()
+        cancelSleepTimer()
         sleepTimerRemainingMs = 0L
         sleepTimerEndOfTrack = true
         showSleepTimerDialog = false
@@ -1617,6 +1660,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun cancelSleepTimer() {
         sleepTimerJob?.cancel()
+        sleepTimerJob = null
+        // Restore original volume if a fade was in progress
+        if (player.volume != preFadeVolume) {
+            player.volume = preFadeVolume
+        }
         sleepTimerRemainingMs = 0L
         sleepTimerEndOfTrack = false
     }
