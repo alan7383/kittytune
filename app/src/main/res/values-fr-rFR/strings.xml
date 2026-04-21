@@ -85,6 +85,12 @@
     <string name="home_hiphop">Hip-Hop &amp; Rap</string>
     <string name="home_electro">Electro House</string>
     <string name="home_pop">Pop</string>
+    <!-- Offline Home Screen -->
+    <string name="home_offline_title">Oups, no connection</string>
+    <string name="home_offline_desc">KittyTune needs internet to load new tracks. In the meantime, you can listen to your downloads.</string>
+    <string name="home_offline_btn_retry">Retry</string>
+    <string name="home_offline_btn_downloads">Go to downloads</string>
+    <string name="home_offline_banner">Offline mode active</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- EXPLORER & SEARCH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
