@@ -529,8 +529,7 @@
                 e.printStackTrace()
             }
 
-            val isYoutube = url.contains("googlevideo.com") || url.contains("youtube.com")
-            if (contentLength <= 0 || !acceptRanges || isYoutube) {
+            if (contentLength <= 0 || !acceptRanges) {
                 val request = Request.Builder()
                     .url(url)
                     .header("User-Agent", com.alananasss.kittytune.utils.Config.USER_AGENT)
