@@ -92,15 +92,19 @@
     
                             try {
                                 runBlocking(Dispatchers.IO) {
-                                    try {
-                                        val db = AppDatabase.getDatabase(context).downloadDao()
-                                        val localTrack = db.getTrack(trackId)
-                                        if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
-                                            streamUrl = localTrack.localAudioPath
+                                        try {
+                                            val db = AppDatabase.getDatabase(context).downloadDao()
+                                            val localTrack = db.getTrack(trackId)
+                                            if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
+                                                val isContentUri = localTrack.localAudioPath.startsWith("content://")
+                                                val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
+                                                if (fileExists) {
+                                                    streamUrl = localTrack.localAudioPath
+                                                }
+                                            }
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
                                         }
-                                    } catch (e: Exception) {
-                                        e.printStackTrace()
-                                    }
 
                                     if (streamUrl == null) {
                                         try {
@@ -137,7 +141,12 @@
     
                             val finalUrl = streamUrl
                             if (finalUrl != null) {
-                                return dataSpec.buildUpon().setUri(Uri.parse(finalUrl)).build()
+                                val uri = if (finalUrl.startsWith("http") || finalUrl.startsWith("content://")) {
+                                    Uri.parse(finalUrl)
+                                } else {
+                                    Uri.fromFile(java.io.File(finalUrl))
+                                }
+                                return dataSpec.buildUpon().setUri(uri).build()
                             }
                         }
                     }
