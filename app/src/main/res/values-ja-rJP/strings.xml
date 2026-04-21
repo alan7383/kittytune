@@ -826,6 +826,8 @@
     <string name="sleep_timer_island_title">Sleep Timer</string>
     <string name="sleep_timer_island_started_subtitle">Timer set for %1$s</string>
     <string name="sleep_timer_island_finished_subtitle">Timer finished</string>
+    <string name="sleep_timer_seconds_format">%1$d seconds</string>
+    <string name="sleep_timer_minutes_seconds_format">%1$dm %2$ds</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- LISTENING STATS                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -877,4 +879,8 @@
     <string name="btn_earrape">Earrape</string>
     <string name="warning_title">Warning</string>
     <string name="earrape_warning">This effect is extremely loud and saturated. Use with caution to avoid hearing damage.</string>
+    <!-- Sleep Timer Fade-Out -->
+    <string name="sleep_timer_fade_title">Progressive Fade-out</string>
+    <string name="sleep_timer_fade_subtitle">Volume will decrease over %1$d seconds</string>
+    <string name="label_duration">Fade duration</string>
 </resources>
