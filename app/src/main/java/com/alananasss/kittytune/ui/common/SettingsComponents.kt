@@ -79,6 +79,10 @@ fun SettingsItem(
     hasSwitch: Boolean = false,
     switchState: Boolean = false,
     onSwitchChange: ((Boolean) -> Unit)? = null,
+    hasSlider: Boolean = false,
+    sliderValue: Float = 0f,
+    sliderRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    onSliderChange: ((Float) -> Unit)? = null,
     titleColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -139,6 +143,15 @@ fun SettingsItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 4,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (hasSlider && onSliderChange != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Slider(
+                        value = sliderValue,
+                        onValueChange = onSliderChange,
+                        valueRange = sliderRange,
+                        modifier = Modifier.fillMaxWidth().padding(end = 16.dp)
                     )
                 }
             }

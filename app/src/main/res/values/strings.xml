@@ -975,4 +975,9 @@
     <string name="btn_earrape">Earrape</string>
     <string name="warning_title">Warning</string>
     <string name="earrape_warning">This effect is extremely loud and saturated. Use with caution to avoid hearing damage.</string>
+
+    <!-- Sleep Timer Fade-Out -->
+    <string name="sleep_timer_fade_title">Progressive Fade-out</string>
+    <string name="sleep_timer_fade_subtitle">Volume will decrease over %1$d seconds</string>
+    <string name="label_duration">Fade duration</string>
 </resources>
