@@ -708,6 +708,7 @@
             color: var(--md-sys-color-on-surface-variant);
             border-radius: 8px;
             white-space: nowrap;
+            flex-shrink: 0;
             transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
             z-index: 1;
             cursor: pointer;
@@ -1743,7 +1744,7 @@
             min-height: 40px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center;
             font-family: var(--font-body); font-size: 0.95rem; font-weight: 600;
             border: none; background: rgba(208, 188, 255, 0.12); color: var(--md-sys-color-on-surface-variant);
-            border-radius: 8px; white-space: nowrap; transition: all 0.3s var(--ease-expressive); cursor: pointer; position: relative; overflow: hidden;
+            border-radius: 8px; white-space: nowrap; flex-shrink: 0; transition: all 0.3s var(--ease-expressive); cursor: pointer; position: relative; overflow: hidden;
         }
         .monet-chip-row .monet-chip:first-child { border-radius: 24px 8px 8px 24px; }
         .monet-chip-row .monet-chip:last-child { border-radius: 8px 24px 24px 8px; }
@@ -1937,7 +1938,7 @@
         }
 
         @media (max-width: 900px) {
-            .preset-row { justify-content: center; }
+            .preset-row { justify-content: flex-start; }
         }
 
         .widgets-stage {
