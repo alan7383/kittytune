@@ -19,9 +19,27 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
     <style id="main-style">
+        /* Effet Ripple Material Design 3 manquant */
+        span.md3-ripple {
+            position: absolute;
+            border-radius: 50%;
+            width: 0;
+            height: 0;
+            z-index: 0;
+            transform: scale(0);
+            animation: md3-ripple-animation 700ms ease-out forwards;
+            background-color: rgba(255, 255, 255, 0.15);
+            pointer-events: none;
+        }
+
+        @keyframes md3-ripple-animation {
+            from { transform: scale(0); opacity: 1; }
+            to { transform: scale(1); opacity: 0; }
+        }
+
         @font-face {
             font-family: "Google Sans Flex Local";
-            src: url("google_sans_flex.ttf") format("truetype");
+            src: url("assets/fonts/google_sans_flex.ttf") format("truetype");
             font-weight: 100 1000;
             font-stretch: 25% 151%;
             font-style: oblique -10deg 0deg;
@@ -62,12 +80,12 @@
             --seed-h: 264;
             --seed-s: 100%;
             --seed-l: 87%;
-            --lab-wght: 620;
-            --lab-wdth: 104;
-            --lab-slnt: -2;
-            --lab-rond: 45;
+            --lab-wght: 400;
+            --lab-wdth: 100;
+            --lab-slnt: 0;
+            --lab-rond: 0;
             --lab-grad: 0;
-            --lab-opsz: 32;
+            --lab-opsz: 14;
             --player-bg: linear-gradient(160deg, rgba(111, 92, 184, 0.78), rgba(30, 18, 49, 0.95));
             --player-fg: #ffffff;
             --player-muted: rgba(255, 255, 255, 0.72);
@@ -399,6 +417,8 @@
         }
 
         .btn {
+            position: relative;
+            overflow: hidden;
             min-height: 56px;
             border: 0;
             border-radius: 28px;
@@ -417,8 +437,7 @@
         }
 
         .btn:active {
-            transform: scale(0.97);
-            border-radius: 16px;
+            border-radius: 12px;
         }
 
         .btn-primary {
@@ -466,25 +485,10 @@
         .studio-panel {
             position: relative;
             overflow: hidden;
-            background: rgba(33, 31, 38, 0.76);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--md-sys-color-surface-container-low);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 34px;
-            box-shadow: 0 32px 90px rgba(0, 0, 0, 0.42);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-        }
-
-        .lab-panel::before,
-        .material-panel::before,
-        .studio-panel::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background:
-                linear-gradient(120deg, rgba(255, 255, 255, 0.09), transparent 26%),
-                linear-gradient(180deg, rgba(208, 188, 255, 0.08), transparent 42%);
-            opacity: 0.9;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
         }
 
         .hero-lab {
@@ -551,14 +555,9 @@
             align-items: end;
             padding: clamp(24px, 4vw, 40px);
             border-radius: 30px;
-            background:
-                linear-gradient(135deg, hsla(var(--seed-h), var(--seed-s), 58%, 0.18), transparent 54%),
-                rgba(20, 18, 24, 0.72);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-
-            /* ✨ FIX : Définit le bloc comme conteneur pour la typographie fluide et cache les débordements */
+            background: var(--md-sys-color-surface-container);
+            border: 1px solid rgba(255, 255, 255, 0.04);
             container-type: inline-size;
-            overflow: hidden;
         }
 
         .type-preview {
@@ -566,7 +565,7 @@
             /* ✨ FIX : Typographie fluide basée sur la largeur du conteneur (cqi) avec un maximum de 7rem */
             font-size: clamp(2.5rem, 16cqi, 7rem);
             font-weight: var(--lab-wght);
-            line-height: 0.9;
+            line-height: 1.1;
             letter-spacing: 0;
             font-variation-settings:
                 "wght" var(--lab-wght),
@@ -593,13 +592,19 @@
             font-variation-settings: inherit;
         }
 
+        /* =========================================
+           COMPOSANT EXACT : M3 SEGMENTED BUTTON 
+           ========================================= */
+
+        /* 1. Le conteneur (Gap de 2px du schéma) */
         .preset-row {
             position: relative;
             z-index: 1;
             display: flex;
-            gap: 10px;
+            gap: 2px;
             overflow-x: auto;
-            padding: 18px 2px 4px;
+            /* FIX : On passe le padding gauche/droite à 6px pour éviter que l'arrondi soit coupé au gonflement */
+            padding: 18px 6px 8px;
             scrollbar-width: none;
         }
 
@@ -607,45 +612,127 @@
             display: none;
         }
 
-        .preset-chip,
+        /* 2. Style de base (pour les boutons du milieu = rayon de 8px) */
+        .preset-chip {
+            position: relative;
+            overflow: hidden;
+            min-height: 40px;
+            padding: 0 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            background: rgba(208, 188, 255, 0.12);
+            color: var(--md-sys-color-on-surface-variant);
+            border-radius: 8px;
+            white-space: nowrap;
+            transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        /* 3. Le premier (Rond à gauche, 8px à droite) - Priorité forcée */
+        .preset-row .preset-chip:first-child {
+            border-radius: 24px 8px 8px 24px;
+        }
+
+        /* 4. Le dernier (8px à gauche, Rond à droite) - Priorité forcée */
+        .preset-row .preset-chip:last-child {
+            border-radius: 8px 24px 24px 8px;
+        }
+
+        /* 5. Survol (le fond est maintenant géré par le ::after ci-dessous) */
+        .preset-chip:hover:not(.active) {
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* --- NOUVEAU : Calque d'interaction M3 (State Layer) --- */
+        .preset-chip::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit; /* Suit l'arrondi, peu importe sa forme actuelle */
+            background: currentColor; /* Réagit magiquement à la couleur du texte ! */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .preset-chip:hover::after {
+            opacity: 0.08; /* Légère brillance au survol */
+        }
+
+        .preset-chip:active::after {
+            opacity: 0.16; /* Flash d'interaction au clic */
+        }
+
+        /* 6. L'ÉTAT ACTIF : Change de forme (Pilule) et gonfle */
+        .preset-row .preset-chip.active,
+        .preset-row .preset-chip:first-child.active,
+        .preset-row .preset-chip:last-child.active {
+            border-radius: 24px; 
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            font-weight: 700;
+            box-shadow: none;
+            transform: scale(1.05);
+            z-index: 2;
+        }
+
+        /* 7. L'ANIMATION DU CLIC : Le fameux "Squish" Material 3 (Plus carré) */
+        .preset-row .preset-chip:active {
+            border-radius: 6px !important; /* Écrase l'élément pour le rendre presque carré */
+        }
+
+        /* Style conservé pour les autres puces non-segmentées */
         .segmented-button,
         .theme-chip {
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            min-height: 42px;
-            border-radius: 21px;
-            padding: 0 15px;
+            position: relative;
+            overflow: hidden;
+            min-height: 40px;
+            border-radius: 20px;
+            padding: 0 20px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            font-weight: 600;
             color: var(--md-sys-color-on-surface-variant);
-            background: rgba(255, 255, 255, 0.04);
-            cursor: pointer;
-            font-family: var(--font-display);
-            font-weight: 700;
+            background: var(--md-sys-color-surface-container-high);
+            border: 1px solid var(--md-sys-color-outline-variant);
             white-space: nowrap;
-            transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.2s var(--ease-expressive);
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            cursor: pointer;
         }
 
-        .preset-chip:hover,
         .segmented-button:hover,
         .theme-chip:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--md-sys-color-surface-container-highest);
+            color: var(--md-sys-color-on-surface);
         }
 
-        .preset-chip:active,
         .segmented-button:active,
         .theme-chip:active {
-            transform: scale(0.96);
-            border-radius: 14px;
+            border-radius: 12px;
         }
 
-        .preset-chip.active,
         .segmented-button.active,
         .theme-chip.active {
             background: var(--md-sys-color-secondary-container);
             color: var(--md-sys-color-on-secondary-container);
-            border-color: rgba(255, 255, 255, 0.12);
+            border-color: transparent;
+            font-weight: 700;
+        }
+
+        /* Effet Squish pour ces boutons aussi */
+        .segmented-button:active,
+        .theme-chip:active {
+            border-radius: 6px !important;
         }
 
         .slider-bank {
@@ -1032,25 +1119,8 @@
             background: var(--player-bg);
             color: var(--player-fg);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 32px 90px rgba(0, 0, 0, 0.48);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.2);
             transition: background 0.35s var(--ease-expressive), color 0.25s;
-        }
-
-        .phone-player::before {
-            content: "";
-            position: absolute;
-            inset: -12px;
-            background-image: url("home.BY0cCzCQ.png");
-            background-size: cover;
-            background-position: 74% 42%;
-            filter: blur(70px);
-            opacity: 0;
-            transform: scale(1.08);
-            transition: opacity 0.35s var(--ease-expressive);
-        }
-
-        .phone-player[data-style="blur"]::before {
-            opacity: 0.64;
         }
 
         .phone-player[data-style="theme"] {
@@ -1121,6 +1191,8 @@
         }
 
         .icon-button {
+            position: relative;
+            overflow: hidden;
             width: 48px;
             height: 48px;
             border-radius: 50%;
@@ -1138,8 +1210,7 @@
         }
 
         .icon-button:active {
-            transform: scale(0.92);
-            border-radius: 16px;
+            border-radius: 12px;
         }
 
         .progress-track {
@@ -1331,207 +1402,183 @@
             background: var(--md-sys-color-primary);
         }
 
-        .monet-shell {
-            padding: clamp(22px, 3vw, 34px);
+        /* =========================================
+           NOUVEAU DESIGN MONET ENGINE (STYLE PIXEL)
+           ========================================= */
+        .monet-studio {
+            background: var(--md-sys-color-surface-container-low);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 36px;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+            padding: clamp(24px, 4vw, 40px);
         }
 
-        .monet-layout {
-            position: relative;
-            z-index: 1;
+        .monet-grid {
             display: grid;
-            grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1fr);
-            gap: 28px;
-            align-items: start;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+            gap: 40px;
+            align-items: center;
         }
 
-        .color-chip-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 12px;
+        /* --- Section Gauche : Contrôles --- */
+        .monet-controls-group {
+            margin-bottom: 32px;
+        }
+        
+        .monet-controls-group h3 {
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 16px;
+            letter-spacing: 0.5px;
         }
 
-        .color-swatch {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            border: 0;
-            border-radius: 22px;
-            background: var(--chip);
-            cursor: pointer;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-            transition: transform 0.22s var(--ease-expressive), border-radius 0.22s var(--ease-expressive), box-shadow 0.22s;
-        }
-
-        .color-swatch.dynamic {
-            background:
-                conic-gradient(from 180deg, #d0bcff, #efb8c8, #8be9d9, #ffd166, #d0bcff);
-        }
-
-        .color-swatch:hover {
-            transform: translateY(-2px);
-        }
-
-        .color-swatch:active {
-            transform: scale(0.94);
-            border-radius: 16px;
-        }
-
-        .color-swatch.active {
-            box-shadow: inset 0 0 0 3px var(--md-sys-color-on-surface), 0 0 0 4px var(--md-sys-color-primary);
-        }
-
-        .color-swatch.active::after {
-            content: "check";
-            position: absolute;
-            inset: 0;
-            display: grid;
-            place-items: center;
-            color: #fff;
-            font-family: "Material Icons Round";
-            font-size: 24px;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-        }
-
-        .palette-style-row {
+        /* Les pastilles de couleurs (Style Android 14) */
+        .monet-swatches {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 18px;
-        }
-
-        .theme-chip.active {
-            background: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
-        }
-
-        .palette-output {
-            display: grid;
             gap: 16px;
         }
 
-        .token-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+        .color-swatch {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.4s var(--ease-spring), box-shadow 0.2s;
+            /* Légère ombre interne pour le volume */
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.1), inset 0 -2px 4px rgba(0,0,0,0.2);
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .token-card {
-            min-height: 142px;
-            border-radius: 28px;
-            padding: 18px;
+        /* L'état actif magique : Anneau de la couleur dynamique ! */
+        .color-swatch.active {
+            transform: scale(0.8);
+            /* L'espace vide + l'anneau qui prend la couleur du thème généré */
+            box-shadow: 
+                0 0 0 4px var(--md-sys-color-surface-container-low), 
+                0 0 0 7px var(--md-sys-color-primary),
+                inset 0 2px 4px rgba(255,255,255,0.1);
+        }
+
+        .color-swatch:active {
+            transform: scale(0.7);
+        }
+
+        /* --- Section Droite : L'aperçu Android "Mini App" --- */
+        .monet-preview-board {
+            background: var(--md-sys-color-surface-container);
+            border-radius: 32px;
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.2);
+        }
+
+        .android-mock-app {
+            width: 100%;
+            max-width: 280px;
+            background: var(--md-sys-color-surface);
+            border-radius: 24px;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+            transition: background 0.3s ease;
+        }
+
+        .mock-header {
+            padding: 24px 20px 16px;
+            display: flex;
             justify-content: space-between;
-            color: var(--token-on);
-            background: var(--token-bg);
+            align-items: center;
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        .mock-header h4 { font-size: 1.2rem; }
+
+        .mock-body {
+            padding: 0 12px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
         }
 
-        .token-card span {
-            font-size: 0.82rem;
-            opacity: 0.78;
-        }
-
-        .token-card strong {
-            font-family: var(--font-display);
-            font-size: 1.12rem;
-        }
-
-        .theme-preview {
-            min-height: 320px;
-            border-radius: 32px;
-            background: var(--md-sys-color-background);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            overflow: hidden;
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-        }
-
-        .theme-preview-top {
-            min-height: 74px;
-            padding: 18px 20px;
+        .mock-card {
+            background: var(--md-sys-color-surface-container-high);
+            border-radius: 16px;
+            padding: 16px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            background: var(--md-sys-color-surface);
+            gap: 16px;
+            transition: background 0.3s ease;
         }
 
-        .theme-preview-top strong {
-            font-family: var(--font-display);
+        .mock-card.highlight {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
         }
 
-        .theme-preview-body {
-            padding: 18px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .preview-card {
-            min-height: 96px;
-            border-radius: 24px;
-            padding: 14px;
-            background: var(--md-sys-color-surface-container-high);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .preview-card:first-child {
+        .mock-icon {
+            width: 40px; height: 40px;
+            border-radius: 50%;
             background: var(--md-sys-color-primary-container);
             color: var(--md-sys-color-on-primary-container);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s ease;
         }
 
-        .theme-preview-bottom {
-            min-height: 68px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            align-items: center;
+        .mock-text-lines { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; }
+        .mock-line-1 { height: 10px; width: 60%; background: var(--md-sys-color-on-surface); border-radius: 4px; opacity: 0.8; transition: background 0.3s;}
+        .mock-line-2 { height: 8px; width: 40%; background: var(--md-sys-color-on-surface-variant); border-radius: 4px; opacity: 0.5; transition: background 0.3s;}
+        
+        .mock-card.highlight .mock-line-1 { background: var(--md-sys-color-on-secondary-container); }
+        .mock-card.highlight .mock-line-2 { background: var(--md-sys-color-on-secondary-container); }
+
+        .mock-fab {
+            align-self: flex-end;
+            margin: 8px 12px;
+            width: 56px; height: 56px;
+            border-radius: 16px;
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .mock-nav {
+            height: 64px;
             background: var(--md-sys-color-surface-container);
+            display: flex; justify-content: space-around; align-items: center;
+            padding: 0 12px;
+            transition: background 0.3s ease;
+        }
+        .mock-nav-item {
+            width: 48px; height: 32px;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
             color: var(--md-sys-color-on-surface-variant);
+            transition: all 0.3s ease;
+        }
+        .mock-nav-item.active {
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
         }
 
-        .theme-preview-bottom div {
-            display: grid;
-            place-items: center;
-            gap: 4px;
-            font-size: 0.74rem;
-        }
-
-        .theme-preview-bottom .active {
-            color: var(--md-sys-color-primary);
-        }
-
-        .settings-matrix {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-top: 18px;
-        }
-
-        .settings-tile {
-            min-height: 132px;
-            padding: 18px;
-            border-radius: 28px;
-            background: var(--md-sys-color-surface-container);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .settings-tile .material-icons-round {
-            color: var(--md-sys-color-primary);
-        }
-
-        .settings-tile strong {
-            display: block;
-            font-family: var(--font-display);
-        }
-
-        .settings-tile span:not(.material-icons-round) {
-            color: var(--md-sys-color-on-surface-variant);
-            font-size: 0.82rem;
-            line-height: 1.38;
+        @media (max-width: 900px) {
+            .monet-grid { grid-template-columns: 1fr; gap: 32px; }
+            .monet-swatches { justify-content: center; }
+            .monet-controls-group h3 { text-align: center; }
+            .preset-row { justify-content: center; }
         }
 
         .widgets-stage {
@@ -1580,11 +1627,8 @@
             display: grid;
             align-content: center;
             gap: 18px;
-            background:
-                linear-gradient(140deg, rgba(208, 188, 255, 0.22), transparent 36%),
-                linear-gradient(320deg, rgba(85, 216, 196, 0.14), transparent 38%),
-                #10111b;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background-color: var(--md-sys-color-surface-container);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .widget-card {
@@ -1786,79 +1830,91 @@
             font-size: 16px;
         }
 
+        /* =========================================
+           SQUIGGLE LINE (Ligne de séparation SVG)
+           ========================================= */
+        .squiggle-line {
+            width: 100%;
+            display: block;
+            margin-top: 80px;
+            margin-bottom: 40px;
+            opacity: 0.5;
+        }
+
+        .squiggle-stroke {
+            stroke: var(--md-sys-color-outline-variant);
+            stroke-width: 1.5px;
+        }
+
+        /* =========================================
+           FOOTER (Identique à index.html & audio-fx.html)
+           ========================================= */
         footer {
-            padding: 80px 0 48px;
-            background-color: var(--md-sys-color-background);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            position: relative;
-            z-index: 10;
+            background: transparent;
+            padding: 0 0 40px;
         }
 
         .footer-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1.5fr) repeat(2, 1fr);
-            gap: 48px;
-            align-items: start;
-        }
-
-        .footer-brand {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
         }
 
         .footer-logo-svg {
-            width: 48px;
+            width: 44px;
             height: auto;
-            color: var(--md-sys-color-primary);
+            color: #fff;
+            margin-bottom: 24px;
+            display: block;
+            opacity: 1;
         }
 
         .footer-brand h4 {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            margin-bottom: 16px;
             color: var(--md-sys-color-on-surface);
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
-        .footer-brand h4 span {
+        .footer-brand span {
             color: var(--md-sys-color-primary);
         }
 
-        .footer-brand p {
-            color: var(--md-sys-color-on-surface-variant);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-
         .footer-col h5 {
-            font-family: var(--font-display);
-            font-size: 1.1rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
             color: var(--md-sys-color-on-surface);
-            margin-bottom: 20px;
         }
 
         .footer-col ul {
             list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        }
+
+        .footer-col li {
+            margin-bottom: 16px;
         }
 
         .footer-col a {
             color: var(--md-sys-color-on-surface-variant);
             text-decoration: none;
             transition: color 0.2s;
+            font-size: 1rem;
         }
 
         .footer-col a:hover {
             color: var(--md-sys-color-primary);
         }
 
-        @media (max-width: 800px) {
+        @media (max-width: 900px) {
             .footer-grid {
                 grid-template-columns: 1fr;
                 gap: 40px;
+                text-align: center; /* Optionnel : pour centrer sur mobile comme le reste */
+            }
+            .footer-logo-svg {
+                margin: 0 auto 24px; /* Centre le logo sur mobile */
             }
         }
 
@@ -2077,10 +2133,6 @@
                 min-height: 460px;
             }
 
-            .footer-grid {
-                grid-template-columns: 1fr;
-                gap: 28px;
-            }
 
             .rain-miniplayer {
                 right: 20px;
@@ -2206,12 +2258,14 @@
                                             <p>Google Sans Flex, live on every Material text role.</p>
                                         </div>
                                     </div>
-                                    <span class="axis-chip"><span class="material-icons-round">bolt</span> Live axes</span>
+                                    <button class="axis-chip" id="typo-autoplay-btn" style="cursor: pointer; border: none; outline: none; transition: transform 0.2s;">
+                                        <span class="material-icons-round" id="typo-autoplay-icon">pause</span> Auto play
+                                    </button>
                                 </div>
 
                                 <div class="type-preview-wrap">
                                     <div class="type-preview" id="type-preview">
-                                        Breakcore
+                                        <span id="dynamic-font-text">Breakcore</span>
                                         <small>Headlines, labels, player titles and settings rows inherit the same variable font engine.</small>
                                     </div>
                                 </div>
@@ -2329,10 +2383,6 @@
                                     <span class="eyebrow"><span class="material-icons-round">swipe_vertical</span> Scroll morph system</span>
                                     <h2>Typography changes shape while the interface breathes.</h2>
                                 </div>
-                                <p>
-                                    The app-side font settings are immediate, but the page also uses scroll as a pro
-                                    type specimen: each stop applies a real variable-font preset to the phone mockup.
-                                </p>
                             </div>
 
                             <div class="scroll-lab-grid">
@@ -2420,14 +2470,10 @@
                                     <span class="eyebrow"><span class="material-icons-round">smart_display</span> Player Style Switcher</span>
                                     <h2>One player, three emotional backgrounds.</h2>
                                 </div>
-                                <p>
-                                    KittyTune exposes the same choice in Appearance settings:
-                                    Blur uses the artwork, Gradient follows the extracted color, Solid stays pure Material.
-                                </p>
                             </div>
 
                             <div class="player-grid">
-                                <div class="material-panel player-preview-panel reveal">
+                                <div class="player-preview-panel reveal">
                                     <div class="phone-player" id="style-player" data-style="blur">
                                         <div class="player-inner">
                                             <div class="phone-status">
@@ -2489,17 +2535,14 @@
                                         <div class="readout">
                                             <span class="material-icons-round">image</span>
                                             <strong>Artwork aware</strong>
-                                            <span>Blur mirrors the full-res cover behind the controls.</span>
                                         </div>
                                         <div class="readout">
                                             <span class="material-icons-round">color_lens</span>
                                             <strong>Animated color</strong>
-                                            <span>Gradient follows the extracted dominant color.</span>
                                         </div>
                                         <div class="readout">
                                             <span class="material-icons-round">layers</span>
                                             <strong>Material surfaces</strong>
-                                            <span>Theme mode keeps strict surface/container contrast.</span>
                                         </div>
                                     </div>
 
@@ -2508,7 +2551,6 @@
                                             <span class="material-icons-round">lyrics</span>
                                             <div>
                                                 <strong>Inline lyrics</strong>
-                                                <span>Color contrast adapts when Blur mode turns text white.</span>
                                             </div>
                                             <div class="toggle-switch"></div>
                                         </div>
@@ -2516,7 +2558,6 @@
                                             <span class="material-icons-round">auto_fix_high</span>
                                             <div>
                                                 <strong>Crossfade background</strong>
-                                                <span>Artwork and color transitions are eased over one second.</span>
                                             </div>
                                             <div class="toggle-switch"></div>
                                         </div>
@@ -2524,7 +2565,6 @@
                                             <span class="material-icons-round">contrast</span>
                                             <div>
                                                 <strong>Pure black ready</strong>
-                                                <span>Solid theme mode respects AMOLED surfaces when enabled.</span>
                                             </div>
                                             <div class="toggle-switch"></div>
                                         </div>
@@ -2541,105 +2581,92 @@
                                     <span class="eyebrow"><span class="material-icons-round">palette</span> Monet Engine</span>
                                     <h2>Color seeds that rewrite the whole interface.</h2>
                                 </div>
-                                <p>
-                                    The Android app stores a key color, then MaterialKolor generates the scheme.
-                                    These chips replay that flow for the page, including primary, secondary and tertiary containers.
-                                </p>
                             </div>
 
-                            <div class="material-panel monet-shell reveal">
-                                <div class="monet-layout">
-                                    <div>
-                                        <div class="color-chip-grid" id="color-grid">
-                                            <button class="color-swatch dynamic active" data-color="#d0bcff" title="Dynamic"></button>
-                                            <button class="color-swatch" style="--chip:#f44336" data-color="#f44336" title="Red"></button>
-                                            <button class="color-swatch" style="--chip:#e91e63" data-color="#e91e63" title="Pink"></button>
-                                            <button class="color-swatch" style="--chip:#9c27b0" data-color="#9c27b0" title="Purple"></button>
-                                            <button class="color-swatch" style="--chip:#673ab7" data-color="#673ab7" title="Deep purple"></button>
-                                            <button class="color-swatch" style="--chip:#3f51b5" data-color="#3f51b5" title="Indigo"></button>
-                                            <button class="color-swatch" style="--chip:#2196f3" data-color="#2196f3" title="Blue"></button>
-                                            <button class="color-swatch" style="--chip:#00bcd4" data-color="#00bcd4" title="Cyan"></button>
-                                            <button class="color-swatch" style="--chip:#009688" data-color="#009688" title="Teal"></button>
-                                            <button class="color-swatch" style="--chip:#4faf50" data-color="#4faf50" title="Green"></button>
-                                            <button class="color-swatch" style="--chip:#ffeb3b" data-color="#ffeb3b" title="Yellow"></button>
-                                            <button class="color-swatch" style="--chip:#ffc107" data-color="#ffc107" title="Amber"></button>
-                                            <button class="color-swatch" style="--chip:#ff9800" data-color="#ff9800" title="Orange"></button>
-                                            <button class="color-swatch" style="--chip:#795548" data-color="#795548" title="Brown"></button>
-                                            <button class="color-swatch" style="--chip:#607d8f" data-color="#607d8f" title="Blue grey"></button>
+                            <div class="monet-studio reveal">
+                                <div class="monet-grid">
+                                    
+                                    <!-- Section Gauche : Sélecteurs -->
+                                    <div class="monet-controls">
+                                        
+                                        <div class="monet-controls-group">
+                                            <h3>Theme colors applied to UI</h3>
+                                            <div class="monet-swatches" id="color-grid">
+                                                <!-- Dynamic : Gradient multicolore -->
+                                                <button class="color-swatch dynamic active" data-color="#d0bcff" title="Dynamic" style="background: conic-gradient(from 180deg, #d0bcff, #efb8c8, #8be9d9, #ffd166, #d0bcff);"></button>
+                                                <!-- Splits de couleurs pour simuler l'UI Android 14 (Primary / Tertiary) -->
+                                                <button class="color-swatch" data-color="#f44336" title="Red" style="background: linear-gradient(135deg, #ffb4ab 50%, #ffb4a9 50%);"></button>
+                                                <button class="color-swatch" data-color="#9c27b0" title="Purple" style="background: linear-gradient(135deg, #f0bdf9 50%, #f9b8d2 50%);"></button>
+                                                <button class="color-swatch" data-color="#3f51b5" title="Indigo" style="background: linear-gradient(135deg, #bbc3ff 50%, #c8c2ff 50%);"></button>
+                                                <button class="color-swatch" data-color="#2196f3" title="Blue" style="background: linear-gradient(135deg, #9eca8f 50%, #a4c8ff 50%);"></button>
+                                                <button class="color-swatch" data-color="#00bcd4" title="Cyan" style="background: linear-gradient(135deg, #4fd8eb 50%, #87d1ea 50%);"></button>
+                                                <button class="color-swatch" data-color="#4faf50" title="Green" style="background: linear-gradient(135deg, #8cdfa2 50%, #76daba 50%);"></button>
+                                                <button class="color-swatch" data-color="#ffeb3b" title="Yellow" style="background: linear-gradient(135deg, #e4e37e 50%, #dfdc91 50%);"></button>
+                                                <button class="color-swatch" data-color="#ff9800" title="Orange" style="background: linear-gradient(135deg, #ffb77c 50%, #e2c36c 50%);"></button>
+                                            </div>
                                         </div>
-                                        <div class="palette-style-row" id="palette-styles">
-                                            <button class="theme-chip active" data-style="TonalSpot">TonalSpot</button>
-                                            <button class="theme-chip" data-style="Vibrant">Vibrant</button>
-                                            <button class="theme-chip" data-style="Expressive">Expressive</button>
-                                            <button class="theme-chip" data-style="Monochrome">Monochrome</button>
+
+                                        <div class="monet-controls-group" style="margin-bottom: 0;">
+                                            <h3>Palette style</h3>
+                                            <!-- Exact same component as Typography presets -->
+                                            <div class="preset-row" id="palette-styles">
+                                                <button class="preset-chip theme-chip active" data-style="TonalSpot">TonalSpot</button>
+                                                <button class="preset-chip theme-chip" data-style="Vibrant">Vibrant</button>
+                                                <button class="preset-chip theme-chip" data-style="Expressive">Expressive</button>
+                                                <button class="preset-chip theme-chip" data-style="Monochrome">Monochrome</button>
+                                            </div>
                                         </div>
+
                                     </div>
 
-                                    <div class="palette-output">
-                                        <div class="token-grid">
-                                            <div class="token-card" style="--token-bg: var(--md-sys-color-primary); --token-on: var(--md-sys-color-on-primary);">
-                                                <span>Primary</span>
-                                                <strong id="token-primary">#d0bcff</strong>
-                                            </div>
-                                            <div class="token-card" style="--token-bg: var(--md-sys-color-secondary-container); --token-on: var(--md-sys-color-on-secondary-container);">
-                                                <span>Secondary container</span>
-                                                <strong id="token-secondary">Tonal role</strong>
-                                            </div>
-                                            <div class="token-card" style="--token-bg: var(--md-sys-color-tertiary-container); --token-on: var(--md-sys-color-on-tertiary-container);">
-                                                <span>Tertiary container</span>
-                                                <strong id="token-tertiary">Accent role</strong>
-                                            </div>
-                                        </div>
-
-                                        <div class="theme-preview">
-                                            <div class="theme-preview-top">
-                                                <strong>KittyTune</strong>
+                                    <!-- Section Droite : App Mockup -->
+                                    <div class="monet-preview-board">
+                                        <div class="android-mock-app">
+                                            <div class="mock-header">
+                                                <h4>KittyTune</h4>
                                                 <span class="material-icons-round">search</span>
                                             </div>
-                                            <div class="theme-preview-body">
-                                                <div class="preview-card">
-                                                    <span class="material-icons-round">library_music</span>
-                                                    <strong>Community playlists</strong>
+                                            
+                                            <div class="mock-body">
+                                                <div class="mock-card highlight">
+                                                    <div class="mock-icon" style="background: transparent; color: inherit;">
+                                                        <span class="material-icons-round">play_arrow</span>
+                                                    </div>
+                                                    <div class="mock-text-lines">
+                                                        <div class="mock-line-1"></div>
+                                                        <div class="mock-line-2"></div>
+                                                    </div>
                                                 </div>
-                                                <div class="preview-card">
-                                                    <span class="material-icons-round">headphones</span>
-                                                    <strong>Listening stats</strong>
+                                                
+                                                <div class="mock-card">
+                                                    <div class="mock-icon">
+                                                        <span class="material-icons-round">music_note</span>
+                                                    </div>
+                                                    <div class="mock-text-lines">
+                                                        <div class="mock-line-1"></div>
+                                                        <div class="mock-line-2"></div>
+                                                    </div>
                                                 </div>
-                                                <div class="preview-card">
-                                                    <span class="material-icons-round">emoji_events</span>
-                                                    <strong>Badges</strong>
-                                                </div>
-                                                <div class="preview-card">
-                                                    <span class="material-icons-round">cloud_sync</span>
-                                                    <strong>Rain Mode</strong>
+
+                                                <div class="mock-fab">
+                                                    <span class="material-icons-round">shuffle</span>
                                                 </div>
                                             </div>
-                                            <div class="theme-preview-bottom">
-                                                <div class="active"><span class="material-icons-round">home</span>Home</div>
-                                                <div><span class="material-icons-round">music_note</span>Library</div>
-                                                <div><span class="material-icons-round">person</span>Profile</div>
+
+                                            <div class="mock-nav">
+                                                <div class="mock-nav-item active">
+                                                    <span class="material-icons-round">home</span>
+                                                </div>
+                                                <div class="mock-nav-item">
+                                                    <span class="material-icons-round">library_music</span>
+                                                </div>
+                                                <div class="mock-nav-item">
+                                                    <span class="material-icons-round">settings</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="settings-matrix">
-                                    <div class="settings-tile">
-                                        <span class="material-icons-round">brightness_auto</span>
-                                        <div><strong>System / Light / Dark</strong><span>Three explicit theme modes.</span></div>
-                                    </div>
-                                    <div class="settings-tile">
-                                        <span class="material-icons-round">wallpaper</span>
-                                        <div><strong>Dynamic Theme</strong><span>Wallpaper color on Android 12+.</span></div>
-                                    </div>
-                                    <div class="settings-tile">
-                                        <span class="material-icons-round">dark_mode</span>
-                                        <div><strong>Pure Black</strong><span>AMOLED background option.</span></div>
-                                    </div>
-                                    <div class="settings-tile">
-                                        <span class="material-icons-round">flag</span>
-                                        <div><strong>Start screen</strong><span>Home or Library first.</span></div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -2652,10 +2679,6 @@
                                     <span class="eyebrow"><span class="material-icons-round">widgets</span> Widgets Showcase</span>
                                     <h2>Glance widgets that keep playback close.</h2>
                                 </div>
-                                <p>
-                                    The real Kotlin widgets expose transport controls, likes, search, special FX toggles,
-                                    and custom speed pills. This showcase mirrors their layout and hierarchy.
-                                </p>
                             </div>
 
                             <div class="widgets-stage">
@@ -2663,10 +2686,6 @@
                                     <div class="widget-feature-copy">
                                         <span class="eyebrow"><span class="material-icons-round">graphic_eq</span> Music widget</span>
                                         <h3>Album art, transport, effects, speed.</h3>
-                                        <p>
-                                            The full widget keeps cover art tall, metadata on the right, playback controls
-                                            aligned to the end, and compact pills for Bass, 8D, Muffled, Reverb, Pitch and custom speeds.
-                                        </p>
                                     </div>
                                     <div class="android-wall">
                                         <div class="widget-card widget-large">
@@ -2719,10 +2738,6 @@
                                     <div class="widget-feature-copy">
                                         <span class="eyebrow"><span class="material-icons-round">search</span> Search and config</span>
                                         <h3>A launcher, plus a tiny FX control room.</h3>
-                                        <p>
-                                            SearchWidget opens discovery immediately. WidgetConfig lets the user choose
-                                            which effects appear and create custom playback speed buttons from 0.5x to 2.0x.
-                                        </p>
                                     </div>
                                     <div class="android-wall">
                                         <div class="widget-card widget-search">
@@ -2763,32 +2778,33 @@
                         </div>
                     </section>
 
-                    <div class="squiggle-line">
-                        <svg aria-hidden="true" width="100%" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="customFadeMask" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0" stop-color="white" stop-opacity="0"></stop>
-                                    <stop offset="0.1" stop-color="white" stop-opacity="1"></stop>
-                                    <stop offset="0.9" stop-color="white" stop-opacity="1"></stop>
-                                    <stop offset="1" stop-color="white" stop-opacity="0"></stop>
-                                </linearGradient>
-                                <mask id="customMask">
-                                    <rect width="100%" height="100%" fill="url(#customFadeMask)"></rect>
-                                </mask>
-                                <pattern id="customSquigglePattern" width="91" height="8" patternUnits="userSpaceOnUse">
-                                    <path class="squiggle-stroke"
-                                        d="M114 4c-5.067 4.667-10.133 4.667-15.2 0S88.667-.667 83.6 4 73.467 8.667 68.4 4 58.267-.667 53.2 4 43.067 8.667 38 4 27.867-.667 22.8 4 12.667 8.667 7.6 4-2.533-.667-7.6 4s-10.133 4.667-15.2 0"
-                                        fill="none"></path>
-                                </pattern>
-                            </defs>
-                            <rect width="100%" height="100%" fill="url(#customSquigglePattern)" mask="url(#customMask)"></rect>
-                        </svg>
-                    </div>
-
                     <div class="bottom-note">
                         Built from the same customization concepts as KittyTune's Compose settings.
                     </div>
                 </div>
+            </div>
+
+            <div class="squiggle-line">
+                <svg aria-hidden="true" width="100%" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="fadeMask" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0" stop-color="white" stop-opacity="0"></stop>
+                            <stop offset="0.1" stop-color="white" stop-opacity="1"></stop>
+                            <stop offset="0.9" stop-color="white" stop-opacity="1"></stop>
+                            <stop offset="1" stop-color="white" stop-opacity="0"></stop>
+                        </linearGradient>
+                        <mask id="mask">
+                            <rect width="100%" height="100%" fill="url(#fadeMask)"></rect>
+                        </mask>
+                        <pattern id="squiggle-pattern" width="91" height="8" patternUnits="userSpaceOnUse">
+                            <path class="squiggle-stroke"
+                                d="M114 4c-5.067 4.667-10.133 4.667-15.2 0S88.667-.667 83.6 4 73.467 8.667 68.4 4 58.267-.667 53.2 4 43.067 8.667 38 4 27.867-.667 22.8 4 12.667 8.667 7.6 4-2.533-.667-7.6 4s-10.133 4.667-15.2 0"
+                                fill="none"></path>
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#squiggle-pattern)" mask="url(#mask)"></rect>
+                </svg>
+            </div>
 
         <footer>
             <div class="container">
@@ -2800,9 +2816,9 @@
                             </g>
                         </svg>
                         <h4><span>kittytune</span> ( > . < )</h4>
-                                <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.95rem;">
-                                    Made by <strong style="color: var(--md-sys-color-primary);">alan7383</strong>.<br>
-                                </p>
+                        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.95rem;">
+                            Made by <strong style="color: var(--md-sys-color-primary);">alan7383</strong>.<br>
+                        </p>
                     </div>
                     <div class="footer-col">
                         <h5>Links</h5>
@@ -2819,16 +2835,16 @@
                         </ul>
                     </div>
                 </div>
-                <div
-                    style="text-align: center; color: var(--md-sys-color-outline); font-size: 0.8rem; margin-top: 40px; opacity: 0.6;">
-                    GPL-3.0 License • 2026 • ( > . < ) </div>
+                <div style="text-align: center; color: var(--md-sys-color-outline); font-size: 0.8rem; margin-top: 40px; opacity: 0.6;">
+                    GPL-3.0 License • 2026 • ( > . < )
                 </div>
+            </div>
         </footer>
 
                 <script class="pjax-script">
                     (function () {
                         const presets = {
-                            default: { wght: 620, wdth: 104, slnt: -2, rond: 45, grad: 0, opsz: 32 },
+                            default: { wght: 400, wdth: 100, slnt: 0, rond: 0, grad: 0, opsz: 14 },
                             rounded: { wght: 650, wdth: 102, slnt: 0, rond: 100, grad: 0, opsz: 24 },
                             elegant: { wght: 260, wdth: 108, slnt: 0, rond: 0, grad: -45, opsz: 44 },
                             chunky: { wght: 930, wdth: 112, slnt: 0, rond: 58, grad: 40, opsz: 18 },
@@ -2971,6 +2987,7 @@
                                     document.querySelectorAll(".preset-chip").forEach((item) => item.classList.remove("active"));
                                     chip.classList.add("active");
                                     applyAxes(preset);
+                                    document.getElementById("dynamic-font-text").textContent = chip.textContent;
                                 });
                             });
                         }
@@ -3075,12 +3092,62 @@
                             revealItems.forEach((item) => observer.observe(item));
                         }
 
+                        // --- AUTO-PLAY TYPOGRAPHY LAB ---
+                        let typoInterval = null;
+                        let isTypoPlaying = true;
+                        const presetNames = ["default", "rounded", "elegant", "chunky", "compact", "slanted", "playful", "wide"];
+                        let currentPresetIdx = 0;
+
+                        window.stopTypoAutoPlay = function() {
+                            if (typoInterval) clearInterval(typoInterval);
+                            isTypoPlaying = false;
+                            const icon = document.getElementById('typo-autoplay-icon');
+                            if (icon) icon.textContent = 'play_arrow';
+                        };
+
+                        window.startTypoAutoPlay = function() {
+                            if (typoInterval) clearInterval(typoInterval);
+                            isTypoPlaying = true;
+                            const icon = document.getElementById('typo-autoplay-icon');
+                            if (icon) icon.textContent = 'pause';
+                            
+                            typoInterval = setInterval(() => {
+                                currentPresetIdx = (currentPresetIdx + 1) % presetNames.length;
+                                const nextPresetBtn = document.querySelector(`.preset-chip[data-preset="${presetNames[currentPresetIdx]}"]`);
+                                if (nextPresetBtn) nextPresetBtn.click();
+                            }, 2500);
+                        };
+
+                        function initTypoAutoPlay() {
+                            const playBtn = document.getElementById('typo-autoplay-btn');
+                            const labPanel = document.getElementById('typography-lab');
+                            
+                            if (playBtn) {
+                                playBtn.addEventListener('click', () => {
+                                    if (isTypoPlaying) window.stopTypoAutoPlay();
+                                    else window.startTypoAutoPlay();
+                                });
+                            }
+
+                            if (labPanel) {
+                                labPanel.addEventListener('pointerdown', (e) => {
+                                    if (!e.target.closest('#typo-autoplay-btn') && isTypoPlaying) {
+                                        window.stopTypoAutoPlay();
+                                    }
+                                });
+                            }
+
+                            window.startTypoAutoPlay();
+                        }
+                        // --------------------------------
+
                         window.initCustomStudio = function initCustomStudio() {
                             initReveal();
                             initSliders();
                             initScrollSpecimens();
                             initPlayerSwitcher();
                             initMonet();
+                            initTypoAutoPlay();
                         };
 
                         window.initCustomStudio();
