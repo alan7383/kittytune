@@ -718,7 +718,7 @@
         .play-fab-large {
             width: 72px;
             height: 72px;
-            border-radius: 50%;
+            border-radius: 36px;
             background: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
             border: none;
@@ -726,9 +726,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 6px 16px rgba(208, 188, 255, 0.25);
-            transition: transform 0.2s;
+            box-shadow: none;
+            transition: 
+                transform 0.3s cubic-bezier(0.2, 0, 0, 1),
+                border-radius 0.25s cubic-bezier(0.2, 0, 0, 1);
             font-size: 42px;
+            position: relative;
+            overflow: hidden;
         }
 
         .play-fab-large .material-icons-round {
@@ -737,14 +741,23 @@
         }
 
         .play-fab-large:hover {
-            transform: scale(1.05);
+            transform: scale(1.02);
+        }
+
+        .play-fab-large:active {
+            border-radius: 12px;
+            transform: scale(0.92);
         }
 
         @media (min-width: 900px) {
             .play-fab-large {
                 width: 88px;
                 height: 88px;
+                border-radius: 44px;
                 margin-bottom: 20px;
+            }
+            .play-fab-large:active {
+                border-radius: 16px;
             }
 
             .play-fab-large .material-icons-round {
@@ -2003,56 +2016,150 @@
             pointer-events: none;
         }
 
-        /* --- Global Rain Miniplayer --- */
-        .rain-miniplayer {
-            position: fixed;
-            bottom: 32px;
-            right: 32px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background-color: var(--md-sys-color-primary-container);
-            color: var(--md-sys-color-on-primary-container);
+        /* --- Nouveaux styles pour l'IDE et les explications --- */
+        .ide-tabs {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            background: #1a1a1f;
+            padding: 0 16px;
+            gap: 24px; /* Espacement type M3 */
+            border-bottom: 1px solid var(--md-sys-color-outline-variant, rgba(255, 255, 255, 0.12));
+            overflow-x: auto;
+        }
+        .ide-tab {
+            position: relative;
+            padding: 16px 8px; /* Plus d'espace vertical pour rejoindre la bordure */
+            font-family: 'Roboto Flex', sans-serif;
+            font-size: 0.875rem; /* 14px */
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface-variant, #CAC4D0);
+            background: transparent;
+            border: none;
+            border-radius: 4px 4px 0 0; /* Typique du state layer tabulaire */
             cursor: pointer;
-            z-index: 9999;
-            opacity: 0;
-            pointer-events: none;
-            transform: translateY(20px);
-            transition: all 0.4s var(--ease-spring);
+            transition: color 0.2s ease, background-color 0.2s ease;
+            white-space: nowrap;
         }
-        .rain-miniplayer.playing {
-            opacity: 1;
-            pointer-events: all;
-            transform: translateY(0);
+        .ide-tab:hover {
+            background: rgba(255,255,255,0.08); /* Hover state layer */
+            color: var(--md-sys-color-on-surface);
         }
-        .rain-miniplayer:hover {
-            transform: scale(1.05) translateY(0);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+        .ide-tab.active {
+            color: var(--md-sys-color-primary, #d0bcff);
+            background: transparent;
         }
-        .rain-miniplayer:active {
-            transform: scale(0.95);
-        }
-        .rain-miniplayer::after {
+        /* Style incontournable des tabs Material 3 : la barre pilule en bas */
+        .ide-tab.active::after {
             content: '';
             position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            border: 2px solid var(--md-sys-color-primary);
-            opacity: 0;
-            transition: 0.3s;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 3px 3px 0 0;
+            background-color: var(--md-sys-color-primary, #d0bcff);
         }
-        .rain-miniplayer.playing:not(.muted)::after {
-            animation: rain-pulse 2s infinite;
+        .code-scroll-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 24px 48px;
         }
-        @keyframes rain-pulse {
-            0% { transform: scale(1); opacity: 0.6; }
-            100% { transform: scale(1.4); opacity: 0; }
+        /* Scrollbar custom pour le code */
+        .code-scroll-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .code-scroll-container::-webkit-scrollbar-track {
+            background: #111014;
+        }
+        .code-scroll-container::-webkit-scrollbar-thumb {
+            background: #49454f;
+            border-radius: 4px;
+        }
+        .tech-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--md-sys-color-outline);
+            margin-right: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* --- Audio Pipeline Visualizer --- */
+        .pipeline-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 24px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: var(--radius-l);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .pipeline-step {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            background: var(--md-sys-color-surface-container);
+            border-radius: var(--radius-m);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .pipeline-step.highlight {
+            background: rgba(208, 188, 255, 0.08);
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 24px rgba(208, 188, 255, 0.15);
+        }
+
+        .pipeline-step.highlight::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 15%;
+            bottom: 15%;
+            width: 4px;
+            background: var(--md-sys-color-primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .pipeline-arrow {
+            display: flex;
+            justify-content: center;
+            color: var(--md-sys-color-outline-variant);
+        }
+
+        .step-icon {
+            font-size: 24px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .highlight .step-icon {
+            color: var(--md-sys-color-primary);
+        }
+
+        .step-text h4 {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            color: var(--md-sys-color-on-surface);
+            margin-bottom: 2px;
+        }
+
+        .step-text p {
+            font-size: 0.85rem;
+            color: var(--md-sys-color-outline);
+        }
+
+        @media (max-width: 900px) {
+            .deep-dive-grid {
+                grid-template-columns: 1fr !important;
+            }
         }
     </style>
+
 </head>
 
 <body>
@@ -2072,6 +2179,7 @@
 
     <div id="app-layout">
         
+        
         <!-- LE NAVIGATION RAIL (Barre à gauche) -->
         <aside class="m3-nav-rail">
             
@@ -2081,7 +2189,7 @@
             </div>
 
             <!-- Les onglets de navigation -->
-            <a href="#" class="nav-rail-item active" onclick="switchTab(event, this)">
+            <a href="index.html" class="nav-rail-item" onclick="navigateSmoothly(event, 'index.html')">
                 <div class="nav-indicator">
                     <svg class="nav-logo-svg" viewBox="260 360 510 310" xmlns="http://www.w3.org/2000/svg">
                         <g transform="translate(17, -25)">
@@ -2099,7 +2207,7 @@
                 <span class="nav-label">Custom</span>
             </a>
 
-            <a href="audio-fx.html" class="nav-rail-item" onclick="navigateSmoothly(event, 'audio-fx.html')">
+            <a href="#" class="nav-rail-item active">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">graphic_eq</span>
                 </div>
@@ -2137,238 +2245,1175 @@
         <main class="m3-main-content">
             <div id="app-wrapper">
 
-        <section class="avium-hero-section">
-            <div class="avium-hero-container">
-                <div class="avium-hero-left">
-                    <h1 class="avium-hero-title">KittyTune</h1>
-                    <p class="avium-hero-desc">SoundCloud and YouTube in one player, with real-time audio effects and zero ads. Material 3 Expressive, because why not.
-                        <span style="white-space: nowrap;">(^・ω・^ )</span>
-                    </p>
-                    <div class="avium-hero-buttons">
-                        <a href="#" class="latest-download-link avium-btn-download">
-                            Download
-                        </a>
-                        <a href="https://github.com/alan7383/kittytune" target="_blank" class="avium-btn-outline">
-                            <span class="material-icons-round">code</span> Source
-                        </a>
-                    </div>
-                </div>
-
-                <div class="avium-hero-right">
-                    <img src="home.BY0cCzCQ.png" alt="KittyTune Preview" class="avium-hero-img">
-                </div>
-            </div>
-        </section>
-
-        <div class="container">
-            <section class="features-section">
-                <div class="section-header reveal">
-                    <h2 class="headline-large">Why KittyTune?</h2>
-                    <p>For people who find Spotify's 30-second ads physically painful.</p>
-                </div>
-
-                <div class="expressive-grid">
-                    <div class="expressive-card span-8 variant-primary reveal reveal-delay-1">
-                        <div class="kaomoji-hero">( ^-^)~</div>
-                        <div class="card-content">
-                            <div class="card-icon"><span class="material-icons-round">tune</span></div>
-                            <h3>Real-time Sound FX</h3>
-                            <p>Nightcore, 8D Audio, pitch shifting, bass boost... you name it. Tweak everything on the
-                                fly while your track is playing. It just works.</p>
-                        </div>
-                    </div>
-
-                    <div class="expressive-card span-4 variant-secondary reveal reveal-delay-2">
-                        <div class="kaomoji-hero">(-_-) zzZ</div>
-                        <div class="card-content">
-                            <div class="card-icon"><span class="material-icons-round">lyrics</span></div>
-                            <h3>Synced Lyrics</h3>
-                            <p>Real-time lyrics straight from LrcLib. No manual sync needed.</p>
-                        </div>
-                    </div>
-
-                    <div class="expressive-card span-4 variant-tertiary reveal reveal-delay-1">
-                        <div class="kaomoji-hero">( o_O)?</div>
-                        <div class="card-content">
-                            <div class="card-icon"><span class="material-icons-round">hub</span></div>
-                            <h3>Hybrid Playback</h3>
-                            <p>SoundCloud blocked a track? KittyTune silently falls back to YouTube. You won't even
-                                notice.</p>
-                        </div>
-                    </div>
-
-                    <div class="expressive-card span-8 variant-primary reveal reveal-delay-2">
-                        <div class="kaomoji-hero">d(-_-)b</div>
-                        <div class="card-content">
-                            <div class="card-icon"><span class="material-icons-round">emoji_events</span></div>
-                            <h3>RPG-style Progression</h3>
-                            <p>Earn XP by listening, level up your profile, and collect badges like "Night Owl" or
-                                "Obsessed". Because why not make music fun.</p>
-                        </div>
-                    </div>
-
-                    <div class="expressive-card span-6 variant-secondary reveal reveal-delay-1">
-                        <div class="kaomoji-hero">(=^.^=)</div>
-                        <div class="card-content">
-                            <div class="card-icon"><span class="material-icons-round">widgets</span></div>
-                            <h3>Living Widgets</h3>
-                            <p>Home screen widgets that adapt to your wallpaper palette. Looks native, feels native.</p>
-                        </div>
-                    </div>
-
-                    <div class="expressive-card span-6 variant-tertiary reveal reveal-delay-2">
-                        <div class="kaomoji-hero">(~_~;)</div>
-                        <div class="card-content">
-                            <div class="card-icon"><span class="material-icons-round">sync</span></div>
-                            <h3>Full SoundCloud Sync</h3>
-                            <p>Log in with your SoundCloud account. Playlists, likes, history, everything syncs. Zero
-                                telemetry, zero data harvesting. Promise.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <section class="showcase-section">
-            <div class="container">
-
-                <div class="showcase-row">
-                    <div class="text-col">
-                        <div class="step-number">01</div>
-                        <h3>Material You, for real.</h3>
-                        <p>Colors pulled straight from your wallpaper. The whole UI adapts to your vibe, clean,
-                            spacious, and native to Android 12+. No weird third-party look.</p>
-                        <div class="highlight">#DynamicColors</div>
-                    </div>
-                    <div class="showcase-image-wrapper">
-                        <div class="kaomoji-badge variant-1">
-                            <div class="badge-icon-circle">
-                                <span class="material-icons-round">palette</span>
-                            </div>
-                            <span class="badge-text">( ✯◡✯ )</span>
-                        </div>
-
-                        <div class="phone-mockup">
-                            <img src="https://i.postimg.cc/FHZ4YvsR/Screenshot_20260208_152429.png" alt="UI Screenshot">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="showcase-row reverse">
-                    <div class="text-col">
-                        <div class="step-number">02</div>
-                        <h3>Audio, your way.</h3>
-                        <p>Speed, pitch, 8D Audio, bass boost, all accessible from the player drawer. Mess around with
-                            it, find your sweet spot.</p>
-                        <div class="highlight">#PowerUser</div>
-                    </div>
-                    <div class="showcase-image-wrapper">
-                        <div class="kaomoji-badge variant-2">
-                            <div class="badge-icon-circle">
-                                <span class="material-icons-round">equalizer</span>
-                            </div>
-                            <span class="badge-text">〜(￣▽￣〜)</span>
-                        </div>
-
-                        <div class="phone-mockup">
-                            <img src="https://i.postimg.cc/g2DWxpky/Screenshot_20260208_152435.png"
-                                alt="Audio Settings">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="showcase-row">
-                    <div class="text-col">
-                        <div class="step-number">03</div>
-                        <h3>Lyrics that follow along.</h3>
-                        <p>Time-synced lyrics, scrolling in real-time. Missing from the database? Search and load your
-                            own LRC file. Simple.</p>
-                        <div class="highlight">#KaraokeMode</div>
-                    </div>
-                    <div class="showcase-image-wrapper">
-                        <div class="kaomoji-badge variant-3">
-                            <div class="badge-icon-circle">
-                                <span class="material-icons-round">mic_external_on</span>
-                            </div>
-                            <span class="badge-text">(*´○`)o¶♪</span>
-                        </div>
-
-                        <div class="phone-mockup">
-                            <img src="https://i.postimg.cc/Sxrhn4NW/Screenshot_20260208_152444.png" alt="Lyrics Screen">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="showcase-row reverse">
-                    <div class="text-col">
-                        <div class="step-number">04</div>
-                        <h3>Your profile, evolving.</h3>
-                        <p>Listening stats, XP, unlockable badges. It started as a joke feature and ended up being one of my favorites.</p>
-                        <div class="highlight">#LevelUp</div>
-                    </div>
-                    <div class="showcase-image-wrapper">
-                        <div class="kaomoji-badge variant-4">
-                            <div class="badge-icon-circle">
-                                <span class="material-icons-round">star</span>
-                            </div>
-                            <span class="badge-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
-                        </div>
-
-                        <div class="phone-mockup">
-                            <img src="https://i.postimg.cc/cLmSvW4w/Screenshot_20260208_152458.png"
-                                alt="Profile Screen">
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <section class="philosophy-section">
-    <div class="container">
-        <!-- En-tête centré (Manifesto) -->
-        <div class="philosophy-header reveal">
-            <div class="philosophy-badge">
-                <span class="material-icons-round" style="font-size: 16px;">public</span>
-                100% Free & Open Source
-            </div>
-
-            <h2>No Ads. No Trackers.<br>Just Music.</h2>
+        <style>
+            /* Unique FX Dashboard Styles */
+            .fx-header {
+                text-align: center;
+                padding: 100px 24px 60px;
+            }
+            .fx-header h1 {
+                font-family: 'Google Sans Flex', sans-serif;
+                font-size: clamp(3rem, 6vw, 4.5rem);
+                font-weight: 600;
+                color: var(--md-sys-color-on-surface);
+                letter-spacing: -0.02em;
+                line-height: 1.1;
+                margin-bottom: 24px;
+            }
+            .fx-header p {
+                font-size: 1.25rem;
+                color: var(--md-sys-color-on-surface-variant);
+                max-width: 650px;
+                margin: 0 auto;
+                line-height: 1.6;
+            }
             
-            <p class="philosophy-desc">
-                KittyTune is a side project I use every day. No ads, no trackers, no analytics. Just the app. Everything you need, nothing you don't.
-            </p>
+            .bento-grid {
+                max-width: 1400px;
+                margin: 0 auto 120px;
+                padding: 0 40px;
+                display: grid;
+                grid-template-columns: repeat(12, 1fr);
+                gap: 24px;
+            }
+            
+            .bento-panel {
+                background: linear-gradient(160deg, rgba(33, 31, 38, 0.4), rgba(28, 26, 32, 0.8));
+                backdrop-filter: blur(40px);
+                -webkit-backdrop-filter: blur(40px);
+                border-radius: var(--radius-xl);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                padding: 40px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+                transition: transform 0.4s var(--ease-spring), border-color 0.4s ease;
+                display: flex;
+                flex-direction: column;
+            }
+            .bento-panel:hover {
+                transform: translateY(-4px);
+                border-color: rgba(255, 255, 255, 0.1);
+            }
+            
+            .panel-title {
+                font-family: var(--font-display);
+                font-size: 1.6rem;
+                font-weight: 700;
+                color: var(--md-sys-color-on-surface);
+                margin-bottom: 12px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                z-index: 2;
+            }
+            .panel-desc {
+                color: var(--md-sys-color-on-surface-variant);
+                font-size: 1.05rem;
+                line-height: 1.6;
+                margin-bottom: 32px;
+                z-index: 2;
+                max-width: 80%;
+            }
+            
+            /* -- Equalizer Faders -- */
+            .eq-console {
+                display: flex;
+                justify-content: space-around;
+                align-items: flex-end;
+                height: 200px;
+                margin-top: auto;
+                padding-bottom: 30px;
+            }
+            .fader-track {
+                width: 48px;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                border-radius: 24px;
+                position: relative;
+                display: flex;
+                justify-content: center;
+                border: 1px solid rgba(255,255,255,0.03);
+                box-shadow: inset 0 4px 12px rgba(0,0,0,0.5);
+            }
+            .fader-knob {
+                width: 64px;
+                height: 32px;
+                background: #4a4458;
+                border-radius: 12px;
+                position: absolute;
+                box-shadow: 0 8px 16px rgba(0,0,0,0.6), inset 0 2px 2px rgba(255,255,255,0.1);
+                border: 1px solid rgba(255,255,255,0.15);
+                cursor: grab;
+                transition: background 0.2s, transform 0.2s;
+            }
+            .fader-knob:active {
+                cursor: grabbing;
+                transform: scale(0.92);
+                background: var(--md-sys-color-primary);
+            }
+            .fader-knob::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 12%;
+                right: 12%;
+                height: 2px;
+                background: rgba(255,255,255,0.4);
+                transform: translateY(-50%);
+            }
+            .fader-label {
+                position: absolute;
+                bottom: -32px;
+                font-family: var(--font-body);
+                font-size: 0.85rem;
+                font-weight: 600;
+                color: var(--md-sys-color-outline);
+                text-align: center;
+                width: 100%;
+            }
+            
+            /* -- 8D Orbit Radar -- */
+            .radar-module {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                margin-top: 20px;
+            }
+            .radar-grid-bg {
+                position: absolute;
+                inset: 0;
+                background-image: linear-gradient(rgba(208, 188, 255, 0.05) 1px, transparent 1px),
+                                linear-gradient(90deg, rgba(208, 188, 255, 0.05) 1px, transparent 1px);
+                background-size: 30px 30px;
+                z-index: 0;
+            }
+            .radar-container {
+                position: relative;
+                width: 180px;
+                height: 180px;
+                border-radius: 50%;
+                border: 1px solid rgba(208, 188, 255, 0.2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 2;
+                box-shadow: inset 0 0 40px rgba(208, 188, 255, 0.05);
+                --dot-scale: 1;
+                --dot-glow: 24px;
+            }
+            .radar-head {
+                font-size: 2.2rem;
+                color: var(--md-sys-color-primary);
+                font-weight: bold;
+                font-family: monospace;
+                transition: transform 0.25s var(--ease-spring), color 0.25s ease;
+            }
+            .radar-head.is-listening {
+                color: var(--md-sys-color-tertiary);
+                transform: scale(1.08);
+            }
+            .radar-orbit {
+                position: absolute;
+                inset: -30px;
+                border: 1px dashed rgba(208, 188, 255, 0.2);
+                border-radius: 50%;
+                animation: rotate-orbit 4s linear infinite;
+            }
+            .radar-dot {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 18px;
+                height: 18px;
+                background: var(--md-sys-color-primary);
+                border-radius: 50%;
+                transform: translate(-50%, -50%) scale(var(--dot-scale));
+                box-shadow: 0 0 var(--dot-glow) 8px rgba(208, 188, 255, 0.6);
+                transition: transform 0.25s var(--ease-spring), box-shadow 0.25s ease;
+            }
+            @keyframes rotate-orbit { 100% { transform: rotate(360deg); } }
 
-            <!-- Le bouton GitHub remonte ici, sous le texte -->
-            <a href="https://github.com/alan7383/kittytune" class="btn btn-primary philosophy-github-btn">
-                <span class="material-icons-round">star</span>
-                Star on GitHub
-            </a>
-        </div>
+            .eightd-panel .panel-desc {
+                max-width: 100%;
+                margin-bottom: 14px;
+            }
 
-        <!-- La grille (Conservée avec ses animations, icônes ajoutées) -->
-        <div class="philosophy-wrapper">
-            <div class="philosophy-grid">
-                <div class="philosophy-item reveal reveal-delay-1">
-                    <h4><span class="material-icons-round" style="color: var(--md-sys-color-primary);">shield_person</span> Privacy First</h4>
-                    <p>Minimal permissions. What you listen to stays locally on your device. Period.</p>
-                </div>
-                <a href="https://crowdin.com/project/kittytune" target="_blank" rel="noopener noreferrer" class="philosophy-item reveal reveal-delay-2" style="text-decoration: none;">
-                    <h4><span class="material-icons-round" style="color: var(--md-sys-color-tertiary);">translate</span> Community Driven</h4>
-                    <p>Available in multiple languages. Missing yours? Help us <span class="text-link">translate KittyTune</span> on Crowdin.</p>
-                </a>
-                <div class="philosophy-item reveal reveal-delay-3">
-                    <h4><span class="material-icons-round" style="color: var(--md-sys-color-secondary);">palette</span> Material You</h4>
-                    <p>Dynamic Colors, smooth transitions, and proper surface layers that follow Android 12+ conventions.</p>
-                </div>
-                <div class="philosophy-item reveal reveal-delay-4">
-                    <h4><span class="material-icons-round" style="color: var(--md-sys-color-primary);">code</span> Open by Default</h4>
-                    <p>GPL-3.0 licensed. Every line of code is public. You don't have to trust what the app says it does — you can verify it.</p>
+            .eightd-radar-module {
+                min-height: 250px;
+                margin: 8px 0 24px;
+            }
+
+            .eightd-control-card {
+                position: relative;
+                z-index: 2;
+                padding: 18px;
+                background: rgba(20, 18, 24, 0.72);
+                border: 1px solid rgba(208, 188, 255, 0.12);
+                border-radius: var(--radius-l);
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.04);
+            }
+
+            .eightd-range {
+                flex-grow: 0;
+                margin-bottom: 14px;
+            }
+
+            .eightd-range .m3-range-info {
+                align-items: center;
+                font-size: 1rem;
+                margin-bottom: 8px;
+            }
+
+            .eightd-range-label {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .eightd-range-label .material-icons-round {
+                font-size: 1.2rem;
+                color: var(--md-sys-color-tertiary);
+            }
+
+            .eightd-control-card .m3-v3-track-active,
+            .eightd-control-card .m3-v3-track-inactive {
+                height: 34px;
+            }
+
+            .eightd-control-card .m3-v3-thumb,
+            .eightd-control-card .m3-v3-thumb-container {
+                height: 46px;
+            }
+
+            .eightd-readout {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .eightd-readout-item {
+                padding: 10px 12px;
+                border-radius: var(--radius-m);
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.06);
+            }
+
+            .eightd-readout-item span {
+                display: block;
+                font-size: 0.72rem;
+                color: var(--md-sys-color-outline);
+                margin-bottom: 2px;
+            }
+
+            .eightd-readout-item strong {
+                display: block;
+                font-family: monospace;
+                font-size: 0.95rem;
+                color: var(--md-sys-color-primary);
+            }
+            
+            /* -- Sliders -- */
+            .m3-range-wrapper {
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                margin-bottom: 32px;
+            }
+            .m3-range-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 12px;
+                font-size: 1.1rem;
+                font-weight: 500;
+                color: var(--md-sys-color-on-surface);
+            }
+            /* =========================================
+               MATERIAL DESIGN 3 STRICT SLIDER
+               Mesures exactes basées sur les specs (16px track, 4x44px thumb)
+               ========================================= */
+            
+            /* =========================================
+               MATERIAL DESIGN 3 - SLIDER VARIANT 3
+               Design exact : Thumb pilule (8x52) + Bords intérieurs légèrement arrondis
+               ========================================= */
+
+            .m3-v3-slider {
+                position: relative;
+                width: 100%;
+                height: 52px; /* Hauteur max pour contenir le grand pouce */
+                display: flex;
+                align-items: center;
+                --val: 0.5; /* Modifié dynamiquement par le JS */
+            }
+
+            .m3-v3-slider input[type="range"] {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                opacity: 0; /* On cache l'input natif moche */
+                cursor: pointer;
+                z-index: 10;
+                margin: 0;
+            }
+
+            .m3-v3-layout {
+                display: flex;
+                align-items: center;
+                width: 100%;
+                height: 100%;
+                pointer-events: none; /* Empêche les bugs de clic */
+            }
+
+            /* --- LA PISTE REMPLIE (GAUCHE) --- */
+            .m3-v3-track-active {
+                flex: var(--val);
+                height: 40px; /* Épaisseur de la piste */
+                background-color: var(--md-sys-color-primary, #d0bcff);
+                border-radius: 12px 4px 4px 12px; /* 12px fixe */
+                transition: flex 0.3s cubic-bezier(0.2, 0, 0, 1);
+            }
+
+            /* --- LE CONTENEUR DU POUCE (LE GAP) --- */
+            .m3-v3-thumb-container {
+                flex: 0 0 16px; /* Largeur fixe : 6px espace + 4px pouce + 6px espace */
+                height: 52px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* --- LE POUCE (PILULE) --- */
+            .m3-v3-thumb {
+                width: 4px; /* Épaisseur de la pilule très fine */
+                height: 52px; /* Hauteur de la pilule */
+                background-color: var(--md-sys-color-primary, #d0bcff);
+                border-radius: 2px; /* Rendu pilule arrondie plus fin */
+                transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+            }
+
+            /* --- LA PISTE VIDE (DROITE) --- */
+            .m3-v3-track-inactive {
+                position: relative;
+                flex: calc(1 - var(--val));
+                height: 40px;
+                background-color: rgba(255, 255, 255, 0.12); /* Gris sombre */
+                border-radius: 4px 12px 12px 4px; /* 12px fixe */
+                transition: flex 0.3s cubic-bezier(0.2, 0, 0, 1);
+                overflow: hidden;
+            }
+
+            /* Petit point indicateur à la fin de la piste type M3 */
+            .m3-v3-track-inactive::after {
+                content: '';
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 4px;
+                height: 4px;
+                border-radius: 50%;
+                background-color: var(--md-sys-color-primary, #d0bcff);
+                opacity: 1;
+                transition: opacity 0.2s ease;
+            }
+
+            /* On cache le point pendant le survol ou le "drag" */
+            .m3-v3-slider:hover .m3-v3-track-inactive::after,
+            .m3-v3-slider.is-dragging .m3-v3-track-inactive::after {
+                opacity: 0;
+            }
+
+            /* Coupe la transition pendant le drag pour un suivi immédiat du doigt/souris */
+            .m3-v3-slider.no-transition .m3-v3-track-active,
+            .m3-v3-slider.no-transition .m3-v3-track-inactive {
+                transition: none;
+            }
+
+            /* Effet d'écrasement (Squish) Material Design quand on maintient le clic */
+            .m3-v3-slider.is-dragging .m3-v3-thumb {
+                transform: scaleY(1.05) scaleX(0.8);
+            }
+
+            /* -- Rain Ambience -- */
+            .rain-bg {
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, rgba(20,40,60,0.8), rgba(10,20,30,0.95));
+                opacity: 0;
+                transition: opacity 0.5s ease;
+                z-index: 0;
+            }
+            .bento-panel.rain-active .rain-bg { opacity: 1; }
+            .rain-kaomoji {
+                font-family: monospace;
+                font-size: 3rem;
+                color: #6eb5ff;
+                opacity: 0.8;
+                letter-spacing: 4px;
+                z-index: 2;
+                transition: color 0.5s;
+            }
+            
+            /* -- Live Code IDE -- */
+            .live-code-block {
+                grid-column: span 7;
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 0;
+                background: #121216;
+                border-radius: 32px;
+                border: 1px solid rgba(255,255,255,0.05);
+                overflow: hidden;
+                box-shadow: 0 32px 100px rgba(0,0,0,0.5);
+                padding: 0;
+            }
+            .code-controls {
+                padding: 24px 28px 18px;
+                background: rgba(255,255,255,0.01);
+                border-bottom: 1px solid rgba(255,255,255,0.04);
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 18px;
+            }
+            .code-controls .panel-title {
+                margin-bottom: 8px;
+            }
+            .code-controls .panel-desc {
+                margin-bottom: 0;
+                max-width: 580px;
+                font-size: 0.95rem;
+            }
+            .code-sync-card {
+                flex: 0 0 auto;
+                margin-top: 2px;
+                padding: 10px 14px;
+                border-radius: var(--radius-full);
+                background: rgba(208, 188, 255, 0.08);
+                border: 1px solid rgba(208, 188, 255, 0.12);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .code-sync-card .material-icons-round {
+                color: #ffbd2e;
+                font-size: 1.15rem;
+            }
+            .code-sync-copy {
+                display: flex;
+                align-items: baseline;
+                gap: 8px;
+                white-space: nowrap;
+            }
+            .code-sync-copy span {
+                color: var(--md-sys-color-outline);
+                font-size: 0.78rem;
+            }
+            .code-sync-copy strong {
+                color: var(--md-sys-color-primary);
+                font-family: monospace;
+                font-size: 0.92rem;
+            }
+            .code-ide-pane {
+                display: flex;
+                flex-direction: column;
+                background: #1e1e24;
+                position: relative;
+                width: 100%;
+                min-height: 0;
+            }
+            .live-code-block .ide-tabs {
+                padding: 0 14px;
+                gap: 14px;
+            }
+            .live-code-block .ide-tab {
+                font-size: 0.8rem;
+                padding: 14px 6px;
+            }
+            .live-code-block .code-scroll-container {
+                max-height: 360px;
+                padding: 24px 32px 30px;
+            }
+            .code-window {
+                padding: 0; /* JS injections should handle internal scroll */
+                font-family: 'Fira Code', monospace;
+                font-size: 0.95rem;
+                line-height: 1.8;
+                color: #abb2bf;
+                background: #0f0f13;
+                position: relative;
+            }
+            .code-highlight {
+                background: rgba(208, 188, 255, 0.2);
+                border-radius: 4px;
+                padding: 2px 8px;
+                color: #d0bcff;
+                font-weight: bold;
+                transition: all 0.1s;
+                display: inline-block;
+            }
+            .ide-dots {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 32px;
+                padding-bottom: 24px;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+            }
+
+            .core-fx-panel {
+                grid-column: span 12;
+            }
+
+            .core-fx-grid {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 12px;
+                margin-top: 24px;
+            }
+            
+            @media (max-width: 1000px) {
+                .bento-panel { grid-column: span 12 !important; }
+                .live-code-block { grid-template-columns: 1fr; }
+                .code-controls {
+                    flex-direction: column;
+                    border-right: none;
+                    border-bottom: 1px solid rgba(255,255,255,0.04);
+                }
+                .fx-header h1 { font-size: 2.5rem; }
+            }
+
+            @media (max-width: 760px) {
+                .core-fx-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+        </style>
+
+        <header class="fx-header">
+            <h1>Audio & FX Engine</h1>
+            <p>A completely custom ExoPlayer implementation. Alter speed, balance EQ, and spatialize sound with ZERO latency.</p>
+        </header>
+
+        <div class="bento-grid">
+            
+
+
+            <!-- KittyTune FX (Span 12) -->
+            <div class="bento-panel core-fx-panel" style="display: flex; flex-direction: column;">
+                <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-primary);">tune</span> Core FX Processors</h3>
+                <p class="panel-desc">Direct PCM (16-bit) byte manipulation extending ExoPlayer's <code>BaseAudioProcessor</code>. Zero latency.</p>
+                
+                <div class="core-fx-grid">
+                    <!-- Bass Boost -->
+                    <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Bass Boost</div>
+                            <span class="material-icons-round" style="color: var(--md-sys-color-primary); font-size: 1.2rem;">bolt</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Biquad Low Shelf filter at 100Hz.</div>
+                    </div>
+                    
+                    <!-- Muffled -->
+                    <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Muffled</div>
+                            <span class="material-icons-round" style="color: var(--md-sys-color-secondary); font-size: 1.2rem;">blur_on</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Biquad Low Pass dynamic cutoff.</div>
+                    </div>
+                    
+                    <!-- Reverb -->
+                    <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Reverb</div>
+                            <span class="material-icons-round" style="color: #6eb5ff; font-size: 1.2rem;">graphic_eq</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">150ms Circular delay line buffer.</div>
+                    </div>
+
+                    <!-- Earrape -->
+                    <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Earrape</div>
+                            <span class="material-icons-round" style="color: #ff5f56; font-size: 1.2rem;">warning</span>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Massive hard clipping gain *800f.</div>
+                    </div>
                 </div>
             </div>
+
+            <!-- 8D Audio (Span 5) -->
+            <div class="bento-panel eightd-panel" style="grid-column: span 5; display: flex; flex-direction: column;">
+                <div class="radar-grid-bg"></div>
+                <div>
+                    <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-tertiary);">360</span> 8D Spatial</h3>
+                    <p class="panel-desc">An LFO oscillator wraps music dynamically.</p>
+                </div>
+                
+                <div class="radar-module eightd-radar-module" style="display: flex; align-items: center; justify-content: center;">
+                    <div class="radar-container" id="radar-container">
+                        <div class="radar-head" id="radar-head">( o_o )</div>
+                        <div class="radar-orbit" id="radar-orbit"><div class="radar-dot"></div></div>
+                    </div>
+                </div>
+
+                <div class="eightd-control-card">
+                    <div class="m3-range-wrapper eightd-range">
+                        <div class="m3-range-info">
+                            <span class="eightd-range-label"><span class="material-icons-round">speed</span> LFO Orbit Speed</span>
+                            <span id="ui-speed-val" style="color: var(--md-sys-color-primary); font-family: monospace; font-size: 1.15rem;">0.50</span>
+                        </div>
+                        
+                        <div class="m3-v3-slider" id="lfo-slider-container">
+                            <input type="range" id="speed-slider" min="0" max="1" step="0.01" value="0.5" aria-label="8D LFO orbit speed">
+                            <div class="m3-v3-layout">
+                                <div class="m3-v3-track-active"></div>
+                                <div class="m3-v3-thumb-container">
+                                    <div class="m3-v3-thumb"></div>
+                                </div>
+                                <div class="m3-v3-track-inactive"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="eightd-readout">
+                        <div class="eightd-readout-item">
+                            <span>Orbit loop</span>
+                            <strong id="orbit-duration-val">2.25s</strong>
+                        </div>
+                        <div class="eightd-readout-item">
+                            <span>Speed amount</span>
+                            <strong id="speed-amount-val">50%</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Code Interaction Block (Span 7) -->
+            <div class="live-code-block bento-panel" style="grid-column: span 7;">
+                <div class="code-controls">
+                    <div>
+                        <h3 class="panel-title"><span class="material-icons-round" style="color: #ffbd2e;">terminal</span> DSP Algorithms</h3>
+                        <p class="panel-desc" style="max-width: 100%;">The Kotlin math responding to the 8D slider in real time.</p>
+                    </div>
+
+                    <div class="code-sync-card">
+                        <span class="material-icons-round">speed</span>
+                        <div class="code-sync-copy">
+                            <span>Live param</span>
+                            <strong id="code-speed-chip">0.50f</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="code-ide-pane">
+                    <div class="ide-tabs">
+                        <button class="ide-tab active" onclick="switchCode('8d', this)">Spatialization (8D)</button>
+                        <button class="ide-tab" onclick="switchCode('biquad', this)">Biquad Filter</button>
+                        <button class="ide-tab" onclick="switchCode('reverb', this)">Delay Line</button>
+                        <button class="ide-tab" onclick="switchCode('muffled', this)">Low-Pass</button>
+                    </div>
+                    
+                    <div class="code-scroll-container" id="code-display" style="font-family: 'Fira Code', monospace; font-size: 0.95rem; line-height: 1.7; color: #abb2bf;">
+                        <!-- Le code sera injecté ici par JS -->
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- NOUVEAU: Technical Deep Dive (Span 12) -->
+            <div class="bento-panel" style="grid-column: span 12; padding: 48px;">
+                <div class="deep-dive-grid" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center;">
+                    
+                    <!-- Left: Explanations -->
+                    <div>
+                        <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-secondary);">memory</span> Bypassing Android's Audio Limits</h3>
+                        <p class="panel-desc" style="max-width: 100%; margin-bottom: 20px;">
+                            Standard Android audio effects like <code>android.media.audiofx</code> are applied at the OS level. That means a bass boost can sound completely different on a Samsung device compared to a Xiaomi or a Pixel, because each OEM can alter the underlying DSP.
+                        </p>
+                        <p class="panel-desc" style="max-width: 100%; margin-bottom: 24px;">
+                            <b>KittyTune fixes this.</b> By hooking directly into ExoPlayer's <code>DefaultAudioSink</code> via a custom <code>BaseAudioProcessor</code>, the app manipulates the raw 16-bit PCM <code>ByteBuffer</code> before it reaches Android AudioTrack.
+                            That keeps KittyTune's DSP signature consistent before hardware output on Samsung, Xiaomi, Pixel, and beyond. Biquad filters, LFO panning, and delay buffers stay as lightweight math on the audio thread, keeping the effect path under a millisecond for normal buffers without waking heavy OS DSP chains.
+                        </p>
+                        <div>
+                            <span class="tech-badge">inputAudioFormat.sampleRate</span>
+                            <span class="tech-badge">inputBuffer.getShort()</span>
+                            <span class="tech-badge">Math.sin() LFO</span>
+                            <span class="tech-badge">Biquad Filter</span>
+                            <span class="tech-badge">Direct Form II</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: The Audio Pipeline Visualizer -->
+                    <div class="pipeline-container">
+                        <div class="pipeline-step">
+                            <span class="material-icons-round step-icon">cloud_download</span>
+                            <div class="step-text">
+                                <h4>Media Source</h4>
+                                <p>SoundCloud Stream / Local MP3</p>
+                            </div>
+                        </div>
+                        
+                        <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
+                        
+                        <div class="pipeline-step">
+                            <span class="material-icons-round step-icon">memory</span>
+                            <div class="step-text">
+                                <h4>ExoPlayer Decoders</h4>
+                                <p>Decodes to raw PCM 16-bit</p>
+                            </div>
+                        </div>
+                        
+                        <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
+                        
+                        <div class="pipeline-step highlight">
+                            <span class="material-icons-round step-icon">graphic_eq</span>
+                            <div class="step-text">
+                                <h4>KittyTune DSP (AudioProcessors.kt)</h4>
+                                <p>Byte manipulation & Math formulas</p>
+                            </div>
+                        </div>
+                        
+                        <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
+                        
+                        <div class="pipeline-step">
+                            <span class="material-icons-round step-icon">speaker</span>
+                            <div class="step-text">
+                                <h4>Android AudioTrack</h4>
+                                <p>OS playback via hardware</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Effects Tester (Span 12) -->
+            <div class="bento-panel" style="grid-column: span 12; padding: 48px;">
+                <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-primary);">play_circle</span> Live Effects Tester</h3>
+                <p class="panel-desc" style="max-width: 900px; margin-bottom: 32px;">
+                    Experience the DSP effects in real-time. Turn on the switches to apply effects to the playback directly using the Web Audio API. 
+                </p>
+
+                <!-- Custom Audio Player component -->
+                <div style="background: rgba(0,0,0,0.2); border-radius: var(--radius-l); padding: 32px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 40px;">
+                    <div style="display: flex; align-items: center; gap: 24px;">
+                        <button id="live-fx-play-btn" class="play-fab-large" style="width: 56px; height: 56px; margin: 0; flex-shrink: 0;">
+                            <span class="material-icons-round" style="font-size: 32px;" id="live-fx-play-icon">play_arrow</span>
+                        </button>
+                        
+                        <div style="flex-grow: 1; display: flex; flex-direction: column;">
+                            <div style="display: flex; justify-content: space-between; font-family: monospace; font-size: 0.85rem; color: var(--md-sys-color-outline); margin-bottom: 8px;">
+                                <span id="fx-time-current">0:00</span>
+                                <span id="fx-time-total" style="opacity: 0.5;">0:00</span>
+                            </div>
+
+                            <!-- MUSIC PROGRESS BAR (Thinner version of M3-V3 Slider) -->
+                            <div class="m3-v3-slider fx-progress-bar" id="fx-progress-container" style="height: 32px; --val: 0;">
+                                <input type="range" id="fx-progress-slider" min="0" max="1" step="0.001" value="0">
+                                <div class="m3-v3-layout">
+                                    <div class="m3-v3-track-active" style="height: 18px; border-radius: 6px 1px 1px 6px;"></div>
+                                    <div class="m3-v3-thumb-container" style="height: 32px; flex: 0 0 10px;">
+                                        <div class="m3-v3-thumb" style="height: 32px; width: 3px; border-radius: 1.5px;"></div>
+                                    </div>
+                                    <div class="m3-v3-track-inactive" style="height: 18px; border-radius: 1px 6px 6px 1px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Switches Grid -->
+                <style>
+/* Precise M3 Switch */
+.md3-switch {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px; background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-m); border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer; user-select: none; transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+.md3-switch:hover { background: rgba(255, 255, 255, 0.05); }
+.md3-switch-label-container { display: flex; flex-direction: column; }
+.md3-switch-title { font-size: 1.1rem; font-weight: 600; color: var(--md-sys-color-on-surface); }
+.md3-switch-desc { font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; }
+.md3-switch-input { display: none; }
+
+.md3-switch-track {
+    position: relative;
+    width: 52px; height: 32px; border-radius: 16px;
+    background-color: transparent;
+    border: 2px solid var(--md-sys-color-outline);
+    transition: background-color 0.2s, border-color 0.2s;
+    display: flex; align-items: center; box-sizing: border-box; flex-shrink: 0;
+}
+
+.md3-switch-thumb {
+    position: absolute;
+    left: 6px; 
+    width: 16px; height: 16px; border-radius: 50%;
+    background-color: var(--md-sys-color-outline);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex; align-items: center; justify-content: center;
+}
+
+.md3-switch:hover .md3-switch-thumb {
+    background-color: var(--md-sys-color-on-surface-variant);
+}
+.md3-switch:active .md3-switch-thumb {
+    width: 28px; height: 28px;
+    left: 0px; 
+}
+
+.md3-switch-input:checked + .md3-switch-track {
+    background-color: var(--md-sys-color-primary-container);
+    border-color: var(--md-sys-color-primary-container);
+}
+
+.md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
+    left: 22px; 
+    width: 24px; height: 24px;
+    background-color: var(--md-sys-color-primary);
+}
+
+.md3-switch:hover .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
+    background-color: #eaddff; /* Slightly brighter primary for hover */
+}
+.md3-switch:active .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
+    width: 28px; height: 28px;
+    left: 20px; 
+}
+
+.md3-switch-icon {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.md3-switch-icon-cross {
+    color: var(--md-sys-color-surface-container-highest);
+    opacity: 1; transform: scale(1);
+}
+
+.md3-switch-icon-check {
+    color: var(--md-sys-color-on-primary);
+    opacity: 0; transform: scale(0.5) rotate(-45deg);
+}
+
+.md3-switch-input:checked + .md3-switch-track .md3-switch-thumb .md3-switch-icon-cross {
+    opacity: 0; transform: scale(0.5) rotate(45deg);
+}
+.md3-switch-input:checked + .md3-switch-track .md3-switch-thumb .md3-switch-icon-check {
+    opacity: 1; transform: scale(1) rotate(0deg);
+}
+                </style>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
+                    <label class="md3-switch">
+                        <div class="md3-switch-label-container">
+                            <span class="md3-switch-title">8D Spatial</span>
+                            <span class="md3-switch-desc">Revolving LFO panning</span>
+                        </div>
+                        <input type="checkbox" id="toggle-8d" class="md3-switch-input">
+                        <div class="md3-switch-track">
+                            <div class="md3-switch-thumb">
+                                <div class="md3-switch-icon md3-switch-icon-cross">
+                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                        <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div class="md3-switch-icon md3-switch-icon-check">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="md3-switch">
+                        <div class="md3-switch-label-container">
+                            <span class="md3-switch-title">Nightcore</span>
+                            <span class="md3-switch-desc">Pitch and speed up</span>
+                        </div>
+                        <input type="checkbox" id="toggle-nightcore" class="md3-switch-input">
+                        <div class="md3-switch-track">
+                            <div class="md3-switch-thumb">
+                                <div class="md3-switch-icon md3-switch-icon-cross">
+                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                        <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div class="md3-switch-icon md3-switch-icon-check">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="md3-switch">
+                        <div class="md3-switch-label-container">
+                            <span class="md3-switch-title">Slowed + Reverb</span>
+                            <span class="md3-switch-desc">Slower playback with rich echo</span>
+                        </div>
+                        <input type="checkbox" id="toggle-reverb" class="md3-switch-input">
+                        <div class="md3-switch-track">
+                            <div class="md3-switch-thumb">
+                                <div class="md3-switch-icon md3-switch-icon-cross">
+                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                        <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div class="md3-switch-icon md3-switch-icon-check">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="md3-switch">
+                        <div class="md3-switch-label-container">
+                            <span class="md3-switch-title">Muffled</span>
+                            <span class="md3-switch-desc">Outside the club feels</span>
+                        </div>
+                        <input type="checkbox" id="toggle-muffled" class="md3-switch-input">
+                        <div class="md3-switch-track">
+                            <div class="md3-switch-thumb">
+                                <div class="md3-switch-icon md3-switch-icon-cross">
+                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                        <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <div class="md3-switch-icon md3-switch-icon-check">
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+                        <!-- Rainplayer Module (Span 12) -->
+            <div class="bento-panel" id="rain-panel" style="grid-column: span 12; display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 48px;">
+                <div class="rain-bg"></div>
+                <div style="z-index: 2; max-width: 500px;">
+                    <h3 class="panel-title"><span class="material-icons-round" style="color: #6eb5ff;">water_drop</span> RainPlayer Ambience</h3>
+                    <p class="panel-desc" style="margin-bottom: 0;">Layer high-fidelity rain noise entirely detached from the main music stream. Perfect for deep focus.</p>
+                </div>
+                
+                <div class="rain-kaomoji" id="rain-face">[ /// ]</div>
+                
+                <button class="avium-btn-outline" id="rain-btn" onclick="toggleRain()" style="z-index: 2; padding: 16px 40px; border-color: rgba(255,255,255,0.2); color: white;">
+                    Mix Ambience
+                </button>
+            </div>
+
         </div>
-    </div>
-</section>
+
+
+        <script>
+            (function() {
+                // --- Code Snippets (From actual Kotlin source) ---
+                const codeSnippets = {
+                    '8d': `
+<span style="color: #7f848e;">// 1. Calculate rotation speed based on UI slider input</span>
+<span style="color: #c678dd;">val</span> rotationSpeed = (<span style="color: #d19a66;">0.000002</span> + <span class="code-highlight" id="code-speed-val" style="background: rgba(208, 188, 255, 0.15); color: #d0bcff;">0.50f</span> * <span style="color: #d19a66;">0.000038</span>)
+
+<span style="color: #7f848e;">// 2. Simple oscillator using Sine wave (-1.0 to 1.0)</span>
+time += rotationSpeed
+<span style="color: #c678dd;">val</span> pan = sin(time) 
+
+<span style="color: #7f848e;">// 3. Modulate Left & Right channels independently</span>
+<span style="color: #c678dd;">val</span> leftVol = (<span style="color: #d19a66;">1.0</span> - pan) / <span style="color: #d19a66;">2.0</span>
+<span style="color: #c678dd;">val</span> rightVol = (<span style="color: #d19a66;">1.0</span> + pan) / <span style="color: #d19a66;">2.0</span>
+
+<span style="color: #c678dd;">val</span> newLeft = (originalLeft * leftVol).toInt().toShort()
+<span style="color: #c678dd;">val</span> newRight = (originalRight * rightVol).toInt().toShort()`,
+
+                    'biquad': `
+<span style="color: #7f848e;">// 1. Calculate Biquad Low-Shelf coefficients (e.g. 100Hz Bass)</span>
+<span style="color: #c678dd;">val</span> A = Math.pow(<span style="color: #d19a66;">10.0</span>, gain / <span style="color: #d19a66;">40.0</span>).toFloat()
+<span style="color: #c678dd;">val</span> w0 = (<span style="color: #d19a66;">2.0</span> * PI * <span style="color: #d19a66;">100f</span> / sampleRate).toFloat()
+<span style="color: #c678dd;">val</span> alpha = sin(w0) / <span style="color: #d19a66;">2f</span> * Math.sqrt(((A + <span style="color: #d19a66;">1f</span>/A)*(<span style="color: #d19a66;">1f</span>/S - <span style="color: #d19a66;">1f</span>)+<span style="color: #d19a66;">2f</span>).toDouble()).toFloat()
+
+<span style="color: #c678dd;">val</span> a0 = (A + <span style="color: #d19a66;">1f</span>) + (A - <span style="color: #d19a66;">1f</span>) * cos(w0) + beta
+b0 = (A * ((A + <span style="color: #d19a66;">1f</span>) - (A - <span style="color: #d19a66;">1f</span>) * cos(w0) + beta)) / a0
+<span style="color: #7f848e;">// ... (b1, b2, a1, a2 calculated similarly)</span>
+
+<span style="color: #7f848e;">// 2. Apply Direct Form II Transposed difference equation per sample</span>
+<span style="color: #c678dd;">val</span> y = b0*x + b1*x1 + b2*x2 - a1*y1 - a2*y2
+
+<span style="color: #7f848e;">// 3. Shift history states for the next sample</span>
+x2 = x1; x1 = x
+y2 = y1; y1 = y
+
+<span style="color: #7f848e;">// 4. Clamp output to prevent integer overflow</span>
+output = y.coerceIn(Short.MIN_VALUE.toFloat(), Short.MAX_VALUE.toFloat()).toInt().toShort()`,
+
+                    'reverb': `
+<span style="color: #7f848e;">// 1. Read the past sample from our circular delay buffer (e.g. 150ms ago)</span>
+<span style="color: #c678dd;">val</span> delayedSample = buffer[cursor]
+
+<span style="color: #7f848e;">// 2. Mix current input with the decayed echo</span>
+<span style="color: #c678dd;">val</span> outputSample = (inputSample + delayedSample * decay)
+    .toInt()
+    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+    .toShort()
+
+<span style="color: #7f848e;">// 3. Feed the resulting mix back into the delay line</span>
+buffer[cursor] = outputSample
+
+<span style="color: #7f848e;">// 4. Advance circular cursor</span>
+cursor++
+<span style="color: #c678dd;">if</span> (cursor >= buffer.size) cursor = <span style="color: #d19a66;">0</span>`,
+
+                    'muffled': `
+<span style="color: #7f848e;">// 1. Calculate Biquad Low-Pass coefficients (e.g. 300Hz cutoff)</span>
+<span style="color: #c678dd;">val</span> w0 = (<span style="color: #d19a66;">2.0</span> * PI * <span style="color: #d19a66;">300f</span> / sampleRate).toFloat()
+<span style="color: #c678dd;">val</span> cosW0 = cos(w0)
+<span style="color: #c678dd;">val</span> alpha = sin(w0) / (<span style="color: #d19a66;">2f</span> * <span style="color: #d19a66;">0.5f</span>) <span style="color: #7f848e;">// Q = 0.5</span>
+
+<span style="color: #7f848e;">// 2. Compute feedforward & feedback coefficients</span>
+<span style="color: #c678dd;">val</span> a0 = <span style="color: #d19a66;">1f</span> + alpha
+b0 = ((<span style="color: #d19a66;">1f</span> - cosW0) / <span style="color: #d19a66;">2f</span>) / a0
+b1 = (<span style="color: #d19a66;">1f</span> - cosW0) / a0
+<span style="color: #7f848e;">// ... (b2, a1, a2 calculated similarly)</span>
+
+<span style="color: #7f848e;">// 3. Process each sample with Direct Form 1</span>
+<span style="color: #c678dd;">val</span> y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+
+<span style="color: #7f848e;">// 4. Shift buffer states for the next sample window</span>
+x2 = x1; x1 = x
+y2 = y1; y1 = y
+
+output = y.toInt().toShort()`
+                };
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    let radarFaceTimer = null;
+                    const sliderInput = document.getElementById('speed-slider');
+                    const sliderContainer = document.getElementById('lfo-slider-container');
+                    const radarOrbit = document.getElementById('radar-orbit');
+                    const radarHead = document.getElementById('radar-head');
+                    const radarContainer = document.getElementById('radar-container');
+
+                    window.updateM3Slider = function updateM3Slider() {
+                        if (!sliderInput || !sliderContainer) return;
+
+                        // Calcul du pourcentage (0.0 à 1.0)
+                        const min = parseFloat(sliderInput.min) || 0;
+                        const max = parseFloat(sliderInput.max) || 1;
+                        const val = parseFloat(sliderInput.value);
+                        const percent = (val - min) / (max - min);
+                        
+                        // On injecte le pourcentage dans le CSS (Flexbox gère le reste !)
+                        sliderContainer.style.setProperty('--val', percent);
+                        
+                        // Mise à jour des textes
+                        const formattedVal = val.toFixed(2);
+                        const orbitSeconds = 4.0 - (val * 3.5);
+                        const uiSpeed = document.getElementById('ui-speed-val');
+                        const codeSpeed = document.getElementById('code-speed-val');
+                        const codeSpeedChip = document.getElementById('code-speed-chip');
+                        const orbitDuration = document.getElementById('orbit-duration-val');
+                        const speedAmount = document.getElementById('speed-amount-val');
+
+                        if (uiSpeed) uiSpeed.textContent = formattedVal;
+                        if (codeSpeed) codeSpeed.textContent = `${formattedVal}f`;
+                        if (codeSpeedChip) codeSpeedChip.textContent = `${formattedVal}f`;
+                        if (orbitDuration) orbitDuration.textContent = `${orbitSeconds.toFixed(2)}s`;
+                        if (speedAmount) speedAmount.textContent = `${Math.round(percent * 100)}%`;
+
+                        // Mise à jour de l'animation Radar 8D
+                        if (radarOrbit) {
+                            radarOrbit.style.animationDuration = `${orbitSeconds}s`;
+                        }
+                        if (radarContainer) {
+                            radarContainer.style.setProperty('--dot-scale', (0.85 + percent * 0.45).toFixed(2));
+                            radarContainer.style.setProperty('--dot-glow', `${20 + percent * 22}px`);
+                        }
+                        if (radarHead) {
+                            radarHead.innerHTML = `(&gt;_&lt;)`;
+                            radarHead.classList.add('is-listening');
+                            clearTimeout(radarFaceTimer);
+                            radarFaceTimer = setTimeout(() => {
+                                radarHead.innerHTML = `( o_o )`;
+                                radarHead.classList.remove('is-listening');
+                            }, 260);
+                        }
+                    }
+
+                    if (sliderInput) {
+                        let inputCount = 0;
+                        
+                        // Fix pour le bug :active et distinction Clic / Drag pour l'animation
+                        const addDrag = () => {
+                            inputCount = 0;
+                            sliderContainer.classList.add('is-dragging');
+                        };
+                        const removeDrag = () => {
+                            sliderContainer.classList.remove('is-dragging');
+                            sliderContainer.classList.remove('no-transition');
+                        };
+                        
+                        sliderInput.addEventListener('mousedown', addDrag);
+                        sliderInput.addEventListener('touchstart', addDrag, {passive: true});
+                        window.addEventListener('mouseup', removeDrag);
+                        window.addEventListener('touchend', removeDrag);
+                        
+                        // Solution ultra-fiable : on compte les événements "input".
+                        // 1 input = un clic simple. >1 inputs = un glissement naturel continu.
+                        sliderInput.addEventListener('input', () => {
+                            inputCount++;
+                            if (inputCount > 1) {
+                                sliderContainer.classList.add('no-transition');
+                            }
+                            updateM3Slider();
+                        });
+                        
+                        updateM3Slider(); // Appel initial
+                    }
+                });
+
+                // Code Tab Switching Logic
+                window.switchCode = function(tabId, element) {
+                    // Update active button
+                    document.querySelectorAll('.ide-tab').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    if (element) {
+                        element.classList.add('active');
+                    } else {
+                        // Fallback if called programmatically
+                        const firstTab = document.querySelector(`.ide-tab[onclick*="'${tabId}'"]`);
+                        if (firstTab) firstTab.classList.add('active');
+                    }
+
+                    // Inject Code
+                    const display = document.getElementById('code-display');
+                    if (display) {
+                        display.innerHTML = codeSnippets[tabId].replace(/\n/g, '<br>').replace(/    /g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+                    }
+
+                    // Trigger slider update if we went back to 8D tab
+                    if(tabId === '8d') {
+                        if (typeof window.updateM3Slider === 'function') window.updateM3Slider();
+                    }
+                };
+
+                // Initialize first tab
+                window.switchCode('8d');
+
+            })();
+        </script>
 
         <div class="squiggle-line">
             <svg aria-hidden="true" width="100%" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2428,9 +3473,7 @@
         </footer>
         </div>
     </main>
-
 </div>
-
 
     <script>
         (function() {
@@ -2450,8 +3493,7 @@
                     if (apk) {
                         document.querySelectorAll('.latest-download-link').forEach(el => el.href = apk.browser_download_url);
                     }
-                })
-                .catch(e => console.log('GitHub API error:', e));
+                });
 
             const observer = new IntersectionObserver(entries => {
                 entries.forEach(entry => {
@@ -2462,7 +3504,6 @@
                 });
             }, { threshold: 0.15 });
 
-            // Wait for SPA wrapper fade-in before triggering the observer cascade
             setTimeout(() => {
                 document.querySelectorAll('.showcase-row, .reveal').forEach(el => observer.observe(el));
             }, 300);
@@ -2490,18 +3531,15 @@
             });
         })();
     </script>
-    <script>
-        // Fonction pour animer le changement d'onglet
-        function switchTab(event, element) {
-            event.preventDefault(); // Empêche la page de remonter en haut
 
+    <script>
+        function switchTab(event, element) {
+            event.preventDefault();
             const allItems = document.querySelectorAll('.nav-rail-item');
             allItems.forEach(item => item.classList.remove('active'));
-
             element.classList.add('active');
         }
 
-        // --- NEW: SPA Smooth Transition Logic ---
         async function navigateSmoothly(event, url) {
             event.preventDefault();
             
@@ -2509,6 +3547,11 @@
             const wrapper = document.getElementById('app-wrapper');
             const navRail = document.querySelector('.m3-nav-rail');
             
+            if (!loader || !wrapper || !navRail) {
+                window.location.href = url;
+                return;
+            }
+
             // Fade loader back in natively
             loader.style.display = 'flex';
             void loader.offsetWidth;
@@ -2541,7 +3584,7 @@
                         styleClone.textContent = newStyle.textContent;
                         oldStyle.replaceWith(styleClone);
                     }
-                    
+
                     let cleanUrl = url.replace(/\.html$/, '');
                     if (cleanUrl === 'index') cleanUrl = './';
                     window.history.pushState({}, '', cleanUrl);
@@ -2573,12 +3616,63 @@
             }
         }
     </script>
-    
+
     <!-- Global Rain Miniplayer -->
+    <style>
+        /* --- Global Rain Miniplayer --- */
+        .rain-miniplayer {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+            transition: all 0.4s var(--ease-spring);
+        }
+        .rain-miniplayer.playing {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateY(0);
+        }
+        .rain-miniplayer:hover {
+            transform: scale(1.05) translateY(0);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+        }
+        .rain-miniplayer:active {
+            transform: scale(0.95);
+        }
+        .rain-miniplayer::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid var(--md-sys-color-primary);
+            opacity: 0;
+            transition: 0.3s;
+        }
+        .rain-miniplayer.playing:not(.muted)::after {
+            animation: rain-pulse 2s infinite;
+        }
+        @keyframes rain-pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.4); opacity: 0; }
+        }
+    </style>
     <div class="rain-miniplayer" onclick="window.toggleRainMute()" title="Toggle Ambience">
         <span class="material-icons-round">cloud_sync</span>
     </div>
-    <!-- Global Media Managers -->
+    <!-- Global FX Player script -->
     <script src="fx-player.js"></script>
     <script src="rain-manager.js"></script>
 </body>
