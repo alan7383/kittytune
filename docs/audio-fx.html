@@ -3304,91 +3304,106 @@ y2 = y1; y1 = y
 output = y.toInt().toShort()`
                 };
 
-                (function() {
-                    let radarFaceTimer = null;
+                // Robust Slider Logic (Event Delegation for SPA & Firefox)
+                window.updateM3Slider = function() {
                     const sliderInput = document.getElementById('speed-slider');
                     const sliderContainer = document.getElementById('lfo-slider-container');
+                    if (!sliderInput || !sliderContainer) return;
+
+                    const min = parseFloat(sliderInput.min) || 0;
+                    const max = parseFloat(sliderInput.max) || 1;
+                    const val = parseFloat(sliderInput.value);
+                    const percent = (val - min) / (max - min);
+                    
+                    sliderContainer.style.setProperty('--val', percent);
+                    
+                    const formattedVal = val.toFixed(2);
+                    const orbitSeconds = 4.0 - (val * 3.5);
+                    const uiSpeed = document.getElementById('ui-speed-val');
+                    const codeSpeed = document.getElementById('code-speed-val');
+                    const codeSpeedChip = document.getElementById('code-speed-chip');
+                    const orbitDuration = document.getElementById('orbit-duration-val');
+                    const speedAmount = document.getElementById('speed-amount-val');
                     const radarOrbit = document.getElementById('radar-orbit');
-                    const radarHead = document.getElementById('radar-head');
                     const radarContainer = document.getElementById('radar-container');
+                    const radarHead = document.getElementById('radar-head');
 
-                    window.updateM3Slider = function updateM3Slider() {
-                        if (!sliderInput || !sliderContainer) return;
+                    if (uiSpeed) uiSpeed.textContent = formattedVal;
+                    if (codeSpeed) codeSpeed.textContent = `${formattedVal}f`;
+                    if (codeSpeedChip) codeSpeedChip.textContent = `${formattedVal}f`;
+                    if (orbitDuration) orbitDuration.textContent = `${orbitSeconds.toFixed(2)}s`;
+                    if (speedAmount) speedAmount.textContent = `${Math.round(percent * 100)}%`;
 
-                        // Calcul du pourcentage (0.0 à 1.0)
-                        const min = parseFloat(sliderInput.min) || 0;
-                        const max = parseFloat(sliderInput.max) || 1;
-                        const val = parseFloat(sliderInput.value);
-                        const percent = (val - min) / (max - min);
-                        
-                        // On injecte le pourcentage dans le CSS (Flexbox gère le reste !)
-                        sliderContainer.style.setProperty('--val', percent);
-                        
-                        // Mise à jour des textes
-                        const formattedVal = val.toFixed(2);
-                        const orbitSeconds = 4.0 - (val * 3.5);
-                        const uiSpeed = document.getElementById('ui-speed-val');
-                        const codeSpeed = document.getElementById('code-speed-val');
-                        const codeSpeedChip = document.getElementById('code-speed-chip');
-                        const orbitDuration = document.getElementById('orbit-duration-val');
-                        const speedAmount = document.getElementById('speed-amount-val');
-
-                        if (uiSpeed) uiSpeed.textContent = formattedVal;
-                        if (codeSpeed) codeSpeed.textContent = `${formattedVal}f`;
-                        if (codeSpeedChip) codeSpeedChip.textContent = `${formattedVal}f`;
-                        if (orbitDuration) orbitDuration.textContent = `${orbitSeconds.toFixed(2)}s`;
-                        if (speedAmount) speedAmount.textContent = `${Math.round(percent * 100)}%`;
-
-                        // Mise à jour de l'animation Radar 8D
-                        if (radarOrbit) {
-                            radarOrbit.style.animationDuration = `${orbitSeconds}s`;
-                        }
-                        if (radarContainer) {
-                            radarContainer.style.setProperty('--dot-scale', (0.85 + percent * 0.45).toFixed(2));
-                            radarContainer.style.setProperty('--dot-glow', `${20 + percent * 22}px`);
-                        }
-                        if (radarHead) {
-                            radarHead.innerHTML = `(&gt;_&lt;)`;
-                            radarHead.classList.add('is-listening');
-                            clearTimeout(radarFaceTimer);
-                            radarFaceTimer = setTimeout(() => {
-                                radarHead.innerHTML = `( o_o )`;
-                                radarHead.classList.remove('is-listening');
-                            }, 260);
-                        }
+                    if (radarOrbit) radarOrbit.style.animationDuration = `${orbitSeconds}s`;
+                    if (radarContainer) {
+                        radarContainer.style.setProperty('--dot-scale', (0.85 + percent * 0.45).toFixed(2));
+                        radarContainer.style.setProperty('--dot-glow', `${20 + percent * 22}px`);
                     }
+                    if (radarHead) {
+                        radarHead.innerHTML = `(&gt;_&lt;)`;
+                        radarHead.classList.add('is-listening');
+                        if (window.radarFaceTimer) clearTimeout(window.radarFaceTimer);
+                        window.radarFaceTimer = setTimeout(() => {
+                            const h = document.getElementById('radar-head');
+                            if (h) {
+                                h.innerHTML = `( o_o )`;
+                                h.classList.remove('is-listening');
+                            }
+                        }, 260);
+                    }
+                };
 
-                    if (sliderInput) {
-                        let inputCount = 0;
-                        
-                        // Fix pour le bug :active et distinction Clic / Drag pour l'animation
-                        const addDrag = () => {
+                // Global event delegation (only attach once)
+                if (!window.m3SlidersBound) {
+                    window.m3SlidersBound = true;
+                    let inputCount = 0;
+
+                    document.addEventListener('mousedown', e => {
+                        if (e.target.id === 'speed-slider') {
                             inputCount = 0;
-                            sliderContainer.classList.add('is-dragging');
-                        };
-                        const removeDrag = () => {
-                            sliderContainer.classList.remove('is-dragging');
-                            sliderContainer.classList.remove('no-transition');
-                        };
-                        
-                        sliderInput.addEventListener('mousedown', addDrag);
-                        sliderInput.addEventListener('touchstart', addDrag, {passive: true});
-                        window.addEventListener('mouseup', removeDrag);
-                        window.addEventListener('touchend', removeDrag);
-                        
-                        // Solution ultra-fiable : on compte les événements "input".
-                        // 1 input = un clic simple. >1 inputs = un glissement naturel continu.
-                        sliderInput.addEventListener('input', () => {
+                            const container = document.getElementById('lfo-slider-container');
+                            if (container) container.classList.add('is-dragging');
+                        }
+                    });
+
+                    document.addEventListener('touchstart', e => {
+                        if (e.target.id === 'speed-slider') {
+                            inputCount = 0;
+                            const container = document.getElementById('lfo-slider-container');
+                            if (container) container.classList.add('is-dragging');
+                        }
+                    }, {passive: true});
+
+                    window.addEventListener('mouseup', () => {
+                        const container = document.getElementById('lfo-slider-container');
+                        if (container) {
+                            container.classList.remove('is-dragging');
+                            container.classList.remove('no-transition');
+                        }
+                    });
+
+                    window.addEventListener('touchend', () => {
+                        const container = document.getElementById('lfo-slider-container');
+                        if (container) {
+                            container.classList.remove('is-dragging');
+                            container.classList.remove('no-transition');
+                        }
+                    });
+
+                    document.addEventListener('input', e => {
+                        if (e.target.id === 'speed-slider') {
                             inputCount++;
                             if (inputCount > 1) {
-                                sliderContainer.classList.add('no-transition');
+                                const container = document.getElementById('lfo-slider-container');
+                                if (container) container.classList.add('no-transition');
                             }
-                            updateM3Slider();
-                        });
-                        
-                        updateM3Slider(); // Appel initial
-                    }
-                })();
+                            window.updateM3Slider();
+                        }
+                    });
+                }
+                
+                // Initial call for current page elements
+                window.updateM3Slider();
 
                 // Code Tab Switching Logic
                 window.switchCode = function(tabId, element) {
