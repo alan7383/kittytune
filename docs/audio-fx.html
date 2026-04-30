@@ -1387,6 +1387,18 @@
             color: var(--md-sys-color-primary);
         }
 
+        /* --- Fix pour le footer centré sur mobile --- */
+        @media (max-width: 900px) {
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+                text-align: center;
+            }
+            .footer-logo-svg {
+                margin: 0 auto 24px;
+            }
+        }
+
         @media (max-width: 900px) {
             .player-header {
                 grid-template-columns: 1fr;
@@ -3694,9 +3706,9 @@ output = y.toInt().toShort()`
                             </g>
                         </svg>
                         <h4><span>kittytune</span> ( > . < )</h4>
-                                <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.95rem;">
-                                    Made by <strong style="color: var(--md-sys-color-primary);">alan7383</strong>.<br>
-                                </p>
+                        <p style="color: var(--md-sys-color-on-surface-variant); font-size: 0.95rem;">
+                            Made by <strong style="color: var(--md-sys-color-primary);">alan7383</strong>.<br>
+                        </p>
                     </div>
                     <div class="footer-col">
                         <h5>Links</h5>
@@ -3713,10 +3725,10 @@ output = y.toInt().toShort()`
                         </ul>
                     </div>
                 </div>
-                <div
-                    style="text-align: center; color: var(--md-sys-color-outline); font-size: 0.8rem; margin-top: 40px; opacity: 0.6;">
-                    GPL-3.0 License • 2026 • ( > . < ) </div>
+                <div style="text-align: center; color: var(--md-sys-color-outline); font-size: 0.8rem; margin-top: 40px; opacity: 0.6;">
+                    GPL-3.0 License • 2026 • ( > . < ) 
                 </div>
+            </div>
         </footer>
         </div>
     </main>
