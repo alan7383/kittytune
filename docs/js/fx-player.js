@@ -43,12 +43,12 @@
     const loadAudio = async () => {
         try {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const response = await fetch('music.mp3');
+            const response = await fetch('assets/audio/music.mp3');
             const arrayBuffer = await response.arrayBuffer();
             audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             updateUITotalTime();
         } catch(e) {
-            console.error("Failed to load music.mp3", e);
+            console.error("Failed to load assets/audio/music.mp3", e);
         }
     };
 

@@ -4,7 +4,7 @@
 
     const audio = document.createElement('audio');
     audio.id = 'global-rain-audio';
-    audio.src = 'rain.mp3';
+    audio.src = 'assets/audio/rain.mp3';
     audio.loop = true;
     audio.volume = 0;
     document.body.appendChild(audio);
