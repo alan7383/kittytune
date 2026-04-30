@@ -3971,6 +3971,9 @@
                 return;
             }
 
+            // Stop any background processes (Typography Autoplay, etc.)
+            if (typeof window.stopTypoAutoPlay === 'function') window.stopTypoAutoPlay();
+
             const loader = document.getElementById("loading-screen");
             const wrapper = document.getElementById("app-wrapper");
             const navRail = document.querySelector(".m3-nav-rail");
