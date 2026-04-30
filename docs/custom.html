@@ -468,6 +468,7 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 34px;
             box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+            min-width: 0;
         }
 
         .hero-lab {
@@ -685,6 +686,7 @@
             /* FIX : On passe le padding gauche/droite à 6px pour éviter que l'arrondi soit coupé au gonflement */
             padding: 18px 6px 8px;
             scrollbar-width: none;
+            max-width: 100%;
         }
 
         .preset-row::-webkit-scrollbar {
@@ -1693,6 +1695,7 @@
             margin: -12px -10px; /* On compense exactement pour ne pas décaler la grille */
             overflow-x: auto; /* Scroll horizontal si besoin */
             scrollbar-width: none;
+            max-width: calc(100% + 20px);
         }
         .monet-swatches::-webkit-scrollbar { display: none; }
 
@@ -1737,6 +1740,7 @@
             position: relative; z-index: 1; display: flex; gap: 2px; overflow-x: auto;
             padding: 8px 6px; /* On retire le margin-left: -6px qui décalait tout à gauche */
             scrollbar-width: none;
+            max-width: 100%;
         }
         .monet-chip-row::-webkit-scrollbar { display: none; }
 
@@ -1804,6 +1808,7 @@
             border-radius: 36px;
             padding: clamp(24px, 4vw, 40px);
             margin-bottom: 32px;
+            min-width: 0;
         }
 
         /* =========================================
@@ -2389,7 +2394,7 @@
             .player-grid,
             .monet-layout,
             .widget-feature {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
             }
 
             /* --- NOUVEAU POUR LE WIDGET FEATURE --- */
@@ -2490,7 +2495,7 @@
             .style-readouts,
             .token-grid,
             .settings-matrix {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
             }
 
             .hero-copy h1 {
