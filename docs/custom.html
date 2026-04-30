@@ -2558,11 +2558,197 @@
             }
 
 
+
+        /* --- Mobile Navigation Infrastructure (Parity with index.html) --- */
+        .m3-mobile-top-bar {
+            display: none;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            height: 64px;
+            background-color: hsla(var(--seed-h), var(--seed-s), 5%, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 900;
+            padding: 0 16px;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+
+        .m3-top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .m3-menu-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--md-sys-color-on-surface);
+            transition: background-color 0.2s;
+        }
+
+        .m3-menu-btn:active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .m3-top-bar-title {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--md-sys-color-on-surface);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .m3-top-bar-title span {
+            color: var(--md-sys-color-primary);
+        }
+
+        /* Modal Drawer */
+        .m3-drawer-scrim {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s var(--ease-expressive);
+        }
+
+        .m3-drawer-scrim.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .m3-modal-drawer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 320px;
+            max-width: 85vw;
+            background-color: var(--md-sys-color-surface-container-low);
+            z-index: 1001;
+            transform: translateX(-100%);
+            transition: transform 0.4s cubic-bezier(0.2, 0, 0, 1);
+            border-radius: 0 28px 28px 0;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 16px 0 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .m3-modal-drawer.show {
+            transform: translateX(0);
+        }
+
+        .m3-drawer-header {
+            padding: 16px 16px 28px;
+            font-family: var(--font-display);
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--md-sys-color-on-surface-variant);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .m3-drawer-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 16px;
+            height: 56px;
+            border-radius: 28px;
+            text-decoration: none;
+            color: var(--md-sys-color-on-surface-variant);
+            font-weight: 500;
+            transition: all 0.2s var(--ease-expressive);
+            margin-bottom: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .m3-drawer-item .material-icons-round {
+            font-size: 24px;
+        }
+
+        .m3-drawer-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .m3-drawer-item.active {
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+            font-weight: 700;
+        }
+
+        @media (max-width: 900px) {
+            .m3-nav-rail {
+                display: none;
+            }
+            #app-layout {
+                flex-direction: column;
+            }
+            .m3-mobile-top-bar {
+                display: flex;
+            }
+            .m3-main-content {
+                width: 100%;
+            }
+        }
+
     </style>
 </head>
 
 <body>
+
+    <!-- Mobile Top Bar -->
+    <div class="m3-mobile-top-bar">
+        <div class="m3-top-bar-left">
+            <div class="m3-menu-btn" onclick="toggleDrawer()">
+                <span class="material-icons-round">menu</span>
+            </div>
+            <div class="m3-top-bar-title">
+                <span>kittytune</span> ( > . < )
+            </div>
+        </div>
+        <div class="m3-menu-btn" onclick="alert('Search not available yet! ( > . < )')">
+            <span class="material-icons-round">search</span>
+        </div>
+    </div>
+
+    <!-- Navigation Drawer (Mobile) -->
+    <div class="m3-drawer-scrim" id="drawer-scrim" onclick="closeDrawer()"></div>
+    <aside class="m3-modal-drawer" id="mobile-drawer">
+        <div class="m3-drawer-header">KittyTune Navigation</div>
+        
+        <a href="index.html" class="m3-drawer-item" onclick="navigateSmoothly(event, 'index.html')">
+            <span class="material-icons-round">home</span>
+            <span>Home</span>
+        </a>
+
+        <a href="custom.html" class="m3-drawer-item active" onclick="navigateSmoothly(event, 'custom.html')">
+            <span class="material-icons-round">palette</span>
+            <span>Custom</span>
+        </a>
+        
+        <a href="audio-fx.html" class="m3-drawer-item" onclick="navigateSmoothly(event, 'audio-fx.html')">
+            <span class="material-icons-round">graphic_eq</span>
+            <span>Audio FX</span>
+        </a>
+
+        <div style="margin-top: auto; padding: 12px; opacity: 0.5; font-size: 0.8rem; text-align: center;">
+            ( > . < ) v1.2.0
+        </div>
+    </aside>
     <div id="loading-screen">
         <div class="loader-svg-container">
             <svg width="100%" height="100%" viewBox="4 4 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3816,6 +4002,19 @@
             } catch (e) {
                 window.location.href = url;
             }
+        }
+
+        // --- Mobile Drawer Logic ---
+        function toggleDrawer() {
+            document.getElementById('mobile-drawer').classList.toggle('show');
+            document.getElementById('drawer-scrim').classList.toggle('show');
+        }
+
+        function closeDrawer() {
+            const drawer = document.getElementById('mobile-drawer');
+            const scrim = document.getElementById('drawer-scrim');
+            if (drawer) drawer.classList.remove('show');
+            if (scrim) scrim.classList.remove('show');
         }
     </script>
 
