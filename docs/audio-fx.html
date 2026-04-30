@@ -3304,7 +3304,7 @@ y2 = y1; y1 = y
 output = y.toInt().toShort()`
                 };
 
-                document.addEventListener('DOMContentLoaded', () => {
+                (function() {
                     let radarFaceTimer = null;
                     const sliderInput = document.getElementById('speed-slider');
                     const sliderContainer = document.getElementById('lfo-slider-container');
@@ -3388,7 +3388,7 @@ output = y.toInt().toShort()`
                         
                         updateM3Slider(); // Appel initial
                     }
-                });
+                })();
 
                 // Code Tab Switching Logic
                 window.switchCode = function(tabId, element) {
