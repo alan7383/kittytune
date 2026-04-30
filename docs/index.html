@@ -1610,29 +1610,7 @@
             border-bottom-color: var(--md-sys-color-primary);
         }
 
-        /* Effet Ripple Material Design 3 */
-        span.md3-ripple {
-            position: absolute;
-            border-radius: 50%;
-            width: 0;
-            height: 0;
-            z-index: 0;
-            transform: scale(0);
-            animation: md3-ripple-animation 700ms ease-out forwards;
-            background-color: rgba(255, 255, 255, 0.15); /* Plus subtil */
-            pointer-events: none;
-        }
 
-        @keyframes md3-ripple-animation {
-            from {
-                transform: scale(0);
-                opacity: 1;
-            }
-            to {
-                transform: scale(1);
-                opacity: 0;
-            }
-        }
 
         @font-face {
             font-family: 'Google Sans Flex';
@@ -1862,6 +1840,8 @@
             transition: transform 0.2s var(--ease-expressive), background-color 0.2s;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
         }
         .nav-fab:active {
             transform: scale(0.9);
@@ -1883,6 +1863,8 @@
             text-decoration: none;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
         }
 
         /* Le conteneur de l'icône (La Pilule) */
@@ -1981,6 +1963,8 @@
             transition: all 0.2s var(--ease-expressive);
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+            position: relative;
+            overflow: hidden;
         }
         .nav-bottom-action:hover {
             background-color: rgba(255, 255, 255, 0.05);
@@ -2467,27 +2451,7 @@
                 document.querySelectorAll('.showcase-row, .reveal').forEach(el => observer.observe(el));
             }, 300);
 
-            // --- Effet Ripple Material Design 3 pour les cartes et boutons ---
-            document.querySelectorAll('.philosophy-item, .avium-btn-download, .avium-btn-outline, .btn, .nav-rail-item, .preset-chip, .theme-chip, .segmented-button, .filter-chip, .input-chip, .suggestion-chip, .assist-chip').forEach(card => {
-                card.addEventListener('pointerdown', function (e) {
-                    const rect = this.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
 
-                    const ripple = document.createElement('span');
-                    ripple.classList.add('md3-ripple');
-
-                    const size = Math.max(rect.width, rect.height) * 2;
-                    ripple.style.width  = `${size}px`;
-                    ripple.style.height = `${size}px`;
-                    ripple.style.left   = `${x - size / 2}px`;
-                    ripple.style.top    = `${y - size / 2}px`;
-
-                    this.appendChild(ripple);
-
-                    ripple.addEventListener('animationend', () => ripple.remove());
-                });
-            });
         })();
     </script>
     <script>
