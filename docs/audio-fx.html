@@ -3806,6 +3806,14 @@ output = y.toInt().toShort()`
 
         async function navigateSmoothly(event, url) {
             event.preventDefault();
+
+            // Prevent reloading if already on the same page
+            const target = url.split('/').pop().replace('.html', '');
+            const current = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+            if (target === current) {
+                closeDrawer();
+                return;
+            }
             
             const loader = document.getElementById('loading-screen');
             const wrapper = document.getElementById('app-wrapper');
