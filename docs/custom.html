@@ -879,19 +879,34 @@
         }
 
         .m3-v3-track-active {
-            flex: var(--val);
+            /* On remplace flex par width pour éviter le bug d'étirement */
+            width: calc(var(--val) * (100% - 16px));
+            flex-shrink: 0;
             height: 40px;
             background: var(--md-sys-color-primary);
             border-radius: 12px 4px 4px 12px;
-            transition: flex 0.3s var(--ease-expressive), background-color 0.2s;
+            transition: width 0.3s var(--ease-expressive), background-color 0.2s;
         }
 
         .m3-v3-thumb-container {
-            flex: 0 0 16px;
+            width: 16px;
+            flex-shrink: 0;
             height: 52px;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .m3-v3-track-inactive {
+            position: relative;
+            /* Calcul strict de la place restante */
+            width: calc((1 - var(--val)) * (100% - 16px));
+            flex-shrink: 0;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 4px 12px 12px 4px;
+            overflow: hidden;
+            transition: width 0.3s var(--ease-expressive);
         }
 
         .m3-v3-thumb {
@@ -900,16 +915,6 @@
             border-radius: 2px;
             background: var(--md-sys-color-primary);
             transition: transform 0.2s var(--ease-expressive), background-color 0.2s;
-        }
-
-        .m3-v3-track-inactive {
-            position: relative;
-            flex: calc(1 - var(--val));
-            height: 40px;
-            background: rgba(255, 255, 255, 0.12);
-            border-radius: 4px 12px 12px 4px;
-            overflow: hidden;
-            transition: flex 0.3s var(--ease-expressive);
         }
 
         .m3-v3-track-inactive::after {
@@ -2708,6 +2713,18 @@
             .m3-main-content {
                 width: 100%;
             }
+        }
+
+
+        /* --- FIX OVERFLOW SCROLL ROWS --- */
+        .preset-row, .monet-chip-row, .monet-swatches {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 2px !important;
+            padding-right: 2px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            justify-content: flex-start !important;
         }
 
     </style>
