@@ -2757,6 +2757,9 @@
                     wrapper.innerHTML = doc.getElementById('app-wrapper').innerHTML;
                     navRail.innerHTML = doc.querySelector('.m3-nav-rail').innerHTML;
                     
+                    // Reset scroll position to top
+                    window.scrollTo(0, 0);
+                    
                     // NEW: Sync Drawer active states too
                     const mobileDrawer = document.getElementById('mobile-drawer');
                     const newDrawer = doc.getElementById('mobile-drawer');
