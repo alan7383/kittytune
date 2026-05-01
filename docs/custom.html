@@ -3859,7 +3859,11 @@
 
                             if (labPanel) {
                                 labPanel.addEventListener('pointerdown', (e) => {
-                                    if (!e.target.closest('#typo-autoplay-btn') && isTypoPlaying) {
+                                    // On n'arrête l'autoplay QUE si on touche aux contrôles (sliders ou presets chips)
+                                    // Mais PAS si on clique sur le texte d'aperçu ou le reste du panel.
+                                    const isControl = e.target.closest('.lab-slider, .preset-chip');
+                                    
+                                    if (isControl && isTypoPlaying) {
                                         window.stopTypoAutoPlay();
                                     }
                                 });
