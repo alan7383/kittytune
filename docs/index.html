@@ -1660,69 +1660,67 @@
             font-weight: 100 900;
         }
 
-        .kt-hero-section {
+        .avium-hero-section {
             /* On ajuste le padding : 16px à gauche pour se coller au rail, 32px à droite */
             padding: 24px 32px 60px 16px;
         }
 
-        .kt-hero-container {
+        .avium-hero-container {
             display: grid;
-            /* On agrandit la partie gauche (1.1fr) et on maintient la droite (1.14fr) 
-               pour que l'image ne change pas de taille visuelle */
-            grid-template-columns: 1.1fr 1.14fr;
-            gap: 32px;
-            /* On force le conteneur à prendre toute la largeur de l'écran 
-               pour repousser l'image tout à droite */
+            /* 1.1fr pour la gauche, on monte la droite à 1.35fr pour l'agrandir */
+            grid-template-columns: 1.1fr 1.22fr;
+            /* On réduit l'écart entre les deux blocs (était à 32px) pour les rapprocher */
+            gap: 10px;
             max-width: 100%;
             margin: 0 auto;
         }
 
         @media (max-width: 900px) {
-            .kt-hero-container {
+            .avium-hero-container {
                 grid-template-columns: 1fr;
                 gap: 16px;
             }
-            .kt-hero-section {
+            .avium-hero-section {
                 padding: 10px 16px 40px;
             }
-            .kt-hero-left {
+            .avium-hero-left {
                 padding: 40px 24px;
                 align-items: center;
                 text-align: center;
             }
-            .kt-hero-title {
+            .avium-hero-title {
                 font-size: clamp(2.5rem, 8vw, 3.5rem);
             }
-            .kt-hero-desc {
+            .avium-hero-desc {
                 margin-bottom: 32px;
             }
-            .kt-hero-buttons {
+            .avium-hero-buttons {
                 flex-direction: column;
                 width: 100%;
                 gap: 12px;
             }
-            .kt-hero-buttons .kt-btn-download,
-            .kt-hero-buttons .kt-btn-outline {
+            .avium-hero-buttons .avium-btn-download,
+            .avium-hero-buttons .avium-btn-outline {
                 width: 100%;
                 justify-content: center;
             }
-            .kt-hero-right {
+            .avium-hero-right {
                 min-height: 350px;
             }
-            .kt-hero-img {
+            .avium-hero-img {
                 object-position: center top;
             }
         }
 
-        .kt-hero-left,
-        .kt-hero-right {
+        .avium-hero-left,
+        .avium-hero-right {
             background-color: var(--md-sys-color-surface-container);
-            border-radius: var(--radius-xl);
+            border-radius: var(--radius-l); 
             overflow: hidden;
             display: flex;
         }
 
-        .kt-hero-left {
+        .avium-hero-left {
             /* On augmente un peu l'espace interne (64px) car la carte est plus grande */
             padding: 80px 64px;
             flex-direction: column;
@@ -1731,7 +1729,7 @@
             position: relative;
         }
 
-        .kt-hero-title {
+        .avium-hero-title {
             font-family: 'Google Sans Flex', sans-serif;
             font-size: clamp(3rem, 6vw, 4.5rem);
             font-weight: 600;
@@ -1741,7 +1739,7 @@
             line-height: 1.1;
         }
 
-        .kt-hero-desc {
+        .avium-hero-desc {
             font-size: 1.1rem;
             color: var(--md-sys-color-on-surface-variant);
             margin-bottom: 48px;
@@ -1751,8 +1749,8 @@
         }
 
         /* ===== Boutons héro Download / Source ===== */
-        .kt-btn-download,
-        .kt-btn-outline {
+        .avium-btn-download,
+        .avium-btn-outline {
             position: relative;
             overflow: hidden;
             display: inline-flex;
@@ -1779,22 +1777,22 @@
         }
 
         /* Filled – Download */
-        .kt-btn-download {
+        .avium-btn-download {
             background-color: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
             border: none;
         }
 
         /* Outlined – Source */
-        .kt-btn-outline {
+        .avium-btn-outline {
             background-color: transparent;
             border: 1px solid var(--md-sys-color-outline);
             color: var(--md-sys-color-primary);
         }
 
         /* State-overlay commun */
-        .kt-btn-download::after,
-        .kt-btn-outline::after {
+        .avium-btn-download::after,
+        .avium-btn-outline::after {
             content: '';
             position: absolute;
             inset: 0;
@@ -1805,29 +1803,29 @@
             transition: opacity .2s cubic-bezier(.2, 0, 0, 1);
         }
 
-        .kt-btn-download:hover::after,
-        .kt-btn-outline:hover::after { opacity: .08; }
+        .avium-btn-download:hover::after,
+        .avium-btn-outline:hover::after { opacity: .08; }
 
-        .kt-btn-download:active::after,
-        .kt-btn-outline:active::after { opacity: .14; }
+        .avium-btn-download:active::after,
+        .avium-btn-outline:active::after { opacity: .14; }
 
         /* LE VRAI SQUISH - 100% CSS natif */
-        .kt-btn-download:active,
-        .kt-btn-outline:active {
+        .avium-btn-download:active,
+        .avium-btn-outline:active {
             border-radius: 12px; /* On garde JUSTE le changement de forme (le vrai squish M3) */
         }
 
-        .kt-btn-download:hover {
+        .avium-btn-download:hover {
             filter: brightness(1.06);
         }
 
-        .kt-hero-buttons {
+        .avium-hero-buttons {
             display: flex;
             gap: 20px;
             flex-wrap: wrap;
         }
 
-        .kt-hero-right {
+        .avium-hero-right {
             align-items: center;
             justify-content: center;
             padding: 0;
@@ -1836,13 +1834,14 @@
             overflow: hidden;
         }
 
-        .kt-hero-img {
+.avium-hero-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             object-position: center;
             display: block;
-            border-radius: var(--radius-xl);
+            /* Modifie cette ligne aussi avec la même valeur */
+            border-radius: var(--radius-l); 
         }
 
         /* =========================================
@@ -2349,25 +2348,25 @@
         <main class="m3-main-content">
             <div id="app-wrapper">
 
-        <section class="kt-hero-section">
-            <div class="kt-hero-container">
-                <div class="kt-hero-left">
-                    <h1 class="kt-hero-title">KittyTune</h1>
-                    <p class="kt-hero-desc">SoundCloud and YouTube in one player, with real-time audio effects and zero ads. Material 3 Expressive, because why not.
+        <section class="avium-hero-section">
+            <div class="avium-hero-container">
+                <div class="avium-hero-left">
+                    <h1 class="avium-hero-title">KittyTune</h1>
+                    <p class="avium-hero-desc">SoundCloud and YouTube in one player, with real-time audio effects and zero ads. Material 3 Expressive, because why not.
                         <span style="white-space: nowrap;">(^・ω・^ )</span>
                     </p>
-                    <div class="kt-hero-buttons">
-                        <a href="#" class="latest-download-link kt-btn-download">
+                    <div class="avium-hero-buttons">
+                        <a href="#" class="latest-download-link avium-btn-download">
                             Download
                         </a>
-                        <a href="https://github.com/alan7383/kittytune" target="_blank" class="kt-btn-outline">
+                        <a href="https://github.com/alan7383/kittytune" target="_blank" class="avium-btn-outline">
                             <span class="material-icons-round">code</span> Source
                         </a>
                     </div>
                 </div>
 
-                <div class="kt-hero-right">
-                    <img src="assets/images/home.BY0cCzCQ.png" alt="KittyTune Preview" class="kt-hero-img">
+                <div class="avium-hero-right">
+                    <img src="assets/images/home.BY0cCzCQ.png" alt="KittyTune Preview" class="avium-hero-img">
                 </div>
             </div>
         </section>
@@ -2679,7 +2678,7 @@
                 document.querySelectorAll('.showcase-row, .reveal').forEach(el => observer.observe(el));
             }, 300);
             // --- Effet Ripple Material Design 3 pour les cartes et boutons (EXCLUANT LE RAIL) ---
-            document.querySelectorAll('.philosophy-item, .kt-btn-download, .kt-btn-outline, .btn, .preset-chip, .theme-chip, .segmented-button, .filter-chip, .input-chip, .suggestion-chip, .assist-chip').forEach(card => {
+            document.querySelectorAll('.philosophy-item, .avium-btn-download, .avium-btn-outline, .btn, .preset-chip, .theme-chip, .segmented-button, .filter-chip, .input-chip, .suggestion-chip, .assist-chip').forEach(card => {
                 card.addEventListener('pointerdown', function (e) {
                     const rect = this.getBoundingClientRect();
                     const x = e.clientX - rect.left;
