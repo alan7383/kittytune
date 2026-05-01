@@ -3294,71 +3294,97 @@
 .md3-switch-label-container { display: flex; flex-direction: column; }
 .md3-switch-title { font-size: 1.1rem; font-weight: 600; color: var(--md-sys-color-on-surface); }
 .md3-switch-desc { font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; }
-.md3-switch-input { display: none; }
+.md3-switch-input { display: none !important; }
 
 .md3-switch-track {
     position: relative;
     width: 52px; height: 32px; border-radius: 16px;
-    background-color: transparent;
+    background-color: var(--md-sys-color-surface-container-highest);
     border: 2px solid var(--md-sys-color-outline);
     transition: background-color 0.2s, border-color 0.2s;
     display: flex; align-items: center; box-sizing: border-box; flex-shrink: 0;
 }
 
-.md3-switch-thumb {
+/* Halo de survol (State Layer - 40x40) */
+.md3-switch-track::before {
+    content: '';
     position: absolute;
-    left: 6px; 
-    width: 16px; height: 16px; border-radius: 50%;
-    background-color: var(--md-sys-color-outline);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    display: flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 50%;
+    background-color: var(--md-sys-color-on-surface);
+    opacity: 0;
+    top: 50%; left: 14px;
+    transform: translate(-50%, -50%);
+    transition: left 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.2s;
+    pointer-events: none;
+    z-index: 0;
 }
 
-.md3-switch:hover .md3-switch-thumb {
-    background-color: var(--md-sys-color-on-surface-variant);
+.md3-switch-track:hover::before { opacity: 0.08; }
+
+.md3-switch:active .md3-switch-input:not(:checked) + .md3-switch-track::before,
+.md3-switch-input:not(:checked) + .md3-switch-track:active::before { opacity: 0.12; }
+
+.md3-switch:active .md3-switch-input:checked + .md3-switch-track::before,
+.md3-switch-input:checked + .md3-switch-track:active::before { opacity: 0.12; background-color: var(--md-sys-color-primary); }
+
+.md3-switch-thumb {
+    position: absolute;
+    top: 0; bottom: 0; margin: auto;
+    left: 2px;
+    width: 24px; height: 24px; border-radius: 50%;
+    background-color: var(--md-sys-color-outline);
+    transition: left 0.3s cubic-bezier(0.2, 0, 0, 1), width 0.2s, height 0.2s, background-color 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
 }
-.md3-switch:active .md3-switch-thumb {
+
+.md3-switch:active .md3-switch-input:not(:checked) + .md3-switch-track .md3-switch-thumb,
+.md3-switch-input:not(:checked) + .md3-switch-track:active .md3-switch-thumb {
     width: 28px; height: 28px;
     left: 0px; 
 }
 
 .md3-switch-input:checked + .md3-switch-track {
-    background-color: var(--md-sys-color-primary-container);
-    border-color: var(--md-sys-color-primary-container);
+    background-color: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
 }
 
-.md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
-    left: 22px; 
-    width: 24px; height: 24px;
+.md3-switch-input:checked + .md3-switch-track::before {
+    left: 34px;
     background-color: var(--md-sys-color-primary);
 }
 
-.md3-switch:hover .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
-    background-color: #eaddff; /* Slightly brighter primary for hover */
+.md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
+    left: 22px;
+    width: 24px; height: 24px;
+    background-color: var(--md-sys-color-on-primary);
 }
-.md3-switch:active .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
+
+.md3-switch:active .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb,
+.md3-switch-input:checked + .md3-switch-track:active .md3-switch-thumb {
     width: 28px; height: 28px;
-    left: 20px; 
+    left: 20px;
 }
 
 .md3-switch-icon {
     position: absolute;
     display: flex; align-items: center; justify-content: center;
-    transition: opacity 0.2s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    width: 16px; height: 16px;
+    transition: opacity 0.2s, transform 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .md3-switch-icon-cross {
-    color: var(--md-sys-color-surface-container-highest);
     opacity: 1; transform: scale(1);
+    color: var(--md-sys-color-surface-container-highest);
 }
 
 .md3-switch-icon-check {
-    color: var(--md-sys-color-on-primary);
-    opacity: 0; transform: scale(0.5) rotate(-45deg);
+    opacity: 0; transform: scale(0.3) rotate(-45deg);
+    color: var(--md-sys-color-on-primary-container); 
 }
 
 .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb .md3-switch-icon-cross {
-    opacity: 0; transform: scale(0.5) rotate(45deg);
+    opacity: 0; transform: scale(0.3) rotate(45deg);
 }
 .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb .md3-switch-icon-check {
     opacity: 1; transform: scale(1) rotate(0deg);
@@ -3374,13 +3400,13 @@
                         <div class="md3-switch-track">
                             <div class="md3-switch-thumb">
                                 <div class="md3-switch-icon md3-switch-icon-cross">
-                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                        <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    <svg viewBox="0 0 12 12" width="10" height="10">
+                                        <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                     </svg>
                                 </div>
                                 <div class="md3-switch-icon md3-switch-icon-check">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                        <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <svg viewBox="0 0 12 12" width="10" height="10">
+                                        <path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
                                 </div>
                             </div>
@@ -3396,13 +3422,13 @@
                         <div class="md3-switch-track">
                             <div class="md3-switch-thumb">
                                 <div class="md3-switch-icon md3-switch-icon-cross">
-                                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                        <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                                    <svg viewBox="0 0 12 12" width="10" height="10">
+                                        <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                     </svg>
                                 </div>
                                 <div class="md3-switch-icon md3-switch-icon-check">
-                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                        <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <svg viewBox="0 0 12 12" width="10" height="10">
+                                        <path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
                                 </div>
                             </div>
