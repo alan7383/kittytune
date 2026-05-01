@@ -1674,14 +1674,19 @@
         }
 
         .avium-hero-section {
-            padding: 12px 24px 60px 0;
+            /* On ajuste le padding : 16px à gauche pour se coller au rail, 32px à droite */
+            padding: 24px 32px 60px 16px;
         }
 
         .avium-hero-container {
             display: grid;
-            grid-template-columns: 0.86fr 1.14fr;
-            gap: 24px;
-            max-width: 1600px;
+            /* On agrandit la partie gauche (1.1fr) et on maintient la droite (1.14fr) 
+               pour que l'image ne change pas de taille visuelle */
+            grid-template-columns: 1.1fr 1.14fr;
+            gap: 32px;
+            /* On force le conteneur à prendre toute la largeur de l'écran 
+               pour repousser l'image tout à droite */
+            max-width: 100%;
             margin: 0 auto;
         }
 
@@ -1690,41 +1695,33 @@
                 grid-template-columns: 1fr;
                 gap: 16px;
             }
-
             .avium-hero-section {
                 padding: 10px 16px 40px;
             }
-
             .avium-hero-left {
                 padding: 40px 24px;
                 align-items: center;
                 text-align: center;
             }
-
             .avium-hero-title {
                 font-size: clamp(2.5rem, 8vw, 3.5rem);
             }
-
             .avium-hero-desc {
                 margin-bottom: 32px;
             }
-
             .avium-hero-buttons {
                 flex-direction: column;
                 width: 100%;
                 gap: 12px;
             }
-
             .avium-hero-buttons .avium-btn-download,
             .avium-hero-buttons .avium-btn-outline {
                 width: 100%;
                 justify-content: center;
             }
-
             .avium-hero-right {
                 min-height: 350px;
             }
-
             .avium-hero-img {
                 object-position: center top;
             }
@@ -1739,7 +1736,8 @@
         }
 
         .avium-hero-left {
-            padding: 80px 48px;
+            /* On augmente un peu l'espace interne (64px) car la carte est plus grande */
+            padding: 80px 64px;
             flex-direction: column;
             justify-content: center;
             align-items: flex-start;
@@ -1761,7 +1759,8 @@
             color: var(--md-sys-color-on-surface-variant);
             margin-bottom: 48px;
             line-height: 1.6;
-            max-width: 480px;
+            /* On permet au texte de s'étendre un peu plus avec la nouvelle largeur */
+            max-width: 600px;
         }
 
         /* ===== Boutons héro Download / Source ===== */
