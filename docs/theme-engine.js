@@ -26,10 +26,35 @@
         return `hsl(${Math.round((h + 360) % 360)} ${clamp(s, 0, 100)}% ${clamp(l, 0, 100)}%)`;
     }
 
-    // 1. Initialisation du mode Clair / Sombre
-    const savedMode = localStorage.getItem('kittytune_theme_mode') || 'dark';
-    if (savedMode === 'light') {
+    // 1. Initialisation du mode Clair / Sombre (Support Système Dynamique)
+    const systemPrefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const savedMode = localStorage.getItem('kittytune_theme_mode');
+    
+    // Applique le mode clair SI l'utilisateur l'a forcé, OU s'il n'a rien forcé et que son OS est en clair
+    if (savedMode === 'light' || (!savedMode && systemPrefersLight)) {
         document.documentElement.classList.add('light-mode');
+    }
+
+    // 1.b Écouteur en direct : Change le thème de l'app si l'utilisateur change celui de son OS
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+            // Si l'utilisateur a déjà cliqué sur le bouton Lune/Soleil, on respecte son choix manuel
+            if (localStorage.getItem('kittytune_theme_mode')) return;
+
+            if (e.matches) {
+                document.documentElement.classList.add('light-mode');
+            } else {
+                document.documentElement.classList.remove('light-mode');
+            }
+            
+            // Mise à jour de l'interface en temps réel
+            if (window.updateThemeIcons) window.updateThemeIcons();
+            
+            // Re-génération des couleurs Monet adaptées au nouveau mode
+            const color = localStorage.getItem('kittytune_theme_color') || "#d0bcff";
+            const style = localStorage.getItem('kittytune_theme_style') || "TonalSpot";
+            if (window.applyMonetTheme) window.applyMonetTheme(color, style);
+        });
     }
 
     // 2. Moteur Monet (Génère des couleurs différentes selon le mode)
