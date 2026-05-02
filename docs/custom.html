@@ -3062,8 +3062,20 @@
             <span>Audio FX</span>
         </a>
 
-        <div style="margin-top: auto; padding: 12px; opacity: 0.5; font-size: 0.8rem; text-align: center;">
-            ( > . < ) v1.2.0
+        <div style="margin-top: auto;">
+            <!-- Séparateur subtil -->
+            <div style="height: 1px; background: var(--md-sys-color-outline-variant); opacity: 0.3; margin: 8px 16px 16px;"></div>
+            
+            <!-- Bouton Thème -->
+            <a href="#" class="m3-drawer-item" onclick="window.toggleThemeMode(); event.preventDefault();">
+                <span class="material-icons-round theme-toggle-icon">light_mode</span>
+                <span>Toggle Theme</span>
+            </a>
+            
+            <!-- Version -->
+            <div style="padding: 12px; opacity: 0.5; font-size: 0.8rem; text-align: center; color: var(--md-sys-color-on-surface);">
+                ( > . < ) v1.2.0
+            </div>
         </div>
     </aside>
     <div id="loading-screen">
