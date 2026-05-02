@@ -41,19 +41,27 @@
             // Si l'utilisateur a déjà cliqué sur le bouton Lune/Soleil, on respecte son choix manuel
             if (localStorage.getItem('kittytune_theme_mode')) return;
 
-            if (e.matches) {
-                document.documentElement.classList.add('light-mode');
+            const updateSystemTheme = () => {
+                if (e.matches) {
+                    document.documentElement.classList.add('light-mode');
+                } else {
+                    document.documentElement.classList.remove('light-mode');
+                }
+                
+                // Mise à jour de l'interface en temps réel
+                if (window.updateThemeIcons) window.updateThemeIcons();
+                
+                // Re-génération des couleurs Monet adaptées au nouveau mode
+                const color = localStorage.getItem('kittytune_theme_color') || "#d0bcff";
+                const style = localStorage.getItem('kittytune_theme_style') || "TonalSpot";
+                if (window.applyMonetTheme) window.applyMonetTheme(color, style);
+            };
+
+            if (document.startViewTransition) {
+                document.startViewTransition(updateSystemTheme);
             } else {
-                document.documentElement.classList.remove('light-mode');
+                updateSystemTheme();
             }
-            
-            // Mise à jour de l'interface en temps réel
-            if (window.updateThemeIcons) window.updateThemeIcons();
-            
-            // Re-génération des couleurs Monet adaptées au nouveau mode
-            const color = localStorage.getItem('kittytune_theme_color') || "#d0bcff";
-            const style = localStorage.getItem('kittytune_theme_style') || "TonalSpot";
-            if (window.applyMonetTheme) window.applyMonetTheme(color, style);
         });
     }
 
@@ -105,16 +113,25 @@
 
     // 3. Fonction pour basculer de mode (appelée par le bouton)
     window.toggleThemeMode = function() {
-        const root = document.documentElement;
-        const isLight = root.classList.toggle('light-mode');
-        localStorage.setItem('kittytune_theme_mode', isLight ? 'light' : 'dark');
-        
-        // Re-calcule les couleurs Monet
-        const savedColor = localStorage.getItem('kittytune_theme_color') || "#d0bcff";
-        const savedStyle = localStorage.getItem('kittytune_theme_style') || "TonalSpot";
-        window.applyMonetTheme(savedColor, savedStyle);
-        
-        window.updateThemeIcons();
+        const updateTheme = () => {
+            const root = document.documentElement;
+            const isLight = root.classList.toggle('light-mode');
+            localStorage.setItem('kittytune_theme_mode', isLight ? 'light' : 'dark');
+            
+            // Re-calcule les couleurs Monet
+            const savedColor = localStorage.getItem('kittytune_theme_color') || "#d0bcff";
+            const savedStyle = localStorage.getItem('kittytune_theme_style') || "TonalSpot";
+            window.applyMonetTheme(savedColor, savedStyle);
+            
+            window.updateThemeIcons();
+        };
+
+        // Utilise la View Transitions API pour un fondu cinématographique
+        if (document.startViewTransition) {
+            document.startViewTransition(updateTheme);
+        } else {
+            updateTheme(); // Fallback pour les très vieux navigateurs
+        }
     };
 
     // 4. Met à jour l'icône soleil/lune
