@@ -94,7 +94,10 @@
         const panel = document.getElementById('rain-panel');
         const face = document.getElementById('rain-face');
         if (btn && panel) {
-            if (currentRainState !== 'none') {
+            // Vérifie si la pluie est active ET non-muette
+            const isRainActive = currentRainState !== 'none' && !isGloballyMuted;
+            
+            if (isRainActive) {
                 if (!panel.classList.contains('rain-active')) panel.classList.add('rain-active');
                 if (btn.textContent !== 'Stop Ambience') btn.textContent = 'Stop Ambience';
                 btn.style.background = '#6eb5ff';
@@ -203,7 +206,9 @@
     };
 
     window.toggleRain = function() {
-        if (currentRainState !== 'none') {
+        const isRainActive = currentRainState !== 'none' && !isGloballyMuted;
+        
+        if (isRainActive) {
             setRainState('none');
         } else {
             if(isGloballyMuted) {
