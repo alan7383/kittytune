@@ -2743,6 +2743,285 @@
             }
         }
 
+        /* =========================================
+           LIGHT MODE OVERRIDES
+           ========================================= */
+        :root.light-mode {
+            --md-sys-color-background: #faf8ff;
+            --md-sys-color-surface: #fdfcff;
+            --md-sys-color-surface-container-low: #f4f2f7;
+            --md-sys-color-surface-container: #f0eef4;
+            --md-sys-color-surface-container-high: #ebe9ef;
+            --md-sys-color-surface-container-highest: #e5e3e9;
+            --md-sys-color-on-surface: #1c1b1f;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-outline-variant: #cac4d0;
+            --glow-primary: rgba(103, 80, 164, 0.1);
+        }
+
+        :root.light-mode body {
+            background-color: var(--md-sys-color-background);
+        }
+
+        /* --- Navigation --- */
+        :root.light-mode .m3-nav-rail,
+        :root.light-mode .m3-mobile-top-bar {
+            background-color: rgba(250, 248, 255, 0.92);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .m3-nav-rail {
+            border-right-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .m3-mobile-top-bar {
+            border-bottom-color: rgba(0, 0, 0, 0.06);
+            background-color: rgba(250, 248, 255, 0.88);
+        }
+        :root.light-mode .nav-rail-item:hover:not(.active) .nav-indicator {
+            background: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .nav-bottom-action:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .m3-menu-btn:active {
+            background-color: rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .m3-drawer-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* --- Loading Screen --- */
+        :root.light-mode #loading-screen {
+            background-color: rgba(250, 248, 255, 0.75);
+        }
+
+        /* --- Panneaux, Cartes --- */
+        :root.light-mode .bento-panel,
+        :root.light-mode .expressive-card,
+        :root.light-mode .web-player-preview,
+        :root.light-mode .widget-feature,
+        :root.light-mode .app-style-panel,
+        :root.light-mode .monet-studio,
+        :root.light-mode .ee-card {
+            background: linear-gradient(135deg, #ffffff, #f4f2f7);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* --- Lab Panel --- */
+        :root.light-mode .lab-panel,
+        :root.light-mode .material-panel,
+        :root.light-mode .studio-panel {
+            border-color: rgba(0, 0, 0, 0.06);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        /* --- Hero Title (was #fff) --- */
+        :root.light-mode .hero-copy h1 {
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* --- Typography Preview (was #fff) --- */
+        :root.light-mode .type-preview,
+        :root.light-mode .type-preview span {
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* --- Dot Grid Pattern (needs to be visible on light bg) --- */
+        :root.light-mode .type-preview-wrap {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .type-preview-wrap::before,
+        :root.light-mode .android-wall::before {
+            background-image: radial-gradient(rgba(103, 80, 164, 0.28) 1.5px, transparent 1.5px);
+        }
+        :root.light-mode .type-preview-wrap::after {
+            opacity: 0.06;
+        }
+
+        /* --- Preset Chips --- */
+        :root.light-mode .preset-chip:not(.active),
+        :root.light-mode .monet-chip:not(.active) {
+            background: rgba(0, 0, 0, 0.06);
+            border: none;
+        }
+
+        /* --- Slider Inactive Track --- */
+        :root.light-mode .m3-v3-track-inactive {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Phone Frame (was dark hardcoded gradient) --- */
+        :root.light-mode .phone-frame {
+            background: linear-gradient(180deg, #e8e6f0, #d8d6e2 72%);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: inset 0 0 0 8px rgba(0, 0, 0, 0.02), 0 28px 70px rgba(0, 0, 0, 0.1);
+        }
+        :root.light-mode .phone-status {
+            color: var(--md-sys-color-on-surface);
+        }
+        :root.light-mode .phone-status span:last-child {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        :root.light-mode .icon-pill {
+            background: rgba(0, 0, 0, 0.06);
+            color: var(--md-sys-color-on-surface);
+        }
+        :root.light-mode .phone-type {
+            color: var(--md-sys-color-on-surface);
+        }
+        :root.light-mode .phone-type-sub {
+            color: var(--md-sys-color-primary);
+        }
+        :root.light-mode .settings-row {
+            background: rgba(0, 0, 0, 0.04);
+            color: var(--md-sys-color-on-surface);
+        }
+        :root.light-mode .settings-row .material-icons-round {
+            color: var(--md-sys-color-primary);
+        }
+        :root.light-mode .settings-row span:not(.material-icons-round) {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        :root.light-mode .nav-pill-preview {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .nav-pill-preview div {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+        :root.light-mode .nav-pill-preview div.active {
+            color: var(--md-sys-color-primary);
+        }
+
+        /* --- Specimen Steps --- */
+        :root.light-mode .specimen-step {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .specimen-step:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        :root.light-mode .specimen-step.active {
+            background: hsla(var(--seed-h), var(--seed-s), 90%, 0.5);
+            border-color: hsla(var(--seed-h), var(--seed-s), 50%, 0.35);
+        }
+
+        /* --- Discord Widget --- */
+        :root.light-mode .discord-profile-card {
+            background: #f2f3f5;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .discord-avatar,
+        :root.light-mode .discord-asset-small { background: #e8e9eb; }
+        :root.light-mode .discord-username,
+        :root.light-mode .discord-title { color: #060607; }
+        :root.light-mode .discord-activity-header,
+        :root.light-mode .discord-details,
+        :root.light-mode .discord-state,
+        :root.light-mode .discord-time { color: #4e5058; }
+
+        /* --- Premium Player Card --- */
+        :root.light-mode .premium-player-card[data-style="blur"] {
+            background-color: rgba(240, 238, 244, 0.8);
+            color: var(--md-sys-color-on-surface);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .premium-player-card[data-style="gradient"] {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .premium-player-card[data-style="theme"] {
+            background-color: hsla(var(--seed-h), calc(var(--seed-s) * 0.2), 94%, 1);
+            color: var(--md-sys-color-on-surface);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .premium-player-card[data-style="theme"][data-pure-black="true"] {
+            background-color: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        :root.light-mode .pp-progress {
+            background: rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .pp-btn:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .pp-lyric-line {
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* --- Compose Settings --- */
+        :root.light-mode .compose-settings-item {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        :root.light-mode .compose-settings-item:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+
+        /* --- Widget Feature --- */
+        :root.light-mode .effect-pill.speed {
+            color: #ffffff;
+        }
+        :root.light-mode .widget-feature-copy {
+            background: rgba(0, 0, 0, 0.02);
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+        :root.light-mode .widget-feature-copy h3 {
+            color: var(--md-sys-color-on-surface);
+        }
+        :root.light-mode .widget-config {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+        }
+
+        /* --- Footer --- */
+        :root.light-mode .footer-logo-svg {
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* --- Textes avec dégradé --- */
+        :root.light-mode .display-large {
+            background: linear-gradient(180deg, #1c1b1f 0%, #79747e 100%);
+            -webkit-background-clip: text;
+        }
+
+        /* --- Mobile bottom nav --- */
+        :root.light-mode .m3-nav-rail {
+            background: rgba(250, 248, 255, 0.92);
+        }
+        @media (max-width: 760px) {
+            :root.light-mode .m3-nav-rail {
+                background: rgba(250, 248, 255, 0.92);
+                border-color: rgba(0, 0, 0, 0.08);
+            }
+        }
+
+        /* --- Monet Chips / Color Swatches --- */
+        :root.light-mode .widget-feature-copy .border-right {
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* --- Ripple --- */
+        :root.light-mode span.md3-ripple {
+            background-color: rgba(0, 0, 0, 0.12);
+        }
+
+        /* --- Eightd control card --- */
+        :root.light-mode .eightd-control-card {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        }
+        :root.light-mode .eightd-readout-item {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
     </style>
 </head>
 
@@ -2848,8 +3127,8 @@
             <div class="nav-bottom-action" title="Play ambience">
                 <span class="material-icons-round">play_arrow</span>
             </div>
-            <div class="nav-bottom-action" title="Theme">
-                <span class="material-icons-round">light_mode</span>
+            <div class="nav-bottom-action" title="Toggle Theme" onclick="window.toggleThemeMode()">
+                <span class="material-icons-round theme-toggle-icon">light_mode</span>
             </div>
         </aside>
 
@@ -4048,6 +4327,8 @@
 
                     wrapper.classList.remove("unloading");
                     wrapper.classList.add("loaded");
+
+                    window.updateThemeIcons();
 
                     setTimeout(() => {
                         loader.classList.add("hidden");

@@ -61,10 +61,15 @@
     function drawRain() {
         ctx.clearRect(0, 0, canvasW, canvasH);
         
-        ctx.strokeStyle = currentRainState === 'heavy' 
-            ? 'rgba(200, 220, 255, 0.25)' 
-            : 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = currentRainState === 'heavy' ? 1.5 : 1;
+        const isLight = document.documentElement.classList.contains('light-mode');
+        
+        if (currentRainState === 'heavy') {
+            ctx.strokeStyle = isLight ? 'rgba(15, 30, 60, 0.15)' : 'rgba(200, 220, 255, 0.25)';
+            ctx.lineWidth = 1.5;
+        } else {
+            ctx.strokeStyle = isLight ? 'rgba(15, 30, 60, 0.08)' : 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+        }
         ctx.lineCap = 'round';
         
         ctx.beginPath();
@@ -230,8 +235,9 @@
     };
 
     document.addEventListener('click', function(e) {
-        const isPlayBtn = e.target.closest('.nav-bottom-action') || 
-                          e.target.closest('.play-overlay');
+        const navBtn = e.target.closest('.nav-bottom-action');
+        const isThemeToggle = navBtn && navBtn.querySelector('.theme-toggle-icon');
+        const isPlayBtn = (navBtn && !isThemeToggle) || e.target.closest('.play-overlay');
 
         if (isPlayBtn) {
             const loader = document.getElementById('loading-screen');

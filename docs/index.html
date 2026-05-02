@@ -2223,6 +2223,195 @@
                 width: 100%;
             }
         }
+
+        /* =========================================
+           LIGHT MODE OVERRIDES
+           ========================================= */
+        :root.light-mode {
+            --md-sys-color-background: #faf8ff;
+            --md-sys-color-surface: #fdfcff;
+            --md-sys-color-surface-container-low: #f4f2f7;
+            --md-sys-color-surface-container: #f0eef4;
+            --md-sys-color-surface-container-high: #ebe9ef;
+            --md-sys-color-surface-container-highest: #e5e3e9;
+            --md-sys-color-on-surface: #1c1b1f;
+            --md-sys-color-on-surface-variant: #49454f;
+            --md-sys-color-outline: #79747e;
+            --md-sys-color-outline-variant: #cac4d0;
+            --glow-primary: rgba(103, 80, 164, 0.1);
+        }
+
+        :root.light-mode body {
+            background-color: var(--md-sys-color-background);
+        }
+
+        /* --- Navigation --- */
+        :root.light-mode .m3-nav-rail,
+        :root.light-mode .m3-mobile-top-bar {
+            background-color: rgba(250, 248, 255, 0.92);
+            border-color: rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .m3-nav-rail {
+            border-right-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .m3-mobile-top-bar {
+            border-bottom-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .nav-rail-item:hover:not(.active) .nav-indicator {
+            background: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .nav-bottom-action:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .m3-menu-btn:active {
+            background-color: rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .m3-drawer-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        :root.light-mode .m3-nav-rail .nav-fab {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* --- Loading Screen --- */
+        :root.light-mode #loading-screen {
+            background-color: rgba(250, 248, 255, 0.75);
+        }
+
+        /* --- Panneaux, Cartes et Éditeur --- */
+        :root.light-mode .bento-panel,
+        :root.light-mode .expressive-card,
+        :root.light-mode .web-player-preview,
+        :root.light-mode .widget-feature,
+        :root.light-mode .app-style-panel,
+        :root.light-mode .monet-studio,
+        :root.light-mode .ee-card {
+            background: linear-gradient(135deg, #ffffff, #f4f2f7);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+            color: var(--md-sys-color-on-surface);
+        }
+        :root.light-mode .expressive-card {
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .expressive-card:hover {
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.08);
+        }
+
+        /* --- Card icon light mode --- */
+        :root.light-mode .card-icon {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .expressive-card:hover .card-icon {
+            background: rgba(103, 80, 164, 0.1);
+            border-color: rgba(103, 80, 164, 0.2);
+        }
+
+        /* --- Web Player Preview --- */
+        :root.light-mode .web-player-preview .player-top {
+            background: rgba(0, 0, 0, 0.03);
+            border-right-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .progress-track {
+            background: rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .effect-chip:not(.active) {
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        :root.light-mode .effect-chip:hover {
+            background: rgba(0, 0, 0, 0.04);
+        }
+        :root.light-mode .speed-control {
+            background: rgba(0, 0, 0, 0.04);
+        }
+
+        /* --- Phone Mockups (index.html showcase) --- */
+        :root.light-mode .phone-mockup {
+            background: #f0eef4;
+            border-color: #d8d6dc;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 30px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Kaomoji Badges --- */
+        :root.light-mode .kaomoji-badge {
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+        }
+        :root.light-mode .showcase-row:hover .kaomoji-badge {
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        /* --- Textes avec dégradé --- */
+        :root.light-mode .display-large {
+            background: linear-gradient(180deg, #1c1b1f 0%, #79747e 100%);
+            -webkit-background-clip: text;
+        }
+
+        /* --- Footer --- */
+        :root.light-mode .footer-logo-svg {
+            color: var(--md-sys-color-on-surface);
+        }
+
+        /* --- Discord Widget --- */
+        :root.light-mode .discord-profile-card {
+            background: #f2f3f5;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        }
+        :root.light-mode .discord-avatar,
+        :root.light-mode .discord-asset-small { background: #e8e9eb; }
+        :root.light-mode .discord-username,
+        :root.light-mode .discord-title { color: #060607; }
+        :root.light-mode .discord-activity-header,
+        :root.light-mode .discord-details,
+        :root.light-mode .discord-state,
+        :root.light-mode .discord-time { color: #4e5058; }
+
+        /* --- Widget Feature --- */
+        :root.light-mode .effect-pill.speed {
+            color: #ffffff;
+        }
+        :root.light-mode .eightd-control-card,
+        :root.light-mode .widget-feature-copy,
+        :root.light-mode .compose-settings-item {
+            background: rgba(0, 0, 0, 0.03);
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+        :root.light-mode .compose-settings-item:hover {
+            background: rgba(0, 0, 0, 0.06);
+        }
+
+        /* --- Easter Egg --- */
+        :root.light-mode .ee-close {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        :root.light-mode .ee-close:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        :root.light-mode .ee-counter-toast {
+            background: rgba(255, 255, 255, 0.92);
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- Code Editor (hérité) --- */
+        :root.light-mode .live-code-block,
+        :root.light-mode .code-ide-pane,
+        :root.light-mode .code-scroll-container,
+        :root.light-mode .ide-tabs {
+            background: #ffffff;
+            color: #383a42;
+        }
+        :root.light-mode .ide-tab { color: #79747e; }
+        :root.light-mode .code-controls { background: rgba(0,0,0,0.02); border-color: rgba(0,0,0,0.06); }
+
+        /* --- Step number --- */
+        :root.light-mode .step-number {
+            color: var(--md-sys-color-outline-variant);
+        }
     </style>
 </head>
 
@@ -2338,8 +2527,8 @@
             <div class="nav-bottom-action" onclick="alert('Mini-player settings are not available yet! ( > . < )')">
                 <span class="material-icons-round">play_arrow</span>
             </div>
-            <div class="nav-bottom-action" onclick="alert('Theme switching is not available yet! ( > . < )')">
-                <span class="material-icons-round">light_mode</span>
+            <div class="nav-bottom-action" title="Toggle Theme" onclick="window.toggleThemeMode()">
+                <span class="material-icons-round theme-toggle-icon">light_mode</span>
             </div>
 
         </aside>
@@ -2796,6 +2985,8 @@
                     // Entrance animation
                     wrapper.classList.remove('unloading');
                     wrapper.classList.add('loaded');
+                    
+                    window.updateThemeIcons();
                     
                     setTimeout(() => {
                         loader.classList.add('hidden');
