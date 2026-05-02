@@ -94,9 +94,9 @@
         const panel = document.getElementById('rain-panel');
         const face = document.getElementById('rain-face');
         if (btn && panel) {
-            if (currentRainState === 'heavy') {
+            if (currentRainState !== 'none') {
                 if (!panel.classList.contains('rain-active')) panel.classList.add('rain-active');
-                if (btn.textContent !== 'Mute') btn.textContent = 'Mute';
+                if (btn.textContent !== 'Stop Ambience') btn.textContent = 'Stop Ambience';
                 btn.style.background = '#6eb5ff';
                 btn.style.color = '#00254d';
                 if (face && face.textContent !== '( ˘︶˘ )') face.textContent = '( ˘︶˘ )';
@@ -203,7 +203,7 @@
     };
 
     window.toggleRain = function() {
-        if (currentRainState === 'heavy') {
+        if (currentRainState !== 'none') {
             setRainState('none');
         } else {
             if(isGloballyMuted) {
