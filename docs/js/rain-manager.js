@@ -1,21 +1,17 @@
 (function() {
     if (window.rainManagerInited) return;
     window.rainManagerInited = true;
-
     const audio = document.createElement('audio');
     audio.id = 'global-rain-audio';
     audio.src = 'assets/audio/rain.mp3';
     audio.loop = true;
     audio.volume = 0;
     document.body.appendChild(audio);
-
     const CACHED_RAIN_VOL = 'kitty_rain_volume_enabled';
-    let currentRainState = 'none'; // 'none', 'light', 'heavy'
+    let currentRainState = 'none'; 
     let targetVol = 0;
     let fadeInterval = null;
     let isGloballyMuted = localStorage.getItem(CACHED_RAIN_VOL) === 'muted';
-
-    // --- HTML5 CANVAS RAIN SYSTEM ---
     const canvas = document.createElement('canvas');
     canvas.id = 'global-rain-canvas';
     Object.assign(canvas.style, {
@@ -23,7 +19,7 @@
         top: '0', left: '0',
         width: '100vw', height: '100vh',
         pointerEvents: 'none',
-        zIndex: '9998', // Just below the loading screen and top modals
+        zIndex: '9998', 
         opacity: '0',
         transition: 'opacity 1.5s cubic-bezier(0.2, 0, 0, 1)'
     });
@@ -32,7 +28,6 @@
     let rainDrops = [];
     let rainAnimationId;
     let canvasW, canvasH;
-
     function resizeCanvas() {
         canvasW = window.innerWidth;
         canvasH = window.innerHeight;
@@ -41,10 +36,8 @@
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
-
     function initRaindrops() {
         rainDrops = [];
-        // Scale drop count relative to screen width and rain intensity
         const baseDrops = currentRainState === 'heavy' ? 80 : 25;
         const count = Math.floor(baseDrops * (canvasW / 1200)); 
         for (let i = 0; i < count; i++) {
@@ -57,12 +50,9 @@
             });
         }
     }
-
     function drawRain() {
         ctx.clearRect(0, 0, canvasW, canvasH);
-        
         const isLight = document.documentElement.classList.contains('light-mode');
-        
         if (currentRainState === 'heavy') {
             ctx.strokeStyle = isLight ? 'rgba(15, 30, 60, 0.15)' : 'rgba(200, 220, 255, 0.25)';
             ctx.lineWidth = 1.5;
@@ -71,7 +61,6 @@
             ctx.lineWidth = 1;
         }
         ctx.lineCap = 'round';
-        
         ctx.beginPath();
         for (let i = 0; i < rainDrops.length; i++) {
             let p = rainDrops[i];
@@ -87,16 +76,12 @@
         ctx.stroke();
         rainAnimationId = requestAnimationFrame(drawRain);
     }
-    // --- END CANVAS RAIN ---
-
     function updateBentoUI() {
         const btn = document.getElementById('rain-btn');
         const panel = document.getElementById('rain-panel');
         const face = document.getElementById('rain-face');
         if (btn && panel) {
-            // Vérifie si la pluie est active ET non-muette
             const isRainActive = currentRainState !== 'none' && !isGloballyMuted;
-            
             if (isRainActive) {
                 if (!panel.classList.contains('rain-active')) panel.classList.add('rain-active');
                 if (btn.textContent !== 'Stop Ambience') btn.textContent = 'Stop Ambience';
@@ -108,21 +93,18 @@
                 if (btn.textContent !== 'Mix Ambience') btn.textContent = 'Mix Ambience';
                 btn.style.background = 'transparent';
                 btn.style.color = 'white';
-                if (face && face.textContent !== '[ /// ]') face.textContent = '[ /// ]';
+                if (face && face.textContent !== '[ 
             }
         }
     }
-
     window.updateMiniplayerUI = function() {
         const miniplayers = document.querySelectorAll('.rain-miniplayer');
         miniplayers.forEach(mp => {
             const isRainPlaying = currentRainState !== 'none';
             const isMusicPlaying = window.kittyFX && window.kittyFX.isPlaying;
-
             if (isRainPlaying || isMusicPlaying) {
                 mp.classList.add('playing');
                 mp.classList.remove('muted'); 
-
                 const icon = mp.querySelector('.material-icons-round');
                 if (icon) {
                     if (isMusicPlaying && isRainPlaying && !isGloballyMuted) {
@@ -140,31 +122,24 @@
             }
         });
     };
-
     function fadeToVolume(target, duration = 1500) {
         if (fadeInterval) clearInterval(fadeInterval);
         if (isGloballyMuted && target > 0) target = 0;
-
         if (target > 0) {
             audio.play().catch(e => console.log('Audio block:', e));
         }
-
         const startVol = audio.volume;
         const diff = target - startVol;
         if (diff === 0) return;
-
         const steps = 30;
         const stepTime = duration / steps;
         let stepCount = 0;
-
         fadeInterval = setInterval(() => {
             stepCount++;
             let newVol = startVol + (diff * (stepCount / steps));
             if (newVol < 0) newVol = 0;
             if (newVol > 1) newVol = 1;
-            
             try { audio.volume = newVol; } catch(e){}
-
             if (stepCount >= steps) {
                 clearInterval(fadeInterval);
                 audio.volume = target;
@@ -174,11 +149,8 @@
             }
         }, stepTime);
     }
-
     window.setRainState = function(state) {
         currentRainState = state;
-        
-        // Handle Global Canvas Render
         if (state !== 'none' && !isGloballyMuted) {
             canvas.style.opacity = '1';
             initRaindrops();
@@ -186,14 +158,12 @@
         } else {
             canvas.style.opacity = '0';
             setTimeout(() => {
-                // Garbage collect logic when faded out
                 if (currentRainState === 'none' || isGloballyMuted) {
                     if (rainAnimationId) cancelAnimationFrame(rainAnimationId);
                     rainAnimationId = null;
                 }
             }, 1500);
         }
-
         if (state === 'heavy') {
             fadeToVolume(0.15, 1500);
         } else if (state === 'light') {
@@ -204,10 +174,8 @@
         updateBentoUI();
         window.updateMiniplayerUI();
     };
-
     window.toggleRain = function() {
         const isRainActive = currentRainState !== 'none' && !isGloballyMuted;
-        
         if (isRainActive) {
             setRainState('none');
         } else {
@@ -218,11 +186,9 @@
             setRainState('heavy');
         }
     };
-
     window.toggleRainMute = function() {
         const isRainPlaying = currentRainState !== 'none';
         const isMusicPlaying = window.kittyFX && window.kittyFX.isPlaying;
-
         if (isMusicPlaying && isRainPlaying) {
             if (window.kittyFX.pause) window.kittyFX.pause();
             if (!isGloballyMuted) {
@@ -238,12 +204,10 @@
             setRainState(currentRainState); 
         }
     };
-
     document.addEventListener('click', function(e) {
         const navBtn = e.target.closest('.nav-bottom-action');
         const isThemeToggle = navBtn && navBtn.querySelector('.theme-toggle-icon');
         const isPlayBtn = (navBtn && !isThemeToggle) || e.target.closest('.play-overlay');
-
         if (isPlayBtn) {
             const loader = document.getElementById('loading-screen');
             if (loader && !loader.classList.contains('hidden')) {
@@ -265,12 +229,10 @@
             }
         }
     });
-
     function init() {
        updateBentoUI();
        window.updateMiniplayerUI();
     }
-    
     document.addEventListener('DOMContentLoaded', init);
     const observer = new MutationObserver(() => {
         observer.disconnect();
@@ -279,5 +241,4 @@
         observer.observe(document.body, { childList: true, subtree: true });
     });
     observer.observe(document.body, { childList: true, subtree: true });
-
 })();

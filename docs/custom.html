@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,17 +9,14 @@
     <link rel="canonical" href="https://alan7383.github.io/kittytune/custom.html">
     <link rel="icon" type="image/x-icon" href="assets/images/logo.ico">
     <meta name="theme-color" content="#141218">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Outfit:wght@300;500;700;800&display=swap"
         rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
     <script src="theme-engine.js"></script>
     <style id="main-style">
-        /* Effet Ripple Material Design 3 manquant */
         span.md3-ripple {
             position: absolute;
             border-radius: 50%;
@@ -32,12 +28,10 @@
             background-color: rgba(255, 255, 255, 0.15);
             pointer-events: none;
         }
-
         @keyframes md3-ripple-animation {
             from { transform: scale(0); opacity: 1; }
             to { transform: scale(1); opacity: 0; }
         }
-
         @font-face {
             font-family: "Google Sans Flex Local";
             src: url("assets/fonts/google_sans_flex.ttf") format("truetype");
@@ -45,7 +39,6 @@
             font-stretch: 25% 151%;
             font-style: oblique -10deg 0deg;
         }
-
         :root {
             --md-sys-color-primary: #d0bcff;
             --md-sys-color-on-primary: #381e72;
@@ -91,17 +84,14 @@
             --player-fg: #ffffff;
             --player-muted: rgba(255, 255, 255, 0.72);
         }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-
         html {
             scroll-behavior: smooth;
         }
-
         body {
             background-color: var(--md-sys-color-background);
             color: var(--md-sys-color-on-surface);
@@ -109,7 +99,6 @@
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
-
         h1,
         h2,
         h3,
@@ -117,20 +106,16 @@
             font-family: var(--font-display);
             letter-spacing: 0;
         }
-
         button,
         input {
             font: inherit;
         }
-
         button {
             -webkit-tap-highlight-color: transparent;
         }
-
         a {
             color: inherit;
         }
-
         .material-icons-round,
         .widget-card,
         .premium-player-card,
@@ -143,7 +128,6 @@
             user-select: none;
             -webkit-user-select: none;
         }
-
         #loading-screen {
             position: fixed;
             inset: 0;
@@ -156,26 +140,21 @@
             z-index: 9999;
             transition: opacity 0.8s var(--ease-expressive), visibility 0.8s, backdrop-filter 0.8s var(--ease-expressive), filter 0.8s;
         }
-
         #loading-screen.hidden {
             opacity: 0;
             visibility: hidden;
             backdrop-filter: blur(0px);
             -webkit-backdrop-filter: blur(0px);
         }
-
         .loader-svg-container {
             width: 72px;
             height: 72px;
         }
-
-
         #app-layout {
             display: flex;
             min-height: 100vh;
             width: 100%;
         }
-
         .m3-nav-rail {
             position: sticky;
             top: 0;
@@ -189,7 +168,6 @@
             background-color: var(--md-sys-color-background);
             border-right: 1px solid rgba(255, 255, 255, 0.05);
         }
-
         .nav-fab {
             position: relative;
             overflow: hidden;
@@ -205,16 +183,13 @@
             cursor: pointer;
             transition: transform 0.2s var(--ease-expressive), background-color 0.2s, border-radius 0.2s;
         }
-
         .nav-fab:hover {
             background: var(--md-sys-color-surface-container-highest);
         }
-
         .nav-fab:active {
             transform: scale(0.9);
             border-radius: 20px;
         }
-
         .nav-rail-item {
             position: relative;
             overflow: hidden;
@@ -230,7 +205,6 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-
         .nav-indicator {
             position: relative;
             width: 64px;
@@ -241,7 +215,6 @@
             justify-content: center;
             transition: transform 0.2s var(--ease-expressive), background-color 0.2s;
         }
-
         .nav-indicator::before {
             content: "";
             position: absolute;
@@ -253,27 +226,22 @@
             transform: scaleX(0.5);
             transition: opacity 0.2s ease, transform 0.3s var(--ease-spring);
         }
-
         .nav-rail-item:hover:not(.active) .nav-indicator {
             background: rgba(255, 255, 255, 0.08);
         }
-
         .nav-rail-item:active .nav-indicator {
             transform: scale(0.85);
         }
-
         .nav-rail-item.active .nav-indicator::before {
             opacity: 1;
             transform: scaleX(1);
         }
-
         .nav-icon {
             z-index: 1;
             color: var(--md-sys-color-on-surface-variant);
             font-size: 24px;
             transition: color 0.2s ease;
         }
-
         .nav-logo-svg {
             width: 32px;
             height: auto;
@@ -281,12 +249,10 @@
             transition: color 0.2s ease;
             z-index: 1;
         }
-
         .nav-rail-item.active .nav-icon,
         .nav-rail-item.active .nav-logo-svg {
             color: var(--md-sys-color-on-primary-container);
         }
-
         .nav-label {
             color: var(--md-sys-color-on-surface-variant);
             font-family: var(--font-body);
@@ -295,16 +261,13 @@
             text-align: center;
             transition: color 0.2s ease, font-weight 0.2s ease;
         }
-
         .nav-rail-item.active .nav-label {
             color: var(--md-sys-color-primary);
             font-weight: 700;
         }
-
         .nav-spacer {
             flex-grow: 1;
         }
-
         .nav-bottom-action {
             width: 48px;
             height: 48px;
@@ -318,21 +281,17 @@
             cursor: pointer;
             transition: transform 0.2s var(--ease-expressive), background-color 0.2s, color 0.2s;
         }
-
         .nav-bottom-action:hover {
             background: rgba(255, 255, 255, 0.05);
             color: var(--md-sys-color-on-surface);
         }
-
         .nav-bottom-action:active {
             transform: scale(0.9);
         }
-
         .m3-main-content {
             flex: 1;
             min-width: 0;
         }
-
         #app-wrapper {
             opacity: 1;
             filter: blur(20px);
@@ -343,41 +302,34 @@
                 transform 0.6s var(--ease-expressive),
                 filter 0.8s var(--ease-expressive);
         }
-
         #app-wrapper.loaded {
             opacity: 1;
             filter: blur(0);
             transform: translateY(0);
             pointer-events: all;
         }
-
         #app-wrapper.unloading {
             opacity: 0 !important;
             filter: blur(20px) !important;
             transform: translateY(-20px) !important;
             pointer-events: none;
         }
-
         .container {
             width: min(1220px, calc(100% - 48px));
             margin: 0 auto;
         }
-
         .custom-page {
             --section-gap: clamp(72px, 10vw, 132px);
         }
-
         .reveal {
             opacity: 0;
             transform: translateY(32px);
             transition: opacity 0.7s var(--ease-expressive), transform 0.7s var(--ease-expressive);
         }
-
         .reveal.visible {
             opacity: 1;
             transform: translateY(0);
         }
-
         .eyebrow {
             display: inline-flex;
             align-items: center;
@@ -392,26 +344,22 @@
             font-size: 0.82rem;
             font-weight: 700;
         }
-
         .custom-hero {
             min-height: calc(100vh - 36px);
             padding: clamp(32px, 5vw, 72px) 0 44px;
             display: grid;
             align-items: center;
         }
-
         .hero-grid {
             display: grid;
             grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
             gap: clamp(28px, 5vw, 72px);
             align-items: center;
         }
-
         .hero-copy {
             display: grid;
             gap: 24px;
         }
-
         .hero-copy h1 {
             max-width: 640px;
             font-size: 5.8rem;
@@ -419,21 +367,18 @@
             font-weight: 800;
             color: #fff;
         }
-
         .hero-copy p {
             max-width: 560px;
             color: var(--md-sys-color-on-surface-variant);
             font-size: 1.18rem;
             line-height: 1.65;
         }
-
         .hero-actions {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
             align-items: center;
         }
-
         .btn {
             position: relative;
             overflow: hidden;
@@ -453,25 +398,19 @@
             transition: transform 0.24s var(--ease-expressive), border-radius 0.24s var(--ease-expressive),
                 background-color 0.2s, box-shadow 0.2s;
         }
-
         .btn:active {
             border-radius: 12px;
         }
-
         .btn-primary {
             background: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
             box-shadow: 0 10px 34px rgba(208, 188, 255, 0.22);
         }
-
         .btn-tonal {
             background: var(--md-sys-color-surface-container-high);
             color: var(--md-sys-color-on-surface);
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
-
-
-
         .lab-panel,
         .material-panel,
         .studio-panel {
@@ -482,11 +421,9 @@
             border-radius: 34px;
             box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
         }
-
         .hero-lab {
             padding: clamp(20px, 3vw, 32px);
         }
-
         .lab-topbar {
             position: relative;
             z-index: 1;
@@ -496,13 +433,11 @@
             gap: 16px;
             margin-bottom: 24px;
         }
-
         .lab-title {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-
         .lab-icon {
             width: 48px;
             height: 48px;
@@ -512,56 +447,41 @@
             background: var(--md-sys-color-primary-container);
             color: var(--md-sys-color-on-primary-container);
         }
-
         .lab-title h2 {
             font-size: 2rem;
             line-height: 1;
         }
-
         .lab-title p {
             color: var(--md-sys-color-on-surface-variant);
             font-size: 0.92rem;
             margin-top: 4px;
         }
-
-        /* =========================================
-           MONET SURPRISE BUTTON (M3 EXPRESSIVE)
-           ========================================= */
         .monet-surprise-btn {
-            width: 100%; /* Remplit le vide de la colonne de gauche */
+            width: 100%; 
             justify-content: center;
             padding: 16px 20px;
             height: auto;
             border-radius: 24px;
-            /* Utilisation de la couleur Tertiaire pour un aspect "Magique/Action secondaire" */
             background: var(--md-sys-color-tertiary-container);
             color: var(--md-sys-color-on-tertiary-container);
             font-size: 1.05rem;
             margin-top: 32px;
         }
-
         .monet-surprise-btn .material-icons-round {
             font-size: 24px;
         }
-
-        /* =========================================
-           M3 EXPRESSIVE BUTTON (Auto Play)
-           ========================================= */
         .axis-chip {
             position: relative;
             overflow: hidden;
-            min-height: 40px; /* Hauteur standard M3 */
-            padding: 0 20px; /* Plus d'espace pour respirer */
+            min-height: 40px; 
+            padding: 0 20px; 
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            border-radius: 24px; /* Forme Pilule */
+            border-radius: 24px; 
             border: none;
-            
-            /* Couleurs vibrantes M3 */
             background: var(--md-sys-color-primary-container);
             color: var(--md-sys-color-on-primary-container);
-            
             font-family: var(--font-body);
             font-weight: 700;
             font-size: 0.95rem;
@@ -570,40 +490,32 @@
             transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
             -webkit-tap-highlight-color: transparent;
         }
-
-        /* Calque d'interaction (State layer) */
         .axis-chip::after {
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: inherit; /* Suit la déformation */
+            border-radius: inherit; 
             background: currentColor;
             opacity: 0;
             transition: opacity 0.2s;
             pointer-events: none;
         }
-
-        /* Survol : Brillance */
         .axis-chip:hover {
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
         }
         .axis-chip:hover::after {
             opacity: 0.08;
         }
-
-        /* Clic : L'effet SQUISH (Changement de forme uniquement) */
         .axis-chip:active {
-            border-radius: 8px !important; /* Le bouton s'écrase */
+            border-radius: 8px !important; 
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         .axis-chip:active::after {
             opacity: 0.12;
         }
-
         .axis-chip .material-icons-round {
-            font-size: 20px; /* Équilibre parfait avec le texte */
+            font-size: 20px; 
         }
-
         .type-preview-wrap {
             position: relative;
             z-index: 1;
@@ -619,8 +531,6 @@
             container-type: inline-size;
             overflow: hidden;
         }
-
-        /* Motif à points (Dot grid) pour le Lab */
         .type-preview-wrap::before {
             content: '';
             position: absolute;
@@ -632,8 +542,6 @@
             -webkit-mask-image: radial-gradient(ellipse 85% 85% at center, black 40%, transparent 100%);
             mask-image: radial-gradient(ellipse 85% 85% at center, black 40%, transparent 100%);
         }
-
-        /* Halo lumineux sous la font */
         .type-preview-wrap::after {
             content: '';
             position: absolute;
@@ -649,12 +557,10 @@
             z-index: 0;
             pointer-events: none;
         }
-
         .type-preview {
             position: relative;
             z-index: 2;
             font-family: var(--font-flex);
-            /* ✨ FIX : Typographie fluide basée sur la largeur du conteneur (cqi) avec un maximum de 7rem */
             font-size: clamp(2.5rem, 16cqi, 7rem);
             font-weight: var(--lab-wght);
             line-height: 1.1;
@@ -669,13 +575,11 @@
             color: #fff;
             transition: font-variation-settings 0.24s var(--ease-expressive), color 0.24s;
             text-wrap: balance;
-            /* ✨ FIX : Coupe le mot proprement si l'écran est vraiment minuscule (sécurité) */
             overflow-wrap: break-word;
             user-select: none;
             -webkit-user-select: none;
             word-break: break-word;
         }
-
         .type-preview small {
             display: block;
             margin-top: 12px;
@@ -685,28 +589,18 @@
             line-height: 1.4;
             font-variation-settings: inherit;
         }
-
-        /* =========================================
-           COMPOSANT EXACT : M3 SEGMENTED BUTTON 
-           ========================================= */
-
-        /* 1. Le conteneur (Gap de 2px du schéma) */
         .preset-row {
             position: relative;
             z-index: 1;
             display: flex;
             gap: 2px;
             overflow-x: auto;
-            /* FIX : On passe le padding gauche/droite à 6px pour éviter que l'arrondi soit coupé au gonflement */
             padding: 18px 6px 8px;
             scrollbar-width: none;
         }
-
         .preset-row::-webkit-scrollbar {
             display: none;
         }
-
-        /* 2. Style de base (pour les boutons du milieu = rayon de 8px) */
         .preset-chip {
             position: relative;
             overflow: hidden;
@@ -727,43 +621,31 @@
             z-index: 1;
             cursor: pointer;
         }
-
-        /* 3. Le premier (Rond à gauche, 8px à droite) - Priorité forcée */
         .preset-row .preset-chip:first-child {
             border-radius: 24px 8px 8px 24px;
         }
-
-        /* 4. Le dernier (8px à gauche, Rond à droite) - Priorité forcée */
         .preset-row .preset-chip:last-child {
             border-radius: 8px 24px 24px 8px;
         }
-
-        /* 5. Survol (le fond est maintenant géré par le ::after ci-dessous) */
         .preset-chip:hover:not(.active) {
             color: var(--md-sys-color-on-surface);
         }
-
-        /* --- NOUVEAU : Calque d'interaction M3 (State Layer) --- */
         .preset-chip::after {
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: inherit; /* Suit l'arrondi, peu importe sa forme actuelle */
-            background: currentColor; /* Réagit magiquement à la couleur du texte ! */
+            border-radius: inherit; 
+            background: currentColor; 
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
         }
-
         .preset-chip:hover::after {
-            opacity: 0.08; /* Légère brillance au survol */
+            opacity: 0.08; 
         }
-
         .preset-chip:active::after {
-            opacity: 0.16; /* Flash d'interaction au clic */
+            opacity: 0.16; 
         }
-
-        /* 6. L'ÉTAT ACTIF : Change de forme (Pilule) et gonfle */
         .preset-row .preset-chip.active,
         .preset-row .preset-chip:first-child.active,
         .preset-row .preset-chip:last-child.active {
@@ -774,13 +656,9 @@
             box-shadow: none;
             z-index: 2;
         }
-
-        /* 7. L'ANIMATION DU CLIC : Le fameux "Squish" Material 3 (Plus carré) */
         .preset-row .preset-chip:active {
             border-radius: 6px !important;
         }
-
-        /* Style conservé pour les autres puces non-segmentées */
         .segmented-button,
         .theme-chip {
             position: relative;
@@ -802,18 +680,15 @@
             transition: background-color 0.2s, color 0.2s, border-color 0.2s;
             cursor: pointer;
         }
-
         .segmented-button:hover,
         .theme-chip:hover {
             background: var(--md-sys-color-surface-container-highest);
             color: var(--md-sys-color-on-surface);
         }
-
         .segmented-button:active,
         .theme-chip:active {
             border-radius: 12px;
         }
-
         .segmented-button.active,
         .theme-chip.active {
             background: var(--md-sys-color-secondary-container);
@@ -821,13 +696,10 @@
             border-color: transparent;
             font-weight: 700;
         }
-
-        /* Effet Squish pour ces boutons aussi */
         .segmented-button:active,
         .theme-chip:active {
             border-radius: 6px !important;
         }
-
         .slider-bank {
             position: relative;
             z-index: 1;
@@ -836,11 +708,9 @@
             gap: 18px;
             margin-top: 22px;
         }
-
         .m3-range-wrapper {
             min-width: 0;
         }
-
         .m3-range-info {
             display: flex;
             justify-content: space-between;
@@ -850,18 +720,15 @@
             font-size: 0.95rem;
             font-weight: 650;
         }
-
         .m3-range-info span:first-child {
             display: inline-flex;
             align-items: center;
             gap: 8px;
         }
-
         .m3-range-info output {
             color: var(--md-sys-color-primary);
             font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
         }
-
         .m3-v3-slider {
             position: relative;
             width: 100%;
@@ -870,7 +737,6 @@
             align-items: center;
             --val: 0.5;
         }
-
         .m3-v3-slider input[type="range"] {
             position: absolute;
             inset: 0;
@@ -881,7 +747,6 @@
             cursor: pointer;
             margin: 0;
         }
-
         .m3-v3-layout {
             width: 100%;
             height: 100%;
@@ -889,7 +754,6 @@
             align-items: center;
             pointer-events: none;
         }
-
         .m3-v3-track-active {
             flex: var(--val);
             height: 40px;
@@ -897,7 +761,6 @@
             border-radius: 12px 4px 4px 12px;
             transition: flex 0.3s var(--ease-expressive), background-color 0.2s;
         }
-
         .m3-v3-thumb-container {
             flex: 0 0 16px;
             height: 52px;
@@ -905,7 +768,6 @@
             align-items: center;
             justify-content: center;
         }
-
         .m3-v3-thumb {
             width: 4px;
             height: 52px;
@@ -913,7 +775,6 @@
             background: var(--md-sys-color-primary);
             transition: transform 0.2s var(--ease-expressive), background-color 0.2s;
         }
-
         .m3-v3-track-inactive {
             position: relative;
             flex: calc(1 - var(--val));
@@ -923,7 +784,6 @@
             overflow: hidden;
             transition: flex 0.3s var(--ease-expressive);
         }
-
         .m3-v3-track-inactive::after {
             content: "";
             position: absolute;
@@ -936,25 +796,20 @@
             transform: translateY(-50%);
             transition: opacity 0.2s;
         }
-
         .m3-v3-slider:hover .m3-v3-track-inactive::after,
         .m3-v3-slider.is-dragging .m3-v3-track-inactive::after {
             opacity: 0;
         }
-
         .m3-v3-slider.no-transition .m3-v3-track-active,
         .m3-v3-slider.no-transition .m3-v3-track-inactive {
             transition: none;
         }
-
         .m3-v3-slider.is-dragging .m3-v3-thumb {
             transform: scaleY(1.05) scaleX(0.8);
         }
-
         .section {
             padding: var(--section-gap) 0 0;
         }
-
         .section-header {
             display: grid;
             grid-template-columns: minmax(0, 0.78fr) minmax(280px, 0.42fr);
@@ -962,7 +817,6 @@
             align-items: end;
             margin-bottom: 30px;
         }
-
         .section-header h2 {
             margin-top: 18px;
             max-width: 740px;
@@ -971,27 +825,23 @@
             font-weight: 800;
             color: var(--md-sys-color-on-surface);
         }
-
         .section-header p {
             color: var(--md-sys-color-on-surface-variant);
             font-size: 1rem;
             line-height: 1.65;
         }
-
         .scroll-lab-grid {
             display: grid;
             grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1fr);
             gap: 24px;
             align-items: start;
         }
-
         .scroll-phone {
             position: sticky;
             top: 28px;
             min-height: 620px;
             padding: 22px;
         }
-
         .phone-frame {
             position: relative;
             z-index: 1;
@@ -1005,7 +855,6 @@
             box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.015), 0 28px 70px rgba(0, 0, 0, 0.46);
             overflow: hidden;
         }
-
         .phone-status {
             display: flex;
             justify-content: space-between;
@@ -1015,14 +864,12 @@
             font-size: 0.88rem;
             margin-bottom: 28px;
         }
-
         .phone-status span:last-child {
             display: inline-flex;
             gap: 5px;
             align-items: center;
             color: rgba(255, 255, 255, 0.9);
         }
-
         .phone-header {
             display: flex;
             align-items: center;
@@ -1030,7 +877,6 @@
             gap: 16px;
             margin-bottom: 30px;
         }
-
         .icon-pill {
             width: 52px;
             height: 52px;
@@ -1040,7 +886,6 @@
             background: rgba(255, 255, 255, 0.09);
             color: #fff;
         }
-
         .phone-type {
             font-family: var(--font-flex);
             font-size: 3.8rem;
@@ -1056,20 +901,17 @@
             color: #fff;
             transition: font-variation-settings 0.3s var(--ease-expressive);
         }
-
         .phone-type-sub {
             margin-top: 12px;
             color: #9bb8ff;
             font-size: 1rem;
             font-weight: 650;
         }
-
         .phone-preview-stack {
             display: grid;
             gap: 12px;
             margin-top: 32px;
         }
-
         .settings-row {
             display: flex;
             align-items: center;
@@ -1080,23 +922,19 @@
             background: rgba(255, 255, 255, 0.06);
             color: rgba(255, 255, 255, 0.9);
         }
-
         .settings-row .material-icons-round {
             color: #cdd6ff;
         }
-
         .settings-row strong {
             display: block;
             font-family: var(--font-flex);
             font-variation-settings: inherit;
             font-weight: 760;
         }
-
         .settings-row span:not(.material-icons-round) {
             color: rgba(255, 255, 255, 0.56);
             font-size: 0.82rem;
         }
-
         .nav-pill-preview {
             position: absolute;
             left: 22px;
@@ -1110,7 +948,6 @@
             background: rgba(13, 18, 55, 0.92);
             border: 1px solid rgba(255, 255, 255, 0.06);
         }
-
         .nav-pill-preview div {
             display: grid;
             place-items: center;
@@ -1119,16 +956,13 @@
             font-size: 0.76rem;
             font-weight: 650;
         }
-
         .nav-pill-preview div.active {
             color: #9bb8ff;
         }
-
         .specimen-list {
             display: grid;
             gap: 14px;
         }
-
         .specimen-step {
             display: grid;
             grid-template-columns: 76px minmax(0, 1fr);
@@ -1142,17 +976,14 @@
             cursor: pointer;
             transition: background-color 0.22s, border-color 0.22s, transform 0.22s var(--ease-expressive);
         }
-
         .specimen-step:hover {
             background: rgba(43, 41, 48, 0.86);
         }
-
         .specimen-step.active {
             border-color: hsla(var(--seed-h), var(--seed-s), 68%, 0.55);
             background: hsla(var(--seed-h), var(--seed-s), 22%, 0.32);
             transform: translateX(4px);
         }
-
         .specimen-index {
             width: 64px;
             height: 64px;
@@ -1164,12 +995,10 @@
             font-family: var(--font-display);
             font-weight: 800;
         }
-
         .specimen-step.active .specimen-index {
             background: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
         }
-
         .specimen-step h3 {
             font-family: var(--font-flex);
             font-size: 2.2rem;
@@ -1183,23 +1012,17 @@
                 "GRAD" var(--step-grad),
                 "opsz" var(--step-opsz);
         }
-
         .specimen-step p {
             margin-top: 8px;
             color: var(--md-sys-color-on-surface-variant);
             line-height: 1.5;
         }
-
         .player-grid {
             display: grid;
             grid-template-columns: minmax(320px, 0.86fr) minmax(0, 1fr);
             gap: 40px;
-            align-items: center; /* <-- FIX : empêche l'étirement vertical */
+            align-items: center; 
         }
-
-        /* =========================================
-           NOUVEAU PREMIUM PLAYER CARD (Redesign)
-           ========================================= */
         .premium-player-card {
             position: relative;
             width: 100%;
@@ -1209,23 +1032,18 @@
             padding: 32px;
             overflow: hidden;
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            /* On anime la couleur du texte et du fond de base, mais on gère les effets via les calques */
             transition: background-color 0.6s var(--ease-expressive), color 0.4s, transform 0.4s var(--ease-spring), box-shadow 0.4s;
             z-index: 1;
         }
-
         .premium-player-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
-
-        /* CALQUE 1 : Le dégradé (Règle le problème d'animation et de la ligne violette) */
         .premium-player-card::before {
             content: '';
             position: absolute;
             inset: 0;
             z-index: -1;
-            /* Le dégradé fond vers "transparent", ce qui supprime la ligne dure en bas */
             background: linear-gradient(180deg, 
                 hsla(var(--seed-h), var(--seed-s), 55%, 0.6) 0%, 
                 hsla(var(--seed-h), var(--seed-s), 55%, 0.15) 50%, 
@@ -1234,8 +1052,6 @@
             transition: opacity 0.6s var(--ease-expressive);
             pointer-events: none;
         }
-
-        /* CALQUE 2 : L'image floutée (Mode Blur) */
         .pp-bg {
             position: absolute;
             inset: 0;
@@ -1248,65 +1064,45 @@
             transition: opacity 0.6s var(--ease-expressive);
             pointer-events: none;
         }
-
-        /* GESTION DES ÉTATS (Opacité et couleurs de base) */
-
-        /* Mode 1 : BLUR */
         .premium-player-card[data-style="blur"] {
-            background-color: rgba(20, 18, 24, 0.35); /* Verre fumé */
+            background-color: rgba(20, 18, 24, 0.35); 
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
         .premium-player-card[data-style="blur"] .pp-bg {
-            opacity: 0.65; /* Apparition du blur */
+            opacity: 0.65; 
         }
-
-        /* Mode 2 : GRADIENT */
         .premium-player-card[data-style="gradient"] {
             background-color: var(--md-sys-color-background);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
         .premium-player-card[data-style="gradient"]::before {
-            opacity: 1; /* Apparition du dégradé */
+            opacity: 1; 
         }
-
-        /* Mode 3 : THEME */
         .premium-player-card[data-style="theme"] {
-            /* Fond très sombre mais subtilement teinté par le thème Monet (10% de luminosité) */
             background-color: hsla(var(--seed-h), calc(var(--seed-s) * 0.3), 10%, 1);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        /* Pas d'opacité modifiée pour ::before ou .pp-bg -> Ils restent à 0 (cachés) */
-
-        /* Adaptation des contrastes pour le mode Theme */
         .premium-player-card[data-style="theme"] .pp-progress { 
             background: var(--md-sys-color-surface-container-highest); 
         }
         .premium-player-card[data-style="theme"] .pp-btn:hover { 
             background: rgba(255, 255, 255, 0.05); 
         }
-
-        /* Option PURE BLACK (AMOLED) */
         .premium-player-card[data-style="theme"][data-pure-black="true"] {
             background-color: #000000 !important;
             border-color: rgba(255, 255, 255, 0.12);
         }
-
-
-        /* =========================================
-           INLINE LYRICS & ARTWORK
-           ========================================= */
         .pp-art-container {
             position: relative;
             width: 100%;
             aspect-ratio: 1 / 1;
             margin-bottom: 28px;
         }
-
         .pp-art {
             width: 100%;
             height: 100%;
@@ -1317,8 +1113,6 @@
             transition: opacity 0.5s var(--ease-expressive), transform 0.5s var(--ease-expressive);
         }
         .pp-art img { width: 100%; height: 100%; object-fit: cover; }
-
-        /* Conteneur des paroles (Caché par défaut) */
         .pp-lyrics {
             position: absolute;
             inset: 0;
@@ -1329,12 +1123,9 @@
             pointer-events: none;
             transform: scale(0.95);
             transition: opacity 0.5s var(--ease-expressive), transform 0.5s var(--ease-expressive);
-            /* Fading edge (Fondu en haut et en bas) */
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
             mask-image: linear-gradient(to bottom, transparent 0%, black 20%, black 80%, transparent 100%);
         }
-
-        /* État Actif (Quand on allume le toggle) */
         .premium-player-card.show-lyrics .pp-art {
             opacity: 0;
             transform: scale(0.9);
@@ -1344,16 +1135,13 @@
             transform: scale(1);
             pointer-events: all;
         }
-
         .pp-lyrics-inner {
             display: flex;
             flex-direction: column;
             gap: 28px;
             padding: 0 16px;
-            transition: transform 0.6s var(--ease-expressive); /* Scroll fluide */
+            transition: transform 0.6s var(--ease-expressive); 
         }
-
-        /* Style des lignes de paroles */
         .pp-lyric-line {
             font-family: var(--font-display);
             font-size: 1.5rem;
@@ -1368,14 +1156,11 @@
             margin: 0;
             cursor: pointer;
         }
-
-        /* Ligne en cours de lecture */
         .pp-lyric-line.active {
             opacity: 1;
             filter: blur(0px);
             transform: scale(1.05);
         }
-
         .pp-meta {
             text-align: center;
             margin-bottom: 24px;
@@ -1391,7 +1176,6 @@
             opacity: 0.7;
             font-weight: 500;
         }
-
         .pp-progress {
             height: 6px;
             background: rgba(255, 255, 255, 0.2);
@@ -1406,7 +1190,6 @@
             background: currentColor;
             border-radius: 3px;
         }
-
         .pp-controls {
             display: flex;
             justify-content: center;
@@ -1427,17 +1210,15 @@
         }
         .pp-btn:hover { background: rgba(255, 255, 255, 0.1); }
         .premium-player-card[data-style="theme"] .pp-btn:hover { background: rgba(0, 0, 0, 0.05); }
-
         .pp-btn-play {
             width: 72px;
             height: 72px;
             border-radius: 24px;
-            background: var(--md-sys-color-primary) !important; /* Force la couleur pour éviter le flash noir */
+            background: var(--md-sys-color-primary) !important; 
             color: var(--md-sys-color-on-primary) !important;
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
             display: grid;
             place-items: center;
-            /* On ajoute la transition fluide pour l'effet squish */
             transition: transform 0.24s var(--ease-expressive), 
                         border-radius 0.24s var(--ease-expressive), 
                         filter 0.2s;
@@ -1449,25 +1230,16 @@
             transform: scale(1.05); 
         }
         .pp-btn-play:active {
-            transform: scale(0.88); /* Plus de rebond */
-            border-radius: 36px;    /* Il devient plus "rond" au clic */
+            transform: scale(0.88); 
+            border-radius: 36px;    
             filter: brightness(0.9);
         }
-
-        /* =========================================
-           COMPOSANTS JETPACK COMPOSE (HTML REPLICA)
-           Basé sur SettingsComponents.kt & ColorPaletteScreen.kt
-           ========================================= */
-
-        /* --- Settings Group & Items --- */
-        /* --- Settings Group & Items --- */
         .compose-settings-group {
             display: flex;
             flex-direction: column;
             gap: 2px;
             width: 100%;
         }
-
         .compose-settings-item {
             position: relative;
             overflow: hidden;
@@ -1483,22 +1255,18 @@
             border: none;
             width: 100%;
         }
-
         .compose-settings-item:hover {
             background: rgba(255, 255, 255, 0.08);
         }
-
         .compose-settings-item.top { border-radius: 24px 24px 4px 4px; }
         .compose-settings-item.middle { border-radius: 4px; }
         .compose-settings-item.bottom { border-radius: 4px 4px 24px 24px; }
         .compose-settings-item.single { border-radius: 24px; }
-
         .compose-settings-left {
             display: flex;
             align-items: center;
             gap: 16px;
         }
-
         .compose-settings-icon-wrapper {
             width: 42px;
             height: 42px;
@@ -1509,34 +1277,25 @@
             align-items: center;
             justify-content: center;
         }
-
         .compose-settings-icon-wrapper .material-icons-round {
             font-size: 24px;
         }
-
         .compose-settings-text {
             display: flex;
             flex-direction: column;
             gap: 2px;
         }
-
         .compose-settings-text strong {
             font-family: var(--font-body);
             font-size: 1.05rem;
             font-weight: 500;
             color: var(--md-sys-color-on-surface);
         }
-
         .compose-settings-text span {
             font-size: 0.85rem;
             color: var(--md-sys-color-on-surface-variant);
         }
-
-        /* =========================================
-           M3 SWITCH (PIXEL PERFECT MATERIAL 3)
-           ========================================= */
         .md3-switch-input { display: none !important; }
-
         .md3-switch-track {
             position: relative;
             width: 52px;
@@ -1551,8 +1310,6 @@
             flex-shrink: 0;
             cursor: pointer;
         }
-
-        /* Halo de survol (State Layer - 40x40) */
         .md3-switch-track::before {
             content: '';
             position: absolute;
@@ -1561,29 +1318,22 @@
             border-radius: 50%;
             background-color: var(--md-sys-color-on-surface);
             opacity: 0;
-            /* Centré verticalement, et aligné sur le pouce */
             top: 50%;
-            left: 14px; /* 2px de marge interne + 12px de rayon du pouce = 14px */
+            left: 14px; 
             transform: translate(-50%, -50%);
             transition: left 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.2s;
             pointer-events: none;
             z-index: 0;
         }
-
-        /* Halo de survol (State Layer) pressé depuis la ligne */
         .md3-switch-track:hover::before { opacity: 0.08; }
-        
         .compose-settings-item:active .md3-switch-input:not(:checked) + .md3-switch-track::before,
         .md3-switch-input:not(:checked) + .md3-switch-track:active::before { opacity: 0.12; }
-        
         .compose-settings-item:active .md3-switch-input:checked + .md3-switch-track::before,
         .md3-switch-input:checked + .md3-switch-track:active::before { opacity: 0.12; background-color: var(--md-sys-color-primary); }
-
-        /* Pouce (Thumb) - Base (Désactivé avec icône = 24x24) */
         .md3-switch-thumb {
             position: absolute;
-            top: 0; bottom: 0; margin: auto; /* Centrage vertical absolu */
-            left: 2px; /* 2px de la bordure interne */
+            top: 0; bottom: 0; margin: auto; 
+            left: 2px; 
             width: 24px;
             height: 24px;
             border-radius: 50%;
@@ -1594,42 +1344,32 @@
             justify-content: center;
             z-index: 1;
         }
-
-        /* État "Pressé" (Désactivé) : S'écrase à 28x28 depuis la ligne */
         .compose-settings-item:active .md3-switch-input:not(:checked) + .md3-switch-track .md3-switch-thumb,
         .md3-switch-input:not(:checked) + .md3-switch-track:active .md3-switch-thumb {
             width: 28px;
             height: 28px;
             left: 0px; 
         }
-
-        /* Pouce (Thumb) - Activé (24x24) */
         .md3-switch-input:checked + .md3-switch-track {
             background-color: var(--md-sys-color-primary);
             border-color: var(--md-sys-color-primary);
         }
-
         .md3-switch-input:checked + .md3-switch-track::before {
-            left: 34px; /* Centré sur le pouce de droite (22px + 12px) */
+            left: 34px; 
             background-color: var(--md-sys-color-primary);
         }
-
         .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
-            left: 22px; /* 48px(largeur interne) - 24px(pouce) - 2px(marge) = 22px */
+            left: 22px; 
             width: 24px;
             height: 24px;
             background-color: var(--md-sys-color-on-primary);
         }
-
-        /* État "Pressé" (Activé) : S'écrase à 28x28 depuis la ligne */
         .compose-settings-item:active .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb,
         .md3-switch-input:checked + .md3-switch-track:active .md3-switch-thumb {
             width: 28px;
             height: 28px;
             left: 20px;
         }
-
-        /* Icones à l'intérieur (Standardisées à 16x16) */
         .md3-switch-icon {
             position: absolute;
             display: flex;
@@ -1639,36 +1379,24 @@
             height: 16px;
             transition: opacity 0.2s, transform 0.3s cubic-bezier(0.2, 0, 0, 1);
         }
-
         .md3-switch-icon-cross {
             opacity: 1;
             transform: scale(1);
             color: var(--md-sys-color-surface-container-highest);
         }
-
-        /* On ajuste la couleur pour un contraste parfait */
         .md3-switch-icon-check {
             opacity: 0;
             transform: scale(0.3) rotate(-45deg);
-            /* Utilise 'on-primary-container' (très clair) au lieu de 'primary-container' (sombre) */
             color: var(--md-sys-color-on-primary-container); 
         }
-
-        /* Animation des icônes au clic */
         .md3-switch-input:checked + .md3-switch-track .md3-switch-icon-cross {
             opacity: 0;
             transform: scale(0.3) rotate(45deg);
         }
-
         .md3-switch-input:checked + .md3-switch-track .md3-switch-icon-check {
             opacity: 1;
             transform: scale(1) rotate(0deg);
         }
-
-        /* --- ColorButtonMaterial --- */
-        /* =========================================
-           MONET ENGINE (DESIGN MINIMALISTE & ABSTRAIT)
-           ========================================= */
         .monet-studio {
             background: var(--md-sys-color-surface-container-low);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1677,18 +1405,15 @@
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
             padding: clamp(24px, 4vw, 40px);
         }
-
         .monet-grid {
             display: grid;
             grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
             gap: 40px;
             align-items: center;
         }
-
         .monet-controls-group {
             margin-bottom: 32px;
         }
-        
         .monet-controls-group h3 {
             font-family: var(--font-body);
             font-size: 0.95rem;
@@ -1697,23 +1422,20 @@
             margin-bottom: 16px;
             letter-spacing: 0.5px;
         }
-
-        /* Couleurs sur UNE SEULE ligne */
         .monet-swatches {
             display: flex;
-            flex-wrap: nowrap; /* Force la ligne unique */
+            flex-wrap: nowrap; 
             gap: 12px;
-            padding: 12px 10px; /* On augmente l'espace intérieur (surtout gauche/droite) */
-            margin: -12px -10px; /* On compense exactement pour ne pas décaler la grille */
-            overflow-x: auto; /* Scroll horizontal si besoin */
+            padding: 12px 10px; 
+            margin: -12px -10px; 
+            overflow-x: auto; 
             scrollbar-width: none;
         }
         .monet-swatches::-webkit-scrollbar { display: none; }
-
         .color-swatch {
-            width: 42px; /* Taille réduite */
+            width: 42px; 
             height: 42px;
-            flex-shrink: 0; /* Empêche l'écrasement */
+            flex-shrink: 0; 
             border-radius: 50%;
             border: none;
             cursor: pointer;
@@ -1723,14 +1445,11 @@
             -webkit-tap-highlight-color: transparent;
             overflow: hidden;
         }
-
         .color-swatch-inner {
             position: absolute;
             inset: 0;
             pointer-events: none;
         }
-
-        /* État actif : le fameux Squircle Android 14 */
         .color-swatch.active {
             border-radius: 12px;
             transform: scale(1.05);
@@ -1740,20 +1459,16 @@
                 0 8px 16px rgba(0,0,0,0.3);
             z-index: 2;
         }
-
         .color-swatch:active {
             transform: scale(0.9);
             border-radius: 10px;
         }
-
-        /* --- Boutons "Palette style" --- */
         .monet-chip-row {
             position: relative; z-index: 1; display: flex; gap: 2px; overflow-x: auto;
-            padding: 8px 6px; /* On retire le margin-left: -6px qui décalait tout à gauche */
+            padding: 8px 6px; 
             scrollbar-width: none;
         }
         .monet-chip-row::-webkit-scrollbar { display: none; }
-
         .monet-chip {
             min-height: 40px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center;
             font-family: var(--font-body); font-size: 0.95rem; font-weight: 600;
@@ -1766,52 +1481,44 @@
         .monet-chip::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: currentColor; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
         .monet-chip:hover::after { opacity: 0.08; }
         .monet-chip:active::after { opacity: 0.16; }
-
         .monet-chip-row .monet-chip.active, .monet-chip-row .monet-chip:first-child.active, .monet-chip-row .monet-chip:last-child.active {
             border-radius: 24px; background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); font-weight: 700; z-index: 2;
         }
         .monet-chip-row .monet-chip:active { 
-            border-radius: 6px !important; /* 6px au lieu de 10px pour correspondre au Typo Lab */
+            border-radius: 6px !important; 
         }
-
-        /* --- Aperçu Téléphone Abstrait (Sleek) --- */
         .monet-preview-board {
             display: flex;
             justify-content: center;
             align-items: center;
         }
-
         .abstract-phone {
             width: 100%;
-            max-width: 200px; /* Plus fin et élégant */
+            max-width: 200px; 
             aspect-ratio: 9 / 19.5;
             background: var(--md-sys-color-background);
             border-radius: 32px;
-            border: 6px solid var(--md-sys-color-surface-container-highest); /* Bords du tel */
+            border: 6px solid var(--md-sys-color-surface-container-highest); 
             display: flex;
             flex-direction: column;
             overflow: hidden;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             transition: background 0.3s;
         }
-
         .ap-header { padding: 16px 16px 8px; display: flex; justify-content: space-between; align-items: center; }
         .ap-header-title { width: 50%; height: 10px; border-radius: 5px; background: var(--md-sys-color-on-surface); opacity: 0.8; transition: 0.3s; }
         .ap-header-icon { width: 14px; height: 14px; border-radius: 50%; background: var(--md-sys-color-primary); transition: 0.3s; }
-
         .ap-body { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
         .ap-card-hero { height: 70px; border-radius: 16px; background: var(--md-sys-color-primary-container); transition: 0.3s; }
         .ap-row { display: flex; gap: 12px; }
         .ap-card-small { height: 50px; flex: 1; border-radius: 12px; background: var(--md-sys-color-surface-container-high); transition: 0.3s; }
         .ap-card-accent { height: 60px; flex: 1; border-radius: 16px; background: var(--md-sys-color-secondary-container); transition: 0.3s; }
-
         .ap-nav {
             height: 48px; background: var(--md-sys-color-surface-container);
             display: flex; justify-content: space-around; align-items: center; padding: 0 16px; transition: 0.3s;
         }
         .ap-nav-item { width: 28px; height: 20px; border-radius: 10px; background: var(--md-sys-color-on-surface-variant); opacity: 0.3; transition: 0.3s; }
         .ap-nav-item.active { background: var(--md-sys-color-primary); opacity: 1; }
-
         .app-style-panel {
             background: var(--md-sys-color-surface-container-low);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1819,70 +1526,56 @@
             padding: clamp(24px, 4vw, 40px);
             margin-bottom: 32px;
         }
-
-        /* =========================================
-           DISCORD RPC PREVIEW
-           ========================================= */
         .discord-preview-panel {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
         }
-
         .discord-profile-card {
             width: 100%;
-            max-width: 380px; /* On passe de 320 à 380 */
+            max-width: 380px; 
             background: #111214;
-            border-radius: 24px; /* Plus arrondi pour matcher M3 */
+            border-radius: 24px; 
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
             font-family: var(--font-body);
             overflow: hidden;
             transition: transform 0.4s var(--ease-spring);
         }
-
-
-
         .discord-banner {
-            height: 100px; /* Plus haute */
+            height: 100px; 
             background: var(--md-sys-color-primary);
             transition: background-color 0.4s;
         }
-
         .discord-profile-body {
             padding: 16px;
             position: relative;
         }
-
         .discord-avatar {
             position: absolute;
-            top: -50px; /* Ajusté pour la nouvelle taille */
+            top: -50px; 
             left: 20px;
-            width: 94px; /* Plus large */
+            width: 94px; 
             height: 94px;
             border-radius: 50%;
             background: #111214;
             padding: 7px;
         }
-
         .discord-avatar img {
             width: 100%;
             height: 100%;
             border-radius: 50%;
             background: #313338;
         }
-
         .discord-user-info {
-            margin-top: 54px; /* Plus d'espace sous l'avatar */
+            margin-top: 54px; 
             margin-bottom: 28px;
         }
-
         .discord-username {
             color: #f2f3f5;
             font-size: 1.1rem;
             font-weight: 700;
         }
-
         .discord-activity-header {
             font-size: 0.75rem;
             font-weight: 800;
@@ -1890,27 +1583,23 @@
             color: #b5bac1;
             margin-bottom: 12px;
         }
-
         .discord-activity-body {
             display: flex;
             gap: 16px;
             align-items: center;
         }
-
         .discord-asset {
             position: relative;
-            width: 80px; /* On passe de 64 à 80 */
+            width: 80px; 
             height: 80px;
             border-radius: 16px;
         }
-
         .discord-asset img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             border-radius: 12px;
         }
-
         .discord-asset-small {
             position: absolute;
             bottom: -6px;
@@ -1922,45 +1611,37 @@
             display: grid;
             place-items: center;
         }
-
         .discord-asset-small .inner-icon {
             width: 16px;
             height: 16px;
             border-radius: 50%;
-            background: var(--md-sys-color-primary); /* Pastille KittyTune */
+            background: var(--md-sys-color-primary); 
             transition: background-color 0.4s;
         }
-
         .discord-info {
             display: flex;
             flex-direction: column;
             gap: 2px;
             overflow: hidden;
         }
-
         .discord-title {
             color: #f2f3f5;
             font-weight: 700;
             font-size: 0.95rem;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-
         .discord-details, .discord-state, .discord-time {
             color: #b5bac1;
             font-size: 0.85rem;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-
         @media (max-width: 900px) {
             .preset-row { justify-content: center; }
         }
-
         .widgets-stage {
             display: grid;
-            gap: 40px; /* Plus d'espace entre les deux gros blocs */
+            gap: 40px; 
         }
-
-        /* La grande carte conteneur (fusionne le texte et le mur) */
         .widget-feature {
             display: grid;
             grid-template-columns: minmax(300px, 0.75fr) minmax(0, 1.25fr);
@@ -1973,12 +1654,9 @@
             box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
             transition: border-color 0.4s ease;
         }
-
         .widget-feature:hover {
             border-color: rgba(255, 255, 255, 0.15);
         }
-
-        /* La partie texte à gauche */
         .widget-feature-copy {
             position: relative;
             z-index: 2;
@@ -1989,21 +1667,17 @@
             background: rgba(0, 0, 0, 0.15);
             border-right: 1px solid rgba(255, 255, 255, 0.05);
         }
-
         .widget-feature-copy h3 {
             font-size: 3rem;
             line-height: 1.05;
             margin: 16px 0 16px;
             color: var(--md-sys-color-on-surface);
         }
-
         .widget-feature-copy p {
             color: var(--md-sys-color-on-surface-variant);
             line-height: 1.65;
             max-width: 520px;
         }
-
-        /* Le mur de présentation à droite (Le fameux fond stylé) */
         .android-wall {
             width: 100%;
             min-height: 540px;
@@ -2016,8 +1690,6 @@
             position: relative;
             background: transparent;
         }
-
-        /* 1. Le motif à points (Dot grid) */
         .android-wall::before {
             content: '';
             position: absolute;
@@ -2026,12 +1698,9 @@
             background-size: 24px 24px;
             background-position: center;
             z-index: 0;
-            /* Masque radial pour faire fondre les points sur les bords (Effet Pro) */
             -webkit-mask-image: radial-gradient(ellipse 80% 80% at center, black 30%, transparent 100%);
             mask-image: radial-gradient(ellipse 80% 80% at center, black 30%, transparent 100%);
         }
-
-        /* 2. Le halo lumineux derrière les widgets */
         .android-wall::after {
             content: '';
             position: absolute;
@@ -2047,8 +1716,6 @@
             z-index: 0;
             pointer-events: none;
         }
-
-        /* On s'assure que les widgets sont bien au-dessus du fond */
         .widget-card {
             position: relative;
             z-index: 2;
@@ -2057,15 +1724,12 @@
             color: var(--md-sys-color-on-surface);
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            /* Petit effet de survol pour rendre le widget interactif */
             transition: transform 0.4s var(--ease-spring), box-shadow 0.4s var(--ease-expressive);
         }
-
         .widget-card:hover {
             transform: translateY(-4px) scale(1.01);
             box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
-
         .widget-large {
             max-width: 620px;
             min-height: 192px;
@@ -2076,13 +1740,11 @@
             gap: 16px;
             align-items: stretch;
         }
-
         .widget-cover {
             border-radius: 16px;
             overflow: hidden;
             background: var(--md-sys-color-surface-container-high);
         }
-
         .widget-cover img {
             width: 100%;
             height: 100%;
@@ -2090,21 +1752,18 @@
             object-position: 58% 34%;
             transform: scale(1.35);
         }
-
         .widget-content {
             min-width: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
         }
-
         .widget-meta {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 12px;
             align-items: start;
         }
-
         .widget-meta strong,
         .widget-mini strong {
             display: block;
@@ -2113,13 +1772,11 @@
             text-overflow: ellipsis;
             font-family: var(--font-display);
         }
-
         .widget-meta span,
         .widget-mini span:not(.material-icons-round) {
             color: var(--md-sys-color-on-surface-variant);
             font-size: 0.9rem;
         }
-
         .widget-actions {
             display: flex;
             justify-content: flex-end;
@@ -2127,7 +1784,6 @@
             gap: 12px;
             margin-top: 28px;
         }
-
         .widget-play {
             width: 48px;
             height: 48px;
@@ -2138,7 +1794,6 @@
             color: var(--md-sys-color-on-primary-container);
             background: var(--md-sys-color-primary-container);
         }
-
         .effect-pills {
             display: flex;
             flex-wrap: wrap;
@@ -2146,7 +1801,6 @@
             gap: 4px;
             margin-top: 8px;
         }
-
         .effect-pill {
             min-height: 24px;
             padding: 0 8px;
@@ -2158,17 +1812,14 @@
             font-size: 0.72rem;
             font-weight: 800;
         }
-
         .effect-pill.active {
             background: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
         }
-
         .effect-pill.speed {
             background: var(--md-sys-color-tertiary);
             color: var(--md-sys-color-on-tertiary);
         }
-
         .widget-mini {
             max-width: 580px;
             min-height: 88px;
@@ -2179,19 +1830,16 @@
             gap: 12px;
             align-items: center;
         }
-
         .widget-mini .widget-cover {
             width: 68px;
             height: 68px;
             border-radius: 18px;
         }
-
         .mini-controls {
             display: flex;
             align-items: center;
             gap: 6px;
         }
-
         .widget-search {
             max-width: 520px;
             min-height: 78px;
@@ -2201,7 +1849,6 @@
             grid-template-columns: minmax(0, 1fr) 66px;
             gap: 8px;
         }
-
         .search-field {
             border-radius: 22px;
             display: flex;
@@ -2211,7 +1858,6 @@
             color: var(--md-sys-color-on-surface-variant);
             background: var(--md-sys-color-surface-container-high);
         }
-
         .search-logo {
             border-radius: 22px;
             display: grid;
@@ -2219,7 +1865,6 @@
             background: var(--md-sys-color-surface-container-high);
             color: var(--md-sys-color-primary);
         }
-
         .widget-config {
             width: min(100%, 520px);
             border-radius: 30px;
@@ -2229,7 +1874,6 @@
             display: grid;
             gap: 12px;
         }
-
         .config-line {
             min-height: 54px;
             border-radius: 18px;
@@ -2240,11 +1884,9 @@
             padding: 0 14px;
             background: var(--md-sys-color-surface-container);
         }
-
         .config-line .material-icons-round {
             color: var(--md-sys-color-primary);
         }
-
         .check-dot {
             width: 22px;
             height: 22px;
@@ -2256,10 +1898,6 @@
             font-family: "Material Icons Round";
             font-size: 16px;
         }
-
-        /* =========================================
-           SQUIGGLE LINE (Ligne de séparation SVG)
-           ========================================= */
         .squiggle-line {
             width: 100%;
             display: block;
@@ -2267,27 +1905,20 @@
             margin-bottom: 40px;
             opacity: 0.5;
         }
-
         .squiggle-stroke {
             stroke: var(--md-sys-color-outline-variant);
             stroke-width: 1.5px;
         }
-
-        /* =========================================
-           FOOTER (Identique à index.html & audio-fx.html)
-           ========================================= */
         footer {
             background: transparent;
             padding: 0 0 40px;
         }
-
         .footer-grid {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr;
             gap: 40px;
             margin-bottom: 60px;
         }
-
         .footer-logo-svg {
             width: 44px;
             height: auto;
@@ -2296,17 +1927,14 @@
             display: block;
             opacity: 1;
         }
-
         .footer-brand h4 {
             font-size: 1.8rem;
             margin-bottom: 16px;
             color: var(--md-sys-color-on-surface);
         }
-
         .footer-brand span {
             color: var(--md-sys-color-primary);
         }
-
         .footer-col h5 {
             font-size: 0.9rem;
             text-transform: uppercase;
@@ -2314,37 +1942,31 @@
             margin-bottom: 24px;
             color: var(--md-sys-color-on-surface);
         }
-
         .footer-col ul {
             list-style: none;
         }
-
         .footer-col li {
             margin-bottom: 16px;
         }
-
         .footer-col a {
             color: var(--md-sys-color-on-surface-variant);
             text-decoration: none;
             transition: color 0.2s;
             font-size: 1rem;
         }
-
         .footer-col a:hover {
             color: var(--md-sys-color-primary);
         }
-
         @media (max-width: 900px) {
             .footer-grid {
                 grid-template-columns: 1fr;
                 gap: 40px;
-                text-align: center; /* Optionnel : pour centrer sur mobile comme le reste */
+                text-align: center; 
             }
             .footer-logo-svg {
-                margin: 0 auto 24px; /* Centre le logo sur mobile */
+                margin: 0 auto 24px; 
             }
         }
-
         .rain-miniplayer {
             position: fixed;
             right: 32px;
@@ -2365,17 +1987,14 @@
             transform: translateY(20px);
             transition: transform 0.4s var(--ease-spring), opacity 0.4s;
         }
-
         .rain-miniplayer.playing {
             opacity: 1;
             pointer-events: all;
             transform: translateY(0);
         }
-
         .rain-miniplayer:hover {
             transform: scale(1.05) translateY(0);
         }
-
         .rain-miniplayer.playing:not(.muted)::after {
             content: "";
             position: absolute;
@@ -2384,19 +2003,16 @@
             border: 2px solid var(--md-sys-color-primary);
             animation: rain-pulse 2s infinite;
         }
-
         @keyframes rain-pulse {
             from {
                 opacity: 0.6;
                 transform: scale(1);
             }
-
             to {
                 opacity: 0;
                 transform: scale(1.4);
             }
         }
-
         @media (max-width: 1100px) {
             .hero-grid,
             .scroll-lab-grid,
@@ -2405,48 +2021,36 @@
             .widget-feature {
                 grid-template-columns: 1fr;
             }
-
-            /* --- NOUVEAU POUR LE WIDGET FEATURE --- */
             .widget-feature-copy {
                 border-right: none;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             }
-
             .hero-copy {
                 text-align: left;
             }
-
             .scroll-phone {
                 position: relative;
                 top: auto;
                 min-height: auto;
             }
-
             .section-header,
             .settings-matrix {
                 grid-template-columns: 1fr 1fr;
             }
-
             .hero-copy h1 {
                 font-size: 4.6rem;
             }
-
-
-
             .section-header h2 {
                 font-size: 3.5rem;
             }
         }
-
         @media (max-width: 760px) {
             body {
                 padding-bottom: 92px;
             }
-
             #app-layout {
                 display: block;
             }
-
             .m3-nav-rail {
                 position: fixed;
                 left: 12px;
@@ -2463,41 +2067,33 @@
                 border-radius: 30px;
                 background: hsla(var(--seed-h), var(--seed-s), 5%, 0.88);
             }
-
             .nav-fab,
             .nav-spacer,
             .nav-bottom-action {
                 display: none;
             }
-
             .nav-rail-item {
                 margin: 0;
                 width: auto;
                 min-width: 58px;
             }
-
             .nav-label {
                 font-size: 0.72rem;
             }
-
             .nav-indicator {
                 width: 54px;
                 height: 30px;
             }
-
             .container {
                 width: min(100% - 28px, 1220px);
             }
-
             .custom-hero {
                 min-height: auto;
                 padding-top: 28px;
             }
-
             .hero-grid {
                 gap: 22px;
             }
-
             .hero-feature-cards,
             .section-header,
             .slider-bank,
@@ -2506,98 +2102,72 @@
             .settings-matrix {
                 grid-template-columns: 1fr;
             }
-
             .hero-copy h1 {
                 font-size: 3.4rem;
             }
-
             .lab-topbar {
                 align-items: flex-start;
                 flex-direction: column;
             }
-
             .type-preview-wrap {
                 min-height: 260px;
                 padding: 22px;
             }
-
-
-
             .lab-title h2 {
                 font-size: 1.65rem;
             }
-
             .section-header h2 {
                 font-size: 2.65rem;
             }
-
             .specimen-step h3,
             .widget-feature-copy h3 {
                 font-size: 2rem;
             }
-
             .segmented-control {
                 grid-template-columns: 1fr;
             }
-
             .color-chip-grid {
                 grid-template-columns: repeat(4, 1fr);
             }
-
             .phone-player {
                 min-height: 650px;
             }
-
             .widget-large {
                 grid-template-columns: 88px minmax(0, 1fr);
             }
-
             .widget-actions {
                 gap: 4px;
             }
-
             .effect-pill {
                 font-size: 0.65rem;
                 padding: 0 6px;
             }
-
             .android-wall {
                 padding: 16px;
                 min-height: 460px;
             }
-
             .monet-grid {
                 gap: 48px;
             }
-
             .monet-controls-group h3 {
                 font-size: 1.1rem;
             }
-
             .monet-swatches {
                 flex-wrap: wrap;
                 overflow: visible;
             }
-
             .monet-chip-row {
                 flex-wrap: wrap;
                 gap: 8px;
             }
-
             .monet-chip-row .monet-chip {
                 border-radius: 20px !important;
             }
-
-
             .rain-miniplayer {
                 right: 20px;
                 bottom: 104px;
             }
-
-
         }
-
-        /* --- Mobile Navigation Infrastructure (Parity with index.html) --- */
         .m3-mobile-top-bar {
             display: none;
             position: fixed;
@@ -2613,13 +2183,11 @@
             justify-content: space-between;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-
         .m3-top-bar-left {
             display: flex;
             align-items: center;
             gap: 16px;
         }
-
         .m3-menu-btn {
             width: 48px;
             height: 48px;
@@ -2631,11 +2199,9 @@
             color: var(--md-sys-color-on-surface);
             transition: background-color 0.2s;
         }
-
         .m3-menu-btn:active {
             background-color: rgba(255, 255, 255, 0.1);
         }
-
         .m3-top-bar-title {
             font-family: var(--font-display);
             font-weight: 700;
@@ -2645,12 +2211,9 @@
             align-items: center;
             gap: 8px;
         }
-
         .m3-top-bar-title span {
             color: var(--md-sys-color-primary);
         }
-
-        /* Modal Drawer */
         .m3-drawer-scrim {
             position: fixed;
             inset: 0;
@@ -2660,12 +2223,10 @@
             visibility: hidden;
             transition: opacity 0.3s var(--ease-expressive);
         }
-
         .m3-drawer-scrim.show {
             opacity: 1;
             visibility: visible;
         }
-
         .m3-modal-drawer {
             position: fixed;
             top: 0;
@@ -2683,11 +2244,9 @@
             flex-direction: column;
             box-shadow: 16px 0 32px rgba(0, 0, 0, 0.3);
         }
-
         .m3-modal-drawer.show {
             transform: translateX(0);
         }
-
         .m3-drawer-header {
             padding: 16px 16px 28px;
             font-family: var(--font-display);
@@ -2697,7 +2256,6 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
         }
-
         .m3-drawer-item {
             display: flex;
             align-items: center;
@@ -2713,21 +2271,17 @@
             position: relative;
             overflow: hidden;
         }
-
         .m3-drawer-item .material-icons-round {
             font-size: 24px;
         }
-
         .m3-drawer-item:hover {
             background-color: rgba(255, 255, 255, 0.05);
         }
-
         .m3-drawer-item.active {
             background-color: var(--md-sys-color-secondary-container);
             color: var(--md-sys-color-on-secondary-container);
             font-weight: 700;
         }
-
         @media (max-width: 900px) {
             .m3-nav-rail {
                 display: none;
@@ -2742,10 +2296,6 @@
                 width: 100%;
             }
         }
-
-        /* =========================================
-           LIGHT MODE OVERRIDES
-           ========================================= */
         :root.light-mode {
             --md-sys-color-background: #faf8ff;
             --md-sys-color-surface: #fdfcff;
@@ -2759,12 +2309,9 @@
             --md-sys-color-outline-variant: #cac4d0;
             --glow-primary: rgba(103, 80, 164, 0.1);
         }
-
         :root.light-mode body {
             background-color: var(--md-sys-color-background);
         }
-
-        /* --- Navigation --- */
         :root.light-mode .m3-nav-rail,
         :root.light-mode .m3-mobile-top-bar {
             background-color: rgba(250, 248, 255, 0.92);
@@ -2789,13 +2336,9 @@
         :root.light-mode .m3-drawer-item:hover {
             background-color: rgba(0, 0, 0, 0.05);
         }
-
-        /* --- Loading Screen --- */
         :root.light-mode #loading-screen {
             background-color: rgba(250, 248, 255, 0.75);
         }
-
-        /* --- Panneaux, Cartes --- */
         :root.light-mode .bento-panel,
         :root.light-mode .expressive-card,
         :root.light-mode .web-player-preview,
@@ -2808,27 +2351,19 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
             color: var(--md-sys-color-on-surface);
         }
-
-        /* --- Lab Panel --- */
         :root.light-mode .lab-panel,
         :root.light-mode .material-panel,
         :root.light-mode .studio-panel {
             border-color: rgba(0, 0, 0, 0.06);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
         }
-
-        /* --- Hero Title (was #fff) --- */
         :root.light-mode .hero-copy h1 {
             color: var(--md-sys-color-on-surface);
         }
-
-        /* --- Typography Preview (was #fff) --- */
         :root.light-mode .type-preview,
         :root.light-mode .type-preview span {
             color: var(--md-sys-color-on-surface);
         }
-
-        /* --- Dot Grid Pattern (needs to be visible on light bg) --- */
         :root.light-mode .type-preview-wrap {
             background: rgba(0, 0, 0, 0.03);
             border-color: rgba(0, 0, 0, 0.06);
@@ -2840,20 +2375,14 @@
         :root.light-mode .type-preview-wrap::after {
             opacity: 0.06;
         }
-
-        /* --- Preset Chips --- */
         :root.light-mode .preset-chip:not(.active),
         :root.light-mode .monet-chip:not(.active) {
             background: rgba(0, 0, 0, 0.06);
             border: none;
         }
-
-        /* --- Slider Inactive Track --- */
         :root.light-mode .m3-v3-track-inactive {
             background: rgba(0, 0, 0, 0.1);
         }
-
-        /* --- Phone Frame (was dark hardcoded gradient) --- */
         :root.light-mode .phone-frame {
             background: linear-gradient(180deg, #e8e6f0, #d8d6e2 72%);
             border-color: rgba(0, 0, 0, 0.08);
@@ -2895,8 +2424,6 @@
         :root.light-mode .nav-pill-preview div.active {
             color: var(--md-sys-color-primary);
         }
-
-        /* --- Specimen Steps --- */
         :root.light-mode .specimen-step {
             background: rgba(0, 0, 0, 0.03);
             border-color: rgba(0, 0, 0, 0.06);
@@ -2908,8 +2435,6 @@
             background: hsla(var(--seed-h), var(--seed-s), 90%, 0.5);
             border-color: hsla(var(--seed-h), var(--seed-s), 50%, 0.35);
         }
-
-        /* --- Discord Widget --- */
         :root.light-mode .discord-profile-card {
             background: #f2f3f5;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
@@ -2922,8 +2447,6 @@
         :root.light-mode .discord-details,
         :root.light-mode .discord-state,
         :root.light-mode .discord-time { color: #4e5058; }
-
-        /* --- Premium Player Card --- */
         :root.light-mode .premium-player-card[data-style="blur"] {
             background-color: rgba(240, 238, 244, 0.8);
             color: var(--md-sys-color-on-surface);
@@ -2952,16 +2475,12 @@
         :root.light-mode .pp-lyric-line {
             color: var(--md-sys-color-on-surface);
         }
-
-        /* --- Compose Settings --- */
         :root.light-mode .compose-settings-item {
             background: rgba(0, 0, 0, 0.03);
         }
         :root.light-mode .compose-settings-item:hover {
             background: rgba(0, 0, 0, 0.06);
         }
-
-        /* --- Widget Feature --- */
         :root.light-mode .effect-pill.speed {
             color: #ffffff;
         }
@@ -2979,19 +2498,13 @@
             border-color: rgba(0, 0, 0, 0.08);
             box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
         }
-
-        /* --- Footer --- */
         :root.light-mode .footer-logo-svg {
             color: var(--md-sys-color-on-surface);
         }
-
-        /* --- Textes avec dégradé --- */
         :root.light-mode .display-large {
             background: linear-gradient(180deg, #1c1b1f 0%, #79747e 100%);
             -webkit-background-clip: text;
         }
-
-        /* --- Mobile bottom nav --- */
         :root.light-mode .m3-nav-rail {
             background: rgba(250, 248, 255, 0.92);
         }
@@ -3001,18 +2514,12 @@
                 border-color: rgba(0, 0, 0, 0.08);
             }
         }
-
-        /* --- Monet Chips / Color Swatches --- */
         :root.light-mode .widget-feature-copy .border-right {
             border-color: rgba(0, 0, 0, 0.05);
         }
-
-        /* --- Ripple --- */
         :root.light-mode span.md3-ripple {
             background-color: rgba(0, 0, 0, 0.12);
         }
-
-        /* --- Eightd control card --- */
         :root.light-mode .eightd-control-card {
             background: rgba(0, 0, 0, 0.03);
             border-color: rgba(0, 0, 0, 0.06);
@@ -3024,10 +2531,7 @@
         }
     </style>
 </head>
-
 <body>
-
-    <!-- Mobile Top Bar -->
     <div class="m3-mobile-top-bar">
         <div class="m3-top-bar-left">
             <div class="m3-menu-btn" onclick="toggleDrawer()">
@@ -3041,38 +2545,27 @@
             <span class="material-icons-round">search</span>
         </div>
     </div>
-
-    <!-- Navigation Drawer (Mobile) -->
     <div class="m3-drawer-scrim" id="drawer-scrim" onclick="closeDrawer()"></div>
     <aside class="m3-modal-drawer" id="mobile-drawer">
         <div class="m3-drawer-header">KittyTune Navigation</div>
-        
         <a href="index.html" class="m3-drawer-item" onclick="navigateSmoothly(event, 'index.html')">
             <span class="material-icons-round">home</span>
             <span>Home</span>
         </a>
-
         <a href="custom.html" class="m3-drawer-item active" onclick="navigateSmoothly(event, 'custom.html')">
             <span class="material-icons-round">palette</span>
             <span>Custom</span>
         </a>
-        
         <a href="audio-fx.html" class="m3-drawer-item" onclick="navigateSmoothly(event, 'audio-fx.html')">
             <span class="material-icons-round">graphic_eq</span>
             <span>Audio FX</span>
         </a>
-
         <div style="margin-top: auto;">
-            <!-- Séparateur subtil -->
             <div style="height: 1px; background: var(--md-sys-color-outline-variant); opacity: 0.3; margin: 8px 16px 16px;"></div>
-            
-            <!-- Bouton Thème -->
             <a href="#" class="m3-drawer-item" onclick="window.toggleThemeMode(); event.preventDefault();">
                 <span class="material-icons-round theme-toggle-icon">light_mode</span>
                 <span>Toggle Theme</span>
             </a>
-            
-            <!-- Version -->
             <div style="padding: 12px; opacity: 0.5; font-size: 0.8rem; text-align: center; color: var(--md-sys-color-on-surface);">
                 ( > . < ) v1.2.0
             </div>
@@ -3080,21 +2573,16 @@
     </aside>
     <div id="loading-screen">
         <div class="loader-svg-container">
-            <svg width="100%" height="100%" viewBox="4 4 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill="var(--md-sys-color-primary)" d="M20.9 10.4 21.4 9.5 21.9 8.7 22.5 7.8 23.2 7.2 24.2 7 25.1 7.4 25.7 8.1 26.2 9 26.8 9.8 27.3 10.6 28.1 11.2 29 11.3 30 11 30.9 10.6 31.8 10.3 32.8 9.9 33.7 10 34.5 10.6 34.9 11.5 34.8 12.5 34.8 13.5 34.7 14.5 34.7 15.5 35.2 16.3 36 16.8 37 17.1 37.9 17.3 38.9 17.5 39.8 17.9 40.4 18.7 40.5 19.7 40 20.5 39.4 21.3 38.7 22 38.1 22.8 37.6 23.7 37.7 24.6 38.3 25.5 38.9 26.2 39.6 27 40.2 27.7 40.5 28.7 40.3 29.6 39.5 30.3 38.6 30.6 37.6 30.8 36.7 31 35.7 31.3 35 31.9 34.6 32.8 34.7 33.8 34.8 34.8 34.9 35.8 34.8 36.8 34.3 37.6 33.4 38.1 32.4 38 31.5 37.6 30.6 37.2 29.7 36.9 28.7 36.6 27.8 36.9 27.1 37.6 26.6 38.5 26.1 39.3 25.5 40.2 24.8 40.8 23.8 41 22.9 40.6 22.3 39.9 21.2 38.2 20.7 37.4 19.9 36.8 19 36.7 18 37 17.1 37.4 16.2 37.7 15.2 38.1 14.3 38 13.5 37.4 13.1 36.5 13.2 35.5 13.2 34.5 13.2 33.5 13.3 32.5 12.8 31.7 12 31.2 11 31 10.1 30.7 9.1 30.5 8.2 30.1 7.6 29.3 7.5 28.3 8 27.5 8.7 26.7 9.3 26 9.9 25.2 10.4 24.3 10.3 23.4 9.7 22.5 9.1 21.8 8.4 21 7.8 20.3 7.5 19.3 7.7 18.4 8.5 17.7 9.4 17.4 10.4 17.2 11.3 17 12.3 16.7 13 16.1 13.4 15.2 13.3 14.2 13.2 13.1 12.2 13.2 11.2 13.7 10.4 14.6 9.9 15.6 10 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z">4.2 13.2 13.1 12.2 13.2 11.2 13.7 10.4 14.6 9.9 15.6 10 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z">
-                    <animate attributeName="d" dur="5s" repeatCount="indefinite" calcMode="spline" keySplines="0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8" keyTimes="0; 0.14; 0.14; 0.29; 0.29; 0.43; 0.43; 0.57; 0.57; 0.71; 0.71; 0.86; 0.86; 1" values="M20.9 10.4 21.4 9.5 21.9 8.7 22.5 7.8 23.2 7.2 24.2 7 25.1 7.4 25.7 8.1 26.2 9 26.8 9.8 27.3 10.6 28.1 11.2 29 11.3 30 11 30.9 10.6 31.8 10.3 32.8 9.9 33.7 10 34.5 10.6 34.9 11.5 34.8 12.5 34.8 13.5 34.7 14.5 34.7 15.5 35.2 16.3 36 16.8 37 17.1 37.9 17.3 38.9 17.5 39.8 17.9 40.4 18.7 40.5 19.7 40 20.5 39.4 21.3 38.7 22 38.1 22.8 37.6 23.7 37.7 24.6 38.3 25.5 38.9 26.2 39.6 27 40.2 27.7 40.5 28.7 40.3 29.6 39.5 30.3 38.6 30.6 37.6 30.8 36.7 31 35.7 31.3 35 31.9 34.6 32.8 34.7 33.8 34.8 34.8 34.9 35.8 34.8 36.8 34.3 37.6 33.4 38.1 32.4 38 31.5 37.6 30.6 37.2 29.7 36.9 28.7 36.6 27.8 36.9 27.1 37.6 26.6 38.5 26.1 39.3 25.5 40.2 24.8 40.8 23.8 41 22.9 40.6 22.3 39.9 21.8 39 21.2 38.2 20.7 37.4 19.9 36.8 19 36.7 18 37 17.1 37.4 16.2 37.7 15.2 38.1 14.3 38 13.5 37.4 13.1 36.5 13.2 35.5 13.2 34.5 13.3 33.5 13.3 32.5 12.8 31.7 12 31.2 11 31 10.1 30.7 9.1 30.5 8.2 30.1 7.6 29.3 7.5 28.3 8 27.5 8.7 26.7 9.3 26 9.9 25.2 10.4 24.3 10.3 23.4 9.7 22.5 9.1 21.8 8.4 21 7.8 20.3 7.5 19.3 7.7 18.4 8.5 17.7 9.4 17.4 10.4 17.2 11.3 17 12.3 16.7 13 16.1 13.4 15.2 13.3 14.2 13.2 13.1 12.2 13.2 11.2 13.7 10.4 14.6 9.9 15.6 10 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z; M20.3 8.6 21.1 8 22 7.6 23 7.3 23 7.3 24 7.2 25 7.3 25.9 7.5 26.8 8 27.6 8.6 28.4 9.1 28.4 9.1 29.3 9.6 30.3 9.8 31.3 9.9 32.3 10 33.3 10.2 34.2 10.6 34.2 10.6 35 11.2 35.7 11.9 36.3 12.7 36.7 13.6 36.9 14.6 37.2 15.5 37.2 15.5 37.6 16.5 38.2 17.3 38.9 18 39.6 18.7 40.2 19.5 40.6 20.4 40.6 20.4 40.9 21.3 41 22.3 40.9 23.3 40.6 24.3 40.2 25.2 39.8 26.1 39.8 26.1 39.5 27 39.4 28 39.5 29 39.6 30 39.5 31 39.3 32 39.3 32 38.9 32.9 38.3 33.7 37.6 34.4 36.8 35 35.9 35.4 35 35.8 35 35.8 34.1 36.3 33.4 37 32.9 37.9 32.3 38.7 31.6 39.4 30.8 40 30.8 40 29.9 40.4 28.9 40.7 27.9 40.8 27 40.7 26 40.4 25 40.1 25 40.1 24 40 23 40.1 22.1 40.4 21.1 40.7 20.1 40.8 19.1 40.7 19.1 40.7 18.2 40.5 17.3 40 16.4 39.5 15.7 38.8 15.2 37.9 14.6 37.1 14.6 37.1 13.9 36.4 13.1 35.8 12.2 35.4 11.3 35 10.5 34.4 9.7 33.8 9.7 33.8 9.1 32.9 8.7 32 8.5 31.1 8.4 30.1 8.5 29.1 8.6 28.1 8.6 28.1 8.5 27.1 8.3 26.1 7.8 25.2 7.4 24.3 7.1 23.4 7 22.4 7 22.4 7.1 21.4 7.3 20.4 7.8 19.5 8.3 18.7 9.1 18 9.8 17.3 9.8 17.3 10.4 16.5 10.8 15.6 11 14.6 11.3 13.7 11.7 12.8 12.2 11.9 12.2 11.9 12.9 11.2 13.8 10.7 14.7 10.2 15.6 10 16.6 9.9 17.6 9.8 17.6 9.8 18.6 9.6 19.5 9.2Z; M18.6 9.6 19.5 9.2 20.3 8.6 21.1 8 22 7.6 23 7.3 24 7.2 25 7.3 25.9 7.5 26.8 8 27.6 8.6 28.4 9.1 29.3 9.6 30.3 9.8 31.3 9.9 32.3 10 33.3 10.2 34.2 10.6 35 11.2 35.7 11.9 36.3 12.7 36.7 13.6 36.9 14.6 37.2 15.5 37.6 16.4 38.2 17.3 38.9 18 39.6 18.7 40.2 19.5 40.6 20.4 40.9 21.3 41 22.3 40.9 23.3 40.6 24.3 40.2 25.2 39.8 26.1 39.5 27 39.4 28 39.5 29 39.6 30 39.5 31 39.3 32 38.9 32.9 38.3 33.7 37.6 34.4 36.8 35 35.9 35.4 35 35.8 34.1 36.3 33.4 37 32.9 37.9 32.3 38.7 31.6 39.4 30.8 40 29.9 40.4 28.9 40.7 27.9 40.8 27 40.7 26 40.4 25 40.1 24 40 23 40.1 22.1 40.4 21.1 40.7 20.1 40.8 19.1 40.7 18.2 40.5 17.3 40 16.4 39.5 15.7 38.8 15.2 37.9 14.6 37.1 13.9 36.4 13.1 35.8 12.2 35.4 11.3 35 10.5 34.4 9.7 33.8 9.1 32.9 8.7 32 8.5 31.1 8.4 30.1 8.5 29.1 8.6 28.1 8.5 27.1 8.3 26.1 7.8 25.2 7.4 24.3 7.1 23.4 7 22.4 7.1 21.4 7.3 20.4 7.8 19.5 8.3 18.7 9.1 18 9.8 17.3 10.4 16.5 10.8 15.6 11 14.6 11.3 13.7 11.7 12.8 12.2 11.9 12.9 11.2 13.8 10.7 14.7 10.2 15.6 10 16.6 9.9 17.6 9.8Z; M18.6 9.9 19.5 9.4 20.3 8.8 21.1 8.2 22 7.8 23 7.6 23.9 7.5 24.9 7.6 25.9 7.8 26.8 8.2 27.6 8.7 28.5 9.3 29.3 9.9 30.1 10.5 30.9 11 31.7 11.6 32.5 12.2 33.3 12.8 33.7 13.1 34.1 13.3 34.9 13.9 35.7 14.5 36.6 15 37.4 15.6 38.2 16.2 39 16.8 39.7 17.5 40.2 18.3 40.7 19.2 40.9 20.1 41 21.1 40.9 22.1 40.7 23.1 40.3 24 40 24.9 39.7 25.9 39.4 26.8 39 27.8 38.7 28.7 38.4 29.6 38.1 30.6 38.1 30.6 37.8 31.5 37.5 32.5 37.2 33.4 36.9 34.4 36.6 35.3 36.2 36.2 35.7 37.1 35 37.8 34.3 38.4 33.4 38.9 32.5 39.3 31.5 39.5 30.5 39.5 30 39.5 29.5 39.5 28.5 39.5 27.5 39.5 26.5 39.5 25.5 39.4 24.5 39.4 23.6 39.4 22.6 39.4 21.6 39.5 20.6 39.5 19.6 39.5 18.6 39.5 17.6 39.5 16.6 39.5 15.6 39.3 14.7 39 13.8 38.5 13.1 37.9 12.4 37.2 11.9 36.3 11.5 35.4 11.2 34.5 10.9 33.5 10.6 32.6 10.3 31.6 10 30.7 9.7 29.7 9.3 28.8 9 27.9 8.7 26.9 8.4 26 8 25 7.7 24.1 7.4 23.2 7.1 22.2 7.1 21.7 7 21.2 7.1 20.2 7.3 19.3 7.7 18.4 8.3 17.5 8.9 16.8 9.7 16.2 10.5 15.6 11.4 15.1 12.2 14.5 13 14 13.8 13.4 14.6 12.8 15.4 12.3 16.2 11.7 17 11.1 17.8 10.5Z; M15.4 12.3 16.2 11.7 17 11.1 17.8 10.5 18.6 9.9 19.5 9.4 20.3 8.8 21.1 8.3 22 7.8 23 7.6 23.9 7.5 24.9 7.6 25.9 7.8 26.8 8.2 27.6 8.7 28.5 9.3 29.3 9.9 30.1 10.5 30.9 11 31.7 11.6 32.5 12.2 33.3 12.8 34.1 13.3 34.9 13.9 35.7 14.5 36.6 15 37.4 15.6 38.2 16.2 39 16.8 39.7 17.5 40.2 18.3 40.7 19.2 40.9 20.1 41 21.1 40.9 22.1 40.7 23.1 40.3 24 40 24.9 39.7 25.9 39.4 26.8 39 27.8 38.7 28.7 38.4 29.6 38.1 30.6 37.8 31.5 37.5 32.5 37.2 33.4 36.9 34.4 36.6 35.3 36.2 36.2 35.7 37.1 35 37.8 34.3 38.4 33.4 38.9 32.5 39.3 31.5 39.4 30.5 39.5 29.5 39.5 28.5 39.5 27.5 39.5 26.5 39.5 25.5 39.4 24.5 39.4 23.6 39.4 22.6 39.4 21.6 39.5 20.6 39.5 19.6 39.5 18.6 39.5 17.6 39.5 16.6 39.5 15.6 39.3 14.7 39 13.8 38.5 13.1 37.9 12.4 37.2 11.9 36.3 11.5 35.4 11.2 34.5 10.9 33.5 10.6 32.6 10.3 31.6 10 30.7 9.7 29.7 9.3 28.8 9 27.9 8.7 26.9 8.4 26 8 25 7.7 24.1 7.4 23.2 7.1 22.2 7 21.2 7.1 20.2 7.3 19.3 7.7 18.4 8.3 17.5 8.9 16.8 9.7 16.2 10.5 15.6 11.4 15.1 12.2 14.5 13 14 13.8 13.4 14.6 12.8Z; M17 12.8 17.7 12.1 18.5 11.5 19.3 10.9 20.1 10.5 20.2 10.4 21.1 10 22 9.7 23 9.4 24 9.2 25 9 26 9 27 9 27.6 9.1 28 9.1 28.9 9.3 29.9 9.6 30.9 9.9 31.8 10.3 32.6 10.8 33.5 11.3 34.3 11.9 34.6 12.2 35 12.6 35.7 13.3 36.4 14.1 36.9 14.9 37.4 15.8 37.9 16.6 38.3 17.6 38.6 18.5 38.6 18.7 38.8 19.5 38.9 20.5 39 21.5 39 22.5 38.9 23.5 38.7 24.5 38.5 25.4 38.2 26.3 38.2 26.4 37.8 27.3 37.4 28.2 36.8 29.1 36.2 29.9 35.6 30.6 34.9 31.3 34.2 32 33.8 32.5 33.5 32.8 32.8 33.5 32.1 34.2 31.4 34.9 30.7 35.6 29.9 36.2 29.1 36.8 28.2 37.3 27.9 37.5 27.4 37.8 26.4 38.2 25.5 38.5 24.5 38.7 23.5 38.9 22.5 39 21.5 39 20.5 38.9 20.4 38.9 19.5 38.8 18.6 38.6 17.6 38.3 16.7 37.9 15.8 37.5 14.9 37 14.1 36.4 13.4 35.8 13.3 35.8 12.6 35.1 12 34.3 11.3 33.5 10.8 32.7 10.3 31.8 9.9 30.9 9.6 30 9.4 29.3 9.3 29 9.1 28 9 27 9 26 9 25 9.2 24 9.4 23 9.6 22.1 9.8 21.7 10 21.1 10.4 20.2 10.9 19.4 11.4 18.5 12.1 17.8 12.7 17 13.4 16.3 14.2 15.6 14.2 15.5 14.9 14.9 15.6 14.2 16.3 13.5Z; M33.5 11.3 34.3 11.9 35 12.6 35.3 12.8 35.7 13.3 36.4 14.1 36.9 14.9 37.4 15.8 37.9 16.6 38.3 17.6 38.3 17.7 38.6 18.5 38.8 19.5 38.9 20.5 39 21.5 39 22.5 38.9 23.5 38.9 23.5 38.7 24.5 38.5 25.4 38.2 26.4 37.8 27.3 37.4 28.2 36.9 28.9 36.8 29.1 36.2 29.9 35.6 30.6 34.9 31.3 34.2 32 33.5 32.8 33.1 33.2 32.8 33.5 32.1 34.2 31.4 34.9 30.7 35.6 29.9 36.2 29.1 36.8 28.7 37 28.2 37.3 27.4 37.8 26.4 38.2 25.5 38.5 24.5 38.7 23.5 38.9 23.3 38.9 22.5 39 21.5 39 20.5 38.9 19.5 38.8 18.6 38.6 17.6 38.3 17.6 38.3 16.7 37.9 15.8 37.5 14.9 37 14.1 36.4 13.3 35.8 12.7 35.2 12.6 35.1 12 34.3 11.3 33.5 10.8 32.7 10.3 31.8 9.9 30.9 9.9 30.9 9.7 30.3 9.6 29.9 9.3 29 9.1 28 9 27 9 26 9 25 9.1 24.5 9.2 24 9.4 23 9.6 22.1 10 21.1 10.4 20.2 10.9 19.4 11.1 19.1 11.5 18.5 12.1 17.7 12.7 17 13.5 16.3 14.2 15.6 14.9 14.9 14.8 15.6 14.2 16.3 13.5 17 12.8 17.7 12.1 18.5 11.5 19.3 11 19.3 10.9 20.2 10.4 21.1 10 22 9.7 23 9.4 24 9.2 24.7 9.1 25 9 26 9 27 9 28 9.1 28.9 9.3 29.9 9.6 30.4 9.7 30.9 9.9 31.8 10.3 32.6 10.8Z; M33.2 11.1 34.2 11.2 35.1 11.4 36 11.9 36.6 12.7 36.8 13.7 36.9 14.7 36.9 15.7 37 16.7 37.1 17.7 37.3 18.6 37.9 19.4 38.5 20.2 39.2 20.9 39.8 21.7 40.5 22.4 40.9 23.3 41 24.3 40.7 25.2 40.1 26 39.4 26.8 38.8 27.5 38.1 28.3 37.5 29.1 37.1 30 37 31 37 31.9 36.9 32.9 36.8 33.9 36.7 34.9 36.2 35.8 35.5 36.4 34.5 36.8 33.6 36.8 32.6 36.9 31.6 37 30.6 37.1 29.6 37.2 28.8 37.7 28 38.4 27.3 39 26.5 39.7 25.8 40.3 24.9 40.8 23.9 41 23 40.8 22.1 40.2 21.4 39.6 20.6 38.9 19.9 38.3 19.1 37.6 18.3 37.2 17.3 37 16.3 37 15.3 36.9 14.3 36.8 13.3 36.7 12.4 36.4 11.7 35.7 11.3 34.8 11.2 33.8 11.1 32.8 11 31.8 11 30.8 10.9 29.9 10.4 29 9.8 28.2 9.1 27.5 8.5 26.7 7.8 26 7.3 25.1 7 24.2 7.1 23.2 7.6 22.3 8.2 21.6 8.9 20.8 9.5 20.1 10.2 19.3 10.7 18.5 10.9 17.5 11 16.5 11.1 15.6 11.1 14.6 11.2 13.6 11.5 12.6 12.1 11.9 13 11.4 13.9 11.2 14.9 11.1 15.9 11 16.9 11 17.9 10.9 18.8 10.6 19.6 10 20.4 9.3 21.1 8.6 21.9 8 22.6 7.4 23.6 7 24.6 7.1 25.5 7.5 26.2 8.1 27 8.7Z; M27.7 9.4 28.5 10 29.3 10.6 30.2 10.9 31.2 11 32.2 11.1 33.2 11.1 34.2 11.2 35.1 11.4 36 11.9 36.6 12.7 36.8 13.7 36.9 14.7 36.9 15.7 37 16.7 37.1 17.7 37.3 18.6 37.9 19.4 38.5 20.2 39.2 20.9 39.8 21.7 40.5 22.4 40.9 23.3 41 24.3 40.7 25.2 40.1 26 39.4 26.8 38.8 27.5 38.1 28.3 37.5 29.1 37.1 30 37 31 37 31.9 36.9 32.9 36.8 33.9 36.7 34.9 36.2 35.8 35.5 36.4 34.5 36.8 33.6 36.9 32.6 36.9 31.6 37 30.6 37.1 29.6 37.2 28.8 37.7 28 38.4 27.3 39 26.5 39.7 25.8 40.3 24.9 40.8 23.9 41 23 40.8 22.1 40.2 21.4 39.6 20.6 38.9 19.9 38.3 19.1 37.6 18.3 37.2 17.3 37 16.3 37 15.3 36.9 14.3 36.8 13.3 36.7 12.4 36.4 11.7 35.7 11.3 34.8 11.2 33.8 11.1 32.8 11 31.8 11 30.8 10.9 29.9 10.4 29 9.8 28.2 9.1 27.5 8.5 26.7 7.8 26 7.3 25.1 7 24.2 7.1 23.2 7.6 22.3 8.2 21.6 8.9 20.8 9.5 20.1 10.2 19.3 10.7 18.5 10.9 17.5 11 16.5 11.1 15.6 11.1 14.6 11.2 13.6 11.5 12.6 12.1 11.9 13 11.4 13.9 11.2 14.9 11.1 15.9 11 16.9 11 17.9 10.9 18.8 10.6 19.6 10 20.4 9.3 21.1 8.6 21.9 8 22.6 7.4 23.6 7 24.6 7.1 25.5 7.5 26.2 8.1 27 8.7Z; M27.9 10.6 28.8 10.3 29.8 10.1 30.8 10 31.8 10.1 32.7 10.3 33.7 10.6 34.6 11.1 34.8 11.3 35.4 11.7 36.1 12.4 36.7 13.1 37.2 14 37.6 14.9 37.9 15.9 38 16.9 38 17.9 37.8 18.8 37.5 19.8 37.1 20.7 36.8 21.6 36.5 22.6 36.4 23.6 36.4 24.4 36.4 24.6 36.5 25.5 36.8 26.5 37.2 27.4 37.6 28.3 37.8 29.3 38 30.3 38 31.3 37.8 32.3 37.6 33.2 37.2 34.1 36.6 35 36 35.7 35.3 36.4 34.4 37 34.1 37.2 33.6 37.4 32.6 37.8 31.6 37.9 30.6 38 29.7 37.9 28.7 37.7 27.8 37.3 26.8 36.9 25.9 36.6 24.9 36.4 23.9 36.4 22.9 36.4 22 36.6 21 37 20.1 37.4 20.1 37.4 19.2 37.7 18.2 37.9 17.2 38 16.2 37.9 15.3 37.7 14.3 37.4 13.4 36.9 12.6 36.3 11.9 35.6 11.3 34.9 10.8 34 10.4 33.1 10.1 32.1 10 31.1 10 30.2 10.2 29.2 10.5 28.2 10.9 27.3 11.2 26.4 11.5 25.4 11.6 24.4 11.6 23.4 11.5 22.5 11.2 21.5 10.8 20.6 10.4 19.7 10.2 18.7 10 17.7 10 16.7 10.2 15.7 10.4 14.8 10.8 13.9 11.4 13 12 12.3 12.7 11.6 13.6 11 14.4 10.6 15.4 10.2 16.4 10.1 17.4 10 18.3 10.1 19.3 10.3 20.2 10.7 21.2 11.1 22.1 11.4 23.1 11.6 24.1 11.6 25.1 11.6 26 11.4 27 11 27.9 10.6 28.8 10.3 29.8 10.1 30.8 10 31.8 10.1 32.7 10.3 33.7 10.6 34.6 11.1 35.4 11.7 36.1 12.4 36.7 13.1 37.2 14 37.6 14.9 37.9 15.9 38 16.9 38 17.8 37.8 18.8 37.5 19.8 37.1 20.7 36.8 21.6 36.5 22.6 36.4 23.6 36.4 24.6 36.5 25.5 36.8 26.5 37.2 27.4 37.6 28.3 37.8 29.3 38 30.3 38 31.3 37.8 32.3 37.6 33.2 37.2 34.1 36.6 35Z"></animate>
-                    <animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="5s" repeatCount="indefinite" calcMode="spline" keySplines="0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8" keyTimes="0; 0.14; 0.29; 0.43; 0.57; 0.71; 0.86; 1" values="0 24 24; 154 24 24; 309 24 24; 463 24 24; 617 24 24; 771 24 24; 926 24 24; 1080 24 24"></animateTransform>
-                </path>
+            <svg width="100%" height="100%" viewBox="-1 -1 2 2" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+                <polygon points="" fill="var(--md-sys-color-primary)" />
             </svg>
         </div>
     </div>
-
     <div id="app-layout">
         <aside class="m3-nav-rail">
             <div class="nav-fab" title="Search">
                 <span class="material-icons-round">search</span>
             </div>
-
             <a href="index.html" class="nav-rail-item" onclick="navigateSmoothly(event, 'index.html')">
                 <div class="nav-indicator">
                     <svg class="nav-logo-svg" viewBox="260 360 510 310" xmlns="http://www.w3.org/2000/svg">
@@ -3105,37 +2593,31 @@
                 </div>
                 <span class="nav-label">Home</span>
             </a>
-
             <a href="custom.html" class="nav-rail-item active" onclick="navigateSmoothly(event, 'custom.html')">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">palette</span>
                 </div>
                 <span class="nav-label">Custom</span>
             </a>
-
             <a href="audio-fx.html" class="nav-rail-item" onclick="navigateSmoothly(event, 'audio-fx.html')">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">graphic_eq</span>
                 </div>
                 <span class="nav-label">Audio FX</span>
             </a>
-
             <a href="#" class="nav-rail-item" onclick="switchTab(event, this)">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">emoji_events</span>
                 </div>
                 <span class="nav-label">Badges</span>
             </a>
-
             <a href="#" class="nav-rail-item" onclick="switchTab(event, this)">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">update</span>
                 </div>
                 <span class="nav-label">Updates</span>
             </a>
-
             <div class="nav-spacer"></div>
-
             <div class="nav-bottom-action" title="Play ambience">
                 <span class="material-icons-round">play_arrow</span>
             </div>
@@ -3143,7 +2625,6 @@
                 <span class="material-icons-round theme-toggle-icon">light_mode</span>
             </div>
         </aside>
-
         <main class="m3-main-content">
             <div id="app-wrapper">
                 <div class="custom-page">
@@ -3166,9 +2647,7 @@
                                         View widgets
                                     </a>
                                 </div>
-
                             </div>
-
                             <div class="lab-panel hero-lab reveal" id="typography-lab">
                                 <div class="lab-topbar">
                                     <div class="lab-title">
@@ -3184,14 +2663,12 @@
                                         <span class="material-icons-round" id="typo-autoplay-icon">pause</span> Auto play
                                     </button>
                                 </div>
-
                                 <div class="type-preview-wrap">
                                     <div class="type-preview" id="type-preview">
                                         <span id="dynamic-font-text">Breakcore</span>
                                         <small>Headlines, labels, player titles and settings rows inherit the same variable font engine.</small>
                                     </div>
                                 </div>
-
                                 <div class="preset-row" id="preset-row" aria-label="Typography presets" style="padding: 8px 6px; margin-left: -6px;">
                                     <button class="preset-chip active" data-preset="default">Default</button>
                                     <button class="preset-chip" data-preset="rounded">Rounded</button>
@@ -3202,7 +2679,6 @@
                                     <button class="preset-chip" data-preset="playful">Playful</button>
                                     <button class="preset-chip" data-preset="wide">Wide</button>
                                 </div>
-
                                 <div class="slider-bank">
                                     <div class="m3-range-wrapper">
                                         <div class="m3-range-info">
@@ -3218,7 +2694,6 @@
                                             </div>
                                         </div>
                                     </div>
-
                                     <div class="m3-range-wrapper">
                                         <div class="m3-range-info">
                                             <span><span class="material-icons-round">width_full</span> Width</span>
@@ -3233,7 +2708,6 @@
                                             </div>
                                         </div>
                                     </div>
-
                                     <div class="m3-range-wrapper">
                                         <div class="m3-range-info">
                                             <span><span class="material-icons-round">format_italic</span> Slant</span>
@@ -3248,7 +2722,6 @@
                                             </div>
                                         </div>
                                     </div>
-
                                     <div class="m3-range-wrapper">
                                         <div class="m3-range-info">
                                             <span><span class="material-icons-round">radio_button_checked</span> Roundness</span>
@@ -3263,7 +2736,6 @@
                                             </div>
                                         </div>
                                     </div>
-
                                     <div class="m3-range-wrapper">
                                         <div class="m3-range-info">
                                             <span><span class="material-icons-round">contrast</span> Grade</span>
@@ -3278,7 +2750,6 @@
                                             </div>
                                         </div>
                                     </div>
-
                                     <div class="m3-range-wrapper">
                                         <div class="m3-range-info">
                                             <span><span class="material-icons-round">visibility</span> Optical size</span>
@@ -3297,10 +2768,6 @@
                             </div>
                         </div>
                     </section>
-
-                    <!-- =========================================
-                         DISCORD RPC (REMPLACE LE SCROLL MORPH)
-                         ========================================= -->
                     <section class="section" id="discord-rpc">
                         <div class="container">
                             <div class="section-header reveal">
@@ -3310,27 +2777,22 @@
                                     <p>KittyTune natively connects to your Discord status. Choose exactly how your current track appears to your friends.</p>
                                 </div>
                             </div>
-
                             <div class="player-grid">
-                                <!-- Aperçu du Profil Discord -->
                                 <div class="discord-preview-panel reveal">
                                     <div class="discord-profile-card">
                                         <div class="discord-banner"></div>
                                         <div class="discord-profile-body">
                                             <div class="discord-avatar">
-                                                <!-- Petite image de profil générique -->
                                                 <img src="https://avatars.githubusercontent.com/u/75907296?v=4" alt="Avatar">
                                             </div>
                                             <div class="discord-user-info">
                                                 <div class="discord-username">alananasssss</div>
                                             </div>
-                                            
                                             <div id="discord-activity-wrap" style="transition: all 0.4s var(--ease-spring); transform-origin: top left;">
                                                 <div class="discord-activity-header">Listening to KittyTune</div>
                                                 <div class="discord-activity-body">
                                                     <div class="discord-asset">
                                                         <img src="https://i1.sndcdn.com/artworks-6o699KkKNS25gzyG-Qv7uzQ-t500x500.jpg" alt="Album Art">
-                                                        <!-- Le petit logo de ton app en bas à droite -->
                                                         <div class="discord-asset-small">
                                                             <div class="inner-icon"></div>
                                                         </div>
@@ -3346,20 +2808,14 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Contrôles Material 3 -->
                                 <div class="app-style-panel reveal">
                                     <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Status Display Mode</h4>
-                                    
                                     <div class="preset-row" id="discord-rpc-switcher" style="padding: 8px 6px; margin-left: -6px; margin-bottom: 32px; justify-content: flex-start;">
-                                        <!-- Les 3 modes exacts de ton fichier PlayerPreferences.kt -->
                                         <button class="preset-chip active" data-mode="ACTIVITY"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">album</span>Activity</button>
                                         <button class="preset-chip" data-mode="SONG"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">music_note</span>Song</button>
                                         <button class="preset-chip" data-mode="ARTIST"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">person</span>Artist</button>
                                     </div>
-
                                     <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Integration</h4>
-                                    
                                     <div class="compose-settings-group">
                                         <label class="compose-settings-item top bottom single">
                                             <div class="compose-settings-left">
@@ -3382,10 +2838,6 @@
                             </div>
                         </div>
                     </section>
-
-                    <!-- =========================================
-                         PLAYER STYLE SWITCHER
-                         ========================================= -->
                     <section class="section" id="player-style">
                         <div class="container">
                             <div class="section-header reveal">
@@ -3394,10 +2846,7 @@
                                     <h2>One player, three emotional backgrounds.</h2>
                                 </div>
                             </div>
-
                             <div class="player-grid">
-                                
-                                <!-- Le NOUVEAU lecteur (Premium Card) à gauche -->
                                 <div class="player-preview-panel reveal">
                                     <div class="premium-player-card" id="style-player" data-style="theme" style="--pp-cover: url('https://i1.sndcdn.com/artworks-6o699KkKNS25gzyG-Qv7uzQ-t500x500.jpg');">
                                         <div class="pp-bg" style="background-image: var(--pp-cover);"></div>
@@ -3407,7 +2856,6 @@
                                             </div>
                                             <div class="pp-lyrics">
                                                 <div class="pp-lyrics-inner" id="pp-lyrics-inner">
-                                                    <!-- Injecté par le JS -->
                                                 </div>
                                             </div>
                                         </div>
@@ -3425,19 +2873,14 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Panneau des réglages (Toggles) à droite -->
                                 <div class="app-style-panel reveal">
                                     <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Background Mode</h4>
-                                    
                                     <div class="preset-row" id="style-switcher" style="padding: 8px 6px; margin-left: -6px; margin-bottom: 32px; justify-content: flex-start;">
                                         <button class="preset-chip" data-style="blur"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">blur_on</span>Blur</button>
                                         <button class="preset-chip" data-style="gradient"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">gradient</span>Gradient</button>
                                         <button class="preset-chip active" data-style="theme"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">format_color_fill</span>Theme</button>
                                     </div>
-
                                     <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Options</h4>
-                                    
                                     <div class="compose-settings-group">
                                         <label class="compose-settings-item top">
                                             <div class="compose-settings-left">
@@ -3455,13 +2898,10 @@
                                                 </div>
                                             </div>
                                         </label>
-
                                         <label class="compose-settings-item middle">
                                             <div class="compose-settings-left">
-                                                <!-- Nouvelle icône -->
                                                 <div class="compose-settings-icon-wrapper"><span class="material-icons-round">all_inclusive</span></div>
                                                 <div class="compose-settings-text">
-                                                    <!-- Vrai paramètre tiré de KittyTune -->
                                                     <strong>Smart Auto-play</strong>
                                                     <span>Endless radio when queue ends</span>
                                                 </div>
@@ -3474,7 +2914,6 @@
                                                 </div>
                                             </div>
                                         </label>
-
                                         <label class="compose-settings-item bottom">
                                             <div class="compose-settings-left">
                                                 <div class="compose-settings-icon-wrapper"><span class="material-icons-round">contrast</span></div>
@@ -3496,10 +2935,6 @@
                             </div>
                         </div>
                     </section>
-
-                    <!-- =========================================
-                         MONET ENGINE (COLOR PALETTE SCREEN)
-                         ========================================= -->
                     <section class="section" id="monet-engine">
                         <div class="container">
                             <div class="section-header reveal">
@@ -3508,51 +2943,37 @@
                                     <h2>Color seeds that rewrite the whole interface.</h2>
                                 </div>
                             </div>
-
                             <div class="monet-studio reveal">
                                 <div class="monet-grid">
-                                    
-                                    <!-- Section Gauche : Contrôles -->
                                     <div class="monet-controls">
-                                        
                                         <div class="monet-controls-group">
                                             <h3>Theme colors applied to UI</h3>
-                                            <!-- Couleurs sur une seule ligne -->
                                             <div class="monet-swatches" id="color-grid">
-                                                <!-- Default KittyTune (Violet/Rose) -->
                                                 <button class="color-swatch active" data-color="#d0bcff" title="Default">
                                                     <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #d0bcff 0 180deg, #efb8c8 180deg 270deg, #4f378b 270deg 360deg);"></div>
                                                 </button>
-                                                <!-- Bleu -->
                                                 <button class="color-swatch" data-color="#2196f3" title="Blue">
                                                     <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #d3e3fd 0 180deg, #004a77 180deg 270deg, #0b57d0 270deg 360deg);"></div>
                                                 </button>
-                                                <!-- Vert -->
                                                 <button class="color-swatch" data-color="#4faf50" title="Green">
                                                     <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #c4eed0 0 180deg, #006b5f 180deg 270deg, #0f5223 270deg 360deg);"></div>
                                                 </button>
-                                                <!-- Monochrome (Gris) -->
                                                 <button class="color-swatch" data-color="#9e9e9e" title="Monochrome">
                                                     <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffffff 0 180deg, #a6a6a6 180deg 270deg, #5e5e5e 270deg 360deg);"></div>
                                                 </button>
-                                                <!-- Rouge -->
                                                 <button class="color-swatch" data-color="#f44336" title="Red">
                                                     <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffdad6 0 180deg, #93000a 180deg 270deg, #ba1a1a 270deg 360deg);"></div>
                                                 </button>
-                                                <!-- Orange -->
                                                 <button class="color-swatch" data-color="#ff9800" title="Orange">
                                                     <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffddb3 0 180deg, #5c6300 180deg 270deg, #8c5000 270deg 360deg);"></div>
                                                 </button>
-                                                <!-- Rose -->
                                                 <button class="color-swatch" data-color="#e91e63" title="Pink">
                                                     <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffd9e2 0 180deg, #8c0032 180deg 270deg, #bc004b 270deg 360deg);"></div>
                                                 </button>
                                             </div>
                                         </div>
-
                                         <div class="monet-controls-group" style="margin-bottom: 0;">
                                             <h3>Palette style</h3>
-                                            <!-- Boutons identiques à la typographie -->
                                             <div class="monet-chip-row" id="palette-styles">
                                                 <button class="monet-chip active" data-style="TonalSpot">TonalSpot</button>
                                                 <button class="monet-chip" data-style="Vibrant">Vibrant</button>
@@ -3560,16 +2981,12 @@
                                                 <button class="monet-chip" data-style="Monochrome">Monochrome</button>
                                             </div>
                                         </div>
-
                                         <div class="monet-controls-group" style="margin-top: 32px; margin-bottom: 0;">
                                             <button class="axis-chip monet-surprise-btn" id="monet-surprise-btn">
                                                 <span class="material-icons-round">auto_awesome</span> Generate new palette
                                             </button>
                                         </div>
-
                                     </div>
-
-                                    <!-- Section Droite : Aperçu Abstrait (Minimaliste) -->
                                     <div class="monet-preview-board">
                                         <div class="abstract-phone">
                                             <div class="ap-header">
@@ -3591,12 +3008,10 @@
                                             </div>
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
                     </section>
-
                     <section class="section" id="widgets-showcase">
                         <div class="container">
                             <div class="section-header reveal">
@@ -3605,7 +3020,6 @@
                                     <h2>Glance widgets that keep playback close.</h2>
                                 </div>
                             </div>
-
                             <div class="widgets-stage">
                                 <div class="studio-panel widget-feature reveal">
                                     <div class="widget-feature-copy">
@@ -3641,7 +3055,6 @@
                                                 </div>
                                             </div>
                                         </div>
-
                                         <div class="widget-card widget-mini">
                                             <div class="widget-cover">
                                                 <img src="https://i1.sndcdn.com/artworks-0TwSrEL9emw3S7oT-M05MWg-t500x500.jpg" alt="Mini widget cover">
@@ -3658,7 +3071,6 @@
                                         </div>
                                     </div>
                                 </div>
-
                                 <div class="studio-panel widget-feature reveal">
                                     <div class="widget-feature-copy">
                                         <span class="eyebrow"><span class="material-icons-round">search</span> Search and config</span>
@@ -3674,7 +3086,6 @@
                                                 <span class="material-icons-round">music_note</span>
                                             </div>
                                         </div>
-
                                         <div class="widget-config">
                                             <div class="config-line">
                                                 <span class="material-icons-round">bolt</span>
@@ -3702,9 +3113,7 @@
                             </div>
                         </div>
                     </section>
-
                 </div>
-
             <div class="squiggle-line">
                 <svg aria-hidden="true" width="100%" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
@@ -3726,7 +3135,6 @@
                     <rect width="100%" height="100%" fill="url(#squiggle-pattern)" mask="url(#mask)"></rect>
                 </svg>
             </div>
-
         <footer>
             <div class="container">
                 <div class="footer-grid">
@@ -3761,7 +3169,6 @@
                 </div>
             </div>
         </footer>
-
                 <script class="pjax-script">
                     (function () {
                         const presets = {
@@ -3774,13 +3181,10 @@
                             playful: { wght: 760, wdth: 118, slnt: -4, rond: 92, grad: 20, opsz: 36 },
                             wide: { wght: 520, wdth: 145, slnt: 0, rond: 36, grad: 0, opsz: 26 }
                         };
-
                         const pageState = {
                             currentColor: localStorage.getItem('kittytune_theme_color') || "#d0bcff",
                             paletteStyle: localStorage.getItem('kittytune_theme_style') || "TonalSpot"
                         };
-
-                        // --- LOGIQUE DU DISCORD RPC ---
                         function initDiscordRpc() {
                             const buttons = document.querySelectorAll("#discord-rpc-switcher .preset-chip");
                             const titleEl = document.getElementById("rpc-title");
@@ -3788,13 +3192,9 @@
                             const stateEl = document.getElementById("rpc-state");
                             const toggle = document.getElementById("rpc-toggle");
                             const wrap = document.getElementById("discord-activity-wrap");
-
                             if (!buttons.length) return;
-
                             const trackName = "METAMORPHOSIS";
                             const artistName = "INTERWORLD";
-
-                            // Gestion du switch ON/OFF
                             if (toggle && wrap) {
                                 toggle.addEventListener("change", () => {
                                     if (toggle.checked) {
@@ -3806,18 +3206,14 @@
                                         wrap.style.opacity = "0";
                                         wrap.style.transform = "scale(0.95)";
                                         wrap.style.pointerEvents = "none";
-                                        wrap.style.marginTop = "-40px"; // Simule une disparition de l'espace
+                                        wrap.style.marginTop = "-40px"; 
                                     }
                                 });
                             }
-
                             buttons.forEach(btn => {
                                 btn.addEventListener("click", () => {
-                                    // Effet Squish + Sélection
                                     buttons.forEach(b => b.classList.remove("active"));
                                     btn.classList.add("active");
-                                    
-                                    // Logique exacte tirée de ton fichier DiscordRPC.kt
                                     const mode = btn.dataset.mode;
                                     if (mode === "ACTIVITY") {
                                         titleEl.textContent = "KittyTune";
@@ -3835,7 +3231,6 @@
                                 });
                             });
                         }
-
                         function updateSliderVisual(slider) {
                             const input = slider.querySelector("input");
                             if (!input) return;
@@ -3845,7 +3240,6 @@
                             const percent = (value - min) / (max - min);
                             slider.style.setProperty("--val", percent.toFixed(4));
                         }
-
                         function applyAxes(values) {
                             Object.entries(values).forEach(([axis, value]) => {
                                 const input = document.getElementById(`axis-${axis}`);
@@ -3856,20 +3250,17 @@
                             });
                             document.querySelectorAll(".lab-slider").forEach(updateSliderVisual);
                         }
-
                         function initSliders() {
                             document.querySelectorAll(".lab-slider").forEach((slider) => {
                                 const input = slider.querySelector("input");
                                 if (!input) return;
                                 const axis = slider.dataset.axis;
                                 const output = document.getElementById(`out-${axis}`);
-
                                 const startDrag = () => slider.classList.add("is-dragging");
                                 const stopDrag = () => {
                                     slider.classList.remove("is-dragging");
                                     slider.classList.remove("no-transition");
                                 };
-
                                 input.addEventListener("pointerdown", startDrag);
                                 input.addEventListener("pointerup", stopDrag);
                                 input.addEventListener("pointercancel", stopDrag);
@@ -3879,12 +3270,10 @@
                                     document.documentElement.style.setProperty(`--lab-${axis}`, value);
                                     if (output) output.textContent = Math.round(value);
                                     updateSliderVisual(slider);
-                                    // On ne retire que les puces du TYPO LAB
                                     document.querySelectorAll("#preset-row .preset-chip").forEach((chip) => chip.classList.remove("active"));
                                 });
                                 updateSliderVisual(slider);
                             });
-
                             document.querySelectorAll("#preset-row .preset-chip").forEach((chip) => {
                                 chip.addEventListener("click", () => {
                                     const preset = presets[chip.dataset.preset];
@@ -3896,14 +3285,12 @@
                                 });
                             });
                         }
-
                         function initPlayerSwitcher() {
                             const player = document.getElementById("style-player");
                             const buttons = document.querySelectorAll("#style-switcher .preset-chip");
                             const pureBlackToggle = document.getElementById("pure-black-toggle");
                             const play = document.getElementById("style-play");
                             if (!player) return;
-
                             buttons.forEach((button) => {
                                 button.addEventListener("click", () => {
                                     buttons.forEach((item) => item.classList.remove("active"));
@@ -3911,13 +3298,11 @@
                                     player.dataset.style = button.dataset.style;
                                 });
                             });
-
                             if (pureBlackToggle) {
                                 pureBlackToggle.addEventListener("change", () => {
                                     player.dataset.pureBlack = pureBlackToggle.checked;
                                 });
                             }
-
                             if (play) {
                                 play.addEventListener("click", () => {
                                     const icon = play.querySelector(".material-icons-round");
@@ -3925,160 +3310,116 @@
                                     icon.textContent = icon.textContent.trim() === "pause" ? "play_arrow" : "pause";
                                 });
                             }
-
-                            // --- LOGIQUE INLINE LYRICS ---
                             const inlineToggle = document.getElementById('toggle-inline-lyrics');
                             const lyricsContainer = document.getElementById('pp-lyrics-inner');
-
-                            // Le passage de Metamorphosis
                             const lyricsData = [
                                 "I'm a pimp hoes fallin' for this pimpin' rap game",
                                 "Slowly hit the tempo, just enough to keep these bitches tame",
                                 "Makin' fame off a nigga dick, bitches suckin' dick",
                                 "Make it quick, off my dick, yeah, I took a foreign chick"
                             ];
-
                             if (lyricsContainer) {
                                 lyricsContainer.innerHTML = lyricsData.map((line, i) => 
                                     `<p class="pp-lyric-line ${i === 0 ? 'active' : ''}">${line}</p>`
                                 ).join('');
                             }
-
                             let activeLyricIndex = 0;
-
                             function updateLyricsScroll() {
                                 const lines = document.querySelectorAll('.pp-lyric-line');
                                 if(lines.length === 0 || !lyricsContainer) return;
-                                
                                 lines.forEach(l => l.classList.remove('active'));
                                 const activeLine = lines[activeLyricIndex];
                                 activeLine.classList.add('active');
-                                
-                                // Calcul mathématique pour centrer parfaitement la ligne active au milieu de la boîte
                                 const parentHeight = lyricsContainer.parentElement.clientHeight;
                                 const lineOffset = activeLine.offsetTop;
                                 const lineHeight = activeLine.clientHeight;
-                                
                                 const scrollY = (parentHeight / 2) - lineOffset - (lineHeight / 2);
                                 lyricsContainer.style.transform = `translateY(${scrollY}px)`;
                             }
-
                             if (inlineToggle && player) {
-                                inlineToggle.checked = false; // Désactivé par défaut
-                                
+                                inlineToggle.checked = false; 
                                 inlineToggle.addEventListener('change', (e) => {
                                     if (e.target.checked) {
                                         player.classList.add('show-lyrics');
-                                        setTimeout(updateLyricsScroll, 50); // Recentre une fois affiché
+                                        setTimeout(updateLyricsScroll, 50); 
                                     } else {
                                         player.classList.remove('show-lyrics');
                                     }
                                 });
                             }
-
-                            // Faux moteur de lecture (Scrolle les paroles toutes les 2.8s si le player tourne)
                             setInterval(() => {
                                 if (!player || !player.classList.contains('show-lyrics')) return;
-                                
                                 const playBtnIcon = document.querySelector('#style-play .material-icons-round');
-                                // On n'avance les paroles QUE si le bouton Play est en mode "Pause" (en cours de lecture)
                                 if (playBtnIcon && playBtnIcon.textContent.trim() === 'pause') {
                                     activeLyricIndex = (activeLyricIndex + 1) % lyricsData.length;
                                     updateLyricsScroll();
                                 }
                             }, 2800);
                         }
-
-                        // Fonction pour gérer la pastille unique (et la repeindre)
                         function updateDynamicSwatch(hex) {
                             const swatchContainer = document.getElementById("color-grid");
                             let dynamicSwatch = document.getElementById("dynamic-swatch");
-                            
-                            // Si la pastille n'existe pas, on la crée
                             if (!dynamicSwatch) {
                                 dynamicSwatch = document.createElement("button");
                                 dynamicSwatch.id = "dynamic-swatch";
                                 dynamicSwatch.className = "color-swatch";
                                 dynamicSwatch.title = "Custom Seed";
-                                
                                 const innerDiv = document.createElement("div");
                                 innerDiv.className = "color-swatch-inner";
                                 dynamicSwatch.appendChild(innerDiv);
-                                
                                 dynamicSwatch.addEventListener("click", () => {
                                     document.querySelectorAll(".color-swatch").forEach(item => item.classList.remove("active"));
                                     dynamicSwatch.classList.add("active");
                                     pageState.currentColor = dynamicSwatch.dataset.color;
                                     window.applyMonetTheme(pageState.currentColor, pageState.paletteStyle);
                                 });
-
-                                // L'insérer au début
                                 if (swatchContainer) {
                                     swatchContainer.insertBefore(dynamicSwatch, swatchContainer.firstChild);
                                 }
                             }
-
                             document.querySelectorAll(".color-swatch").forEach(s => s.classList.remove("active"));
                             dynamicSwatch.dataset.color = hex;
                             dynamicSwatch.classList.add("active");
-
-                            // Appliquer instantanément le dégradé en lisant les variables tout juste créées par le thème
                             const rootStyle = document.documentElement.style;
                             const primary = rootStyle.getPropertyValue('--md-sys-color-primary');
                             const tertiary = rootStyle.getPropertyValue('--md-sys-color-tertiary');
                             const container = rootStyle.getPropertyValue('--md-sys-color-primary-container');
-                            
                             const innerDiv = dynamicSwatch.querySelector('.color-swatch-inner');
                             if (innerDiv) {
                                 innerDiv.style.background = `conic-gradient(from 270deg, ${primary} 0 180deg, ${tertiary} 180deg 270deg, ${container} 270deg 360deg)`;
                             }
                         }
-
                         function generateAndAddRandomPalette() {
                             const randomHex = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
                             const styles = ["TonalSpot", "Vibrant", "Expressive", "Monochrome"];
                             const randomStyle = styles[Math.floor(Math.random() * styles.length)];
-                            
                             pageState.currentColor = randomHex;
                             pageState.paletteStyle = randomStyle;
-                            
-                            // On utilise notre nouvelle fonction globale
                             window.applyMonetTheme(randomHex, randomStyle);
-
                             document.querySelectorAll(".monet-chip").forEach(c => {
                                 c.classList.toggle("active", c.dataset.style === randomStyle);
                             });
-
                             updateDynamicSwatch(randomHex);
                             const swatchContainer = document.getElementById("color-grid");
                             if (swatchContainer) {
                                 swatchContainer.scrollTo({ left: 0, behavior: 'smooth' });
                             }
                         }
-
-                        // Fonction d'initialisation de l'interface qui lit le localStorage
                         function initMonet() {
                             const colorButtons = document.querySelectorAll(".color-swatch");
                             const styleButtons = document.querySelectorAll(".monet-chip");
                             const localSurpriseBtn = document.getElementById("monet-surprise-btn");
-
-                            // 1. Restaurer le style du bouton "TonalSpot/Vibrant/etc"
                             document.querySelectorAll(".monet-chip").forEach(c => {
                                 c.classList.toggle("active", c.dataset.style === pageState.paletteStyle);
                             });
-
-                            // 2. Restaurer la pastille de couleur
                             let matchedBaseColor = false;
                             colorButtons.forEach((button) => {
-                                // Si la couleur enregistrée correspond à une des pastilles par défaut
                                 if (button.dataset.color === pageState.currentColor) {
                                     button.classList.add("active");
                                     matchedBaseColor = true;
                                 } else {
                                     button.classList.remove("active");
                                 }
-
-                                // Event listener pour les pastilles de base
                                 button.addEventListener("click", () => {
                                     document.querySelectorAll(".color-swatch").forEach((item) => item.classList.remove("active"));
                                     button.classList.add("active");
@@ -4086,32 +3427,24 @@
                                     window.applyMonetTheme(pageState.currentColor, pageState.paletteStyle);
                                 });
                             });
-
-                            // Si la couleur sauvegardée venait du bouton "Surprise", on recrée la pastille personnalisée !
                             if (!matchedBaseColor) {
                                 updateDynamicSwatch(pageState.currentColor);
                             }
-
-                            // Event listener pour les styles de palette
                             styleButtons.forEach((button) => {
                                 button.addEventListener("click", () => {
                                     styleButtons.forEach((item) => item.classList.remove("active"));
                                     button.classList.add("active");
                                     pageState.paletteStyle = button.dataset.style;
                                     window.applyMonetTheme(pageState.currentColor, pageState.paletteStyle);
-                                    
-                                    // Met à jour la pastille surprise si elle est active, car le dégradé "Tertiary" change selon le style !
                                     if (document.getElementById("dynamic-swatch")?.classList.contains("active")) {
                                         updateDynamicSwatch(pageState.currentColor);
                                     }
                                 });
                             });
-
                             if (localSurpriseBtn) {
                                 localSurpriseBtn.addEventListener("click", generateAndAddRandomPalette);
                             }
                         }
-
                         function initReveal() {
                             const revealItems = document.querySelectorAll(".reveal");
                             if (!revealItems.length) return;
@@ -4122,68 +3455,50 @@
                                     observer.unobserve(entry.target);
                                 });
                             }, { threshold: 0.14 });
-
                             revealItems.forEach((item) => observer.observe(item));
                         }
-
-                        // --- AUTO-PLAY TYPOGRAPHY LAB ---
                         let typoInterval = null;
                         let isTypoPlaying = true;
                         const presetNames = ["default", "rounded", "elegant", "chunky", "compact", "slanted", "playful", "wide"];
                         let currentPresetIdx = 0;
-
                         window.stopTypoAutoPlay = function() {
                             if (typoInterval) clearInterval(typoInterval);
                             isTypoPlaying = false;
                             const icon = document.getElementById('typo-autoplay-icon');
                             if (icon) icon.textContent = 'play_arrow';
                         };
-
                         window.startTypoAutoPlay = function() {
                             if (typoInterval) clearInterval(typoInterval);
                             isTypoPlaying = true;
                             const icon = document.getElementById('typo-autoplay-icon');
                             if (icon) icon.textContent = 'pause';
-                            
                             typoInterval = setInterval(() => {
                                 currentPresetIdx = (currentPresetIdx + 1) % presetNames.length;
                                 const nextPresetBtn = document.querySelector(`.preset-chip[data-preset="${presetNames[currentPresetIdx]}"]`);
                                 if (nextPresetBtn) nextPresetBtn.click();
                             }, 2500);
                         };
-
                         function initTypoAutoPlay() {
                             const playBtn = document.getElementById('typo-autoplay-btn');
                             const labPanel = document.getElementById('typography-lab');
-                            
                             if (playBtn) {
                                 playBtn.addEventListener('click', () => {
                                     if (isTypoPlaying) window.stopTypoAutoPlay();
                                     else window.startTypoAutoPlay();
                                 });
                             }
-
                             if (labPanel) {
                                 labPanel.addEventListener('pointerdown', (e) => {
-                                    // On n'arrête l'autoplay QUE si on touche aux contrôles (sliders ou presets chips)
-                                    // Mais PAS si on clique sur le texte d'aperçu ou le reste du panel.
                                     const isControl = e.target.closest('.lab-slider, .preset-chip');
-                                    
                                     if (isControl && isTypoPlaying) {
                                         window.stopTypoAutoPlay();
                                     }
                                 });
                             }
-
                             window.startTypoAutoPlay();
                         }
-                        // --------------------------------
-
                         window.randomizeAll = function() {
-                            // 1. Randomize Theme (crée la nouvelle bulle synchronisée)
                             generateAndAddRandomPalette();
-
-                            // 2. Randomize Typography
                             const randomAxes = {
                                 wght: Math.floor(Math.random() * (1000 - 100 + 1)) + 100,
                                 wdth: Math.floor(Math.random() * (151 - 25 + 1)) + 25,
@@ -4193,13 +3508,9 @@
                                 opsz: Math.floor(Math.random() * (144 - 8 + 1)) + 8
                             };
                             applyAxes(randomAxes);
-                            
-                            // Stop autoplay to show the result
                             if (window.stopTypoAutoPlay) window.stopTypoAutoPlay();
-                            
                             document.getElementById("dynamic-font-text").textContent = "Surprise!";
                         };
-
                         window.initCustomStudio = function initCustomStudio() {
                             initReveal();
                             initSliders();
@@ -4208,27 +3519,21 @@
                             initMonet();
                             initTypoAutoPlay();
                         };
-
                         window.initCustomStudio();
                     })();
                 </script>
             </div>
         </main>
     </div>
-
     <script>
         (function () {
             const loader = document.getElementById("loading-screen");
             const appWrapper = document.getElementById("app-wrapper");
-
             setTimeout(() => {
                 if (loader) loader.classList.add("hidden");
                 if (appWrapper) appWrapper.classList.add("loaded");
-                setTimeout(() => {
-                    if (loader) loader.style.display = "none";
-                }, 500);
-            }, 800);
-
+                setTimeout(() => { if (loader) loader.style.display = "none"; }, 800);
+            }, 2000); 
             fetch("https://api.github.com/repos/alan7383/kittytune/releases/latest")
                 .then((r) => r.json())
                 .then((data) => {
@@ -4240,94 +3545,71 @@
                     }
                 })
                 .catch(() => {});
-
-            // --- Effet Ripple Material Design 3 pour les cartes et boutons ---
             document.querySelectorAll('.philosophy-item, .kt-btn-download, .kt-btn-outline, .btn, .nav-rail-item, .preset-chip, .theme-chip, .segmented-button, .filter-chip, .input-chip, .suggestion-chip, .assist-chip, .compose-settings-item').forEach(card => {
                 card.addEventListener('pointerdown', function (e) {
                     const rect = this.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     const y = e.clientY - rect.top;
-
                     const ripple = document.createElement('span');
                     ripple.classList.add('md3-ripple');
-
                     const size = Math.max(rect.width, rect.height) * 2;
                     ripple.style.width  = `${size}px`;
                     ripple.style.height = `${size}px`;
                     ripple.style.left   = `${x - size / 2}px`;
                     ripple.style.top    = `${y - size / 2}px`;
-
                     this.appendChild(ripple);
-
                     ripple.addEventListener('animationend', () => ripple.remove());
                 });
             });
         })();
-
         function switchTab(event, element) {
             event.preventDefault();
             document.querySelectorAll(".nav-rail-item").forEach((item) => item.classList.remove("active"));
             element.classList.add("active");
         }
-
         async function navigateSmoothly(event, url) {
             event.preventDefault();
-
-            // Prevent reloading if already on the same page
             const target = url.split('/').pop().replace('.html', '');
             const current = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
             if (target === current) {
                 if (typeof closeDrawer === 'function') closeDrawer();
                 return;
             }
-
-            // Stop any background processes (Typography Autoplay, etc.)
             if (typeof window.stopTypoAutoPlay === 'function') window.stopTypoAutoPlay();
-
             const loader = document.getElementById("loading-screen");
             const wrapper = document.getElementById("app-wrapper");
             const navRail = document.querySelector(".m3-nav-rail");
-
             if (!loader || !wrapper || !navRail) {
                 window.location.href = url;
                 return;
             }
-
             loader.style.display = "flex";
             void loader.offsetWidth;
             loader.classList.remove("hidden");
+            if (window.startM3Loader) window.startM3Loader();
             wrapper.classList.remove("loaded");
             wrapper.classList.add("unloading");
-
             try {
                 const response = await fetch(url);
                 const htmlText = await response.text();
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlText, "text/html");
-
                 setTimeout(() => {
                     document.title = doc.title;
                     wrapper.innerHTML = doc.getElementById("app-wrapper").innerHTML;
                     navRail.innerHTML = doc.querySelector(".m3-nav-rail").innerHTML;
-
-                    // Reset scroll position to top
                     window.scrollTo(0, 0);
-
-                    // Sync CSS styles (CORRIGÉ)
                     const newStyle = doc.getElementById('main-style');
                     const oldStyle = document.getElementById('main-style');
                     if (newStyle && oldStyle) {
-                        // Créer un nouveau nœud pour forcer le navigateur à recompiler le CSS
                         const styleClone = document.createElement('style');
                         styleClone.id = 'main-style';
                         styleClone.textContent = newStyle.textContent;
                         oldStyle.replaceWith(styleClone);
                     }
-
                     let cleanUrl = url.replace(/\.html$/, "");
                     if (cleanUrl === "index") cleanUrl = "./";
                     window.history.pushState({}, "", cleanUrl);
-
                     document.querySelectorAll(".pjax-script").forEach((script) => script.remove());
                     doc.querySelectorAll("script").forEach((oldScript) => {
                         if (oldScript.textContent.includes("navigateSmoothly") || oldScript.src) return;
@@ -4336,28 +3618,22 @@
                         newScript.classList.add("pjax-script");
                         document.body.appendChild(newScript);
                     });
-
                     wrapper.classList.remove("unloading");
                     wrapper.classList.add("loaded");
-
                     window.updateThemeIcons();
-
                     setTimeout(() => {
                         loader.classList.add("hidden");
-                        setTimeout(() => loader.style.display = "none", 500);
-                    }, 200);
+                        setTimeout(() => loader.style.display = "none", 800); 
+                    }, 800); 
                 }, 550);
             } catch (e) {
                 window.location.href = url;
             }
         }
-
-        // --- Mobile Drawer Logic ---
         function toggleDrawer() {
             document.getElementById('mobile-drawer').classList.toggle('show');
             document.getElementById('drawer-scrim').classList.toggle('show');
         }
-
         function closeDrawer() {
             const drawer = document.getElementById('mobile-drawer');
             const scrim = document.getElementById('drawer-scrim');
@@ -4365,12 +3641,11 @@
             if (scrim) scrim.classList.remove('show');
         }
     </script>
-
     <div class="rain-miniplayer" onclick="window.toggleRainMute()" title="Toggle ambience">
         <span class="material-icons-round">cloud_sync</span>
     </div>
-    <script src="fx-player.js"></script>
-    <script src="rain-manager.js"></script>
+    <script src="js/fx-player.js"></script>
+    <script src="js/rain-manager.js"></script>
+    <script src="js/m3-loader.js"></script>
 </body>
-
 </html>

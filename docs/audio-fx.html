@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +8,6 @@
         content="An Android music player built with Jetpack Compose. SoundCloud, YouTube, local files — with real-time effects like Nightcore and 8D. No accounts, no ads.">
     <meta name="keywords"
         content="KittyTune, FOSS, Android Music Player, Material You, SoundCloud Client, Nightcore, Audio FX, Jetpack Compose, Ad-free, Indie App">
-
     <link rel="canonical" href="https://alan7383.github.io/kittytune/" />
     <link rel="icon" type="image/x-icon" href="assets/images/logo.ico">
     <meta name="theme-color" content="#141218">
@@ -46,15 +44,12 @@
             "license": "GPL-3.0 License" 
             }
         </script>
-
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Outfit:wght@300;500;700;800&display=swap"
         rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-
     <script src="theme-engine.js"></script>
     <style id="main-style">
         :root {
@@ -62,47 +57,38 @@
             --md-sys-color-on-primary: #381e72;
             --md-sys-color-primary-container: #4f378b;
             --md-sys-color-on-primary-container: #eaddff;
-
             --md-sys-color-secondary: #ccc2dc;
             --md-sys-color-on-secondary: #332d41;
-
             --md-sys-color-tertiary: #efb8c8;
             --md-sys-color-on-tertiary: #492532;
             --md-sys-color-tertiary-container: #633b48;
             --md-sys-color-on-tertiary-container: #ffd8e4;
-
             --md-sys-color-background: #0f0d13;
             --md-sys-color-surface: #141218;
             --md-sys-color-surface-container-low: #1d1b20;
             --md-sys-color-surface-container: #211f26;
             --md-sys-color-surface-container-high: #2b2930;
             --md-sys-color-surface-container-highest: #36343b;
-
             --md-sys-color-on-surface: #e6e1e5;
             --md-sys-color-on-surface-variant: #cac4d0;
             --md-sys-color-outline: #938f99;
             --md-sys-color-outline-variant: #49454f;
-
             --radius-full: 9999px;
             --radius-xl: 42px;
             --radius-l: 28px;
             --radius-m: 16px;
-
             --font-display: 'Outfit', sans-serif;
             --font-body: 'Roboto Flex', sans-serif;
-
             --glow-primary: rgba(208, 188, 255, 0.15);
             --glow-tertiary: rgba(239, 184, 200, 0.12);
             --ease-expressive: cubic-bezier(0.2, 0, 0, 1);
             --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-
         body {
             background-color: var(--md-sys-color-background);
             color: var(--md-sys-color-on-surface);
@@ -110,53 +96,42 @@
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
-
         .material-icons-round {
             user-select: none;
             -webkit-user-select: none;
         }
-
         .reveal {
             opacity: 0;
             transform: translateY(40px);
             transition: opacity 0.7s var(--ease-expressive), transform 0.7s var(--ease-expressive);
         }
-
         .reveal.visible {
             opacity: 1;
             transform: translateY(0);
         }
-
         .reveal-delay-1 {
             transition-delay: 0.1s;
         }
-
         .reveal-delay-2 {
             transition-delay: 0.2s;
         }
-
         .reveal-delay-3 {
             transition-delay: 0.3s;
         }
-
         .reveal-delay-4 {
             transition-delay: 0.4s;
         }
-
         .reveal-delay-5 {
             transition-delay: 0.5s;
         }
-
         @keyframes shimmer-slide {
             0% {
                 transform: translateX(-100%);
             }
-
             100% {
                 transform: translateX(200%);
             }
         }
-
         #app-wrapper {
             opacity: 1;
             filter: blur(20px);
@@ -167,18 +142,16 @@
                 filter 0.8s var(--ease-expressive);
             pointer-events: none;
         }
-
         #app-wrapper.loaded {
             opacity: 1;
             filter: blur(0);
             transform: translateY(0);
             pointer-events: all;
         }
-
         #loading-screen {
             position: fixed;
             inset: 0;
-            background-color: rgba(15, 13, 19, 0.7); /* Slightly transparent surface */
+            background-color: rgba(15, 13, 19, 0.7); 
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             display: flex;
@@ -187,26 +160,22 @@
             z-index: 9999;
             transition: opacity 0.8s var(--ease-expressive), visibility 0.8s, backdrop-filter 0.8s var(--ease-expressive), filter 0.8s;
         }
-
         #loading-screen.hidden {
             opacity: 0;
             visibility: hidden;
             backdrop-filter: blur(0px);
             -webkit-backdrop-filter: blur(0px);
         }
-
         .loader-svg-container {
             width: 72px;
             height: 72px;
         }
-
         h1,
         h2,
         h3,
         h4 {
             font-family: var(--font-display);
         }
-
         .display-large {
             font-size: clamp(3.5rem, 8vw, 6rem);
             font-weight: 800;
@@ -216,7 +185,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-
         .headline-large {
             font-size: clamp(2.5rem, 5vw, 4rem);
             font-weight: 700;
@@ -224,7 +192,6 @@
             color: var(--md-sys-color-on-surface);
             line-height: 1.1;
         }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -247,39 +214,32 @@
             position: relative;
             overflow: hidden;
         }
-
         .btn-primary {
             background-color: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
-
         .btn-primary:hover {
             box-shadow: 0 6px 20px rgba(208, 188, 255, 0.4);
             transform: scale(1.02);
         }
-
         .btn-secondary {
             background-color: transparent;
             border: 1px solid var(--md-sys-color-outline);
             color: var(--md-sys-color-primary);
         }
-
         .btn-secondary:hover {
             border-color: var(--md-sys-color-primary);
             background-color: var(--md-sys-color-surface-container-low);
         }
-
         .btn:active {
             border-radius: 12px;
         }
-
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 24px;
         }
-
         header.navbar {
             padding: 24px 0;
             display: flex;
@@ -288,7 +248,6 @@
             position: relative;
             z-index: 100;
         }
-
         .logo {
             font-family: var(--font-display);
             font-size: 1.5rem;
@@ -299,50 +258,38 @@
             align-items: center;
             gap: 8px;
         }
-
         .logo span {
             color: var(--md-sys-color-primary);
         }
-
-        /* Easter egg logo icon */
         .logo-icon-ee {
             cursor: pointer;
             user-select: none;
             -webkit-user-select: none;
             transition: transform 0.15s var(--ease-spring);
         }
-
         .logo-icon-ee:active {
             transform: scale(0.85);
         }
-
         .logo-icon-ee.wiggle {
             animation: ee-wiggle 0.4s var(--ease-spring);
         }
-
         @keyframes ee-wiggle {
             0% {
                 transform: rotate(0deg);
             }
-
             25% {
                 transform: rotate(-12deg) scale(1.15);
             }
-
             50% {
                 transform: rotate(8deg) scale(1.1);
             }
-
             75% {
                 transform: rotate(-4deg);
             }
-
             100% {
                 transform: rotate(0deg);
             }
         }
-
-        /* --- Easter Egg Toast --- */
         .ee-overlay {
             position: fixed;
             inset: 0;
@@ -356,14 +303,12 @@
             pointer-events: none;
             transition: background 0.5s ease, backdrop-filter 0.5s ease;
         }
-
         .ee-overlay.active {
             background: rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             pointer-events: all;
         }
-
         .ee-card {
             background: rgba(33, 31, 38, 0.85);
             backdrop-filter: blur(32px);
@@ -376,23 +321,18 @@
             text-align: center;
             position: relative;
             overflow: hidden;
-
             opacity: 0;
             transform: scale(0.85) translateY(30px);
             transition: all 0.6s var(--ease-spring);
-
             box-shadow:
                 0 32px 64px rgba(0, 0, 0, 0.6),
                 0 0 120px rgba(208, 188, 255, 0.06),
                 inset 0 1px 1px rgba(255, 255, 255, 0.08);
         }
-
         .ee-overlay.active .ee-card {
             opacity: 1;
             transform: scale(1) translateY(0);
         }
-
-        /* Animated gradient border glow */
         .ee-card::before {
             content: '';
             position: absolute;
@@ -412,20 +352,15 @@
             pointer-events: none;
             z-index: -1;
         }
-
         @keyframes ee-border-glow {
-
             0%,
             100% {
                 background-position: 0% 50%;
             }
-
             50% {
                 background-position: 100% 50%;
             }
         }
-
-        /* Sparkle particles behind */
         .ee-card::after {
             content: '✧ ✦ ✧ ✦ ✧';
             position: absolute;
@@ -439,19 +374,15 @@
             white-space: nowrap;
             animation: ee-sparkle-drift 6s ease-in-out infinite;
         }
-
         @keyframes ee-sparkle-drift {
-
             0%,
             100% {
                 transform: translate(-50%, -50%) rotate(0deg);
             }
-
             50% {
                 transform: translate(-50%, -50%) rotate(3deg) scale(1.05);
             }
         }
-
         .ee-kaomoji {
             font-size: 3.5rem;
             display: block;
@@ -460,7 +391,6 @@
             animation: float 4s ease-in-out infinite;
             filter: drop-shadow(0 0 20px rgba(239, 184, 200, 0.3));
         }
-
         .ee-title {
             font-family: var(--font-display);
             font-size: 1.1rem;
@@ -469,7 +399,6 @@
             margin-bottom: 8px;
             letter-spacing: 0.02em;
         }
-
         .ee-name {
             font-family: var(--font-display);
             font-size: 2rem;
@@ -480,7 +409,6 @@
             margin-bottom: 24px;
             letter-spacing: -0.02em;
         }
-
         .ee-link {
             display: inline-flex;
             align-items: center;
@@ -497,19 +425,16 @@
             border: 1px solid rgba(208, 188, 255, 0.2);
             box-shadow: 0 4px 16px rgba(208, 188, 255, 0.15);
         }
-
         .ee-link:hover {
             transform: scale(1.05);
             box-shadow: 0 8px 32px rgba(208, 188, 255, 0.3);
             border-color: var(--md-sys-color-primary);
         }
-
         .ee-link svg {
             width: 20px;
             height: 20px;
             fill: currentColor;
         }
-
         .ee-close {
             position: absolute;
             top: 16px;
@@ -527,20 +452,16 @@
             transition: all 0.2s;
             font-size: 20px;
         }
-
         .ee-close:hover {
             background: rgba(255, 255, 255, 0.12);
             color: var(--md-sys-color-on-surface);
         }
-
         .ee-hint {
             margin-top: 20px;
             font-size: 0.75rem;
             color: var(--md-sys-color-outline);
             opacity: 0.6;
         }
-
-        /* --- Counter toast (small) --- */
         .ee-counter-toast {
             position: fixed;
             bottom: 32px;
@@ -562,25 +483,21 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
             white-space: nowrap;
         }
-
         .ee-counter-toast.show {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
-
         .ee-counter-toast .ee-ct-icon {
             color: var(--md-sys-color-primary);
             font-size: 18px;
             vertical-align: middle;
             margin-right: 6px;
         }
-
         .hero {
             padding: 80px 0 100px;
             text-align: center;
             position: relative;
         }
-
         .hero-kaomoji {
             font-size: clamp(3rem, 6vw, 5rem);
             display: block;
@@ -589,7 +506,6 @@
             font-weight: 300;
             animation: float 6s ease-in-out infinite;
         }
-
         .hero p {
             font-size: clamp(1.1rem, 2vw, 1.4rem);
             color: var(--md-sys-color-on-surface-variant);
@@ -598,7 +514,6 @@
             line-height: 1.5;
             font-weight: 400;
         }
-
         .web-player-preview {
             background: rgba(30, 27, 33, 0.75);
             backdrop-filter: blur(24px);
@@ -617,7 +532,6 @@
             overflow: hidden;
             transition: all 0.3s ease;
         }
-
         .player-top {
             width: 100%;
             display: flex;
@@ -625,7 +539,6 @@
             align-items: center;
             margin-bottom: 20px;
         }
-
         .player-middle {
             width: 100%;
             display: flex;
@@ -633,11 +546,9 @@
             align-items: center;
             margin-bottom: 20px;
         }
-
         .player-bottom {
             width: 100%;
         }
-
         .album-art-wrapper {
             width: 180px;
             height: 180px;
@@ -647,14 +558,12 @@
             z-index: 2;
             flex-shrink: 0;
         }
-
         .album-art-wrapper img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             border-radius: 20px;
         }
-
         .art-glow {
             position: absolute;
             inset: 0;
@@ -665,7 +574,6 @@
             transform: scale(1.1);
             border-radius: 50%;
         }
-
         .play-overlay {
             position: absolute;
             inset: 0;
@@ -678,20 +586,16 @@
             transition: opacity 0.3s;
             cursor: pointer;
         }
-
         .album-art-wrapper:hover .play-overlay {
             opacity: 1;
         }
-
         .track-info {
             margin-top: 20px;
             width: 100%;
         }
-
         .info-header {
             margin-bottom: 6px;
         }
-
         .badge-source {
             background: rgba(255, 85, 0, 0.15);
             color: #ff5500;
@@ -704,7 +608,6 @@
             align-items: center;
             gap: 4px;
         }
-
         .track-info h3 {
             font-size: 1.5rem;
             margin-bottom: 4px;
@@ -714,13 +617,11 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
         .track-info p {
             color: var(--md-sys-color-on-surface-variant);
             font-size: 1rem;
             font-weight: 500;
         }
-
         .play-fab-large {
             width: 72px;
             height: 72px;
@@ -740,21 +641,17 @@
             position: relative;
             overflow: hidden;
         }
-
         .play-fab-large .material-icons-round {
             font-size: 42px;
             line-height: 1;
         }
-
         .play-fab-large:hover {
             transform: scale(1.02);
         }
-
         .play-fab-large:active {
             border-radius: 12px;
             transform: scale(0.92);
         }
-
         @media (min-width: 900px) {
             .play-fab-large {
                 width: 88px;
@@ -765,12 +662,10 @@
             .play-fab-large:active {
                 border-radius: 16px;
             }
-
             .play-fab-large .material-icons-round {
                 font-size: 48px;
             }
         }
-
         .waveform {
             display: flex;
             align-items: center;
@@ -779,7 +674,6 @@
             margin-top: 16px;
             opacity: 0.6;
         }
-
         .bar {
             width: 4px;
             background: var(--md-sys-color-on-surface);
@@ -788,16 +682,13 @@
             animation: wave 1.2s ease-in-out infinite;
             animation-play-state: paused;
         }
-
         .waveform.playing .bar {
             animation-play-state: running;
             background: var(--md-sys-color-primary);
         }
-
         .bar:nth-child(odd) {
             height: 60%;
         }
-
         .progress-row {
             display: flex;
             align-items: center;
@@ -808,7 +699,6 @@
             font-family: monospace;
             margin-bottom: 16px;
         }
-
         .progress-container {
             flex: 1;
             height: 16px;
@@ -816,7 +706,6 @@
             align-items: center;
             cursor: pointer;
         }
-
         .progress-track {
             width: 100%;
             height: 4px;
@@ -824,21 +713,18 @@
             border-radius: 4px;
             overflow: hidden;
         }
-
         .progress-fill {
             width: 0%;
             height: 100%;
             background: var(--md-sys-color-primary);
             border-radius: 4px;
         }
-
         .fx-rack {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 6px;
         }
-
         .effect-chip {
             padding: 6px 14px;
             border-radius: 10px;
@@ -850,17 +736,14 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-
         .effect-chip:hover {
             background: rgba(255, 255, 255, 0.05);
         }
-
         .effect-chip.active {
             background: var(--md-sys-color-secondary-container);
             color: var(--md-sys-color-on-secondary-container);
             border-color: transparent;
         }
-
         .speed-control {
             display: flex;
             align-items: center;
@@ -869,23 +752,19 @@
             background: rgba(0, 0, 0, 0.2);
             border-radius: 10px;
         }
-
         .speed-control span {
             font-size: 14px;
             color: var(--md-sys-color-primary);
         }
-
         #speed-value {
             font-size: 0.8rem;
             min-width: 28px;
         }
-
         .mini-slider {
             width: 50px;
             height: 20px;
             accent-color: var(--md-sys-color-primary);
         }
-
         @media (min-width: 900px) {
             .web-player-preview {
                 max-width: 850px;
@@ -894,7 +773,6 @@
                 align-items: stretch;
                 padding: 0;
             }
-
             .player-top {
                 flex: 0 0 300px;
                 background: rgba(0, 0, 0, 0.15);
@@ -903,21 +781,17 @@
                 justify-content: center;
                 border-right: 1px solid rgba(255, 255, 255, 0.05);
             }
-
             .album-art-wrapper {
                 width: 140px;
                 height: 140px;
                 margin-bottom: 0;
             }
-
             .track-info {
                 margin-top: 24px;
             }
-
             .track-info h3 {
                 font-size: 1.4rem;
             }
-
             .web-player-preview {
                 display: grid;
                 grid-template-columns: 280px 1fr;
@@ -926,13 +800,11 @@
                     "sidebar controls"
                     "sidebar controls";
             }
-
             .player-top {
                 grid-area: sidebar;
                 height: 100%;
                 border-right: 1px solid rgba(255, 255, 255, 0.08);
             }
-
             .player-middle {
                 grid-column: 2;
                 grid-row: 1;
@@ -940,56 +812,46 @@
                 justify-content: flex-end;
                 margin-bottom: 0;
             }
-
             .player-bottom {
                 grid-column: 2;
                 grid-row: 2;
                 padding: 10px 40px 40px;
             }
-
             .play-fab-large {
                 width: 80px;
                 height: 80px;
                 margin-bottom: 20px;
             }
-
             .waveform {
                 width: 100%;
                 justify-content: center;
                 height: 32px;
             }
-
             .fx-rack {
                 justify-content: flex-start;
             }
-
             .progress-row {
                 margin-top: 10px;
             }
         }
-
         .features-section {
             padding: 40px 0;
         }
-
         .section-header {
             text-align: center;
             margin-bottom: 80px;
         }
-
         .section-header p {
             color: var(--md-sys-color-outline);
             margin-top: 12px;
             font-size: 1.3rem;
         }
-
         .expressive-grid {
             display: grid;
             grid-template-columns: repeat(12, 1fr);
             gap: 20px;
             grid-auto-rows: minmax(280px, auto);
         }
-
         .expressive-card {
             background: linear-gradient(135deg, rgba(29, 27, 32, 0.9), rgba(33, 31, 38, 0.7));
             backdrop-filter: blur(20px);
@@ -1005,7 +867,6 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             cursor: default;
         }
-
         .expressive-card::before {
             content: '';
             position: absolute;
@@ -1019,11 +880,9 @@
             transition: background 0.5s ease;
             pointer-events: none;
         }
-
         .expressive-card:hover::before {
             background: linear-gradient(135deg, var(--card-accent, var(--md-sys-color-primary)), transparent 60%);
         }
-
         .expressive-card:hover {
             transform: translateY(-6px) scale(1.01);
             box-shadow:
@@ -1031,7 +890,6 @@
                 0 0 80px var(--card-glow, rgba(208, 188, 255, 0.06));
             border-color: rgba(255, 255, 255, 0.08);
         }
-
         .kaomoji-hero {
             position: absolute;
             top: 50%;
@@ -1046,18 +904,15 @@
             transition: all 0.6s var(--ease-expressive);
             font-family: var(--font-display);
         }
-
         .expressive-card:hover .kaomoji-hero {
             opacity: 0.08;
             transform: translate(-50%, -50%) rotate(0deg) scale(1.15);
             color: var(--card-accent, var(--md-sys-color-primary));
         }
-
         .card-content {
             position: relative;
             z-index: 2;
         }
-
         .card-icon {
             font-size: 36px;
             color: var(--card-accent, var(--md-sys-color-primary));
@@ -1072,14 +927,12 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
             transition: all 0.4s var(--ease-expressive);
         }
-
         .expressive-card:hover .card-icon {
             background: rgba(208, 188, 255, 0.08);
             border-color: rgba(208, 188, 255, 0.15);
             box-shadow: 0 0 24px var(--card-glow, rgba(208, 188, 255, 0.1));
             transform: scale(1.05);
         }
-
         .expressive-card h3 {
             font-size: 1.7rem;
             margin-bottom: 12px;
@@ -1087,45 +940,36 @@
             line-height: 1.15;
             letter-spacing: -0.01em;
         }
-
         .expressive-card p {
             font-size: 1.05rem;
             color: var(--md-sys-color-on-surface-variant);
             line-height: 1.55;
         }
-
         .span-4 {
             grid-column: span 4;
         }
-
         .span-6 {
             grid-column: span 6;
         }
-
         .span-8 {
             grid-column: span 8;
         }
-
         .variant-primary {
             --card-accent: var(--md-sys-color-primary);
             --card-glow: rgba(208, 188, 255, 0.08);
         }
-
         .variant-secondary {
             --card-accent: var(--md-sys-color-secondary);
             --card-glow: rgba(204, 194, 220, 0.08);
         }
-
         .variant-tertiary {
             --card-accent: var(--md-sys-color-tertiary);
             --card-glow: rgba(239, 184, 200, 0.08);
         }
-
         .showcase-section {
             padding: 100px 0 60px;
             overflow: hidden;
         }
-
         .showcase-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1136,20 +980,16 @@
             transform: translateY(60px);
             transition: all 0.8s cubic-bezier(0.2, 0, 0, 1);
         }
-
         .showcase-row:last-child {
             margin-bottom: 0;
         }
-
         .showcase-row.visible {
             opacity: 1;
             transform: translateY(0);
         }
-
         .showcase-row.reverse .text-col {
             order: 2;
         }
-
         .step-number {
             font-size: 6rem;
             font-weight: 900;
@@ -1161,19 +1001,16 @@
             z-index: -1;
             opacity: 0.5;
         }
-
         .text-col h3 {
             font-size: 3rem;
             margin-bottom: 24px;
             line-height: 1.1;
         }
-
         .text-col p {
             font-size: 1.25rem;
             color: var(--md-sys-color-on-surface-variant);
             line-height: 1.6;
         }
-
         .highlight {
             color: var(--md-sys-color-primary);
             font-weight: 600;
@@ -1184,14 +1021,12 @@
             border-radius: 50px;
             font-size: 0.9rem;
         }
-
         .showcase-image-wrapper {
             position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
         }
-
         .phone-mockup {
             width: 320px;
             margin: 0 auto;
@@ -1206,11 +1041,9 @@
             overflow: hidden;
             transition: transform 0.5s cubic-bezier(0.2, 0, 0, 1);
         }
-
         .showcase-row:hover .phone-mockup {
             transform: translateY(-15px) scale(1.02);
         }
-
         .phone-mockup img {
             width: 100%;
             height: 100%;
@@ -1218,7 +1051,6 @@
             border-radius: 32px;
             display: block;
         }
-
         .kaomoji-badge {
             position: absolute;
             z-index: 20;
@@ -1238,7 +1070,6 @@
             transition: all 0.3s ease;
             cursor: default;
         }
-
         .badge-icon-circle {
             width: 44px;
             height: 44px;
@@ -1250,11 +1081,9 @@
             justify-content: center;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-
         .badge-icon-circle .material-icons-round {
             font-size: 22px;
         }
-
         .badge-text {
             font-family: var(--font-display);
             font-weight: 600;
@@ -1263,13 +1092,11 @@
             letter-spacing: 0.5px;
             white-space: nowrap;
         }
-
         .showcase-row:hover .kaomoji-badge {
             transform: translateY(-5px) scale(1.05);
             background: rgba(45, 40, 50, 0.8);
             border-color: var(--badge-color);
         }
-
         .variant-1 {
             --badge-surface: var(--md-sys-color-primary-container);
             --badge-color: var(--md-sys-color-on-primary-container);
@@ -1277,7 +1104,6 @@
             right: -30px;
             animation-delay: 0s;
         }
-
         .variant-2 {
             --badge-surface: var(--md-sys-color-secondary);
             --badge-color: var(--md-sys-color-on-secondary);
@@ -1285,7 +1111,6 @@
             left: -40px;
             animation-delay: 1.5s;
         }
-
         .variant-3 {
             --badge-surface: var(--md-sys-color-tertiary);
             --badge-color: var(--md-sys-color-on-tertiary);
@@ -1294,7 +1119,6 @@
             margin-left: -90px;
             animation-delay: 3s;
         }
-
         .variant-4 {
             --badge-surface: #4a4458;
             --badge-color: #ffd8e4;
@@ -1302,25 +1126,20 @@
             right: -40px;
             animation-delay: 4.5s;
         }
-
         @keyframes float-badge {
-
             0%,
             100% {
                 transform: translateY(0);
             }
-
             50% {
                 transform: translateY(-12px);
             }
         }
-
         @media (max-width: 900px) {
             .kaomoji-badge {
                 display: none;
             }
         }
-
         .squiggle-line {
             width: 100%;
             display: block;
@@ -1328,24 +1147,20 @@
             margin-bottom: 40px;
             opacity: 0.5;
         }
-
         .squiggle-stroke {
             stroke: var(--md-sys-color-outline-variant);
             stroke-width: 1.5px;
         }
-
         footer {
             background: transparent;
             padding: 0 0 40px;
         }
-
         .footer-grid {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr;
             gap: 40px;
             margin-bottom: 60px;
         }
-
         .footer-logo-svg {
             width: 44px;
             height: auto;
@@ -1354,17 +1169,14 @@
             display: block;
             opacity: 1;
         }
-
         .footer-brand h4 {
             font-size: 1.8rem;
             margin-bottom: 16px;
             color: var(--md-sys-color-on-surface);
         }
-
         .footer-brand span {
             color: var(--md-sys-color-primary);
         }
-
         .footer-col h5 {
             font-size: 0.9rem;
             text-transform: uppercase;
@@ -1372,27 +1184,21 @@
             margin-bottom: 24px;
             color: var(--md-sys-color-on-surface);
         }
-
         .footer-col ul {
             list-style: none;
         }
-
         .footer-col li {
             margin-bottom: 16px;
         }
-
         .footer-col a {
             color: var(--md-sys-color-on-surface-variant);
             text-decoration: none;
             transition: color 0.2s;
             font-size: 1rem;
         }
-
         .footer-col a:hover {
             color: var(--md-sys-color-primary);
         }
-
-        /* --- Fix pour le footer centré sur mobile --- */
         @media (max-width: 900px) {
             .footer-grid {
                 grid-template-columns: 1fr;
@@ -1403,30 +1209,25 @@
                 margin: 0 auto 24px;
             }
         }
-
         @media (max-width: 900px) {
             .player-header {
                 grid-template-columns: 1fr;
                 text-align: center;
                 justify-items: center;
             }
-
             .track-info {
                 align-items: center;
                 margin-bottom: 16px;
             }
-
             .play-btn-center-wrapper {
                 order: -1;
                 margin-bottom: 24px;
             }
-
             .expressive-grid {
                 display: flex;
                 flex-direction: column;
                 gap: 16px;
             }
-
             .showcase-row,
             .showcase-row.reverse {
                 grid-template-columns: 1fr;
@@ -1434,60 +1235,46 @@
                 gap: 40px;
                 margin-bottom: 100px;
             }
-
             .showcase-row.reverse .text-col {
                 order: 0;
             }
-
             .step-number {
                 font-size: 4rem;
             }
-
             .phone-mockup {
                 width: 280px;
             }
-
             .kaomoji-badge {
                 display: none;
             }
         }
-
         @keyframes float {
-
             0%,
             100% {
                 transform: translateY(0);
             }
-
             50% {
                 transform: translateY(-15px);
             }
         }
-
         @keyframes wave {
-
             0%,
             100% {
                 height: 10px;
             }
-
             50% {
                 height: 32px;
             }
         }
-
         .philosophy-section {
             padding: 120px 24px;
             background: transparent;
             position: relative;
         }
-
         .philosophy-wrapper {
             max-width: 1000px;
             margin: 0 auto;
         }
-
-        /* Nouvel en-tête centré */
         .philosophy-header {
             display: flex;
             flex-direction: column;
@@ -1495,7 +1282,6 @@
             text-align: center;
             margin-bottom: 72px;
         }
-
         .philosophy-badge {
             display: inline-flex;
             align-items: center;
@@ -1510,7 +1296,6 @@
             border: none;
             letter-spacing: 0.02em;
         }
-
         .philosophy-header h2 {
             font-size: clamp(3rem, 6vw, 4.5rem);
             margin-bottom: 24px;
@@ -1519,7 +1304,6 @@
             font-weight: 800;
             line-height: 1.1;
         }
-
         .philosophy-desc {
             color: var(--md-sys-color-on-surface-variant);
             font-size: 1.15rem;
@@ -1527,22 +1311,17 @@
             margin-bottom: 40px;
             max-width: 650px;
         }
-
-        /* Style spécifique M3 pour le bouton GitHub (Hérite de btn-primary, avec couleurs spécifiques du Download) */
         .philosophy-github-btn {
             background-color: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
             box-shadow: none !important;
             font-weight: 500 !important;
         }
-
         .philosophy-github-btn:hover {
             box-shadow: none !important;
             transform: none !important;
             filter: none !important;
         }
-
-        /* La Grille (inchangée dans sa structure, couleurs corrigées) */
         .philosophy-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -1550,16 +1329,14 @@
             max-width: 1000px;
             margin: 0 auto;
         }
-
         @media (max-width: 768px) {
             .philosophy-grid {
                 grid-template-columns: 1fr;
             }
             .philosophy-header h2 {
-                br { display: none; } /* Enlève le retour à la ligne sur mobile */
+                br { display: none; } 
             }
         }
-
         .philosophy-item {
             position: relative;
             overflow: hidden;
@@ -1578,7 +1355,6 @@
             user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
-
         .philosophy-item::after {
             content: '';
             position: absolute;
@@ -1589,36 +1365,28 @@
             pointer-events: none;
             transition: opacity .2s cubic-bezier(.2, 0, 0, 1);
         }
-
-        /* L'animation de clic (Squish) est gérée par :active sans transform */
-
         .philosophy-item:hover::after {
             opacity: .04;
         }
-
         .philosophy-item:active::after {
             opacity: .10;
         }
-
-        /* LE SQUISH */
         .philosophy-item:active {
             border-radius: 12px;
             background-color: var(--md-sys-color-surface-container-high);
         }
-
         .philosophy-item h4 {
             position: relative;
             z-index: 1;
             font-size: 1.4rem;
             font-weight: 700;
             margin-bottom: 12px;
-            color: var(--md-sys-color-on-surface); /* Corrigé: M3 dynamique au lieu de #fff */
+            color: var(--md-sys-color-on-surface); 
             display: flex;
             align-items: center;
             gap: 12px;
             font-family: var(--font-display);
         }
-
         .philosophy-item p {
             position: relative;
             z-index: 1;
@@ -1627,8 +1395,6 @@
             font-size: 1rem;
             margin: 0;
         }
-
-        /* Lien stylisé dans la carte */
         .text-link {
             color: var(--md-sys-color-primary);
             text-decoration: none;
@@ -1636,12 +1402,9 @@
             border-bottom: 1px solid transparent;
             transition: border-color 0.2s;
         }
-
         .text-link:hover {
             border-bottom-color: var(--md-sys-color-primary);
         }
-
-        /* Effet Ripple Material Design 3 */
         span.md3-ripple {
             position: absolute;
             border-radius: 50%;
@@ -1650,10 +1413,9 @@
             z-index: 0;
             transform: scale(0);
             animation: md3-ripple-animation 700ms ease-out forwards;
-            background-color: rgba(255, 255, 255, 0.15); /* Plus subtil */
+            background-color: rgba(255, 255, 255, 0.15); 
             pointer-events: none;
         }
-
         @keyframes md3-ripple-animation {
             from {
                 transform: scale(0);
@@ -1664,32 +1426,21 @@
                 opacity: 0;
             }
         }
-
-
-
         @font-face {
             font-family: 'Google Sans Flex';
             src: url('assets/fonts/google_sans_flex.ttf') format('truetype');
             font-weight: 100 900;
         }
-
         .kt-hero-section {
-            /* On ajuste le padding : 16px à gauche pour se coller au rail, 32px à droite */
             padding: 24px 32px 60px 16px;
         }
-
         .kt-hero-container {
             display: grid;
-            /* On agrandit la partie gauche (1.1fr) et on maintient la droite (1.14fr) 
-               pour que l'image ne change pas de taille visuelle */
             grid-template-columns: 1.1fr 1.14fr;
             gap: 32px;
-            /* On force le conteneur à prendre toute la largeur de l'écran 
-               pour repousser l'image tout à droite */
             max-width: 100%;
             margin: 0 auto;
         }
-
         @media (max-width: 900px) {
             .kt-hero-container {
                 grid-template-columns: 1fr;
@@ -1726,7 +1477,6 @@
                 object-position: center top;
             }
         }
-
         .kt-hero-left,
         .kt-hero-right {
             background-color: var(--md-sys-color-surface-container);
@@ -1734,16 +1484,13 @@
             overflow: hidden;
             display: flex;
         }
-
         .kt-hero-left {
-            /* On augmente un peu l'espace interne (64px) car la carte est plus grande */
             padding: 80px 64px;
             flex-direction: column;
             justify-content: center;
             align-items: flex-start;
             position: relative;
         }
-
         .kt-hero-title {
             font-family: 'Google Sans Flex', sans-serif;
             font-size: clamp(3rem, 6vw, 4.5rem);
@@ -1753,17 +1500,13 @@
             letter-spacing: -0.02em;
             line-height: 1.1;
         }
-
         .kt-hero-desc {
             font-size: 1.1rem;
             color: var(--md-sys-color-on-surface-variant);
             margin-bottom: 48px;
             line-height: 1.6;
-            /* On permet au texte de s'étendre un peu plus avec la nouvelle largeur */
             max-width: 600px;
         }
-
-        /* ===== Boutons héro Download / Source ===== */
         .kt-btn-download,
         .kt-btn-outline {
             position: relative;
@@ -1773,39 +1516,29 @@
             justify-content: center;
             gap: 8px;
             padding: 20px 52px;
-            /* Remplacer 999px par la vraie valeur de la moitié de la hauteur */
             border-radius: 40px; 
             text-decoration: none;
             font-size: 1.35rem;
             font-weight: 500;
             font-family: 'Google Sans Flex', sans-serif;
             cursor: pointer;
-            
-            /* On ajoute transform pour le squish physique (Commenté car l'utilisateur ne veut plus de scale) */
             transition: 
                 border-radius 0.25s cubic-bezier(0.2, 0, 0, 1),
                 filter 0.2s var(--ease-expressive),
                 background-color 0.2s var(--ease-expressive);
-            
             -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
-
-        /* Filled – Download */
         .kt-btn-download {
             background-color: var(--md-sys-color-primary);
             color: var(--md-sys-color-on-primary);
             border: none;
         }
-
-        /* Outlined – Source */
         .kt-btn-outline {
             background-color: transparent;
             border: 1px solid var(--md-sys-color-outline);
             color: var(--md-sys-color-primary);
         }
-
-        /* State-overlay commun */
         .kt-btn-download::after,
         .kt-btn-outline::after {
             content: '';
@@ -1817,29 +1550,22 @@
             pointer-events: none;
             transition: opacity .2s cubic-bezier(.2, 0, 0, 1);
         }
-
         .kt-btn-download:hover::after,
         .kt-btn-outline:hover::after { opacity: .08; }
-
         .kt-btn-download:active::after,
         .kt-btn-outline:active::after { opacity: .14; }
-
-        /* LE VRAI SQUISH - 100% CSS natif */
         .kt-btn-download:active,
         .kt-btn-outline:active {
-            border-radius: 12px; /* On garde JUSTE le changement de forme (le vrai squish M3) */
+            border-radius: 12px; 
         }
-
         .kt-btn-download:hover {
             filter: brightness(1.06);
         }
-
         .kt-hero-buttons {
             display: flex;
             gap: 20px;
             flex-wrap: wrap;
         }
-
         .kt-hero-right {
             align-items: center;
             justify-content: center;
@@ -1848,7 +1574,6 @@
             min-height: 550px;
             overflow: hidden;
         }
-
         .kt-hero-img {
             width: 100%;
             height: 100%;
@@ -1857,18 +1582,13 @@
             display: block;
             border-radius: var(--radius-xl);
         }
-
-        /* =========================================
-           MATERIAL 3 NAVIGATION RAIL (Sidebar)
-           ========================================= */
         #app-layout {
             display: flex;
             min-height: 100vh;
             width: 100%;
         }
-
         .m3-nav-rail {
-            width: 104px; /* Largeur officielle de Material 3 */
+            width: 104px; 
             position: sticky;
             top: 0;
             height: 100vh;
@@ -1880,8 +1600,6 @@
             border-right: 1px solid rgba(255, 255, 255, 0.05);
             z-index: 100;
         }
-
-        /* Le bouton flottant en haut (Search/Menu) */
         .nav-fab {
             width: 56px;
             height: 56px;
@@ -1906,8 +1624,6 @@
         .nav-fab:hover {
             background-color: var(--md-sys-color-surface-container-highest);
         }
-
-        /* Les boutons de navigation */
         .nav-rail-item {
             display: flex;
             flex-direction: column;
@@ -1922,8 +1638,6 @@
             position: relative;
             overflow: hidden;
         }
-
-        /* Le conteneur de l'icône (La Pilule) */
         .nav-indicator {
             position: relative;
             width: 64px;
@@ -1934,37 +1648,27 @@
             justify-content: center;
             transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
         }
-
-        /* Le fond animé de la pilule (Animation Material 3 d'élargissement) */
         .nav-indicator::before {
             content: '';
             position: absolute;
             inset: 0;
             border-radius: 16px;
-            background-color: var(--md-sys-color-primary-container); /* Ta couleur Download */
+            background-color: var(--md-sys-color-primary-container); 
             opacity: 0;
-            transform: scaleX(0.5); /* Commence compressé */
+            transform: scaleX(0.5); 
             transition: opacity 0.2s ease, transform 0.3s var(--ease-spring);
             z-index: -1;
         }
-
-        /* État Hover (quand inactif) */
         .nav-rail-item:hover:not(.active) .nav-indicator {
             background-color: rgba(255, 255, 255, 0.08);
         }
-
-        /* Effet d'appui (Squish) */
         .nav-rail-item:active .nav-indicator {
-            transform: scale(0.85); /* Effet de pression */
+            transform: scale(0.85); 
         }
-
-        /* ÉTAT ACTIF : La pilule s'élargit et devient visible */
         .nav-rail-item.active .nav-indicator::before {
             opacity: 1;
-            transform: scaleX(1); /* S'étire à sa taille normale */
+            transform: scaleX(1); 
         }
-
-        /* Gestion de l'icône */
         .nav-icon {
             font-size: 24px;
             color: var(--md-sys-color-on-surface-variant);
@@ -1972,9 +1676,8 @@
             z-index: 1;
         }
         .nav-rail-item.active .nav-icon {
-            color: var(--md-sys-color-on-primary-container); /* Couleur sombre du texte de ton bouton download */
+            color: var(--md-sys-color-on-primary-container); 
         }
-
         .nav-logo-svg {
             width: 32px;
             height: auto;
@@ -1985,8 +1688,6 @@
         .nav-rail-item.active .nav-logo-svg {
             color: var(--md-sys-color-on-primary-container);
         }
-
-        /* Gestion du texte sous l'icône */
         .nav-label {
             font-family: var(--font-body);
             font-size: 0.85rem;
@@ -1996,15 +1697,12 @@
             text-align: center;
         }
         .nav-rail-item.active .nav-label {
-            color: var(--md-sys-color-primary); /* Ta couleur Download */
+            color: var(--md-sys-color-primary); 
             font-weight: 700;
         }
-
-        /* Séparateur et boutons du bas (Play, Theme) */
         .nav-spacer {
             flex-grow: 1;
         }
-
         .nav-bottom-action {
             width: 48px;
             height: 48px;
@@ -2029,21 +1727,16 @@
         .nav-bottom-action:active {
             transform: scale(0.9);
         }
-
-        /* Contenu Principal */
         .m3-main-content {
             flex: 1;
             min-width: 0;
         }
-
         #app-wrapper.unloading {
             opacity: 0 !important;
             filter: blur(20px) !important;
             transform: translateY(-20px) !important;
             pointer-events: none;
         }
-
-        /* --- Mobile Navigation (M3) --- */
         .m3-mobile-top-bar {
             display: none;
             position: sticky;
@@ -2059,13 +1752,11 @@
             justify-content: space-between;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-
         .m3-top-bar-left {
             display: flex;
             align-items: center;
             gap: 16px;
         }
-
         .m3-menu-btn {
             width: 48px;
             height: 48px;
@@ -2077,11 +1768,9 @@
             color: var(--md-sys-color-on-surface);
             transition: background-color 0.2s;
         }
-
         .m3-menu-btn:active {
             background-color: rgba(255, 255, 255, 0.1);
         }
-
         .m3-top-bar-title {
             font-family: var(--font-display);
             font-weight: 700;
@@ -2091,12 +1780,9 @@
             align-items: center;
             gap: 8px;
         }
-
         .m3-top-bar-title span {
             color: var(--md-sys-color-primary);
         }
-
-        /* Modal Drawer */
         .m3-drawer-scrim {
             position: fixed;
             inset: 0;
@@ -2106,12 +1792,10 @@
             visibility: hidden;
             transition: opacity 0.3s var(--ease-expressive);
         }
-
         .m3-drawer-scrim.show {
             opacity: 1;
             visibility: visible;
         }
-
         .m3-modal-drawer {
             position: fixed;
             top: 0;
@@ -2129,11 +1813,9 @@
             flex-direction: column;
             box-shadow: 16px 0 32px rgba(0, 0, 0, 0.3);
         }
-
         .m3-modal-drawer.show {
             transform: translateX(0);
         }
-
         .m3-drawer-header {
             padding: 16px 16px 28px;
             font-family: var(--font-display);
@@ -2143,7 +1825,6 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
         }
-
         .m3-drawer-item {
             display: flex;
             align-items: center;
@@ -2159,21 +1840,17 @@
             position: relative;
             overflow: hidden;
         }
-
         .m3-drawer-item .material-icons-round {
             font-size: 24px;
         }
-
         .m3-drawer-item:hover {
             background-color: rgba(255, 255, 255, 0.05);
         }
-
         .m3-drawer-item.active {
             background-color: var(--md-sys-color-secondary-container);
             color: var(--md-sys-color-on-secondary-container);
             font-weight: 700;
         }
-
         @media (max-width: 900px) {
             .m3-nav-rail {
                 display: none;
@@ -2191,39 +1868,36 @@
                 grid-template-columns: 1fr !important;
             }
         }
-
-        /* --- Nouveaux styles pour l'IDE et les explications --- */
         .ide-tabs {
             display: flex;
             background: #1a1a1f;
             padding: 0 16px;
-            gap: 24px; /* Espacement type M3 */
+            gap: 24px; 
             border-bottom: 1px solid var(--md-sys-color-outline-variant, rgba(255, 255, 255, 0.12));
             overflow-x: auto;
         }
         .ide-tab {
             position: relative;
-            padding: 16px 8px; /* Plus d'espace vertical pour rejoindre la bordure */
+            padding: 16px 8px; 
             font-family: 'Roboto Flex', sans-serif;
-            font-size: 0.875rem; /* 14px */
+            font-size: 0.875rem; 
             font-weight: 500;
             color: var(--md-sys-color-on-surface-variant, #CAC4D0);
             background: transparent;
             border: none;
-            border-radius: 4px 4px 0 0; /* Typique du state layer tabulaire */
+            border-radius: 4px 4px 0 0; 
             cursor: pointer;
             transition: color 0.2s ease, background-color 0.2s ease;
             white-space: nowrap;
         }
         .ide-tab:hover {
-            background: rgba(255,255,255,0.08); /* Hover state layer */
+            background: rgba(255,255,255,0.08); 
             color: var(--md-sys-color-on-surface);
         }
         .ide-tab.active {
             color: var(--md-sys-color-primary, #d0bcff);
             background: transparent;
         }
-        /* Style incontournable des tabs Material 3 : la barre pilule en bas */
         .ide-tab.active::after {
             content: '';
             position: absolute;
@@ -2239,7 +1913,6 @@
             overflow-y: auto;
             padding: 24px 48px;
         }
-        /* Scrollbar custom pour le code */
         .code-scroll-container::-webkit-scrollbar {
             width: 8px;
         }
@@ -2262,8 +1935,6 @@
             margin-bottom: 8px;
             border: 1px solid rgba(255,255,255,0.1);
         }
-
-        /* --- Audio Pipeline Visualizer --- */
         .pipeline-container {
             display: flex;
             flex-direction: column;
@@ -2273,7 +1944,6 @@
             border-radius: var(--radius-l);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
         .pipeline-step {
             display: flex;
             align-items: center;
@@ -2284,13 +1954,11 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             position: relative;
         }
-
         .pipeline-step.highlight {
             background: rgba(208, 188, 255, 0.08);
             border-color: var(--md-sys-color-primary);
             box-shadow: 0 0 24px rgba(208, 188, 255, 0.15);
         }
-
         .pipeline-step.highlight::before {
             content: '';
             position: absolute;
@@ -2301,37 +1969,28 @@
             background: var(--md-sys-color-primary);
             border-radius: 0 4px 4px 0;
         }
-
         .pipeline-arrow {
             display: flex;
             justify-content: center;
             color: var(--md-sys-color-outline-variant);
         }
-
         .step-icon {
             font-size: 24px;
             color: var(--md-sys-color-on-surface-variant);
         }
-
         .highlight .step-icon {
             color: var(--md-sys-color-primary);
         }
-
         .step-text h4 {
             font-family: var(--font-display);
             font-size: 1.1rem;
             color: var(--md-sys-color-on-surface);
             margin-bottom: 2px;
         }
-
         .step-text p {
             font-size: 0.85rem;
             color: var(--md-sys-color-outline);
         }
-
-        /* =========================================
-           LIGHT MODE OVERRIDES
-           ========================================= */
         :root.light-mode {
             --md-sys-color-background: #faf8ff;
             --md-sys-color-surface: #fdfcff;
@@ -2345,12 +2004,9 @@
             --md-sys-color-outline-variant: #cac4d0;
             --glow-primary: rgba(103, 80, 164, 0.1);
         }
-
         :root.light-mode body {
             background-color: var(--md-sys-color-background);
         }
-
-        /* --- Navigation --- */
         :root.light-mode .m3-nav-rail,
         :root.light-mode .m3-mobile-top-bar {
             background-color: rgba(250, 248, 255, 0.92);
@@ -2374,13 +2030,9 @@
         :root.light-mode .m3-drawer-item:hover {
             background-color: rgba(0, 0, 0, 0.05);
         }
-
-        /* --- Loading Screen --- */
         :root.light-mode #loading-screen {
             background-color: rgba(250, 248, 255, 0.75);
         }
-
-        /* --- Bento Panels --- */
         :root.light-mode .bento-panel,
         :root.light-mode .expressive-card,
         :root.light-mode .web-player-preview,
@@ -2396,8 +2048,6 @@
         :root.light-mode .bento-panel:hover {
             border-color: rgba(0, 0, 0, 0.12);
         }
-
-        /* --- EQ Faders --- */
         :root.light-mode .fader-track {
             background: rgba(0, 0, 0, 0.06);
             border-color: rgba(0, 0, 0, 0.04);
@@ -2411,8 +2061,6 @@
         :root.light-mode .fader-knob::after {
             background: rgba(0, 0, 0, 0.25);
         }
-
-        /* --- 8D Radar --- */
         :root.light-mode .radar-grid-bg {
             background-image: linear-gradient(rgba(103, 80, 164, 0.08) 1px, transparent 1px),
                             linear-gradient(90deg, rgba(103, 80, 164, 0.08) 1px, transparent 1px);
@@ -2424,8 +2072,6 @@
         :root.light-mode .radar-orbit {
             border-color: rgba(103, 80, 164, 0.2);
         }
-
-        /* --- 8D Control Card --- */
         :root.light-mode .eightd-control-card {
             background: rgba(0, 0, 0, 0.03);
             border-color: rgba(0, 0, 0, 0.06);
@@ -2435,13 +2081,9 @@
             background: rgba(0, 0, 0, 0.03);
             border-color: rgba(0, 0, 0, 0.06);
         }
-
-        /* --- M3 Slider --- */
         :root.light-mode .m3-v3-track-inactive {
             background: rgba(0, 0, 0, 0.1);
         }
-
-        /* --- Pipeline Visualizer --- */
         :root.light-mode .pipeline-container {
             background: rgba(0, 0, 0, 0.03);
             border-color: rgba(0, 0, 0, 0.06);
@@ -2454,14 +2096,10 @@
             background: rgba(103, 80, 164, 0.08);
             border-color: var(--md-sys-color-primary);
         }
-
-        /* --- Tech Badges --- */
         :root.light-mode .tech-badge {
             background: rgba(0, 0, 0, 0.04);
             border-color: rgba(0, 0, 0, 0.08);
         }
-
-        /* --- IDE / Code Editor --- */
         :root.light-mode .ide-tabs {
             background: #f4f2f7;
             border-bottom-color: rgba(0, 0, 0, 0.08);
@@ -2494,8 +2132,6 @@
             background: rgba(0, 0, 0, 0.02);
             border-color: rgba(0, 0, 0, 0.06);
         }
-
-        /* --- Code Syntax Colors (inline styles overridden with !important) --- */
         :root.light-mode .code-scroll-container span[style*="color: #7f848e"] {
             color: #a0a1a7 !important;
         }
@@ -2517,7 +2153,6 @@
         :root.light-mode .code-scroll-container span[style*="color: #ffbd2e"] {
             color: #c18401 !important;
         }
-        /* Also fix inline colored icons in panel titles */
         :root.light-mode .panel-title span[style*="color: #6eb5ff"] {
             color: #4078f2 !important;
         }
@@ -2527,13 +2162,10 @@
         :root.light-mode .panel-title span[style*="color: #ff5f56"] {
             color: #e45649 !important;
         }
-        /* Fix the highlighted code span */
         :root.light-mode .code-highlight {
             background: rgba(103, 80, 164, 0.12) !important;
             color: #6750a4 !important;
         }
-
-        /* --- Player Preview (hérité d'index) --- */
         :root.light-mode .progress-track {
             background: rgba(0, 0, 0, 0.08);
         }
@@ -2546,33 +2178,23 @@
         :root.light-mode .speed-control {
             background: rgba(0, 0, 0, 0.04);
         }
-
-        /* --- Phone Mockups --- */
         :root.light-mode .phone-mockup {
             background: #f0eef4;
             border-color: #d8d6dc;
             box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 30px 60px rgba(0, 0, 0, 0.1);
         }
-
-        /* --- Kaomoji Badges --- */
         :root.light-mode .kaomoji-badge {
             background: rgba(255, 255, 255, 0.85);
             border-color: rgba(0, 0, 0, 0.08);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
-
-        /* --- Textes avec dégradé --- */
         :root.light-mode .display-large {
             background: linear-gradient(180deg, #1c1b1f 0%, #79747e 100%);
             -webkit-background-clip: text;
         }
-
-        /* --- Footer --- */
         :root.light-mode .footer-logo-svg {
             color: var(--md-sys-color-on-surface);
         }
-
-        /* --- Discord Widget --- */
         :root.light-mode .discord-profile-card {
             background: #f2f3f5;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
@@ -2585,8 +2207,6 @@
         :root.light-mode .discord-details,
         :root.light-mode .discord-state,
         :root.light-mode .discord-time { color: #4e5058; }
-
-        /* --- Compose Settings --- */
         :root.light-mode .compose-settings-item {
             background: rgba(0, 0, 0, 0.03);
         }
@@ -2597,8 +2217,6 @@
             background: rgba(0, 0, 0, 0.02);
             border-color: rgba(0, 0, 0, 0.05);
         }
-
-        /* --- Easter Egg --- */
         :root.light-mode .ee-close {
             background: rgba(0, 0, 0, 0.05);
         }
@@ -2607,25 +2225,17 @@
             border-color: rgba(0, 0, 0, 0.08);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
         }
-
-        /* --- Deep Dive Grid items --- */
         :root.light-mode .deep-dive-grid .bento-panel {
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
         }
-
-        /* --- Step number --- */
         :root.light-mode .step-number {
             color: var(--md-sys-color-outline-variant);
         }
-
-        /* --- Core FX & Inner Cards --- */
         :root.light-mode .core-fx-grid > div,
         :root.light-mode .bento-panel > div[style*="background: rgba(0,0,0,0.2)"] {
             background: rgba(0, 0, 0, 0.03) !important;
             border-color: rgba(0, 0, 0, 0.08) !important;
         }
-
-        /* --- Switches --- */
         :root.light-mode .md3-switch {
             background: rgba(0, 0, 0, 0.03);
             border-color: rgba(0, 0, 0, 0.08);
@@ -2633,14 +2243,10 @@
         :root.light-mode .md3-switch:hover {
             background: rgba(0, 0, 0, 0.06);
         }
-
-        /* --- Rain Player Fixes --- */
         :root.light-mode .bento-panel:not(.rain-active) #rain-btn {
             color: var(--md-sys-color-primary) !important;
             border-color: rgba(0, 0, 0, 0.12) !important;
         }
-        
-        /* Nouveau design "Jour de pluie" pour le panneau actif */
         :root.light-mode .bento-panel.rain-active .rain-bg {
             background: linear-gradient(135deg, #e2e8f0, #c3d0df) !important;
             opacity: 1;
@@ -2661,9 +2267,7 @@
         }
     </style>
 </head>
-
 <body>
-    <!-- Mobile Top Bar -->
     <div class="m3-mobile-top-bar">
         <div class="m3-top-bar-left">
             <div class="m3-menu-btn" onclick="toggleDrawer()">
@@ -2677,69 +2281,44 @@
             <span class="material-icons-round">search</span>
         </div>
     </div>
-
-    <!-- Navigation Drawer (Mobile) -->
     <div class="m3-drawer-scrim" id="drawer-scrim" onclick="closeDrawer()"></div>
     <aside class="m3-modal-drawer" id="mobile-drawer">
         <div class="m3-drawer-header">KittyTune Navigation</div>
-        
         <a href="index.html" class="m3-drawer-item" onclick="navigateSmoothly(event, 'index.html')">
             <span class="material-icons-round">home</span>
             <span>Home</span>
         </a>
-
         <a href="custom.html" class="m3-drawer-item" onclick="navigateSmoothly(event, 'custom.html')">
             <span class="material-icons-round">palette</span>
             <span>Custom</span>
         </a>
-        
         <a href="audio-fx.html" class="m3-drawer-item active" onclick="navigateSmoothly(event, 'audio-fx.html')">
             <span class="material-icons-round">graphic_eq</span>
             <span>Audio FX</span>
         </a>
-
         <div style="margin-top: auto;">
-            <!-- Séparateur subtil -->
             <div style="height: 1px; background: var(--md-sys-color-outline-variant); opacity: 0.3; margin: 8px 16px 16px;"></div>
-            
-            <!-- Bouton Thème -->
             <a href="#" class="m3-drawer-item" onclick="window.toggleThemeMode(); event.preventDefault();">
                 <span class="material-icons-round theme-toggle-icon">light_mode</span>
                 <span>Toggle Theme</span>
             </a>
-            
-            <!-- Version -->
             <div style="padding: 12px; opacity: 0.5; font-size: 0.8rem; text-align: center; color: var(--md-sys-color-on-surface);">
                 ( > . < ) v1.2.0
             </div>
         </div>
     </aside>
-
-    <!-- Loading Screen -->
     <div id="loading-screen">
         <div class="loader-svg-container">
-            <svg width="100%" height="100%" viewBox="4 4 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill="var(--md-sys-color-primary)" d="M20.9 10.4 21.4 9.5 21.9 8.7 22.5 7.8 23.2 7.2 24.2 7 25.1 7.4 25.7 8.1 26.2 9 26.8 9.8 27.3 10.6 28.1 11.2 29 11.3 30 11 30.9 10.6 31.8 10.3 32.8 9.9 33.7 10 34.5 10.6 34.9 11.5 34.8 12.5 34.8 13.5 34.7 14.5 34.7 15.5 35.2 16.3 36 16.8 37 17.1 37.9 17.3 38.9 17.5 39.8 17.9 40.4 18.7 40.5 19.7 40 20.5 39.4 21.3 38.7 22 38.1 22.8 37.6 23.7 37.7 24.6 38.3 25.5 38.9 26.2 39.6 27 40.2 27.7 40.5 28.7 40.3 29.6 39.5 30.3 38.6 30.6 37.6 30.8 36.7 31 35.7 31.3 35 31.9 34.6 32.8 34.7 33.8 34.8 34.8 34.9 35.8 34.8 36.8 34.3 37.6 33.4 38.1 32.4 38 31.5 37.6 30.6 37.2 29.7 36.9 28.7 36.6 27.8 36.9 27.1 37.6 26.6 38.5 26.1 39.3 25.5 40.2 24.8 40.8 23.8 41 22.9 40.6 22.3 39.9 21.8 39 21.2 38.2 20.7 37.4 19.9 36.8 19 36.7 18 37 17.1 37.4 16.2 37.7 15.2 38.1 14.3 38 13.5 37.4 13.1 36.5 13.2 35.5 13.2 34.5 13.2 33.5 13.3 32.5 12.8 31.7 12 31.2 11 31 10.1 30.7 9.1 30.5 8.2 30.1 7.6 29.3 7.5 28.3 8 27.5 8.7 26.7 9.3 26 9.9 25.2 10.4 24.3 10.3 23.4 9.7 22.5 9.1 21.8 8.4 21 7.8 20.3 7.5 19.3 7.7 18.4 8.5 17.7 9.4 17.4 10.4 17.2 11.3 17 12.3 16.7 13 16.1 13.4 15.2 13.3 14.2 13.2 13.1 12.2 13.2 11.2 13.7 10.4 14.6 9.9 15.6 10 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z">0 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z">
-                    <animate attributeName="d" dur="5s" repeatCount="indefinite" calcMode="spline" keySplines="0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8" keyTimes="0; 0.14; 0.14; 0.29; 0.29; 0.43; 0.43; 0.57; 0.57; 0.71; 0.71; 0.86; 0.86; 1" values="M20.9 10.4 21.4 9.5 21.9 8.7 22.5 7.8 23.2 7.2 24.2 7 25.1 7.4 25.7 8.1 26.2 9 26.8 9.8 27.3 10.6 28.1 11.2 29 11.3 30 11 30.9 10.6 31.8 10.3 32.8 9.9 33.7 10 34.5 10.6 34.9 11.5 34.8 12.5 34.8 13.5 34.7 14.5 34.7 15.5 35.2 16.3 36 16.8 37 17.1 37.9 17.3 38.9 17.5 39.8 17.9 40.4 18.7 40.5 19.7 40 20.5 39.4 21.3 38.7 22 38.1 22.8 37.6 23.7 37.7 24.6 38.3 25.5 38.9 26.2 39.6 27 40.2 27.7 40.5 28.7 40.3 29.6 39.5 30.3 38.6 30.6 37.6 30.8 36.7 31 35.7 31.3 35 31.9 34.6 32.8 34.7 33.8 34.8 34.8 34.9 35.8 34.8 36.8 34.3 37.6 33.4 38.1 32.4 38 31.5 37.6 30.6 37.2 29.7 36.9 28.7 36.6 27.8 36.9 27.1 37.6 26.6 38.5 26.1 39.3 25.5 40.2 24.8 40.8 23.8 41 22.9 40.6 22.3 39.9 21.8 39 21.2 38.2 20.7 37.4 19.9 36.8 19 36.7 18 37 17.1 37.4 16.2 37.7 15.2 38.1 14.3 38 13.5 37.4 13.1 36.5 13.2 35.5 13.2 34.5 13.3 33.5 13.3 32.5 12.8 31.7 12 31.2 11 31 10.1 30.7 9.1 30.5 8.2 30.1 7.6 29.3 7.5 28.3 8 27.5 8.7 26.7 9.3 26 9.9 25.2 10.4 24.3 10.3 23.4 9.7 22.5 9.1 21.8 8.4 21 7.8 20.3 7.5 19.3 7.7 18.4 8.5 17.7 9.4 17.4 10.4 17.2 11.3 17 12.3 16.7 13 16.1 13.4 15.2 13.3 14.2 13.2 13.1 12.2 13.2 11.2 13.7 10.4 14.6 9.9 15.6 10 16.5 10.4 17.4 10.8 18.3 11.1 19.3 11.4 20.2 11.1Z; M20.3 8.6 21.1 8 22 7.6 23 7.3 23 7.3 24 7.2 25 7.3 25.9 7.5 26.8 8 27.6 8.6 28.4 9.1 28.4 9.1 29.3 9.6 30.3 9.8 31.3 9.9 32.3 10 33.3 10.2 34.2 10.6 34.2 10.6 35 11.2 35.7 11.9 36.3 12.7 36.7 13.6 36.9 14.6 37.2 15.5 37.2 15.5 37.6 16.5 38.2 17.3 38.9 18 39.6 18.7 40.2 19.5 40.6 20.4 40.6 20.4 40.9 21.3 41 22.3 40.9 23.3 40.6 24.3 40.2 25.2 39.8 26.1 39.8 26.1 39.5 27 39.4 28 39.5 29 39.6 30 39.5 31 39.3 32 39.3 32 38.9 32.9 38.3 33.7 37.6 34.4 36.8 35 35.9 35.4 35 35.8 35 35.8 34.1 36.3 33.4 37 32.9 37.9 32.3 38.7 31.6 39.4 30.8 40 30.8 40 29.9 40.4 28.9 40.7 27.9 40.8 27 40.7 26 40.4 25 40.1 25 40.1 24 40 23 40.1 22.1 40.4 21.1 40.7 20.1 40.8 19.1 40.7 19.1 40.7 18.2 40.5 17.3 40 16.4 39.5 15.7 38.8 15.2 37.9 14.6 37.1 14.6 37.1 13.9 36.4 13.1 35.8 12.2 35.4 11.3 35 10.5 34.4 9.7 33.8 9.7 33.8 9.1 32.9 8.7 32 8.5 31.1 8.4 30.1 8.5 29.1 8.6 28.1 8.6 28.1 8.5 27.1 8.3 26.1 7.8 25.2 7.4 24.3 7.1 23.4 7 22.4 7 22.4 7.1 21.4 7.3 20.4 7.8 19.5 8.3 18.7 9.1 18 9.8 17.3 9.8 17.3 10.4 16.5 10.8 15.6 11 14.6 11.3 13.7 11.7 12.8 12.2 11.9 12.2 11.9 12.9 11.2 13.8 10.7 14.7 10.2 15.6 10 16.6 9.9 17.6 9.8 17.6 9.8 18.6 9.6 19.5 9.2Z; M18.6 9.6 19.5 9.2 20.3 8.6 21.1 8 22 7.6 23 7.3 24 7.2 25 7.3 25.9 7.5 26.8 8 27.6 8.6 28.4 9.1 29.3 9.6 30.3 9.8 31.3 9.9 32.3 10 33.3 10.2 34.2 10.6 35 11.2 35.7 11.9 36.3 12.7 36.7 13.6 36.9 14.6 37.2 15.5 37.6 16.4 38.2 17.3 38.9 18 39.6 18.7 40.2 19.5 40.6 20.4 40.9 21.3 41 22.3 40.9 23.3 40.6 24.3 40.2 25.2 39.8 26.1 39.5 27 39.4 28 39.5 29 39.6 30 39.5 31 39.3 32 38.9 32.9 38.3 33.7 37.6 34.4 36.8 35 35.9 35.4 35 35.8 34.1 36.3 33.4 37 32.9 37.9 32.3 38.7 31.6 39.4 30.8 40 29.9 40.4 28.9 40.7 27.9 40.8 27 40.7 26 40.4 25 40.1 24 40 23 40.1 22.1 40.4 21.1 40.7 20.1 40.8 19.1 40.7 18.2 40.5 17.3 40 16.4 39.5 15.7 38.8 15.2 37.9 14.6 37.1 13.9 36.4 13.1 35.8 12.2 35.4 11.3 35 10.5 34.4 9.7 33.8 9.1 32.9 8.7 32 8.5 31.1 8.4 30.1 8.5 29.1 8.6 28.1 8.5 27.1 8.3 26.1 7.8 25.2 7.4 24.3 7.1 23.4 7 22.4 7.1 21.4 7.3 20.4 7.8 19.5 8.3 18.7 9.1 18 9.8 17.3 10.4 16.5 10.8 15.6 11 14.6 11.3 13.7 11.7 12.8 12.2 11.9 12.9 11.2 13.8 10.7 14.7 10.2 15.6 10 16.6 9.9 17.6 9.8Z; M18.6 9.9 19.5 9.4 20.3 8.8 21.1 8.2 22 7.8 23 7.6 23.9 7.5 24.9 7.6 25.9 7.8 26.8 8.2 27.6 8.7 28.5 9.3 29.3 9.9 30.1 10.5 30.9 11 31.7 11.6 32.5 12.2 33.3 12.8 33.7 13.1 34.1 13.3 34.9 13.9 35.7 14.5 36.6 15 37.4 15.6 38.2 16.2 39 16.8 39.7 17.5 40.2 18.3 40.7 19.2 40.9 20.1 41 21.1 40.9 22.1 40.7 23.1 40.3 24 40 24.9 39.7 25.9 39.4 26.8 39 27.8 38.7 28.7 38.4 29.6 38.1 30.6 37.8 31.5 37.5 32.5 37.2 33.4 36.9 34.4 36.6 35.3 36.2 36.2 35.7 37.1 35 37.8 34.3 38.4 33.4 38.9 32.5 39.3 31.5 39.5 30.5 39.5 30 39.5 29.5 39.5 28.5 39.5 27.5 39.5 26.5 39.5 25.5 39.4 24.5 39.4 23.6 39.4 22.6 39.4 21.6 39.5 20.6 39.5 19.6 39.5 18.6 39.5 17.6 39.5 16.6 39.5 15.6 39.3 14.7 39 13.8 38.5 13.1 37.9 12.4 37.2 11.9 36.3 11.5 35.4 11.2 34.5 10.9 33.5 10.6 32.6 10.3 31.6 10 30.7 9.7 29.7 9.3 28.8 9 27.9 8.7 26.9 8.4 26 8 25 7.7 24.1 7.4 23.2 7.1 22.2 7.1 21.7 7 21.2 7.1 20.2 7.3 19.3 7.7 18.4 8.3 17.5 8.9 16.8 9.7 16.2 10.5 15.6 11.4 15.1 12.2 14.5 13 14 13.8 13.4 14.6 12.8 15.4 12.3 16.2 11.7 17 11.1 17.8 10.5Z; M15.4 12.3 16.2 11.7 17 11.1 17.8 10.5 18.6 9.9 19.5 9.4 20.3 8.8 21.1 8.3 22 7.8 23 7.6 23.9 7.5 24.9 7.6 25.9 7.8 26.8 8.2 27.6 8.7 28.5 9.3 29.3 9.9 30.1 10.5 30.9 11 31.7 11.6 32.5 12.2 33.3 12.8 34.1 13.3 34.9 13.9 35.7 14.5 36.6 15 37.4 15.6 38.2 16.2 39 16.8 39.7 17.5 40.2 18.3 40.7 19.2 40.9 20.1 41 21.1 40.9 22.1 40.7 23.1 40.3 24 40 24.9 39.7 25.9 39.4 26.8 39 27.8 38.7 28.7 38.4 29.6 38.1 30.6 37.8 31.5 37.5 32.5 37.2 33.4 36.9 34.4 36.6 35.3 36.2 36.2 35.7 37.1 35 37.8 34.3 38.4 33.4 38.9 32.5 39.3 31.5 39.4 30.5 39.5 29.5 39.5 28.5 39.5 27.5 39.5 26.5 39.5 25.5 39.4 24.5 39.4 23.6 39.4 22.6 39.4 21.6 39.5 20.6 39.5 19.6 39.5 18.6 39.5 17.6 39.5 16.6 39.5 15.6 39.3 14.7 39 13.8 38.5 13.1 37.9 12.4 37.2 11.9 36.3 11.5 35.4 11.2 34.5 10.9 33.5 10.6 32.6 10.3 31.6 10 30.7 9.7 29.7 9.3 28.8 9 27.9 8.7 26.9 8.4 26 8 25 7.7 24.1 7.4 23.2 7.1 22.2 7 21.2 7.1 20.2 7.3 19.3 7.7 18.4 8.3 17.5 8.9 16.8 9.7 16.2 10.5 15.6 11.4 15.1 12.2 14.5 13 14 13.8 13.4 14.6 12.8Z; M17 12.8 17.7 12.1 18.5 11.5 19.3 10.9 20.1 10.5 20.2 10.4 21.1 10 22 9.7 23 9.4 24 9.2 25 9 26 9 27 9 27.6 9.1 28 9.1 28.9 9.3 29.9 9.6 30.9 9.9 31.8 10.3 32.6 10.8 33.5 11.3 34.3 11.9 34.6 12.2 35 12.6 35.7 13.3 36.4 14.1 36.9 14.9 37.4 15.8 37.9 16.6 38.3 17.6 38.6 18.5 38.6 18.7 38.8 19.5 38.9 20.5 39 21.5 39 22.5 38.9 23.5 38.7 24.5 38.5 25.4 38.2 26.3 38.2 26.4 37.8 27.3 37.4 28.2 36.8 29.1 36.2 29.9 35.6 30.6 34.9 31.3 34.2 32 33.8 32.5 33.5 32.8 32.8 33.5 32.1 34.2 31.4 34.9 30.7 35.6 29.9 36.2 29.1 36.8 28.2 37.3 27.9 37.5 27.4 37.8 26.4 38.2 25.5 38.5 24.5 38.7 23.5 38.9 22.5 39 21.5 39 20.5 38.9 20.4 38.9 19.5 38.8 18.6 38.6 17.6 38.3 16.7 37.9 15.8 37.5 14.9 37 14.1 36.4 13.4 35.8 13.3 35.8 12.6 35.1 12 34.3 11.3 33.5 10.8 32.7 10.3 31.8 9.9 30.9 9.6 30 9.4 29.3 9.3 29 9.1 28 9 27 9 26 9 25 9.2 24 9.4 23 9.6 22.1 9.8 21.7 10 21.1 10.4 20.2 10.9 19.4 11.4 18.5 12.1 17.8 12.7 17 13.4 16.3 14.2 15.6 14.2 15.5 14.9 14.9 15.6 14.2 16.3 13.5Z; M33.5 11.3 34.3 11.9 35 12.6 35.3 12.8 35.7 13.3 36.4 14.1 36.9 14.9 37.4 15.8 37.9 16.6 38.3 17.6 38.3 17.7 38.6 18.5 38.8 19.5 38.9 20.5 39 21.5 39 22.5 38.9 23.5 38.9 23.5 38.7 24.5 38.5 25.4 38.2 26.4 37.8 27.3 37.4 28.2 36.9 28.9 36.8 29.1 36.2 29.9 35.6 30.6 34.9 31.3 34.2 32 33.5 32.8 33.1 33.2 32.8 33.5 32.1 34.2 31.4 34.9 30.7 35.6 29.9 36.2 29.1 36.8 28.7 37 28.2 37.3 27.4 37.8 26.4 38.2 25.5 38.5 24.5 38.7 23.5 38.9 23.3 38.9 22.5 39 21.5 39 20.5 38.9 19.5 38.8 18.6 38.6 17.6 38.3 17.6 38.3 16.7 37.9 15.8 37.5 14.9 37 14.1 36.4 13.3 35.8 12.7 35.2 12.6 35.1 12 34.3 11.3 33.5 10.8 32.7 10.3 31.8 9.9 30.9 9.7 30.3 9.6 29.9 9.3 29 9.1 28 9 27 9 26 9 25 9.1 24.5 9.2 24 9.4 23 9.6 22.1 10 21.1 10.4 20.2 10.9 19.4 11.1 19.1 11.5 18.5 12.1 17.7 12.7 17 13.5 16.3 14.2 15.6 14.9 14.9 14.8 15.6 14.2 16.3 13.5 17 12.8 17.7 12.1 18.5 11.5 19.3 11 19.3 10.9 20.2 10.4 21.1 10 22 9.7 23 9.4 24 9.2 24.7 9.1 25 9 26 9 27 9 28 9.1 28.9 9.3 29.9 9.6 30.4 9.7 30.9 9.9 31.8 10.3 32.6 10.8Z; M33.2 11.1 34.2 11.2 35.1 11.4 36 11.9 36.6 12.7 36.8 13.7 36.9 14.7 36.9 15.7 37 16.7 37.1 17.7 37.3 18.6 37.9 19.4 38.5 20.2 39.2 20.9 39.8 21.7 40.5 22.4 40.9 23.3 41 24.3 40.7 25.2 40.1 26 39.4 26.8 38.8 27.5 38.1 28.3 37.5 29.1 37.1 30 37 31 37 31.9 36.9 32.9 36.8 33.9 36.7 34.9 36.2 35.8 35.5 36.4 34.5 36.8 33.6 36.8 32.6 36.9 31.6 37 30.6 37.1 29.6 37.2 28.8 37.7 28 38.4 27.3 39 26.5 39.7 25.8 40.3 24.9 40.8 23.9 41 23 40.8 22.1 40.2 21.4 39.6 20.6 38.9 19.9 38.3 19.1 37.6 18.3 37.2 17.3 37 16.3 37 15.3 36.9 14.3 36.8 13.3 36.7 12.4 36.4 11.7 35.7 11.3 34.8 11.2 33.8 11.1 32.8 11 31.8 11 30.8 10.9 29.9 10.4 29 9.8 28.2 9.1 27.5 8.5 26.7 7.8 26 7.3 25.1 7 24.2 7.1 23.2 7.6 22.3 8.2 21.6 8.9 20.8 9.5 20.1 10.2 19.3 10.7 18.5 10.9 17.5 11 16.5 11.1 15.6 11.1 14.6 11.2 13.6 11.5 12.6 12.1 11.9 13 11.4 13.9 11.2 14.9 11.1 15.9 11 16.9 11 17.9 10.9 18.8 10.6 19.6 10 20.4 9.3 21.1 8.6 21.9 8 22.6 7.4 23.6 7 24.6 7.1 25.5 7.5 26.2 8.1 27 8.7Z; M27.7 9.4 28.5 10 29.3 10.6 30.2 10.9 31.2 11 32.2 11.1 33.2 11.1 34.2 11.2 35.1 11.4 36 11.9 36.6 12.7 36.8 13.7 36.9 14.7 36.9 15.7 37 16.7 37.1 17.7 37.3 18.6 37.9 19.4 38.5 20.2 39.2 20.9 39.8 21.7 40.5 22.4 40.9 23.3 41 24.3 40.7 25.2 40.1 26 39.4 26.8 38.8 27.5 38.1 28.3 37.5 29.1 37.1 30 37 31 37 31.9 36.9 32.9 36.8 33.9 36.7 34.9 36.2 35.8 35.5 36.4 34.5 36.8 33.6 36.9 32.6 36.9 31.6 37 30.6 37.1 29.6 37.2 28.8 37.7 28 38.4 27.3 39 26.5 39.7 25.8 40.3 24.9 40.8 23.9 41 23 40.8 22.1 40.2 21.4 39.6 20.6 38.9 19.9 38.3 19.1 37.6 18.3 37.2 17.3 37 16.3 37 15.3 36.9 14.3 36.8 13.3 36.7 12.4 36.4 11.7 35.7 11.3 34.8 11.2 33.8 11.1 32.8 11 31.8 11 30.8 10.9 29.9 10.4 29 9.8 28.2 9.1 27.5 8.5 26.7 7.8 26 7.3 25.1 7 24.2 7.1 23.2 7.6 22.3 8.2 21.6 8.9 20.8 9.5 20.1 10.2 19.3 10.7 18.5 10.9 17.5 11 16.5 11.1 15.6 11.1 14.6 11.2 13.6 11.5 12.6 12.1 11.9 13 11.4 13.9 11.2 14.9 11.1 15.9 11 16.9 11 17.9 10.9 18.8 10.6 19.6 10 20.4 9.3 21.1 8.6 21.9 8 22.6 7.4 23.6 7 24.6 7.1 25.5 7.5 26.2 8.1 27 8.7Z; M27.9 10.6 28.8 10.3 29.8 10.1 30.8 10 31.8 10.1 32.7 10.3 33.7 10.6 34.6 11.1 34.8 11.3 35.4 11.7 36.1 12.4 36.7 13.1 37.2 14 37.6 14.9 37.9 15.9 38 16.9 38 17.9 37.8 18.8 37.5 19.8 37.1 20.7 36.8 21.6 36.5 22.6 36.4 23.6 36.4 24.4 36.4 24.6 36.5 25.5 36.8 26.5 37.2 27.4 37.6 28.3 37.8 29.3 38 30.3 38 31.3 37.8 32.3 37.6 33.2 37.2 34.1 36.6 35 36 35.7 35.3 36.4 34.4 37 34.1 37.2 33.6 37.4 32.6 37.8 31.6 37.9 30.6 38 29.7 37.9 28.7 37.7 27.8 37.3 26.8 36.9 25.9 36.6 24.9 36.4 23.9 36.4 22.9 36.4 22 36.6 21 37 20.1 37.4 20.1 37.4 19.2 37.7 18.2 37.9 17.2 38 16.2 37.9 15.3 37.7 14.3 37.4 13.4 36.9 12.6 36.3 11.9 35.6 11.3 34.9 10.8 34 10.4 33.1 10.1 32.1 10 31.1 10 30.2 10.2 29.2 10.5 28.2 10.9 27.3 11.2 26.4 11.5 25.4 11.6 24.4 11.6 23.4 11.5 22.5 11.2 21.5 10.8 20.6 10.4 19.7 10.2 18.7 10 17.7 10 16.7 10.2 15.7 10.4 14.8 10.8 13.9 11.4 13 12 12.3 12.7 11.6 13.6 11 14.4 10.6 15.4 10.2 16.4 10.1 17.4 10 18.3 10.1 19.3 10.3 20.2 10.7 21.2 11.1 22.1 11.4 23.1 11.6 24.1 11.6 25.1 11.6 26 11.4 27 11 27.9 10.6 28.8 10.3 29.8 10.1 30.8 10 31.8 10.1 32.7 10.3 33.7 10.6 34.6 11.1 35.4 11.7 36.1 12.4 36.7 13.1 37.2 14 37.6 14.9 37.9 15.9 38 16.9 38 17.8 37.8 18.8 37.5 19.8 37.1 20.7 36.8 21.6 36.5 22.6 36.4 23.6 36.4 24.6 36.5 25.5 36.8 26.5 37.2 27.4 37.6 28.3 37.8 29.3 38 30.3 38 31.3 37.8 32.3 37.6 33.2 37.2 34.1 36.6 35Z"></animate>
-                    <animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="5s" repeatCount="indefinite" calcMode="spline" keySplines="0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8; 0.5 0.2 0 0.8" keyTimes="0; 0.14; 0.29; 0.43; 0.57; 0.71; 0.86; 1" values="0 24 24; 154 24 24; 309 24 24; 463 24 24; 617 24 24; 771 24 24; 926 24 24; 1080 24 24"></animateTransform>
-                </path>
+            <svg width="100%" height="100%" viewBox="-1 -1 2 2" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow: visible;">
+                <polygon points="" fill="var(--md-sys-color-primary)" />
             </svg>
         </div>
     </div>
-
-
     <div id="app-layout">
-        
-        
-        <!-- LE NAVIGATION RAIL (Barre à gauche) -->
         <aside class="m3-nav-rail">
-            
-            <!-- Le bouton carré en haut (comme la loupe sur ton screenshot) -->
             <div class="nav-fab" onclick="alert('Search is not available yet! ( > . < )')">
                 <span class="material-icons-round">search</span>
             </div>
-
-            <!-- Les onglets de navigation -->
             <a href="index.html" class="nav-rail-item" onclick="navigateSmoothly(event, 'index.html')">
                 <div class="nav-indicator">
                     <svg class="nav-logo-svg" viewBox="260 360 510 310" xmlns="http://www.w3.org/2000/svg">
@@ -2750,54 +2329,41 @@
                 </div>
                 <span class="nav-label">Home</span>
             </a>
-
             <a href="custom.html" class="nav-rail-item" onclick="navigateSmoothly(event, 'custom.html')">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">palette</span>
                 </div>
                 <span class="nav-label">Custom</span>
             </a>
-
             <a href="#" class="nav-rail-item active">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">graphic_eq</span>
                 </div>
                 <span class="nav-label">Audio FX</span>
             </a>
-
             <a href="#" class="nav-rail-item" onclick="alert('Badges are not available yet! ( > . < )'); event.preventDefault();">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">emoji_events</span>
                 </div>
                 <span class="nav-label">Badges</span>
             </a>
-
             <a href="#" class="nav-rail-item" onclick="alert('Updates are not available yet! ( > . < )'); event.preventDefault();">
                 <div class="nav-indicator">
                     <span class="material-icons-round nav-icon">update</span>
                 </div>
                 <span class="nav-label">Updates</span>
             </a>
-
-            <!-- Pousse les éléments suivants vers le bas -->
             <div class="nav-spacer"></div>
-
-            <!-- Les boutons circulaires en bas (comme sur ton screenshot) -->
             <div class="nav-bottom-action" onclick="alert('Mini-player settings are not available yet! ( > . < )')">
                 <span class="material-icons-round">play_arrow</span>
             </div>
             <div class="nav-bottom-action" title="Toggle Theme" onclick="window.toggleThemeMode()">
                 <span class="material-icons-round theme-toggle-icon">light_mode</span>
             </div>
-
         </aside>
-
-        <!-- LE CONTENU DU SITE (Ton App Wrapper actuel) -->
         <main class="m3-main-content">
             <div id="app-wrapper">
-
         <style>
-            /* Unique FX Dashboard Styles */
             .fx-header {
                 text-align: center;
                 padding: 100px 24px 60px;
@@ -2818,7 +2384,6 @@
                 margin: 0 auto;
                 line-height: 1.6;
             }
-            
             .bento-grid {
                 max-width: 1400px;
                 margin: 0 auto 120px;
@@ -2827,7 +2392,6 @@
                 grid-template-columns: repeat(12, 1fr);
                 gap: 24px;
             }
-            
             .bento-panel {
                 background: linear-gradient(160deg, rgba(33, 31, 38, 0.4), rgba(28, 26, 32, 0.8));
                 backdrop-filter: blur(40px);
@@ -2846,7 +2410,6 @@
                 transform: translateY(-4px);
                 border-color: rgba(255, 255, 255, 0.1);
             }
-            
             .panel-title {
                 font-family: var(--font-display);
                 font-size: 1.6rem;
@@ -2866,8 +2429,6 @@
                 z-index: 2;
                 max-width: 80%;
             }
-            
-            /* -- Equalizer Faders -- */
             .eq-console {
                 display: flex;
                 justify-content: space-around;
@@ -2923,8 +2484,6 @@
                 text-align: center;
                 width: 100%;
             }
-            
-            /* -- 8D Orbit Radar -- */
             .radar-module {
                 display: flex;
                 flex-direction: column;
@@ -2985,17 +2544,14 @@
                 transition: transform 0.25s var(--ease-spring), box-shadow 0.25s ease;
             }
             @keyframes rotate-orbit { 100% { transform: rotate(360deg); } }
-
             .eightd-panel .panel-desc {
                 max-width: 100%;
                 margin-bottom: 14px;
             }
-
             .eightd-radar-module {
                 min-height: 250px;
                 margin: 8px 0 24px;
             }
-
             .eightd-control-card {
                 position: relative;
                 z-index: 2;
@@ -3005,67 +2561,55 @@
                 border-radius: var(--radius-l);
                 box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255,255,255,0.04);
             }
-
             .eightd-range {
                 flex-grow: 0;
                 margin-bottom: 14px;
             }
-
             .eightd-range .m3-range-info {
                 align-items: center;
                 font-size: 1rem;
                 margin-bottom: 8px;
             }
-
             .eightd-range-label {
                 display: inline-flex;
                 align-items: center;
                 gap: 8px;
             }
-
             .eightd-range-label .material-icons-round {
                 font-size: 1.2rem;
                 color: var(--md-sys-color-tertiary);
             }
-
             .eightd-control-card .m3-v3-track-active,
             .eightd-control-card .m3-v3-track-inactive {
                 height: 34px;
             }
-
             .eightd-control-card .m3-v3-thumb,
             .eightd-control-card .m3-v3-thumb-container {
                 height: 46px;
             }
-
             .eightd-readout {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 10px;
             }
-
             .eightd-readout-item {
                 padding: 10px 12px;
                 border-radius: var(--radius-m);
                 background: rgba(255,255,255,0.04);
                 border: 1px solid rgba(255,255,255,0.06);
             }
-
             .eightd-readout-item span {
                 display: block;
                 font-size: 0.72rem;
                 color: var(--md-sys-color-outline);
                 margin-bottom: 2px;
             }
-
             .eightd-readout-item strong {
                 display: block;
                 font-family: monospace;
                 font-size: 0.95rem;
                 color: var(--md-sys-color-primary);
             }
-            
-            /* -- Sliders -- */
             .m3-range-wrapper {
                 flex-grow: 1;
                 display: flex;
@@ -3081,83 +2625,61 @@
                 font-weight: 500;
                 color: var(--md-sys-color-on-surface);
             }
-            /* =========================================
-               MATERIAL DESIGN 3 STRICT SLIDER
-               Mesures exactes basées sur les specs (16px track, 4x44px thumb)
-               ========================================= */
-            
-            /* =========================================
-               MATERIAL DESIGN 3 - SLIDER VARIANT 3
-               Design exact : Thumb pilule (8x52) + Bords intérieurs légèrement arrondis
-               ========================================= */
-
             .m3-v3-slider {
                 position: relative;
                 width: 100%;
-                height: 52px; /* Hauteur max pour contenir le grand pouce */
+                height: 52px; 
                 display: flex;
                 align-items: center;
-                --val: 0.5; /* Modifié dynamiquement par le JS */
+                --val: 0.5; 
             }
-
             .m3-v3-slider input[type="range"] {
                 position: absolute;
                 inset: 0;
                 width: 100%;
                 height: 100%;
-                opacity: 0; /* On cache l'input natif moche */
+                opacity: 0; 
                 cursor: pointer;
                 z-index: 10;
                 margin: 0;
             }
-
             .m3-v3-layout {
                 display: flex;
                 align-items: center;
                 width: 100%;
                 height: 100%;
-                pointer-events: none; /* Empêche les bugs de clic */
+                pointer-events: none; 
             }
-
-            /* --- LA PISTE REMPLIE (GAUCHE) --- */
             .m3-v3-track-active {
                 flex: var(--val);
-                height: 40px; /* Épaisseur de la piste */
+                height: 40px; 
                 background-color: var(--md-sys-color-primary, #d0bcff);
-                border-radius: 12px 4px 4px 12px; /* 12px fixe */
+                border-radius: 12px 4px 4px 12px; 
                 transition: flex 0.3s cubic-bezier(0.2, 0, 0, 1);
             }
-
-            /* --- LE CONTENEUR DU POUCE (LE GAP) --- */
             .m3-v3-thumb-container {
-                flex: 0 0 16px; /* Largeur fixe : 6px espace + 4px pouce + 6px espace */
+                flex: 0 0 16px; 
                 height: 52px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
             }
-
-            /* --- LE POUCE (PILULE) --- */
             .m3-v3-thumb {
-                width: 4px; /* Épaisseur de la pilule très fine */
-                height: 52px; /* Hauteur de la pilule */
+                width: 4px; 
+                height: 52px; 
                 background-color: var(--md-sys-color-primary, #d0bcff);
-                border-radius: 2px; /* Rendu pilule arrondie plus fin */
+                border-radius: 2px; 
                 transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
             }
-
-            /* --- LA PISTE VIDE (DROITE) --- */
             .m3-v3-track-inactive {
                 position: relative;
                 flex: calc(1 - var(--val));
                 height: 40px;
-                background-color: rgba(255, 255, 255, 0.12); /* Gris sombre */
-                border-radius: 4px 12px 12px 4px; /* 12px fixe */
+                background-color: rgba(255, 255, 255, 0.12); 
+                border-radius: 4px 12px 12px 4px; 
                 transition: flex 0.3s cubic-bezier(0.2, 0, 0, 1);
                 overflow: hidden;
             }
-
-            /* Petit point indicateur à la fin de la piste type M3 */
             .m3-v3-track-inactive::after {
                 content: '';
                 position: absolute;
@@ -3171,25 +2693,17 @@
                 opacity: 1;
                 transition: opacity 0.2s ease;
             }
-
-            /* On cache le point pendant le survol ou le "drag" */
             .m3-v3-slider:hover .m3-v3-track-inactive::after,
             .m3-v3-slider.is-dragging .m3-v3-track-inactive::after {
                 opacity: 0;
             }
-
-            /* Coupe la transition pendant le drag pour un suivi immédiat du doigt/souris */
             .m3-v3-slider.no-transition .m3-v3-track-active,
             .m3-v3-slider.no-transition .m3-v3-track-inactive {
                 transition: none;
             }
-
-            /* Effet d'écrasement (Squish) Material Design quand on maintient le clic */
             .m3-v3-slider.is-dragging .m3-v3-thumb {
                 transform: scaleY(1.05) scaleX(0.8);
             }
-
-            /* -- Rain Ambience -- */
             .rain-bg {
                 position: absolute;
                 inset: 0;
@@ -3208,8 +2722,6 @@
                 z-index: 2;
                 transition: color 0.5s;
             }
-            
-            /* -- Live Code IDE -- */
             .live-code-block {
                 grid-column: span 7;
                 display: grid;
@@ -3290,7 +2802,7 @@
                 padding: 24px 32px 30px;
             }
             .code-window {
-                padding: 0; /* JS injections should handle internal scroll */
+                padding: 0; 
                 font-family: 'Fira Code', monospace;
                 font-size: 0.95rem;
                 line-height: 1.8;
@@ -3314,27 +2826,20 @@
                 padding-bottom: 24px;
                 border-bottom: 1px solid rgba(255,255,255,0.05);
             }
-
             .core-fx-panel {
                 grid-column: span 12;
             }
-
             .core-fx-grid {
                 display: grid;
                 grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: 12px;
                 margin-top: 24px;
             }
-            
-
-            /* --- Fix pour la grille des Switchs FX --- */
             .fx-switches-grid {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 24px;
             }
-
-            /* --- Fix pour le panneau RainPlayer --- */
             .rain-panel-layout {
                 display: flex;
                 flex-direction: row;
@@ -3343,33 +2848,26 @@
                 padding: 48px;
                 gap: 24px;
             }
-
-            /* --- Adaptations Mobile --- */
             @media (max-width: 900px) {
                 .fx-switches-grid {
                     grid-template-columns: 1fr;
                 }
-
                 .rain-panel-layout {
                     flex-direction: column;
                     text-align: center;
                     padding: 40px 24px;
                     gap: 32px;
                 }
-
                 .rain-panel-layout .panel-desc {
                     max-width: 100%;
                 }
-
                 .rain-kaomoji {
                     font-size: 2.5rem;
                 }
-
                 .rain-panel-layout .kt-btn-outline {
                     width: 100%;
                 }
             }
-
             @media (max-width: 1000px) {
                 .bento-panel { grid-column: span 12 !important; }
                 .live-code-block { grid-template-columns: 1fr; }
@@ -3380,30 +2878,21 @@
                 }
                 .fx-header h1 { font-size: 2.5rem; }
             }
-
             @media (max-width: 760px) {
                 .core-fx-grid {
                     grid-template-columns: 1fr;
                 }
             }
         </style>
-
         <header class="fx-header">
             <h1>Audio & FX Engine</h1>
             <p>A completely custom ExoPlayer implementation. Alter speed, balance EQ, and spatialize sound with ZERO latency.</p>
         </header>
-
         <div class="bento-grid">
-            
-
-
-            <!-- KittyTune FX (Span 12) -->
             <div class="bento-panel core-fx-panel" style="display: flex; flex-direction: column;">
                 <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-primary);">tune</span> Core FX Processors</h3>
                 <p class="panel-desc">Direct PCM (16-bit) byte manipulation extending ExoPlayer's <code>BaseAudioProcessor</code>. Zero latency.</p>
-                
                 <div class="core-fx-grid">
-                    <!-- Bass Boost -->
                     <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
                         <div style="display: flex; align-items: flex-start; justify-content: space-between;">
                             <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Bass Boost</div>
@@ -3411,8 +2900,6 @@
                         </div>
                         <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Biquad Low Shelf filter at 100Hz.</div>
                     </div>
-                    
-                    <!-- Muffled -->
                     <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
                         <div style="display: flex; align-items: flex-start; justify-content: space-between;">
                             <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Muffled</div>
@@ -3420,8 +2907,6 @@
                         </div>
                         <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Biquad Low Pass dynamic cutoff.</div>
                     </div>
-                    
-                    <!-- Reverb -->
                     <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
                         <div style="display: flex; align-items: flex-start; justify-content: space-between;">
                             <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Reverb</div>
@@ -3429,8 +2914,6 @@
                         </div>
                         <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">150ms Circular delay line buffer.</div>
                     </div>
-
-                    <!-- Earrape -->
                     <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
                         <div style="display: flex; align-items: flex-start; justify-content: space-between;">
                             <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Earrape</div>
@@ -3440,29 +2923,24 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 8D Audio (Span 5) -->
             <div class="bento-panel eightd-panel" style="grid-column: span 5; display: flex; flex-direction: column;">
                 <div class="radar-grid-bg"></div>
                 <div>
                     <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-tertiary);">360</span> 8D Spatial</h3>
                     <p class="panel-desc">An LFO oscillator wraps music dynamically.</p>
                 </div>
-                
                 <div class="radar-module eightd-radar-module" style="display: flex; align-items: center; justify-content: center;">
                     <div class="radar-container" id="radar-container">
                         <div class="radar-head" id="radar-head">( o_o )</div>
                         <div class="radar-orbit" id="radar-orbit"><div class="radar-dot"></div></div>
                     </div>
                 </div>
-
                 <div class="eightd-control-card">
                     <div class="m3-range-wrapper eightd-range">
                         <div class="m3-range-info">
                             <span class="eightd-range-label"><span class="material-icons-round">speed</span> LFO Orbit Speed</span>
                             <span id="ui-speed-val" style="color: var(--md-sys-color-primary); font-family: monospace; font-size: 1.15rem;">0.50</span>
                         </div>
-                        
                         <div class="m3-v3-slider" id="lfo-slider-container">
                             <input type="range" id="speed-slider" min="0" max="1" step="0.01" value="0.5" aria-label="8D LFO orbit speed">
                             <div class="m3-v3-layout">
@@ -3486,15 +2964,12 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Live Code Interaction Block (Span 7) -->
             <div class="live-code-block bento-panel" style="grid-column: span 7;">
                 <div class="code-controls">
                     <div>
                         <h3 class="panel-title"><span class="material-icons-round" style="color: #ffbd2e;">terminal</span> DSP Algorithms</h3>
                         <p class="panel-desc" style="max-width: 100%;">The Kotlin math responding to the 8D slider in real time.</p>
                     </div>
-
                     <div class="code-sync-card">
                         <span class="material-icons-round">speed</span>
                         <div class="code-sync-copy">
@@ -3503,7 +2978,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="code-ide-pane">
                     <div class="ide-tabs">
                         <button class="ide-tab active" onclick="switchCode('8d', this)">Spatialization (8D)</button>
@@ -3511,19 +2985,12 @@
                         <button class="ide-tab" onclick="switchCode('reverb', this)">Delay Line</button>
                         <button class="ide-tab" onclick="switchCode('muffled', this)">Low-Pass</button>
                     </div>
-                    
                     <div class="code-scroll-container" id="code-display" style="font-family: 'Fira Code', monospace; font-size: 0.95rem; line-height: 1.7; color: #abb2bf;">
-                        <!-- Le code sera injecté ici par JS -->
                     </div>
                 </div>
             </div>
-
-
-            <!-- NOUVEAU: Technical Deep Dive (Span 12) -->
             <div class="bento-panel" style="grid-column: span 12; padding: 48px;">
                 <div class="deep-dive-grid" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center;">
-                    
-                    <!-- Left: Explanations -->
                     <div>
                         <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-secondary);">memory</span> Bypassing Android's Audio Limits</h3>
                         <p class="panel-desc" style="max-width: 100%; margin-bottom: 20px;">
@@ -3541,8 +3008,6 @@
                             <span class="tech-badge">Direct Form II</span>
                         </div>
                     </div>
-
-                    <!-- Right: The Audio Pipeline Visualizer -->
                     <div class="pipeline-container">
                         <div class="pipeline-step">
                             <span class="material-icons-round step-icon">cloud_download</span>
@@ -3551,9 +3016,7 @@
                                 <p>SoundCloud Stream / Local MP3</p>
                             </div>
                         </div>
-                        
                         <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
-                        
                         <div class="pipeline-step">
                             <span class="material-icons-round step-icon">memory</span>
                             <div class="step-text">
@@ -3561,9 +3024,7 @@
                                 <p>Decodes to raw PCM 16-bit</p>
                             </div>
                         </div>
-                        
                         <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
-                        
                         <div class="pipeline-step highlight">
                             <span class="material-icons-round step-icon">graphic_eq</span>
                             <div class="step-text">
@@ -3571,9 +3032,7 @@
                                 <p>Byte manipulation & Math formulas</p>
                             </div>
                         </div>
-                        
                         <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
-                        
                         <div class="pipeline-step">
                             <span class="material-icons-round step-icon">speaker</span>
                             <div class="step-text">
@@ -3584,28 +3043,21 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Live Effects Tester (Span 12) -->
             <div class="bento-panel" style="grid-column: span 12; padding: 48px;">
                 <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-primary);">play_circle</span> Live Effects Tester</h3>
                 <p class="panel-desc" style="max-width: 900px; margin-bottom: 32px;">
                     Experience the DSP effects in real-time. Turn on the switches to apply effects to the playback directly using the Web Audio API. 
                 </p>
-
-                <!-- Custom Audio Player component -->
                 <div style="background: rgba(0,0,0,0.2); border-radius: var(--radius-l); padding: 32px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 40px;">
                     <div style="display: flex; align-items: center; gap: 24px;">
                         <button id="live-fx-play-btn" class="play-fab-large" style="width: 56px; height: 56px; margin: 0; flex-shrink: 0;">
                             <span class="material-icons-round" style="font-size: 32px;" id="live-fx-play-icon">play_arrow</span>
                         </button>
-                        
                         <div style="flex-grow: 1; display: flex; flex-direction: column;">
                             <div style="display: flex; justify-content: space-between; font-family: monospace; font-size: 0.85rem; color: var(--md-sys-color-outline); margin-bottom: 8px;">
                                 <span id="fx-time-current">0:00</span>
                                 <span id="fx-time-total" style="opacity: 0.5;">0:00</span>
                             </div>
-
-                            <!-- MUSIC PROGRESS BAR (Thinner version of M3-V3 Slider) -->
                             <div class="m3-v3-slider fx-progress-bar" id="fx-progress-container" style="height: 32px; --val: 0;">
                                 <input type="range" id="fx-progress-slider" min="0" max="1" step="0.001" value="0">
                                 <div class="m3-v3-layout">
@@ -3619,10 +3071,7 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Switches Grid -->
                 <style>
-/* Precise M3 Switch */
 .md3-switch {
     display: flex; align-items: center; justify-content: space-between;
     padding: 16px 24px; background: rgba(255, 255, 255, 0.02);
@@ -3635,7 +3084,6 @@
 .md3-switch-title { font-size: 1.1rem; font-weight: 600; color: var(--md-sys-color-on-surface); }
 .md3-switch-desc { font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; }
 .md3-switch-input { display: none !important; }
-
 .md3-switch-track {
     position: relative;
     width: 52px; height: 32px; border-radius: 16px;
@@ -3644,8 +3092,6 @@
     transition: background-color 0.2s, border-color 0.2s;
     display: flex; align-items: center; box-sizing: border-box; flex-shrink: 0;
 }
-
-/* Halo de survol (State Layer - 40x40) */
 .md3-switch-track::before {
     content: '';
     position: absolute;
@@ -3658,15 +3104,11 @@
     pointer-events: none;
     z-index: 0;
 }
-
 .md3-switch-track:hover::before { opacity: 0.08; }
-
 .md3-switch:active .md3-switch-input:not(:checked) + .md3-switch-track::before,
 .md3-switch-input:not(:checked) + .md3-switch-track:active::before { opacity: 0.12; }
-
 .md3-switch:active .md3-switch-input:checked + .md3-switch-track::before,
 .md3-switch-input:checked + .md3-switch-track:active::before { opacity: 0.12; background-color: var(--md-sys-color-primary); }
-
 .md3-switch-thumb {
     position: absolute;
     top: 0; bottom: 0; margin: auto;
@@ -3677,52 +3119,43 @@
     display: flex; align-items: center; justify-content: center;
     z-index: 1;
 }
-
 .md3-switch:active .md3-switch-input:not(:checked) + .md3-switch-track .md3-switch-thumb,
 .md3-switch-input:not(:checked) + .md3-switch-track:active .md3-switch-thumb {
     width: 28px; height: 28px;
     left: 0px; 
 }
-
 .md3-switch-input:checked + .md3-switch-track {
     background-color: var(--md-sys-color-primary);
     border-color: var(--md-sys-color-primary);
 }
-
 .md3-switch-input:checked + .md3-switch-track::before {
     left: 34px;
     background-color: var(--md-sys-color-primary);
 }
-
 .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb {
     left: 22px;
     width: 24px; height: 24px;
     background-color: var(--md-sys-color-on-primary);
 }
-
 .md3-switch:active .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb,
 .md3-switch-input:checked + .md3-switch-track:active .md3-switch-thumb {
     width: 28px; height: 28px;
     left: 20px;
 }
-
 .md3-switch-icon {
     position: absolute;
     display: flex; align-items: center; justify-content: center;
     width: 16px; height: 16px;
     transition: opacity 0.2s, transform 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
-
 .md3-switch-icon-cross {
     opacity: 1; transform: scale(1);
     color: var(--md-sys-color-surface-container-highest);
 }
-
 .md3-switch-icon-check {
     opacity: 0; transform: scale(0.3) rotate(-45deg);
     color: var(--md-sys-color-on-primary-container); 
 }
-
 .md3-switch-input:checked + .md3-switch-track .md3-switch-thumb .md3-switch-icon-cross {
     opacity: 0; transform: scale(0.3) rotate(45deg);
 }
@@ -3752,7 +3185,6 @@
                             </div>
                         </div>
                     </label>
-
                     <label class="md3-switch">
                         <div class="md3-switch-label-container">
                             <span class="md3-switch-title">Nightcore</span>
@@ -3774,7 +3206,6 @@
                             </div>
                         </div>
                     </label>
-
                     <label class="md3-switch">
                         <div class="md3-switch-label-container">
                             <span class="md3-switch-title">Slowed + Reverb</span>
@@ -3796,7 +3227,6 @@
                             </div>
                         </div>
                     </label>
-
                     <label class="md3-switch">
                         <div class="md3-switch-label-container">
                             <span class="md3-switch-title">Muffled</span>
@@ -3820,116 +3250,86 @@
                     </label>
                 </div>
             </div>
-
-                        <!-- Rainplayer Module (Span 12) -->
             <div class="bento-panel rain-panel-layout" id="rain-panel" style="grid-column: span 12;">
                 <div class="rain-bg"></div>
                 <div style="z-index: 2; max-width: 500px;">
                     <h3 class="panel-title"><span class="material-icons-round" style="color: #6eb5ff;">water_drop</span> RainPlayer Ambience</h3>
                     <p class="panel-desc" style="margin-bottom: 0;">Layer high-fidelity rain noise entirely detached from the main music stream. Perfect for deep focus.</p>
                 </div>
-                
                 <div class="rain-kaomoji" id="rain-face">[ /// ]</div>
-                
                 <button class="kt-btn-outline" id="rain-btn" onclick="toggleRain()" style="z-index: 2; padding: 16px 40px; border-color: rgba(255,255,255,0.2); color: white;">
                     Mix Ambience
                 </button>
             </div>
-
         </div>
-
-
         <script>
             (function() {
-                // --- Code Snippets (From actual Kotlin source) ---
                 const codeSnippets = {
                     '8d': `
-<span style="color: #7f848e;">// 1. Calculate rotation speed based on UI slider input</span>
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> rotationSpeed = (<span style="color: #d19a66;">0.000002</span> + <span class="code-highlight" id="code-speed-val" style="background: rgba(208, 188, 255, 0.15); color: #d0bcff;">0.50f</span> * <span style="color: #d19a66;">0.000038</span>)
-
-<span style="color: #7f848e;">// 2. Simple oscillator using Sine wave (-1.0 to 1.0)</span>
+<span style="color: #7f848e;">
 time += rotationSpeed
 <span style="color: #c678dd;">val</span> pan = sin(time) 
-
-<span style="color: #7f848e;">// 3. Modulate Left & Right channels independently</span>
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> leftVol = (<span style="color: #d19a66;">1.0</span> - pan) / <span style="color: #d19a66;">2.0</span>
 <span style="color: #c678dd;">val</span> rightVol = (<span style="color: #d19a66;">1.0</span> + pan) / <span style="color: #d19a66;">2.0</span>
-
 <span style="color: #c678dd;">val</span> newLeft = (originalLeft * leftVol).toInt().toShort()
 <span style="color: #c678dd;">val</span> newRight = (originalRight * rightVol).toInt().toShort()`,
-
                     'biquad': `
-<span style="color: #7f848e;">// 1. Calculate Biquad Low-Shelf coefficients (e.g. 100Hz Bass)</span>
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> A = Math.pow(<span style="color: #d19a66;">10.0</span>, gain / <span style="color: #d19a66;">40.0</span>).toFloat()
 <span style="color: #c678dd;">val</span> w0 = (<span style="color: #d19a66;">2.0</span> * PI * <span style="color: #d19a66;">100f</span> / sampleRate).toFloat()
 <span style="color: #c678dd;">val</span> alpha = sin(w0) / <span style="color: #d19a66;">2f</span> * Math.sqrt(((A + <span style="color: #d19a66;">1f</span>/A)*(<span style="color: #d19a66;">1f</span>/S - <span style="color: #d19a66;">1f</span>)+<span style="color: #d19a66;">2f</span>).toDouble()).toFloat()
-
 <span style="color: #c678dd;">val</span> a0 = (A + <span style="color: #d19a66;">1f</span>) + (A - <span style="color: #d19a66;">1f</span>) * cos(w0) + beta
 b0 = (A * ((A + <span style="color: #d19a66;">1f</span>) - (A - <span style="color: #d19a66;">1f</span>) * cos(w0) + beta)) / a0
-<span style="color: #7f848e;">// ... (b1, b2, a1, a2 calculated similarly)</span>
-
-<span style="color: #7f848e;">// 2. Apply Direct Form II Transposed difference equation per sample</span>
+<span style="color: #7f848e;">
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> y = b0*x + b1*x1 + b2*x2 - a1*y1 - a2*y2
-
-<span style="color: #7f848e;">// 3. Shift history states for the next sample</span>
+<span style="color: #7f848e;">
 x2 = x1; x1 = x
 y2 = y1; y1 = y
-
-<span style="color: #7f848e;">// 4. Clamp output to prevent integer overflow</span>
+<span style="color: #7f848e;">
 output = y.coerceIn(Short.MIN_VALUE.toFloat(), Short.MAX_VALUE.toFloat()).toInt().toShort()`,
-
                     'reverb': `
-<span style="color: #7f848e;">// 1. Read the past sample from our circular delay buffer (e.g. 150ms ago)</span>
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> delayedSample = buffer[cursor]
-
-<span style="color: #7f848e;">// 2. Mix current input with the decayed echo</span>
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> outputSample = (inputSample + delayedSample * decay)
     .toInt()
     .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
     .toShort()
-
-<span style="color: #7f848e;">// 3. Feed the resulting mix back into the delay line</span>
+<span style="color: #7f848e;">
 buffer[cursor] = outputSample
-
-<span style="color: #7f848e;">// 4. Advance circular cursor</span>
+<span style="color: #7f848e;">
 cursor++
 <span style="color: #c678dd;">if</span> (cursor >= buffer.size) cursor = <span style="color: #d19a66;">0</span>`,
-
                     'muffled': `
-<span style="color: #7f848e;">// 1. Calculate Biquad Low-Pass coefficients (e.g. 300Hz cutoff)</span>
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> w0 = (<span style="color: #d19a66;">2.0</span> * PI * <span style="color: #d19a66;">300f</span> / sampleRate).toFloat()
 <span style="color: #c678dd;">val</span> cosW0 = cos(w0)
-<span style="color: #c678dd;">val</span> alpha = sin(w0) / (<span style="color: #d19a66;">2f</span> * <span style="color: #d19a66;">0.5f</span>) <span style="color: #7f848e;">// Q = 0.5</span>
-
-<span style="color: #7f848e;">// 2. Compute feedforward & feedback coefficients</span>
+<span style="color: #c678dd;">val</span> alpha = sin(w0) / (<span style="color: #d19a66;">2f</span> * <span style="color: #d19a66;">0.5f</span>) <span style="color: #7f848e;">
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> a0 = <span style="color: #d19a66;">1f</span> + alpha
 b0 = ((<span style="color: #d19a66;">1f</span> - cosW0) / <span style="color: #d19a66;">2f</span>) / a0
 b1 = (<span style="color: #d19a66;">1f</span> - cosW0) / a0
-<span style="color: #7f848e;">// ... (b2, a1, a2 calculated similarly)</span>
-
-<span style="color: #7f848e;">// 3. Process each sample with Direct Form 1</span>
+<span style="color: #7f848e;">
+<span style="color: #7f848e;">
 <span style="color: #c678dd;">val</span> y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
-
-<span style="color: #7f848e;">// 4. Shift buffer states for the next sample window</span>
+<span style="color: #7f848e;">
 x2 = x1; x1 = x
 y2 = y1; y1 = y
-
 output = y.toInt().toShort()`
                 };
-
-                // Robust Slider Logic (Event Delegation for SPA & Firefox)
                 window.updateM3Slider = function() {
                     const sliderInput = document.getElementById('speed-slider');
                     const sliderContainer = document.getElementById('lfo-slider-container');
                     if (!sliderInput || !sliderContainer) return;
-
                     const min = parseFloat(sliderInput.min) || 0;
                     const max = parseFloat(sliderInput.max) || 1;
                     const val = parseFloat(sliderInput.value);
                     const percent = (val - min) / (max - min);
-                    
                     sliderContainer.style.setProperty('--val', percent);
-                    
                     const formattedVal = val.toFixed(2);
                     const orbitSeconds = 4.0 - (val * 3.5);
                     const uiSpeed = document.getElementById('ui-speed-val');
@@ -3940,13 +3340,11 @@ output = y.toInt().toShort()`
                     const radarOrbit = document.getElementById('radar-orbit');
                     const radarContainer = document.getElementById('radar-container');
                     const radarHead = document.getElementById('radar-head');
-
                     if (uiSpeed) uiSpeed.textContent = formattedVal;
                     if (codeSpeed) codeSpeed.textContent = `${formattedVal}f`;
                     if (codeSpeedChip) codeSpeedChip.textContent = `${formattedVal}f`;
                     if (orbitDuration) orbitDuration.textContent = `${orbitSeconds.toFixed(2)}s`;
                     if (speedAmount) speedAmount.textContent = `${Math.round(percent * 100)}%`;
-
                     if (radarOrbit) radarOrbit.style.animationDuration = `${orbitSeconds}s`;
                     if (radarContainer) {
                         radarContainer.style.setProperty('--dot-scale', (0.85 + percent * 0.45).toFixed(2));
@@ -3965,12 +3363,9 @@ output = y.toInt().toShort()`
                         }, 260);
                     }
                 };
-
-                // Global event delegation (only attach once)
                 if (!window.m3SlidersBound) {
                     window.m3SlidersBound = true;
                     let inputCount = 0;
-
                     document.addEventListener('mousedown', e => {
                         if (e.target.id === 'speed-slider') {
                             inputCount = 0;
@@ -3978,7 +3373,6 @@ output = y.toInt().toShort()`
                             if (container) container.classList.add('is-dragging');
                         }
                     });
-
                     document.addEventListener('touchstart', e => {
                         if (e.target.id === 'speed-slider') {
                             inputCount = 0;
@@ -3986,7 +3380,6 @@ output = y.toInt().toShort()`
                             if (container) container.classList.add('is-dragging');
                         }
                     }, {passive: true});
-
                     window.addEventListener('mouseup', () => {
                         const container = document.getElementById('lfo-slider-container');
                         if (container) {
@@ -3994,7 +3387,6 @@ output = y.toInt().toShort()`
                             container.classList.remove('no-transition');
                         }
                     });
-
                     window.addEventListener('touchend', () => {
                         const container = document.getElementById('lfo-slider-container');
                         if (container) {
@@ -4002,7 +3394,6 @@ output = y.toInt().toShort()`
                             container.classList.remove('no-transition');
                         }
                     });
-
                     document.addEventListener('input', e => {
                         if (e.target.id === 'speed-slider') {
                             inputCount++;
@@ -4014,43 +3405,28 @@ output = y.toInt().toShort()`
                         }
                     });
                 }
-                
-                // Initial call for current page elements
                 window.updateM3Slider();
-
-                // Code Tab Switching Logic
                 window.switchCode = function(tabId, element) {
-                    // Update active button
                     document.querySelectorAll('.ide-tab').forEach(btn => {
                         btn.classList.remove('active');
                     });
-                    
                     if (element) {
                         element.classList.add('active');
                     } else {
-                        // Fallback if called programmatically
                         const firstTab = document.querySelector(`.ide-tab[onclick*="'${tabId}'"]`);
                         if (firstTab) firstTab.classList.add('active');
                     }
-
-                    // Inject Code
                     const display = document.getElementById('code-display');
                     if (display) {
                         display.innerHTML = codeSnippets[tabId].replace(/\n/g, '<br>').replace(/    /g, '&nbsp;&nbsp;&nbsp;&nbsp;');
                     }
-
-                    // Trigger slider update if we went back to 8D tab
                     if(tabId === '8d') {
                         if (typeof window.updateM3Slider === 'function') window.updateM3Slider();
                     }
                 };
-
-                // Initialize first tab
                 window.switchCode('8d');
-
             })();
         </script>
-
         <div class="squiggle-line">
             <svg aria-hidden="true" width="100%" height="8" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
@@ -4072,7 +3448,6 @@ output = y.toInt().toShort()`
                 <rect width="100%" height="100%" fill="url(#squiggle-pattern)" mask="url(#mask)"></rect>
             </svg>
         </div>
-
         <footer>
             <div class="container">
                 <div class="footer-grid">
@@ -4110,18 +3485,15 @@ output = y.toInt().toShort()`
         </div>
     </main>
 </div>
-
     <script>
         (function() {
             const loader = document.getElementById('loading-screen');
             const appWrapper = document.getElementById('app-wrapper');
-
             setTimeout(() => {
                 if(loader) loader.classList.add('hidden');
                 if(appWrapper) appWrapper.classList.add('loaded');
-                setTimeout(() => { if(loader) loader.style.display = 'none'; }, 500);
-            }, 800);
-
+                setTimeout(() => { if(loader) loader.style.display = 'none'; }, 800);
+            }, 2000); 
             fetch('https://api.github.com/repos/alan7383/kittytune/releases/latest')
                 .then(r => r.json())
                 .then(data => {
@@ -4130,7 +3502,6 @@ output = y.toInt().toShort()`
                         document.querySelectorAll('.latest-download-link').forEach(el => el.href = apk.browser_download_url);
                     }
                 });
-
             const observer = new IntersectionObserver(entries => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
@@ -4139,35 +3510,27 @@ output = y.toInt().toShort()`
                     }
                 });
             }, { threshold: 0.15 });
-
             setTimeout(() => {
                 document.querySelectorAll('.showcase-row, .reveal').forEach(el => observer.observe(el));
             }, 300);
-
-            // --- Effet Ripple Material Design 3 pour les cartes et boutons (EXCLUANT LE RAIL) ---
             document.querySelectorAll('.philosophy-item, .kt-btn-download, .kt-btn-outline, .btn, .preset-chip, .theme-chip, .segmented-button, .filter-chip, .input-chip, .suggestion-chip, .assist-chip').forEach(card => {
                 card.addEventListener('pointerdown', function (e) {
                     const rect = this.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     const y = e.clientY - rect.top;
-
                     const ripple = document.createElement('span');
                     ripple.classList.add('md3-ripple');
-
                     const size = Math.max(rect.width, rect.height) * 2;
                     ripple.style.width  = `${size}px`;
                     ripple.style.height = `${size}px`;
                     ripple.style.left   = `${x - size / 2}px`;
                     ripple.style.top    = `${y - size / 2}px`;
-
                     this.appendChild(ripple);
-
                     ripple.addEventListener('animationend', () => ripple.remove());
                 });
             });
         })();
     </script>
-
     <script>
         function switchTab(event, element) {
             event.preventDefault();
@@ -4175,84 +3538,56 @@ output = y.toInt().toShort()`
             allItems.forEach(item => item.classList.remove('active'));
             element.classList.add('active');
         }
-
         async function navigateSmoothly(event, url) {
             event.preventDefault();
-
-            // Prevent reloading if already on the same page
             const target = url.split('/').pop().replace('.html', '');
             const current = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
             if (target === current) {
                 closeDrawer();
                 return;
             }
-
-            // Stop any background processes (Typography Autoplay, etc.)
             if (typeof window.stopTypoAutoPlay === 'function') window.stopTypoAutoPlay();
-            
             const loader = document.getElementById('loading-screen');
             const wrapper = document.getElementById('app-wrapper');
             const navRail = document.querySelector('.m3-nav-rail');
-            
             if (!loader || !wrapper || !navRail) {
                 window.location.href = url;
                 return;
             }
-            
-            // Close mobile drawer if open
             closeDrawer();
-
-            // Fade loader back in natively
             loader.style.display = 'flex';
             void loader.offsetWidth;
             loader.classList.remove('hidden');
-            
-            // Blur and fade everything else out
+            if (window.startM3Loader) window.startM3Loader();
             wrapper.classList.remove('loaded');
             wrapper.classList.add('unloading');
-            
             try {
-                // Fetch the new page while CSS animates
                 const response = await fetch(url);
                 const htmlText = await response.text();
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlText, 'text/html');
-                
                 setTimeout(() => {
-                    // Quietly swap DOM behind the blur
                     document.title = doc.title;
                     wrapper.innerHTML = doc.getElementById('app-wrapper').innerHTML;
                     navRail.innerHTML = doc.querySelector('.m3-nav-rail').innerHTML;
-                    
-                    // Reset scroll position to top
                     window.scrollTo(0, 0);
-                    
-                    // NEW: Sync Drawer active states too
                     const mobileDrawer = document.getElementById('mobile-drawer');
                     const newDrawer = doc.getElementById('mobile-drawer');
                     if (mobileDrawer && newDrawer) {
                         mobileDrawer.innerHTML = newDrawer.innerHTML;
                     }
-                    
-                    // Sync CSS styles (CORRIGÉ)
                     const newStyle = doc.getElementById('main-style');
                     const oldStyle = document.getElementById('main-style');
                     if (newStyle && oldStyle) {
-                        // Créer un nouveau nœud pour forcer le navigateur à recompiler le CSS
                         const styleClone = document.createElement('style');
                         styleClone.id = 'main-style';
                         styleClone.textContent = newStyle.textContent;
                         oldStyle.replaceWith(styleClone);
                     }
-
                     let cleanUrl = url.replace(/\.html$/, '');
                     if (cleanUrl === 'index') cleanUrl = './';
                     window.history.pushState({}, '', cleanUrl);
-                    
-                    // Remove old injected scripts to stop memory leaks and duplicated observers
                     document.querySelectorAll('.pjax-script').forEach(s => s.remove());
-
-                    // Re-execute scripts
                     doc.querySelectorAll('script').forEach(oldScript => {
                         if (oldScript.textContent.includes('navigateSmoothly') || oldScript.src) return;
                         const newScript = document.createElement('script');
@@ -4260,30 +3595,22 @@ output = y.toInt().toShort()`
                         newScript.classList.add('pjax-script');
                         document.body.appendChild(newScript);
                     });
-                    
-                    // Entrance animation
                     wrapper.classList.remove('unloading');
                     wrapper.classList.add('loaded');
-                    
                     window.updateThemeIcons();
-                    
                     setTimeout(() => {
                         loader.classList.add('hidden');
-                        setTimeout(() => loader.style.display = 'none', 500);
-                    }, 200);
-
-                }, 550); // wait full unloading duration
+                        setTimeout(() => loader.style.display = 'none', 800); 
+                    }, 800); 
+                }, 550); 
             } catch(e) {
-                window.location.href = url; // Fallback
+                window.location.href = url; 
             }
         }
-
-        // --- Mobile Drawer Logic ---
         function toggleDrawer() {
             document.getElementById('mobile-drawer').classList.toggle('show');
             document.getElementById('drawer-scrim').classList.toggle('show');
         }
-
         function closeDrawer() {
             const drawer = document.getElementById('mobile-drawer');
             const scrim = document.getElementById('drawer-scrim');
@@ -4291,10 +3618,7 @@ output = y.toInt().toShort()`
             if (scrim) scrim.classList.remove('show');
         }
     </script>
-
-    <!-- Global Rain Miniplayer -->
     <style>
-        /* --- Global Rain Miniplayer --- */
         .rain-miniplayer {
             position: fixed;
             bottom: 32px;
@@ -4347,9 +3671,8 @@ output = y.toInt().toShort()`
     <div class="rain-miniplayer" onclick="window.toggleRainMute()" title="Toggle Ambience">
         <span class="material-icons-round">cloud_sync</span>
     </div>
-    <!-- Global FX Player script -->
     <script src="js/fx-player.js"></script>
     <script src="js/rain-manager.js"></script>
+    <script src="js/m3-loader.js"></script>
 </body>
-
 </html>
