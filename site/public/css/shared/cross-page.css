@@ -9,24 +9,7 @@
     transform: translateY(0);
 }
 
-@media (max-width: 900px) {
-    .m3-nav-rail {
-        display: none;
-    }
 
-    #app-layout {
-        flex-direction: column;
-    }
-
-    .m3-mobile-top-bar {
-        display: flex;
-    }
-
-    .m3-main-content {
-        width: 100%;
-    }
-
-}
 
 :root.light-mode .effect-pill.speed {
     color: #ffffff;
