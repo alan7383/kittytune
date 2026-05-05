@@ -91,6 +91,7 @@
     document.querySelectorAll('.pjax-script').forEach((script) => script.remove());
     doc.querySelectorAll('script').forEach((oldScript) => {
       if (oldScript.src) return;
+      if (oldScript.type && oldScript.type !== 'text/javascript' && oldScript.type !== 'module') return;
       if (oldScript.textContent.includes('navigateSmoothly')) return;
       const newScript = document.createElement('script');
       newScript.textContent = oldScript.textContent;
