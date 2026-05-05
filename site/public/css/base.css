@@ -460,8 +460,9 @@ span.md3-ripple {
         display: flex !important;
     }
     
-    /* S'assurer que le contenu prend toute la largeur */
+    /* S'assurer que le contenu prend toute la largeur et n'est pas caché sous la barre */
     .m3-main-content {
         width: 100%;
+        padding-top: 76px;
     }
 }
