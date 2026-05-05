@@ -68,17 +68,30 @@
     });
   }
 
+  let cachedApkUrl = null;
   function updateLatestDownloadLinks() {
+    if (cachedApkUrl) {
+      document.querySelectorAll('.latest-download-link').forEach((link) => {
+        link.href = cachedApkUrl;
+      });
+      return;
+    }
     fetch('https://api.github.com/repos/alan7383/kittytune/releases/latest')
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) throw new Error('API Rate limit ou erreur réseau');
+        return response.json();
+      })
       .then((data) => {
         const apk = data.assets && data.assets.find((asset) => asset.name.endsWith('.apk'));
         if (!apk) return;
+        cachedApkUrl = apk.browser_download_url;
         document.querySelectorAll('.latest-download-link').forEach((link) => {
-          link.href = apk.browser_download_url;
+          link.href = cachedApkUrl;
         });
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('KittyTune: Impossible de récupérer la dernière release sur GitHub.', err);
+      });
   }
 
   function initCurrentPage(root = document) {
