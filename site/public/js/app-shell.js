@@ -85,6 +85,7 @@
     initReveal(root);
     initRipples(root);
     if (window.updateThemeIcons) window.updateThemeIcons();
+    updateLatestDownloadLinks();
   }
 
   function runInlinePageScripts(doc) {
