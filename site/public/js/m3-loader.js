@@ -136,8 +136,14 @@
 
     let shapes = [];
     let aligned = [];
+    
     let animationId = null;
-    let t0 = null;
+    let lastFrameTime = null;
+    let totalAnimationTime = parseFloat(sessionStorage.getItem('kittytune_loader_time')) || 0;
+
+    window.addEventListener('beforeunload', () => {
+        sessionStorage.setItem('kittytune_loader_time', totalAnimationTime);
+    });
 
     setTimeout(() => {
         if (!polyEl) return;
@@ -162,13 +168,23 @@
         const isHidden = !loaderScreen || loaderScreen.style.display === "none";
         if (isHidden) {
             animationId = null;
+            lastFrameTime = null;
+            sessionStorage.setItem('kittytune_loader_time', totalAnimationTime);
             return;
         }
 
-        if (!t0) t0 = ts;
-        const progress = (ts - t0) / MS_PER_SHAPE;
+        if (!lastFrameTime) lastFrameTime = ts;
+        const dt = ts - lastFrameTime;
+        lastFrameTime = ts;
+        
+        if (dt < 100) {
+            totalAnimationTime += dt;
+        }
+
+        const progress = totalAnimationTime / MS_PER_SHAPE;
         const base = Math.floor(progress), rawF = progress - base;
         const sf = springValue(rawF);
+        
         const idx = base % shapes.length;
         const s1 = shapes[idx], s2 = aligned[idx];
         const inv = 1 - sf;
@@ -187,7 +203,7 @@
 
     window.startM3Loader = function() {
         if (!animationId && shapes.length > 0 && polyEl) {
-            t0 = null; 
+            lastFrameTime = null;
             animationId = requestAnimationFrame(render);
         }
     };
