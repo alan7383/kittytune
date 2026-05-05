@@ -7,7 +7,7 @@ export const SITE = {
 } as const;
 
 export const NAV_ITEMS = [
-  { key: 'home', label: 'Home', href: 'index.html', icon: 'home', logo: true },
+  { key: 'home', label: 'Home', href: '', icon: 'home', logo: true },
   { key: 'custom', label: 'Custom', href: 'custom.html', icon: 'palette' },
   { key: 'audio-fx', label: 'Audio FX', href: 'audio-fx.html', icon: 'graphic_eq' },
 ] as const;
