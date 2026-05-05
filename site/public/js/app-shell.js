@@ -127,7 +127,7 @@
 
   window.navigateSmoothly = async function navigateSmoothly(event, url) {
     event.preventDefault();
-    const target = url.split('/').pop().replace('.html', '');
+    const target = url.split('/').pop().replace('.html', '') || 'index';
     const current = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
 
     if (target === current) {
@@ -169,9 +169,9 @@
         if (mobileDrawer && nextDrawer) mobileDrawer.innerHTML = nextDrawer.innerHTML;
         if (window.syncPageStyles) window.syncPageStyles(doc);
 
-        let cleanUrl = url.replace(/\.html$/, '');
+        let cleanUrl = url.replace(/\/index\.html$/, '/').replace(/\.html$/, '');
         if (cleanUrl.endsWith('/index')) {
-          cleanUrl = cleanUrl.slice(0, -5);
+          cleanUrl = cleanUrl.slice(0, -6);
         } else if (cleanUrl === 'index') {
           cleanUrl = './';
         }
