@@ -1,0 +1,57 @@
+/*
+ * Small cross-page overrides shared by two page families.
+ * Extracted from the former inline CSS blocks.
+ */
+
+.rain-miniplayer.playing {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+    .m3-nav-rail {
+        display: none;
+    }
+
+    #app-layout {
+        flex-direction: column;
+    }
+
+    .m3-mobile-top-bar {
+        display: flex;
+    }
+
+    .m3-main-content {
+        width: 100%;
+    }
+
+}
+
+:root.light-mode .effect-pill.speed {
+    color: #ffffff;
+}
+
+:root.light-mode .m3-v3-track-inactive {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+:root.light-mode .compose-settings-item {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+:root.light-mode .widget-feature-copy {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.05);
+}
+
+:root.light-mode .eightd-control-card {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+:root.light-mode .eightd-readout-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.06);
+}

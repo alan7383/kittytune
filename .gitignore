@@ -26,3 +26,8 @@ dump_project_context.txt
 .kotlin/
 *.txt
 .vscode/
+node_modules/
+site/dist/
+site/.astro/
+!docs/robots.txt
+!site/public/robots.txt

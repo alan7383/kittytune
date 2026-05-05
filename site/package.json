@@ -1,0 +1,18 @@
+{
+  "name": "kittytune-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "node scripts/build.mjs",
+    "preview": "astro preview"
+  },
+  "devDependencies": {
+    "astro": "^6.0.0"
+  }
+}

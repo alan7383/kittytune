@@ -1,0 +1,57 @@
+---
+import Footer from '../components/Footer.astro';
+import LoadingScreen from '../components/LoadingScreen.astro';
+import Navigation from '../components/Navigation.astro';
+import RainMiniPlayer from '../components/RainMiniPlayer.astro';
+import SquiggleDivider from '../components/SquiggleDivider.astro';
+
+const { page } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{page.title}</title>
+    <meta name="description" content={page.description}>
+    {page.keywords && <meta name="keywords" content={page.keywords}>}
+    <link rel="canonical" href={page.canonical}>
+    <link rel="icon" type="image/x-icon" href={`${import.meta.env.BASE_URL}assets/images/logo.ico`}>
+    <meta name="theme-color" content="#141218">
+    {page.og?.map((item) => <meta property={item.property} content={item.content}> )}
+    {page.twitter?.map((item) => <meta name={item.name} content={item.content}> )}
+    {page.schema && <script type="application/ld+json" set:html={page.schema}></script>}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,100..1000&family=Outfit:wght@300;500;700;800&display=swap"
+      rel="stylesheet"
+    >
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <script is:inline src={`${import.meta.env.BASE_URL}theme-engine.js`}></script>
+    <link rel="stylesheet" href={`${import.meta.env.BASE_URL}css/base.css`}>
+    <link rel="stylesheet" href={`${import.meta.env.BASE_URL}css/shared/cross-page.css`}>
+    {page.styles.map((href) => <link rel="stylesheet" href={`${import.meta.env.BASE_URL}${href}`} data-page-style>)}
+  </head>
+  <body>
+    <Navigation activePage={page.key} variant="mobile" />
+    <LoadingScreen />
+    <div id="app-layout">
+      <Navigation activePage={page.key} variant="rail" />
+      <main class="m3-main-content">
+        <div id="app-wrapper">
+          <slot />
+          <SquiggleDivider />
+          <Footer />
+        </div>
+      </main>
+    </div>
+    <script is:inline src={`${import.meta.env.BASE_URL}js/app-shell.js`}></script>
+    <RainMiniPlayer />
+    <script is:inline src={`${import.meta.env.BASE_URL}js/fx-player.js`}></script>
+    <script is:inline src={`${import.meta.env.BASE_URL}js/rain-manager.js`}></script>
+    <script is:inline src={`${import.meta.env.BASE_URL}js/m3-loader.js`}></script>
+  </body>
+</html>
+

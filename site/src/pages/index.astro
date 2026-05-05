@@ -1,0 +1,10 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { PAGES } from '../config/site';
+import content from '../content/pages/home.html?raw';
+const processedContent = content.replace(/src="assets\//g, `src="${import.meta.env.BASE_URL}assets/`);
+---
+
+<SiteLayout page={PAGES.home}>
+  <Fragment set:html={processedContent} />
+</SiteLayout>
