@@ -170,7 +170,11 @@
         if (window.syncPageStyles) window.syncPageStyles(doc);
 
         let cleanUrl = url.replace(/\.html$/, '');
-        if (cleanUrl === 'index') cleanUrl = './';
+        if (cleanUrl.endsWith('/index')) {
+          cleanUrl = cleanUrl.slice(0, -5);
+        } else if (cleanUrl === 'index') {
+          cleanUrl = './';
+        }
         window.history.pushState({}, '', cleanUrl);
 
         runInlinePageScripts(doc);
