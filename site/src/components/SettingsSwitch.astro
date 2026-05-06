@@ -1,0 +1,39 @@
+---
+interface Props {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  checked?: boolean;
+  class?: string;
+}
+
+const { id, title, description, icon, checked = false, class: className = "" } = Astro.props;
+---
+
+<label class={`compose-settings-item ${className}`}>
+  <div class="compose-settings-left">
+    <div class="compose-settings-icon-wrapper">
+      <span class="material-icons-round">{icon}</span>
+    </div>
+    <div class="compose-settings-text">
+      <strong>{title}</strong>
+      <span>{description}</span>
+    </div>
+  </div>
+  <input type="checkbox" class="md3-switch-input" id={id} checked={checked} />
+  <div class="md3-switch-track">
+    <div class="md3-switch-thumb">
+      <div class="md3-switch-icon md3-switch-icon-cross">
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+          <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"></path>
+        </svg>
+      </div>
+      <div class="md3-switch-icon md3-switch-icon-check">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </div>
+    </div>
+  </div>
+</label>

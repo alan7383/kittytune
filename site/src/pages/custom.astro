@@ -1,6 +1,6 @@
----
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { PAGES } from '../config/site';
+import SettingsSwitch from '../components/SettingsSwitch.astro';
 ---
 
 <SiteLayout page={PAGES.custom}>
@@ -194,22 +194,14 @@ import { PAGES } from '../config/site';
             </div>
             <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Integration</h4>
             <div class="compose-settings-group">
-              <label class="compose-settings-item top bottom single">
-                <div class="compose-settings-left">
-                  <div class="compose-settings-icon-wrapper"><span class="material-icons-round">link</span></div>
-                  <div class="compose-settings-text">
-                    <strong>Enable Discord RPC</strong>
-                    <span>Broadcast playback via local socket</span>
-                  </div>
-                </div>
-                <input type="checkbox" class="md3-switch-input" id="rpc-toggle" checked />
-                <div class="md3-switch-track">
-                  <div class="md3-switch-thumb">
-                    <div class="md3-switch-icon md3-switch-icon-cross"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-                    <div class="md3-switch-icon md3-switch-icon-check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                  </div>
-                </div>
-              </label>
+              <SettingsSwitch 
+                id="rpc-toggle" 
+                title="Enable Discord RPC" 
+                description="Broadcast playback via local socket" 
+                icon="link" 
+                checked 
+                class="top bottom single"
+              />
             </div>
           </div>
         </div>
@@ -259,54 +251,27 @@ import { PAGES } from '../config/site';
             </div>
             <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Options</h4>
             <div class="compose-settings-group">
-              <label class="compose-settings-item top">
-                <div class="compose-settings-left">
-                  <div class="compose-settings-icon-wrapper"><span class="material-icons-round">lyrics</span></div>
-                  <div class="compose-settings-text">
-                    <strong>Inline lyrics</strong>
-                    <span>Synchronized text view</span>
-                  </div>
-                </div>
-                <input type="checkbox" class="md3-switch-input" id="toggle-inline-lyrics" />
-                <div class="md3-switch-track">
-                  <div class="md3-switch-thumb">
-                    <div class="md3-switch-icon md3-switch-icon-cross"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-                    <div class="md3-switch-icon md3-switch-icon-check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                  </div>
-                </div>
-              </label>
-              <label class="compose-settings-item middle">
-                <div class="compose-settings-left">
-                  <div class="compose-settings-icon-wrapper"><span class="material-icons-round">all_inclusive</span></div>
-                  <div class="compose-settings-text">
-                    <strong>Smart Auto-play</strong>
-                    <span>Endless radio when queue ends</span>
-                  </div>
-                </div>
-                <input type="checkbox" class="md3-switch-input" />
-                <div class="md3-switch-track">
-                  <div class="md3-switch-thumb">
-                    <div class="md3-switch-icon md3-switch-icon-cross"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-                    <div class="md3-switch-icon md3-switch-icon-check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                  </div>
-                </div>
-              </label>
-              <label class="compose-settings-item bottom">
-                <div class="compose-settings-left">
-                  <div class="compose-settings-icon-wrapper"><span class="material-icons-round">contrast</span></div>
-                  <div class="compose-settings-text">
-                    <strong>Pure black ready</strong>
-                    <span>AMOLED pixel saving mode</span>
-                  </div>
-                </div>
-                <input type="checkbox" class="md3-switch-input" id="pure-black-toggle" />
-                <div class="md3-switch-track">
-                  <div class="md3-switch-thumb">
-                    <div class="md3-switch-icon md3-switch-icon-cross"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-                    <div class="md3-switch-icon md3-switch-icon-check"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                  </div>
-                </div>
-              </label>
+              <SettingsSwitch 
+                id="toggle-inline-lyrics" 
+                title="Inline lyrics" 
+                description="Synchronized text view" 
+                icon="lyrics" 
+                class="top"
+              />
+              <SettingsSwitch 
+                id="smart-autoplay" 
+                title="Smart Auto-play" 
+                description="Endless radio when queue ends" 
+                icon="all_inclusive" 
+                class="middle"
+              />
+              <SettingsSwitch 
+                id="pure-black-toggle" 
+                title="Pure black ready" 
+                description="AMOLED pixel saving mode" 
+                icon="contrast" 
+                class="bottom"
+              />
             </div>
           </div>
         </div>
