@@ -101,6 +101,32 @@
     updateLatestDownloadLinks();
   }
 
+  function showLoader() {
+    const loader = document.getElementById('loading-screen');
+    const wrapper = document.getElementById('app-wrapper');
+    if (!loader || !wrapper) return;
+    loader.style.display = 'flex';
+    void loader.offsetWidth;
+    loader.classList.remove('hidden');
+    if (window.startM3Loader) window.startM3Loader();
+    wrapper.classList.remove('loaded');
+    wrapper.classList.add('unloading');
+  }
+
+  function hideLoader() {
+    const loader = document.getElementById('loading-screen');
+    const wrapper = document.getElementById('app-wrapper');
+    if (!loader || !wrapper) return;
+    wrapper.classList.remove('unloading');
+    wrapper.classList.add('loaded');
+    setTimeout(() => {
+      loader.classList.add('hidden');
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 800);
+    }, 800);
+  }
+
   window.toggleDrawer = function toggleDrawer() {
     document.getElementById('mobile-drawer')?.classList.toggle('show');
     document.getElementById('drawer-scrim')?.classList.toggle('show');
@@ -123,16 +149,13 @@
     initCurrentPage(document);
   });
 
+  document.addEventListener('astro:before-preparation', () => {
+    showLoader();
+  });
+
   document.addEventListener('astro:after-swap', () => {
     initCurrentPage(document);
-
-    const loader = document.getElementById('loading-screen');
-    const appWrapper = document.getElementById('app-wrapper');
-    if (loader) {
-      loader.classList.add('hidden');
-      loader.style.display = 'none';
-    }
-    if (appWrapper) appWrapper.classList.add('loaded');
+    hideLoader();
   });
 
   document.addEventListener('astro:page-load', () => {
