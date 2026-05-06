@@ -1,10 +1,459 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { PAGES } from '../config/site';
-import content from '../content/pages/audio-fx.html?raw';
-const processedContent = content.replace(/src="assets\//g, `src="${import.meta.env.BASE_URL}assets/`);
 ---
 
 <SiteLayout page={PAGES['audio-fx']}>
-  <Fragment set:html={processedContent} />
+  <header class="fx-header">
+    <h1>Audio & FX Engine</h1>
+    <p>A completely custom ExoPlayer implementation. Alter speed, balance EQ, and spatialize sound with ZERO latency.</p>
+  </header>
+  <div class="bento-grid">
+    <div class="bento-panel core-fx-panel" style="display: flex; flex-direction: column;">
+      <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-primary);">tune</span> Core FX Processors</h3>
+      <p class="panel-desc">Direct PCM (16-bit) byte manipulation extending ExoPlayer's <code>BaseAudioProcessor</code>. Zero latency.</p>
+      <div class="core-fx-grid">
+        <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Bass Boost</div>
+            <span class="material-icons-round" style="color: var(--md-sys-color-primary); font-size: 1.2rem;">bolt</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Biquad Low Shelf filter at 100Hz.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Muffled</div>
+            <span class="material-icons-round" style="color: var(--md-sys-color-secondary); font-size: 1.2rem;">blur_on</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Biquad Low Pass dynamic cutoff.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Reverb</div>
+            <span class="material-icons-round" style="color: #6eb5ff; font-size: 1.2rem;">graphic_eq</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">150ms Circular delay line buffer.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; justify-content: space-between; background: rgba(255,255,255,0.02); padding: 12px 16px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--md-sys-color-on-surface);">Earrape</div>
+            <span class="material-icons-round" style="color: #ff5f56; font-size: 1.2rem;">warning</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--md-sys-color-outline); margin-top: 4px; line-height: 1.3;">Massive hard clipping gain *800f.</div>
+        </div>
+      </div>
+    </div>
+    <div class="bento-panel eightd-panel" style="grid-column: span 5; display: flex; flex-direction: column;">
+      <div class="radar-grid-bg"></div>
+      <div>
+        <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-tertiary);">360</span> 8D Spatial</h3>
+        <p class="panel-desc">An LFO oscillator wraps music dynamically.</p>
+      </div>
+      <div class="radar-module eightd-radar-module" style="display: flex; align-items: center; justify-content: center;">
+        <div class="radar-container" id="radar-container">
+          <div class="radar-head" id="radar-head">( o_o )</div>
+          <div class="radar-orbit" id="radar-orbit"><div class="radar-dot"></div></div>
+        </div>
+      </div>
+      <div class="eightd-control-card">
+        <div class="m3-range-wrapper eightd-range">
+          <div class="m3-range-info">
+            <span class="eightd-range-label"><span class="material-icons-round">speed</span> LFO Orbit Speed</span>
+            <span id="ui-speed-val" style="color: var(--md-sys-color-primary); font-family: monospace; font-size: 1.15rem;">0.50</span>
+          </div>
+          <div class="m3-v3-slider" id="lfo-slider-container">
+            <input type="range" id="speed-slider" min="0" max="1" step="0.01" value="0.5" aria-label="8D LFO orbit speed" />
+            <div class="m3-v3-layout">
+              <div class="m3-v3-track-active"></div>
+              <div class="m3-v3-thumb-container">
+                <div class="m3-v3-thumb"></div>
+              </div>
+              <div class="m3-v3-track-inactive"></div>
+            </div>
+          </div>
+        </div>
+        <div class="eightd-readout">
+          <div class="eightd-readout-item">
+            <span>Orbit loop</span>
+            <strong id="orbit-duration-val">2.25s</strong>
+          </div>
+          <div class="eightd-readout-item">
+            <span>Speed amount</span>
+            <strong id="speed-amount-val">50%</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="live-code-block bento-panel" style="grid-column: span 7;">
+      <div class="code-controls">
+        <div>
+          <h3 class="panel-title"><span class="material-icons-round" style="color: #ffbd2e;">terminal</span> DSP Algorithms</h3>
+          <p class="panel-desc" style="max-width: 100%;">The Kotlin math responding to the 8D slider in real time.</p>
+        </div>
+        <div class="code-sync-card">
+          <span class="material-icons-round">speed</span>
+          <div class="code-sync-copy">
+            <span>Live param</span>
+            <strong id="code-speed-chip">0.50f</strong>
+          </div>
+        </div>
+      </div>
+      <div class="code-ide-pane">
+        <div class="ide-tabs">
+          <button class="ide-tab active" onclick="switchCode('8d', this)">Spatialization (8D)</button>
+          <button class="ide-tab" onclick="switchCode('biquad', this)">Biquad Filter</button>
+          <button class="ide-tab" onclick="switchCode('reverb', this)">Delay Line</button>
+          <button class="ide-tab" onclick="switchCode('muffled', this)">Low-Pass</button>
+        </div>
+        <div class="code-scroll-container" id="code-display" style="font-family: 'Fira Code', monospace; font-size: 0.95rem; line-height: 1.7; color: #abb2bf;">
+        </div>
+      </div>
+    </div>
+    <div class="bento-panel" style="grid-column: span 12; padding: 48px;">
+      <div class="deep-dive-grid" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center;">
+        <div>
+          <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-secondary);">memory</span> Bypassing Android's Audio Limits</h3>
+          <p class="panel-desc" style="max-width: 100%; margin-bottom: 20px;">
+            Standard Android audio effects like <code>android.media.audiofx</code> are applied at the OS level. That means a bass boost can sound completely different on a Samsung device compared to a Xiaomi or a Pixel, because each OEM can alter the underlying DSP.
+          </p>
+          <p class="panel-desc" style="max-width: 100%; margin-bottom: 24px;">
+            <b>KittyTune fixes this.</b> By hooking directly into ExoPlayer's <code>DefaultAudioSink</code> via a custom <code>BaseAudioProcessor</code>, the app manipulates the raw 16-bit PCM <code>ByteBuffer</code> before it reaches Android AudioTrack.
+            That keeps KittyTune's DSP signature consistent before hardware output on Samsung, Xiaomi, Pixel, and beyond. Biquad filters, LFO panning, and delay buffers stay as lightweight math on the audio thread, keeping the effect path under a millisecond for normal buffers without waking heavy OS DSP chains.
+          </p>
+          <div>
+            <span class="tech-badge">inputAudioFormat.sampleRate</span>
+            <span class="tech-badge">inputBuffer.getShort()</span>
+            <span class="tech-badge">Math.sin() LFO</span>
+            <span class="tech-badge">Biquad Filter</span>
+            <span class="tech-badge">Direct Form II</span>
+          </div>
+        </div>
+        <div class="pipeline-container">
+          <div class="pipeline-step">
+            <span class="material-icons-round step-icon">cloud_download</span>
+            <div class="step-text">
+              <h4>Media Source</h4>
+              <p>SoundCloud Stream / Local MP3</p>
+            </div>
+          </div>
+          <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
+          <div class="pipeline-step">
+            <span class="material-icons-round step-icon">memory</span>
+            <div class="step-text">
+              <h4>ExoPlayer Decoders</h4>
+              <p>Decodes to raw PCM 16-bit</p>
+            </div>
+          </div>
+          <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
+          <div class="pipeline-step highlight">
+            <span class="material-icons-round step-icon">graphic_eq</span>
+            <div class="step-text">
+              <h4>KittyTune DSP (AudioProcessors.kt)</h4>
+              <p>Byte manipulation & Math formulas</p>
+            </div>
+          </div>
+          <div class="pipeline-arrow"><span class="material-icons-round">arrow_downward</span></div>
+          <div class="pipeline-step">
+            <span class="material-icons-round step-icon">speaker</span>
+            <div class="step-text">
+              <h4>Android AudioTrack</h4>
+              <p>OS playback via hardware</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bento-panel" style="grid-column: span 12; padding: 48px;">
+      <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-primary);">play_circle</span> Live Effects Tester</h3>
+      <p class="panel-desc" style="max-width: 900px; margin-bottom: 32px;">
+        Experience the DSP effects in real-time. Turn on the switches to apply effects to the playback directly using the Web Audio API. 
+      </p>
+      <div style="background: rgba(0,0,0,0.2); border-radius: var(--radius-l); padding: 32px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 40px;">
+        <div style="display: flex; align-items: center; gap: 24px;">
+          <button id="live-fx-play-btn" class="play-fab-large" style="width: 56px; height: 56px; margin: 0; flex-shrink: 0;">
+            <span class="material-icons-round" style="font-size: 32px;" id="live-fx-play-icon">play_arrow</span>
+          </button>
+          <div style="flex-grow: 1; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; font-family: monospace; font-size: 0.85rem; color: var(--md-sys-color-outline); margin-bottom: 8px;">
+              <span id="fx-time-current">0:00</span>
+              <span id="fx-time-total" style="opacity: 0.5;">0:00</span>
+            </div>
+            <div class="m3-v3-slider fx-progress-bar" id="fx-progress-container" style="height: 32px; --val: 0;">
+              <input type="range" id="fx-progress-slider" min="0" max="1" step="0.001" value="0" />
+              <div class="m3-v3-layout">
+                <div class="m3-v3-track-active" style="height: 18px; border-radius: 6px 1px 1px 6px;"></div>
+                <div class="m3-v3-thumb-container" style="height: 32px; flex: 0 0 10px;">
+                  <div class="m3-v3-thumb" style="height: 32px; width: 3px; border-radius: 1.5px;"></div>
+                </div>
+                <div class="m3-v3-track-inactive" style="height: 18px; border-radius: 1px 6px 6px 1px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fx-switches-grid">
+        <label class="md3-switch">
+          <div class="md3-switch-label-container">
+            <span class="md3-switch-title">8D Spatial</span>
+            <span class="md3-switch-desc">Revolving LFO panning</span>
+          </div>
+          <input type="checkbox" id="toggle-8d" class="md3-switch-input" />
+          <div class="md3-switch-track">
+            <div class="md3-switch-thumb">
+              <div class="md3-switch-icon md3-switch-icon-cross">
+                <svg viewBox="0 0 12 12" width="10" height="10">
+                  <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="md3-switch-icon md3-switch-icon-check">
+                <svg viewBox="0 0 12 12" width="10" height="10">
+                  <path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </label>
+        <label class="md3-switch">
+          <div class="md3-switch-label-container">
+            <span class="md3-switch-title">Nightcore</span>
+            <span class="md3-switch-desc">Pitch and speed up</span>
+          </div>
+          <input type="checkbox" id="toggle-nightcore" class="md3-switch-input" />
+          <div class="md3-switch-track">
+            <div class="md3-switch-thumb">
+              <div class="md3-switch-icon md3-switch-icon-cross">
+                <svg viewBox="0 0 12 12" width="10" height="10">
+                  <path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="md3-switch-icon md3-switch-icon-check">
+                <svg viewBox="0 0 12 12" width="10" height="10">
+                  <path d="M2 6L5 9L10 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </label>
+        <label class="md3-switch">
+          <div class="md3-switch-label-container">
+            <span class="md3-switch-title">Slowed + Reverb</span>
+            <span class="md3-switch-desc">Slower playback with rich echo</span>
+          </div>
+          <input type="checkbox" id="toggle-reverb" class="md3-switch-input" />
+          <div class="md3-switch-track">
+            <div class="md3-switch-thumb">
+              <div class="md3-switch-icon md3-switch-icon-cross">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                  <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="md3-switch-icon md3-switch-icon-check">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </label>
+        <label class="md3-switch">
+          <div class="md3-switch-label-container">
+            <span class="md3-switch-title">Muffled</span>
+            <span class="md3-switch-desc">Outside the club feels</span>
+          </div>
+          <input type="checkbox" id="toggle-muffled" class="md3-switch-input" />
+          <div class="md3-switch-track">
+            <div class="md3-switch-thumb">
+              <div class="md3-switch-icon md3-switch-icon-cross">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                  <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="md3-switch-icon md3-switch-icon-check">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2.5 6L5 8.5L9.5 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div class="bento-panel rain-panel-layout" id="rain-panel" style="grid-column: span 12;">
+      <div class="rain-bg"></div>
+      <div style="z-index: 2; max-width: 500px;">
+        <h3 class="panel-title"><span class="material-icons-round" style="color: #6eb5ff;">water_drop</span> RainPlayer Ambience</h3>
+        <p class="panel-desc" style="margin-bottom: 0;">Layer high-fidelity rain noise entirely detached from the main music stream. Perfect for deep focus.</p>
+      </div>
+      <div class="rain-kaomoji" id="rain-face">[ /// ]</div>
+      <button class="kt-btn-outline" id="rain-btn" onclick="toggleRain()" style="z-index: 2; padding: 16px 40px; border-color: rgba(255,255,255,0.2); color: white;">
+        Mix Ambience
+      </button>
+    </div>
+  </div>
 </SiteLayout>
+
+<script is:inline>
+  (function() {
+    const codeSnippets = {
+      '8d': `
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> rotationSpeed = (<span style="color: #d19a66;">0.000002</span> + <span class="code-highlight" id="code-speed-val" style="background: rgba(208, 188, 255, 0.15); color: #d0bcff;">0.50f</span> * <span style="color: #d19a66;">0.000038</span>)
+<span style="color: #7f848e;">
+time += rotationSpeed
+<span style="color: #c678dd;">val</span> pan = sin(time) 
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> leftVol = (<span style="color: #d19a66;">1.0</span> - pan) / <span style="color: #d19a66;">2.0</span>
+<span style="color: #c678dd;">val</span> rightVol = (<span style="color: #d19a66;">1.0</span> + pan) / <span style="color: #d19a66;">2.0</span>
+<span style="color: #c678dd;">val</span> newLeft = (originalLeft * leftVol).toInt().toShort()
+<span style="color: #c678dd;">val</span> newRight = (originalRight * rightVol).toInt().toShort()`,
+      'biquad': `
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> A = Math.pow(<span style="color: #d19a66;">10.0</span>, gain / <span style="color: #d19a66;">40.0</span>).toFloat()
+<span style="color: #c678dd;">val</span> w0 = (<span style="color: #d19a66;">2.0</span> * PI * <span style="color: #d19a66;">100f</span> / sampleRate).toFloat()
+<span style="color: #c678dd;">val</span> alpha = sin(w0) / <span style="color: #d19a66;">2f</span> * Math.sqrt(((A + <span style="color: #d19a66;">1f</span>/A)*(<span style="color: #d19a66;">1f</span>/S - <span style="color: #d19a66;">1f</span>)+<span style="color: #d19a66;">2f</span>).toDouble()).toFloat()
+<span style="color: #c678dd;">val</span> a0 = (A + <span style="color: #d19a66;">1f</span>) + (A - <span style="color: #d19a66;">1f</span>) * cos(w0) + beta
+b0 = (A * ((A + <span style="color: #d19a66;">1f</span>) - (A - <span style="color: #d19a66;">1f</span>) * cos(w0) + beta)) / a0
+<span style="color: #7f848e;">
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> y = b0*x + b1*x1 + b2*x2 - a1*y1 - a2*y2
+<span style="color: #7f848e;">
+x2 = x1; x1 = x
+y2 = y1; y1 = y
+<span style="color: #7f848e;">
+output = y.coerceIn(Short.MIN_VALUE.toFloat(), Short.MAX_VALUE.toFloat()).toInt().toShort()`,
+      'reverb': `
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> delayedSample = buffer[cursor]
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> outputSample = (inputSample + delayedSample * decay)
+    .toInt()
+    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+    .toShort()
+<span style="color: #7f848e;">
+buffer[cursor] = outputSample
+<span style="color: #7f848e;">
+cursor++
+<span style="color: #c678dd;">if</span> (cursor >= buffer.size) cursor = <span style="color: #d19a66;">0</span>`,
+      'muffled': `
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> w0 = (<span style="color: #d19a66;">2.0</span> * PI * <span style="color: #d19a66;">300f</span> / sampleRate).toFloat()
+<span style="color: #c678dd;">val</span> cosW0 = cos(w0)
+<span style="color: #c678dd;">val</span> alpha = sin(w0) / (<span style="color: #d19a66;">2f</span> * <span style="color: #d19a66;">0.5f</span>) <span style="color: #7f848e;">
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> a0 = <span style="color: #d19a66;">1f</span> + alpha
+b0 = ((<span style="color: #d19a66;">1f</span> - cosW0) / <span style="color: #d19a66;">2f</span>) / a0
+b1 = (<span style="color: #d19a66;">1f</span> - cosW0) / a0
+<span style="color: #7f848e;">
+<span style="color: #7f848e;">
+<span style="color: #c678dd;">val</span> y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+<span style="color: #7f848e;">
+x2 = x1; x1 = x
+y2 = y1; y1 = y
+output = y.toInt().toShort()`
+    };
+    window.updateM3Slider = function() {
+      const sliderInput = document.getElementById('speed-slider');
+      const sliderContainer = document.getElementById('lfo-slider-container');
+      if (!sliderInput || !sliderContainer) return;
+      const min = parseFloat(sliderInput.min) || 0;
+      const max = parseFloat(sliderInput.max) || 1;
+      const val = parseFloat(sliderInput.value);
+      const percent = (val - min) / (max - min);
+      sliderContainer.style.setProperty('--val', percent);
+      const formattedVal = val.toFixed(2);
+      const orbitSeconds = 4.0 - (val * 3.5);
+      const uiSpeed = document.getElementById('ui-speed-val');
+      const codeSpeed = document.getElementById('code-speed-val');
+      const codeSpeedChip = document.getElementById('code-speed-chip');
+      const orbitDuration = document.getElementById('orbit-duration-val');
+      const speedAmount = document.getElementById('speed-amount-val');
+      const radarOrbit = document.getElementById('radar-orbit');
+      const radarContainer = document.getElementById('radar-container');
+      const radarHead = document.getElementById('radar-head');
+      if (uiSpeed) uiSpeed.textContent = formattedVal;
+      if (codeSpeed) codeSpeed.textContent = `${formattedVal}f`;
+      if (codeSpeedChip) codeSpeedChip.textContent = `${formattedVal}f`;
+      if (orbitDuration) orbitDuration.textContent = `${orbitSeconds.toFixed(2)}s`;
+      if (speedAmount) speedAmount.textContent = `${Math.round(percent * 100)}%`;
+      if (radarOrbit) radarOrbit.style.animationDuration = `${orbitSeconds}s`;
+      if (radarContainer) {
+        radarContainer.style.setProperty('--dot-scale', (0.85 + percent * 0.45).toFixed(2));
+        radarContainer.style.setProperty('--dot-glow', `${20 + percent * 22}px`);
+      }
+      if (radarHead) {
+        radarHead.innerHTML = `(&gt;_&lt;)`;
+        radarHead.classList.add('is-listening');
+        if (window.radarFaceTimer) clearTimeout(window.radarFaceTimer);
+        window.radarFaceTimer = setTimeout(() => {
+          const h = document.getElementById('radar-head');
+          if (h) {
+            h.innerHTML = `( o_o )`;
+            h.classList.remove('is-listening');
+          }
+        }, 260);
+      }
+    };
+    if (!window.m3SlidersBound) {
+      window.m3SlidersBound = true;
+      let inputCount = 0;
+      document.addEventListener('mousedown', e => {
+        if (e.target.id === 'speed-slider') {
+          inputCount = 0;
+          const container = document.getElementById('lfo-slider-container');
+          if (container) container.classList.add('is-dragging');
+        }
+      });
+      document.addEventListener('touchstart', e => {
+        if (e.target.id === 'speed-slider') {
+          inputCount = 0;
+          const container = document.getElementById('lfo-slider-container');
+          if (container) container.classList.add('is-dragging');
+        }
+      }, {passive: true});
+      window.addEventListener('mouseup', () => {
+        const container = document.getElementById('lfo-slider-container');
+        if (container) {
+          container.classList.remove('is-dragging');
+          container.classList.remove('no-transition');
+        }
+      });
+      window.addEventListener('touchend', () => {
+        const container = document.getElementById('lfo-slider-container');
+        if (container) {
+          container.classList.remove('is-dragging');
+          container.classList.remove('no-transition');
+        }
+      });
+      document.addEventListener('input', e => {
+        if (e.target.id === 'speed-slider') {
+          inputCount++;
+          if (inputCount > 1) {
+            const container = document.getElementById('lfo-slider-container');
+            if (container) container.classList.add('no-transition');
+          }
+          window.updateM3Slider();
+        }
+      });
+    }
+    window.updateM3Slider();
+    window.switchCode = function(tabId, element) {
+      document.querySelectorAll('.ide-tab').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      if (element) {
+        element.classList.add('active');
+      } else {
+        const firstTab = document.querySelector(`.ide-tab[onclick*="'${tabId}'"]`);
+        if (firstTab) firstTab.classList.add('active');
+      }
+      const display = document.getElementById('code-display');
+      if (display) {
+        display.innerHTML = codeSnippets[tabId].replace(/\n/g, '<br>').replace(/    /g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+      }
+      if(tabId === '8d') {
+        if (typeof window.updateM3Slider === 'function') window.updateM3Slider();
+      }
+    };
+    window.switchCode('8d');
+  })();
+</script>
