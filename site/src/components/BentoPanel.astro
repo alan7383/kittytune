@@ -1,0 +1,23 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  icon?: string;
+  iconColor?: string;
+  class?: string;
+  style?: string;
+}
+
+const { title, description, icon, iconColor, class: className = "", style = "" } = Astro.props;
+---
+
+<div class={`bento-panel ${className}`} style={style}>
+  {title && (
+    <h3 class="panel-title">
+      {icon && <span class="material-icons-round" style={`color: ${iconColor || 'inherit'};`}>{icon}</span>}
+      {title}
+    </h3>
+  )}
+  {description && <p class="panel-desc" set:html={description}></p>}
+  <slot />
+</div>
