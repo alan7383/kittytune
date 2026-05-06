@@ -101,106 +101,6 @@
     updateLatestDownloadLinks();
   }
 
-  function runInlinePageScripts(doc) {
-    document.querySelectorAll('.pjax-script').forEach((script) => script.remove());
-    doc.querySelectorAll('script').forEach((oldScript) => {
-      if (oldScript.src) return;
-      if (oldScript.type && oldScript.type !== 'text/javascript' && oldScript.type !== 'module') return;
-      if (oldScript.textContent.includes('navigateSmoothly')) return;
-      const newScript = document.createElement('script');
-      newScript.textContent = oldScript.textContent;
-      newScript.classList.add('pjax-script');
-      document.body.appendChild(newScript);
-    });
-  }
-
-  function showLoader(loader, wrapper) {
-    loader.style.display = 'flex';
-    void loader.offsetWidth;
-    loader.classList.remove('hidden');
-    if (window.startM3Loader) window.startM3Loader();
-    wrapper.classList.remove('loaded');
-    wrapper.classList.add('unloading');
-  }
-
-  function hideLoader(loader, wrapper) {
-    wrapper.classList.remove('unloading');
-    wrapper.classList.add('loaded');
-    setTimeout(() => {
-      loader.classList.add('hidden');
-      setTimeout(() => {
-        loader.style.display = 'none';
-      }, 800);
-    }, 800);
-  }
-
-  window.switchTab = function switchTab(event, element) {
-    event.preventDefault();
-    document.querySelectorAll('.nav-rail-item').forEach((item) => item.classList.remove('active'));
-    element.classList.add('active');
-  };
-
-  window.navigateSmoothly = async function navigateSmoothly(event, url) {
-    event.preventDefault();
-    const target = url.split('/').pop().replace('.html', '') || 'index';
-    const current = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
-
-    if (target === current) {
-      closeDrawer();
-      return;
-    }
-
-    if (typeof window.stopTypoAutoPlay === 'function') window.stopTypoAutoPlay();
-
-    const loader = document.getElementById('loading-screen');
-    const wrapper = document.getElementById('app-wrapper');
-    const navRail = document.querySelector('.m3-nav-rail');
-    if (!loader || !wrapper || !navRail) {
-      window.location.href = url;
-      return;
-    }
-
-    closeDrawer();
-    showLoader(loader, wrapper);
-
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Navigation failed: ${response.status}`);
-      const htmlText = await response.text();
-      const doc = new DOMParser().parseFromString(htmlText, 'text/html');
-      const nextWrapper = doc.getElementById('app-wrapper');
-      const nextNavRail = doc.querySelector('.m3-nav-rail');
-      const nextDrawer = doc.getElementById('mobile-drawer');
-
-      if (!nextWrapper || !nextNavRail) throw new Error('Missing page shell');
-
-      setTimeout(() => {
-        document.title = doc.title;
-        wrapper.innerHTML = nextWrapper.innerHTML;
-        navRail.innerHTML = nextNavRail.innerHTML;
-        window.scrollTo(0, 0);
-
-        const mobileDrawer = document.getElementById('mobile-drawer');
-        if (mobileDrawer && nextDrawer) mobileDrawer.innerHTML = nextDrawer.innerHTML;
-        if (window.syncPageStyles) window.syncPageStyles(doc);
-
-        let cleanUrl = url.replace(/\/index\.html$/, '/').replace(/\.html$/, '');
-        if (cleanUrl.endsWith('/index')) {
-          cleanUrl = cleanUrl.slice(0, -6);
-        } else if (cleanUrl === 'index') {
-          cleanUrl = './';
-        }
-        window.history.pushState({}, '', cleanUrl);
-
-        runInlinePageScripts(doc);
-        initCurrentPage(wrapper);
-        hideLoader(loader, wrapper);
-      }, 550);
-    } catch (error) {
-      window.location.href = url;
-    }
-  };
-
   window.toggleDrawer = function toggleDrawer() {
     document.getElementById('mobile-drawer')?.classList.toggle('show');
     document.getElementById('drawer-scrim')?.classList.toggle('show');
@@ -221,5 +121,22 @@
 
     updateLatestDownloadLinks();
     initCurrentPage(document);
+  });
+
+  document.addEventListener('astro:after-swap', () => {
+    initCurrentPage(document);
+
+    const loader = document.getElementById('loading-screen');
+    const appWrapper = document.getElementById('app-wrapper');
+    if (loader) {
+      loader.classList.add('hidden');
+      loader.style.display = 'none';
+    }
+    if (appWrapper) appWrapper.classList.add('loaded');
+  });
+
+  document.addEventListener('astro:page-load', () => {
+    if (window.syncFXPlayerUI) window.syncFXPlayerUI();
+    if (window.updateMiniplayerUI) window.updateMiniplayerUI();
   });
 })();

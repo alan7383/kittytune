@@ -102,28 +102,6 @@
             icon.textContent = isLight ? 'dark_mode' : 'light_mode';
         });
     };
-    window.syncPageStyles = function(doc) {
-        const currentLinks = Array.from(document.head.querySelectorAll('link[data-page-style]'));
-        const nextLinks = Array.from(doc.head.querySelectorAll('link[data-page-style]'));
-        const clones = nextLinks.map(link => link.cloneNode(true));
-
-        if (clones.length === 0) {
-            currentLinks.forEach(link => link.remove());
-            return;
-        }
-
-        const waitForStyles = clones.map(link => new Promise(resolve => {
-            const done = () => resolve();
-            link.addEventListener('load', done, { once: true });
-            link.addEventListener('error', done, { once: true });
-            setTimeout(done, 1200);
-        }));
-
-        clones.forEach(link => document.head.appendChild(link));
-        Promise.allSettled(waitForStyles).then(() => {
-            currentLinks.forEach(link => link.remove());
-        });
-    };
     const savedColor = localStorage.getItem('kittytune_theme_color') || "#d0bcff";
     const savedStyle = localStorage.getItem('kittytune_theme_style') || "TonalSpot";
     window.applyMonetTheme(savedColor, savedStyle);
