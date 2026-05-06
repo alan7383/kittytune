@@ -149,33 +149,29 @@
     initCurrentPage(document);
   });
 
+  let isInitialLoad = true;
+
   document.addEventListener('astro:before-preparation', (ev) => {
-    if (ev.detail.formData || ev.detail.navigationType === 'back-forward') return;
-    
-    if (window.isManualNav) {
-      window.isManualNav = false;
-      return;
-    }
-    
-    ev.preventDefault();
-    showLoader();
-    
-    setTimeout(() => {
-      window.isManualNav = true;
-      if (window.astroNavigate) {
-        window.astroNavigate(ev.detail.to);
-      } else {
-        window.location.href = ev.detail.to.href;
-      }
-    }, 550);
+    const originalLoader = ev.loader;
+    ev.loader = async function() {
+      showLoader();
+      const delay = new Promise(resolve => setTimeout(resolve, 500));
+      await Promise.all([originalLoader(), delay]);
+    };
   });
 
   document.addEventListener('astro:after-swap', () => {
     initCurrentPage(document);
-    hideLoader();
   });
 
   document.addEventListener('astro:page-load', () => {
+    if (isInitialLoad) {
+      isInitialLoad = false;
+    } else {
+      requestAnimationFrame(() => {
+        hideLoader();
+      });
+    }
     if (window.syncFXPlayerUI) window.syncFXPlayerUI();
     if (window.updateMiniplayerUI) window.updateMiniplayerUI();
   });
