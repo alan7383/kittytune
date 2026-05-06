@@ -802,6 +802,7 @@ import SettingsSwitch from '../components/SettingsSwitch.astro';
       document.getElementById("dynamic-font-text").textContent = "Surprise!";
     };
     window.initCustomStudio = function initCustomStudio() {
+      if (!document.getElementById('typography-lab')) return;
       initReveal();
       initSliders();
       initDiscordRpc();

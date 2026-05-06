@@ -353,7 +353,6 @@ output = y.toInt().toShort()`
         }
       });
     }
-    window.updateM3Slider();
     window.switchCode = function(tabId, element) {
       document.querySelectorAll('.ide-tab').forEach(btn => {
         btn.classList.remove('active');
@@ -372,6 +371,13 @@ output = y.toInt().toShort()`
         if (typeof window.updateM3Slider === 'function') window.updateM3Slider();
       }
     };
-    window.switchCode('8d');
+
+    window.initAudioFX = function() {
+      if (document.getElementById('code-display')) {
+        window.updateM3Slider();
+        window.switchCode('8d');
+      }
+    };
+    window.initAudioFX();
   })();
 </script>
