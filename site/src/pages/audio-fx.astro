@@ -194,8 +194,9 @@ import FXCard from '../components/FXCard.astro';
         <MaterialSwitch id="toggle-reverb" title="Slowed + Reverb" description="Slower playback with rich echo" />
         <MaterialSwitch id="toggle-muffled" title="Muffled" description="Outside the club feels" />
       </div>
-    </div>
-    <div class="bento-panel rain-panel-layout" id="rain-panel" style="grid-column: span 12;">
+    </BentoPanel>
+
+    <BentoPanel id="rain-panel" class="rain-panel-layout" style="grid-column: span 12;">
       <div class="rain-bg"></div>
       <div style="z-index: 2; max-width: 500px;">
         <h3 class="panel-title"><span class="material-icons-round" style="color: #6eb5ff;">water_drop</span> RainPlayer Ambience</h3>
@@ -205,7 +206,7 @@ import FXCard from '../components/FXCard.astro';
       <button class="kt-btn-outline" id="rain-btn" onclick="toggleRain()" style="z-index: 2; padding: 16px 40px; border-color: rgba(255,255,255,0.2); color: white;">
         Mix Ambience
       </button>
-    </div>
+    </BentoPanel>
   </div>
 </SiteLayout>
 
