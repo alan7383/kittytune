@@ -143,7 +143,7 @@
     const originalLoader = ev.loader;
     ev.loader = async function() {
       showLoader();
-      const delay = new Promise(resolve => setTimeout(resolve, 500));
+      const delay = new Promise(resolve => setTimeout(resolve, 800));
       await Promise.all([originalLoader(), delay]);
     };
   });
