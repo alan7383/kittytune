@@ -28,7 +28,7 @@ const { activePage, variant = 'mobile' } = Astro.props;
         <a
           href={`${import.meta.env.BASE_URL}${item.href}`}
           class:list={['m3-drawer-item', { active: activePage === item.key }]}
-          onclick={`navigateSmoothly(event, '${import.meta.env.BASE_URL}${item.href}')`}
+          onclick="closeDrawer()"
         >
           <span class="material-icons-round">{item.icon}</span>
           <span>{item.label}</span>
@@ -55,7 +55,6 @@ const { activePage, variant = 'mobile' } = Astro.props;
       <a
         href={`${import.meta.env.BASE_URL}${item.href}`}
         class:list={['nav-rail-item', { active: activePage === item.key }]}
-        onclick={`navigateSmoothly(event, '${import.meta.env.BASE_URL}${item.href}')`}
       >
         <div class="nav-indicator">
           {item.logo ? <LogoMark class="nav-logo-svg" /> : <span class="material-icons-round nav-icon">{item.icon}</span>}
