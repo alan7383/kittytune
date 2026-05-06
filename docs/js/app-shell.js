@@ -149,8 +149,25 @@
     initCurrentPage(document);
   });
 
-  document.addEventListener('astro:before-preparation', () => {
+  document.addEventListener('astro:before-preparation', (ev) => {
+    if (ev.detail.formData || ev.detail.navigationType === 'back-forward') return;
+    
+    if (window.isManualNav) {
+      window.isManualNav = false;
+      return;
+    }
+    
+    ev.preventDefault();
     showLoader();
+    
+    setTimeout(() => {
+      window.isManualNav = true;
+      if (window.astroNavigate) {
+        window.astroNavigate(ev.detail.to);
+      } else {
+        window.location.href = ev.detail.to.href;
+      }
+    }, 550);
   });
 
   document.addEventListener('astro:after-swap', () => {
