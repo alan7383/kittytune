@@ -135,16 +135,6 @@
   window.closeDrawer = closeDrawer;
 
   document.addEventListener('DOMContentLoaded', () => {
-    const loader = document.getElementById('loading-screen');
-    const appWrapper = document.getElementById('app-wrapper');
-    setTimeout(() => {
-      if (loader) loader.classList.add('hidden');
-      if (appWrapper) appWrapper.classList.add('loaded');
-      setTimeout(() => {
-        if (loader) loader.style.display = 'none';
-      }, 800);
-    }, 2000);
-
     updateLatestDownloadLinks();
     initCurrentPage(document);
   });
@@ -167,11 +157,13 @@
   document.addEventListener('astro:page-load', () => {
     if (isInitialLoad) {
       isInitialLoad = false;
+      setTimeout(() => hideLoader(), 2000);
     } else {
       requestAnimationFrame(() => {
         hideLoader();
       });
     }
+
     if (window.syncFXPlayerUI) window.syncFXPlayerUI();
     if (window.updateMiniplayerUI) window.updateMiniplayerUI();
   });
