@@ -119,11 +119,9 @@
     if (!loader || !wrapper) return;
     wrapper.classList.remove('unloading');
     wrapper.classList.add('loaded');
+    loader.classList.add('hidden');
     setTimeout(() => {
-      loader.classList.add('hidden');
-      setTimeout(() => {
-        loader.style.display = 'none';
-      }, 800);
+      loader.style.display = 'none';
     }, 800);
   }
 
@@ -154,7 +152,7 @@
     const wrapper = document.getElementById('app-wrapper');
     if (wrapper) {
       wrapper.classList.remove('loaded');
-      wrapper.classList.add('unloading');
+      wrapper.classList.remove('unloading');
     }
 
     if (window.applyMonetTheme) {
