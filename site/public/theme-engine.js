@@ -22,11 +22,20 @@
     function hsl(h, s, l) {
         return `hsl(${Math.round((h + 360) % 360)} ${clamp(s, 0, 100)}% ${clamp(l, 0, 100)}%)`;
     }
-    const systemPrefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-    const savedMode = localStorage.getItem('kittytune_theme_mode');
-    if (savedMode === 'light' || (!savedMode && systemPrefersLight)) {
-        document.documentElement.classList.add('light-mode');
+
+    function restoreThemeMode() {
+        const systemPrefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        const savedMode = localStorage.getItem('kittytune_theme_mode');
+        if (savedMode === 'light' || (!savedMode && systemPrefersLight)) {
+            document.documentElement.classList.add('light-mode');
+        } else {
+            document.documentElement.classList.remove('light-mode');
+        }
     }
+
+    restoreThemeMode();
+    document.addEventListener('astro:after-swap', restoreThemeMode);
+
     if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
             if (localStorage.getItem('kittytune_theme_mode')) return;
