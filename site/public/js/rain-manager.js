@@ -230,10 +230,14 @@
         }
     });
     function init() {
+       if (!document.getElementById('global-rain-canvas')) document.body.appendChild(canvas);
+       if (!document.getElementById('global-rain-audio')) document.body.appendChild(audio);
+       
        window.updateBentoUI();
        window.updateMiniplayerUI();
     }
     document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('astro:page-load', init);
     const observer = new MutationObserver(() => {
         observer.disconnect();
         window.updateBentoUI(); 
