@@ -1,6 +1,7 @@
 ---
 // site/src/components/BentoPanel.astro
 interface Props {
+  id?: string;
   title?: string;
   description?: string;
   icon?: string;
@@ -9,10 +10,10 @@ interface Props {
   style?: string;
 }
 
-const { title, description, icon, iconColor, class: className = "", style = "" } = Astro.props;
+const { id, title, description, icon, iconColor, class: className = "", style = "" } = Astro.props;
 ---
 
-<div class={`bento-panel ${className}`} style={style}>
+<div id={id} class={`bento-panel ${className}`} style={style}>
   {Astro.slots.has('header') ? (
     <slot name="header" />
   ) : (

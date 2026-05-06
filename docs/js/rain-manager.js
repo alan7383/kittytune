@@ -76,7 +76,7 @@
         ctx.stroke();
         rainAnimationId = requestAnimationFrame(drawRain);
     }
-    function updateBentoUI() {
+    window.updateBentoUI = function() {
         const btn = document.getElementById('rain-btn');
         const panel = document.getElementById('rain-panel');
         const face = document.getElementById('rain-face');
@@ -171,7 +171,7 @@
         } else {
             fadeToVolume(0, 1500);
         }
-        updateBentoUI();
+        window.updateBentoUI();
         window.updateMiniplayerUI();
     };
     window.toggleRain = function() {
@@ -230,13 +230,13 @@
         }
     });
     function init() {
-       updateBentoUI();
+       window.updateBentoUI();
        window.updateMiniplayerUI();
     }
     document.addEventListener('DOMContentLoaded', init);
     const observer = new MutationObserver(() => {
         observer.disconnect();
-        updateBentoUI(); 
+        window.updateBentoUI(); 
         if (window.syncFXPlayerUI) window.syncFXPlayerUI();
         observer.observe(document.body, { childList: true, subtree: true });
     });
