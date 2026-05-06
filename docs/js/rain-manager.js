@@ -93,7 +93,7 @@
                 if (btn.textContent !== 'Mix Ambience') btn.textContent = 'Mix Ambience';
                 btn.style.background = 'transparent';
                 btn.style.color = 'white';
-                if (face && face.textContent !== '[ 
+                if (face && face.textContent !== '[ /// ]') face.textContent = '[ /// ]';
             }
         }
     }
