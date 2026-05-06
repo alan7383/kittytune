@@ -151,6 +151,19 @@
   });
 
   document.addEventListener('astro:after-swap', () => {
+    const wrapper = document.getElementById('app-wrapper');
+    if (wrapper) {
+      wrapper.classList.remove('loaded');
+      wrapper.classList.add('unloading');
+    }
+
+    if (window.applyMonetTheme) {
+      const savedColor = localStorage.getItem('kittytune_theme_color') || "#d0bcff";
+      const savedStyle = localStorage.getItem('kittytune_theme_style') || "TonalSpot";
+      window.applyMonetTheme(savedColor, savedStyle);
+    }
+    if (window.updateThemeIcons) window.updateThemeIcons();
+
     initCurrentPage(document);
   });
 
@@ -159,9 +172,9 @@
       isInitialLoad = false;
       setTimeout(() => hideLoader(), 2000);
     } else {
-      requestAnimationFrame(() => {
+      setTimeout(() => {
         hideLoader();
-      });
+      }, 30);
     }
 
     if (window.syncFXPlayerUI) window.syncFXPlayerUI();
