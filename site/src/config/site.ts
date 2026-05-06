@@ -8,8 +8,8 @@ export const SITE = {
 
 export const NAV_ITEMS = [
   { key: 'home', label: 'Home', href: '', icon: 'home', logo: true },
-  { key: 'custom', label: 'Custom', href: 'custom.html', icon: 'palette' },
-  { key: 'audio-fx', label: 'Audio FX', href: 'audio-fx.html', icon: 'graphic_eq' },
+  { key: 'custom', label: 'Custom', href: 'custom', icon: 'palette' },
+  { key: 'audio-fx', label: 'Audio FX', href: 'audio-fx', icon: 'graphic_eq' },
 ] as const;
 
 export const PLACEHOLDER_NAV_ITEMS = [
@@ -74,7 +74,7 @@ export const PAGES = {
     "key": "custom",
     "title": "KittyTune ✧ Open Source Music Player",
     "description": "KittyTune customization studio: variable typography, Material You color palettes, player styles, and Android widgets.",
-    "canonical": "https://alan7383.github.io/kittytune/custom.html",
+    "canonical": "https://alan7383.github.io/kittytune/custom",
     "og": [],
     "twitter": [],
     "styles": [
@@ -86,7 +86,7 @@ export const PAGES = {
     "title": "KittyTune ✧ Open Source Music Player",
     "description": "An Android music player built with Jetpack Compose. SoundCloud, YouTube, local files — with real-time effects like Nightcore and 8D. No accounts, no ads.",
     "keywords": "KittyTune, FOSS, Android Music Player, Material You, SoundCloud Client, Nightcore, Audio FX, Jetpack Compose, Ad-free, Indie App",
-    "canonical": "https://alan7383.github.io/kittytune/audio-fx.html",
+    "canonical": "https://alan7383.github.io/kittytune/audio-fx",
     "og": [
       {
         "property": "og:title",
@@ -102,7 +102,7 @@ export const PAGES = {
       },
       {
         "property": "og:url",
-        "content": "https://alan7383.github.io/kittytune/audio-fx.html"
+        "content": "https://alan7383.github.io/kittytune/audio-fx"
       },
       {
         "property": "og:type",
