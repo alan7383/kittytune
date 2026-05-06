@@ -177,5 +177,6 @@
 
     if (window.syncFXPlayerUI) window.syncFXPlayerUI();
     if (window.updateMiniplayerUI) window.updateMiniplayerUI();
+    if (window.updateBentoUI) window.updateBentoUI();
   });
 })();
