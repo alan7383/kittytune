@@ -73,19 +73,12 @@ import FXCard from '../components/FXCard.astro';
       </div>
     </BentoPanel>
 
-    <BentoPanel 
-      title="DSP Algorithms" 
-      description="The Kotlin math responding to the 8D slider in real time." 
-      icon="terminal" 
-      iconColor="#ffbd2e"
-      class="live-code-block"
-      style="grid-column: span 7;"
-    >
-      <div class="code-controls" slot="header-extra">
-        <!-- Not easily pluggable into current BentoPanel without slots for headers, but BentoPanel handles title/desc/icon -->
-      </div>
-      <!-- Re-adjusting as current BentoPanel title/desc logic is simple. I'll tweak the call to match existing structure exactly if needed -->
-      <div class="code-controls">
+    <BentoPanel class="live-code-block" style="grid-column: span 7;">
+      <div slot="header" class="code-controls">
+        <div>
+          <h3 class="panel-title"><span class="material-icons-round" style="color: #ffbd2e;">terminal</span> DSP Algorithms</h3>
+          <p class="panel-desc">The Kotlin math responding to the 8D slider in real time.</p>
+        </div>
         <div class="code-sync-card">
           <span class="material-icons-round">speed</span>
           <div class="code-sync-copy">

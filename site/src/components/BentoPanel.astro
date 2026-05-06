@@ -1,4 +1,5 @@
 ---
+// site/src/components/BentoPanel.astro
 interface Props {
   title?: string;
   description?: string;
@@ -12,12 +13,19 @@ const { title, description, icon, iconColor, class: className = "", style = "" }
 ---
 
 <div class={`bento-panel ${className}`} style={style}>
-  {title && (
-    <h3 class="panel-title">
-      {icon && <span class="material-icons-round" style={`color: ${iconColor || 'inherit'};`}>{icon}</span>}
-      {title}
-    </h3>
+  {Astro.slots.has('header') ? (
+    <slot name="header" />
+  ) : (
+    <>
+      {title && (
+        <h3 class="panel-title">
+          {icon && <span class="material-icons-round" style={`color: ${iconColor || 'inherit'};`}>{icon}</span>}
+          {title}
+        </h3>
+      )}
+      {description && <p class="panel-desc" set:html={description}></p>}
+    </>
   )}
-  {description && <p class="panel-desc" set:html={description}></p>}
+  
   <slot />
 </div>
