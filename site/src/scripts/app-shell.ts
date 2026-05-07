@@ -1,4 +1,6 @@
 import { initTheme, updateThemeIcons } from './theme';
+import { startM3Loader } from './m3-loader';
+import { syncUI } from './audio-store';
 
 const rippleSelector = [
   '.philosophy-item',
@@ -109,6 +111,9 @@ function showLoader() {
   loader.classList.remove('hidden');
   wrapper.classList.remove('loaded');
   wrapper.classList.add('unloading');
+  
+  // FIX: On lance la rotation ICI, avant le fetch !
+  startM3Loader(); 
 }
 
 function hideLoader() {
@@ -123,14 +128,14 @@ function hideLoader() {
   }, 800);
 }
 
-let isInitialLoad = true;
-
 document.addEventListener('astro:before-preparation', (ev: any) => {
   const originalLoader = ev.loader;
   ev.loader = async function() {
     showLoader();
-    const delay = new Promise(resolve => setTimeout(resolve, 800));
-    await Promise.all([originalLoader(), delay]);
+    // On laisse le temps au loader d'apparaître fluidement avant de bloquer le thread principal
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await originalLoader();
+    await new Promise(resolve => setTimeout(resolve, 300));
   };
 });
 
@@ -140,34 +145,31 @@ document.addEventListener('astro:after-swap', () => {
     wrapper.classList.remove('loaded');
     wrapper.classList.remove('unloading');
   }
-  initReveal();
-  initRipples();
-  updateLatestDownloadLinks();
-  updateThemeIcons();
 });
 
+let isInitialLoad = true;
 document.addEventListener('astro:page-load', () => {
   if (isInitialLoad) {
     isInitialLoad = false;
-    setTimeout(() => hideLoader(), 2000);
+    setTimeout(() => hideLoader(), 1500);
   } else {
     setTimeout(() => hideLoader(), 30);
   }
 
+  // FIX: On synchronise toute l'UI via le store (fini les window.maFonction)
+  syncUI();
+
   initReveal();
   initRipples();
   updateLatestDownloadLinks();
   updateThemeIcons();
 
-  document.querySelectorAll('.m3-menu-btn:not(.js-search-btn)').forEach(btn => {
+  document.querySelectorAll('.m3-menu-btn:not(.js-search-btn), .js-drawer-btn').forEach(btn => {
       btn.addEventListener('click', toggleDrawer);
   });
   
   document.getElementById('drawer-scrim')?.addEventListener('click', closeDrawer);
-  
-  document.querySelectorAll('.m3-drawer-item').forEach(item => {
-      item.addEventListener('click', closeDrawer);
-  });
+  document.querySelectorAll('.m3-drawer-item').forEach(item => item.addEventListener('click', closeDrawer));
 
   document.querySelectorAll('.js-search-btn').forEach(btn => {
       btn.addEventListener('click', () => {

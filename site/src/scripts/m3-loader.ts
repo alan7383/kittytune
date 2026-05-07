@@ -153,24 +153,47 @@ let animationId: number | null = null;
 let lastFrameTime: number | null = null;
 let totalAnimationTime = parseFloat(sessionStorage.getItem('kittytune_loader_time') || '0');
 
+// Optimisation : On garde les références DOM en cache
+let svgEl: HTMLElement | null = null;
+let polyEl: SVGPolygonElement | null = null;
+
+function initLoader() {
+  if (shapes.length > 0) return;
+  shapes = [
+    customPoly([{ x: .193, y: .277, r: .053 }, { x: .176, y: .055, r: .053 }], 10, .5, .5, false),
+    starPoly(9, 1, .8, .5, -Math.PI / 2),
+    regPoly(5, 1, .172, -Math.PI / 2),
+    customPoly([{ x: .961, y: .039, r: .426 }, { x: 1.001, y: .428, r: 0 }, { x: 1, y: .609, r: 1 }], 2, .5, .5, true),
+    starPoly(8, 1, .8, .15, 0),
+    customPoly([{ x: 1.237, y: 1.236, r: .258 }, { x: .5, y: .918, r: .233 }], 4, .5, .5, false),
+    ovalShape()
+  ];
+  aligned = shapes.map((s, i) => alignTo(s, shapes[(i + 1) % shapes.length]));
+}
+
 function render(ts: number) {
   const loaderScreen = document.getElementById('loading-screen');
-  const svgEl = document.querySelector('.loader-svg-container svg') as HTMLElement;
-  const polyEl = svgEl ? svgEl.querySelector('polygon') : null;
-
-  if (!loaderScreen || loaderScreen.style.display === "none") {
+  
+  if (!loaderScreen || loaderScreen.classList.contains('hidden')) {
     animationId = null;
     lastFrameTime = null;
     sessionStorage.setItem('kittytune_loader_time', totalAnimationTime.toString());
     return;
   }
 
+  // Recharge le SVG si la page a changé
+  if (!svgEl || !document.body.contains(svgEl)) {
+    svgEl = document.querySelector('.loader-svg-container svg') as HTMLElement;
+    polyEl = svgEl ? svgEl.querySelector('polygon') : null;
+  }
+
   if (!lastFrameTime) lastFrameTime = ts;
   const dt = ts - lastFrameTime;
   lastFrameTime = ts;
 
-  if (dt < 100) {
-    totalAnimationTime += dt;
+  // FIX : On "clamp" le temps pour que l'animation ne saute pas pendant le freeze du View Transition !
+  if (dt > 0) {
+    totalAnimationTime += Math.min(dt, 32); // Max 32ms de saut (équivalent à ~2 frames)
   }
 
   const progress = totalAnimationTime / MS_PER_SHAPE;
@@ -194,33 +217,16 @@ function render(ts: number) {
 }
 
 export function startM3Loader() {
-  if (!animationId && shapes.length > 0) {
+  if (!shapes.length) initLoader();
+  if (!animationId) {
     lastFrameTime = null;
     animationId = requestAnimationFrame(render);
   }
 }
 
-function initLoader() {
-  if (shapes.length > 0) return;
-  shapes = [
-    customPoly([{ x: .193, y: .277, r: .053 }, { x: .176, y: .055, r: .053 }], 10, .5, .5, false),
-    starPoly(9, 1, .8, .5, -Math.PI / 2),
-    regPoly(5, 1, .172, -Math.PI / 2),
-    customPoly([{ x: .961, y: .039, r: .426 }, { x: 1.001, y: .428, r: 0 }, { x: 1, y: .609, r: 1 }], 2, .5, .5, true),
-    starPoly(8, 1, .8, .15, 0),
-    customPoly([{ x: 1.237, y: 1.236, r: .258 }, { x: .5, y: .918, r: .233 }], 4, .5, .5, false),
-    ovalShape()
-  ];
-  aligned = shapes.map((s, i) => alignTo(s, shapes[(i + 1) % shapes.length]));
-}
-
 document.addEventListener('astro:page-load', () => {
   initLoader();
-  if (document.getElementById('loading-screen')) {
+  if (document.getElementById('loading-screen') && !document.getElementById('loading-screen')?.classList.contains('hidden')) {
     startM3Loader();
   }
-});
-
-window.addEventListener('beforeunload', () => {
-  sessionStorage.setItem('kittytune_loader_time', totalAnimationTime.toString());
 });
