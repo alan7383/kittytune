@@ -151,7 +151,7 @@ let shapes: any[] = [];
 let aligned: any[] = [];
 let animationId: number | null = null;
 let lastFrameTime: number | null = null;
-let totalAnimationTime = parseFloat(sessionStorage.getItem('kittytune_loader_time') || '0');
+let totalAnimationTime = 0;
 
 // Optimisation : On garde les références DOM en cache
 let svgEl: HTMLElement | null = null;
@@ -174,14 +174,13 @@ function initLoader() {
 function render(ts: number) {
   const loaderScreen = document.getElementById('loading-screen');
   
-  if (!loaderScreen || loaderScreen.classList.contains('hidden')) {
+  if (!loaderScreen || loaderScreen.style.display === "none") {
     animationId = null;
     lastFrameTime = null;
-    sessionStorage.setItem('kittytune_loader_time', totalAnimationTime.toString());
     return;
   }
 
-  // Recharge le SVG si la page a changé
+  // Recharge le SVG si la page a changé ou si l'élément a été persisté différemment
   if (!svgEl || !document.body.contains(svgEl)) {
     svgEl = document.querySelector('.loader-svg-container svg') as HTMLElement;
     polyEl = svgEl ? svgEl.querySelector('polygon') : null;
@@ -191,9 +190,9 @@ function render(ts: number) {
   const dt = ts - lastFrameTime;
   lastFrameTime = ts;
 
-  // FIX : On "clamp" le temps pour que l'animation ne saute pas pendant le freeze du View Transition !
-  if (dt > 0) {
-    totalAnimationTime += Math.min(dt, 32); // Max 32ms de saut (équivalent à ~2 frames)
+  // Restauration de la vitesse fluide originale (sans clamp agressif)
+  if (dt < 100) {
+    totalAnimationTime += dt;
   }
 
   const progress = totalAnimationTime / MS_PER_SHAPE;
@@ -226,7 +225,8 @@ export function startM3Loader() {
 
 document.addEventListener('astro:page-load', () => {
   initLoader();
-  if (document.getElementById('loading-screen') && !document.getElementById('loading-screen')?.classList.contains('hidden')) {
+  const loader = document.getElementById('loading-screen');
+  if (loader && loader.style.display !== 'none') {
     startM3Loader();
   }
 });
