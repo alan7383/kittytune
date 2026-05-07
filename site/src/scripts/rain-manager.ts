@@ -232,3 +232,7 @@ document.addEventListener('astro:page-load', () => {
 });
 
 document.addEventListener('audio-state-changed', updateMiniplayerUI);
+document.addEventListener('kitty:sync-ui', () => {
+  updateBentoUI();
+  updateMiniplayerUI();
+});

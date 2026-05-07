@@ -134,6 +134,9 @@ export const syncFXPlayerUI = () => {
   }
 };
 
+// On écoute le signal du Store
+document.addEventListener('kitty:sync-ui', syncFXPlayerUI);
+
 export const pauseAudio = () => {
   if (sourceNode && audioContext && audioBuffer) {
     try { sourceNode.stop(); } catch(e){}
