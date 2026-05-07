@@ -29,5 +29,4 @@ dump_project_context.txt
 node_modules/
 site/dist/
 site/.astro/
-!docs/robots.txt
 !site/public/robots.txt
