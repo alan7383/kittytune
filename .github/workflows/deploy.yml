@@ -20,6 +20,7 @@ jobs:
         uses: withastro/action@v3
         with:
           path: site
+          outDir: dist
 
   deploy:
     needs: build
