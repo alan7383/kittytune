@@ -1,6 +1,10 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { PAGES } from '../config/site';
+import ExpressiveCard from '../components/ExpressiveCard.astro';
+import ShowcaseRow from '../components/ShowcaseRow.astro';
+import PhilosophyItem from '../components/PhilosophyItem.astro';
+import SectionHeader from '../components/SectionHeader.astro';
 ---
 
 <SiteLayout page={PAGES.home}>
@@ -28,163 +32,114 @@ import { PAGES } from '../config/site';
   </section>
   <div class="container">
     <section class="features-section">
-      <div class="section-header reveal">
-        <h2 class="headline-large">Why KittyTune?</h2>
-        <p>For people who find Spotify's 30-second ads physically painful.</p>
-      </div>
+      <SectionHeader 
+        title="Why KittyTune?" 
+        description="For people who find Spotify's 30-second ads physically painful." 
+        class="headline-large"
+      />
       <div class="expressive-grid">
-        <div class="expressive-card span-8 variant-primary reveal reveal-delay-1">
-          <div class="kaomoji-hero">( ^-^)~</div>
-          <div class="card-content">
-            <div class="card-icon"><span class="material-icons-round">tune</span></div>
-            <h3>Real-time Sound FX</h3>
-            <p>
-              Nightcore, 8D Audio, pitch shifting, bass boost... you name it. Tweak everything on the
-              fly while your track is playing. It just works.
-            </p>
-          </div>
-        </div>
-        <div class="expressive-card span-4 variant-secondary reveal reveal-delay-2">
-          <div class="kaomoji-hero">(-_-) zzZ</div>
-          <div class="card-content">
-            <div class="card-icon"><span class="material-icons-round">lyrics</span></div>
-            <h3>Synced Lyrics</h3>
-            <p>Real-time lyrics straight from LrcLib. No manual sync needed.</p>
-          </div>
-        </div>
-        <div class="expressive-card span-4 variant-tertiary reveal reveal-delay-1">
-          <div class="kaomoji-hero">( o_O)?</div>
-          <div class="card-content">
-            <div class="card-icon"><span class="material-icons-round">hub</span></div>
-            <h3>Hybrid Playback</h3>
-            <p>
-              SoundCloud blocked a track? KittyTune silently falls back to YouTube. You won't even
-              notice.
-            </p>
-          </div>
-        </div>
-        <div class="expressive-card span-8 variant-primary reveal reveal-delay-2">
-          <div class="kaomoji-hero">d(-_-)b</div>
-          <div class="card-content">
-            <div class="card-icon"><span class="material-icons-round">emoji_events</span></div>
-            <h3>RPG-style Progression</h3>
-            <p>
-              Earn XP by listening, level up your profile, and collect badges like "Night Owl" or
-              "Obsessed". Because why not make music fun.
-            </p>
-          </div>
-        </div>
-        <div class="expressive-card span-6 variant-secondary reveal reveal-delay-1">
-          <div class="kaomoji-hero">(=^.^=)</div>
-          <div class="card-content">
-            <div class="card-icon"><span class="material-icons-round">widgets</span></div>
-            <h3>Living Widgets</h3>
-            <p>Home screen widgets that adapt to your wallpaper palette. Looks native, feels native.</p>
-          </div>
-        </div>
-        <div class="expressive-card span-6 variant-tertiary reveal reveal-delay-2">
-          <div class="kaomoji-hero">(~_~;)</div>
-          <div class="card-content">
-            <div class="card-icon"><span class="material-icons-round">sync</span></div>
-            <h3>Full SoundCloud Sync</h3>
-            <p>
-              Log in with your SoundCloud account. Playlists, likes, history, everything syncs. Zero
-              telemetry, zero data harvesting. Promise.
-            </p>
-          </div>
-        </div>
+        <ExpressiveCard 
+          span="8" 
+          variant="primary" 
+          delay="1" 
+          kaomoji="( ^-^)~" 
+          icon="tune" 
+          title="Real-time Sound FX" 
+          description="Nightcore, 8D Audio, pitch shifting, bass boost... you name it. Tweak everything on the fly while your track is playing. It just works." 
+        />
+        <ExpressiveCard 
+          span="4" 
+          variant="secondary" 
+          delay="2" 
+          kaomoji="(-_-) zzZ" 
+          icon="lyrics" 
+          title="Synced Lyrics" 
+          description="Real-time lyrics straight from LrcLib. No manual sync needed." 
+        />
+        <ExpressiveCard 
+          span="4" 
+          variant="tertiary" 
+          delay="1" 
+          kaomoji="( o_O)?" 
+          icon="hub" 
+          title="Hybrid Playback" 
+          description="SoundCloud blocked a track? KittyTune silently falls back to YouTube. You won't even notice." 
+        />
+        <ExpressiveCard 
+          span="8" 
+          variant="primary" 
+          delay="2" 
+          kaomoji="d(-_-)b" 
+          icon="emoji_events" 
+          title="RPG-style Progression" 
+          description="Earn XP by listening, level up your profile, and collect badges like 'Night Owl' or 'Obsessed'. Because why not make music fun." 
+        />
+        <ExpressiveCard 
+          span="6" 
+          variant="secondary" 
+          delay="1" 
+          kaomoji="(=^.^=)" 
+          icon="widgets" 
+          title="Living Widgets" 
+          description="Home screen widgets that adapt to your wallpaper palette. Looks native, feels native." 
+        />
+        <ExpressiveCard 
+          span="6" 
+          variant="tertiary" 
+          delay="2" 
+          kaomoji="(~_~;)" 
+          icon="sync" 
+          title="Full SoundCloud Sync" 
+          description="Log in with your SoundCloud account. Playlists, likes, history, everything syncs. Zero telemetry, zero data harvesting. Promise." 
+        />
       </div>
     </section>
   </div>
+
   <section class="showcase-section">
     <div class="container">
-      <div class="showcase-row">
-        <div class="text-col">
-          <div class="step-number">01</div>
-          <h3>Material You, for real.</h3>
-          <p>
-            Colors pulled straight from your wallpaper. The whole UI adapts to your vibe, clean,
-            spacious, and native to Android 12+. No weird third-party look.
-          </p>
-          <div class="highlight">#DynamicColors</div>
-        </div>
-        <div class="showcase-image-wrapper">
-          <div class="kaomoji-badge variant-1">
-            <div class="badge-icon-circle">
-              <span class="material-icons-round">palette</span>
-            </div>
-            <span class="badge-text">( ✯◡✯ )</span>
-          </div>
-          <div class="phone-mockup">
-            <img src="https://i.postimg.cc/FHZ4YvsR/Screenshot_20260208_152429.png" alt="UI Screenshot" />
-          </div>
-        </div>
-      </div>
-      <div class="showcase-row reverse">
-        <div class="text-col">
-          <div class="step-number">02</div>
-          <h3>Audio, your way.</h3>
-          <p>
-            Speed, pitch, 8D Audio, bass boost, all accessible from the player drawer. Mess around with
-            it, find your sweet spot.
-          </p>
-          <div class="highlight">#PowerUser</div>
-        </div>
-        <div class="showcase-image-wrapper">
-          <div class="kaomoji-badge variant-2">
-            <div class="badge-icon-circle">
-              <span class="material-icons-round">equalizer</span>
-            </div>
-            <span class="badge-text">〜(￣▽￣〜)</span>
-          </div>
-          <div class="phone-mockup">
-            <img src="https://i.postimg.cc/g2DWxpky/Screenshot_20260208_152435.png" alt="Audio Settings" />
-          </div>
-        </div>
-      </div>
-      <div class="showcase-row">
-        <div class="text-col">
-          <div class="step-number">03</div>
-          <h3>Lyrics that follow along.</h3>
-          <p>
-            Time-synced lyrics, scrolling in real-time. Missing from the database? Search and load your
-            own LRC file. Simple.
-          </p>
-          <div class="highlight">#KaraokeMode</div>
-        </div>
-        <div class="showcase-image-wrapper">
-          <div class="kaomoji-badge variant-3">
-            <div class="badge-icon-circle">
-              <span class="material-icons-round">mic_external_on</span>
-            </div>
-            <span class="badge-text">(*´○`)o¶♪</span>
-          </div>
-          <div class="phone-mockup">
-            <img src="https://i.postimg.cc/Sxrhn4NW/Screenshot_20260208_152444.png" alt="Lyrics Screen" />
-          </div>
-        </div>
-      </div>
-      <div class="showcase-row reverse">
-        <div class="text-col">
-          <div class="step-number">04</div>
-          <h3>Your profile, evolving.</h3>
-          <p>
-            Listening stats, XP, unlockable badges. It started as a joke feature and ended up being one of my favorites.
-          </p>
-          <div class="highlight">#LevelUp</div>
-        </div>
-        <div class="showcase-image-wrapper">
-          <div class="kaomoji-badge variant-4">
-            <div class="badge-icon-circle">
-              <span class="material-icons-round">star</span>
-            </div>
-            <span class="badge-text">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</span>
-          </div>
-          <div class="phone-mockup">
-            <img src="https://i.postimg.cc/cLmSvW4w/Screenshot_20260208_152458.png" alt="Profile Screen" />
-          </div>
-        </div>
-      </div>
+      <ShowcaseRow 
+        step="01" 
+        title="Material You, for real." 
+        description="Colors pulled straight from your wallpaper. The whole UI adapts to your vibe, clean, spacious, and native to Android 12+. No weird third-party look." 
+        highlight="#DynamicColors" 
+        badgeIcon="palette" 
+        badgeText="( ✯◡✯ )" 
+        variant="1" 
+        image={`${import.meta.env.BASE_URL}assets/images/home.BY0cCzCQ.png`} 
+      />
+      <ShowcaseRow 
+        step="02" 
+        title="Audio, your way." 
+        description="Speed, pitch, 8D Audio, bass boost, all accessible from the player drawer. Mess around with it, find your sweet spot." 
+        highlight="#PowerUser" 
+        badgeIcon="equalizer" 
+        badgeText="〜(￣▽￣〜)" 
+        variant="2" 
+        image="https://i.postimg.cc/g2DWxpky/Screenshot_20260208_152435.png" 
+        reverse={true} 
+      />
+      <ShowcaseRow 
+        step="03" 
+        title="Lyrics that follow along." 
+        description="Time-synced lyrics, scrolling in real-time. Missing from the database? Search and load your own LRC file. Simple." 
+        highlight="#KaraokeMode" 
+        badgeIcon="mic_external_on" 
+        badgeText="(*´○`)o¶♪" 
+        variant="3" 
+        image="https://i.postimg.cc/Sxrhn4NW/Screenshot_20260208_152444.png" 
+      />
+      <ShowcaseRow 
+        step="04" 
+        title="Your profile, evolving." 
+        description="Listening stats, XP, unlockable badges. It started as a joke feature and ended up being one of my favorites." 
+        highlight="#LevelUp" 
+        badgeIcon="star" 
+        badgeText="(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧" 
+        variant="4" 
+        image="https://i.postimg.cc/cLmSvW4w/Screenshot_20260208_152458.png" 
+        reverse={true} 
+      />
     </div>
   </section>
   <section class="philosophy-section">
@@ -205,30 +160,35 @@ import { PAGES } from '../config/site';
       </div>
       <div class="philosophy-wrapper">
         <div class="philosophy-grid">
-          <div class="philosophy-item reveal reveal-delay-1">
-            <h4>
-              <span class="material-icons-round" style="color: var(--md-sys-color-primary);">shield_person</span> Privacy First
-            </h4>
-            <p>Minimal permissions. What you listen to stays locally on your device. Period.</p>
-          </div>
-          <a href="https://crowdin.com/project/kittytune" target="_blank" rel="noopener noreferrer" class="philosophy-item reveal reveal-delay-2" style="text-decoration: none;">
-            <h4>
-              <span class="material-icons-round" style="color: var(--md-sys-color-tertiary);">translate</span> Community Driven
-            </h4>
-            <p>Available in multiple languages. Missing yours? Help us <span class="text-link">translate KittyTune</span> on Crowdin.</p>
-          </a>
-          <div class="philosophy-item reveal reveal-delay-3">
-            <h4>
-              <span class="material-icons-round" style="color: var(--md-sys-color-secondary);">palette</span> Material You
-            </h4>
-            <p>Dynamic Colors, smooth transitions, and proper surface layers that follow Android 12+ conventions.</p>
-          </div>
-          <div class="philosophy-item reveal reveal-delay-4">
-            <h4>
-              <span class="material-icons-round" style="color: var(--md-sys-color-primary);">code</span> Open by Default
-            </h4>
-            <p>GPL-3.0 licensed. Every line of code is public. You don't have to trust what the app says it does — you can verify it.</p>
-          </div>
+          <PhilosophyItem 
+            delay="1" 
+            icon="shield_person" 
+            title="Privacy First" 
+            description="Minimal permissions. What you listen to stays locally on your device. Period." 
+            color="var(--md-sys-color-primary)"
+          />
+          <PhilosophyItem 
+            delay="2" 
+            icon="translate" 
+            title="Community Driven" 
+            description='Available in multiple languages. Missing yours? Help us <span class="text-link">translate KittyTune</span> on Crowdin.' 
+            color="var(--md-sys-color-tertiary)" 
+            href="https://crowdin.com/project/kittytune"
+          />
+          <PhilosophyItem 
+            delay="3" 
+            icon="palette" 
+            title="Material You" 
+            description="Dynamic Colors, smooth transitions, and proper surface layers that follow Android 12+ conventions." 
+            color="var(--md-sys-color-secondary)"
+          />
+          <PhilosophyItem 
+            delay="4" 
+            icon="code" 
+            title="Open by Default" 
+            description="GPL-3.0 licensed. Every line of code is public. You don't have to trust what the app says it does — you can verify it." 
+            color="var(--md-sys-color-primary)"
+          />
         </div>
       </div>
     </div>

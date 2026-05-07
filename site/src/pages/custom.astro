@@ -2,6 +2,8 @@
 import SiteLayout from '../layouts/SiteLayout.astro';
 import { PAGES } from '../config/site';
 import SettingsSwitch from '../components/SettingsSwitch.astro';
+import M3Slider from '../components/M3Slider.astro';
+import SectionHeader from '../components/SectionHeader.astro';
 ---
 
 <SiteLayout page={PAGES.custom}>
@@ -58,103 +60,24 @@ import SettingsSwitch from '../components/SettingsSwitch.astro';
             <button class="preset-chip" data-preset="wide">Wide</button>
           </div>
           <div class="slider-bank">
-            <div class="m3-range-wrapper">
-              <div class="m3-range-info">
-                <span><span class="material-icons-round">line_weight</span> Weight</span>
-                <output id="out-wght">620</output>
-              </div>
-              <div class="m3-v3-slider lab-slider" data-axis="wght">
-                <input id="axis-wght" type="range" min="100" max="1000" value="620" step="1" />
-                <div class="m3-v3-layout">
-                  <div class="m3-v3-track-active"></div>
-                  <div class="m3-v3-thumb-container"><div class="m3-v3-thumb"></div></div>
-                  <div class="m3-v3-track-inactive"></div>
-                </div>
-              </div>
-            </div>
-            <div class="m3-range-wrapper">
-              <div class="m3-range-info">
-                <span><span class="material-icons-round">width_full</span> Width</span>
-                <output id="out-wdth">104</output>
-              </div>
-              <div class="m3-v3-slider lab-slider" data-axis="wdth">
-                <input id="axis-wdth" type="range" min="25" max="151" value="104" step="1" />
-                <div class="m3-v3-layout">
-                  <div class="m3-v3-track-active"></div>
-                  <div class="m3-v3-thumb-container"><div class="m3-v3-thumb"></div></div>
-                  <div class="m3-v3-track-inactive"></div>
-                </div>
-              </div>
-            </div>
-            <div class="m3-range-wrapper">
-              <div class="m3-range-info">
-                <span><span class="material-icons-round">format_italic</span> Slant</span>
-                <output id="out-slnt">-2</output>
-              </div>
-              <div class="m3-v3-slider lab-slider" data-axis="slnt">
-                <input id="axis-slnt" type="range" min="-10" max="0" value="-2" step="1" />
-                <div class="m3-v3-layout">
-                  <div class="m3-v3-track-active"></div>
-                  <div class="m3-v3-thumb-container"><div class="m3-v3-thumb"></div></div>
-                  <div class="m3-v3-track-inactive"></div>
-                </div>
-              </div>
-            </div>
-            <div class="m3-range-wrapper">
-              <div class="m3-range-info">
-                <span><span class="material-icons-round">radio_button_checked</span> Roundness</span>
-                <output id="out-rond">45</output>
-              </div>
-              <div class="m3-v3-slider lab-slider" data-axis="rond">
-                <input id="axis-rond" type="range" min="0" max="100" value="45" step="1" />
-                <div class="m3-v3-layout">
-                  <div class="m3-v3-track-active"></div>
-                  <div class="m3-v3-thumb-container"><div class="m3-v3-thumb"></div></div>
-                  <div class="m3-v3-track-inactive"></div>
-                </div>
-              </div>
-            </div>
-            <div class="m3-range-wrapper">
-              <div class="m3-range-info">
-                <span><span class="material-icons-round">contrast</span> Grade</span>
-                <output id="out-grad">0</output>
-              </div>
-              <div class="m3-v3-slider lab-slider" data-axis="grad">
-                <input id="axis-grad" type="range" min="-200" max="150" value="0" step="1" />
-                <div class="m3-v3-layout">
-                  <div class="m3-v3-track-active"></div>
-                  <div class="m3-v3-thumb-container"><div class="m3-v3-thumb"></div></div>
-                  <div class="m3-v3-track-inactive"></div>
-                </div>
-              </div>
-            </div>
-            <div class="m3-range-wrapper">
-              <div class="m3-range-info">
-                <span><span class="material-icons-round">visibility</span> Optical size</span>
-                <output id="out-opsz">32</output>
-              </div>
-              <div class="m3-v3-slider lab-slider" data-axis="opsz">
-                <input id="axis-opsz" type="range" min="8" max="144" value="32" step="1" />
-                <div class="m3-v3-layout">
-                  <div class="m3-v3-track-active"></div>
-                  <div class="m3-v3-thumb-container"><div class="m3-v3-thumb"></div></div>
-                  <div class="m3-v3-track-inactive"></div>
-                </div>
-              </div>
-            </div>
+            <M3Slider id="axis-wght" min={100} max={1000} value={620} step={1} axis="wght" label="Weight" icon="line_weight" outputId="out-wght" sliderClass="lab-slider" />
+            <M3Slider id="axis-wdth" min={25} max={151} value={104} step={1} axis="wdth" label="Width" icon="width_full" outputId="out-wdth" sliderClass="lab-slider" />
+            <M3Slider id="axis-slnt" min={-10} max={0} value={-2} step={1} axis="slnt" label="Slant" icon="format_italic" outputId="out-slnt" sliderClass="lab-slider" />
+            <M3Slider id="axis-rond" min={0} max={100} value={45} step={1} axis="rond" label="Roundness" icon="radio_button_checked" outputId="out-rond" sliderClass="lab-slider" />
+            <M3Slider id="axis-grad" min={-200} max={150} value={0} step={1} axis="grad" label="Grade" icon="contrast" outputId="out-grad" sliderClass="lab-slider" />
+            <M3Slider id="axis-opsz" min={8} max={144} value={32} step={1} axis="opsz" label="Optical size" icon="visibility" outputId="out-opsz" sliderClass="lab-slider" />
           </div>
         </div>
       </div>
     </section>
     <section class="section" id="discord-rpc">
       <div class="container">
-        <div class="section-header reveal">
-          <div>
-            <span class="eyebrow"><span class="material-icons-round">sports_esports</span> Discord Rich Presence</span>
-            <h2>Show off your taste, live on your profile.</h2>
-            <p>KittyTune natively connects to your Discord status. Choose exactly how your current track appears to your friends.</p>
-          </div>
-        </div>
+        <SectionHeader 
+          eyebrow="Discord Rich Presence" 
+          eyebrowIcon="sports_esports" 
+          title="Show off your taste, live on your profile." 
+          description="KittyTune natively connects to your Discord status. Choose exactly how your current track appears to your friends." 
+        />
         <div class="player-grid">
           <div class="discord-preview-panel reveal">
             <div class="discord-profile-card">
@@ -210,12 +133,11 @@ import SettingsSwitch from '../components/SettingsSwitch.astro';
     </section>
     <section class="section" id="player-style">
       <div class="container">
-        <div class="section-header reveal">
-          <div>
-            <span class="eyebrow"><span class="material-icons-round">smart_display</span> Player Style Switcher</span>
-            <h2>One player, three emotional backgrounds.</h2>
-          </div>
-        </div>
+        <SectionHeader 
+          eyebrow="Player Style Switcher" 
+          eyebrowIcon="smart_display" 
+          title="One player, three emotional backgrounds." 
+        />
         <div class="player-grid">
           <div class="player-preview-panel reveal">
             <div class="premium-player-card" id="style-player" data-style="theme" style="--pp-cover: url('https://i1.sndcdn.com/artworks-6o699KkKNS25gzyG-Qv7uzQ-t500x500.jpg');">
@@ -280,12 +202,11 @@ import SettingsSwitch from '../components/SettingsSwitch.astro';
     </section>
     <section class="section" id="monet-engine">
       <div class="container">
-        <div class="section-header reveal">
-          <div>
-            <span class="eyebrow"><span class="material-icons-round">palette</span> Monet Engine</span>
-            <h2>Color seeds that rewrite the whole interface.</h2>
-          </div>
-        </div>
+        <SectionHeader 
+          eyebrow="Monet Engine" 
+          eyebrowIcon="palette" 
+          title="Color seeds that rewrite the whole interface." 
+        />
         <div class="monet-studio reveal">
           <div class="monet-grid">
             <div class="monet-controls">
@@ -357,12 +278,11 @@ import SettingsSwitch from '../components/SettingsSwitch.astro';
     </section>
     <section class="section" id="widgets-showcase">
       <div class="container">
-        <div class="section-header reveal">
-          <div>
-            <span class="eyebrow"><span class="material-icons-round">widgets</span> Widgets Showcase</span>
-            <h2>Glance widgets that keep playback close.</h2>
-          </div>
-        </div>
+        <SectionHeader 
+          eyebrow="Widgets Showcase" 
+          eyebrowIcon="widgets" 
+          title="Glance widgets that keep playback close." 
+        />
         <div class="widgets-stage">
           <div class="studio-panel widget-feature reveal">
             <div class="widget-feature-copy">

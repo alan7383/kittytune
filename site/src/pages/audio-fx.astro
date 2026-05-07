@@ -4,6 +4,7 @@ import { PAGES } from '../config/site';
 import MaterialSwitch from '../components/MaterialSwitch.astro';
 import BentoPanel from '../components/BentoPanel.astro';
 import FXCard from '../components/FXCard.astro';
+import M3Slider from '../components/M3Slider.astro';
 ---
 
 <SiteLayout page={PAGES['audio-fx']}>
@@ -44,22 +45,20 @@ import FXCard from '../components/FXCard.astro';
         </div>
       </div>
       <div class="eightd-control-card">
-        <div class="m3-range-wrapper eightd-range">
-          <div class="m3-range-info">
-            <span class="eightd-range-label"><span class="material-icons-round">speed</span> LFO Orbit Speed</span>
-            <span id="ui-speed-val" style="color: var(--md-sys-color-primary); font-family: monospace; font-size: 1.15rem;">0.50</span>
-          </div>
-          <div class="m3-v3-slider" id="lfo-slider-container">
-            <input type="range" id="speed-slider" min="0" max="1" step="0.01" value="0.5" aria-label="8D LFO orbit speed" />
-            <div class="m3-v3-layout">
-              <div class="m3-v3-track-active"></div>
-              <div class="m3-v3-thumb-container">
-                <div class="m3-v3-thumb"></div>
-              </div>
-              <div class="m3-v3-track-inactive"></div>
-            </div>
-          </div>
-        </div>
+        <M3Slider 
+          id="speed-slider" 
+          min={0} 
+          max={1} 
+          step={0.01} 
+          value={0.5} 
+          axis="speed" 
+          label="LFO Orbit Speed" 
+          icon="speed" 
+          outputId="ui-speed-val" 
+          containerClass="eightd-range" 
+          containerId="lfo-slider-container"
+          aria-label="8D LFO orbit speed"
+        />
         <div class="eightd-readout">
           <div class="eightd-readout-item">
             <span>Orbit loop</span>

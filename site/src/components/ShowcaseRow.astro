@@ -1,0 +1,34 @@
+---
+interface Props {
+  step: string;
+  title: string;
+  description: string;
+  highlight: string;
+  badgeIcon: string;
+  badgeText: string;
+  variant: string | number;
+  image: string;
+  reverse?: boolean;
+}
+
+const { step, title, description, highlight, badgeIcon, badgeText, variant, image, reverse = false } = Astro.props;
+---
+<div class={`showcase-row ${reverse ? 'reverse' : ''}`}>
+  <div class="text-col">
+    <div class="step-number">{step}</div>
+    <h3>{title}</h3>
+    <p>{description}</p>
+    <div class="highlight">{highlight}</div>
+  </div>
+  <div class="showcase-image-wrapper">
+    <div class={`kaomoji-badge variant-${variant}`}>
+      <div class="badge-icon-circle">
+        <span class="material-icons-round">{badgeIcon}</span>
+      </div>
+      <span class="badge-text">{badgeText}</span>
+    </div>
+    <div class="phone-mockup">
+      <img src={image} alt={title} />
+    </div>
+  </div>
+</div>

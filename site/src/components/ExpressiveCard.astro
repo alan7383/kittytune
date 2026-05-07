@@ -1,0 +1,11 @@
+---
+const { delay, variant, icon, title, description, kaomoji, span } = Astro.props;
+---
+<div class={`expressive-card span-${span} variant-${variant} reveal reveal-delay-${delay}`}>
+  <div class="kaomoji-hero">{kaomoji}</div>
+  <div class="card-content">
+    <div class="card-icon"><span class="material-icons-round">{icon}</span></div>
+    <h3>{title}</h3>
+    <p>{description}</p>
+  </div>
+</div>
