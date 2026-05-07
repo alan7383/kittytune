@@ -1,0 +1,94 @@
+/*
+ * Utility classes for KittyTune.
+ * Following DRY principles to remove inline styles.
+ */
+
+/* Flexbox utilities */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-row { display: flex; flex-direction: row; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-around { justify-content: space-around; }
+.justify-start { justify-content: flex-start; }
+.flex-grow { flex-grow: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-4 { gap: 4px; }
+.gap-6 { gap: 6px; }
+.gap-8 { gap: 8px; }
+.gap-10 { gap: 10px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-24 { gap: 24px; }
+.gap-32 { gap: 32px; }
+.gap-48 { gap: 48px; }
+
+/* Grid utilities */
+.grid { display: grid; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-span-12 { grid-column: span 12; }
+.grid-span-7 { grid-column: span 7; }
+.grid-span-6 { grid-column: span 6; }
+.grid-span-5 { grid-column: span 5; }
+
+/* Spacing utilities */
+.m-0 { margin: 0; }
+.mt-0 { margin-top: 0; }
+.mb-0 { margin-bottom: 0; }
+.ml-n6 { margin-left: -6px; }
+.mt-auto { margin-top: auto; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.mb-32 { margin-bottom: 32px; }
+.mb-40 { margin-bottom: 40px; }
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mt-32 { margin-top: 32px; }
+.mr-6 { margin-right: 6px; }
+.p-0 { padding: 0; }
+.p-8-6 { padding: 8px 6px; }
+.p-16-20 { padding: 16px 20px; }
+.p-24 { padding: 24px; }
+.p-32 { padding: 32px; }
+.p-48 { padding: 48px; }
+
+/* Typography utilities */
+.v-middle { vertical-align: middle; }
+.text-center { text-align: center; }
+.text-link { text-decoration: none; }
+.font-mono { font-family: monospace; }
+.font-fira { font-family: 'Fira Code', monospace; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.text-xs { font-size: 0.75rem; }
+.text-sm { font-size: 0.85rem; }
+.text-base { font-size: 1rem; }
+.text-lg { font-size: 1.1rem; }
+.text-xl { font-size: 1.25rem; }
+.text-2xl { font-size: 1.5rem; }
+.text-3xl { font-size: 2rem; }
+.nowrap { white-space: nowrap; }
+
+/* Color utilities */
+.text-primary { color: var(--md-sys-color-primary); }
+.text-secondary { color: var(--md-sys-color-secondary); }
+.text-tertiary { color: var(--md-sys-color-tertiary); }
+.text-on-surface-variant { color: var(--md-sys-color-on-surface-variant); }
+.text-outline { color: var(--md-sys-color-outline); }
+
+/* Custom utilities */
+.z-2 { z-index: 2; }
+.max-w-100 { max-width: 100%; }
+.max-w-500 { max-width: 500px; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.overflow-hidden { overflow: hidden; }
+.transform-top-left { transform-origin: top left; }
+.transition-spring { transition: all 0.4s var(--ease-spring); }

@@ -805,7 +805,7 @@ header.navbar {
 }
 
 .expressive-card {
-    background: linear-gradient(135deg, rgba(29, 27, 32, 0.9), rgba(33, 31, 38, 0.7));
+    background: var(--panel-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: var(--radius-xl);
@@ -816,8 +816,9 @@ header.navbar {
     flex-direction: column;
     justify-content: flex-end;
     transition: all 0.5s var(--ease-expressive);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
     cursor: default;
+    box-shadow: var(--panel-shadow);
 }
 
 .expressive-card::before {
@@ -841,7 +842,8 @@ header.navbar {
 .expressive-card:hover {
     transform: translateY(-6px) scale(1.01);
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35), 0 0 80px var(--card-glow, rgba(208, 188, 255, 0.06));
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--md-sys-color-primary);
+    background: var(--card-hover-bg);
 }
 
 .kaomoji-hero {
@@ -874,14 +876,14 @@ header.navbar {
     font-size: 36px;
     color: var(--card-accent, var(--md-sys-color-primary));
     margin-bottom: 24px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--card-icon-bg);
     width: 68px;
     height: 68px;
     border-radius: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--panel-border);
     transition: all 0.4s var(--ease-expressive);
 }
 
