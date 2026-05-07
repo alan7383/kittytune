@@ -1,0 +1,25 @@
+---
+interface Props {
+  icon: string;
+  title: string;
+  description: string;
+  delay: string | number;
+  color?: string;
+  href?: string;
+}
+
+const { icon, title, description, delay, color = "var(--md-sys-color-primary)", href } = Astro.props;
+const Tag = href ? "a" : "div";
+---
+<Tag 
+  href={href} 
+  target={href ? "_blank" : undefined} 
+  rel={href ? "noopener noreferrer" : undefined} 
+  class={`philosophy-item reveal reveal-delay-${delay}`} 
+  style={href ? "text-decoration: none;" : ""}
+>
+  <h4>
+    <span class="material-icons-round" style={`color: ${color};`}>{icon}</span> {title}
+  </h4>
+  <p set:html={description}></p>
+</Tag>
