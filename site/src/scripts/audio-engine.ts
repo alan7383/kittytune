@@ -60,13 +60,19 @@ let radarFaceTimer: any = null;
 
 export function updateM3Slider() {
   const sliderInput = document.getElementById('speed-slider') as HTMLInputElement;
-  const sliderContainer = document.getElementById('lfo-slider-container');
-  if (!sliderInput || !sliderContainer) return;
+  if (!sliderInput) return;
+  // FIX: On cible précisément le composant avec la variable CSS
+  const sliderEl = sliderInput.closest('.m3-v3-slider') as HTMLElement; 
+  if (!sliderEl) return;
+  
   const min = parseFloat(sliderInput.min) || 0;
   const max = parseFloat(sliderInput.max) || 1;
   const val = parseFloat(sliderInput.value);
   const percent = (val - min) / (max - min);
-  sliderContainer.style.setProperty('--val', percent.toString());
+  
+  // FIX: On met à jour l'élément exact !
+  sliderEl.style.setProperty('--val', percent.toString());
+  
   const formattedVal = val.toFixed(2);
   const orbitSeconds = 4.0 - (val * 3.5);
   const uiSpeed = document.getElementById('ui-speed-val');
@@ -77,6 +83,7 @@ export function updateM3Slider() {
   const radarOrbit = document.getElementById('radar-orbit');
   const radarContainer = document.getElementById('radar-container');
   const radarHead = document.getElementById('radar-head');
+  
   if (uiSpeed) uiSpeed.textContent = formattedVal;
   if (codeSpeed) codeSpeed.textContent = `${formattedVal}f`;
   if (codeSpeedChip) codeSpeedChip.textContent = `${formattedVal}f`;
@@ -125,33 +132,29 @@ export function initAudioFX() {
     updateM3Slider();
     switchCode('8d');
     
-    const sliderInput = document.getElementById('speed-slider');
-    const container = document.getElementById('lfo-slider-container');
-    if (sliderInput && container) {
-      let inputCount = 0;
-      sliderInput.addEventListener('mousedown', () => {
-        inputCount = 0;
-        container.classList.add('is-dragging');
-      });
-      sliderInput.addEventListener('touchstart', () => {
-        inputCount = 0;
-        container.classList.add('is-dragging');
-      }, {passive: true});
-      window.addEventListener('mouseup', () => {
-        container.classList.remove('is-dragging');
-        container.classList.remove('no-transition');
-      });
-      window.addEventListener('touchend', () => {
-        container.classList.remove('is-dragging');
-        container.classList.remove('no-transition');
-      });
-      sliderInput.addEventListener('input', () => {
-        inputCount++;
-        if (inputCount > 1) {
-          container.classList.add('no-transition');
-        }
-        updateM3Slider();
-      });
+    const sliderInput = document.getElementById('speed-slider') as HTMLInputElement;
+    if (sliderInput) {
+      // FIX: On attache les events au bon élément
+      const sliderEl = sliderInput.closest('.m3-v3-slider') as HTMLElement;
+      if (sliderEl) {
+        sliderInput.addEventListener('pointerdown', () => {
+          sliderEl.classList.add('is-dragging');
+          sliderEl.classList.add('no-transition');
+          sliderInput.dataset.inputCount = "0";
+        });
+        window.addEventListener('pointerup', () => {
+          sliderEl.classList.remove('is-dragging');
+          sliderEl.classList.remove('no-transition');
+        });
+        sliderInput.addEventListener('input', (e) => {
+          const count = parseInt(sliderInput.dataset.inputCount || "0") + 1;
+          sliderInput.dataset.inputCount = count.toString();
+          if (count > 1) {
+            sliderEl.classList.add('no-transition');
+          }
+          updateM3Slider();
+        });
+      }
     }
 
     document.querySelectorAll('.ide-tab').forEach(tab => {
