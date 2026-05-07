@@ -30,6 +30,9 @@ const {
   containerId,
   'aria-label': ariaLabel
 } = Astro.props;
+
+// Calcul de la valeur initiale pour le rendu CSS
+const initialVal = (value - min) / (max - min);
 ---
 <div class={`m3-range-wrapper ${containerClass}`} id={containerId}>
   { (label || icon || outputId) && (
@@ -41,7 +44,7 @@ const {
       {outputId && <output id={outputId}>{value}</output>}
     </div>
   )}
-  <div class={`m3-v3-slider ${sliderClass}`} data-axis={axis} id={containerId ? undefined : `${id}-container`}>
+  <div class={`m3-v3-slider ${sliderClass}`} data-axis={axis} id={containerId ? undefined : `${id}-container`} style={`--val: ${initialVal};`}>
     <input id={id} type="range" min={min} max={max} value={value} step={step} aria-label={ariaLabel || label} />
     <div class="m3-v3-layout">
       <div class="m3-v3-track-active"></div>

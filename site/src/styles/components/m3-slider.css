@@ -1,0 +1,108 @@
+/*
+ * M3 Slider Component Styles
+ * Shared across Custom and Audio FX pages
+ */
+.m3-range-wrapper {
+    min-width: 0;
+    width: 100%;
+}
+.m3-range-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    color: var(--md-sys-color-on-surface);
+    font-size: 1rem;
+    font-weight: 600;
+}
+.m3-range-info span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.m3-range-info output {
+    color: var(--md-sys-color-primary);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.m3-v3-slider {
+    position: relative;
+    width: 100%;
+    height: 52px;
+    display: flex;
+    align-items: center;
+}
+.m3-v3-slider input[type="range"] {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    margin: 0;
+}
+.m3-v3-layout {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+.m3-v3-track-active {
+    flex: var(--val, 0.5);
+    height: 40px;
+    background: var(--md-sys-color-primary);
+    border-radius: 12px 4px 4px 12px;
+    transition: flex 0.3s var(--ease-expressive), background-color 0.2s;
+}
+.m3-v3-thumb-container {
+    flex: 0 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.m3-v3-thumb {
+    width: 4px;
+    height: 52px;
+    border-radius: 2px;
+    background: var(--md-sys-color-primary);
+    transition: transform 0.2s var(--ease-expressive), background-color 0.2s;
+}
+.m3-v3-track-inactive {
+    position: relative;
+    flex: calc(1 - var(--val, 0.5));
+    height: 40px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px 12px 12px 4px;
+    overflow: hidden;
+    transition: flex 0.3s var(--ease-expressive);
+}
+.m3-v3-track-inactive::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--md-sys-color-primary);
+    transform: translateY(-50%);
+    transition: opacity 0.2s;
+}
+.m3-v3-slider:hover .m3-v3-track-inactive::after, 
+.m3-v3-slider.is-dragging .m3-v3-track-inactive::after,
+.m3-range-wrapper.is-dragging .m3-v3-track-inactive::after {
+    opacity: 0;
+}
+.m3-v3-slider.no-transition .m3-v3-track-active, 
+.m3-v3-slider.no-transition .m3-v3-track-inactive,
+.m3-range-wrapper.no-transition .m3-v3-track-active,
+.m3-range-wrapper.no-transition .m3-v3-track-inactive {
+    transition: none;
+}
+.m3-v3-slider.is-dragging .m3-v3-thumb,
+.m3-range-wrapper.is-dragging .m3-v3-thumb {
+    transform: scaleY(1.05) scaleX(0.8);
+}
