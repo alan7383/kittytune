@@ -18,8 +18,7 @@ import M3Slider from '../components/M3Slider.astro';
       description="Direct PCM (16-bit) byte manipulation extending ExoPlayer's <code>BaseAudioProcessor</code>. Zero latency." 
       icon="tune" 
       iconColor="var(--md-sys-color-primary)"
-      class="core-fx-panel"
-      style="display: flex; flex-direction: column;"
+      class="core-fx-panel flex-col"
     >
       <div class="core-fx-grid">
         <FXCard title="Bass Boost" description="Biquad Low Shelf filter at 100Hz." icon="bolt" iconColor="var(--md-sys-color-primary)" />
@@ -34,11 +33,10 @@ import M3Slider from '../components/M3Slider.astro';
       description="An LFO oscillator wraps music dynamically." 
       icon="360" 
       iconColor="var(--md-sys-color-tertiary)"
-      class="eightd-panel"
-      style="grid-column: span 5; display: flex; flex-direction: column;"
+      class="eightd-panel grid-span-5 flex-col"
     >
       <div class="radar-grid-bg"></div>
-      <div class="radar-module eightd-radar-module" style="display: flex; align-items: center; justify-content: center;">
+      <div class="radar-module eightd-radar-module flex items-center justify-center">
         <div class="radar-container" id="radar-container">
           <div class="radar-head" id="radar-head">( o_o )</div>
           <div class="radar-orbit" id="radar-orbit"><div class="radar-dot"></div></div>
@@ -72,7 +70,7 @@ import M3Slider from '../components/M3Slider.astro';
       </div>
     </BentoPanel>
 
-    <BentoPanel class="live-code-block" style="grid-column: span 7;">
+    <BentoPanel class="live-code-block grid-span-7">
       <div slot="header" class="code-controls">
         <div>
           <h3 class="panel-title"><span class="material-icons-round" style="color: #ffbd2e;">terminal</span> DSP Algorithms</h3>
@@ -93,22 +91,21 @@ import M3Slider from '../components/M3Slider.astro';
           <button class="ide-tab" onclick="switchCode('reverb', this)">Delay Line</button>
           <button class="ide-tab" onclick="switchCode('muffled', this)">Low-Pass</button>
         </div>
-        <div class="code-scroll-container" id="code-display" style="font-family: 'Fira Code', monospace; font-size: 0.95rem; line-height: 1.7; color: #abb2bf;">
+        <div class="code-scroll-container font-fira text-sm" id="code-display" style="line-height: 1.7; color: #abb2bf;">
         </div>
       </div>
     </BentoPanel>
 
     <BentoPanel 
-      class="" 
-      style="grid-column: span 12; padding: 48px;"
+      class="grid-span-12 p-48"
     >
-      <div class="deep-dive-grid" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 48px; align-items: center;">
+      <div class="deep-dive-grid grid grid-cols-2 gap-48 items-center">
         <div>
           <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-secondary);">memory</span> Bypassing Android's Audio Limits</h3>
-          <p class="panel-desc" style="max-width: 100%; margin-bottom: 20px;">
+          <p class="panel-desc max-w-100 mb-20">
             Standard Android audio effects like <code>android.media.audiofx</code> are applied at the OS level. That means a bass boost can sound completely different on a Samsung device compared to a Xiaomi or a Pixel, because each OEM can alter the underlying DSP.
           </p>
-          <p class="panel-desc" style="max-width: 100%; margin-bottom: 24px;">
+          <p class="panel-desc max-w-100 mb-24">
             <b>KittyTune fixes this.</b> By hooking directly into ExoPlayer's <code>DefaultAudioSink</code> via a custom <code>BaseAudioProcessor</code>, the app manipulates the raw 16-bit PCM <code>ByteBuffer</code> before it reaches Android AudioTrack.
             That keeps KittyTune's DSP signature consistent before hardware output on Samsung, Xiaomi, Pixel, and beyond. Biquad filters, LFO panning, and delay buffers stay as lightweight math on the audio thread, keeping the effect path under a millisecond for normal buffers without waking heavy OS DSP chains.
           </p>
@@ -164,16 +161,15 @@ import M3Slider from '../components/M3Slider.astro';
       class="" 
       style="grid-column: span 12; padding: 48px;"
     >
-      <div style="background: rgba(0,0,0,0.2); border-radius: var(--radius-l); padding: 32px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 40px;">
-        <div style="display: flex; align-items: center; gap: 24px;">
-          <button id="live-fx-play-btn" class="play-fab-large" style="width: 56px; height: 56px; margin: 0; flex-shrink: 0;">
-            <span class="material-icons-round" style="font-size: 32px;" id="live-fx-play-icon">play_arrow</span>
-          </button>
-          <div style="flex-grow: 1; display: flex; flex-direction: column;">
-            <div style="display: flex; justify-content: space-between; font-family: monospace; font-size: 0.85rem; color: var(--md-sys-color-outline); margin-bottom: 8px;">
-              <span id="fx-time-current">0:00</span>
-              <span id="fx-time-total" style="opacity: 0.5;">0:00</span>
-            </div>
+      <div class="fx-player-box flex items-center gap-24">
+        <button id="live-fx-play-btn" class="play-fab-large m-0 flex-shrink-0">
+          <span class="material-icons-round text-3xl" id="live-fx-play-icon">play_arrow</span>
+        </button>
+        <div class="flex-grow flex-col">
+          <div class="flex justify-between font-mono text-xs text-outline mb-8">
+            <span id="fx-time-current">0:00</span>
+            <span id="fx-time-total" class="opacity-50">0:00</span>
+          </div>
             <div class="m3-v3-slider fx-progress-bar" id="fx-progress-container" style="height: 32px; --val: 0;">
               <input type="range" id="fx-progress-slider" min="0" max="1" step="0.001" value="0" />
               <div class="m3-v3-layout">
@@ -195,14 +191,14 @@ import M3Slider from '../components/M3Slider.astro';
       </div>
     </BentoPanel>
 
-    <BentoPanel id="rain-panel" class="rain-panel-layout" style="grid-column: span 12;">
+    <BentoPanel id="rain-panel" class="rain-panel-layout grid-span-12">
       <div class="rain-bg"></div>
-      <div style="z-index: 2; max-width: 500px;">
-        <h3 class="panel-title"><span class="material-icons-round" style="color: #6eb5ff;">water_drop</span> RainPlayer Ambience</h3>
-        <p class="panel-desc" style="margin-bottom: 0;">Layer high-fidelity rain noise entirely detached from the main music stream. Perfect for deep focus.</p>
+      <div class="z-2 max-w-500">
+        <h3 class="panel-title"><span class="material-icons-round text-tertiary">water_drop</span> RainPlayer Ambience</h3>
+        <p class="panel-desc mb-0">Layer high-fidelity rain noise entirely detached from the main music stream. Perfect for deep focus.</p>
       </div>
       <div class="rain-kaomoji" id="rain-face">[ /// ]</div>
-      <button class="kt-btn-outline" id="rain-btn" onclick="toggleRain()" style="z-index: 2; padding: 16px 40px; border-color: rgba(255,255,255,0.2); color: white;">
+      <button class="kt-btn-outline rain-toggle-btn z-2" id="rain-btn" onclick="toggleRain()">
         Mix Ambience
       </button>
     </BentoPanel>

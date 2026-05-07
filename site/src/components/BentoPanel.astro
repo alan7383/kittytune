@@ -13,14 +13,14 @@ interface Props {
 const { id, title, description, icon, iconColor, class: className = "", style = "" } = Astro.props;
 ---
 
-<div id={id} class={`bento-panel ${className}`} style={style}>
+<div id={id} class={`bento-panel ${className}`} style={style || undefined}>
   {Astro.slots.has('header') ? (
     <slot name="header" />
   ) : (
     <>
       {title && (
         <h3 class="panel-title">
-          {icon && <span class="material-icons-round" style={`color: ${iconColor || 'inherit'};`}>{icon}</span>}
+          {icon && <span class="material-icons-round" style={iconColor ? `color: ${iconColor};` : undefined}>{icon}</span>}
           {title}
         </h3>
       )}

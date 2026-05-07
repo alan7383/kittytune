@@ -49,7 +49,7 @@ import SectionHeader from '../components/SectionHeader.astro';
               <small>Headlines, labels, player titles and settings rows inherit the same variable font engine.</small>
             </div>
           </div>
-          <div class="preset-row" id="preset-row" aria-label="Typography presets" style="padding: 8px 6px; margin-left: -6px;">
+          <div class="preset-row p-8-6 ml-n6" id="preset-row" aria-label="Typography presets">
             <button class="preset-chip active" data-preset="default">Default</button>
             <button class="preset-chip" data-preset="rounded">Rounded</button>
             <button class="preset-chip" data-preset="elegant">Elegant</button>
@@ -89,7 +89,7 @@ import SectionHeader from '../components/SectionHeader.astro';
                 <div class="discord-user-info">
                   <div class="discord-username">alananasssss</div>
                 </div>
-                <div id="discord-activity-wrap" style="transition: all 0.4s var(--ease-spring); transform-origin: top left;">
+                <div id="discord-activity-wrap" class="transition-spring transform-top-left">
                   <div class="discord-activity-header">Listening to KittyTune</div>
                   <div class="discord-activity-body">
                     <div class="discord-asset">
@@ -110,13 +110,13 @@ import SectionHeader from '../components/SectionHeader.astro';
             </div>
           </div>
           <div class="app-style-panel reveal">
-            <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Status Display Mode</h4>
-            <div class="preset-row" id="discord-rpc-switcher" style="padding: 8px 6px; margin-left: -6px; margin-bottom: 32px; justify-content: flex-start;">
-              <button class="preset-chip active" data-mode="ACTIVITY"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">album</span>Activity</button>
-              <button class="preset-chip" data-mode="SONG"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">music_note</span>Song</button>
-              <button class="preset-chip" data-mode="ARTIST"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">person</span>Artist</button>
+            <h4 class="mb-16 text-primary text-lg">Status Display Mode</h4>
+            <div class="preset-row p-8-6 ml-n6 mb-32 justify-start" id="discord-rpc-switcher">
+              <button class="preset-chip active" data-mode="ACTIVITY"><span class="material-icons-round text-lg mr-6 v-middle">album</span>Activity</button>
+              <button class="preset-chip" data-mode="SONG"><span class="material-icons-round text-lg mr-6 v-middle">music_note</span>Song</button>
+              <button class="preset-chip" data-mode="ARTIST"><span class="material-icons-round text-lg mr-6 v-middle">person</span>Artist</button>
             </div>
-            <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Integration</h4>
+            <h4 class="mb-16 text-primary text-lg">Integration</h4>
             <div class="compose-settings-group">
               <SettingsSwitch 
                 id="rpc-toggle" 
@@ -166,13 +166,13 @@ import SectionHeader from '../components/SectionHeader.astro';
             </div>
           </div>
           <div class="app-style-panel reveal">
-            <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Background Mode</h4>
-            <div class="preset-row" id="style-switcher" style="padding: 8px 6px; margin-left: -6px; margin-bottom: 32px; justify-content: flex-start;">
-              <button class="preset-chip" data-style="blur"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">blur_on</span>Blur</button>
-              <button class="preset-chip" data-style="gradient"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">gradient</span>Gradient</button>
-              <button class="preset-chip active" data-style="theme"><span class="material-icons-round" style="font-size:18px; margin-right:6px; vertical-align:middle;">format_color_fill</span>Theme</button>
+            <h4 class="mb-16 text-primary text-lg">Background Mode</h4>
+            <div class="preset-row p-8-6 ml-n6 mb-32 justify-start" id="style-switcher">
+              <button class="preset-chip" data-style="blur"><span class="material-icons-round text-lg mr-6 v-middle">blur_on</span>Blur</button>
+              <button class="preset-chip" data-style="gradient"><span class="material-icons-round text-lg mr-6 v-middle">gradient</span>Gradient</button>
+              <button class="preset-chip active" data-style="theme"><span class="material-icons-round text-lg mr-6 v-middle">format_color_fill</span>Theme</button>
             </div>
-            <h4 style="margin-bottom: 16px; color: var(--md-sys-color-primary); font-size: 1.1rem;">Options</h4>
+            <h4 class="mb-16 text-primary text-lg">Options</h4>
             <div class="compose-settings-group">
               <SettingsSwitch 
                 id="toggle-inline-lyrics" 
@@ -236,7 +236,7 @@ import SectionHeader from '../components/SectionHeader.astro';
                   </button>
                 </div>
               </div>
-              <div class="monet-controls-group" style="margin-bottom: 0;">
+              <div class="monet-controls-group mb-0">
                 <h3>Palette style</h3>
                 <div class="monet-chip-row" id="palette-styles">
                   <button class="monet-chip active" data-style="TonalSpot">TonalSpot</button>
@@ -245,8 +245,8 @@ import SectionHeader from '../components/SectionHeader.astro';
                   <button class="monet-chip" data-style="Monochrome">Monochrome</button>
                 </div>
               </div>
-              <div class="monet-controls-group" style="margin-top: 32px; margin-bottom: 0;">
-                <button class="axis-chip monet-surprise-btn" id="monet-surprise-btn">
+              <div class="monet-controls-group mt-32 mb-0">
+                <button class="axis-chip monet-surprise-btn p-16-20" id="monet-surprise-btn">
                   <span class="material-icons-round">auto_awesome</span> Generate new palette
                 </button>
               </div>
