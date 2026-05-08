@@ -67,7 +67,11 @@ export const updateThemeIcons = () => {
   });
 };
 
+let isThemeTransitioning = false;
+
 export const toggleThemeMode = () => {
+  if (isThemeTransitioning) return;
+  
   const updateTheme = () => {
     const root = document.documentElement;
     const isLight = root.classList.toggle('light-mode');
@@ -78,13 +82,23 @@ export const toggleThemeMode = () => {
     updateThemeIcons();
   };
 
+  // Si Astro est déjà en train de faire une transition de page, on ne lance pas de view transition
+  if (document.documentElement.hasAttribute('data-astro-transition')) {
+    updateTheme();
+    return;
+  }
+
+  isThemeTransitioning = true;
+
   if ((document as any).startViewTransition) {
     const transition = (document as any).startViewTransition(updateTheme);
-    // On catch TOUTES les promesses d'animation pour rendre la console 100% silencieuse
     transition.ready.catch(() => {});
-    transition.finished.catch(() => {});
+    transition.finished.catch(() => {}).finally(() => {
+      isThemeTransitioning = false;
+    });
   } else {
     updateTheme();
+    isThemeTransitioning = false;
   }
 };
 
@@ -97,19 +111,20 @@ export const initTheme = () => {
 
 document.addEventListener('astro:page-load', () => {
   initTheme();
-  
-  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
-    const button = btn as HTMLElement;
-    // Vérification magique : Si le bouton a déjà été configuré, on l'ignore !
-    if (button.dataset.themeBound) return;
-    button.dataset.themeBound = 'true';
+});
 
-    button.addEventListener('click', (e) => {
+// Délégation d'événement globale attachée une seule fois
+if (!(window as any).__themeEventBound) {
+  (window as any).__themeEventBound = true;
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const btn = target.closest('.theme-toggle-btn');
+    if (btn) {
       e.preventDefault();
       toggleThemeMode();
-    });
+    }
   });
-});
+}
 
 document.addEventListener('astro:after-swap', () => {
   const savedMode = localStorage.getItem('kittytune_theme_mode');
