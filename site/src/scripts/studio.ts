@@ -177,36 +177,29 @@ function initDiscordRpc() {
 }
 
 function initSliders() {
-  document.querySelectorAll("#typography-lab [data-slider-root]").forEach((slider: any) => {
-    const input = slider.querySelector('[data-slider-input]') as HTMLInputElement;
-    if (!input) return;
-    const axis = slider.dataset.axis;
-    const output = document.getElementById(`out-${axis}`);
-    const startDrag = () => slider.classList.add("is-dragging");
-    const stopDrag = () => {
-      slider.classList.remove("is-dragging");
-      slider.classList.remove("no-transition");
-    };
-    input.addEventListener("pointerdown", startDrag);
-    input.addEventListener("pointerup", stopDrag);
-    input.addEventListener("pointercancel", stopDrag);
-    input.addEventListener("input", () => {
-      slider.classList.add("no-transition");
-      const value = parseFloat(input.value);
+  // 1. On écoute l'événement natif qu'on a créé dans le Web Component !
+  document.querySelectorAll("m3-slider").forEach((slider) => {
+    slider.addEventListener("m3-change", (e: any) => {
+      const { axis, value } = e.detail;
+      const output = document.getElementById(`out-${axis}`);
+      
+      // Met à jour la variable CSS pour la police
       document.documentElement.style.setProperty(`--lab-${axis}`, value.toString());
       if (output) output.textContent = Math.round(value).toString();
-      updateSliderVisual(slider);
-      document.querySelectorAll("#preset-row .preset-chip").forEach((chip) => chip.classList.remove("active"));
+      
+      // Désélectionne les presets
+      document.querySelectorAll("#preset-row .preset-chip").forEach(l => l.classList.remove("active"));
     });
-    updateSliderVisual(slider);
   });
+
+  // 2. Garde la logique des boutons de presets intacte
   document.querySelectorAll("#preset-row .preset-chip").forEach((chip: any) => {
     chip.addEventListener("click", () => {
       const preset = (presets as any)[chip.dataset.preset];
       if (!preset) return;
       document.querySelectorAll("#preset-row .preset-chip").forEach((item) => item.classList.remove("active"));
       chip.classList.add("active");
-      applyAxes(preset);
+      applyAxes(preset); // (Tu peux garder applyAxes pour les presets)
       const fontText = document.getElementById("dynamic-font-text");
       if (fontText) fontText.textContent = chip.textContent;
     });
