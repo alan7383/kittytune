@@ -144,17 +144,7 @@ a {
     transition: transform 0.2s var(--ease-expressive), background-color 0.2s;
 }
 
-.nav-indicator::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: 16px;
-    background: var(--md-sys-color-primary-container);
-    opacity: 0;
-    transform: scaleX(0.5);
-    transition: opacity 0.2s ease, transform 0.3s var(--ease-spring);
-}
+
 
 .nav-rail-item:hover:not(.active) .nav-indicator {
     background: rgba(255, 255, 255, 0.08);
