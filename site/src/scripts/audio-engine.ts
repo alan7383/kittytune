@@ -58,23 +58,13 @@ output = y.toInt().toShort()`
 
 let radarFaceTimer: any = null;
 
-export function updateM3Slider() {
-  const sliderInput = document.getElementById('speed-slider') as HTMLInputElement;
-  if (!sliderInput) return;
-  // FIX: On cible précisément le composant avec la variable CSS
-  const sliderEl = sliderInput.closest('[data-slider-root]') as HTMLElement; 
-  if (!sliderEl) return;
-  
-  const min = parseFloat(sliderInput.min) || 0;
-  const max = parseFloat(sliderInput.max) || 1;
-  const val = parseFloat(sliderInput.value);
+export function updateRadarUI(val: number) {
+  const min = 0;
+  const max = 1;
   const percent = (val - min) / (max - min);
-  
-  // FIX: On met à jour l'élément exact !
-  sliderEl.style.setProperty('--val', percent.toString());
-  
   const formattedVal = val.toFixed(2);
   const orbitSeconds = 4.0 - (val * 3.5);
+
   const uiSpeed = document.getElementById('ui-speed-val');
   const codeSpeed = document.getElementById('code-speed-val');
   const codeSpeedChip = document.getElementById('code-speed-chip');
@@ -123,38 +113,27 @@ export function switchCode(tabId: string, element?: HTMLElement) {
     display.innerHTML = codeSnippets[tabId].replace(/\n/g, '<br>').replace(/    /g, '&nbsp;&nbsp;&nbsp;&nbsp;');
   }
   if(tabId === '8d') {
-    updateM3Slider();
+    const speedSlider = document.querySelector('m3-slider[data-axis="speed"]');
+    if (speedSlider) {
+      const input = speedSlider.querySelector('input') as HTMLInputElement;
+      if (input) updateRadarUI(parseFloat(input.value));
+    }
   }
 }
 
 export function initAudioFX() {
   if (document.getElementById('code-display')) {
-    updateM3Slider();
     switchCode('8d');
     
-    const sliderInput = document.getElementById('speed-slider') as HTMLInputElement;
-    if (sliderInput) {
-      // FIX: On attache les events au bon élément
-      const sliderEl = sliderInput.closest('[data-slider-root]') as HTMLElement;
-      if (sliderEl) {
-        sliderInput.addEventListener('pointerdown', () => {
-          sliderEl.classList.add('is-dragging');
-          sliderEl.classList.add('no-transition');
-          sliderInput.dataset.inputCount = "0";
-        });
-        window.addEventListener('pointerup', () => {
-          sliderEl.classList.remove('is-dragging');
-          sliderEl.classList.remove('no-transition');
-        });
-        sliderInput.addEventListener('input', (e) => {
-          const count = parseInt(sliderInput.dataset.inputCount || "0") + 1;
-          sliderInput.dataset.inputCount = count.toString();
-          if (count > 1) {
-            sliderEl.classList.add('no-transition');
-          }
-          updateM3Slider();
-        });
-      }
+    // Valeur par défaut si le slider est présent
+    const speedSlider = document.querySelector('m3-slider[data-axis="speed"]');
+    if (speedSlider) {
+      const input = speedSlider.querySelector('input') as HTMLInputElement;
+      if (input) updateRadarUI(parseFloat(input.value));
+      
+      speedSlider.addEventListener('m3-change', (e: any) => {
+        updateRadarUI(e.detail.value);
+      });
     }
 
     document.querySelectorAll('.ide-tab').forEach(tab => {
