@@ -819,31 +819,40 @@ header.navbar {
     border: 1px solid var(--panel-border);
     cursor: default;
     box-shadow: var(--panel-shadow);
-}
 
-.expressive-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius-xl);
-    padding: 1px;
-    background: linear-gradient(135deg, transparent, transparent);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    transition: background 0.5s ease;
-    pointer-events: none;
-}
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius-xl);
+        padding: 1px;
+        background: linear-gradient(135deg, transparent, transparent);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        transition: background 0.5s ease;
+        pointer-events: none;
+    }
 
-.expressive-card:hover::before {
-    background: linear-gradient(135deg, var(--card-accent, var(--md-sys-color-primary)), transparent 60%);
-}
+    &:hover {
+        transform: translateY(-6px) scale(1.01);
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35), 0 0 80px var(--card-glow, rgba(208, 188, 255, 0.06));
+        border-color: var(--md-sys-color-primary);
+        background: var(--card-hover-bg);
 
-.expressive-card:hover {
-    transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35), 0 0 80px var(--card-glow, rgba(208, 188, 255, 0.06));
-    border-color: var(--md-sys-color-primary);
-    background: var(--card-hover-bg);
+        &::before {
+            background: linear-gradient(135deg, var(--card-accent, var(--md-sys-color-primary)), transparent 60%);
+        }
+
+        :root.light-mode & {
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.08);
+        }
+    }
+
+    :root.light-mode & {
+        border-color: rgba(0, 0, 0, 0.06);
+    }
 }
 
 .kaomoji-hero {
@@ -885,6 +894,11 @@ header.navbar {
     justify-content: center;
     border: 1px solid var(--panel-border);
     transition: all 0.4s var(--ease-expressive);
+
+    :root.light-mode & {
+        background: rgba(0, 0, 0, 0.04);
+        border-color: rgba(0, 0, 0, 0.06);
+    }
 }
 
 .expressive-card:hover .card-icon {
@@ -892,6 +906,11 @@ header.navbar {
     border-color: rgba(208, 188, 255, 0.15);
     box-shadow: 0 0 24px var(--card-glow, rgba(208, 188, 255, 0.1));
     transform: scale(1.05);
+
+    :root.light-mode & {
+        background: rgba(103, 80, 164, 0.1);
+        border-color: rgba(103, 80, 164, 0.2);
+    }
 }
 
 .expressive-card h3 {
@@ -1047,6 +1066,17 @@ header.navbar {
     animation: float-badge 7s ease-in-out infinite;
     transition: all 0.3s ease;
     cursor: default;
+
+    :root.light-mode & {
+        background: rgba(255, 255, 255, 0.85);
+        border-color: rgba(0, 0, 0, 0.08);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(16px);
+    }
+
+    :root.light-mode .showcase-row:hover & {
+        background: rgba(255, 255, 255, 0.95);
+    }
 }
 
 .badge-icon-circle {
