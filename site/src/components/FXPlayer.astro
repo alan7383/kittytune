@@ -160,7 +160,24 @@ import MaterialSwitch from './MaterialSwitch.astro';
   const syncFXPlayerUI = () => {
     const playIcon = document.getElementById('live-fx-play-icon');
     if (playIcon) playIcon.textContent = audioStore.isPlaying ? 'pause' : 'play_arrow';
-    if (audioBuffer) updateUITotalTime();
+    
+    if (audioBuffer) {
+      updateUITotalTime();
+      
+      const pSlider = document.getElementById('fx-progress-slider') as HTMLInputElement;
+      const pCont = document.getElementById('fx-progress-container');
+      const tCurr = document.getElementById('fx-time-current');
+      
+      if (pSlider && pCont && tCurr && !progressDrag) {
+        const percent = audioStore.offsetTime / audioBuffer.duration;
+        pSlider.value = percent.toString();
+        pCont.style.setProperty('--val', percent.toString());
+        
+        let minutes = Math.floor(audioStore.offsetTime / 60);
+        let seconds = Math.floor(audioStore.offsetTime % 60).toString().padStart(2, '0');
+        tCurr.textContent = `${minutes}:${seconds}`;
+      }
+    }
     
     const t8d = document.getElementById('toggle-8d') as HTMLInputElement;
     const tnc = document.getElementById('toggle-nightcore') as HTMLInputElement;
@@ -232,6 +249,8 @@ import MaterialSwitch from './MaterialSwitch.astro';
       document.addEventListener('kitty:sync-ui', this.syncUIBound);
       if (!audioBuffer) {
         loadAudio().catch(e => console.log(e));
+      } else if (audioStore.isPlaying) {
+        updateProgress();
       }
     }
 
