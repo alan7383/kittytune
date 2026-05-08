@@ -5,6 +5,7 @@ import MaterialSwitch from '../components/MaterialSwitch.astro';
 import BentoPanel from '../components/BentoPanel.astro';
 import FXCard from '../components/FXCard.astro';
 import M3Slider from '../components/M3Slider.astro';
+import FXPlayer from '../components/FXPlayer.astro';
 import '../styles/shared/home-audio.css';
 import '../styles/pages/audio-fx.css';
 ---
@@ -163,33 +164,7 @@ import '../styles/pages/audio-fx.css';
       class="" 
       style="grid-column: span 12; padding: 48px;"
     >
-      <div class="fx-player-box flex items-center gap-24">
-        <button id="live-fx-play-btn" class="play-fab-large m-0 flex-shrink-0">
-          <span class="material-icons-round text-3xl" id="live-fx-play-icon">play_arrow</span>
-        </button>
-        <div class="flex-grow flex-col">
-          <div class="flex justify-between font-mono text-xs text-outline mb-8">
-            <span id="fx-time-current">0:00</span>
-            <span id="fx-time-total" class="opacity-50">0:00</span>
-          </div>
-            <div class="m3-v3-slider fx-progress-bar" id="fx-progress-container" style="height: 32px; --val: 0;">
-              <input type="range" id="fx-progress-slider" min="0" max="1" step="0.001" value="0" />
-              <div class="m3-v3-layout">
-                <div class="m3-v3-track-active" style="height: 18px; border-radius: 6px 1px 1px 6px;"></div>
-                <div class="m3-v3-thumb-container" style="height: 32px; flex: 0 0 10px;">
-                  <div class="m3-v3-thumb" style="height: 32px; width: 3px; border-radius: 1.5px;"></div>
-                </div>
-                <div class="m3-v3-track-inactive" style="height: 18px; border-radius: 1px 6px 6px 1px;"></div>
-              </div>
-        </div>
-      </div>
-    </div>
-    <div class="fx-switches-grid">
-        <MaterialSwitch id="toggle-8d" title="8D Spatial" description="Revolving LFO panning" />
-        <MaterialSwitch id="toggle-nightcore" title="Nightcore" description="Pitch and speed up" />
-        <MaterialSwitch id="toggle-reverb" title="Slowed + Reverb" description="Slower playback with rich echo" />
-        <MaterialSwitch id="toggle-muffled" title="Muffled" description="Outside the club feels" />
-      </div>
+      <FXPlayer />
     </BentoPanel>
 
     <BentoPanel id="rain-panel" class="rain-panel-layout grid-span-12">
