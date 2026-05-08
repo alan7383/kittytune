@@ -1,4 +1,4 @@
-﻿package com.alananasss.kittytune.ui
+package com.alananasss.kittytune.ui
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -422,6 +422,9 @@ fun MainScreen(
                     }
                 }
             ) { innerPadding ->
+                
+                // 1. AJOUTER CE BOX POUR POUVOIR ALIGNER LE MINIPLAYER EN BAS
+                Box(modifier = Modifier.fillMaxSize()) {
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
@@ -817,16 +820,17 @@ fun MainScreen(
 
                 AnimatedVisibility(
                     visible = showBottomUi && playerViewModel.currentTrack != null && !isFullScreenRoute,
-                    enter = slideInVertically { it },
-                    exit = slideOutVertically { it },
+                    enter = slideInVertically(initialOffsetY = { it }), // Animation plus propre
+                    exit = slideOutVertically(targetOffsetY = { it }),
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(innerPadding)
+                        .align(Alignment.BottomCenter) // Fonctionne grâce au Box
+                        .padding(bottom = if (isFullScreenRoute) 0.dp else innerPadding.calculateBottomPadding()) // 3. APPLIQUER SEULEMENT LE PADDING DU BAS
                 ) {
                     MiniPlayer(
                         viewModel = playerViewModel,
                         onClick = { playerViewModel.isPlayerExpanded = true }
                     )
+                }
                 }
             }
 
