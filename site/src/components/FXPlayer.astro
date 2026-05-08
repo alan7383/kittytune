@@ -217,3 +217,104 @@ import MaterialSwitch from './MaterialSwitch.astro';
 
   customElements.define('fx-player', FxPlayer);
 </script>
+
+<style>
+  .m3-v3-slider {
+    position: relative;
+    width: 100%;
+    height: 52px;
+    display: flex;
+    align-items: center;
+  }
+  .m3-v3-slider input[type="range"] {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    margin: 0;
+  }
+  .m3-v3-layout {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+  }
+  .m3-v3-track-active {
+    flex: var(--val, 0.5);
+    height: 40px;
+    background: var(--md-sys-color-primary);
+    border-radius: 12px 4px 4px 12px;
+    transition: flex 0.3s var(--ease-expressive), background-color 0.2s;
+  }
+  .m3-v3-thumb-container {
+    flex: 0 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .m3-v3-thumb {
+    width: 4px;
+    height: 52px;
+    border-radius: 2px;
+    background: var(--md-sys-color-primary);
+    transition: transform 0.2s var(--ease-expressive), background-color 0.2s;
+  }
+  .m3-v3-track-inactive {
+    position: relative;
+    flex: calc(1 - var(--val, 0.5));
+    height: 40px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px 12px 12px 4px;
+    overflow: hidden;
+    transition: flex 0.3s var(--ease-expressive);
+  }
+  .m3-v3-track-inactive::after {
+    content: "";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--md-sys-color-primary);
+    transform: translateY(-50%);
+    transition: opacity 0.2s;
+  }
+  .m3-v3-slider:hover .m3-v3-track-inactive::after, 
+  .m3-v3-slider.is-dragging .m3-v3-track-inactive::after {
+    opacity: 0;
+  }
+  .m3-v3-slider.no-transition .m3-v3-track-active, 
+  .m3-v3-slider.no-transition .m3-v3-track-inactive {
+    transition: none;
+  }
+  .m3-v3-slider.is-dragging .m3-v3-thumb {
+    transform: scaleY(1.05) scaleX(0.8);
+  }
+
+  /* Mode clair */
+  :global(.light-mode) .m3-v3-track-inactive {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  /* Utility classes used in template */
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-24 { gap: 24px; }
+  .flex-grow { flex-grow: 1; }
+  .flex-col { flex-direction: column; }
+  .justify-between { justify-content: space-between; }
+  .font-mono { font-family: monospace; }
+  .text-xs { font-size: 0.75rem; }
+  .text-outline { color: var(--md-sys-color-outline); }
+  .mb-8 { margin-bottom: 8px; }
+  .opacity-50 { opacity: 0.5; }
+  .m-0 { margin: 0; }
+  .flex-shrink-0 { flex-shrink: 0; }
+  .text-3xl { font-size: 1.875rem; }
+</style>
