@@ -79,9 +79,9 @@ export const toggleThemeMode = () => {
   };
 
   if ((document as any).startViewTransition) {
-    // On lance la transition et on dit ".catch(() => {})" pour cacher l'erreur 
-    // si l'utilisateur clique frénétiquement sur le bouton
     const transition = (document as any).startViewTransition(updateTheme);
+    // On catch TOUTES les promesses d'animation pour rendre la console 100% silencieuse
+    transition.ready.catch(() => {});
     transition.finished.catch(() => {});
   } else {
     updateTheme();
@@ -97,8 +97,14 @@ export const initTheme = () => {
 
 document.addEventListener('astro:page-load', () => {
   initTheme();
+  
   document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+    const button = btn as HTMLElement;
+    // Vérification magique : Si le bouton a déjà été configuré, on l'ignore !
+    if (button.dataset.themeBound) return;
+    button.dataset.themeBound = 'true';
+
+    button.addEventListener('click', (e) => {
       e.preventDefault();
       toggleThemeMode();
     });
