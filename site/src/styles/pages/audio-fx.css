@@ -1380,3 +1380,26 @@
     background: rgba(0, 0, 0, 0.04);
     border-color: rgba(0, 0, 0, 0.08);
 }
+
+/* =========================================
+   CORRECTIONS VISUELLES MODE CLAIR
+   ========================================= */
+
+/* 1. Rendre le fond du lecteur audio plus clair et subtil */
+:root.light-mode .fx-player-box {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+/* 2. Réduire l'ombre massive sous l'éditeur de code */
+:root.light-mode .live-code-block {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+}
+
+/* 3. Réduire l'ombre sous la carte des contrôles 8D */
+:root.light-mode .eightd-control-card {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
