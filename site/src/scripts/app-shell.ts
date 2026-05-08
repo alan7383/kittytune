@@ -184,4 +184,25 @@ document.addEventListener('astro:page-load', () => {
           alert(msg);
       });
   });
+
+  // Synchronisation instantanée de la navigation (Effet M3)
+  const currentPath = window.location.pathname;
+  document.querySelectorAll('.nav-rail-item, .m3-drawer-item').forEach(item => {
+      // 1. Gère les retours en arrière (Back/Forward) du navigateur
+      const href = item.getAttribute('href');
+      if (href === currentPath || href === currentPath + '/') {
+          item.classList.add('active');
+      } else {
+          item.classList.remove('active');
+      }
+
+      // 2. Déclenche l'animation instantanément au clic (avant que la page ne charge)
+      item.addEventListener('click', function(this: HTMLElement) {
+          const parent = this.closest('aside');
+          if (parent && !this.classList.contains('active')) {
+              parent.querySelectorAll('.nav-rail-item, .m3-drawer-item').forEach(n => n.classList.remove('active'));
+              this.classList.add('active');
+          }
+      });
+  });
 });

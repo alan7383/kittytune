@@ -194,13 +194,22 @@ span.md3-ripple {
     transform: scale(0.85);
 }
 
-/* Le fond de l'élément actif glisse naturellement grâce à Astro */
-.active-indicator-bg {
+/* L'indicateur M3 : il grandit/rétrécit depuis le centre */
+.nav-indicator::before {
+    content: '';
     position: absolute;
     inset: 0;
     border-radius: 16px;
     background-color: var(--md-sys-color-primary-container);
+    opacity: 0;
+    transform: scaleX(0.5); /* Commence petit */
+    transition: opacity 0.15s linear, transform 0.3s var(--ease-spring);
     z-index: -1;
+}
+
+.nav-rail-item.active .nav-indicator::before {
+    opacity: 1;
+    transform: scaleX(1); /* S'étend à 100% */
 }
 
 .nav-logo-svg {
