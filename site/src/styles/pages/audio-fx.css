@@ -331,16 +331,7 @@
     box-shadow: 0 0 24px rgba(208, 188, 255, 0.15);
 }
 
-.pipeline-step.highlight::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 15%;
-    bottom: 15%;
-    width: 4px;
-    background: var(--md-sys-color-primary);
-    border-radius: 0 4px 4px 0;
-}
+
 
 .pipeline-arrow {
     display: flex;
