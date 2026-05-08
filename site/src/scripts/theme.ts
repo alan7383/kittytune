@@ -79,7 +79,10 @@ export const toggleThemeMode = () => {
   };
 
   if ((document as any).startViewTransition) {
-    (document as any).startViewTransition(updateTheme);
+    // On lance la transition et on dit ".catch(() => {})" pour cacher l'erreur 
+    // si l'utilisateur clique frénétiquement sur le bouton
+    const transition = (document as any).startViewTransition(updateTheme);
+    transition.finished.catch(() => {});
   } else {
     updateTheme();
   }
