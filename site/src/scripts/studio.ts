@@ -22,7 +22,7 @@ const pageState = {
 const presetNames = ["default", "rounded", "elegant", "chunky", "compact", "slanted", "playful", "wide"];
 
 function updateSliderVisual(slider: HTMLElement) {
-  const input = slider.querySelector("input");
+  const input = slider.querySelector('[data-slider-input]') as HTMLInputElement;
   if (!input) return;
   const min = parseFloat(input.min);
   const max = parseFloat(input.max);
@@ -177,8 +177,8 @@ function initDiscordRpc() {
 }
 
 function initSliders() {
-  document.querySelectorAll(".lab-slider").forEach((slider: any) => {
-    const input = slider.querySelector("input") as HTMLInputElement;
+  document.querySelectorAll("#typography-lab [data-slider-root]").forEach((slider: any) => {
+    const input = slider.querySelector('[data-slider-input]') as HTMLInputElement;
     if (!input) return;
     const axis = slider.dataset.axis;
     const output = document.getElementById(`out-${axis}`);
@@ -349,7 +349,7 @@ function initTypoAutoPlay() {
   }
   if (labPanel) {
     labPanel.addEventListener('pointerdown', (e: any) => {
-      const isControl = e.target.closest('.lab-slider, .preset-chip');
+      const isControl = e.target.closest('[data-slider-root], .preset-chip');
       if (isControl && pageState.isTypoPlaying) {
         stopTypoAutoPlay();
       }
