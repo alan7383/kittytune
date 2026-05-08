@@ -9,7 +9,6 @@ const rippleSelector = [
   '.kt-btn-download',
   '.kt-btn-outline',
   '.btn',
-  '.nav-rail-item',
   '.preset-chip',
   '.theme-chip',
   '.segmented-button',
