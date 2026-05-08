@@ -325,7 +325,7 @@
     overflow: hidden;
 }
 
-.pipeline-step.highlight {
+.pipeline-step.step-highlight {
     background: rgba(208, 188, 255, 0.08);
     border-color: var(--md-sys-color-primary);
     box-shadow: 0 0 24px rgba(208, 188, 255, 0.15);
@@ -344,7 +344,7 @@
     color: var(--md-sys-color-on-surface-variant);
 }
 
-.highlight .step-icon {
+.step-highlight .step-icon {
     color: var(--md-sys-color-primary);
 }
 
@@ -403,7 +403,7 @@
     border-color: rgba(0, 0, 0, 0.06);
 }
 
-:root.light-mode .pipeline-step.highlight {
+:root.light-mode .pipeline-step.step-highlight {
     background: rgba(103, 80, 164, 0.08);
     border-color: var(--md-sys-color-primary);
 }
@@ -1168,7 +1168,7 @@
     background: var(--md-sys-color-surface-container);
     border-color: rgba(0, 0, 0, 0.06);
 }
-:root.light-mode .pipeline-step.highlight {
+:root.light-mode .pipeline-step.step-highlight {
     background: rgba(103, 80, 164, 0.08);
     border-color: var(--md-sys-color-primary);
 }
