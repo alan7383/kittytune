@@ -15,9 +15,6 @@
     color: #ffffff;
 }
 
-:root.light-mode .m3-v3-track-inactive {
-    background: rgba(0, 0, 0, 0.1);
-}
 
 :root.light-mode .compose-settings-item {
     background: rgba(0, 0, 0, 0.03);
