@@ -62,7 +62,7 @@ export function updateM3Slider() {
   const sliderInput = document.getElementById('speed-slider') as HTMLInputElement;
   if (!sliderInput) return;
   // FIX: On cible précisément le composant avec la variable CSS
-  const sliderEl = sliderInput.closest('.m3-v3-slider') as HTMLElement; 
+  const sliderEl = sliderInput.closest('[data-slider-root]') as HTMLElement; 
   if (!sliderEl) return;
   
   const min = parseFloat(sliderInput.min) || 0;
@@ -135,7 +135,7 @@ export function initAudioFX() {
     const sliderInput = document.getElementById('speed-slider') as HTMLInputElement;
     if (sliderInput) {
       // FIX: On attache les events au bon élément
-      const sliderEl = sliderInput.closest('.m3-v3-slider') as HTMLElement;
+      const sliderEl = sliderInput.closest('[data-slider-root]') as HTMLElement;
       if (sliderEl) {
         sliderInput.addEventListener('pointerdown', () => {
           sliderEl.classList.add('is-dragging');
