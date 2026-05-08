@@ -374,3 +374,7 @@ export function initCustomStudio() {
 }
 
 document.addEventListener('astro:page-load', initCustomStudio);
+
+document.addEventListener('astro:before-swap', () => {
+  stopTypoAutoPlay();
+});
