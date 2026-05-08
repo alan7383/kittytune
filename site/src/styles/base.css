@@ -194,9 +194,13 @@ span.md3-ripple {
     transform: scale(0.85);
 }
 
-.nav-rail-item.active .nav-indicator::before {
-    opacity: 1;
-    transform: scaleX(1);
+/* Le fond de l'élément actif glisse naturellement grâce à Astro */
+.active-indicator-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background-color: var(--md-sys-color-primary-container);
+    z-index: -1;
 }
 
 .nav-logo-svg {

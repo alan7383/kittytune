@@ -56,6 +56,10 @@ const { activePage, variant = 'mobile' } = Astro.props;
         class:list={['nav-rail-item', { active: activePage === item.key }]}
       >
         <div class="nav-indicator">
+          {activePage === item.key && (
+            <div class="active-indicator-bg" transition:name="nav-pill"></div>
+          )}
+          
           {item.logo ? <LogoMark class="nav-logo-svg" /> : <span class="material-icons-round nav-icon">{item.icon}</span>}
         </div>
         <span class="nav-label">{item.label}</span>
