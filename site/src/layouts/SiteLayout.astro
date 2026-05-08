@@ -6,6 +6,9 @@ import Navigation from '../components/Navigation.astro';
 import RainMiniPlayer from '../components/RainMiniPlayer.astro';
 import SquiggleDivider from '../components/SquiggleDivider.astro';
 import '../styles/components/m3-slider.css';
+import '../styles/base.css';
+import '../styles/shared/utilities.css';
+import '../styles/shared/cross-page.css';
 
 const { page } = Astro.props;
 ---
@@ -37,10 +40,6 @@ const { page } = Astro.props;
         if (savedMode === 'light') document.documentElement.classList.add('light-mode');
       })();
     </script>
-    <link rel="stylesheet" href={`${import.meta.env.BASE_URL}css/base.css`}>
-    <link rel="stylesheet" href={`${import.meta.env.BASE_URL}css/shared/utilities.css`}>
-    <link rel="stylesheet" href={`${import.meta.env.BASE_URL}css/shared/cross-page.css`}>
-    {page.styles.map((href) => <link rel="stylesheet" href={`${import.meta.env.BASE_URL}${href}`} data-page-style>)}
     <ClientRouter />
   </head>
   <body transition:animate="none">

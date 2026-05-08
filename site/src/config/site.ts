@@ -64,11 +64,7 @@ export const PAGES = {
         "content": "Open source Android music player. SoundCloud + YouTube + local files, no accounts needed."
       }
     ],
-    "schema": "{\r\n              \"@context\": \"https://schema.org\",\r\n              \"@type\": \"SoftwareApplication\",\r\n              \"name\": \"KittyTune\",\r\n              \"operatingSystem\": \"Android\",\r\n              \"applicationCategory\": \"MultimediaApplication\",\r\n              \"offers\": {\r\n                \"@type\": \"Offer\",\r\n                \"price\": \"0\",\r\n                \"priceCurrency\": \"USD\",\r\n                \"availability\": \"https://schema.org/InStock\"\r\n              },\r\n              \"description\": \"An open-source hybrid music player featuring SoundCloud, YouTube playback, and real-time audio effects.\",\r\n                \"downloadUrl\": \"https://github.com/alan7383/kittytune/releases\",\r\n                \"author\": {\r\n                    \"@type\": \"Person\",\r\n                    \"name\": \"alan7383\"\r\n                },\r\n                \"license\": \"GPL-3.0 License\" \r\n                }",
-    "styles": [
-      "css/shared/home-audio.css",
-      "css/pages/home.css"
-    ]
+    "schema": "{\r\n              \"@context\": \"https://schema.org\",\r\n              \"@type\": \"SoftwareApplication\",\r\n              \"name\": \"KittyTune\",\r\n              \"operatingSystem\": \"Android\",\r\n              \"applicationCategory\": \"MultimediaApplication\",\r\n              \"offers\": {\r\n                \"@type\": \"Offer\",\r\n                \"price\": \"0\",\r\n                \"priceCurrency\": \"USD\",\r\n                \"availability\": \"https://schema.org/InStock\"\r\n              },\r\n              \"description\": \"An open-source hybrid music player featuring SoundCloud, YouTube playback, and real-time audio effects.\",\r\n                \"downloadUrl\": \"https://github.com/alan7383/kittytune/releases\",\r\n                \"author\": {\r\n                    \"@type\": \"Person\",\r\n                    \"name\": \"alan7383\"\r\n                },\r\n                \"license\": \"GPL-3.0 License\" \r\n                }"
   },
   "custom": {
     "key": "custom",
@@ -76,10 +72,7 @@ export const PAGES = {
     "description": "KittyTune customization studio: variable typography, Material You color palettes, player styles, and Android widgets.",
     "canonical": "https://alan7383.github.io/kittytune/custom",
     "og": [],
-    "twitter": [],
-    "styles": [
-      "css/pages/custom.css"
-    ]
+    "twitter": []
   },
   "audio-fx": {
     "key": "audio-fx",
@@ -127,11 +120,7 @@ export const PAGES = {
         "content": "Open source Android music player. SoundCloud + YouTube + local files, no accounts needed."
       }
     ],
-    "schema": "{\r\n              \"@context\": \"https://schema.org\",\r\n              \"@type\": \"SoftwareApplication\",\r\n              \"name\": \"KittyTune\",\r\n              \"operatingSystem\": \"Android\",\r\n              \"applicationCategory\": \"MultimediaApplication\",\r\n              \"offers\": {\r\n                \"@type\": \"Offer\",\r\n                \"price\": \"0\",\r\n                \"priceCurrency\": \"USD\",\r\n                \"availability\": \"https://schema.org/InStock\"\r\n              },\r\n              \"description\": \"An open-source hybrid music player featuring SoundCloud, YouTube playback, and real-time audio effects.\",\r\n                \"downloadUrl\": \"https://github.com/alan7383/kittytune/releases\",\r\n                \"author\": {\r\n                    \"@type\": \"Person\",\r\n                    \"name\": \"alan7383\"\r\n                },\r\n                \"license\": \"GPL-3.0 License\" \r\n                }",
-    "styles": [
-      "css/shared/home-audio.css",
-      "css/pages/audio-fx.css"
-    ]
+    "schema": "{\r\n              \"@context\": \"https://schema.org\",\r\n              \"@type\": \"SoftwareApplication\",\r\n              \"name\": \"KittyTune\",\r\n              \"operatingSystem\": \"Android\",\r\n              \"applicationCategory\": \"MultimediaApplication\",\r\n              \"offers\": {\r\n                \"@type\": \"Offer\",\r\n                \"price\": \"0\",\r\n                \"priceCurrency\": \"USD\",\r\n                \"availability\": \"https://schema.org/InStock\"\r\n              },\r\n              \"description\": \"An open-source hybrid music player featuring SoundCloud, YouTube playback, and real-time audio effects.\",\r\n                \"downloadUrl\": \"https://github.com/alan7383/kittytune/releases\",\r\n                \"author\": {\r\n                    \"@type\": \"Person\",\r\n                    \"name\": \"alan7383\"\r\n                },\r\n                \"license\": \"GPL-3.0 License\" \r\n                }"
   }
 } as const;
 
