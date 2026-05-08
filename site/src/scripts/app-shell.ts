@@ -196,7 +196,14 @@ document.addEventListener('astro:page-load', () => {
       }
 
       // 2. Déclenche l'animation instantanément au clic (avant que la page ne charge)
-      item.addEventListener('click', function(this: HTMLElement) {
+      item.addEventListener('click', function(this: HTMLElement, e: Event) {
+          // Si le bouton cliqué pointe vers la page actuelle, on annule complètement le clic
+          const targetPath = (this as HTMLAnchorElement).pathname;
+          if (targetPath === window.location.pathname || targetPath === window.location.pathname + '/') {
+              e.preventDefault();
+              return; // On arrête tout, pas de rechargement !
+          }
+
           const parent = this.closest('aside');
           if (parent && !this.classList.contains('active')) {
               parent.querySelectorAll('.nav-rail-item, .m3-drawer-item').forEach(n => n.classList.remove('active'));
