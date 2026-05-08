@@ -1319,3 +1319,64 @@
 .opacity-50 {
     opacity: 0.5;
 }
+
+/* =========================================
+   LIGHT MODE OVERRIDES - AUDIO FX PAGE
+   ========================================= */
+
+/* IDE Code Block */
+:root.light-mode .live-code-block, 
+:root.light-mode .code-ide-pane,
+:root.light-mode .code-scroll-container {
+    background: #ffffff;
+    color: #383a42;
+}
+:root.light-mode .ide-tabs {
+    background: #f4f2f7;
+    border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+:root.light-mode .ide-tab:hover { background: rgba(0, 0, 0, 0.05); }
+:root.light-mode .code-controls {
+    background: rgba(0,0,0,0.02);
+    border-bottom-color: rgba(0,0,0,0.06);
+}
+:root.light-mode .code-scroll-container::-webkit-scrollbar-track { background: #f4f2f7; }
+:root.light-mode .code-scroll-container::-webkit-scrollbar-thumb { background: #cac4d0; }
+
+/* IDE Syntax Highlighting Conversion (Dark to Light) */
+:root.light-mode .code-scroll-container span[style*="color: #7f848e"] { color: #a0a1a7 !important; }
+:root.light-mode .code-scroll-container span[style*="color: #c678dd"] { color: #a626a4 !important; }
+:root.light-mode .code-scroll-container span[style*="color: #d19a66"] { color: #986801 !important; }
+:root.light-mode .code-scroll-container span[style*="color: #6eb5ff"] { color: #4078f2 !important; }
+:root.light-mode .code-scroll-container span[style*="color: #abb2bf"] { color: #383a42 !important; }
+
+/* Radar & 8D Panel */
+:root.light-mode .radar-grid-bg {
+    background-image: linear-gradient(rgba(103, 80, 164, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(103, 80, 164, 0.08) 1px, transparent 1px);
+}
+:root.light-mode .radar-container, :root.light-mode .radar-orbit {
+    border-color: rgba(103, 80, 164, 0.2);
+}
+:root.light-mode .radar-container { box-shadow: inset 0 0 40px rgba(103, 80, 164, 0.06); }
+:root.light-mode .eightd-control-card, :root.light-mode .eightd-readout-item {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Pipeline Graphic */
+:root.light-mode .pipeline-container {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.06);
+}
+:root.light-mode .pipeline-step {
+    background: var(--md-sys-color-surface-container);
+    border-color: rgba(0, 0, 0, 0.06);
+}
+:root.light-mode .pipeline-step.highlight {
+    background: rgba(103, 80, 164, 0.08);
+    border-color: var(--md-sys-color-primary);
+}
+:root.light-mode .tech-badge {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+}

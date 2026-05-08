@@ -2204,4 +2204,72 @@ a {
 
 
 
-/* End of file - light mode overrides removed in favor of variables */
+/* =========================================
+   LIGHT MODE OVERRIDES - CUSTOM PAGE
+   ========================================= */
+
+/* Typography Lab */
+:root.light-mode .type-preview, 
+:root.light-mode .type-preview span {
+    color: var(--md-sys-color-on-surface);
+}
+:root.light-mode .type-preview-wrap {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.06);
+}
+/* Les petits points en arrière-plan (Sombre en mode clair) */
+:root.light-mode .type-preview-wrap::before, 
+:root.light-mode .android-wall::before {
+    background-image: radial-gradient(rgba(103, 80, 164, 0.25) 1.5px, transparent 1.5px);
+}
+:root.light-mode .type-preview-wrap::after {
+    opacity: 0.06;
+}
+
+/* Widgets Showcase */
+:root.light-mode .widget-feature {
+    background: var(--panel-bg-gradient);
+    border-color: var(--panel-border);
+    box-shadow: var(--panel-shadow);
+}
+:root.light-mode .widget-feature-copy {
+    background: rgba(0, 0, 0, 0.02);
+    border-right-color: rgba(0, 0, 0, 0.05);
+}
+:root.light-mode .widget-config {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+}
+
+/* Discord Preview */
+:root.light-mode .discord-profile-card {
+    background: #f2f3f5;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+:root.light-mode .discord-avatar, 
+:root.light-mode .discord-asset-small {
+    background: #e8e9eb;
+}
+:root.light-mode .discord-username, 
+:root.light-mode .discord-title {
+    color: #060607;
+}
+:root.light-mode .discord-activity-header, 
+:root.light-mode .discord-details, 
+:root.light-mode .discord-state, 
+:root.light-mode .discord-time {
+    color: #4e5058;
+}
+
+/* Scroll Phone (Specimen) */
+:root.light-mode .phone-frame {
+    background: linear-gradient(180deg, #e8e6f0, #d8d6e2 72%);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: inset 0 0 0 8px rgba(0, 0, 0, 0.02), 0 28px 70px rgba(0, 0, 0, 0.1);
+}
+:root.light-mode .phone-status { color: var(--md-sys-color-on-surface); }
+:root.light-mode .phone-status span:last-child { color: var(--md-sys-color-on-surface-variant); }
+:root.light-mode .phone-type { color: var(--md-sys-color-on-surface); }
