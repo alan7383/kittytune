@@ -18,7 +18,7 @@ if (localPropertiesFile.exists()) {
 
 extensions.configure<ApplicationExtension> {
     namespace = "com.alananasss.kittytune"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.alananasss.kittytune"
