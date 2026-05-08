@@ -1,4 +1,4 @@
-import { audioStore } from './audio-store';
+import { rainState, isGloballyMuted, isPlaying } from './audio-store';
 
 let audio: HTMLAudioElement;
 let fadeInterval: any = null;
@@ -19,15 +19,15 @@ function resizeCanvas() {
 
 function initRaindrops() {
   rainDrops = [];
-  const baseDrops = audioStore.rainState === 'heavy' ? 80 : 25;
+  const baseDrops = rainState.get() === 'heavy' ? 80 : 25;
   const count = Math.floor(baseDrops * (canvasW / 1200)); 
   for (let i = 0; i < count; i++) {
     rainDrops.push({
       x: Math.random() * canvasW,
       y: Math.random() * canvasH,
-      l: Math.random() * 20 + (audioStore.rainState === 'heavy' ? 30 : 15),
+      l: Math.random() * 20 + (rainState.get() === 'heavy' ? 30 : 15),
       xs: -2 + Math.random() * 1.5,
-      ys: Math.random() * 15 + (audioStore.rainState === 'heavy' ? 20 : 10)
+      ys: Math.random() * 15 + (rainState.get() === 'heavy' ? 20 : 10)
     });
   }
 }
@@ -36,7 +36,7 @@ function drawRain() {
   if (!ctx) return;
   ctx.clearRect(0, 0, canvasW, canvasH);
   const isLight = document.documentElement.classList.contains('light-mode');
-  if (audioStore.rainState === 'heavy') {
+  if (rainState.get() === 'heavy') {
     ctx.strokeStyle = isLight ? 'rgba(15, 30, 60, 0.15)' : 'rgba(200, 220, 255, 0.25)';
     ctx.lineWidth = 1.5;
   } else {
@@ -65,7 +65,7 @@ export function updateBentoUI() {
   const panel = document.getElementById('rain-panel');
   const face = document.getElementById('rain-face');
   if (btn && panel) {
-    const isRainActive = audioStore.rainState !== 'none' && !audioStore.isGloballyMuted;
+    const isRainActive = rainState.get() !== 'none' && !isGloballyMuted.get();
     if (isRainActive) {
       panel.classList.add('rain-active');
       btn.textContent = 'Stop Ambience';
@@ -85,20 +85,20 @@ export function updateBentoUI() {
 export function updateMiniplayerUI() {
   const miniplayers = document.querySelectorAll('.rain-miniplayer');
   miniplayers.forEach(mp => {
-    const isRainPlaying = audioStore.rainState !== 'none';
-    const isMusicPlaying = audioStore.isPlaying;
+    const isRainPlaying = rainState.get() !== 'none';
+    const isMusicPlaying = isPlaying.get();
     if (isRainPlaying || isMusicPlaying) {
       mp.classList.add('playing');
       mp.classList.remove('muted'); 
       const icon = mp.querySelector('.material-icons-round');
       if (icon) {
-        if (isMusicPlaying && isRainPlaying && !audioStore.isGloballyMuted) {
+        if (isMusicPlaying && isRainPlaying && !isGloballyMuted.get()) {
           icon.textContent = 'graphic_eq'; 
         } else if (isMusicPlaying) {
           icon.textContent = 'music_note'; 
         } else {
-          icon.textContent = audioStore.isGloballyMuted ? 'volume_off' : 'cloud_sync';
-          if (audioStore.isGloballyMuted && !isMusicPlaying) mp.classList.add('muted');
+          icon.textContent = isGloballyMuted.get() ? 'volume_off' : 'cloud_sync';
+          if (isGloballyMuted.get() && !isMusicPlaying) mp.classList.add('muted');
         }
       }
     } else {
@@ -110,7 +110,7 @@ export function updateMiniplayerUI() {
 
 function fadeToVolume(target: number, duration = 1500) {
   if (fadeInterval) clearInterval(fadeInterval);
-  if (audioStore.isGloballyMuted && target > 0) target = 0;
+  if (isGloballyMuted.get() && target > 0) target = 0;
   if (target > 0) {
     audio.play().catch(e => console.log('Audio block:', e));
   }
@@ -136,15 +136,15 @@ function fadeToVolume(target: number, duration = 1500) {
 }
 
 export function setRainState(state: 'none' | 'light' | 'heavy') {
-  audioStore.rainState = state;
-  if (state !== 'none' && !audioStore.isGloballyMuted) {
+  rainState.set(state);
+  if (state !== 'none' && !isGloballyMuted.get()) {
     canvas.style.opacity = '1';
     initRaindrops();
     if (!rainAnimationId) drawRain();
   } else {
     canvas.style.opacity = '0';
     setTimeout(() => {
-      if (audioStore.rainState === 'none' || audioStore.isGloballyMuted) {
+      if (rainState.get() === 'none' || isGloballyMuted.get()) {
         if (rainAnimationId) cancelAnimationFrame(rainAnimationId);
         rainAnimationId = null;
       }
@@ -160,12 +160,12 @@ export function setRainState(state: 'none' | 'light' | 'heavy') {
 }
 
 export function toggleRain() {
-  const isRainActive = audioStore.rainState !== 'none' && !audioStore.isGloballyMuted;
+  const isRainActive = rainState.get() !== 'none' && !isGloballyMuted.get();
   if (isRainActive) {
     setRainState('none');
   } else {
-    if(audioStore.isGloballyMuted) {
-      audioStore.isGloballyMuted = false;
+    if(isGloballyMuted.get()) {
+      isGloballyMuted.set(false);
       localStorage.removeItem('kitty_rain_volume_enabled');
     }
     setRainState('heavy');
@@ -173,18 +173,15 @@ export function toggleRain() {
 }
 
 export function toggleRainMute() {
-  const isRainPlaying = audioStore.rainState !== 'none';
-  if (audioStore.isPlaying && isRainPlaying) {
-    // If both are playing, we can't easily mute just one with this simplified logic
-    // but the original logic tried to pause music. 
-    // Let's keep it simple: toggle rain mute first.
-    audioStore.isGloballyMuted = !audioStore.isGloballyMuted;
-    localStorage.setItem('kitty_rain_volume_enabled', audioStore.isGloballyMuted ? 'muted' : 'unmuted');
-    setRainState(audioStore.rainState);
+  const isRainPlaying = rainState.get() !== 'none';
+  if (isPlaying.get() && isRainPlaying) {
+    isGloballyMuted.set(!isGloballyMuted.get());
+    localStorage.setItem('kitty_rain_volume_enabled', isGloballyMuted.get() ? 'muted' : 'unmuted');
+    setRainState(rainState.get());
   } else if (isRainPlaying) {
-    audioStore.isGloballyMuted = !audioStore.isGloballyMuted;
-    localStorage.setItem('kitty_rain_volume_enabled', audioStore.isGloballyMuted ? 'muted' : 'unmuted');
-    setRainState(audioStore.rainState);
+    isGloballyMuted.set(!isGloballyMuted.get());
+    localStorage.setItem('kitty_rain_volume_enabled', isGloballyMuted.get() ? 'muted' : 'unmuted');
+    setRainState(rainState.get());
   }
 }
 
@@ -214,8 +211,12 @@ document.addEventListener('astro:page-load', () => {
   });
 });
 
-document.addEventListener('audio-state-changed', updateMiniplayerUI);
-document.addEventListener('kitty:sync-ui', () => {
+isPlaying.subscribe(updateMiniplayerUI);
+rainState.subscribe(() => {
+  updateBentoUI();
+  updateMiniplayerUI();
+});
+isGloballyMuted.subscribe(() => {
   updateBentoUI();
   updateMiniplayerUI();
 });

@@ -33,7 +33,7 @@ import MaterialSwitch from './MaterialSwitch.astro';
 </fx-player>
 
 <script>
-  import { audioStore } from '../scripts/audio-store';
+  import { isPlaying, offsetTime, activeEffects } from '../scripts/audio-store';
 
   let audioContext: AudioContext;
   let audioBuffer: AudioBuffer | null = null;
@@ -118,14 +118,15 @@ import MaterialSwitch from './MaterialSwitch.astro';
   const updateEffectValues = () => {
     if (!isGraphInitialized || !sourceNode) return;
 
-    nightcoreFilter!.gain.value = audioStore.activeEffects['nightcore'] ? 6 : 0;
-    dryGainNode!.gain.value = audioStore.activeEffects['reverb'] ? 0.6 : 1.0;
-    wetGainNode!.gain.value = audioStore.activeEffects['reverb'] ? 0.5 : 0.0;
-    muffledFilter!.frequency.value = audioStore.activeEffects['muffled'] ? 300 : 20000;
+    const effects = activeEffects.get();
+    nightcoreFilter!.gain.value = effects['nightcore'] ? 6 : 0;
+    dryGainNode!.gain.value = effects['reverb'] ? 0.6 : 1.0;
+    wetGainNode!.gain.value = effects['reverb'] ? 0.5 : 0.0;
+    muffledFilter!.frequency.value = effects['muffled'] ? 300 : 20000;
 
     let playbackRate = 1.0;
-    if (audioStore.activeEffects['nightcore']) playbackRate *= 1.35;
-    if (audioStore.activeEffects['reverb']) playbackRate *= 0.8;
+    if (effects['nightcore']) playbackRate *= 1.35;
+    if (effects['reverb']) playbackRate *= 0.8;
     sourceNode.playbackRate.value = playbackRate;
   };
 
@@ -139,9 +140,9 @@ import MaterialSwitch from './MaterialSwitch.astro';
   };
 
   const updateProgress = () => {
-    if (!audioStore.isPlaying || !sourceNode || !audioContext) return;
+    if (!isPlaying.get() || !sourceNode || !audioContext) return;
     if (!progressDrag && audioBuffer) {
-      let current = (audioStore.offsetTime + (audioContext.currentTime - startTime) * sourceNode.playbackRate.value) % audioBuffer.duration;
+      let current = (offsetTime.get() + (audioContext.currentTime - startTime) * sourceNode.playbackRate.value) % audioBuffer.duration;
       const percent = current / audioBuffer.duration;
       const pSlider = document.getElementById('fx-progress-slider') as HTMLInputElement;
       const pCont = document.getElementById('fx-progress-container');
@@ -157,54 +158,18 @@ import MaterialSwitch from './MaterialSwitch.astro';
     lastRenderId = requestAnimationFrame(updateProgress);
   };
 
-  const syncFXPlayerUI = () => {
-    const playIcon = document.getElementById('live-fx-play-icon');
-    if (playIcon) playIcon.textContent = audioStore.isPlaying ? 'pause' : 'play_arrow';
-    
-    if (audioBuffer) {
-      updateUITotalTime();
-      
-      const pSlider = document.getElementById('fx-progress-slider') as HTMLInputElement;
-      const pCont = document.getElementById('fx-progress-container');
-      const tCurr = document.getElementById('fx-time-current');
-      
-      if (pSlider && pCont && tCurr && !progressDrag) {
-        const percent = audioStore.offsetTime / audioBuffer.duration;
-        pSlider.value = percent.toString();
-        pCont.style.setProperty('--val', percent.toString());
-        
-        let minutes = Math.floor(audioStore.offsetTime / 60);
-        let seconds = Math.floor(audioStore.offsetTime % 60).toString().padStart(2, '0');
-        tCurr.textContent = `${minutes}:${seconds}`;
-      }
-    }
-    
-    const t8d = document.getElementById('toggle-8d') as HTMLInputElement;
-    const tnc = document.getElementById('toggle-nightcore') as HTMLInputElement;
-    const trv = document.getElementById('toggle-reverb') as HTMLInputElement;
-    const tmf = document.getElementById('toggle-muffled') as HTMLInputElement;
-    
-    if (t8d) {
-      t8d.checked = audioStore.activeEffects['8d'];
-      tnc.checked = audioStore.activeEffects['nightcore'];
-      trv.checked = audioStore.activeEffects['reverb'];
-      tmf.checked = audioStore.activeEffects['muffled'];
-    }
-  };
+  // Removed syncFXPlayerUI as NanoStores handle updates.
 
   const pauseAudio = () => {
     if (sourceNode && audioContext && audioBuffer) {
       try { sourceNode.stop(); } catch(e){}
-      audioStore.offsetTime += (audioContext.currentTime - startTime) * sourceNode.playbackRate.value;
-      audioStore.offsetTime = audioStore.offsetTime % audioBuffer.duration;
+      let newOffset = offsetTime.get() + (audioContext.currentTime - startTime) * sourceNode.playbackRate.value;
+      offsetTime.set(newOffset % audioBuffer.duration);
       sourceNode.disconnect();
     }
-    audioStore.isPlaying = false;
-    syncFXPlayerUI();
+    isPlaying.set(false);
     if (lfoId) cancelAnimationFrame(lfoId);
     if (lastRenderId) cancelAnimationFrame(lastRenderId);
-    
-    document.dispatchEvent(new CustomEvent('audio-state-changed'));
   };
 
   const startPlayback = () => {
@@ -221,14 +186,11 @@ import MaterialSwitch from './MaterialSwitch.astro';
     
     updateEffectValues();
     
-    sourceNode.start(0, audioStore.offsetTime);
+    sourceNode.start(0, offsetTime.get());
     startTime = audioContext.currentTime;
-    audioStore.isPlaying = true;
-    syncFXPlayerUI();
-    if (audioStore.activeEffects['8d']) start8D();
+    isPlaying.set(true);
+    if (activeEffects.get()['8d']) start8D();
     updateProgress();
-    
-    document.dispatchEvent(new CustomEvent('audio-state-changed'));
   };
 
   const togglePlayback = async () => {
@@ -238,33 +200,67 @@ import MaterialSwitch from './MaterialSwitch.astro';
       await loadAudio();
     }
     if (audioContext && audioContext.state === 'suspended') await audioContext.resume();
-    if (audioStore.isPlaying) pauseAudio();
+    if (isPlaying.get()) pauseAudio();
     else startPlayback();
   };
 
   class FxPlayer extends HTMLElement {
+    unsubisPlaying!: () => void;
+    unsubactiveEffects!: () => void;
+    unsuboffsetTime!: () => void;
+
     connectedCallback() {
-      this.initUI();
       this.attachListeners();
-      document.addEventListener('kitty:sync-ui', this.syncUIBound);
+      
+      this.unsubisPlaying = isPlaying.subscribe((playing) => {
+        const playIcon = document.getElementById('live-fx-play-icon');
+        if (playIcon) playIcon.textContent = playing ? 'pause' : 'play_arrow';
+      });
+      
+      this.unsubactiveEffects = activeEffects.subscribe((effects) => {
+        const t8d = document.getElementById('toggle-8d') as HTMLInputElement;
+        const tnc = document.getElementById('toggle-nightcore') as HTMLInputElement;
+        const trv = document.getElementById('toggle-reverb') as HTMLInputElement;
+        const tmf = document.getElementById('toggle-muffled') as HTMLInputElement;
+        
+        if (t8d) {
+          t8d.checked = effects['8d'];
+          tnc.checked = effects['nightcore'];
+          trv.checked = effects['reverb'];
+          tmf.checked = effects['muffled'];
+        }
+      });
+
+      this.unsuboffsetTime = offsetTime.subscribe((time) => {
+        if (audioBuffer) {
+          const pSlider = document.getElementById('fx-progress-slider') as HTMLInputElement;
+          const pCont = document.getElementById('fx-progress-container');
+          const tCurr = document.getElementById('fx-time-current');
+          
+          if (pSlider && pCont && tCurr && !progressDrag) {
+            const percent = time / audioBuffer.duration;
+            pSlider.value = percent.toString();
+            pCont.style.setProperty('--val', percent.toString());
+            
+            let minutes = Math.floor(time / 60);
+            let seconds = Math.floor(time % 60).toString().padStart(2, '0');
+            tCurr.textContent = `${minutes}:${seconds}`;
+          }
+        }
+      });
+
       if (!audioBuffer) {
         loadAudio().catch(e => console.log(e));
-      } else if (audioStore.isPlaying) {
+      } else if (isPlaying.get()) {
         updateProgress();
       }
     }
 
     disconnectedCallback() {
-      document.removeEventListener('kitty:sync-ui', this.syncUIBound);
+      if (this.unsubisPlaying) this.unsubisPlaying();
+      if (this.unsubactiveEffects) this.unsubactiveEffects();
+      if (this.unsuboffsetTime) this.unsuboffsetTime();
       if (lastRenderId) cancelAnimationFrame(lastRenderId);
-    }
-
-    syncUIBound = () => {
-      syncFXPlayerUI();
-    }
-
-    initUI() {
-      syncFXPlayerUI();
     }
 
     attachListeners() {
@@ -278,9 +274,9 @@ import MaterialSwitch from './MaterialSwitch.astro';
         const el = this.querySelector(`#toggle-${fx}`) as HTMLInputElement;
         if (el) {
           el.addEventListener('change', () => {
-            audioStore.activeEffects[fx] = el.checked;
+            activeEffects.setKey(fx, el.checked);
             if (fx === '8d') {
-              if (audioStore.isPlaying) {
+              if (isPlaying.get()) {
                 if (el.checked) start8D();
                 else {
                   if (lfoId) cancelAnimationFrame(lfoId);
@@ -327,12 +323,12 @@ import MaterialSwitch from './MaterialSwitch.astro';
         
         pSlider.addEventListener('change', () => {
           if (audioBuffer) {
-            if (audioStore.isPlaying) {
+            if (isPlaying.get()) {
               pauseAudio();
-              audioStore.offsetTime = parseFloat(pSlider.value) * audioBuffer.duration;
+              offsetTime.set(parseFloat(pSlider.value) * audioBuffer.duration);
               startPlayback();
             } else {
-              audioStore.offsetTime = parseFloat(pSlider.value) * audioBuffer.duration;
+              offsetTime.set(parseFloat(pSlider.value) * audioBuffer.duration);
             }
           }
           progressDrag = false;

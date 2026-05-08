@@ -1,6 +1,5 @@
-import { initTheme, updateThemeIcons } from './theme';
+import { updateThemeIcons } from './theme';
 import { startM3Loader } from './m3-loader';
-import { syncUI } from './audio-store';
 
 const rippleSelector = [
   '.philosophy-item',
@@ -154,10 +153,6 @@ document.addEventListener('astro:page-load', () => {
   } else {
     setTimeout(() => hideLoader(), 30);
   }
-
-  // FIX: On synchronise toute l'UI via le store (fini les window.maFonction)
-  syncUI();
-
   initReveal();
   initRipples();
   updateLatestDownloadLinks();
