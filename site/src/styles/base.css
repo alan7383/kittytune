@@ -29,6 +29,18 @@ body {
     pointer-events: all;
 }
 
+#global-rain-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 1.5s cubic-bezier(0.2, 0, 0, 1);
+}
+
 #loading-screen {
     position: fixed;
     inset: 0;
