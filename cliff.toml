@@ -19,6 +19,7 @@ trim = true
 conventional_commits = true
 filter_unconventional = true
 split_commits = false
+include_path = ["app/**"]
 
 commit_parsers = [
   { message = "^feat(\\(.+\\))?!:", group = "Breaking Changes" },
