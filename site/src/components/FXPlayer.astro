@@ -306,11 +306,9 @@ import MaterialSwitch from './MaterialSwitch.astro';
         }, {passive: true});
         
         window.addEventListener('mouseup', () => {
-          progressDrag = false;
           this.querySelector('#fx-progress-container')?.classList.remove('is-dragging');
         });
         window.addEventListener('touchend', () => {
-          progressDrag = false;
           this.querySelector('#fx-progress-container')?.classList.remove('is-dragging');
         });
         
@@ -328,7 +326,6 @@ import MaterialSwitch from './MaterialSwitch.astro';
         });
         
         pSlider.addEventListener('change', () => {
-          progressDrag = false;
           if (audioBuffer) {
             if (audioStore.isPlaying) {
               pauseAudio();
@@ -338,6 +335,7 @@ import MaterialSwitch from './MaterialSwitch.astro';
               audioStore.offsetTime = parseFloat(pSlider.value) * audioBuffer.duration;
             }
           }
+          progressDrag = false;
         });
       }
     }
