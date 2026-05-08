@@ -46,7 +46,7 @@ const { activePage, variant = 'mobile' } = Astro.props;
     </aside>
   </>
 ) : (
-  <aside class="m3-nav-rail">
+  <aside class="m3-nav-rail" transition:persist="sidebar">
     <div class="nav-fab js-search-btn">
       <span class="material-icons-round">search</span>
     </div>
@@ -56,10 +56,6 @@ const { activePage, variant = 'mobile' } = Astro.props;
         class:list={['nav-rail-item', { active: activePage === item.key }]}
       >
         <div class="nav-indicator">
-          {activePage === item.key && (
-            <div class="active-indicator-bg" transition:name="nav-pill"></div>
-          )}
-          
           {item.logo ? <LogoMark class="nav-logo-svg" /> : <span class="material-icons-round nav-icon">{item.icon}</span>}
         </div>
         <span class="nav-label">{item.label}</span>
