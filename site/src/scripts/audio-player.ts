@@ -7,10 +7,14 @@ let panNode: StereoPannerNode | null = null;
 let nightcoreFilter: BiquadFilterNode | null = null;
 let convolverNode: ConvolverNode | null = null;
 let muffledFilter: BiquadFilterNode | null = null;
+let dryGainNode: GainNode | null = null;
+let wetGainNode: GainNode | null = null;
+let masterGainNode: GainNode | null = null;
 let startTime = 0;
 let lfoId: number | null = null;
 let progressDrag = false;
 let lastRenderId: number | null = null;
+let isGraphInitialized = false;
 
 const updateUITotalTime = () => {
   const timeTotal = document.getElementById('fx-time-total');
@@ -33,20 +37,14 @@ const loadAudio = async () => {
   }
 };
 
-const createDSPGraph = () => {
-  if (!audioContext || !audioBuffer) return;
-  if (sourceNode) sourceNode.disconnect();
-  
-  sourceNode = audioContext.createBufferSource();
-  sourceNode.buffer = audioBuffer;
-  sourceNode.loop = true;
+const initDSPGraph = () => {
+  if (isGraphInitialized || !audioContext || !audioBuffer) return;
 
   panNode = audioContext.createStereoPanner();
   
   nightcoreFilter = audioContext.createBiquadFilter();
   nightcoreFilter.type = 'highshelf';
   nightcoreFilter.frequency.value = 4000;
-  nightcoreFilter.gain.value = audioStore.activeEffects['nightcore'] ? 6 : 0;
 
   convolverNode = audioContext.createConvolver();
   const length = audioContext.sampleRate * 2.0; 
@@ -59,33 +57,41 @@ const createDSPGraph = () => {
   }
   convolverNode.buffer = impulse;
 
-  const dryGain = audioContext.createGain();
-  const wetGain = audioContext.createGain();
-  dryGain.gain.value = audioStore.activeEffects['reverb'] ? 0.6 : 1.0;
-  wetGain.gain.value = audioStore.activeEffects['reverb'] ? 0.5 : 0.0;
+  dryGainNode = audioContext.createGain();
+  wetGainNode = audioContext.createGain();
 
   muffledFilter = audioContext.createBiquadFilter();
   muffledFilter.type = 'lowpass';
   muffledFilter.Q.value = 0.5;
-  muffledFilter.frequency.value = audioStore.activeEffects['muffled'] ? 300 : 20000;
+
+  masterGainNode = audioContext.createGain();
+  masterGainNode.gain.value = 0.75;
+
+  // Connections
+  panNode.connect(nightcoreFilter);
+  nightcoreFilter.connect(dryGainNode);
+  nightcoreFilter.connect(convolverNode);
+  convolverNode.connect(wetGainNode);
+  dryGainNode.connect(muffledFilter);
+  wetGainNode.connect(muffledFilter);
+  muffledFilter.connect(masterGainNode);
+  masterGainNode.connect(audioContext.destination);
+
+  isGraphInitialized = true;
+};
+
+const updateEffectValues = () => {
+  if (!isGraphInitialized || !sourceNode) return;
+
+  nightcoreFilter!.gain.value = audioStore.activeEffects['nightcore'] ? 6 : 0;
+  dryGainNode!.gain.value = audioStore.activeEffects['reverb'] ? 0.6 : 1.0;
+  wetGainNode!.gain.value = audioStore.activeEffects['reverb'] ? 0.5 : 0.0;
+  muffledFilter!.frequency.value = audioStore.activeEffects['muffled'] ? 300 : 20000;
 
   let playbackRate = 1.0;
   if (audioStore.activeEffects['nightcore']) playbackRate *= 1.35;
   if (audioStore.activeEffects['reverb']) playbackRate *= 0.8;
   sourceNode.playbackRate.value = playbackRate;
-
-  sourceNode.connect(panNode);
-  panNode.connect(nightcoreFilter);
-  nightcoreFilter.connect(dryGain);
-  nightcoreFilter.connect(convolverNode);
-  convolverNode.connect(wetGain);
-  dryGain.connect(muffledFilter);
-  wetGain.connect(muffledFilter);
-
-  let masterGain = audioContext.createGain();
-  masterGain.gain.value = 0.75;
-  muffledFilter.connect(masterGain);
-  masterGain.connect(audioContext.destination);
 };
 
 const start8D = () => {
@@ -154,9 +160,20 @@ export const pauseAudio = () => {
 };
 
 export const startPlayback = () => {
-  if (!audioBuffer) return;
-  createDSPGraph();
-  sourceNode!.start(0, audioStore.offsetTime);
+  if (!audioBuffer || !audioContext) return;
+  initDSPGraph();
+  
+  if (sourceNode) sourceNode.disconnect();
+  
+  sourceNode = audioContext.createBufferSource();
+  sourceNode.buffer = audioBuffer;
+  sourceNode.loop = true;
+  
+  sourceNode.connect(panNode!);
+  
+  updateEffectValues();
+  
+  sourceNode.start(0, audioStore.offsetTime);
   startTime = audioContext.currentTime;
   audioStore.isPlaying = true;
   syncFXPlayerUI();
@@ -207,10 +224,7 @@ document.addEventListener('astro:page-load', () => {
             }
           }
         } else {
-          if (audioStore.isPlaying) {
-            pauseAudio();
-            startPlayback();
-          }
+          updateEffectValues();
         }
       });
     }

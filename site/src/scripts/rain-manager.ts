@@ -189,27 +189,10 @@ export function toggleRainMute() {
 }
 
 function initRain() {
-  if (!audio) {
-    audio = document.createElement('audio');
-    audio.id = 'global-rain-audio';
-    audio.src = 'assets/audio/rain.mp3';
-    audio.loop = true;
-    audio.volume = 0;
-    document.body.appendChild(audio);
-  }
-  if (!canvas) {
-    canvas = document.createElement('canvas');
-    canvas.id = 'global-rain-canvas';
-    Object.assign(canvas.style, {
-      position: 'fixed',
-      top: '0', left: '0',
-      width: '100vw', height: '100vh',
-      pointerEvents: 'none',
-      zIndex: '9998', 
-      opacity: '0',
-      transition: 'opacity 1.5s cubic-bezier(0.2, 0, 0, 1)'
-    });
-    document.body.appendChild(canvas);
+  audio = document.getElementById('global-rain-audio') as HTMLAudioElement;
+  canvas = document.getElementById('global-rain-canvas') as HTMLCanvasElement;
+  
+  if (canvas) {
     ctx = canvas.getContext('2d');
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);

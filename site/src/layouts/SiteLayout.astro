@@ -60,6 +60,8 @@ const { page } = Astro.props;
     <div transition:persist="rain-miniplayer">
       <RainMiniPlayer />
     </div>
+    <canvas id="global-rain-canvas" transition:persist="rain-canvas"></canvas>
+    <audio id="global-rain-audio" src={`${import.meta.env.BASE_URL}assets/audio/rain.mp3`} loop transition:persist="rain-audio"></audio>
     <script>
       import '../scripts/theme.ts';
       import '../scripts/m3-loader.ts';
