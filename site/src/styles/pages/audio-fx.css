@@ -526,8 +526,13 @@
     border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
-:root.light-mode .bento-panel.rain-active .rain-bg {
+/* Le fond reste clair en permanence en light-mode pour éviter le flash noir au fade-out */
+:root.light-mode .rain-bg {
     background: linear-gradient(135deg, #e2e8f0, #c3d0df) !important;
+}
+
+/* L'opacité reste gérée quand c'est actif */
+:root.light-mode .bento-panel.rain-active .rain-bg {
     opacity: 1;
 }
 
