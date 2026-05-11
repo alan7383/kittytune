@@ -1,0 +1,78 @@
+---
+import SectionHeader from '../SectionHeader.astro';
+---
+
+<div class="container">
+  <SectionHeader 
+    eyebrow="Monet Engine" 
+    eyebrowIcon="palette" 
+    title="Color seeds that rewrite the whole interface." 
+  />
+  <div class="monet-studio reveal">
+    <div class="monet-grid">
+      <div class="monet-controls">
+        <div class="monet-controls-group">
+          <h3>Theme colors applied to UI</h3>
+          <div class="monet-swatches" id="color-grid">
+            <button class="color-swatch active" data-color="#d0bcff" title="Default">
+              <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #d0bcff 0 180deg, #efb8c8 180deg 270deg, #4f378b 270deg 360deg);"></div>
+            </button>
+            <button class="color-swatch" data-color="#2196f3" title="Blue">
+              <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #d3e3fd 0 180deg, #004a77 180deg 270deg, #0b57d0 270deg 360deg);"></div>
+            </button>
+            <button class="color-swatch" data-color="#4faf50" title="Green">
+              <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #c4eed0 0 180deg, #006b5f 180deg 270deg, #0f5223 270deg 360deg);"></div>
+            </button>
+            <button class="color-swatch" data-color="#9e9e9e" title="Monochrome">
+              <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffffff 0 180deg, #a6a6a6 180deg 270deg, #5e5e5e 270deg 360deg);"></div>
+            </button>
+            <button class="color-swatch" data-color="#f44336" title="Red">
+              <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffdad6 0 180deg, #93000a 180deg 270deg, #ba1a1a 270deg 360deg);"></div>
+            </button>
+            <button class="color-swatch" data-color="#ff9800" title="Orange">
+              <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffddb3 0 180deg, #5c6300 180deg 270deg, #8c5000 270deg 360deg);"></div>
+            </button>
+            <button class="color-swatch" data-color="#e91e63" title="Pink">
+              <div class="color-swatch-inner" style="background: conic-gradient(from 270deg, #ffd9e2 0 180deg, #8c0032 180deg 270deg, #bc004b 270deg 360deg);"></div>
+            </button>
+          </div>
+        </div>
+        <div class="monet-controls-group mb-0">
+          <h3>Palette style</h3>
+          <div class="monet-chip-row" id="palette-styles">
+            <button class="monet-chip active" data-style="TonalSpot">TonalSpot</button>
+            <button class="monet-chip" data-style="Vibrant">Vibrant</button>
+            <button class="monet-chip" data-style="Expressive">Expressive</button>
+            <button class="monet-chip" data-style="Monochrome">Monochrome</button>
+          </div>
+        </div>
+        <div class="monet-controls-group mt-8 mb-0">
+          <button class="axis-chip monet-surprise-btn p-16-20" id="monet-surprise-btn">
+            <span class="material-icons-round">auto_awesome</span> Generate new palette
+          </button>
+        </div>
+      </div>
+      <div class="monet-preview-board">
+        <div class="abstract-phone">
+          <div class="ap-header">
+            <div class="ap-header-title"></div>
+            <div class="ap-header-icon"></div>
+          </div>
+          <div class="ap-body">
+            <div class="ap-card-hero"></div>
+            <div class="ap-row">
+              <div class="ap-card-small"></div>
+              <div class="ap-card-small"></div>
+            </div>
+            <div class="ap-card-accent"></div>
+          </div>
+          <div class="ap-nav">
+            <div class="ap-nav-item active"></div>
+            <div class="ap-nav-item"></div>
+            <div class="ap-nav-item"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
