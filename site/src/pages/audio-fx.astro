@@ -100,15 +100,15 @@ import '../styles/pages/audio-fx.css';
     </BentoPanel>
 
     <BentoPanel 
-      class="grid-span-12 p-48"
+      class="grid-span-12 p-12"
     >
-      <div class="deep-dive-grid grid grid-cols-2 gap-48 items-center">
+      <div class="deep-dive-grid grid grid-cols-2 gap-12 items-center">
         <div>
           <h3 class="panel-title"><span class="material-icons-round" style="color: var(--md-sys-color-secondary);">memory</span> Bypassing Android's Audio Limits</h3>
           <p class="panel-desc max-w-100 mb-20">
             Standard Android audio effects like <code>android.media.audiofx</code> are applied at the OS level. That means a bass boost can sound completely different on a Samsung device compared to a Xiaomi or a Pixel, because each OEM can alter the underlying DSP.
           </p>
-          <p class="panel-desc max-w-100 mb-24">
+          <p class="panel-desc max-w-100 mb-6">
             <b>KittyTune fixes this.</b> By hooking directly into ExoPlayer's <code>DefaultAudioSink</code> via a custom <code>BaseAudioProcessor</code>, the app manipulates the raw 16-bit PCM <code>ByteBuffer</code> before it reaches Android AudioTrack.
             That keeps KittyTune's DSP signature consistent before hardware output on Samsung, Xiaomi, Pixel, and beyond. Biquad filters, LFO panning, and delay buffers stay as lightweight math on the audio thread, keeping the effect path under a millisecond for normal buffers without waking heavy OS DSP chains.
           </p>

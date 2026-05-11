@@ -3,12 +3,12 @@ import MaterialSwitch from './MaterialSwitch.astro';
 ---
 
 <fx-player>
-  <div class="fx-player-box flex items-center gap-24">
+  <div class="fx-player-box flex items-center gap-6">
     <button id="live-fx-play-btn" class="play-fab-large m-0 flex-shrink-0">
       <span class="material-icons-round text-3xl" id="live-fx-play-icon">play_arrow</span>
     </button>
     <div class="flex-grow flex-col">
-      <div class="flex justify-between font-mono text-xs text-outline mb-8">
+      <div class="flex justify-between font-mono text-xs text-outline mb-2">
         <span id="fx-time-current">0:00</span>
         <span id="fx-time-total" class="opacity-50">0:00</span>
       </div>
@@ -306,19 +306,4 @@ import MaterialSwitch from './MaterialSwitch.astro';
     background: rgba(0, 0, 0, 0.1);
   }
 
-  /* Utility classes used in template */
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-  .gap-24 { gap: 24px; }
-  .flex-grow { flex-grow: 1; }
-  .flex-col { flex-direction: column; }
-  .justify-between { justify-content: space-between; }
-  .font-mono { font-family: monospace; }
-  .text-xs { font-size: 0.75rem; }
-  .text-outline { color: var(--md-sys-color-outline); }
-  .mb-8 { margin-bottom: 8px; }
-  .opacity-50 { opacity: 0.5; }
-  .m-0 { margin: 0; }
-  .flex-shrink-0 { flex-shrink: 0; }
-  .text-3xl { font-size: 1.875rem; }
 </style>

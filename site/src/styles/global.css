@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: var(--md-sys-color-primary);
+  --color-secondary: var(--md-sys-color-secondary);
+  --color-tertiary: var(--md-sys-color-tertiary);
+  --color-on-surface: var(--md-sys-color-on-surface);
+  --color-on-surface-variant: var(--md-sys-color-on-surface-variant);
+  --color-outline: var(--md-sys-color-outline);
+
+  --font-display: var(--font-display), sans-serif;
+  --font-body: var(--font-body), sans-serif;
+  --font-mono: "Fira Code", monospace;
+}
