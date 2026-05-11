@@ -2138,3 +2138,12 @@ a {
 :root.light-mode .phone-status { color: var(--md-sys-color-on-surface); }
 :root.light-mode .phone-status span:last-child { color: var(--md-sys-color-on-surface-variant); }
 :root.light-mode .phone-type { color: var(--md-sys-color-on-surface); }
+
+/* Custom Transitions */
+.transition-spring {
+    transition: transform 0.5s var(--ease-spring), opacity 0.3s ease, margin-top 0.5s var(--ease-spring);
+}
+
+.transform-top-left {
+    transform-origin: top left;
+}
