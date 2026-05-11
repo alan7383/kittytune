@@ -60,6 +60,8 @@ const initialVal = (value - min) / (max - min);
 
 <script>
   class M3SliderElement extends HTMLElement {
+    private abortController = new AbortController();
+
     connectedCallback() {
       const input = this.querySelector('[data-slider-input]') as HTMLInputElement;
       const sliderRoot = this.querySelector('[data-slider-root]') as HTMLElement;
@@ -81,10 +83,14 @@ const initialVal = (value - min) / (max - min);
           detail: { axis: this.dataset.axis, value: val },
           bubbles: true 
         }));
-      });
+      }, { signal: this.abortController.signal });
 
-      input.addEventListener('pointerdown', () => sliderRoot.classList.add('is-dragging'));
-      window.addEventListener('pointerup', () => sliderRoot.classList.remove('is-dragging'));
+      input.addEventListener('pointerdown', () => sliderRoot.classList.add('is-dragging'), { signal: this.abortController.signal });
+      window.addEventListener('pointerup', () => sliderRoot.classList.remove('is-dragging'), { signal: this.abortController.signal });
+    }
+
+    disconnectedCallback() {
+      this.abortController.abort();
     }
   }
   customElements.define('m3-slider', M3SliderElement);

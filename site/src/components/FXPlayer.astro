@@ -75,6 +75,7 @@ import MaterialSwitch from './MaterialSwitch.astro';
     unsubisPlaying!: () => void;
     unsubactiveEffects!: () => void;
     unsuboffsetTime!: () => void;
+    private abortController = new AbortController();
 
     connectedCallback() {
       this.attachListeners();
@@ -140,12 +141,13 @@ import MaterialSwitch from './MaterialSwitch.astro';
       if (this.unsubactiveEffects) this.unsubactiveEffects();
       if (this.unsuboffsetTime) this.unsuboffsetTime();
       if (lastRenderId) cancelAnimationFrame(lastRenderId);
+      this.abortController.abort();
     }
 
     attachListeners() {
       const playBtn = this.querySelector('#live-fx-play-btn');
       if (playBtn) {
-        playBtn.addEventListener('click', togglePlayback);
+        playBtn.addEventListener('click', togglePlayback, { signal: this.abortController.signal });
       }
       
       const effects = ['8d', 'nightcore', 'reverb', 'muffled'] as const;
@@ -162,7 +164,7 @@ import MaterialSwitch from './MaterialSwitch.astro';
             } else {
               updateEffectValues();
             }
-          });
+          }, { signal: this.abortController.signal });
         }
       });
 
@@ -171,18 +173,20 @@ import MaterialSwitch from './MaterialSwitch.astro';
         pSlider.addEventListener('mousedown', () => {
           progressDrag = true;
           this.querySelector('#fx-progress-container')?.classList.add('is-dragging');
-        });
+        }, { signal: this.abortController.signal });
+        
         pSlider.addEventListener('touchstart', () => {
           progressDrag = true;
           this.querySelector('#fx-progress-container')?.classList.add('is-dragging');
-        }, {passive: true});
+        }, { passive: true, signal: this.abortController.signal });
         
         window.addEventListener('mouseup', () => {
           this.querySelector('#fx-progress-container')?.classList.remove('is-dragging');
-        });
+        }, { signal: this.abortController.signal });
+        
         window.addEventListener('touchend', () => {
           this.querySelector('#fx-progress-container')?.classList.remove('is-dragging');
-        });
+        }, { signal: this.abortController.signal });
         
         pSlider.addEventListener('input', () => {
           let val = parseFloat(pSlider.value);
@@ -196,7 +200,7 @@ import MaterialSwitch from './MaterialSwitch.astro';
             let seconds = Math.floor(current % 60).toString().padStart(2, '0');
             tCurr.textContent = `${minutes}:${seconds}`;
           }
-        });
+        }, { signal: this.abortController.signal });
         
         pSlider.addEventListener('change', () => {
           const duration = getDuration();
@@ -210,7 +214,7 @@ import MaterialSwitch from './MaterialSwitch.astro';
             }
           }
           progressDrag = false;
-        });
+        }, { signal: this.abortController.signal });
       }
     }
   }
