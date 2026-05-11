@@ -1,0 +1,72 @@
+---
+import SectionHeader from '../SectionHeader.astro';
+import SettingsSwitch from '../SettingsSwitch.astro';
+---
+
+<div class="container">
+  <SectionHeader 
+    eyebrow="Player Style Switcher" 
+    eyebrowIcon="smart_display" 
+    title="One player, three emotional backgrounds." 
+  />
+  <div class="player-grid">
+    <div class="player-preview-panel reveal">
+      <div class="premium-player-card" id="style-player" data-style="theme" style="--pp-cover: url('https://i1.sndcdn.com/artworks-6o699KkKNS25gzyG-Qv7uzQ-t500x500.jpg');">
+        <div class="pp-bg" style="background-image: var(--pp-cover);"></div>
+        <div class="pp-art-container">
+          <div class="pp-art">
+            <img src="https://i1.sndcdn.com/artworks-6o699KkKNS25gzyG-Qv7uzQ-t500x500.jpg" alt="Album Art" />
+          </div>
+          <div class="pp-lyrics">
+            <div class="pp-lyrics-inner" id="pp-lyrics-inner">
+            </div>
+          </div>
+        </div>
+        <div class="pp-meta">
+          <h3>METAMORPHOSIS</h3>
+          <p>INTERWORLD</p>
+        </div>
+        <div class="pp-progress">
+          <div class="pp-progress-bar"></div>
+        </div>
+        <div class="pp-controls">
+          <button class="pp-btn"><span class="material-icons-round">skip_previous</span></button>
+          <button class="pp-btn pp-btn-play" id="style-play"><span class="material-icons-round">pause</span></button>
+          <button class="pp-btn"><span class="material-icons-round">skip_next</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="app-style-panel reveal">
+      <h4 class="mb-16 text-primary text-lg">Background Mode</h4>
+      <div class="preset-row p-8-6 ml-n6 mb-8 justify-start" id="style-switcher">
+        <button class="preset-chip" data-style="blur"><span class="material-icons-round text-lg mr-6 v-middle">blur_on</span>Blur</button>
+        <button class="preset-chip" data-style="gradient"><span class="material-icons-round text-lg mr-6 v-middle">gradient</span>Gradient</button>
+        <button class="preset-chip active" data-style="theme"><span class="material-icons-round text-lg mr-6 v-middle">format_color_fill</span>Theme</button>
+      </div>
+      <h4 class="mb-16 text-primary text-lg">Options</h4>
+      <div class="compose-settings-group">
+        <SettingsSwitch 
+          id="toggle-inline-lyrics" 
+          title="Inline lyrics" 
+          description="Synchronized text view" 
+          icon="lyrics" 
+          class="top"
+        />
+        <SettingsSwitch 
+          id="smart-autoplay" 
+          title="Smart Auto-play" 
+          description="Endless radio when queue ends" 
+          icon="all_inclusive" 
+          class="middle"
+        />
+        <SettingsSwitch 
+          id="pure-black-toggle" 
+          title="Pure black ready" 
+          description="AMOLED pixel saving mode" 
+          icon="contrast" 
+          class="bottom"
+        />
+      </div>
+    </div>
+  </div>
+</div>
