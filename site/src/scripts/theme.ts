@@ -33,7 +33,7 @@ export const applyMonetTheme = (hex: string, styleName: string) => {
     Vibrant: { sat: 1.18, shift: 68 },
     Expressive: { sat: 0.94, shift: 118 },
     Monochrome: { sat: 0.1, shift: 0 }
-  } as any)[styleName] || { sat: 0.72, shift: 42 });
+  } as Record<string, { sat: number, shift: number }>)[styleName] || { sat: 0.72, shift: 42 });
 
   const s = clamp(base.s * tuning.sat, styleName === "Monochrome" ? 3 : 38, 96);
   const h = base.h;
@@ -90,8 +90,15 @@ export const toggleThemeMode = () => {
 
   isThemeTransitioning = true;
 
-  if ((document as any).startViewTransition) {
-    const transition = (document as any).startViewTransition(updateTheme);
+  interface DocumentWithTransition extends Document {
+    startViewTransition(callback: () => void): {
+      ready: Promise<void>;
+      finished: Promise<void>;
+    };
+  }
+  const doc = document as DocumentWithTransition;
+  if (doc.startViewTransition) {
+    const transition = doc.startViewTransition(updateTheme);
     transition.ready.catch(() => {});
     transition.finished.catch(() => {}).finally(() => {
       isThemeTransitioning = false;
@@ -114,9 +121,9 @@ document.addEventListener('astro:page-load', () => {
 });
 
 // Délégation d'événement globale attachée une seule fois
-if (!(window as any).__themeEventBound) {
-  (window as any).__themeEventBound = true;
-  document.addEventListener('click', (e) => {
+if (document.documentElement.dataset.themeEventBound !== 'true') {
+  document.documentElement.dataset.themeEventBound = 'true';
+  document.addEventListener('click', (e: MouseEvent) => {
     const target = e.target as HTMLElement;
     const btn = target.closest('.theme-toggle-btn');
     if (btn) {
