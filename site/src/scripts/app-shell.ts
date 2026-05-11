@@ -46,17 +46,18 @@ function initReveal(root: ParentNode = document) {
   }, { threshold: 0.15 });
 
   setTimeout(() => {
-    revealItems.forEach((item: any) => {
-      if (!item.dataset.revealBound) {
-        item.dataset.revealBound = 'true';
-        observer.observe(item);
+    revealItems.forEach((item) => {
+      const element = item as HTMLElement;
+      if (!element.dataset.revealBound) {
+        element.dataset.revealBound = 'true';
+        observer.observe(element);
       }
     });
   }, 300);
 }
 
 function initRipples(root: ParentNode = document) {
-  root.querySelectorAll(rippleSelector).forEach((element: any) => {
+  root.querySelectorAll<HTMLElement>(rippleSelector).forEach((element) => {
     if (element.dataset.rippleBound) return;
     element.dataset.rippleBound = 'true';
     element.addEventListener('pointerdown', function (this: HTMLElement, event: PointerEvent) {
@@ -77,7 +78,7 @@ function initRipples(root: ParentNode = document) {
 let cachedApkUrl: string | null = null;
 function updateLatestDownloadLinks() {
   if (cachedApkUrl) {
-    document.querySelectorAll('.latest-download-link').forEach((link: any) => {
+    document.querySelectorAll<HTMLAnchorElement>('.latest-download-link').forEach((link) => {
       link.href = cachedApkUrl;
     });
     return;
@@ -88,10 +89,14 @@ function updateLatestDownloadLinks() {
       return response.json();
     })
     .then((data) => {
-      const apk = data.assets && data.assets.find((asset: any) => asset.name.endsWith('.apk'));
+      interface GitHubAsset {
+        name: string;
+        browser_download_url: string;
+      }
+      const apk = data.assets && data.assets.find((asset: GitHubAsset) => asset.name.endsWith('.apk'));
       if (!apk) return;
       cachedApkUrl = apk.browser_download_url;
-      document.querySelectorAll('.latest-download-link').forEach((link: any) => {
+      document.querySelectorAll<HTMLAnchorElement>('.latest-download-link').forEach((link) => {
         link.href = cachedApkUrl;
       });
     })
@@ -126,9 +131,10 @@ function hideLoader() {
   }, 800);
 }
 
-document.addEventListener('astro:before-preparation', (ev: any) => {
-  const originalLoader = ev.loader;
-  ev.loader = async function() {
+document.addEventListener('astro:before-preparation', (ev: Event) => {
+  const customEv = ev as unknown as { loader: () => Promise<void> };
+  const originalLoader = customEv.loader;
+  customEv.loader = async function() {
     showLoader();
     // On laisse le temps au loader d'apparaître fluidement avant de bloquer le thread principal
     await new Promise(resolve => setTimeout(resolve, 300));

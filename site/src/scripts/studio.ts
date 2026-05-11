@@ -15,7 +15,7 @@ const pageState = {
   currentColor: localStorage.getItem('kittytune_theme_color') || "#d0bcff",
   paletteStyle: localStorage.getItem('kittytune_theme_style') || "TonalSpot",
   isTypoPlaying: true,
-  typoInterval: null as any,
+  typoInterval: null as ReturnType<typeof setInterval> | null,
   currentPresetIdx: 0
 };
 
@@ -31,15 +31,15 @@ function updateSliderVisual(slider: HTMLElement) {
   slider.style.setProperty("--val", percent.toFixed(4));
 }
 
-function applyAxes(values: any) {
-  Object.entries(values).forEach(([axis, value]: [string, any]) => {
+function applyAxes(values: Record<string, number>) {
+  Object.entries(values).forEach(([axis, value]) => {
     const input = document.getElementById(`axis-${axis}`) as HTMLInputElement;
     const output = document.getElementById(`out-${axis}`);
-    if (input) input.value = value;
+    if (input) input.value = value.toString();
     if (output) output.textContent = Math.round(value).toString();
-    document.documentElement.style.setProperty(`--lab-${axis}`, value);
+    document.documentElement.style.setProperty(`--lab-${axis}`, value.toString());
   });
-  document.querySelectorAll(".lab-slider").forEach((s: any) => updateSliderVisual(s));
+  document.querySelectorAll<HTMLElement>(".lab-slider").forEach((s) => updateSliderVisual(s));
 }
 
 export function stopTypoAutoPlay() {
@@ -179,8 +179,8 @@ function initDiscordRpc() {
 function initSliders() {
   // 1. On écoute l'événement natif qu'on a créé dans le Web Component !
   document.querySelectorAll("m3-slider").forEach((slider) => {
-    slider.addEventListener("m3-change", (e: any) => {
-      const { axis, value } = e.detail;
+    slider.addEventListener("m3-change", (e: Event) => {
+      const { axis, value } = (e as CustomEvent).detail;
       const output = document.getElementById(`out-${axis}`);
       
       // Met à jour la variable CSS pour la police
@@ -193,9 +193,9 @@ function initSliders() {
   });
 
   // 2. Garde la logique des boutons de presets intacte
-  document.querySelectorAll("#preset-row .preset-chip").forEach((chip: any) => {
+  document.querySelectorAll<HTMLElement>("#preset-row .preset-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      const preset = (presets as any)[chip.dataset.preset];
+      const preset = presets[chip.dataset.preset as keyof typeof presets];
       if (!preset) return;
       document.querySelectorAll("#preset-row .preset-chip").forEach((item) => item.classList.remove("active"));
       chip.classList.add("active");
@@ -208,11 +208,11 @@ function initSliders() {
 
 function initPlayerSwitcher() {
   const player = document.getElementById("style-player") as HTMLElement;
-  const buttons = document.querySelectorAll("#style-switcher .preset-chip");
+  const buttons = document.querySelectorAll<HTMLElement>("#style-switcher .preset-chip");
   const pureBlackToggle = document.getElementById("pure-black-toggle") as HTMLInputElement;
   const play = document.getElementById("style-play");
   if (!player) return;
-  buttons.forEach((button: any) => {
+  buttons.forEach((button) => {
     button.addEventListener("click", () => {
       buttons.forEach((item) => item.classList.remove("active"));
       button.classList.add("active");
@@ -258,8 +258,9 @@ function initPlayerSwitcher() {
     lyricsContainer.style.transform = `translateY(${scrollY}px)`;
   }
   if (inlineToggle && player) {
-    inlineToggle.addEventListener('change', (e: any) => {
-      if (e.target.checked) {
+    inlineToggle.addEventListener('change', (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (target.checked) {
         player.classList.add('show-lyrics');
         setTimeout(updateLyricsScroll, 50); 
       } else {
@@ -278,14 +279,14 @@ function initPlayerSwitcher() {
 }
 
 function initMonet() {
-  const colorButtons = document.querySelectorAll(".color-swatch");
-  const styleButtons = document.querySelectorAll(".monet-chip");
+  const colorButtons = document.querySelectorAll<HTMLElement>(".color-swatch");
+  const styleButtons = document.querySelectorAll<HTMLElement>(".monet-chip");
   const localSurpriseBtn = document.getElementById("monet-surprise-btn");
-  styleButtons.forEach((c: any) => {
+  styleButtons.forEach((c) => {
     c.classList.toggle("active", c.dataset.style === pageState.paletteStyle);
   });
   let matchedBaseColor = false;
-  colorButtons.forEach((button: any) => {
+  colorButtons.forEach((button) => {
     if (button.dataset.color === pageState.currentColor) {
       button.classList.add("active");
       matchedBaseColor = true;
@@ -302,11 +303,11 @@ function initMonet() {
   if (!matchedBaseColor) {
     updateDynamicSwatch(pageState.currentColor);
   }
-  styleButtons.forEach((button: any) => {
+  styleButtons.forEach((button) => {
     button.addEventListener("click", () => {
       styleButtons.forEach((item) => item.classList.remove("active"));
       button.classList.add("active");
-      pageState.paletteStyle = button.dataset.style;
+      pageState.paletteStyle = button.dataset.style || "TonalSpot";
       applyMonetTheme(pageState.currentColor, pageState.paletteStyle);
       if (document.getElementById("dynamic-swatch")?.classList.contains("active")) {
         updateDynamicSwatch(pageState.currentColor);
@@ -341,8 +342,9 @@ function initTypoAutoPlay() {
     });
   }
   if (labPanel) {
-    labPanel.addEventListener('pointerdown', (e: any) => {
-      const isControl = e.target.closest('[data-slider-root], .preset-chip');
+    labPanel.addEventListener('pointerdown', (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      const isControl = target.closest('[data-slider-root], .preset-chip');
       if (isControl && pageState.isTypoPlaying) {
         stopTypoAutoPlay();
       }
