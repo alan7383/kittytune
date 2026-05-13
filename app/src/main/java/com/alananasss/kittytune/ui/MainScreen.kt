@@ -156,6 +156,22 @@ fun MainScreen(
     var currentNotification by remember { mutableStateOf<AchievementNotification?>(null) }
     var animatingNotification by remember { mutableStateOf<AchievementNotification?>(null) }
 
+    fun navigateToAuthenticatedStart() {
+        val targetRoute = if (prefs.getStartDestination() == StartDestination.LIBRARY) {
+            Screen.Library.route
+        } else {
+            Screen.Home.route
+        }
+
+        startDestination = targetRoute
+        playerViewModel.fetchUserProfile()
+        homeViewModel.loadData()
+        navController.navigate(targetRoute) {
+            popUpTo(Screen.Welcome.route) { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
     if (currentNotification != null) {
         animatingNotification = currentNotification
     }
@@ -164,7 +180,10 @@ fun MainScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 if (!SessionManager.showCaptchaFlow.value) {
-                    SessionManager.reloadSession()
+                    SessionManager.requestSessionRefresh(
+                        context = context,
+                        force = tokenManager.shouldRefreshAccessToken()
+                    )
                 }
                 showPopups = prefs.getAchievementPopupsEnabled()
                 AchievementManager.checkDailyStreak()
@@ -182,6 +201,18 @@ fun MainScreen(
                 currentNotification = notification
                 delay(5000)
                 currentNotification = null
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        SessionManager.sessionReadyEvent.collect {
+            val tm = TokenManager(context)
+            val route = navController.currentBackStackEntry?.destination?.route
+            val recoveredLogin = !tm.isGuestMode() && !tm.getAccessToken().isNullOrEmpty()
+
+            if (recoveredLogin && (route == Screen.Welcome.route || route == Screen.Login.route)) {
+                navigateToAuthenticatedStart()
             }
         }
     }
@@ -273,15 +304,22 @@ fun MainScreen(
     }
 
     LaunchedEffect(Unit) {
+        instantiateWebView = true
+        delay(200)
+        SessionManager.harvestStoredSession(context)
+
         val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
         
         if (hasToken) {
+            SessionManager.requestSessionRefresh(
+                context = context,
+                force = tokenManager.shouldRefreshAccessToken()
+            )
             playerViewModel.fetchUserProfile()
-            SessionManager.reloadSession()
+            if (startDestination == Screen.Welcome.route) {
+                navigateToAuthenticatedStart()
+            }
         }
-        
-        delay(200)
-        instantiateWebView = true
     }
 
     LaunchedEffect(isGuestLoading, isClientIdValid) {
@@ -513,8 +551,8 @@ fun MainScreen(
 
                     clippedComposable(Screen.Login.route) {
                         LoginScreen({
+                            SessionManager.requestSessionRefresh(context, force = true)
                             playerViewModel.fetchUserProfile()
-                            SessionManager.reloadSession()
                             homeViewModel.loadData()
                             navController.navigate(Screen.Home.route) { popUpTo(0) }
                         }, { navController.popBackStack() })

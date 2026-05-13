@@ -23,6 +23,7 @@ import com.alananasss.kittytune.data.HistoryRepository
 import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.data.ListeningStatsRepository
 import com.alananasss.kittytune.data.RepostRepository
+import com.alananasss.kittytune.data.SessionManager
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.UpdateManager
 import com.alananasss.kittytune.data.UpdateStatus
@@ -136,6 +137,10 @@ import kotlinx.coroutines.GlobalScope
                             val tokenManager = TokenManager(applicationContext)
                             if (!tokenManager.isGuestMode()) {
                                 scope.launch {
+                                    SessionManager.requestSessionRefresh(
+                                        context = applicationContext,
+                                        force = tokenManager.shouldRefreshAccessToken()
+                                    )
                                     // Sync likes and reposts with server
                                     LikeRepository.setSyncing(true)
                                     RepostRepository.refreshReposts()
