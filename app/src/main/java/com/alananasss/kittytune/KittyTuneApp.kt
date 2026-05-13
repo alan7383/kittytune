@@ -2,6 +2,7 @@
     
     import android.app.Application
     import android.content.Context
+    import com.alananasss.kittytune.utils.Config
     import com.zionhuang.innertube.YouTube
     import com.zionhuang.innertube.models.YouTubeLocale
     import java.util.Locale
@@ -11,6 +12,7 @@
         override fun onCreate() {
             super.onCreate()
             instance = this
+            Config.init(applicationContext)
     
             // Initialisation globale d'InnerTune
             YouTube.locale = YouTubeLocale(

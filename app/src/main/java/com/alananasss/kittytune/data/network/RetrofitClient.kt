@@ -1,77 +1,168 @@
-    package com.alananasss.kittytune.data.network
-    
-    import android.content.Context
-    import android.webkit.CookieManager
-    import com.alananasss.kittytune.data.TokenManager
-    import com.alananasss.kittytune.utils.Config
-    import okhttp3.Interceptor
-    import okhttp3.OkHttpClient
-    import okhttp3.logging.HttpLoggingInterceptor
-    import retrofit2.Retrofit
-    import retrofit2.converter.gson.GsonConverterFactory
-    import java.util.concurrent.TimeUnit
-    
-    object RetrofitClient {
-        private var okHttpClient: OkHttpClient? = null
-    
-        fun create(context: Context): SoundCloudApi {
-            val tokenManager = TokenManager(context)
-    
-            val cookieInterceptor = Interceptor { chain ->
-                val originalRequest = chain.request()
-                val requestBuilder = originalRequest.newBuilder()
-    
-                val cookieManager = CookieManager.getInstance()
-                val cookies = cookieManager.getCookie("https://soundcloud.com")
-    
-                if (!cookies.isNullOrEmpty()) {
-                    requestBuilder.header("Cookie", cookies)
-                }
-    
-                chain.proceed(requestBuilder.build())
+package com.alananasss.kittytune.data.network
+
+import android.content.Context
+import android.webkit.CookieManager
+import com.alananasss.kittytune.data.SessionManager
+import com.alananasss.kittytune.data.TokenManager
+import com.alananasss.kittytune.utils.Config
+import okhttp3.HttpUrl
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+
+object RetrofitClient {
+    private var okHttpClient: OkHttpClient? = null
+
+    fun create(context: Context): SoundCloudApi {
+        val appContext = context.applicationContext
+        val tokenManager = TokenManager(appContext)
+
+        val cookieInterceptor = Interceptor { chain ->
+            val originalRequest = chain.request()
+            val requestBuilder = originalRequest.newBuilder()
+
+            cookieHeaderFor(originalRequest.url)?.let { cookies ->
+                requestBuilder.header("Cookie", cookies)
             }
-    
-            val authInterceptor = Interceptor { chain ->
-                val originalRequest = chain.request()
-                val token = tokenManager.getAccessToken()
-    
-                // Using Config.CLIENT_ID
-                val newUrl = originalRequest.url.newBuilder()
-                    .addQueryParameter("client_id", Config.CLIENT_ID)
-                    .build()
-    
-                val requestBuilder = originalRequest.newBuilder()
-                    .url(newUrl)
-                    .header("User-Agent", Config.USER_AGENT)
-                    .header("Accept", "application/json")
-                    .header("Origin", "https://soundcloud.com")
-                    .header("Referer", "https://soundcloud.com/")
-    
-                if (!token.isNullOrEmpty() && token != "null") {
-                    requestBuilder.header("Authorization", "OAuth $token")
-                }
-    
-                chain.proceed(requestBuilder.build())
-            }
-    
-            if (okHttpClient == null) {
-                okHttpClient = OkHttpClient.Builder()
-                    .addInterceptor(cookieInterceptor)
-                    .addInterceptor(authInterceptor)
-                    .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .writeTimeout(30, TimeUnit.SECONDS)
-                    .build()
-            }
-    
-            return Retrofit.Builder()
-                .baseUrl(Config.BASE_URL)
-                .client(okHttpClient!!)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-                .create(SoundCloudApi::class.java)
+
+            chain.proceed(requestBuilder.build())
         }
+
+        val authInterceptor = Interceptor { chain ->
+            val originalRequest = chain.request()
+            var token = SessionManager.harvestStoredSession(appContext) ?: tokenManager.getAccessToken()
+
+            if (!token.isNullOrEmpty() && !tokenManager.isGuestMode() && tokenManager.shouldRefreshAccessToken()) {
+                token = SessionManager.refreshSessionBlocking(
+                    context = appContext,
+                    staleToken = token,
+                    timeoutMs = 6_000L
+                ) ?: token
+            }
+
+            val newUrl = originalRequest.url.let { url ->
+                if (url.queryParameter("client_id").isNullOrBlank()) {
+                    url.newBuilder()
+                        .addQueryParameter("client_id", Config.CLIENT_ID)
+                        .build()
+                } else {
+                    url
+                }
+            }
+
+            val requestBuilder = originalRequest.newBuilder()
+                .url(newUrl)
+                .header("User-Agent", Config.USER_AGENT)
+                .header("Accept", "application/json")
+                .header("Origin", "https://soundcloud.com")
+                .header("Referer", "https://soundcloud.com/")
+
+            if (!token.isNullOrEmpty()) {
+                requestBuilder.header("Authorization", "OAuth $token")
+            }
+
+            chain.proceed(requestBuilder.build())
+        }
+
+        val sessionRecoveryInterceptor = Interceptor { chain ->
+            val request = chain.request()
+            val response = chain.proceed(request)
+
+            if (!isAuthFailure(response.code) || tokenManager.isGuestMode()) {
+                response
+            } else {
+                val sentToken = request.header("Authorization")
+                    ?.removePrefix("OAuth ")
+                    ?.takeIf { it.isNotBlank() }
+                val currentToken = tokenManager.getAccessToken()
+
+                if (sentToken.isNullOrEmpty() && currentToken.isNullOrEmpty()) {
+                    response
+                } else {
+                    val refreshedToken = SessionManager.refreshSessionBlocking(
+                        context = appContext,
+                        staleToken = sentToken ?: currentToken,
+                        timeoutMs = 12_000L
+                    )
+
+                    if (refreshedToken.isNullOrEmpty() || refreshedToken == sentToken) {
+                        if (!sentToken.isNullOrEmpty() && canRetryWithoutAuth(request)) {
+                            response.close()
+                            val retryAsGuest = request.newBuilder()
+                                .removeHeader("Authorization")
+                                .build()
+                            chain.proceed(retryAsGuest)
+                        } else {
+                            response
+                        }
+                    } else {
+                        response.close()
+                        val retryRequest = request.newBuilder()
+                            .header("Authorization", "OAuth $refreshedToken")
+                            .build()
+                        chain.proceed(retryRequest)
+                    }
+                }
+            }
+        }
+
+        if (okHttpClient == null) {
+            okHttpClient = OkHttpClient.Builder()
+                .addInterceptor(cookieInterceptor)
+                .addInterceptor(authInterceptor)
+                .addInterceptor(sessionRecoveryInterceptor)
+                .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
+        }
+
+        return Retrofit.Builder()
+            .baseUrl(Config.BASE_URL)
+            .client(okHttpClient!!)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(SoundCloudApi::class.java)
     }
+
+    private fun isAuthFailure(code: Int): Boolean = code == 401 || code == 403
+
+    private fun canRetryWithoutAuth(request: Request): Boolean {
+        if (request.method != "GET") return false
+
+        val path = request.url.encodedPath
+        return path != "/me" &&
+            !path.startsWith("/me/") &&
+            !path.contains("/track_likes") &&
+            !path.contains("/playlist_likes") &&
+            !path.contains("/track_reposts") &&
+            !path.contains("/conversations")
+    }
+
+    private fun cookieHeaderFor(url: HttpUrl): String? {
+        val cookieManager = CookieManager.getInstance()
+        val candidates = listOf(
+            "${url.scheme}://${url.host}",
+            "https://soundcloud.com",
+            "https://m.soundcloud.com"
+        )
+
+        val cookieParts = linkedSetOf<String>()
+        candidates.forEach { candidate ->
+            cookieManager.getCookie(candidate)
+                ?.split(";")
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.let(cookieParts::addAll)
+        }
+
+        return cookieParts.joinToString("; ").takeIf { it.isNotBlank() }
+    }
+}
 
 

@@ -2,6 +2,7 @@
 
     import android.content.Context
     import android.util.Log
+    import android.webkit.CookieManager
     import com.alananasss.kittytune.data.local.PlayerPreferences
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.Track
@@ -206,17 +207,36 @@
             val apiUrl = target?.url ?: return null
 
             val urlWithParams = if (apiUrl.contains("?")) "$apiUrl&client_id=${Config.CLIENT_ID}" else "$apiUrl?client_id=${Config.CLIENT_ID}"
-            val builder = okhttp3.Request.Builder().url(urlWithParams).header("User-Agent", Config.USER_AGENT)
-
-            val token = TokenManager(context).getAccessToken()
-            if (!token.isNullOrEmpty() && token != "null") {
-                builder.header("Authorization", "OAuth $token")
-            }
+            val tokenManager = TokenManager(context)
+            var token = SessionManager.awaitFreshAccessToken(
+                context = context,
+                force = tokenManager.shouldRefreshAccessToken()
+            ) ?: tokenManager.getAccessToken()
 
             try {
-                val response = client.newCall(builder.build()).execute()
+                var response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+
+                if (!response.isSuccessful && isAuthFailure(response.code)) {
+                    val refreshedToken = SessionManager.awaitFreshAccessToken(
+                        context = context,
+                        staleToken = token,
+                        force = true
+                    )
+
+                    if (!refreshedToken.isNullOrEmpty() && refreshedToken != token) {
+                        response.close()
+                        token = refreshedToken
+                        response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                    } else if (!token.isNullOrEmpty()) {
+                        response.close()
+                        token = null
+                        response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                    }
+                }
+
                 if (!response.isSuccessful) {
                     Log.e(TAG, "API request for stream URL failed with code: ${response.code}")
+                    response.close()
                     return null
                 }
                 val body = response.body?.string() ?: return null
@@ -248,6 +268,28 @@
                 return null
             }
         }
+
+        private fun buildStreamInfoRequest(url: String, token: String?): okhttp3.Request {
+            val builder = okhttp3.Request.Builder()
+                .url(url)
+                .header("User-Agent", Config.USER_AGENT)
+                .header("Accept", "application/json")
+                .header("Origin", "https://soundcloud.com")
+                .header("Referer", "https://soundcloud.com/")
+
+            if (!token.isNullOrEmpty() && token != "null") {
+                builder.header("Authorization", "OAuth $token")
+            }
+
+            val cookies = CookieManager.getInstance().getCookie("https://soundcloud.com")
+            if (!cookies.isNullOrEmpty()) {
+                builder.header("Cookie", cookies)
+            }
+
+            return builder.build()
+        }
+
+        private fun isAuthFailure(code: Int): Boolean = code == 401 || code == 403
     }
 
 

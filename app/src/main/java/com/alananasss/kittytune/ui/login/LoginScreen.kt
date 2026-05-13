@@ -24,7 +24,9 @@
     import androidx.compose.ui.window.Dialog
     import androidx.compose.ui.window.DialogProperties
     import com.alananasss.kittytune.R
+    import com.alananasss.kittytune.data.SessionManager
     import com.alananasss.kittytune.data.TokenManager
+    import com.alananasss.kittytune.utils.Config
     
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
@@ -80,7 +82,7 @@
                                 }
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     isLoading = false
-                                    checkCookies(url, CookieManager.getInstance(), tokenManager, onLoginSuccess)
+                                    checkCookies(url, CookieManager.getInstance(), tokenManager, context, onLoginSuccess)
                                 }
                             }
     
@@ -96,7 +98,7 @@
     
                                     newWebView.webViewClient = object : WebViewClient() {
                                         override fun onPageFinished(view: WebView?, url: String?) {
-                                            checkCookies(url, CookieManager.getInstance(), tokenManager, onLoginSuccess)
+                                            checkCookies(url, CookieManager.getInstance(), tokenManager, ctx, onLoginSuccess)
                                         }
                                     }
                                     newWebView.webChromeClient = object : WebChromeClient() {
@@ -170,7 +172,7 @@
             databaseEnabled = true
             useWideViewPort = true
             loadWithOverviewMode = true
-            userAgentString = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
+            userAgentString = Config.USER_AGENT
         }
     }
     
@@ -178,9 +180,18 @@
         url: String?,
         cookieManager: CookieManager,
         tokenManager: TokenManager,
+        context: android.content.Context,
         onSuccess: () -> Unit
     ) {
-        val cookies = cookieManager.getCookie(url)
+        val harvestedToken = SessionManager.harvestStoredSession(context)
+        if (!harvestedToken.isNullOrEmpty()) {
+            cookieManager.flush()
+            SessionManager.requestSessionRefresh(context, force = true)
+            onSuccess()
+            return
+        }
+
+        val cookies = url?.let { cookieManager.getCookie(it) }
     
         if (cookies != null && cookies.contains("oauth_token")) {
             val accessToken = extractValueFromCookie(cookies, "oauth_token")
@@ -188,6 +199,9 @@
     
             if (!accessToken.isNullOrEmpty()) {
                 tokenManager.saveTokens(accessToken, refreshToken)
+                cookieManager.flush()
+                SessionManager.harvestStoredSession(context)
+                SessionManager.requestSessionRefresh(context, force = true)
                 onSuccess()
             }
         }
