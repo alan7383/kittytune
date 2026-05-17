@@ -697,16 +697,14 @@
     margin-bottom: 24px;
 }
 
-/* Le clip "découpe" tout ce qui dépasse. 
-   On laisse 6px à droite pour laisser apparaître le point final (Stop Indicator) */
 .m3-loader-clip {
     position: absolute;
     left: 0;
-    right: 6px; 
+    right: 0; /* En mode indeterminate, on prend toute la largeur */
     top: 0;
     bottom: 0;
     overflow: hidden;
-    border-radius: 6px 0 0 6px;
+    border-radius: 6px;
 }
 
 /* 1. Track: Ligne de base grise (4dp) */
@@ -720,27 +718,23 @@
     background: var(--md-sys-color-surface-container-highest);
 }
 
-/* 2. Stop Indicator: Le point final */
+/* 2. Stop Indicator: Masqué en mode Indeterminate (Standard MD3) */
 .m3-loader-stop {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--md-sys-color-primary);
+    display: none;
 }
 
 /* 3. L'Active Indicator (La zone où la vague apparaît) */
 .m3-loader-bar {
     position: absolute;
     top: 0; bottom: 0;
-    animation: m3-indet-bar 2s cubic-bezier(0.2, 0, 0, 1) infinite;
+    /* LA CORRECTION MAGIQUE EST ICI : masque la vague qui déborde du segment ! */
+    overflow: hidden; 
     border-radius: 6px;
+    /* Courbe de Bézier standard de Material Design pour l'élasticité */
+    animation: m3-indet-bar 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* 4. La Vague (Se déplace à l'intérieur de la bar) */
+/* 4. La Vague (Se déplace à l'intérieur du segment .m3-loader-bar) */
 .m3-loader-wave {
     position: absolute;
     top: 0; bottom: 0;
@@ -760,15 +754,15 @@
     font-weight: 600;
     font-size: 0.95rem;
     letter-spacing: 0.5px;
-    /* Aligné sur le délai de 0.8s */
     animation: pulse-text 2s ease-in-out 0.8s infinite;
 }
 
-/* Élargissement et déplacement de la barre d'onde (Indeterminate M3) */
+/* Animation élastique de type Material 3 Indeterminate :
+   Le segment part de la gauche, s'étire au milieu, puis se rétracte à droite */
 @keyframes m3-indet-bar {
-    0%   { left: -50%; width: 30%; }
+    0%   { left: -30%; width: 30%; }
     50%  { left: 20%;  width: 80%; }
-    100% { left: 100%; width: 30%; }
+    100% { left: 100%; width: 20%; }
 }
 
 @keyframes m3-wave-slide {
