@@ -4,6 +4,8 @@
  * and wires up the segmented tab navigation.
  */
 
+import { initRipples } from './app-shell';
+
 const REPO_API  = 'https://api.github.com/repos/alan7383/kittytune/releases';
 const PER_PAGE  = 5;
 
@@ -229,6 +231,7 @@ function showError() {
   document.getElementById('retry-releases-btn')?.addEventListener('click', () => {
     loadInitialReleases();
   });
+  initRipples(container);
 }
 
 function observeCards(container: Element) {
@@ -274,6 +277,7 @@ async function loadInitialReleases() {
 
     observeCards(container);
     wireLoadMore();
+    initRipples(container);
   } catch {
     showError();
   }
@@ -305,6 +309,7 @@ function wireLoadMore() {
         );
         timeline.appendChild(fragment);
         observeCards(timeline);
+        initRipples(timeline);
       }
 
       if (allLoaded) {
@@ -315,6 +320,7 @@ function wireLoadMore() {
           <span class="material-icons-round">expand_more</span>
           Load older releases
         `;
+        initRipples(btn);
       }
     } catch {
       btn.classList.remove('loading');
@@ -322,6 +328,7 @@ function wireLoadMore() {
         <span class="material-icons-round">error_outline</span>
         Retry
       `;
+      initRipples(btn);
     }
     isLoading = false;
   });

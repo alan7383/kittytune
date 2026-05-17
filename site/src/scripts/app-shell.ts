@@ -16,6 +16,11 @@ const rippleSelector = [
   '.suggestion-chip',
   '.assist-chip',
   '.compose-settings-item',
+  '.updates-tab',
+  '.release-action-btn',
+  '.announcement-link',
+  '.load-more-btn',
+  '#retry-releases-btn',
 ].join(', ');
 
 export function closeDrawer() {
@@ -56,7 +61,7 @@ function initReveal(root: ParentNode = document) {
   }, 300);
 }
 
-function initRipples(root: ParentNode = document) {
+export function initRipples(root: ParentNode = document) {
   root.querySelectorAll<HTMLElement>(rippleSelector).forEach((element) => {
     if (element.dataset.rippleBound) return;
     element.dataset.rippleBound = 'true';
