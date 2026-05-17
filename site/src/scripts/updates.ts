@@ -258,7 +258,11 @@ async function loadInitialReleases() {
   showSkeleton();
 
   try {
-    const releases = await fetchReleases(1);
+    const [releases] = await Promise.all([
+      fetchReleases(1),
+      new Promise(resolve => setTimeout(resolve, 2500))
+    ]);
+
     if (releases.length < PER_PAGE) allLoaded = true;
 
     container.innerHTML = `
