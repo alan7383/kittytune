@@ -83,6 +83,7 @@ dependencies {
         exclude(group = "com.github.z-huang.InnerTune", module = "kizzy")
     }
     implementation(libs.androidx.webkit)
+    implementation(libs.androidx.browser)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.guava)
     implementation(libs.reorderable)

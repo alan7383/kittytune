@@ -42,11 +42,25 @@
                 android:label="@string/app_name"
                 android:launchMode="singleTask"
                 android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|smallestScreenSize"
-                android:theme="@style/Theme.SoundTune">
+                android:theme="@style/Theme.SoundTune"
                 android:windowSoftInputMode="adjustResize">
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+                
+                <!-- SoundCloud OAuth Callbacks -->
+                <intent-filter android:autoVerify="false">
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="sc" android:host="auth" />
+                </intent-filter>
+                <intent-filter android:autoVerify="false">
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="https" android:host="soundcloud.com" android:pathPrefix="/auth_mobile_callback" />
                 </intent-filter>
             </activity>
     
