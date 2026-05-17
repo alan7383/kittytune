@@ -204,10 +204,10 @@ function showSkeleton() {
     <div class="timeline-skeleton">
       ${Array.from({ length: 3 }, () => `
         <div class="skeleton-card">
-          <div class="skeleton-line title w40"></div>
-          <div class="skeleton-line w80"></div>
-          <div class="skeleton-line w60"></div>
-          <div class="skeleton-line w100"></div>
+          <div class="skeleton-line title w40"><div class="skeleton-wave"></div></div>
+          <div class="skeleton-line w80"><div class="skeleton-wave"></div></div>
+          <div class="skeleton-line w60"><div class="skeleton-wave"></div></div>
+          <div class="skeleton-line w100"><div class="skeleton-wave"></div></div>
         </div>
       `).join('')}
     </div>
