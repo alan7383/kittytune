@@ -1,0 +1,124 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { PAGES } from '../config/site';
+import { ANNOUNCEMENTS } from '../data/announcements';
+import '../styles/shared/home-audio.css';
+import '../styles/pages/updates.css';
+
+const typeIcons: Record<string, string> = {
+  info: 'info',
+  warning: 'warning',
+  celebration: 'celebration',
+  milestone: 'flag',
+};
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric',
+  });
+}
+---
+
+<SiteLayout page={PAGES.updates}>
+
+  <!-- Hero Header -->
+  <section class="updates-hero">
+    <div class="updates-hero-inner">
+      <div class="updates-hero-badge">
+        <span class="material-icons-round">update</span>
+        Updates & Announcements
+      </div>
+      <h1>What's New in KittyTune</h1>
+      <p>
+        Track every release, every bug fix, and every new feature.
+        Plus announcements straight from the developer. ( ◡‿◡ *)
+      </p>
+    </div>
+  </section>
+
+  <!-- Segmented Tabs -->
+  <div class="updates-tabs">
+    <div class="updates-tab-group">
+      <button class="updates-tab active" data-tab="releases" id="tab-releases">
+        <span class="tab-check material-icons-round">check</span>
+        <span class="material-icons-round">new_releases</span>
+        Releases
+      </button>
+      <button class="updates-tab" data-tab="announcements" id="tab-announcements">
+        <span class="tab-check material-icons-round">check</span>
+        <span class="material-icons-round">campaign</span>
+        Announcements
+      </button>
+    </div>
+  </div>
+
+  <!-- Content Panels -->
+  <div class="updates-content">
+
+    <!-- Panel: Releases (loaded dynamically via JS) -->
+    <div class="updates-panel active" id="panel-releases">
+      <div id="releases-timeline">
+        <!-- Skeleton shown while fetching -->
+        <div class="timeline-skeleton">
+          <div class="skeleton-card">
+            <div class="skeleton-line title w40"></div>
+            <div class="skeleton-line w80"></div>
+            <div class="skeleton-line w60"></div>
+            <div class="skeleton-line w100"></div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-line title w40"></div>
+            <div class="skeleton-line w60"></div>
+            <div class="skeleton-line w80"></div>
+          </div>
+          <div class="skeleton-card">
+            <div class="skeleton-line title w40"></div>
+            <div class="skeleton-line w80"></div>
+            <div class="skeleton-line w60"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel: Announcements (static from data file) -->
+    <div class="updates-panel" id="panel-announcements">
+      {ANNOUNCEMENTS.length > 0 ? (
+        <div class="announcements-grid">
+          {ANNOUNCEMENTS.map((a) => (
+            <div class={`announcement-card reveal ${a.pinned ? 'pinned' : ''}`} id={`announcement-${a.id}`}>
+              {a.pinned && (
+                <span class="announcement-pin material-icons-round">push_pin</span>
+              )}
+              <div class={`announcement-type-badge ${a.type}`}>
+                <span class="material-icons-round">{typeIcons[a.type] || 'info'}</span>
+                {a.type}
+              </div>
+              <div class="announcement-title">{a.title}</div>
+              <div class="announcement-body" set:html={a.body}></div>
+              <div class="announcement-date">
+                <span class="material-icons-round">schedule</span>
+                {formatDate(a.date)}
+              </div>
+              {a.link && (
+                <a href={a.link.url} target="_blank" rel="noopener" class="announcement-link">
+                  <span class="material-icons-round">arrow_forward</span>
+                  {a.link.label}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state">
+          <span class="material-icons-round">inbox</span>
+          <p>No announcements yet. Check back soon! ( > . < )</p>
+        </div>
+      )}
+    </div>
+
+  </div>
+
+  <script>
+    import '../scripts/updates.ts';
+  </script>
+</SiteLayout>
