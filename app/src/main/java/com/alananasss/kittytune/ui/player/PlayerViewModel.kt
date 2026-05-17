@@ -1000,6 +1000,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun fetchUserProfile() {
+        if (tokenManager.isGuestMode() || tokenManager.getAccessToken().isNullOrEmpty()) return
+
         viewModelScope.launch {
             try {
                 val me = api.getMe()

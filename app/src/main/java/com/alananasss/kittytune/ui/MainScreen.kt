@@ -309,7 +309,7 @@ fun MainScreen(
         SessionManager.harvestStoredSession(context)
 
         val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
-        
+
         if (hasToken) {
             SessionManager.requestSessionRefresh(
                 context = context,
@@ -384,85 +384,85 @@ fun MainScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         val showBottomUi = !playerViewModel.isPlayerExpanded
-        
+
         // CORRECTION ICI : On utilise startDestination si currentDestination est null Ã  la frame 1
         val currentRoute = currentDestination?.route ?: startDestination
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update"
 
-            val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
+        val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
-            val snackbarPadding by animateDpAsState(
-                targetValue = if (isMiniPlayerVisible) 90.dp else 16.dp,
-                label = "snackbarPadding"
-            )
+        val snackbarPadding by animateDpAsState(
+            targetValue = if (isMiniPlayerVisible) 90.dp else 16.dp,
+            label = "snackbarPadding"
+        )
 
-            Scaffold(
-                snackbarHost = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = snackbarPadding),
-                        contentAlignment = Alignment.BottomCenter
-                    ) {
-                        SnackbarHost(hostState = snackbarHostState) { data ->
-                            Snackbar(
-                                snackbarData = data,
-                                shape = CircleShape,
-                                containerColor = MaterialTheme.colorScheme.inverseSurface,
-                                contentColor = MaterialTheme.colorScheme.inverseOnSurface,
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp)
-                                    .widthIn(max = 400.dp)
-                            )
-                        }
+        Scaffold(
+            snackbarHost = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = snackbarPadding),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    SnackbarHost(hostState = snackbarHostState) { data ->
+                        Snackbar(
+                            snackbarData = data,
+                            shape = CircleShape,
+                            containerColor = MaterialTheme.colorScheme.inverseSurface,
+                            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .widthIn(max = 400.dp)
+                        )
                     }
-                },
-                bottomBar = {
-                    if (currentDestination?.route != Screen.Welcome.route && !isFullScreenRoute) {
-                        AnimatedVisibility(
-                            visible = showBottomUi,
-                            enter = slideInVertically { it },
-                            exit = slideOutVertically { it }
+                }
+            },
+            bottomBar = {
+                if (currentDestination?.route != Screen.Welcome.route && !isFullScreenRoute) {
+                    AnimatedVisibility(
+                        visible = showBottomUi,
+                        enter = slideInVertically { it },
+                        exit = slideOutVertically { it }
+                    ) {
+                        NavigationBar(
+                            tonalElevation = 0.dp,
+                            containerColor = MaterialTheme.colorScheme.surface
                         ) {
-                            NavigationBar(
-                                tonalElevation = 0.dp,
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ) {
-                                bottomNavItems.forEach { screen ->
-                                    if (screen.icon != null) {
-                                        val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                                        NavigationBarItem(
-                                            icon = {
-                                                Icon(
-                                                    screen.icon,
-                                                    contentDescription = stringResource(screen.titleResId)
-                                                )
-                                            },
-                                            label = { Text(stringResource(screen.titleResId)) },
-                                            selected = isSelected,
-                                            onClick = {
-                                                if (!isSelected) {
-                                                    navController.navigate(screen.route) {
-                                                        popUpTo(navController.graph.findStartDestination().id)
-                                                        launchSingleTop = true
-                                                    }
-                                                } else if (screen.route == Screen.Home.route && homeViewModel.isSearching) {
-                                                    homeViewModel.clearSearch()
+                            bottomNavItems.forEach { screen ->
+                                if (screen.icon != null) {
+                                    val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
+                                    NavigationBarItem(
+                                        icon = {
+                                            Icon(
+                                                screen.icon,
+                                                contentDescription = stringResource(screen.titleResId)
+                                            )
+                                        },
+                                        label = { Text(stringResource(screen.titleResId)) },
+                                        selected = isSelected,
+                                        onClick = {
+                                            if (!isSelected) {
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.findStartDestination().id)
+                                                    launchSingleTop = true
                                                 }
+                                            } else if (screen.route == Screen.Home.route && homeViewModel.isSearching) {
+                                                homeViewModel.clearSearch()
                                             }
-                                        )
-                                    }
+                                        }
+                                    )
                                 }
                             }
                         }
                     }
                 }
-            ) { innerPadding ->
-                
-                // 1. AJOUTER CE BOX POUR POUVOIR ALIGNER LE MINIPLAYER EN BAS
-                Box(modifier = Modifier.fillMaxSize()) {
+            }
+        ) { innerPadding ->
+
+            // 1. AJOUTER CE BOX POUR POUVOIR ALIGNER LE MINIPLAYER EN BAS
+            Box(modifier = Modifier.fillMaxSize()) {
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
@@ -869,279 +869,279 @@ fun MainScreen(
                         onClick = { playerViewModel.isPlayerExpanded = true }
                     )
                 }
-                }
             }
+        }
 
 
-            AnimatedVisibility(
-                visible = playerViewModel.isPlayerExpanded,
-                enter = slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = tween(400, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(400)),
-                exit = slideOutVertically(
-                    targetOffsetY = { it },
-                    animationSpec = tween(350, easing = FastOutLinearInEasing)
-                ) + fadeOut(animationSpec = tween(350)),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                PlayerScreen(
-                    viewModel = playerViewModel,
-                    onClose = { playerViewModel.isPlayerExpanded = false }
-                )
-            }
+        AnimatedVisibility(
+            visible = playerViewModel.isPlayerExpanded,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = tween(400, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(400)),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(350, easing = FastOutLinearInEasing)
+            ) + fadeOut(animationSpec = tween(350)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            PlayerScreen(
+                viewModel = playerViewModel,
+                onClose = { playerViewModel.isPlayerExpanded = false }
+            )
+        }
 
 
-            AnimatedVisibility(
-                visible = playerViewModel.showLyricsSheet,
-                enter = slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = tween(300)
-                ) + fadeIn(animationSpec = tween(300)),
-                exit = slideOutVertically(
-                    targetOffsetY = { it },
-                    animationSpec = tween(300)
-                ) + fadeOut(animationSpec = tween(300)),
+        AnimatedVisibility(
+            visible = playerViewModel.showLyricsSheet,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = tween(300)
+            ) + fadeIn(animationSpec = tween(300)),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(300)
+            ) + fadeOut(animationSpec = tween(300)),
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(10f)
+        ) {
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .zIndex(10f)
+                    .background(MaterialTheme.colorScheme.background)
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                ) {
-                    playerViewModel.currentTrack?.let { track ->
-                        AsyncImage(
-                            model = track.fullResArtwork,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .blur(80.dp)
-                                .alpha(0.4f)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(0.6f))
-                        )
+                playerViewModel.currentTrack?.let { track ->
+                    AsyncImage(
+                        model = track.fullResArtwork,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(80.dp)
+                            .alpha(0.4f)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(0.6f))
+                    )
+                }
+                LyricsScreen(
+                    viewModel = playerViewModel,
+                    onClose = {
+                        playerViewModel.showLyricsSheet = false
+                        playerViewModel.isSearchingLyrics = false
                     }
-                    LyricsScreen(
-                        viewModel = playerViewModel,
-                        onClose = {
-                            playerViewModel.showLyricsSheet = false
-                            playerViewModel.isSearchingLyrics = false
-                        }
-                    )
-                }
+                )
             }
+        }
 
-            if (playerViewModel.showMenuSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { playerViewModel.showMenuSheet = false },
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-                ) {
-                    MenuSheetContent(playerViewModel)
-                    Spacer(Modifier.height(32.dp))
-                }
-            }
-
-            if (playerViewModel.showAddToPlaylistSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { playerViewModel.showAddToPlaylistSheet = false },
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-                ) {
-                    AddToPlaylistContent(playerViewModel)
-                    Spacer(Modifier.height(32.dp))
-                }
-            }
-
-            if (playerViewModel.showDetailsSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { playerViewModel.showDetailsSheet = false },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-                ) {
-                    playerViewModel.selectedTrackForSheet?.let {
-                        DetailsSheetContent(
-                            it,
-                            { playerViewModel.showDetailsSheet = false },
-                            { playerViewModel.openComments() },
-                            playerViewModel
-                        )
-                    }
-                }
-            }
-
-            if (playerViewModel.showCommentsSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { playerViewModel.showCommentsSheet = false },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-                ) {
-                    CommentsSheetContent(
-                        playerViewModel,
-                        { playerViewModel.showCommentsSheet = false }
-                    )
-                }
-            }
-
-            if (showProfileMenu) {
-                val tokenManager = remember { TokenManager(context) }
-                val isGuest = tokenManager.isGuestMode()
-                ModalBottomSheet(
-                    onDismissRequest = { showProfileMenu = false },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-                ) {
-                    ProfileMenuSheet(
-                        user = homeViewModel.userProfile,
-                        isGuest = isGuest,
-                        onDismiss = { showProfileMenu = false },
-                        onViewProfile = {
-                            homeViewModel.userProfile?.id?.let {
-                                navController.navigate("profile/$it")
-                            }
-                        },
-                        onNotificationsClick = { navController.navigate("notifications") },
-                        onMessagesClick = { navController.navigate("conversations") },
-                        onAchievementsClick = { navController.navigate("achievements") },
-                        onListeningStatsClick = { navController.navigate("listening_stats") },
-                        onSettingsClick = { navController.navigate("settings") },
-                        onLogoutClick = {
-                            if (isGuest) {
-                                navController.navigate(Screen.Login.route)
-                            } else {
-                                tokenManager.logout()
-                                navController.navigate(Screen.Welcome.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                                homeViewModel.loadData()
-                            }
-                        }
-                    )
-                    Spacer(Modifier.height(32.dp))
-                }
-            }
-
-            if (showCompletionScreen) {
-                UltimateCompletionOverlay(onDismiss = { showCompletionScreen = false })
-            }
-
-            if (updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING) {
-                Dialog(
-                    onDismissRequest = {
-                        if (updateStatus != UpdateStatus.DOWNLOADING) {
-                            UpdateManager.dismiss()
-                        }
-                    },
-                    properties = DialogProperties(
-                        usePlatformDefaultWidth = false,
-                        decorFitsSystemWindows = false
-                    )
-                ) {
-                    UpdateScreen(
-                        release = releaseInfo,
-                        status = updateStatus,
-                        progress = downloadProgress,
-                        totalSize = totalDownloadSize,
-                        onDownload = {
-                            scope.launch { UpdateManager.downloadUpdate(context.applicationContext) }
-                        },
-                        onDismiss = {
-                            UpdateManager.dismiss()
-                        },
-                        onBack = {
-                            UpdateManager.dismiss()
-                        }
-                    )
-                }
-            }
-
-            if (playerViewModel.captchaUrl != null) {
-                Dialog(
-                    onDismissRequest = { playerViewModel.onCaptchaSolved() },
-                    properties = DialogProperties(usePlatformDefaultWidth = false)
-                ) {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(
-                                title = { Text(stringResource(R.string.security_check)) },
-                                navigationIcon = {
-                                    IconButton(onClick = { playerViewModel.onCaptchaSolved() }) {
-                                        Icon(Icons.Default.Close, contentDescription = "Close")
-                                    }
-                                }
-                            )
-                        }
-                    ) { padding ->
-                        Box(modifier = Modifier
-                            .padding(padding)
-                            .fillMaxSize()) {
-                            AndroidView(
-                                factory = { ctx ->
-                                    WebView(ctx).apply {
-                                        settings.javaScriptEnabled = true
-                                        settings.domStorageEnabled = true
-                                        settings.userAgentString = Config.USER_AGENT
-                                        webViewClient = object : WebViewClient() {
-                                            override fun onPageFinished(
-                                                view: WebView?,
-                                                url: String?
-                                            ) {
-                                                super.onPageFinished(view, url)
-                                                CookieManager.getInstance().flush()
-                                            }
-                                        }
-                                        loadUrl(playerViewModel.captchaUrl!!)
-                                    }
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = currentNotification != null,
-                enter = slideInVertically(
-                    initialOffsetY = { -it },
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ) + fadeIn(
-                    animationSpec = tween(300)
-                ) + scaleIn(
-                    initialScale = 0.8f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                ),
-                exit = slideOutVertically(
-                    targetOffsetY = { -it },
-                    animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing)
-                ) + fadeOut(
-                    animationSpec = tween(durationMillis = 200)
-                ) + scaleOut(
-                    targetScale = 0.8f,
-                    animationSpec = tween(durationMillis = 300)
-                ),
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(top = 12.dp)
-                    .zIndex(11f)
-                    .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color.Black)
+        if (playerViewModel.showMenuSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { playerViewModel.showMenuSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ) {
-                animatingNotification?.let {
-                    AchievementPopup(notification = it)
+                MenuSheetContent(playerViewModel)
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+
+        if (playerViewModel.showAddToPlaylistSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { playerViewModel.showAddToPlaylistSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                AddToPlaylistContent(playerViewModel)
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+
+        if (playerViewModel.showDetailsSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { playerViewModel.showDetailsSheet = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+            ) {
+                playerViewModel.selectedTrackForSheet?.let {
+                    DetailsSheetContent(
+                        it,
+                        { playerViewModel.showDetailsSheet = false },
+                        { playerViewModel.openComments() },
+                        playerViewModel
+                    )
                 }
             }
         }
+
+        if (playerViewModel.showCommentsSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { playerViewModel.showCommentsSheet = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                CommentsSheetContent(
+                    playerViewModel,
+                    { playerViewModel.showCommentsSheet = false }
+                )
+            }
+        }
+
+        if (showProfileMenu) {
+            val tokenManager = remember { TokenManager(context) }
+            val isGuest = tokenManager.isGuestMode()
+            ModalBottomSheet(
+                onDismissRequest = { showProfileMenu = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                ProfileMenuSheet(
+                    user = homeViewModel.userProfile,
+                    isGuest = isGuest,
+                    onDismiss = { showProfileMenu = false },
+                    onViewProfile = {
+                        homeViewModel.userProfile?.id?.let {
+                            navController.navigate("profile/$it")
+                        }
+                    },
+                    onNotificationsClick = { navController.navigate("notifications") },
+                    onMessagesClick = { navController.navigate("conversations") },
+                    onAchievementsClick = { navController.navigate("achievements") },
+                    onListeningStatsClick = { navController.navigate("listening_stats") },
+                    onSettingsClick = { navController.navigate("settings") },
+                    onLogoutClick = {
+                        if (isGuest) {
+                            navController.navigate(Screen.Login.route)
+                        } else {
+                            tokenManager.logout()
+                            navController.navigate(Screen.Welcome.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                            homeViewModel.loadData()
+                        }
+                    }
+                )
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+
+        if (showCompletionScreen) {
+            UltimateCompletionOverlay(onDismiss = { showCompletionScreen = false })
+        }
+
+        if (updateStatus == UpdateStatus.AVAILABLE || updateStatus == UpdateStatus.DOWNLOADING) {
+            Dialog(
+                onDismissRequest = {
+                    if (updateStatus != UpdateStatus.DOWNLOADING) {
+                        UpdateManager.dismiss()
+                    }
+                },
+                properties = DialogProperties(
+                    usePlatformDefaultWidth = false,
+                    decorFitsSystemWindows = false
+                )
+            ) {
+                UpdateScreen(
+                    release = releaseInfo,
+                    status = updateStatus,
+                    progress = downloadProgress,
+                    totalSize = totalDownloadSize,
+                    onDownload = {
+                        scope.launch { UpdateManager.downloadUpdate(context.applicationContext) }
+                    },
+                    onDismiss = {
+                        UpdateManager.dismiss()
+                    },
+                    onBack = {
+                        UpdateManager.dismiss()
+                    }
+                )
+            }
+        }
+
+        if (playerViewModel.captchaUrl != null) {
+            Dialog(
+                onDismissRequest = { playerViewModel.onCaptchaSolved() },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = { Text(stringResource(R.string.security_check)) },
+                            navigationIcon = {
+                                IconButton(onClick = { playerViewModel.onCaptchaSolved() }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close")
+                                }
+                            }
+                        )
+                    }
+                ) { padding ->
+                    Box(modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()) {
+                        AndroidView(
+                            factory = { ctx ->
+                                WebView(ctx).apply {
+                                    settings.javaScriptEnabled = true
+                                    settings.domStorageEnabled = true
+                                    settings.userAgentString = Config.USER_AGENT
+                                    webViewClient = object : WebViewClient() {
+                                        override fun onPageFinished(
+                                            view: WebView?,
+                                            url: String?
+                                        ) {
+                                            super.onPageFinished(view, url)
+                                            CookieManager.getInstance().flush()
+                                        }
+                                    }
+                                    loadUrl(playerViewModel.captchaUrl!!)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            }
+        }
+
+        AnimatedVisibility(
+            visible = currentNotification != null,
+            enter = slideInVertically(
+                initialOffsetY = { -it },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ) + fadeIn(
+                animationSpec = tween(300)
+            ) + scaleIn(
+                initialScale = 0.8f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow
+                )
+            ),
+            exit = slideOutVertically(
+                targetOffsetY = { -it },
+                animationSpec = tween(durationMillis = 300, easing = FastOutLinearInEasing)
+            ) + fadeOut(
+                animationSpec = tween(durationMillis = 200)
+            ) + scaleOut(
+                targetScale = 0.8f,
+                animationSpec = tween(durationMillis = 300)
+            ),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(top = 12.dp)
+                .zIndex(11f)
+                .shadow(elevation = 8.dp, shape = CircleShape, spotColor = Color.Black)
+        ) {
+            animatingNotification?.let {
+                AchievementPopup(notification = it)
+            }
+        }
     }
+}

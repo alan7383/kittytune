@@ -24,6 +24,7 @@ newpipe = "v0.25.2"
 desugar = "2.1.5"
 innertune = "0.5.10"
 webkit = "1.16.0"
+browser = "1.8.0"
 kotlinxSerialization = "1.11.0"
 coroutinesGuava = "1.10.2"
 reorderable = "3.1.0"
@@ -73,6 +74,7 @@ newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs_nio", version.ref = "desugar" }
 innertune = { group = "com.github.z-huang", name = "InnerTune", version.ref = "innertune" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version.ref = "coroutinesGuava" }
 reorderable = { group = "sh.calvin.reorderable", name = "reorderable", version.ref = "reorderable" }

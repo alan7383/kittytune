@@ -135,7 +135,8 @@ import kotlinx.coroutines.GlobalScope
                     val observer = LifecycleEventObserver { _, event ->
                         if (event == Lifecycle.Event.ON_RESUME) {
                             val tokenManager = TokenManager(applicationContext)
-                            if (!tokenManager.isGuestMode()) {
+                            val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
+                            if (hasToken && !tokenManager.isGuestMode()) {
                                 scope.launch {
                                     SessionManager.requestSessionRefresh(
                                         context = applicationContext,
@@ -199,6 +200,15 @@ import kotlinx.coroutines.GlobalScope
             if (openSearch) {
                 _shouldOpenSearch.value = true
                 intent?.removeExtra("open_search")
+            }
+
+            // Capture SoundCloud OAuth callback redirects
+            val data = intent?.data
+            if (data != null) {
+                val code = data.getQueryParameter("code")
+                if (code != null) {
+                    com.alananasss.kittytune.data.AuthFlowManager.setAuthCode(code)
+                }
             }
         }
     

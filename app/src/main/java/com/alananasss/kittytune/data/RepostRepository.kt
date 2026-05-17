@@ -11,8 +11,9 @@
     import kotlinx.coroutines.flow.update
     import kotlinx.coroutines.launch
     
-    object RepostRepository {
+object RepostRepository {
         private lateinit var api: SoundCloudApi
+        private lateinit var appContext: Context
         private var currentUserId: Long = 0L // cache the user id
     
         private val scope = CoroutineScope(Dispatchers.IO)
@@ -21,6 +22,7 @@
         val repostedTrackIds = _repostedTrackIds.asStateFlow()
     
         fun init(context: Context) {
+            appContext = context.applicationContext
             api = RetrofitClient.create(context)
         }
     
@@ -32,6 +34,11 @@
         fun refreshReposts() {
             scope.launch {
                 try {
+                    val tokenManager = TokenManager(appContext)
+                    if (tokenManager.isGuestMode() || tokenManager.getAccessToken().isNullOrEmpty()) {
+                        return@launch
+                    }
+
                     // fetch user id if missing
                     if (currentUserId == 0L) {
                         val me: User = api.getMe()
