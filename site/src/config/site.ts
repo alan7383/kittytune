@@ -10,11 +10,11 @@ export const NAV_ITEMS = [
   { key: 'home', label: 'Home', href: '', icon: 'home', logo: true },
   { key: 'custom', label: 'Custom', href: 'custom', icon: 'palette' },
   { key: 'audio-fx', label: 'Audio FX', href: 'audio-fx', icon: 'graphic_eq' },
+  { key: 'updates', label: 'Updates', href: 'updates', icon: 'update' },
 ] as const;
 
 export const PLACEHOLDER_NAV_ITEMS = [
   { label: 'Badges', icon: 'emoji_events', message: 'Badges are not available yet! ( > . < )' },
-  { label: 'Updates', icon: 'update', message: 'Updates are not available yet! ( > . < )' },
 ] as const;
 
 export const PAGES = {
@@ -121,6 +121,25 @@ export const PAGES = {
       }
     ],
     "schema": "{\r\n              \"@context\": \"https://schema.org\",\r\n              \"@type\": \"SoftwareApplication\",\r\n              \"name\": \"KittyTune\",\r\n              \"operatingSystem\": \"Android\",\r\n              \"applicationCategory\": \"MultimediaApplication\",\r\n              \"offers\": {\r\n                \"@type\": \"Offer\",\r\n                \"price\": \"0\",\r\n                \"priceCurrency\": \"USD\",\r\n                \"availability\": \"https://schema.org/InStock\"\r\n              },\r\n              \"description\": \"An open-source hybrid music player featuring SoundCloud, YouTube playback, and real-time audio effects.\",\r\n                \"downloadUrl\": \"https://github.com/alan7383/kittytune/releases\",\r\n                \"author\": {\r\n                    \"@type\": \"Person\",\r\n                    \"name\": \"alan7383\"\r\n                },\r\n                \"license\": \"GPL-3.0 License\" \r\n                }"
+  },
+  "updates": {
+    "key": "updates",
+    "title": "KittyTune ✧ Updates & Releases",
+    "description": "Latest releases, changelogs, and announcements for KittyTune — the open-source Android music player with real-time audio FX.",
+    "keywords": "KittyTune, releases, changelog, updates, Android, music player, FOSS",
+    "canonical": "https://alan7383.github.io/kittytune/updates",
+    "og": [
+      { "property": "og:title", "content": "KittyTune ✧ Updates" },
+      { "property": "og:description", "content": "Latest releases, changelogs, and announcements for KittyTune." },
+      { "property": "og:url", "content": "https://alan7383.github.io/kittytune/updates" },
+      { "property": "og:type", "content": "website" },
+      { "property": "og:site_name", "content": "KittyTune" }
+    ],
+    "twitter": [
+      { "name": "twitter:card", "content": "summary" },
+      { "name": "twitter:title", "content": "KittyTune ✧ Updates" },
+      { "name": "twitter:description", "content": "Latest releases and announcements for KittyTune." }
+    ]
   }
 } as const;
 
