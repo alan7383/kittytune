@@ -56,6 +56,10 @@
     <string name="login_soundcloud">Connect with SoundCloud</string>
     <string name="login_guest">Continue as Guest</string>
     <string name="guest_loading">Starting guest session...</string>
+    <string name="login_auth_in_progress">Authentication in progress…</string>
+    <string name="login_waiting_browser">Waiting for browser…</string>
+    <string name="login_no_browser_hint">If the browser didn\'t open, click below.</string>
+    <string name="login_reopen_browser">Reopen browser</string>
     <string name="permission_notifications">Notifications</string>
     <string name="permission_notifications_description">Allow KittyTune to show playback controls and status</string>
     <string name="permission_grant">Grant</string>
@@ -539,9 +543,6 @@
     <string name="pref_youtube_fallback_sub">Via NewPipe Extractor for Go+ tracks</string>
 
 
-    <!-- SYNC -->
-    <string name="pref_sync_likes">Sync Likes</string>
-    <string name="pref_sync_likes_sub">Apply likes to your SoundCloud account (may trigger Captcha)</string>
 
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Lyrics</string>

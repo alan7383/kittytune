@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.Track
+import com.alananasss.kittytune.data.network.TrackLikeItem
+import com.alananasss.kittytune.data.network.TrackLikeRequest
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
@@ -92,11 +94,20 @@ object LikeRepository {
 
             if (!playerPrefs.getSyncLikesEnabled()) return@launch
             val tokenManager = TokenManager(appContext)
+            if (tokenManager.isGuestMode()) return@launch
             val token = tokenManager.getAccessToken()
-            if (!token.isNullOrEmpty() && !tokenManager.isGuestMode()) {
-                val uid = getUserId()
-                if (uid != null) {
-                    com.alananasss.kittytune.data.SessionManager.syncLikeState(track.id, true, token, uid)
+            if (!token.isNullOrEmpty()) {
+                try {
+                    val payload = TrackLikeRequest(
+                        likes = listOf(TrackLikeItem("soundcloud:tracks:${track.id}"))
+                    )
+                    val response = api.likeTrack(payload)
+                    if (response.code() == 401) {
+                        com.alananasss.kittytune.data.SessionManager.requestSessionRefresh(appContext, force = true)
+                    }
+                    android.util.Log.d("LikeRepository", "Direct track like success status: ${response.code()}")
+                } catch (e: Exception) {
+                    android.util.Log.e("LikeRepository", "Direct track like failed", e)
                 }
             }
         }
@@ -111,11 +122,20 @@ object LikeRepository {
             saveToPrefs()
             if (!playerPrefs.getSyncLikesEnabled()) return@launch
             val tokenManager = TokenManager(appContext)
+            if (tokenManager.isGuestMode()) return@launch
             val token = tokenManager.getAccessToken()
-            if (!token.isNullOrEmpty() && !tokenManager.isGuestMode()) {
-                val uid = getUserId()
-                if (uid != null) {
-                    com.alananasss.kittytune.data.SessionManager.syncLikeState(trackId, false, token, uid)
+            if (!token.isNullOrEmpty()) {
+                try {
+                    val payload = TrackLikeRequest(
+                        likes = listOf(TrackLikeItem("soundcloud:tracks:$trackId"))
+                    )
+                    val response = api.unlikeTrack(payload)
+                    if (response.code() == 401) {
+                        com.alananasss.kittytune.data.SessionManager.requestSessionRefresh(appContext, force = true)
+                    }
+                    android.util.Log.d("LikeRepository", "Direct track unlike success status: ${response.code()}")
+                } catch (e: Exception) {
+                    android.util.Log.e("LikeRepository", "Direct track unlike failed", e)
                 }
             }
         }

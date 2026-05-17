@@ -48,6 +48,10 @@
     <string name="login_soundcloud">Se connecter avec SoundCloud</string>
     <string name="login_guest">Continuer en tant qu\'invité</string>
     <string name="guest_loading">Lancement de la session invité...</string>
+    <string name="login_auth_in_progress">Authentification en cours…</string>
+    <string name="login_waiting_browser">En attente du navigateur…</string>
+    <string name="login_no_browser_hint">Si le navigateur ne s\'est pas ouvert, cliquez ci-dessous.</string>
+    <string name="login_reopen_browser">Rouvrir le navigateur</string>
     <string name="permission_notifications">Notifications</string>
     <string name="permission_notifications_description">Autoriser KittyTune à afficher les contrôles et l\'état de lecture</string>
     <string name="permission_grant">Autoriser</string>
@@ -481,8 +485,6 @@
     <string name="pref_youtube_fallback">Débloquer les titres restreints</string>
     <string name="pref_youtube_fallback_sub">Via NewPipe Extractor pour les titres Go+</string>
     <!-- SYNC -->
-    <string name="pref_sync_likes">Synchroniser les Likes</string>
-    <string name="pref_sync_likes_sub">Liker sur le compte SoundCloud (peut déclencher un Captcha)</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Paroles</string>
     <string name="pref_lyrics_subtitle">Affichage et source</string>
