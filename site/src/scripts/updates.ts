@@ -201,15 +201,13 @@ function showSkeleton() {
   const container = document.getElementById('releases-timeline');
   if (!container) return;
   container.innerHTML = `
-    <div class="timeline-skeleton">
-      ${Array.from({ length: 3 }, () => `
-        <div class="skeleton-card">
-          <div class="skeleton-line title w40"><div class="skeleton-wave"></div></div>
-          <div class="skeleton-line w80"><div class="skeleton-wave"></div></div>
-          <div class="skeleton-line w60"><div class="skeleton-wave"></div></div>
-          <div class="skeleton-line w100"><div class="skeleton-wave"></div></div>
-        </div>
-      `).join('')}
+    <div class="timeline-loading-state">
+      <div class="m3-expressive-loader">
+        <div class="m3-loader-track"></div>
+        <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
+        <div class="m3-loader-stop"></div>
+      </div>
+      <p class="m3-loader-text">Synchronizing releases...</p>
     </div>
   `;
 }
