@@ -474,8 +474,6 @@
     <string name="pref_youtube_fallback">Unlock Restricted Tracks</string>
     <string name="pref_youtube_fallback_sub">Via NewPipe Extractor for Go+ tracks</string>
     <!-- SYNC -->
-    <string name="pref_sync_likes">Sync Likes</string>
-    <string name="pref_sync_likes_sub">Apply likes to your SoundCloud account (may trigger Captcha)</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Lyrics</string>
     <string name="pref_lyrics_subtitle">Display &amp; Source</string>

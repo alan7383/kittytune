@@ -7,6 +7,7 @@ import android.net.Uri
 import android.util.Log
 import android.webkit.CookieManager
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -32,6 +34,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,6 +107,15 @@ fun LoginScreen(
     var lastHandledCode by remember { mutableStateOf<String?>(null) }
     val authCodeFromIntent by AuthFlowManager.authCode.collectAsState()
 
+    var hasLaunchedBrowser by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(authUrl) {
+        if (!hasLaunchedBrowser) {
+            hasLaunchedBrowser = true
+            launchSoundCloudAuth(context, authUrl)
+        }
+    }
+
     LaunchedEffect(authCodeFromIntent) {
         val code = authCodeFromIntent
         if (code != null && code != lastHandledCode) {
@@ -158,28 +170,38 @@ fun LoginScreen(
         Box(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize()
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
             Column(
-                modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
+                verticalArrangement = Arrangement.Center
             ) {
-                Button(onClick = { launchSoundCloudAuth(context, authUrl) }) {
-                    Text(stringResource(R.string.login_soundcloud))
+                ContainedLoadingIndicator()
+                Spacer(modifier = Modifier.height(24.dp))
+
+                if (isLoading) {
+                    Text(
+                        text = stringResource(R.string.login_auth_in_progress),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.login_waiting_browser),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.login_no_browser_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    OutlinedButton(onClick = { launchSoundCloudAuth(context, authUrl) }) {
+                        Text(stringResource(R.string.login_reopen_browser))
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Connexion via le navigateur systeme.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (isLoading) {
-                ContainedLoadingIndicator(modifier = Modifier.align(Alignment.Center))
             }
         }
     }
@@ -239,31 +261,7 @@ private fun launchSoundCloudAuth(context: Context, authUrl: String) {
 }
 
 private fun getOrCreateSoundCloudDeviceId(context: Context): String {
-    val prefs = context.applicationContext.getSharedPreferences(AUTH_PREFS_NAME, Context.MODE_PRIVATE)
-    prefs.getString(KEY_AUTH_DEVICE_ID, null)
-        ?.takeIf { it.isNotBlank() }
-        ?.let { return it }
-
-    val rawId = try {
-        android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID)
-    } catch (e: Exception) {
-        null
-    }
-
-    val deviceId = if (!rawId.isNullOrBlank() && rawId != "9774d56d682e549c") {
-        try {
-            val md = java.security.MessageDigest.getInstance("MD5")
-            val digest = md.digest(rawId.toByteArray(Charsets.UTF_8))
-            digest.joinToString("") { "%02x".format(it) }
-        } catch (e: Exception) {
-            UUID.randomUUID().toString().replace("-", "")
-        }
-    } else {
-        UUID.randomUUID().toString().replace("-", "")
-    }
-
-    prefs.edit().putString(KEY_AUTH_DEVICE_ID, deviceId).apply()
-    return deviceId
+    return Config.getOrCreateSoundCloudDeviceId(context)
 }
 
 /**

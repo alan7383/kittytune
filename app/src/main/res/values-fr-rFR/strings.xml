@@ -474,8 +474,6 @@
     <string name="pref_youtube_fallback">Débloquer les titres restreints</string>
     <string name="pref_youtube_fallback_sub">Via NewPipe Extractor pour les titres Go+</string>
     <!-- SYNC -->
-    <string name="pref_sync_likes">Synchroniser les Likes</string>
-    <string name="pref_sync_likes_sub">Liker sur le compte SoundCloud (peut déclencher un Captcha)</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Paroles</string>
     <string name="pref_lyrics_subtitle">Affichage et source</string>

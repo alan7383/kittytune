@@ -474,8 +474,6 @@
     <string name="pref_youtube_fallback">Korlátozott számok feloldása</string>
     <string name="pref_youtube_fallback_sub">NewPipe Extractor használata Go+ számokhoz</string>
     <!-- SYNC -->
-    <string name="pref_sync_likes">Like-ok szinkronizálása</string>
-    <string name="pref_sync_likes_sub">Kedvelés a SoundCloud fiókban is (Captcha-t indíthat)</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Dalszövegek</string>
     <string name="pref_lyrics_subtitle">Megjelenítés és forrás</string>

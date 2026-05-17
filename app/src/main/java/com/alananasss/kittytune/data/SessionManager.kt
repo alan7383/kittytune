@@ -461,51 +461,6 @@ object SessionManager {
     }
 
     fun syncLikeState(trackId: Long, isLike: Boolean, token: String, userId: Long) {
-        val activeToken = appContext
-            ?.let { TokenManager(it).getAccessToken() }
-            ?.takeIf { it.isNotEmpty() }
-            ?: token
-
-        val clientId = Config.CLIENT_ID
-        val url = "https://api-v2.soundcloud.com/users/$userId/track_likes/$trackId?client_id=$clientId&app_version=1771407416&app_locale=en"
-
-        val method = if (isLike) "PUT" else "DELETE"
-        val contentType = if (isLike) "'Content-Type': 'application/json; charset=utf-8'," else ""
-        val bodyStr = if (isLike) "body: '{}'," else ""
-
-        pendingLikeAction = { syncLikeState(trackId, isLike, activeToken, userId) }
-
-        val js = """
-            if (window.location.hostname.includes('captcha')) {
-                AndroidBridge.requestCaptcha();
-            } else {
-                fetch('$url', {
-                    method: '$method',
-                    credentials: 'include',
-                    headers: {
-                        'Authorization': 'OAuth $activeToken',
-                        'Accept': 'application/json',
-                        $contentType
-                    },
-                    $bodyStr
-                }).then(r => {
-                    console.log('Like Sync Status: ' + r.status);
-                    if (r.status === 401) {
-                        AndroidBridge.requestAuthRefresh();
-                    } else if (r.status === 403) {
-                        AndroidBridge.requestCaptcha();
-                    } else if (r.status === 200 || r.status === 201 || r.status === 204) {
-                        AndroidBridge.onLikeSuccess();
-                    }
-                }).catch(e => {
-                    console.error('Fetch Error:', e);
-                    AndroidBridge.requestCaptcha();
-                });
-            }
-        """.trimIndent()
-
-        scope.launch {
-            ghostWebView?.evaluateJavascript(js, null)
-        }
+        return
     }
 }

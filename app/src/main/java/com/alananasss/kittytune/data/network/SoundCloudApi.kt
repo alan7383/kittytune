@@ -131,16 +131,14 @@
     
         // --- Likes ---
     
-        @PUT("users/{userId}/track_likes/{trackId}")
+        @POST("https://api-mobile.soundcloud.com/likes/tracks/create")
         suspend fun likeTrack(
-            @Path("userId") userId: Long,
-            @Path("trackId") trackId: Long
+            @Body body: TrackLikeRequest
         ): retrofit2.Response<Unit>
     
-        @DELETE("users/{userId}/track_likes/{trackId}")
+        @POST("https://api-mobile.soundcloud.com/likes/tracks/delete")
         suspend fun unlikeTrack(
-            @Path("userId") userId: Long,
-            @Path("trackId") trackId: Long
+            @Body body: TrackLikeRequest
         ): retrofit2.Response<Unit>
     
         @GET("users/{userId}/track_likes")
@@ -385,5 +383,13 @@
         @POST
         suspend fun postGraphQl(@Url url: String, @Body request: GraphQlRequest): JsonObject
     }
+
+data class TrackLikeItem(
+    @com.google.gson.annotations.SerializedName("target_urn") val targetUrn: String
+)
+
+data class TrackLikeRequest(
+    @com.google.gson.annotations.SerializedName("likes") val likes: List<TrackLikeItem>
+)
 
 

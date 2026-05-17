@@ -32,13 +32,7 @@ fun AudioSettingsScreen(
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
 
-    val tokenManager = remember { TokenManager(context) }
-    val isLoggedIn = remember {
-        !tokenManager.isGuestMode() && !tokenManager.getAccessToken().isNullOrEmpty()
-    }
-
     var autoplayEnabled by remember { mutableStateOf(prefs.getAutoplayEnabled()) }
-    var syncLikes by remember { mutableStateOf(prefs.getSyncLikesEnabled()) }
     var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
     var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
 
@@ -118,27 +112,7 @@ fun AudioSettingsScreen(
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 120.dp)
         ) {
-            if (isLoggedIn) {
-                item {
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                        SettingsGroupTitle(stringResource(R.string.settings_cat_general))
 
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            SettingsItem(
-                                shape = com.alananasss.kittytune.ui.common.getSettingsShape(1, 0),
-                                title = stringResource(R.string.pref_sync_likes),
-                                subtitle = stringResource(R.string.pref_sync_likes_sub),
-                                hasSwitch = true,
-                                switchState = syncLikes,
-                                onSwitchChange = {
-                                    syncLikes = it
-                                    prefs.setSyncLikesEnabled(it)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
 
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {

@@ -44,25 +44,36 @@ object RetrofitClient {
                 ) ?: token
             }
 
+            val targetClientId = if (!token.isNullOrEmpty()) Config.OFFICIAL_CLIENT_ID else Config.CLIENT_ID
+            val isOfficialCred = targetClientId == Config.OFFICIAL_CLIENT_ID
+
             val newUrl = originalRequest.url.let { url ->
-                if (url.queryParameter("client_id").isNullOrBlank()) {
-                    url.newBuilder()
-                        .addQueryParameter("client_id", Config.CLIENT_ID)
-                        .build()
-                } else {
-                    url
-                }
+                url.newBuilder()
+                    .setQueryParameter("client_id", targetClientId)
+                    .build()
             }
+
+            val deviceId = Config.getOrCreateSoundCloudDeviceId(appContext)
+            val buildVersion = "2025.12.10-release"
+            val androidRelease = android.os.Build.VERSION.RELEASE ?: "10"
+            val deviceModel = android.os.Build.MODEL ?: "Android"
+            val customUserAgent = "SoundCloud/$buildVersion (Android $androidRelease; $deviceModel)"
 
             val requestBuilder = originalRequest.newBuilder()
                 .url(newUrl)
-                .header("User-Agent", Config.USER_AGENT)
+                .header("User-Agent", customUserAgent)
                 .header("Accept", "application/json")
-                .header("Origin", "https://soundcloud.com")
-                .header("Referer", "https://soundcloud.com/")
+                .header("App-Version", "330120")
+                .header("UDID", deviceId)
+
+            if (isOfficialCred) {
+                requestBuilder.header("Authorization-Signature", Config.OFFICIAL_CLIENT_SIGNATURE)
+            }
 
             if (!token.isNullOrEmpty()) {
                 requestBuilder.header("Authorization", "OAuth $token")
+            } else {
+                requestBuilder.removeHeader("Authorization")
             }
 
             chain.proceed(requestBuilder.build())

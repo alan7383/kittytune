@@ -47,6 +47,34 @@ object Config {
             Log.d("Config", "🔥 FRESH CLIENT ID SNAGGED: $newId")
         }
     }
+
+    fun getOrCreateSoundCloudDeviceId(context: Context): String {
+        val prefs = context.applicationContext.getSharedPreferences("soundcloud_auth_flow", Context.MODE_PRIVATE)
+        prefs.getString("soundcloud_device_id", null)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { return it }
+
+        val rawId = try {
+            android.provider.Settings.Secure.getString(context.contentResolver, android.provider.Settings.Secure.ANDROID_ID)
+        } catch (e: Exception) {
+            null
+        }
+
+        val deviceId = if (!rawId.isNullOrBlank() && rawId != "9774d56d682e549c") {
+            try {
+                val md = java.security.MessageDigest.getInstance("MD5")
+                val digest = md.digest(rawId.toByteArray(Charsets.UTF_8))
+                digest.joinToString("") { "%02x".format(it) }
+            } catch (e: Exception) {
+                java.util.UUID.randomUUID().toString().replace("-", "")
+            }
+        } else {
+            java.util.UUID.randomUUID().toString().replace("-", "")
+        }
+
+        prefs.edit().putString("soundcloud_device_id", deviceId).apply()
+        return deviceId
+    }
 }
 
 

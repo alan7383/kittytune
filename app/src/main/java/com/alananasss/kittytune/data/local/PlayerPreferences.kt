@@ -102,7 +102,7 @@ class PlayerPreferences(private val context: Context) {
         }
     }
 
-    fun getSyncLikesEnabled(): Boolean = prefs.getBoolean(KEY_SYNC_LIKES, false)
+    fun getSyncLikesEnabled(): Boolean = prefs.getBoolean(KEY_SYNC_LIKES, true)
     fun setSyncLikesEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_SYNC_LIKES, enabled).apply()
 
     fun getCrossfadeEnabled(): Boolean = prefs.getBoolean(KEY_CROSSFADE_ENABLED, false)
