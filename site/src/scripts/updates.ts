@@ -203,8 +203,10 @@ function showSkeleton() {
   container.innerHTML = `
     <div class="timeline-loading-state">
       <div class="m3-expressive-loader">
-        <div class="m3-loader-track"></div>
-        <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
+        <div class="m3-loader-clip">
+          <div class="m3-loader-track"></div>
+          <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
+        </div>
         <div class="m3-loader-stop"></div>
       </div>
       <p class="m3-loader-text">Synchronizing releases...</p>
@@ -258,7 +260,7 @@ async function loadInitialReleases() {
   try {
     const [releases] = await Promise.all([
       fetchReleases(1),
-      new Promise(resolve => setTimeout(resolve, 2500))
+      new Promise(resolve => setTimeout(resolve, 3200))
     ]);
 
     if (releases.length < PER_PAGE) allLoaded = true;

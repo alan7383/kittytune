@@ -61,8 +61,11 @@ function formatDate(iso: string): string {
             <!-- Loader Premium M3 affiché au chargement -->
             <div class="timeline-loading-state">
               <div class="m3-expressive-loader">
-                <div class="m3-loader-track"></div>
-                <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
+                <!-- Nouveau masque de découpe -->
+                <div class="m3-loader-clip">
+                  <div class="m3-loader-track"></div>
+                  <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
+                </div>
                 <div class="m3-loader-stop"></div>
               </div>
               <p class="m3-loader-text">Synchronizing releases...</p>
