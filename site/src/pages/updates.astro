@@ -58,25 +58,15 @@ function formatDate(iso: string): string {
     <!-- Panel: Releases (loaded dynamically via JS) -->
     <div class="updates-panel active" id="panel-releases">
       <div id="releases-timeline">
-        <!-- Skeleton shown while fetching -->
-        <div class="timeline-skeleton">
-          <div class="skeleton-card">
-            <div class="skeleton-line title w40"><div class="skeleton-wave"></div></div>
-            <div class="skeleton-line w80"><div class="skeleton-wave"></div></div>
-            <div class="skeleton-line w60"><div class="skeleton-wave"></div></div>
-            <div class="skeleton-line w100"><div class="skeleton-wave"></div></div>
-          </div>
-          <div class="skeleton-card">
-            <div class="skeleton-line title w40"><div class="skeleton-wave"></div></div>
-            <div class="skeleton-line w60"><div class="skeleton-wave"></div></div>
-            <div class="skeleton-line w80"><div class="skeleton-wave"></div></div>
-          </div>
-          <div class="skeleton-card">
-            <div class="skeleton-line title w40"><div class="skeleton-wave"></div></div>
-            <div class="skeleton-line w80"><div class="skeleton-wave"></div></div>
-            <div class="skeleton-line w60"><div class="skeleton-wave"></div></div>
-          </div>
-        </div>
+            <!-- Loader Premium M3 affiché au chargement -->
+            <div class="timeline-loading-state">
+              <div class="m3-expressive-loader">
+                <div class="m3-loader-track"></div>
+                <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
+                <div class="m3-loader-stop"></div>
+              </div>
+              <p class="m3-loader-text">Synchronizing releases...</p>
+            </div>
       </div>
     </div>
 
