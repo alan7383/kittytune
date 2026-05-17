@@ -673,7 +673,7 @@
     font-size: 16px;
 }
 
-/* ===== Loading skeleton ===== */
+/* ===== M3 Expressive Wavy Progress Indicator (Skeleton) ===== */
 .timeline-skeleton {
     padding-left: 36px;
 }
@@ -687,28 +687,92 @@
 }
 
 .skeleton-line {
-    height: 14px;
-    border-radius: 7px;
-    background: linear-gradient(
-        90deg,
-        var(--md-sys-color-surface-container-high) 25%,
-        var(--md-sys-color-surface-container-highest) 50%,
-        var(--md-sys-color-surface-container-high) 75%
-    );
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.5s ease-in-out infinite;
-    margin-bottom: 10px;
+    position: relative;
+    height: 12px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    opacity: 0.85;
+    animation: skeleton-pulse 2s ease-in-out infinite alternate;
 }
 
+/* 1. Track : La ligne plate (Configuration: Flat, Thickness: 4dp) */
+.skeleton-line::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px;
+    border-radius: 2px;
+    background: var(--md-sys-color-surface-container-highest);
+}
+
+/* 2. Stop Indicator : Le point de fin (Configuration: Stop indicator enabled) */
+.skeleton-line::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--md-sys-color-primary);
+}
+
+/* 3. Active Indicator : L'animation vague (Configuration: Wavy, Wavelength: 40dp) */
+.skeleton-wave {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: var(--md-sys-color-primary);
+    
+    /* 
+     * Masque SVG sinusoïdal parfaitement raccordable aux extrémités.
+     * M 0 6 : Début
+     * Q 10 -2 20 6 : Crête supérieure (Amplitude visuelle totale 8px centrée sur 12px)
+     * T 40 6 : Crête inférieure 
+     */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M 0 6 Q 10 -2 20 6 T 40 6' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M 0 6 Q 10 -2 20 6 T 40 6' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
+    
+    -webkit-mask-repeat: repeat-x;
+    mask-repeat: repeat-x;
+    
+    /* L'animation translate le masque de la taille exacte de sa wavelength (40px) */
+    animation: m3-wave-slide 0.8s linear infinite;
+    z-index: 1;
+}
+
+/* Contrôle de la largeur des barres (Indeterminate simulation) */
 .skeleton-line.w40  { width: 40%; }
 .skeleton-line.w60  { width: 60%; }
 .skeleton-line.w80  { width: 80%; }
 .skeleton-line.w100 { width: 100%; }
-.skeleton-line.title { height: 22px; margin-bottom: 16px; }
 
-@keyframes skeleton-shimmer {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+/* Ligne de Titre (Plus épaisse proportionnellement) */
+.skeleton-line.title {
+    height: 16px;
+    margin-bottom: 20px;
+}
+
+.skeleton-line.title .skeleton-wave {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cpath d='M 0 8 Q 10 0 20 8 T 40 8' fill='none' stroke='black' stroke-width='5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cpath d='M 0 8 Q 10 0 20 8 T 40 8' fill='none' stroke='black' stroke-width='5'/%3E%3C/svg%3E");
+}
+
+/* Animations */
+@keyframes m3-wave-slide {
+    0%   { -webkit-mask-position: 0 0; mask-position: 0 0; }
+    100% { -webkit-mask-position: -40px 0; mask-position: -40px 0; }
+}
+
+@keyframes skeleton-pulse {
+    0%   { opacity: 0.5; }
+    100% { opacity: 1; }
 }
 
 /* ===== Error State ===== */
