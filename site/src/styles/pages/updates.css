@@ -730,14 +730,8 @@
     width: 100%;
     background: var(--md-sys-color-primary);
     
-    /* 
-     * Masque SVG sinusoïdal parfaitement raccordable aux extrémités.
-     * M 0 6 : Début
-     * Q 10 -2 20 6 : Crête supérieure (Amplitude visuelle totale 8px centrée sur 12px)
-     * T 40 6 : Crête inférieure 
-     */
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M 0 6 Q 10 -2 20 6 T 40 6' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M 0 6 Q 10 -2 20 6 T 40 6' fill='none' stroke='black' stroke-width='4'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M 0 6 Q 10 -2 20 6 T 40 6' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='12' viewBox='0 0 40 12'%3E%3Cpath d='M 0 6 Q 10 -2 20 6 T 40 6' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
     
     -webkit-mask-repeat: repeat-x;
     mask-repeat: repeat-x;
@@ -760,8 +754,8 @@
 }
 
 .skeleton-line.title .skeleton-wave {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cpath d='M 0 8 Q 10 0 20 8 T 40 8' fill='none' stroke='black' stroke-width='5'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cpath d='M 0 8 Q 10 0 20 8 T 40 8' fill='none' stroke='black' stroke-width='5'/%3E%3C/svg%3E");
+    -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cpath d='M 0 8 Q 10 -2 20 8 T 40 8' fill='none' stroke='black' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='16' viewBox='0 0 40 16'%3E%3Cpath d='M 0 8 Q 10 -2 20 8 T 40 8' fill='none' stroke='black' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 /* Animations */
