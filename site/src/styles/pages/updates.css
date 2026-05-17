@@ -101,8 +101,20 @@
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
     position: relative;
+    overflow: hidden;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+}
+
+.updates-tab::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .updates-tab .material-icons-round {
@@ -115,6 +127,18 @@
 
 .updates-tab:hover {
     background: var(--item-hover-bg);
+}
+
+.updates-tab:hover::after {
+    opacity: 0.08;
+}
+
+.updates-tab:active::after {
+    opacity: 0.12;
+}
+
+.updates-tab:active {
+    border-radius: 12px;
 }
 
 .updates-tab.active {
@@ -399,6 +423,17 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+.release-action-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
 .release-action-btn .material-icons-round {
     font-size: 18px;
 }
@@ -410,6 +445,14 @@
 
 .release-action-btn.primary:hover {
     filter: brightness(1.08);
+}
+
+.release-action-btn.primary:hover::after {
+    opacity: 0.08;
+}
+
+.release-action-btn.primary:active::after {
+    opacity: 0.14;
 }
 
 .release-action-btn.primary:active {
@@ -424,6 +467,18 @@
 
 .release-action-btn.outline:hover {
     background: var(--item-hover-bg);
+}
+
+.release-action-btn.outline:hover::after {
+    opacity: 0.08;
+}
+
+.release-action-btn.outline:active::after {
+    opacity: 0.14;
+}
+
+.release-action-btn.outline:active {
+    border-radius: 12px;
 }
 
 /* ===== APK Size Badge ===== */
@@ -581,11 +636,37 @@
     text-decoration: none;
     font-size: 0.82rem;
     font-weight: 600;
-    transition: filter 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.announcement-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .announcement-link:hover {
     filter: brightness(1.08);
+}
+
+.announcement-link:hover::after {
+    opacity: 0.08;
+}
+
+.announcement-link:active::after {
+    opacity: 0.14;
+}
+
+.announcement-link:active {
+    border-radius: 12px;
 }
 
 .announcement-link .material-icons-round {
@@ -730,8 +811,27 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+.load-more-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
 .load-more-btn:hover {
     background: var(--item-hover-bg);
+}
+
+.load-more-btn:hover::after {
+    opacity: 0.08;
+}
+
+.load-more-btn:active::after {
+    opacity: 0.14;
 }
 
 .load-more-btn:active {
