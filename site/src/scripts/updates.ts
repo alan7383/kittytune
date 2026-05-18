@@ -205,8 +205,11 @@ function showSkeleton() {
       <h3 class="m3-loader-text">Checking for updates...</h3>
       <div class="m3-expressive-loader">
         <div class="m3-loader-track"></div>
-        <div class="m3-loader-bar">
-          <div class="m3-loader-wave"></div>
+        <div class="m3-line m3-line--first">
+          <div class="m3-line-wave"></div>
+        </div>
+        <div class="m3-line m3-line--second">
+          <div class="m3-line-wave"></div>
         </div>
       </div>
     </div>
