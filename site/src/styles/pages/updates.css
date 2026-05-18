@@ -698,70 +698,229 @@
     letter-spacing: -0.01em;
 }
 
-/* LinearContainerWidth = 240.dp, LinearContainerHeight = 10.dp */
+/* 
+ * Container: LinearContainerHeight = WaveHeight = 10dp
+ * LinearContainerWidth = 240dp
+ */
 .m3-expressive-loader {
     position: relative;
-    width: 100%;
-    max-width: 240px; 
+    width: 240px;
     height: 10px;
+    overflow: hidden; /* clipToBounds */
+    margin-bottom: 24px;
 }
 
-/* TrackThickness = 4.dp */
+/* 
+ * Track: TrackThickness = 4dp, StrokeCap.Round → border-radius
+ * trackColor = ProgressIndicatorTokens.TrackColor
+ */
 .m3-loader-track {
     position: absolute;
-    left: 0; right: 0;
+    left: 0;
+    right: 0;
     top: 50%;
     transform: translateY(-50%);
-    height: 4px; 
+    height: 4px;
     border-radius: 2px;
     background: var(--md-sys-color-surface-container-highest);
 }
 
-/* Gère la croissance/rétrécissement de la barre (Inchworm animation) */
-.m3-loader-bar {
+/*
+ * Each "line" is independently animated via head+tail progress values.
+ * We simulate head/tail as clip-path left/right edges using a wrapper + inner approach.
+ *
+ * Line wrapper: controls the visible segment via clip-path (left=tail, right=100%-head)
+ * Line inner:   the full-width wavy stroke rendered with mask
+ */
+
+.m3-line {
     position: absolute;
-    inset: 0;
-    /* Equivalent de l'AnimationSpec (EasingStandardCubicBezier) */
-    animation: m3-inchworm 2s cubic-bezier(0.2, 0.0, 0.0, 1.0) infinite;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    /* We animate clip-path to expose head..tail segment */
+    clip-path: inset(0 100% 0 0); /* starts fully hidden */
+}
+
+.m3-line--first {
+    animation: m3-line-first 1800ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.m3-line--second {
+    animation: m3-line-second 1800ms cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/*
+ * Exact keyframes derived from M3 source linearIndeterminate*AnimationSpec:
+ *
+ * FirstLineHead:  0→1 over [0ms … 750ms]   with FastOutSlowIn
+ * FirstLineTail:  0→1 over [333ms … 900ms]  with FastOutSlowIn
+ * SecondLineHead: 0→1 over [1000ms … 1750ms] with FastOutSlowIn
+ * SecondLineTail: 0→1 over [1333ms … 1800ms] with FastOutSlowIn
+ *
+ * clip-path: inset(0 {100-head*100}% 0 {tail*100}%)
+ *
+ * We express keyframes as % of the 1800ms cycle.
+ *
+ * FastOutSlowIn ≈ cubic-bezier(0.4, 0, 0.2, 1)
+ * But since clip-path can't use per-property easing in @keyframes,
+ * we bake the eased positions into the keyframe stops.
+ */
+
+/*
+ * Baked easing table for FastOutSlowIn (0.4,0,0.2,1):
+ * t=0%   → p=0%
+ * t=20%  → p=~52%
+ * t=40%  → p=~82%
+ * t=60%  → p=~94%
+ * t=80%  → p=~99%
+ * t=100% → p=100%
+ */
+
+@keyframes m3-line-first {
+    /* 
+     * Phase 1: head travels 0→1 from t=0% to t=41.7% (750/1800)
+     *          tail travels 0→1 from t=18.5% to t=50% (333/1800 → 900/1800)
+     * Phase 2: both off-screen until cycle end
+     */
+
+    /* t=0ms / 0% — both at 0, segment invisible */
+    0% {
+        clip-path: inset(0 100% 0 0%);
+    }
+    /* t=83ms / 4.6% — head starts moving (FastOutSlowIn baked) */
+    4.6% {
+        clip-path: inset(0 97% 0 0%);
+    }
+    /* t=150ms / 8.3% — head ~26% */
+    8.3% {
+        clip-path: inset(0 86% 0 0%);
+    }
+    /* t=250ms / 13.9% — head ~50% */
+    13.9% {
+        clip-path: inset(0 72% 0 0%);
+    }
+    /* t=333ms / 18.5% — tail starts, head ~65% */
+    18.5% {
+        clip-path: inset(0 59% 0 0%);
+    }
+    /* t=400ms / 22.2% — head ~75%, tail ~12% */
+    22.2% {
+        clip-path: inset(0 48% 0 6%);
+    }
+    /* t=500ms / 27.8% — head ~86%, tail ~28% */
+    27.8% {
+        clip-path: inset(0 34% 0 15%);
+    }
+    /* t=600ms / 33.3% — head ~93%, tail ~48% */
+    33.3% {
+        clip-path: inset(0 22% 0 28%);
+    }
+    /* t=700ms / 38.9% — head ~98%, tail ~70% */
+    38.9% {
+        clip-path: inset(0 8% 0 48%);
+    }
+    /* t=750ms / 41.7% — head=100% (exits), tail ~80% */
+    41.7% {
+        clip-path: inset(0 0% 0 62%);
+    }
+    /* t=830ms / 46.1% — head past 100, tail ~91% */
+    46.1% {
+        clip-path: inset(0 0% 0 78%);
+    }
+    /* t=900ms / 50% — tail=100%, both gone */
+    50% {
+        clip-path: inset(0 0% 0 100%);
+    }
+    /* Hold invisible until end of cycle */
+    50.1%, 100% {
+        clip-path: inset(0 100% 0 100%);
+    }
+}
+
+@keyframes m3-line-second {
+    /* Invisible for first half */
+    0%, 55.5% {
+        clip-path: inset(0 100% 0 0%);
+    }
+    /* t=1000ms / 55.6% — head starts */
+    55.6% {
+        clip-path: inset(0 100% 0 0%);
+    }
+    /* Mirror of first line but offset by 1000ms */
+    60.2% {
+        clip-path: inset(0 97% 0 0%);
+    }
+    63.9% {
+        clip-path: inset(0 86% 0 0%);
+    }
+    69.4% {
+        clip-path: inset(0 72% 0 0%);
+    }
+    74.1% {
+        clip-path: inset(0 59% 0 0%);
+    }
+    77.8% {
+        clip-path: inset(0 48% 0 6%);
+    }
+    83.3% {
+        clip-path: inset(0 34% 0 15%);
+    }
+    88.9% {
+        clip-path: inset(0 22% 0 28%);
+    }
+    94.4% {
+        clip-path: inset(0 8% 0 48%);
+    }
+    97.2% {
+        clip-path: inset(0 0% 0 62%);
+    }
+    /* t=1800ms / 100% — tail exits */
+    100% {
+        clip-path: inset(0 0% 0 100%);
+    }
 }
 
 /* 
- * Reproduction de firstLineHead et firstLineTail.
- * inset(top right bottom left) 
+ * The wave stroke itself.
+ * spec: wavelength=LinearIndeterminateWavelength≈20dp, amplitude fills height, 
+ * ActiveThickness=4dp, StrokeCap.Round
+ *
+ * SVG wave: width=20, height=10, Q5,-1 10,5 T20,5 stroke-width=4 round caps
+ * waveSpeed = wavelength = 20dp → 1 wavelength/sec → mask shifts -20px per second
  */
-@keyframes m3-inchworm {
-    0%   { clip-path: inset(0 100% 0 0 round 5px); } /* Head = 0%, Tail = 0% */
-    35%  { clip-path: inset(0 15% 0 0 round 5px); }  /* Head part vite devant (85%) */
-    70%  { clip-path: inset(0 0 0 65% round 5px); }  /* Tail rattrape (65%) */
-    100% { clip-path: inset(0 0 0 100% round 5px); } /* Tail rejoint Head (100%) */
-}
-
-/* 
- * Wavelength = 20.dp
- * ActiveThickness = 4.dp
- * Amplitude gérée par le ratio hauteur/largeur du SVG
- */
-.m3-loader-wave {
+.m3-line-wave {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: -40px;    /* offset so wave is seamless from the start */
+    width: calc(100% + 80px);
+    height: 100%;
     background: var(--md-sys-color-primary);
+
+    /* Wavy mask: wavelength=20px, height=10px, stroke-width=4, round caps */
+    --wave-svg: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10'%3E%3Cpath d='M0 5 Q5 0 10 5 T20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
     
-    /* Courbe de Bézier générant la vague (Q = quadratique, T = smooth quadratique) */
-    -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q 5 0 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q 5 0 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
-    
+    -webkit-mask-image: var(--wave-svg);
+    mask-image: var(--wave-svg);
     -webkit-mask-repeat: repeat-x;
     mask-repeat: repeat-x;
     -webkit-mask-size: 20px 10px;
     mask-size: 20px 10px;
-    
-    /* waveSpeed = wavelength (1 vague complète par seconde) */
-    animation: m3-wave-shift 1s linear infinite;
+
+    /* waveSpeed = wavelength/s = 20px/s → period = 1000ms */
+    animation: m3-wave-scroll 1000ms linear infinite;
 }
 
-@keyframes m3-wave-shift {
-    from { -webkit-mask-position: 0 0; mask-position: 0 0; }
-    to   { -webkit-mask-position: -20px 0; mask-position: -20px 0; } /* Décalage d'exactement 1 Wavelength (20px) */
+@keyframes m3-wave-scroll {
+    from {
+        -webkit-mask-position: 0 0;
+        mask-position: 0 0;
+    }
+    to {
+        -webkit-mask-position: -20px 0;
+        mask-position: -20px 0;
+    }
 }
 
 /* ===== Error State ===== */
