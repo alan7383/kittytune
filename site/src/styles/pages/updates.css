@@ -99,7 +99,9 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+    transition: background-color 0.3s cubic-bezier(0.2, 0, 0, 1),
+                color 0.3s cubic-bezier(0.2, 0, 0, 1),
+                border-radius 0.2s cubic-bezier(0.2, 0, 0, 1);
     position: relative;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
@@ -415,7 +417,10 @@
     text-decoration: none;
     font-size: 0.85rem;
     font-weight: 600;
-    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+                color 0.2s cubic-bezier(0.2, 0, 0, 1),
+                border-radius 0.2s cubic-bezier(0.2, 0, 0, 1),
+                filter 0.2s cubic-bezier(0.2, 0, 0, 1);
     cursor: pointer;
     border: none;
     position: relative;
@@ -642,7 +647,10 @@
     text-decoration: none;
     font-size: 0.82rem;
     font-weight: 600;
-    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+                color 0.2s cubic-bezier(0.2, 0, 0, 1),
+                border-radius 0.2s cubic-bezier(0.2, 0, 0, 1),
+                filter 0.2s cubic-bezier(0.2, 0, 0, 1);
     position: relative;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
@@ -1023,7 +1031,9 @@
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+                color 0.2s cubic-bezier(0.2, 0, 0, 1),
+                border-radius 0.2s cubic-bezier(0.2, 0, 0, 1);
     position: relative;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
