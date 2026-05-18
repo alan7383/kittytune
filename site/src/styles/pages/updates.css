@@ -677,37 +677,41 @@
 .timeline-loading-state {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start; /* Aligné à gauche comme Android */
     justify-content: center;
-    padding: 100px 20px;
+    padding: 40px 0 60px 0;
     width: 100%;
     opacity: 0;
-    /* On attend 0.8s (la fin du chargement global noir) avant de s'afficher */
-    animation: fade-in-loader 0.5s ease 0.8s forwards;
+    animation: fade-in-loader 0.4s ease forwards;
 }
 
 @keyframes fade-in-loader {
     to { opacity: 1; }
 }
 
+.m3-loader-text {
+    font-family: var(--font-display);
+    color: var(--md-sys-color-on-surface);
+    font-weight: 500;
+    font-size: 1.5rem;
+    margin-bottom: 24px;
+    letter-spacing: -0.01em;
+}
+
 .m3-expressive-loader {
     position: relative;
-    width: 280px;
+    width: 100%;
+    max-width: 320px;
     height: 10px;
-    margin-bottom: 24px;
 }
 
 .m3-loader-clip {
     position: absolute;
-    left: 0;
-    right: 0; /* En mode indeterminate, on prend toute la largeur */
-    top: 0;
-    bottom: 0;
+    inset: 0;
     overflow: hidden;
     border-radius: 6px;
 }
 
-/* 1. Track: Ligne de base grise (4dp) */
 .m3-loader-track {
     position: absolute;
     left: 0; right: 0;
@@ -718,69 +722,37 @@
     background: var(--md-sys-color-surface-container-highest);
 }
 
-/* 2. Stop Indicator: Masqué en mode Indeterminate (Standard MD3) */
-.m3-loader-stop {
-    display: none;
-}
-
-/* Animation corrigée : apparaît/disparaît aux bords exacts du track */
+/* La barre utilise un clip-path pour avoir des bords arrondis parfaits
+   qui grandissent et rétrécissent sans déformer la vague ! */
 .m3-loader-bar {
     position: absolute;
-    top: 0; bottom: 0;
-    overflow: hidden;
-    border-radius: 6px;
-    animation: m3-indet-bar 2.2s linear infinite;
+    inset: 0;
+    animation: m3-clip-indet 2s cubic-bezier(0.3, 0.0, 0.2, 1) infinite;
 }
 
-@keyframes m3-indet-bar {
-    /*        left    width                                          */
-    0%   { left:  0%;   width:  0%;  } /* invisible au bord gauche  */
-    5%   { left:  0%;   width:  8%;  } /* queue reste à 0, tête avance */
-    22%  { left:  2%;   width: 40%;  } /* tête a foncé (+40%), queue à peine bougé (+2%) */
-    62%  { left: 52%;   width: 38%;  } /* segment entier translate ensemble */
-    88%  { left: 87%;   width: 12%;  } /* queue rattrape la tête */
-    96%  { left: 100%;  width:  0%;  } /* disparaît au bord droit */
-    100% { left: 100%;  width:  0%;  } /* micro-pause → loop seamless */
+@keyframes m3-clip-indet {
+    0%   { clip-path: inset(0 100% 0 0 round 6px); }
+    30%  { clip-path: inset(0 20% 0 0 round 6px); }
+    65%  { clip-path: inset(0 0 0 60% round 6px); }
+    100% { clip-path: inset(0 0 0 100% round 6px); }
 }
 
-/* Wave SVG : stroke conforme M3 Expressive
-   - wavelength 20dp (spec indeterminate = 20, pas 40)
-   - amplitude 3dp depuis le centre (peak y=2, trough y=8)
-   - stroke-width 4dp, height 10dp */
 .m3-loader-wave {
     position: absolute;
-    top: 0; bottom: 0;
-    left: -400px;
-    width: 1200px;
+    inset: 0;
     background: var(--md-sys-color-primary);
-
     -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q5 -1 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
     mask-image:         url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q5 -1 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
     -webkit-mask-repeat: repeat-x;
     mask-repeat: repeat-x;
-    -webkit-mask-size: 20px 10px;   /* ← 20px pas 40px */
+    -webkit-mask-size: 20px 10px;
     mask-size: 20px 10px;
-
-    animation: m3-wave-slide 0.6s linear infinite;
-}
-
-.m3-loader-text {
-    font-family: var(--font-display);
-    color: var(--md-sys-color-on-surface-variant);
-    font-weight: 600;
-    font-size: 0.95rem;
-    letter-spacing: 0.5px;
-    animation: pulse-text 2s ease-in-out 0.8s infinite;
+    animation: m3-wave-slide 0.5s linear infinite;
 }
 
 @keyframes m3-wave-slide {
     from { -webkit-mask-position: 0 0;     mask-position: 0 0;     }
-    to   { -webkit-mask-position: -20px 0; mask-position: -20px 0; } /* ← -20px pas -40px */
-}
-
-@keyframes pulse-text {
-    0%, 100% { opacity: 0.5; }
-    50%      { opacity: 1; }
+    to   { -webkit-mask-position: -40px 0; mask-position: -40px 0; }
 }
 
 /* ===== Error State ===== */

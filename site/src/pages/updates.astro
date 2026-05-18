@@ -58,18 +58,16 @@ function formatDate(iso: string): string {
     <!-- Panel: Releases (loaded dynamically via JS) -->
     <div class="updates-panel active" id="panel-releases">
       <div id="releases-timeline">
-            <!-- Loader Premium M3 affiché au chargement -->
-            <div class="timeline-loading-state">
-              <div class="m3-expressive-loader">
-                <!-- Nouveau masque de découpe -->
-                <div class="m3-loader-clip">
-                  <div class="m3-loader-track"></div>
-                  <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
-                </div>
-                <div class="m3-loader-stop"></div>
-              </div>
-              <p class="m3-loader-text">Synchronizing releases...</p>
+        <!-- Loader Premium M3 affiché au chargement -->
+        <div class="timeline-loading-state">
+          <h3 class="m3-loader-text">Checking for updates...</h3>
+          <div class="m3-expressive-loader">
+            <div class="m3-loader-clip">
+              <div class="m3-loader-track"></div>
+              <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
             </div>
+          </div>
+        </div>
       </div>
     </div>
 
