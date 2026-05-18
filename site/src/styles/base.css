@@ -159,17 +159,17 @@ span.md3-ripple {
     border-radius: 50%;
     width: 0;
     height: 0;
-    z-index: 1;
+    z-index: 0;
     transform: scale(0);
     animation: md3-ripple-animation 700ms ease-out forwards;
-    background-color: currentColor;
+    background-color: rgba(255, 255, 255, 0.15);
     pointer-events: none;
 }
 
 @keyframes md3-ripple-animation {
     from {
         transform: scale(0);
-        opacity: 0.15;
+        opacity: 1;
     }
 
     to {
