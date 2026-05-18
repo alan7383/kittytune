@@ -202,14 +202,13 @@ function showSkeleton() {
   if (!container) return;
   container.innerHTML = `
     <div class="timeline-loading-state">
+      <h3 class="m3-loader-text">Checking for updates...</h3>
       <div class="m3-expressive-loader">
         <div class="m3-loader-clip">
           <div class="m3-loader-track"></div>
           <div class="m3-loader-bar"><div class="m3-loader-wave"></div></div>
         </div>
-        <div class="m3-loader-stop"></div>
       </div>
-      <p class="m3-loader-text">Synchronizing releases...</p>
     </div>
   `;
 }
