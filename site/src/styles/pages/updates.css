@@ -673,11 +673,11 @@
     font-size: 16px;
 }
 
-/* ===== Premium M3 Expressive Wavy Loader ===== */
+/* ===== Premium M3 Expressive Wavy Loader (From Kotlin Source) ===== */
 .timeline-loading-state {
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Aligné à gauche comme Android */
+    align-items: flex-start;
     justify-content: center;
     padding: 40px 0 60px 0;
     width: 100%;
@@ -698,61 +698,70 @@
     letter-spacing: -0.01em;
 }
 
+/* LinearContainerWidth = 240.dp, LinearContainerHeight = 10.dp */
 .m3-expressive-loader {
     position: relative;
     width: 100%;
-    max-width: 320px;
+    max-width: 240px; 
     height: 10px;
 }
 
-.m3-loader-clip {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    border-radius: 6px;
-}
-
+/* TrackThickness = 4.dp */
 .m3-loader-track {
     position: absolute;
     left: 0; right: 0;
     top: 50%;
     transform: translateY(-50%);
-    height: 4px;
+    height: 4px; 
     border-radius: 2px;
     background: var(--md-sys-color-surface-container-highest);
 }
 
-/* La barre utilise un clip-path pour avoir des bords arrondis parfaits
-   qui grandissent et rétrécissent sans déformer la vague ! */
+/* Gère la croissance/rétrécissement de la barre (Inchworm animation) */
 .m3-loader-bar {
     position: absolute;
     inset: 0;
-    animation: m3-clip-indet 2s cubic-bezier(0.3, 0.0, 0.2, 1) infinite;
+    /* Equivalent de l'AnimationSpec (EasingStandardCubicBezier) */
+    animation: m3-inchworm 2s cubic-bezier(0.2, 0.0, 0.0, 1.0) infinite;
 }
 
-@keyframes m3-clip-indet {
-    0%   { clip-path: inset(0 100% 0 0 round 6px); }
-    30%  { clip-path: inset(0 20% 0 0 round 6px); }
-    65%  { clip-path: inset(0 0 0 60% round 6px); }
-    100% { clip-path: inset(0 0 0 100% round 6px); }
+/* 
+ * Reproduction de firstLineHead et firstLineTail.
+ * inset(top right bottom left) 
+ */
+@keyframes m3-inchworm {
+    0%   { clip-path: inset(0 100% 0 0 round 5px); } /* Head = 0%, Tail = 0% */
+    35%  { clip-path: inset(0 15% 0 0 round 5px); }  /* Head part vite devant (85%) */
+    70%  { clip-path: inset(0 0 0 65% round 5px); }  /* Tail rattrape (65%) */
+    100% { clip-path: inset(0 0 0 100% round 5px); } /* Tail rejoint Head (100%) */
 }
 
+/* 
+ * Wavelength = 20.dp
+ * ActiveThickness = 4.dp
+ * Amplitude gérée par le ratio hauteur/largeur du SVG
+ */
 .m3-loader-wave {
     position: absolute;
     inset: 0;
     background: var(--md-sys-color-primary);
-    -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q5 -1 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
-    mask-image:         url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q5 -1 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+    
+    /* Courbe de Bézier générant la vague (Q = quadratique, T = smooth quadratique) */
+    -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q 5 0 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='10' viewBox='0 0 20 10'%3E%3Cpath d='M0 5 Q 5 0 10 5 T 20 5' fill='none' stroke='black' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+    
     -webkit-mask-repeat: repeat-x;
     mask-repeat: repeat-x;
     -webkit-mask-size: 20px 10px;
     mask-size: 20px 10px;
-    animation: m3-wave-slide 0.5s linear infinite;
+    
+    /* waveSpeed = wavelength (1 vague complète par seconde) */
+    animation: m3-wave-shift 1s linear infinite;
 }
 
-@keyframes m3-wave-slide {
-    from { -webkit-mask-position: 0 0;     mask-position: 0 0;     }
-    to   { -webkit-mask-position: -40px 0; mask-position: -40px 0; }
+@keyframes m3-wave-shift {
+    from { -webkit-mask-position: 0 0; mask-position: 0 0; }
+    to   { -webkit-mask-position: -20px 0; mask-position: -20px 0; } /* Décalage d'exactement 1 Wavelength (20px) */
 }
 
 /* ===== Error State ===== */
