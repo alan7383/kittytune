@@ -481,17 +481,23 @@
     border-radius: 12px;
 }
 
-/* ===== APK Size Badge ===== */
-.apk-size {
+/* ===== APK Size & Download Count Badges ===== */
+.apk-size,
+.download-count {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     font-size: 0.78rem;
     color: var(--md-sys-color-outline);
-    margin-top: 12px;
+    margin-top: 0;   /* retiré le margin-top individuel */
 }
 
-.apk-size .material-icons-round {
+.download-count {
+    margin-left: 0;  /* retiré le margin-left parasite */
+}
+
+.apk-size .material-icons-round,
+.download-count .material-icons-round {
     font-size: 14px;
 }
 

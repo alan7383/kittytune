@@ -176,7 +176,7 @@ function renderReleaseCard(release: GitHubRelease, index: number): string {
         <div class="release-body">
           ${groupsHtml}
         </div>
-        ${metaHtml ? `<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">${metaHtml}</div>` : ''}
+        ${metaHtml ? `<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px;">${metaHtml}</div>` : ''}
         <div class="release-actions">
           ${actionsHtml}
         </div>
