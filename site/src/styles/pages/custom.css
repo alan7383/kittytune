@@ -1883,52 +1883,7 @@ a {
     font-size: 16px;
 }
 
-.rain-miniplayer {
-    position: fixed;
-    right: 32px;
-    bottom: 32px;
-    z-index: 9999;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    cursor: pointer;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(20px);
-    transition: transform 0.4s var(--ease-spring), opacity 0.4s;
-}
 
-.rain-miniplayer:hover {
-    transform: scale(1.05) translateY(0);
-}
-
-.rain-miniplayer.playing:not(.muted)::after {
-    content: "";
-    position: absolute;
-    inset: -4px;
-    border-radius: 50%;
-    border: 2px solid var(--md-sys-color-primary);
-    animation: rain-pulse 2s infinite;
-}
-
-@keyframes rain-pulse {
-    from {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-
-    to {
-        opacity: 0;
-        transform: scale(1.4);
-    }
-
-}
 
 @media (max-width: 1100px) {
     .hero-grid, .scroll-lab-grid, .player-grid, .monet-grid, .widget-feature {
@@ -2058,11 +2013,6 @@ a {
 
     .monet-chip-row .monet-chip {
         border-radius: 20px !important;
-    }
-
-    .rain-miniplayer {
-        right: 20px;
-        bottom: 104px;
     }
 
 }
