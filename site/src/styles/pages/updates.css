@@ -111,7 +111,7 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: currentColor;
+    background: #fff;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
@@ -428,7 +428,7 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: currentColor;
+    background: #fff;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
@@ -653,7 +653,7 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: currentColor;
+    background: #fff;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
@@ -1034,7 +1034,7 @@
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    background: currentColor;
+    background: #fff;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s cubic-bezier(0.2, 0, 0, 1);
