@@ -92,6 +92,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 24px;
+    border-radius: 100px;
     font-size: 0.9rem;
     font-weight: 500;
     font-family: var(--font-body);
