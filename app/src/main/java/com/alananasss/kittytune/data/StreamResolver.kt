@@ -73,6 +73,10 @@
         }
 
         suspend fun resolveStream(context: Context, track: Track, forDownload: Boolean = false): String? {
+            return resolveStreamWithDrm(context, track, forDownload)?.url
+        }
+
+        suspend fun resolveStreamWithDrm(context: Context, track: Track, forDownload: Boolean = false): ResolvedStream? {
             return withContext(Dispatchers.IO) {
                 try {
                     val localTrack = DownloadManager.getLocalTrack(track.id)
@@ -82,7 +86,7 @@
 
                         if (fileExists) {
                             Log.d(TAG, "Offline mode: Playing from local storage -> ${localTrack.localAudioPath}")
-                            return@withContext localTrack.localAudioPath
+                            return@withContext ResolvedStream(localTrack.localAudioPath)
                         }
                     }
                 } catch (e: Exception) {
@@ -90,7 +94,8 @@
                 }
                 if (track.source == "youtube") {
                     Log.d(TAG, "Resolving YouTube track: ${track.title}")
-                    return@withContext resolveFromYoutubeDirect(track)
+                    val url = resolveFromYoutubeDirect(track)
+                    return@withContext url?.let { ResolvedStream(it) }
                 }
 
                 val prefs = PlayerPreferences(context)
@@ -100,13 +105,13 @@
                     val streamUrl = resolveViaNewPipe(track)
 
                     if (streamUrl != null) {
-                        return@withContext streamUrl
+                        return@withContext ResolvedStream(streamUrl)
                     } else {
                             Log.w(TAG, "Unlock via NewPipe failed, falling back to SoundCloud standard.")
                         }
                 }
 
-                return@withContext resolveFromSoundCloud(context, track, forDownload)
+                return@withContext resolveFromSoundCloudWithDrm(context, track, forDownload)
             }
         }
 
@@ -170,6 +175,10 @@
         }
 
         private suspend fun resolveFromSoundCloud(context: Context, track: Track, forDownload: Boolean): String? {
+            return resolveFromSoundCloudWithDrm(context, track, forDownload)?.url
+        }
+
+        private suspend fun resolveFromSoundCloudWithDrm(context: Context, track: Track, forDownload: Boolean): ResolvedStream? {
             val prefs = PlayerPreferences(context)
             val api = RetrofitClient.create(context)
             var trackToUse = track
@@ -186,88 +195,154 @@
             val transcodings = trackToUse.media?.transcodings ?: return null
             val qualityPref = prefs.getAudioQuality()
 
-            val target = if (forDownload) {
-                transcodings.find { it.format?.protocol == "progressive" }
-            } else if (qualityPref == "HIGH") {
-                transcodings.find { it.format?.protocol == "progressive" }
-                    ?: transcodings.find { it.format?.protocol == "hls" }
-            } else {
-                transcodings.find { it.format?.protocol == "progressive" }
-                    ?: transcodings.find { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }
-                    ?: transcodings.find { it.format?.protocol == "hls" }
+            // Log all available transcodings for debugging
+            Log.d(TAG, "Track ${track.id} — ${transcodings.size} transcodings available:")
+            transcodings.forEachIndexed { i, t ->
+                Log.d(TAG, "  [$i] preset=${t.preset}, protocol=${t.format?.protocol}, mime=${t.format?.mimeType}, url=${t.url}")
             }
+            Log.d(TAG, "Track ${track.id} — policy=${trackToUse.policy}, monetization=${trackToUse.monetizationModel}")
 
-            if (target == null) {
+            // Build an ordered list of candidate transcodings to try
+            // Priority: progressive > hls > cbc-encrypted-hls > ctr-encrypted-hls
+            val candidates = buildTranscodingCandidates(transcodings, qualityPref, forDownload)
+
+            if (candidates.isEmpty()) {
+                Log.w(TAG, "Track ${track.id} — no matching transcoding found!")
                 if (forDownload && prefs.getYouTubeFallbackEnabled()) {
-                    return resolveViaNewPipe(track)
+                    val url = resolveViaNewPipe(track)
+                    return url?.let { ResolvedStream(it) }
                 }
                 return null
             }
 
-            val apiUrl = target?.url ?: return null
+            Log.d(TAG, "Track ${track.id} — ${candidates.size} candidates to try: ${candidates.map { "${it.preset}/${it.format?.protocol}" }}")
 
-            val urlWithParams = if (apiUrl.contains("?")) "$apiUrl&client_id=${Config.CLIENT_ID}" else "$apiUrl?client_id=${Config.CLIENT_ID}"
             val tokenManager = TokenManager(context)
             var token = SessionManager.awaitFreshAccessToken(
                 context = context,
                 force = tokenManager.shouldRefreshAccessToken()
             ) ?: tokenManager.getAccessToken()
 
-            try {
-                var response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+            // Try each candidate transcoding until one works
+            for (candidate in candidates) {
+                val protocol = candidate.format?.protocol ?: continue
+                val apiUrl = candidate.url ?: continue
 
-                if (!response.isSuccessful && isAuthFailure(response.code)) {
-                    val refreshedToken = SessionManager.awaitFreshAccessToken(
-                        context = context,
-                        staleToken = token,
-                        force = true
-                    )
+                val urlWithParams = if (apiUrl.contains("?")) "$apiUrl&client_id=${Config.CLIENT_ID}" else "$apiUrl?client_id=${Config.CLIENT_ID}"
 
-                    if (!refreshedToken.isNullOrEmpty() && refreshedToken != token) {
-                        response.close()
-                        token = refreshedToken
-                        response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
-                    } else if (!token.isNullOrEmpty()) {
-                        response.close()
-                        token = null
-                        response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                Log.d(TAG, "Track ${track.id} — trying transcoding: preset=${candidate.preset}, protocol=$protocol")
+
+                try {
+                    var response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+
+                    if (!response.isSuccessful && isAuthFailure(response.code)) {
+                        Log.w(TAG, "Track ${track.id} — auth failure (${response.code}), refreshing token...")
+                        val refreshedToken = SessionManager.awaitFreshAccessToken(
+                            context = context,
+                            staleToken = token,
+                            force = true
+                        )
+
+                        if (!refreshedToken.isNullOrEmpty() && refreshedToken != token) {
+                            response.close()
+                            token = refreshedToken
+                            response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                        } else if (!token.isNullOrEmpty()) {
+                            response.close()
+                            token = null
+                            response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                        }
                     }
+
+                    if (!response.isSuccessful) {
+                        Log.w(TAG, "Track ${track.id} — transcoding ${candidate.preset}/$protocol failed: code=${response.code}")
+                        response.close()
+                        continue // Try next candidate
+                    }
+
+                    val body = response.body?.string() ?: continue
+                    Log.d(TAG, "Track ${track.id} — stream API response: ${body.take(500)}")
+                    val json = JSONObject(body)
+                    val streamInfoUrl = json.getString("url")
+
+                    // Extract DRM license token if present (CENC-encrypted tracks)
+                    val licenseAuthToken = json.optString("licenseAuthToken", null)
+                    if (!licenseAuthToken.isNullOrEmpty()) {
+                        Log.d(TAG, "Track ${track.id} — CENC DRM detected! licenseAuthToken=${licenseAuthToken.take(50)}...")
+                    }
+
+                    // HLS or encrypted-HLS — return directly
+                    val isHlsLike = protocol == "hls" || protocol.contains("encrypted-hls")
+                    if (isHlsLike) {
+                        Log.d(TAG, "Track ${track.id} — HLS resolved: $streamInfoUrl (drm=${!licenseAuthToken.isNullOrEmpty()}, protocol=$protocol)")
+                        return ResolvedStream(streamInfoUrl, licenseAuthToken)
+                    }
+
+                    // Progressive — follow redirect to get CDN URL
+                    Log.d(TAG, "Resolving progressive stream URL: $streamInfoUrl")
+                    val finalRequest = okhttp3.Request.Builder().url(streamInfoUrl).build()
+                    val finalResponse = client.newCall(finalRequest).execute()
+                    finalResponse.body?.close()
+
+                    if (!finalResponse.isSuccessful) {
+                        Log.e(TAG, "Final resolution of progressive URL failed: ${finalResponse.code}")
+                        continue // Try next candidate
+                    }
+
+                    val finalUrl = finalResponse.request.url.toString()
+                    Log.d(TAG, "Final Progressive CDN URL: $finalUrl")
+                    return ResolvedStream(finalUrl, licenseAuthToken)
+
+                } catch (e: Exception) {
+                    Log.e(TAG, "Track ${track.id} — exception trying ${candidate.preset}/$protocol", e)
+                    continue // Try next candidate
                 }
-
-                if (!response.isSuccessful) {
-                    Log.e(TAG, "API request for stream URL failed with code: ${response.code}")
-                    response.close()
-                    return null
-                }
-                val body = response.body?.string() ?: return null
-                val streamInfoUrl = JSONObject(body).getString("url")
-
-                if (target?.format?.protocol == "hls") {
-                    Log.d(TAG, "HLS Playlist URL resolved: $streamInfoUrl")
-                    return streamInfoUrl
-                }
-
-                Log.d(TAG, "Resolving progressive stream URL: $streamInfoUrl")
-
-                val finalRequest = okhttp3.Request.Builder().url(streamInfoUrl).build()
-                val finalResponse = client.newCall(finalRequest).execute()
-
-                finalResponse.body?.close()
-
-                if (!finalResponse.isSuccessful) {
-                    Log.e(TAG, "Final resolution of progressive URL failed: ${finalResponse.code}")
-                    return null
-                }
-
-                val finalUrl = finalResponse.request.url.toString()
-                Log.d(TAG, "Final Progressive CDN URL: $finalUrl")
-                return finalUrl
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-                return null
             }
+
+            Log.e(TAG, "Track ${track.id} — all ${candidates.size} transcoding candidates failed!")
+            return null
         }
+
+        /**
+         * Builds an ordered list of transcoding candidates to try.
+         * For downloads, only progressive is useful (no DRM).
+         * For playback, we prefer: progressive > hls > CENC-encrypted HLS.
+         */
+        private fun buildTranscodingCandidates(
+            transcodings: List<com.alananasss.kittytune.domain.Transcoding>,
+            qualityPref: String,
+            forDownload: Boolean
+        ): List<com.alananasss.kittytune.domain.Transcoding> {
+            val candidates = mutableListOf<com.alananasss.kittytune.domain.Transcoding>()
+
+            // 1. Progressive (best for downloads, good for playback)
+            transcodings.find { it.format?.protocol == "progressive" }?.let { candidates.add(it) }
+
+            if (forDownload) return candidates // Downloads only want progressive
+
+            // 2. Standard HLS (non-encrypted)
+            if (qualityPref != "HIGH") {
+                transcodings.find { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }?.let { candidates.add(it) }
+            }
+            transcodings.find { it.format?.protocol == "hls" }?.let {
+                if (!candidates.contains(it)) candidates.add(it)
+            }
+
+            // 3. CENC encrypted HLS — CTR mode preferred (standard Widevine CENC on Android), then CBC
+            // Prefer higher quality presets (aac_160k > aac_96k > abr_sq)
+            val cencPresets = listOf("aac_160k", "aac_96k", "abr_sq")
+            for (preset in cencPresets) {
+                transcodings.find { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }?.let { candidates.add(it) }
+                transcodings.find { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }?.let { candidates.add(it) }
+            }
+            // Add any remaining encrypted transcodings not yet in the list
+            transcodings.filter { it.format?.protocol?.contains("encrypted") == true && !candidates.contains(it) }
+                .forEach { candidates.add(it) }
+
+            return candidates
+        }
+
+
 
         private fun buildStreamInfoRequest(url: String, token: String?): okhttp3.Request {
             val builder = okhttp3.Request.Builder()

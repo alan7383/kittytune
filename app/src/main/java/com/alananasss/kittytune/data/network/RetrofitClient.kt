@@ -18,110 +18,119 @@ object RetrofitClient {
     private var okHttpClient: OkHttpClient? = null
 
     fun create(context: Context): SoundCloudApi {
-        val appContext = context.applicationContext
-        val tokenManager = TokenManager(appContext)
+        return Retrofit.Builder()
+            .baseUrl(Config.BASE_URL)
+            .client(getOkHttpClient(context))
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(SoundCloudApi::class.java)
+    }
 
-        val cookieInterceptor = Interceptor { chain ->
-            val originalRequest = chain.request()
-            val requestBuilder = originalRequest.newBuilder()
+    fun getOkHttpClient(context: Context): OkHttpClient {
+        if (okHttpClient == null) {
+            val appContext = context.applicationContext
+            val tokenManager = TokenManager(appContext)
 
-            cookieHeaderFor(originalRequest.url)?.let { cookies ->
-                requestBuilder.header("Cookie", cookies)
+            val cookieInterceptor = Interceptor { chain ->
+                val originalRequest = chain.request()
+                val requestBuilder = originalRequest.newBuilder()
+
+                cookieHeaderFor(originalRequest.url)?.let { cookies ->
+                    requestBuilder.header("Cookie", cookies)
+                }
+
+                chain.proceed(requestBuilder.build())
             }
 
-            chain.proceed(requestBuilder.build())
-        }
+            val authInterceptor = Interceptor { chain ->
+                val originalRequest = chain.request()
+                var token = SessionManager.harvestStoredSession(appContext) ?: tokenManager.getAccessToken()
 
-        val authInterceptor = Interceptor { chain ->
-            val originalRequest = chain.request()
-            var token = SessionManager.harvestStoredSession(appContext) ?: tokenManager.getAccessToken()
+                if (!token.isNullOrEmpty() && !tokenManager.isGuestMode() && tokenManager.shouldRefreshAccessToken()) {
+                    token = SessionManager.refreshSessionBlocking(
+                        context = appContext,
+                        staleToken = token,
+                        timeoutMs = 6_000L
+                    ) ?: token
+                }
 
-            if (!token.isNullOrEmpty() && !tokenManager.isGuestMode() && tokenManager.shouldRefreshAccessToken()) {
-                token = SessionManager.refreshSessionBlocking(
-                    context = appContext,
-                    staleToken = token,
-                    timeoutMs = 6_000L
-                ) ?: token
+                val targetClientId = if (!token.isNullOrEmpty()) Config.OFFICIAL_CLIENT_ID else Config.CLIENT_ID
+                val isOfficialCred = targetClientId == Config.OFFICIAL_CLIENT_ID
+
+                val newUrl = originalRequest.url.let { url ->
+                    url.newBuilder()
+                        .setQueryParameter("client_id", targetClientId)
+                        .build()
+                }
+
+                val deviceId = Config.getOrCreateSoundCloudDeviceId(appContext)
+                val buildVersion = "2025.12.10-release"
+                val androidRelease = android.os.Build.VERSION.RELEASE ?: "10"
+                val deviceModel = android.os.Build.MODEL ?: "Android"
+                val customUserAgent = "SoundCloud/$buildVersion (Android $androidRelease; $deviceModel)"
+
+                val requestBuilder = originalRequest.newBuilder()
+                    .url(newUrl)
+                    .header("User-Agent", customUserAgent)
+                    .header("Accept", "application/json")
+                    .header("App-Version", "330120")
+                    .header("UDID", deviceId)
+
+                if (isOfficialCred) {
+                    requestBuilder.header("Authorization-Signature", Config.OFFICIAL_CLIENT_SIGNATURE)
+                }
+
+                if (!token.isNullOrEmpty()) {
+                    requestBuilder.header("Authorization", "OAuth $token")
+                } else {
+                    requestBuilder.removeHeader("Authorization")
+                }
+
+                chain.proceed(requestBuilder.build())
             }
 
-            val targetClientId = if (!token.isNullOrEmpty()) Config.OFFICIAL_CLIENT_ID else Config.CLIENT_ID
-            val isOfficialCred = targetClientId == Config.OFFICIAL_CLIENT_ID
+            val sessionRecoveryInterceptor = Interceptor { chain ->
+                val request = chain.request()
+                val response = chain.proceed(request)
 
-            val newUrl = originalRequest.url.let { url ->
-                url.newBuilder()
-                    .setQueryParameter("client_id", targetClientId)
-                    .build()
-            }
-
-            val deviceId = Config.getOrCreateSoundCloudDeviceId(appContext)
-            val buildVersion = "2025.12.10-release"
-            val androidRelease = android.os.Build.VERSION.RELEASE ?: "10"
-            val deviceModel = android.os.Build.MODEL ?: "Android"
-            val customUserAgent = "SoundCloud/$buildVersion (Android $androidRelease; $deviceModel)"
-
-            val requestBuilder = originalRequest.newBuilder()
-                .url(newUrl)
-                .header("User-Agent", customUserAgent)
-                .header("Accept", "application/json")
-                .header("App-Version", "330120")
-                .header("UDID", deviceId)
-
-            if (isOfficialCred) {
-                requestBuilder.header("Authorization-Signature", Config.OFFICIAL_CLIENT_SIGNATURE)
-            }
-
-            if (!token.isNullOrEmpty()) {
-                requestBuilder.header("Authorization", "OAuth $token")
-            } else {
-                requestBuilder.removeHeader("Authorization")
-            }
-
-            chain.proceed(requestBuilder.build())
-        }
-
-        val sessionRecoveryInterceptor = Interceptor { chain ->
-            val request = chain.request()
-            val response = chain.proceed(request)
-
-            if (!isAuthFailure(response.code) || tokenManager.isGuestMode()) {
-                response
-            } else {
-                val sentToken = request.header("Authorization")
-                    ?.removePrefix("OAuth ")
-                    ?.takeIf { it.isNotBlank() }
-                val currentToken = tokenManager.getAccessToken()
-
-                if (sentToken.isNullOrEmpty() && currentToken.isNullOrEmpty()) {
+                if (!isAuthFailure(response.code) || tokenManager.isGuestMode()) {
                     response
                 } else {
-                    val refreshedToken = SessionManager.refreshSessionBlocking(
-                        context = appContext,
-                        staleToken = sentToken ?: currentToken,
-                        timeoutMs = 12_000L
-                    )
+                    val sentToken = request.header("Authorization")
+                        ?.removePrefix("OAuth ")
+                        ?.takeIf { it.isNotBlank() }
+                    val currentToken = tokenManager.getAccessToken()
 
-                    if (refreshedToken.isNullOrEmpty() || refreshedToken == sentToken) {
-                        if (!sentToken.isNullOrEmpty() && canRetryWithoutAuth(request)) {
-                            response.close()
-                            val retryAsGuest = request.newBuilder()
-                                .removeHeader("Authorization")
-                                .build()
-                            chain.proceed(retryAsGuest)
-                        } else {
-                            response
-                        }
+                    if (sentToken.isNullOrEmpty() && currentToken.isNullOrEmpty()) {
+                        response
                     } else {
-                        response.close()
-                        val retryRequest = request.newBuilder()
-                            .header("Authorization", "OAuth $refreshedToken")
-                            .build()
-                        chain.proceed(retryRequest)
+                        val refreshedToken = SessionManager.refreshSessionBlocking(
+                            context = appContext,
+                            staleToken = sentToken ?: currentToken,
+                            timeoutMs = 12_000L
+                        )
+
+                        if (refreshedToken.isNullOrEmpty() || refreshedToken == sentToken) {
+                            if (!sentToken.isNullOrEmpty() && canRetryWithoutAuth(request)) {
+                                response.close()
+                                val retryAsGuest = request.newBuilder()
+                                    .removeHeader("Authorization")
+                                    .build()
+                                chain.proceed(retryAsGuest)
+                            } else {
+                                response
+                            }
+                        } else {
+                            response.close()
+                            val retryRequest = request.newBuilder()
+                                .header("Authorization", "OAuth $refreshedToken")
+                                .build()
+                            chain.proceed(retryRequest)
+                        }
                     }
                 }
             }
-        }
 
-        if (okHttpClient == null) {
             okHttpClient = OkHttpClient.Builder()
                 .addInterceptor(cookieInterceptor)
                 .addInterceptor(authInterceptor)
@@ -132,13 +141,7 @@ object RetrofitClient {
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build()
         }
-
-        return Retrofit.Builder()
-            .baseUrl(Config.BASE_URL)
-            .client(okHttpClient!!)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(SoundCloudApi::class.java)
+        return okHttpClient!!
     }
 
     private fun isAuthFailure(code: Int): Boolean = code == 401 || code == 403

@@ -288,6 +288,11 @@
             @Path("userId") userId: Long,
             @Query("limit") limit: Int = 50
         ): UserPlaylistsResponse
+
+        @GET("https://api-mobile.soundcloud.com/you/posts_and_reposts/playlists")
+        suspend fun getMyPlaylistPosts(
+            @Query("limit") limit: Int = 50
+        ): RepostCollection
     
         @GET("playlists/{playlistId}")
         suspend fun getPlaylist(@Path("playlistId") playlistId: Long): Playlist
