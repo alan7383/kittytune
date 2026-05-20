@@ -360,9 +360,9 @@
                 try {
                     val me = api.getMe()
                     coroutineScope {
-                        val createdDef = async { api.getUserCreatedPlaylists(me.id, limit = 50) }
+                        val createdDef = async { api.getMyPlaylistPosts(limit = 50) }
                         val likedDef = async { api.getUserPlaylistLikes(me.id, limit = 50) }
-                        val created = createdDef.await().collection
+                        val created = createdDef.await().collection.mapNotNull { it.playlist }
                         val liked = likedDef.await().collection.map { it.playlist }
                         created.forEach { items.add(playlistToMediaItem(it)) }
                         liked.forEach { items.add(playlistToMediaItem(it)) }
@@ -605,6 +605,16 @@
                 builder.setMimeType(MimeTypes.APPLICATION_M3U8)
             }
     
+            // Configure Widevine DRM if a license token is cached for this track
+            val drmToken = MusicManager.getDrmToken(track.id)
+            if (drmToken != null) {
+                builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+                builder.setDrmConfiguration(
+                    MediaItem.DrmConfiguration.Builder(androidx.media3.common.C.WIDEVINE_UUID)
+                        .build()
+                )
+            }
+
             return builder.build()
         }
     

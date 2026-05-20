@@ -290,7 +290,10 @@
     data class Media(val transcodings: List<Transcoding>?)
     data class Transcoding(val url: String, val preset: String, val format: Format?)
     data class Format(val protocol: String?, @SerializedName("mime_type") val mimeType: String?)
-    data class StreamUrlResponse(val url: String?)
+    data class StreamUrlResponse(
+        val url: String?,
+        @SerializedName("licenseAuthToken") val licenseAuthToken: String? = null
+    )
     
     // new banner flow models
     

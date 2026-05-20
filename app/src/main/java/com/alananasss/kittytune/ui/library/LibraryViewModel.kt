@@ -208,23 +208,41 @@
                     coroutineScope {
                         val likedPlaylistsDeferred = async { api.getUserPlaylistLikes(user.id) }
                         val createdPlaylistsDeferred = async { api.getUserCreatedPlaylists(user.id) }
+                        val repostedPlaylistsDeferred = async { api.getMyPlaylistPosts() }
     
                         val likedResponse = likedPlaylistsDeferred.await()
                         val createdResponse = createdPlaylistsDeferred.await()
+                        val repostedResponse = repostedPlaylistsDeferred.await()
     
                         val newOnlineItems = mutableListOf<LibraryItem>()
+                        val addedPlaylistIds = mutableSetOf<Long>()
     
                         likedResponse.collection.forEach { item ->
-                            val date = try { item.likedAt?.let { isoParser.parse(it)?.time } ?: 0L } catch (e: Exception) { 0L }
-                            newOnlineItems.add(LibraryItem.PlaylistItem(item.playlist, date))
+                            if (addedPlaylistIds.add(item.playlist.id)) {
+                                val date = try { item.likedAt?.let { isoParser.parse(it)?.time } ?: 0L } catch (e: Exception) { 0L }
+                                newOnlineItems.add(LibraryItem.PlaylistItem(item.playlist, date))
+                            }
                         }
     
                         createdResponse.collection.forEach { playlist ->
-                            val date = try {
-                                val dateStr = playlist.lastModified ?: playlist.createdAt
-                                dateStr?.let { isoParser.parse(it)?.time } ?: 0L
-                            } catch (e: Exception) { 0L }
-                            newOnlineItems.add(LibraryItem.PlaylistItem(playlist, date))
+                            if (addedPlaylistIds.add(playlist.id)) {
+                                val date = try {
+                                    val dateStr = playlist.lastModified ?: playlist.createdAt
+                                    dateStr?.let { isoParser.parse(it)?.time } ?: 0L
+                                } catch (e: Exception) { 0L }
+                                newOnlineItems.add(LibraryItem.PlaylistItem(playlist, date))
+                            }
+                        }
+    
+                        repostedResponse.collection.forEach { item ->
+                            val playlist = item.playlist ?: return@forEach
+                            if (addedPlaylistIds.add(playlist.id)) {
+                                val date = try {
+                                    val dateStr = playlist.lastModified ?: playlist.createdAt
+                                    dateStr?.let { isoParser.parse(it)?.time } ?: 0L
+                                } catch (e: Exception) { 0L }
+                                newOnlineItems.add(LibraryItem.PlaylistItem(playlist, date))
+                            }
                         }
     
                         onlineItemsCache = newOnlineItems

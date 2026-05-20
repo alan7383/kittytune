@@ -260,6 +260,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+            Log.e("PlayerViewModel", "ExoPlayer error: ${error.errorCodeName}", error)
+            
             val cause = error.cause
             val isAuthError = cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
                     (cause.responseCode == 403 || cause.responseCode == 401)
@@ -1828,10 +1830,27 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(Dispatchers.IO) {
             val bitmap = loadBitmap(trackToPlay.fullResArtwork)
 
+            // Pre-resolve the current track's stream to get the URL and DRM token
+            // This must happen BEFORE buildMediaItem so that:
+            // 1. The DRM token is cached in MusicManager
+            // 2. The resolved URL can be used to set the correct MIME type (HLS vs Progressive)
+            val resolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
+            val resolvedUrl = resolved?.url
+
+            // Cache DRM token if present
+            if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
+                MusicManager.putDrmToken(trackToPlay.id, resolved.licenseAuthToken)
+                Log.d("PlayerViewModel", "DRM token pre-cached for track ${trackToPlay.id}")
+            }
+
             withContext(Dispatchers.Main) {
                 try {
                     val mediaItems = _queue.map { track ->
-                        buildMediaItem(track, if (track.id == trackToPlay.id) bitmap else null, null)
+                        if (track.id == trackToPlay.id) {
+                            buildMediaItem(track, bitmap, resolvedUrl)
+                        } else {
+                            buildMediaItem(track, null, null)
+                        }
                     }
 
                     MusicManager.player.setMediaItems(mediaItems, index, startPosition)
@@ -1909,6 +1928,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         if (urlOverride != null && urlOverride.contains(".m3u8")) {
             builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+        }
+
+        // Configure Widevine DRM if a license token is cached for this track
+        val drmToken = MusicManager.getDrmToken(track.id)
+        if (drmToken != null) {
+            // CENC tracks are always HLS — force HLS MIME type so DefaultMediaSourceFactory
+            // creates an HlsMediaSource instead of ProgressiveMediaSource
+            builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+            builder.setDrmConfiguration(
+                MediaItem.DrmConfiguration.Builder(androidx.media3.common.C.WIDEVINE_UUID)
+                    .build()
+            )
         }
 
         return builder.build()
