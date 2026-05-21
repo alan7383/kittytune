@@ -385,9 +385,37 @@
     
         // --- GraphQL / Misc ---
     
+        @POST("https://api-mobile.soundcloud.com/recently-played/contexts/v2")
+        suspend fun pushRecentlyPlayed(
+            @Body request: ApiCollection<ApiRecentlyPlayed>
+        ): retrofit2.Response<Unit>
+
+        @POST("https://api-mobile.soundcloud.com/recently-played/tracks")
+        suspend fun pushPlayHistory(
+            @Body request: ApiCollection<ApiRecentlyPlayed>
+        ): retrofit2.Response<Unit>
+
+        @POST("https://api-v2.soundcloud.com/me/play-history/tracks")
+        suspend fun pushPlayHistoryV2TrackId(@Body body: com.google.gson.JsonObject): retrofit2.Response<Unit>
+
+        @POST("https://api-v2.soundcloud.com/me/play-history")
+        suspend fun pushPlayHistoryV2Me(@Body body: com.google.gson.JsonObject): retrofit2.Response<Unit>
+
+        @POST("https://api-mobile.soundcloud.com/tracks/{id}/plays")
+        suspend fun pushTrackPlays(@Path("id") id: Long): retrofit2.Response<Unit>
+
         @POST
         suspend fun postGraphQl(@Url url: String, @Body request: GraphQlRequest): JsonObject
     }
+
+data class ApiRecentlyPlayed(
+    @com.google.gson.annotations.SerializedName("played_at") val playedAt: Long,
+    @com.google.gson.annotations.SerializedName("urn") val urn: String
+)
+
+data class ApiCollection<T>(
+    @com.google.gson.annotations.SerializedName("collection") val collection: List<T>
+)
 
 data class TrackLikeItem(
     @com.google.gson.annotations.SerializedName("target_urn") val targetUrn: String
