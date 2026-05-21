@@ -358,6 +358,7 @@
     <string name="profile_tab_comments">Kommentek</string>
     <string name="profile_comment_on_track">– %1$s</string>
     <string name="profile_about">Névjegy</string>
+    <string name="follows_you">Follows you</string>
     <string name="profile_playlists_by_user">%1$s playlistjei</string>
     <string name="profile_likes_by_user">%1$s kedvenc zenéi</string>
     <string name="profile_update_success">Profil frissítve</string>
@@ -884,4 +885,5 @@
     <string name="sleep_timer_fade_title">Progressive Fade-out</string>
     <string name="sleep_timer_fade_subtitle">Volume will decrease over %1$d seconds</string>
     <string name="label_duration">Fade duration</string>
+    <string name="lib_albums">Albums</string>
 </resources>
