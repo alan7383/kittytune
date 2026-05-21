@@ -484,6 +484,9 @@
     <string name="quality_low_sub">Saves data on mobile networks</string>
     <string name="pref_youtube_fallback">Unlock Restricted Tracks</string>
     <string name="pref_youtube_fallback_sub">Via NewPipe Extractor for Go+ tracks</string>
+    <string name="pref_download_drm">Download Native DRM</string>
+    <string name="pref_download_drm_sub">Keep enabled to cache DRM natively for internal playback. Disable to force unencrypted MP3 downloads via YouTube fallback.</string>
+    <string name="drm_explanation_text">DRM-protected tracks are encrypted by rightsholders to prevent extraction and protect copyrights.\n\n• Enabled (Recommended): The track is downloaded in its native high quality to KittyTune\'s secure internal cache. It can only be played inside the app and will not appear in your configured download folder.\n\n• Disabled: KittyTune will ignore the encrypted version and attempt to find and download the song via YouTube. The file will be converted to a standard MP3 and saved in your designated folder. Warning: Since the search is automatic, it may download incorrect content (such as a music video or a cover) if the track is not well-known.</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Lyrics</string>
     <string name="pref_lyrics_subtitle">Display &amp; Source</string>
