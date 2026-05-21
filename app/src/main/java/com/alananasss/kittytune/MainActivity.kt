@@ -145,6 +145,7 @@ import kotlinx.coroutines.GlobalScope
                                     // Sync likes and reposts with server
                                     LikeRepository.setSyncing(true)
                                     RepostRepository.refreshReposts()
+                                    DownloadManager.refreshFollowings()
                                 }
                             }
                             // Refresh settings state in case changed outside compose

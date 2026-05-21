@@ -54,6 +54,7 @@
         val displayedItems: List<LibraryItem>
             get() {
                 val playlistsLabel = app.getString(R.string.lib_playlists)
+                val albumsLabel = app.getString(R.string.lib_albums)
                 val artistsLabel = app.getString(R.string.lib_artists)
     
                 val items = _allItems.filter { item ->
@@ -63,14 +64,20 @@
                                 item.playlist.title?.contains(searchQuery, ignoreCase = true) == true ||
                                         item.playlist.user?.username?.contains(searchQuery, ignoreCase = true) == true
                             }
-                            val matchesType = selectedFilter == null || selectedFilter == playlistsLabel
+                            val isAlbum = item.playlist.isAlbum
+                            val matchesType = when (selectedFilter) {
+                                playlistsLabel -> !isAlbum
+                                albumsLabel -> isAlbum
+                                null -> true
+                                else -> false // if artist filter is selected, playlists don't match
+                            }
                             matchesSearch && matchesType
                         }
                         is LibraryItem.ArtistItem -> {
                             val matchesSearch = if (searchQuery.isBlank()) true else {
                                 item.artist.username.contains(searchQuery, ignoreCase = true)
                             }
-                            val matchesType = selectedFilter == null || selectedFilter == artistsLabel
+                            val matchesType = selectedFilter == artistsLabel || (selectedFilter == null && searchQuery.isNotBlank())
                             matchesSearch && matchesType
                         }
                     }

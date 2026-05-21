@@ -268,69 +268,85 @@
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (shouldShowPlaylists) {
-                item(span = { GridItemSpan(1) }) {
-                    val subtitle = if (isGuest) stringResource(R.string.lib_liked_subtitle_local)
-                    else if(isSyncing) stringResource(R.string.lib_liked_subtitle_syncing)
-                    else stringResource(R.string.lib_liked_subtitle)
-                    StaticLibraryCard(
-                        title = stringResource(R.string.lib_liked_tracks),
-                        subtitle = subtitle,
-                        icon = Icons.Rounded.Favorite,
-                        isGrid = viewModel.isGridLayout,
-                        onClick = onLikedTracksClick,
-                        isLoading = isSyncing
-                    )
-                }
-    
-                item(span = { GridItemSpan(1) }) {
-                    StaticLibraryCard(
-                        title = stringResource(R.string.lib_downloads),
-                        subtitle = stringResource(R.string.lib_downloads_subtitle),
-                        icon = Icons.Rounded.Folder,
-                        isGrid = viewModel.isGridLayout,
-                        onClick = { onPlaylistClick("downloads") },
-                        isLoading = false
-                    )
-                }
-    
-                if (viewModel.showLocalMedia) {
-                    item(span = { GridItemSpan(1) }) {
+                item(span = { GridItemSpan(1) }, key = "liked_tracks") {
+                    Box(modifier = Modifier.animateItem()) {
+                        val subtitle = if (isGuest) stringResource(R.string.lib_liked_subtitle_local)
+                        else if(isSyncing) stringResource(R.string.lib_liked_subtitle_syncing)
+                        else stringResource(R.string.lib_liked_subtitle)
                         StaticLibraryCard(
-                            title = stringResource(R.string.lib_local_media),
-                            subtitle = stringResource(R.string.lib_local_media_subtitle),
-                            icon = Icons.Default.SdStorage,
+                            title = stringResource(R.string.lib_liked_tracks),
+                            subtitle = subtitle,
+                            icon = Icons.Rounded.Favorite,
                             isGrid = viewModel.isGridLayout,
-                            onClick = { onPlaylistClick("local_files") },
+                            onClick = onLikedTracksClick,
+                            isLoading = isSyncing
+                        )
+                    }
+                }
+    
+                item(span = { GridItemSpan(1) }, key = "downloads") {
+                    Box(modifier = Modifier.animateItem()) {
+                        StaticLibraryCard(
+                            title = stringResource(R.string.lib_downloads),
+                            subtitle = stringResource(R.string.lib_downloads_subtitle),
+                            icon = Icons.Rounded.Folder,
+                            isGrid = viewModel.isGridLayout,
+                            onClick = { onPlaylistClick("downloads") },
                             isLoading = false
                         )
                     }
                 }
+    
+                if (viewModel.showLocalMedia) {
+                    item(span = { GridItemSpan(1) }, key = "local_media") {
+                        Box(modifier = Modifier.animateItem()) {
+                            StaticLibraryCard(
+                                title = stringResource(R.string.lib_local_media),
+                                subtitle = stringResource(R.string.lib_local_media_subtitle),
+                                icon = Icons.Default.SdStorage,
+                                isGrid = viewModel.isGridLayout,
+                                onClick = { onPlaylistClick("local_files") },
+                                isLoading = false
+                            )
+                        }
+                    }
+                }
             }
     
-            items(viewModel.displayedItems) { item ->
-                when (item) {
-                    is LibraryItem.PlaylistItem -> {
-                        val permalink = item.playlist.permalinkUrl
-                        val isYoutubeShortcut = permalink != null && permalink.startsWith("yt_radio:")
-    
-                        val navId = if (isYoutubeShortcut) {
-                            android.net.Uri.encode(permalink!!)
-                        } else {
-                            if (item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
-                        }
-    
-                        DynamicPlaylistCard(
-                            playlist = item.playlist,
-                            isGrid = viewModel.isGridLayout,
-                            onClick = { onPlaylistClick(navId) }
-                        )
+            items(
+                items = viewModel.displayedItems,
+                key = { item ->
+                    when (item) {
+                        is LibraryItem.PlaylistItem -> "playlist_${item.playlist.id}_${item.playlist.permalinkUrl ?: ""}"
+                        is LibraryItem.ArtistItem -> "artist_${item.artist.id}"
                     }
-                    is LibraryItem.ArtistItem -> {
-                        ArtistLibraryCard(
-                            artist = item.artist,
-                            isGrid = viewModel.isGridLayout,
-                            onClick = { onArtistClick(item.artist.id) }
-                        )
+                }
+            ) { item ->
+                Box(modifier = Modifier.animateItem()) {
+                    when (item) {
+                        is LibraryItem.PlaylistItem -> {
+                            val permalink = item.playlist.permalinkUrl
+                            val isYoutubeShortcut = permalink != null && permalink.startsWith("yt_radio:")
+        
+                            val navId = if (isYoutubeShortcut) {
+                                android.net.Uri.encode(permalink!!)
+                            } else {
+                                if (item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
+                            }
+        
+                            DynamicPlaylistCard(
+                                playlist = item.playlist,
+                                isGrid = viewModel.isGridLayout,
+                                onClick = { onPlaylistClick(navId) }
+                            )
+                        }
+                        is LibraryItem.ArtistItem -> {
+                            ArtistLibraryCard(
+                                artist = item.artist,
+                                isGrid = viewModel.isGridLayout,
+                                onClick = { onArtistClick(item.artist.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -361,49 +377,59 @@
         onProfileClick: () -> Unit,
         isGuest: Boolean
     ) {
-        Row(
+        TextField(
+            value = query,
+            onValueChange = onQueryChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(56.dp)
-                .clip(RoundedCornerShape(28.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(Icons.Default.Search, stringResource(R.string.search_library_hint), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(modifier = Modifier.width(12.dp))
-            Box(modifier = Modifier.weight(1f)) {
-                if (query.isEmpty()) { Text(stringResource(R.string.search_library_hint), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                androidx.compose.foundation.text.BasicTextField(
-                    value = query, onValueChange = onQueryChange,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    singleLine = true, modifier = Modifier.fillMaxWidth()
-                )
-            }
-    
-            Box(modifier = Modifier.clickable { onProfileClick() }) {
-                if (isGuest) {
-                    ArtistAvatar(avatarUrl = null, modifier = Modifier.size(32.dp).clip(CircleShape))
-                } else if (avatarUrl != null) {
-                    ArtistAvatar(avatarUrl = avatarUrl, modifier = Modifier.size(32.dp).clip(CircleShape))
-                } else {
-                    ArtistAvatar(avatarUrl = null, modifier = Modifier.size(32.dp).clip(CircleShape))
+            placeholder = { Text(stringResource(R.string.search_library_hint)) },
+            leadingIcon = {
+                Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_library_hint))
+            },
+            trailingIcon = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(Icons.Rounded.Close, contentDescription = "Clear search")
+                        }
+                    }
+                    Box(modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clip(CircleShape)
+                        .clickable { onProfileClick() }
+                    ) {
+                        ArtistAvatar(
+                            avatarUrl = if (isGuest) null else avatarUrl,
+                            modifier = Modifier.size(32.dp).clip(CircleShape)
+                        )
+                    }
                 }
-            }
-        }
+            },
+            shape = CircleShape,
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+            singleLine = true
+        )
     }
     
+    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun FilterChipsRow(viewModel: LibraryViewModel) {
         val playlistsLabel = stringResource(R.string.lib_playlists)
+        val albumsLabel = stringResource(R.string.lib_albums)
         val artistsLabel = stringResource(R.string.lib_artists)
     
-        // moved after stringResource calls
-        val filters = remember(playlistsLabel, artistsLabel) {
-            listOf(playlistsLabel, artistsLabel)
+        val filters = remember(playlistsLabel, albumsLabel, artistsLabel) {
+            listOf(playlistsLabel, albumsLabel, artistsLabel)
         }
     
+        val view = androidx.compose.ui.platform.LocalView.current
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -411,17 +437,30 @@
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             filters.forEach { label ->
-                FilterChip(
-                    selected = viewModel.selectedFilter == label,
-                    onClick = { viewModel.selectedFilter = if (viewModel.selectedFilter == label) null else label },
-                    label = { Text(label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    border = null,
-                    shape = RoundedCornerShape(12.dp)
+                val isSelected = viewModel.selectedFilter == label
+                
+                val containerColor by androidx.compose.animation.animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+                    label = "chip_container_color"
                 )
+                val contentColor by androidx.compose.animation.animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    label = "chip_content_color"
+                )
+
+                Button(
+                    onClick = { 
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.selectedFilter = if (isSelected) null else label 
+                    },
+                    shapes = ButtonDefaults.shapes(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = containerColor,
+                        contentColor = contentColor
+                    )
+                ) {
+                    Text(label)
+                }
             }
         }
     }
