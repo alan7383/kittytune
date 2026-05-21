@@ -22,6 +22,7 @@ split_commits = false
 include_path = ["app/**"]
 
 commit_parsers = [
+  { message = "^.*\\(site\\)",     skip = true },
   { message = "^feat(\\(.+\\))?!:", group = "Breaking Changes" },
   { message = "^fix(\\(.+\\))?!:",  group = "Breaking Changes" },
   { message = "^feat",              group = "Features" },
