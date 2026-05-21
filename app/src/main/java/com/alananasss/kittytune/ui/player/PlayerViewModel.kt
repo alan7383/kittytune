@@ -163,6 +163,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var showLyricsOffsetControls by mutableStateOf(false)
 
     var currentSessionListenMs = 0L
+    private var hasPushedRecentlyPlayed = false
 
     // Sleep Timer
     var sleepTimerRemainingMs by mutableLongStateOf(0L)
@@ -310,10 +311,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
-            currentSessionListenMs = 0L // reset listen time on track change
             if (mediaItem == null) return
 
             val trackId = parseIdFromMediaId(mediaItem.mediaId)
+
+            if (currentTrack?.id != trackId) {
+                currentSessionListenMs = 0L // reset listen time on track change
+                hasPushedRecentlyPlayed = false
+            }
 
             if (MusicManager.currentTrack?.id == trackId) {
                 currentTrack = MusicManager.currentTrack
@@ -1093,6 +1098,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         currentQueueIndex = index
         val trackToPlay = _queue[index]
         isLoading = true; duration = trackToPlay.durationMs ?: 0L; currentPosition = 0L
+        currentSessionListenMs = 0L
+        hasPushedRecentlyPlayed = false
         currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
         val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
         startServiceSafe(context, intent)
@@ -1575,6 +1582,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     if (!isScrubbing) {
                         currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                         currentSessionListenMs += 1000L
+                        Log.d("PlayerViewModel", "Listen MS: $currentSessionListenMs")
+                        
+                        if (currentSessionListenMs >= 30_000L && !hasPushedRecentlyPlayed) {
+                            Log.d("PlayerViewModel", "Threshold reached, pushing history for track ${currentTrack?.id}")
+                            hasPushedRecentlyPlayed = true
+                            pushRecentlyPlayedToSoundCloud(currentTrack)
+                        }
                     }
                     AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
                     if (effectsState.isBassBoostEnabled || effectsState.isEarrapeEnabled) AchievementManager.increment("bass_addict", 1)
@@ -1582,6 +1596,57 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 } catch (e: Exception) {
                 }
                 delay(1000)
+            }
+        }
+    }
+
+    private fun pushRecentlyPlayedToSoundCloud(track: Track?) {
+        Log.d("PlayerViewModel", "pushRecentlyPlayedToSoundCloud called for track ${track?.id}, source: ${track?.source}")
+        track ?: return
+        if (track.source != null && track.source != "soundcloud") {
+            Log.d("PlayerViewModel", "Ignoring track because source is not soundcloud: ${track.source}")
+            return
+        }
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val tokenManager = TokenManager(context)
+                if (tokenManager.isGuestMode()) {
+                    Log.d("PlayerViewModel", "Skipping history sync for track ${track.id} (Guest Mode)")
+                    return@launch
+                }
+
+                val now = System.currentTimeMillis()
+
+                // Sync individual track history
+                val trackUrn = "soundcloud:tracks:${track.id}"
+                
+                // 1) api-mobile endpoint (used by the Android app)
+                val trackEntry = com.alananasss.kittytune.data.network.ApiRecentlyPlayed(
+                    playedAt = now,
+                    urn = trackUrn
+                )
+                val trackCollection = com.alananasss.kittytune.data.network.ApiCollection(
+                    collection = listOf(trackEntry)
+                )
+                val trackResponse = api.pushPlayHistory(trackCollection)
+                if (trackResponse.isSuccessful) {
+                    Log.d("PlayerViewModel", "Synced track ${track.id} to mobile history")
+                } else {
+                    Log.w("PlayerViewModel", "Failed to sync mobile history: ${trackResponse.code()}")
+                }
+
+                // 2) api-v2 endpoint (used by the Web app)
+                val bodyV2 = com.google.gson.JsonObject().apply { addProperty("track_urn", trackUrn) }
+                val respV2 = api.pushPlayHistoryV2Me(bodyV2)
+                if (respV2.isSuccessful) {
+                    Log.d("PlayerViewModel", "Synced track ${track.id} to web history")
+                } else {
+                    Log.w("PlayerViewModel", "Failed to sync web history: ${respV2.code()}")
+                }
+
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Error syncing history", e)
             }
         }
     }
