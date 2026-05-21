@@ -799,7 +799,14 @@ fun MainScreen(
                     clippedComposable("audio_settings") {
                         AudioSettingsScreen(
                             onBackClick = { navController.popBackStack() },
+                            onNavigateToDrmExplanation = { navController.navigate("drm_explanation") },
                             playerViewModel = playerViewModel
+                        )
+                    }
+
+                    clippedComposable("drm_explanation") {
+                        com.alananasss.kittytune.ui.profile.DrmExplanationScreen(
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
 

@@ -115,6 +115,24 @@
         private fun deleteFileByPath(path: String) {
             if (path.isEmpty()) return
             try {
+                if (path.startsWith("exo_cache://")) {
+                    val parts = path.removePrefix("exo_cache://").split("::", limit = 3)
+                    val streamUrl = parts.getOrNull(1)
+                    if (streamUrl != null) {
+                        val cache = ExoCacheManager.getCache(context)
+                        // In Media3, we remove a resource by its cache key, which defaults to its URI.
+                        // HLS downloads multiple keys (the playlist, plus all segments).
+                        // To remove a full HLS download properly, one should use DownloadManager.
+                        // However, as a fallback we remove the main playlist key.
+                        // A more robust cleanup would be removing the cache directory.
+                        cache.keys.forEach { key ->
+                            if (key.contains(streamUrl.substringBeforeLast("/"))) {
+                                cache.removeResource(key)
+                            }
+                        }
+                    }
+                    return
+                }
                 if (path.startsWith("content://")) {
                     DocumentFile.fromSingleUri(context, Uri.parse(path))?.delete()
                 } else {
@@ -474,11 +492,135 @@
                 try {
                     _downloadProgress.update { it + (track.id to 0) }
 
-                    val streamUrl = StreamResolver.resolveStream(context, track, forDownload = true)
+                    val resolvedStream = StreamResolver.resolveStreamWithDrm(context, track, forDownload = true)
+                    val streamUrl = resolvedStream?.url
+                    val licenseAuthToken = resolvedStream?.licenseAuthToken
 
                     if (streamUrl == null) {
                         Log.e("DownloadManager", "Failed to resolve stream URL for track: ${track.title}")
                         throw Exception("Cannot resolve stream URL for download")
+                    }
+
+                    val isHlsStream = streamUrl.contains(".m3u8") || streamUrl.contains("hls")
+
+                    if (isHlsStream) {
+                        val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
+                        tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
+                        downloadFileToStream(track.fullResArtwork, FileOutputStream(tempImageFile)) { _ -> }
+                        if (tempImageFile.exists()) {
+                            tempImageFile.copyTo(internalArtFile, overwrite = true)
+                        }
+
+                        val cache = ExoCacheManager.getCache(context)
+                        val upstreamFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+                            .setUserAgent(com.alananasss.kittytune.utils.Config.USER_AGENT)
+                            .setAllowCrossProtocolRedirects(true)
+
+                        val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
+                            .setCache(cache)
+                            .setUpstreamDataSourceFactory(upstreamFactory)
+                            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_BLOCK_ON_CACHE)
+
+                        val downloader = androidx.media3.exoplayer.hls.offline.HlsDownloader(
+                            androidx.media3.common.MediaItem.fromUri(streamUrl),
+                            cacheDataSourceFactory,
+                            java.util.concurrent.Executors.newSingleThreadExecutor()
+                        )
+
+                        downloader.download { contentLength, bytesDownloaded, percentDownloaded ->
+                            if (isActive) {
+                                _downloadProgress.update { c -> c + (track.id to percentDownloaded.toInt()) }
+                            }
+                        }
+
+                        val existingTrack = database.downloadDao().getTrack(track.id)
+                        val creationTimestamp = existingTrack?.downloadedAt ?: System.currentTimeMillis()
+
+                        var persistableToken = licenseAuthToken
+                        
+                        // --- TRUE OFFLINE DRM: Download Persistable License ---
+                        // Replicating SoundCloud's PersistableLicensesRepository logic
+                        if (!licenseAuthToken.isNullOrEmpty()) {
+                            try {
+                                val callback = SoundCloudDrmCallback(licenseAuthToken, isOffline = true)
+                                val drmSessionManagerProvider = androidx.media3.exoplayer.drm.DefaultDrmSessionManagerProvider()
+                                drmSessionManagerProvider.setDrmHttpDataSourceFactory(androidx.media3.datasource.DefaultHttpDataSource.Factory())
+                                
+                                val formatBuilder = androidx.media3.common.Format.Builder()
+                                
+                                // Fetch and parse the HLS playlist to extract the DRM init data (PSSH)
+                                val dataSource = upstreamFactory.createDataSource()
+                                val dataSpec = androidx.media3.datasource.DataSpec(android.net.Uri.parse(streamUrl))
+                                val inputStream = androidx.media3.datasource.DataSourceInputStream(dataSource, dataSpec)
+                                val parser = androidx.media3.exoplayer.hls.playlist.HlsPlaylistParser()
+                                
+                                val playlist = parser.parse(dataSpec.uri, inputStream)
+                                if (playlist is androidx.media3.exoplayer.hls.playlist.HlsMediaPlaylist) {
+                                    val firstSegment = playlist.segments.firstOrNull()
+                                    if (firstSegment != null && firstSegment.drmInitData != null) {
+                                        formatBuilder.setDrmInitData(firstSegment.drmInitData)
+                                    }
+                                }
+                                inputStream.close()
+
+                                val format = formatBuilder.build()
+                                
+                                if (format.drmInitData != null) {
+                                    val drmSessionManager = androidx.media3.exoplayer.drm.DefaultDrmSessionManager.Builder()
+                                        .setUuidAndExoMediaDrmProvider(androidx.media3.common.C.WIDEVINE_UUID, androidx.media3.exoplayer.drm.FrameworkMediaDrm.DEFAULT_PROVIDER)
+                                        .build(callback)
+                                        
+                                    val offlineLicenseHelper = androidx.media3.exoplayer.drm.OfflineLicenseHelper(
+                                        drmSessionManager,
+                                        androidx.media3.exoplayer.drm.DrmSessionEventListener.EventDispatcher()
+                                    )
+                                    val keySetId = offlineLicenseHelper.downloadLicense(format)
+                                    if (keySetId != null) {
+                                        persistableToken = android.util.Base64.encodeToString(keySetId, android.util.Base64.NO_WRAP)
+                                        Log.d("DownloadManager", "Offline Widevine License downloaded and stored successfully! keySetId=$persistableToken")
+                                    }
+                                    offlineLicenseHelper.release()
+                                } else {
+                                    Log.w("DownloadManager", "Could not extract DRM format from manifest for offline license")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("DownloadManager", "Failed to download offline DRM license: ${e.message}")
+                            }
+                        }
+
+                        val exoPath = "exo_cache://${track.id}::${streamUrl}::${persistableToken ?: ""}"
+
+                        val localTrack = LocalTrack(
+                            id = track.id,
+                            title = track.title ?: context.getString(R.string.untitled_track),
+                            artist = track.user?.username ?: context.getString(R.string.unknown_artist),
+                            artworkUrl = track.fullResArtwork,
+                            duration = track.durationMs ?: 0L,
+                            localAudioPath = exoPath,
+                            localArtworkPath = internalArtFile.absolutePath,
+                            downloadedAt = creationTimestamp
+                        )
+
+                        val dao = database.downloadDao()
+                        if (existingTrack == null) {
+                            dao.insertTrack(localTrack)
+                        } else {
+                            dao.updateTrack(localTrack)
+                        }
+
+                        _storageTrigger.update { it + 1 }
+                        withContext(Dispatchers.Main) {
+                            AchievementManager.increment("download_100")
+                            AchievementManager.increment("download_1000")
+                        }
+                        
+                        try {
+                            tempImageFile.delete()
+                        } catch (e: Exception) {}
+
+                        _downloadProgress.update { it - track.id }
+                        activeJobs.remove(track.id)
+                        return@launch
                     }
 
                     val isYoutubeStream = streamUrl.contains("googlevideo.com") || track.source == "youtube"

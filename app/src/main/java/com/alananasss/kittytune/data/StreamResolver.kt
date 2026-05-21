@@ -204,7 +204,8 @@
 
             // Build an ordered list of candidate transcodings to try
             // Priority: progressive > hls > cbc-encrypted-hls > ctr-encrypted-hls
-            val candidates = buildTranscodingCandidates(transcodings, qualityPref, forDownload)
+            val allowDrm = !forDownload || prefs.getDownloadDrmStreamsEnabled()
+            val candidates = buildTranscodingCandidates(transcodings, qualityPref, forDownload, allowDrm)
 
             if (candidates.isEmpty()) {
                 Log.w(TAG, "Track ${track.id} — no matching transcoding found!")
@@ -300,6 +301,11 @@
             }
 
             Log.e(TAG, "Track ${track.id} — all ${candidates.size} transcoding candidates failed!")
+            if (forDownload && prefs.getYouTubeFallbackEnabled()) {
+                Log.w(TAG, "Falling back to NewPipe after transcoding failures")
+                val url = resolveViaNewPipe(track)
+                return url?.let { ResolvedStream(it) }
+            }
             return null
         }
 
@@ -311,14 +317,13 @@
         private fun buildTranscodingCandidates(
             transcodings: List<com.alananasss.kittytune.domain.Transcoding>,
             qualityPref: String,
-            forDownload: Boolean
+            forDownload: Boolean,
+            allowDrm: Boolean
         ): List<com.alananasss.kittytune.domain.Transcoding> {
             val candidates = mutableListOf<com.alananasss.kittytune.domain.Transcoding>()
 
             // 1. Progressive (best for downloads, good for playback)
             transcodings.find { it.format?.protocol == "progressive" }?.let { candidates.add(it) }
-
-            if (forDownload) return candidates // Downloads only want progressive
 
             // 2. Standard HLS (non-encrypted)
             if (qualityPref != "HIGH") {
@@ -328,21 +333,22 @@
                 if (!candidates.contains(it)) candidates.add(it)
             }
 
-            // 3. CENC encrypted HLS — CTR mode preferred (standard Widevine CENC on Android), then CBC
-            // Prefer higher quality presets (aac_160k > aac_96k > abr_sq)
-            val cencPresets = listOf("aac_160k", "aac_96k", "abr_sq")
-            for (preset in cencPresets) {
-                transcodings.find { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }?.let { candidates.add(it) }
-                transcodings.find { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }?.let { candidates.add(it) }
+            if (allowDrm) {
+                // 3. CENC encrypted HLS — CTR mode preferred (standard Widevine CENC on Android), then CBC
+                // Prefer higher quality presets (aac_160k > aac_96k > abr_sq)
+                val cencPresets = listOf("aac_160k", "aac_96k", "abr_sq")
+                for (preset in cencPresets) {
+                    transcodings.find { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }?.let { candidates.add(it) }
+                    transcodings.find { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }?.let { candidates.add(it) }
+                }
+                // Add any remaining encrypted transcodings not yet in the list
+                transcodings.filter { it.format?.protocol?.contains("encrypted") == true }.forEach {
+                    if (!candidates.contains(it)) candidates.add(it)
+                }
             }
-            // Add any remaining encrypted transcodings not yet in the list
-            transcodings.filter { it.format?.protocol?.contains("encrypted") == true && !candidates.contains(it) }
-                .forEach { candidates.add(it) }
 
             return candidates
         }
-
-
 
         private fun buildStreamInfoRequest(url: String, token: String?): okhttp3.Request {
             val builder = okhttp3.Request.Builder()
