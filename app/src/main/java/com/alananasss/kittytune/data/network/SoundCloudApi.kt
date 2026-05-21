@@ -319,6 +319,25 @@
     
         // --- Users ---
     
+        @POST("https://api-mobile.soundcloud.com/follows/users/soundcloud:users:{userId}")
+        suspend fun followUser(@Path("userId") userId: Long, @Body body: Map<String, String> = emptyMap()): retrofit2.Response<Unit>
+
+        @DELETE("https://api-mobile.soundcloud.com/follows/users/soundcloud:users:{userId}")
+        suspend fun unfollowUser(@Path("userId") userId: Long): retrofit2.Response<Unit>
+
+        @GET("https://api.soundcloud.com/me/followings/{userId}")
+        suspend fun checkFollowState(@Path("userId") userId: Long): retrofit2.Response<Unit>
+
+        @GET("users/{userId}/followings")
+        suspend fun getUserFollowings(
+            @Path("userId") userId: Long,
+            @Query("limit") limit: Int = 200,
+            @Query("linked_partitioning") linkedPartitioning: Int = 1
+        ): UserCollection
+
+        @GET
+        suspend fun getUserFollowingsNextPage(@Url url: String): UserCollection
+
         @GET("users/{userId}")
         suspend fun getUser(@Path("userId") userId: Long): User
     

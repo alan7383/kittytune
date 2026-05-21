@@ -318,9 +318,79 @@
             }
         }
     
-        fun toggleSaveArtist(user: User) { scope.launch { val dao = database.downloadDao(); if (dao.getArtist(user.id) != null) dao.deleteArtist(user.id) else dao.insertArtist(LocalArtist(user.id, user.username ?: context.getString(R.string.menu_go_artist), user.avatarUrl ?: "", user.trackCount)) } }
-        fun isArtistSavedFlow(artistId: Long) = database.downloadDao().getArtistFlow(artistId)
-        fun getSavedArtists() = database.downloadDao().getAllSavedArtists()
+        fun toggleSaveArtist(user: User) {
+        scope.launch {
+            val dao = database.downloadDao()
+            val isSaved = dao.getArtist(user.id) != null
+            if (isSaved) {
+                dao.deleteArtist(user.id)
+            } else {
+                dao.insertArtist(LocalArtist(user.id, user.username ?: context.getString(R.string.menu_go_artist), user.avatarUrl ?: "", user.trackCount))
+            }
+
+            val tokenManager = TokenManager(context)
+            if (!tokenManager.isGuestMode()) {
+                try {
+                    if (isSaved) {
+                        api.unfollowUser(user.id)
+                    } else {
+                        api.followUser(user.id)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+    fun isArtistSavedFlow(artistId: Long) = database.downloadDao().getArtistFlow(artistId)
+    fun getSavedArtists() = database.downloadDao().getAllSavedArtists()
+
+    suspend fun isArtistSaved(artistId: Long): Boolean {
+        return database.downloadDao().getArtist(artistId) != null
+    }
+
+    suspend fun saveArtist(user: User) {
+        database.downloadDao().insertArtist(com.alananasss.kittytune.data.local.LocalArtist(user.id, user.username ?: "", user.avatarUrl ?: "", user.trackCount))
+    }
+
+    suspend fun deleteArtist(artistId: Long) {
+        database.downloadDao().deleteArtist(artistId)
+    }
+
+    fun refreshFollowings() {
+        scope.launch {
+            try {
+                val tokenManager = TokenManager(context)
+                if (tokenManager.isGuestMode()) return@launch
+                
+                val me = api.getMe()
+                val allFollowings = mutableListOf<User>()
+                
+                var nextUrl: String? = null
+                val firstPage = api.getUserFollowings(me.id, limit = 200)
+                allFollowings.addAll(firstPage.collection)
+                nextUrl = firstPage.next_href
+                
+                var safetyCount = 0
+                while (nextUrl != null && safetyCount < 20) {
+                    val page = api.getUserFollowingsNextPage(nextUrl)
+                    allFollowings.addAll(page.collection)
+                    nextUrl = page.next_href
+                    safetyCount++
+                }
+                
+                val dao = database.downloadDao()
+                // Update local DB with new followings
+                allFollowings.forEach { user ->
+                    dao.insertArtist(com.alananasss.kittytune.data.local.LocalArtist(user.id, user.username ?: "", user.avatarUrl ?: "", user.trackCount))
+                }
+                // Optional: remove artists that are no longer followed?
+                // The official app does clear and sync. For now, we just insert.
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
     
         fun downloadPlaylist(playlist: Playlist, tracks: List<Track>) {
             importPlaylistToLibrary(playlist, tracks)

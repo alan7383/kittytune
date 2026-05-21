@@ -112,6 +112,9 @@
                         user = freshUser
                     }
     
+                    // We rely on DownloadManager.refreshFollowings() in the background
+                    // No need to fetch checkFollowState manually on each profile load.
+    
                     coroutineScope {
                         // Parallel fetching
                         val popDef = async { try { api.getUserTopTracks(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
