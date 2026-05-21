@@ -57,6 +57,7 @@ class PlayerPreferences(private val context: Context) {
         private const val KEY_PRECISE_SPEED = "precise_speed_enabled"
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
+        private const val KEY_DOWNLOAD_DRM_STREAMS = "download_drm_streams_enabled"
         private const val KEY_SHOW_LYRICS_BUTTON = "show_lyrics_button_enabled"
         private const val KEY_INLINE_LYRICS = "inline_lyrics_enabled"
         private const val KEY_DISCORD_TOKEN = "discord_token"
@@ -163,6 +164,9 @@ class PlayerPreferences(private val context: Context) {
 
     fun getYouTubeFallbackEnabled(): Boolean = prefs.getBoolean(KEY_YOUTUBE_FALLBACK, true)
     fun setYouTubeFallbackEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_YOUTUBE_FALLBACK, enabled).apply()
+    
+    fun getDownloadDrmStreamsEnabled(): Boolean = prefs.getBoolean(KEY_DOWNLOAD_DRM_STREAMS, true)
+    fun setDownloadDrmStreamsEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_DOWNLOAD_DRM_STREAMS, enabled).apply()
     fun getAutoUpdateEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_UPDATE, true)
     fun setAutoUpdateEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_AUTO_UPDATE, enabled).apply()
 

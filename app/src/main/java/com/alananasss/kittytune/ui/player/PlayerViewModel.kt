@@ -1895,26 +1895,53 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(Dispatchers.IO) {
             val bitmap = loadBitmap(trackToPlay.fullResArtwork)
 
-            // Pre-resolve the current track's stream to get the URL and DRM token
-            // This must happen BEFORE buildMediaItem so that:
-            // 1. The DRM token is cached in MusicManager
-            // 2. The resolved URL can be used to set the correct MIME type (HLS vs Progressive)
-            val resolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
-            val resolvedUrl = resolved?.url
+            var resolvedUrl: String? = null
+            var offlineKeySetId: ByteArray? = null
 
-            // Cache DRM token if present
-            if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
-                MusicManager.putDrmToken(trackToPlay.id, resolved.licenseAuthToken)
-                Log.d("PlayerViewModel", "DRM token pre-cached for track ${trackToPlay.id}")
+            try {
+                val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
+                val localTrack = db.getTrack(trackToPlay.id)
+                if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
+                    if (localTrack.localAudioPath.startsWith("exo_cache://")) {
+                        val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
+                        val cachedStreamUrl = parts.getOrNull(1)
+                        val tokenStr = parts.getOrNull(2)
+
+                        if (!cachedStreamUrl.isNullOrEmpty()) {
+                            resolvedUrl = cachedStreamUrl
+                            if (!tokenStr.isNullOrEmpty()) {
+                                offlineKeySetId = android.util.Base64.decode(tokenStr, android.util.Base64.NO_WRAP)
+                            }
+                        }
+                    } else {
+                        val isContentUri = localTrack.localAudioPath.startsWith("content://")
+                        val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
+                        if (fileExists) {
+                            resolvedUrl = localTrack.localAudioPath
+                        }
+                    }
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+
+            if (resolvedUrl == null) {
+                // Not downloaded, resolve from network
+                val resolved = com.alananasss.kittytune.data.StreamResolver.resolveStreamWithDrm(context, trackToPlay)
+                resolvedUrl = resolved?.url
+
+                // Cache DRM token if present (streaming JWT)
+                if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
+                    MusicManager.putDrmToken(trackToPlay.id, resolved.licenseAuthToken)
+                    Log.d("PlayerViewModel", "DRM token pre-cached for track ${trackToPlay.id}")
+                }
             }
 
             withContext(Dispatchers.Main) {
                 try {
                     val mediaItems = _queue.map { track ->
                         if (track.id == trackToPlay.id) {
-                            buildMediaItem(track, bitmap, resolvedUrl)
+                            buildMediaItem(track, bitmap, resolvedUrl, offlineKeySetId)
                         } else {
-                            buildMediaItem(track, null, null)
+                            buildMediaItem(track, null, null, null)
                         }
                     }
 
@@ -1972,7 +1999,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun isColorDark(color: Int): Boolean { val darkness = 1 - (0.299 * android.graphics.Color.red(color) + 0.587 * android.graphics.Color.green(color) + 0.114 * android.graphics.Color.blue(color)) / 255; return darkness >= 0.5 }
 
-    private fun buildMediaItem(track: Track, bitmap: Bitmap?, urlOverride: String? = null): MediaItem {
+    private fun buildMediaItem(track: Track, bitmap: Bitmap?, urlOverride: String? = null, offlineKeySetId: ByteArray? = null): MediaItem {
         val uri = if (urlOverride != null) Uri.parse(urlOverride) else Uri.parse("soundtune://track/${track.id}")
 
         val metadataBuilder = MediaMetadata.Builder()
@@ -1997,14 +2024,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         // Configure Widevine DRM if a license token is cached for this track
         val drmToken = MusicManager.getDrmToken(track.id)
-        if (drmToken != null) {
+        if (offlineKeySetId != null || drmToken != null) {
             // CENC tracks are always HLS — force HLS MIME type so DefaultMediaSourceFactory
             // creates an HlsMediaSource instead of ProgressiveMediaSource
             builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
-            builder.setDrmConfiguration(
-                MediaItem.DrmConfiguration.Builder(androidx.media3.common.C.WIDEVINE_UUID)
-                    .build()
-            )
+            
+            val drmBuilder = MediaItem.DrmConfiguration.Builder(androidx.media3.common.C.WIDEVINE_UUID)
+            if (offlineKeySetId != null) {
+                drmBuilder.setKeySetId(offlineKeySetId)
+            }
+            
+            builder.setDrmConfiguration(drmBuilder.build())
         }
 
         return builder.build()

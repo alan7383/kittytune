@@ -23,13 +23,16 @@
      * 4. Returns the license key bytes to ExoPlayer for decryption
      */
     class SoundCloudDrmCallback(
-        private val licenseAuthToken: String
+        private val licenseAuthToken: String,
+        private val isOffline: Boolean = false
     ) : MediaDrmCallback {
 
         companion object {
             private const val TAG = "SoundCloudDrmCallback"
-            private const val WIDEVINE_LICENSE_BASE_URL =
+            private const val WIDEVINE_PLAYBACK_URL =
                 "https://license.media-streaming.soundcloud.cloud/playback/widevine?license_token="
+            private const val WIDEVINE_PERSISTABLE_URL =
+                "https://license.media-streaming.soundcloud.cloud/persistable/widevine?license_token="
             private val OCTET_STREAM = "application/octet-stream".toMediaType()
         }
 
@@ -39,9 +42,10 @@
             uuid: UUID,
             request: ExoMediaDrm.KeyRequest
         ): MediaDrmCallback.Response {
-            Log.d(TAG, "executeKeyRequest — acquiring Widevine license")
+            Log.d(TAG, "executeKeyRequest — acquiring Widevine license (isOffline=$isOffline)")
 
-            val licenseUrl = WIDEVINE_LICENSE_BASE_URL + licenseAuthToken
+            val baseUrl = if (isOffline) WIDEVINE_PERSISTABLE_URL else WIDEVINE_PLAYBACK_URL
+            val licenseUrl = baseUrl + licenseAuthToken
 
             val requestBody = request.data.toRequestBody(OCTET_STREAM)
 

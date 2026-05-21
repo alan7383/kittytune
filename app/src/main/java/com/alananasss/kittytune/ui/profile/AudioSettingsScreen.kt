@@ -20,6 +20,7 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
+import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -27,6 +28,7 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 @Composable
 fun AudioSettingsScreen(
     onBackClick: () -> Unit,
+    onNavigateToDrmExplanation: () -> Unit,
     playerViewModel: PlayerViewModel
 ) {
     val context = LocalContext.current
@@ -37,6 +39,7 @@ fun AudioSettingsScreen(
     var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
 
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
+    var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
     var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
     var fadeDuration by remember { mutableStateOf(prefs.getSleepTimerFadeDuration()) }
 
@@ -148,8 +151,17 @@ fun AudioSettingsScreen(
                             onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) }
                         )
 
-                        SettingsItem(
+                        SplitSettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 3),
+                            title = stringResource(R.string.pref_download_drm),
+                            subtitle = stringResource(R.string.pref_download_drm_sub),
+                            onClick = onNavigateToDrmExplanation,
+                            switchState = downloadDrmEnabled,
+                            onSwitchChange = { downloadDrmEnabled = it; prefs.setDownloadDrmStreamsEnabled(it) }
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 4),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,

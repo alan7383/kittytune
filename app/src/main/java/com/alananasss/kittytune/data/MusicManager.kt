@@ -129,10 +129,22 @@ object MusicManager {
                                     val db = AppDatabase.getDatabase(context).downloadDao()
                                     val localTrack = db.getTrack(trackId)
                                     if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
-                                        val isContentUri = localTrack.localAudioPath.startsWith("content://")
-                                        val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
-                                        if (fileExists) {
-                                            streamUrl = localTrack.localAudioPath
+                                        if (localTrack.localAudioPath.startsWith("exo_cache://")) {
+                                            // Format: exo_cache://trackId::streamUrl::licenseAuthToken
+                                            val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
+                                            val parsedTrackId = parts[0].toLongOrNull()
+                                            val cachedStreamUrl = parts.getOrNull(1)
+                                            val token = parts.getOrNull(2)
+
+                                            if (parsedTrackId != null && !cachedStreamUrl.isNullOrEmpty()) {
+                                                streamUrl = cachedStreamUrl
+                                            }
+                                        } else {
+                                            val isContentUri = localTrack.localAudioPath.startsWith("content://")
+                                            val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
+                                            if (fileExists) {
+                                                streamUrl = localTrack.localAudioPath
+                                            }
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -200,34 +212,66 @@ object MusicManager {
         // from the segments instead of pre-acquiring sessions (which causes MissingSchemeDataException).
         val drmSessionManagerProvider = object : DrmSessionManagerProvider {
             override fun get(mediaItem: MediaItem): DrmSessionManager {
-                val drmConfig = mediaItem.localConfiguration?.drmConfiguration
-                if (drmConfig != null) {
-                    // Extract trackId from mediaId
-                    val trackId = mediaItem.mediaId.toLongOrNull()
-                    val token = if (trackId != null) getDrmToken(trackId) else null
+                var finalKeySetId: ByteArray? = null
+                var finalToken: String? = null
+                val trackId = mediaItem.mediaId.toLongOrNull()
 
-                    if (token != null) {
-                        Log.d("MusicManager", "Creating Widevine DRM session for track $trackId")
-                        val callback = SoundCloudDrmCallback(token)
-                        return DefaultDrmSessionManager.Builder()
-                            .setUuidAndExoMediaDrmProvider(
-                                drmConfig.scheme,
-                                FrameworkMediaDrm.DEFAULT_PROVIDER
-                            )
-                            .setMultiSession(true)
-                            .build(callback)
-                    }
+                if (trackId != null) {
+                    finalToken = getDrmToken(trackId)
+
+                    // Check if track is downloaded (offline)
+                    try {
+                        runBlocking(Dispatchers.IO) {
+                            val db = AppDatabase.getDatabase(context).downloadDao()
+                            val localTrack = db.getTrack(trackId)
+                            if (localTrack != null && localTrack.localAudioPath.startsWith("exo_cache://")) {
+                                val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
+                                val tokenStr = parts.getOrNull(2)
+                                if (!tokenStr.isNullOrEmpty()) {
+                                    finalKeySetId = android.util.Base64.decode(tokenStr, android.util.Base64.NO_WRAP)
+                                }
+                            }
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
 
-                // No DRM or no token — use default (no DRM)
-                return DrmSessionManager.DRM_UNSUPPORTED
+                if (finalKeySetId != null) {
+                    Log.d("MusicManager", "Using offline Widevine license for track $trackId")
+                    val manager = DefaultDrmSessionManager.Builder()
+                        .setUuidAndExoMediaDrmProvider(
+                            androidx.media3.common.C.WIDEVINE_UUID,
+                            FrameworkMediaDrm.DEFAULT_PROVIDER
+                        )
+                        .build(androidx.media3.exoplayer.drm.LocalMediaDrmCallback(ByteArray(0)))
+                    manager.setMode(DefaultDrmSessionManager.MODE_PLAYBACK, finalKeySetId)
+                    return manager
+                } else if (finalToken != null) {
+                    Log.d("MusicManager", "Creating streaming Widevine DRM session for track $trackId")
+                    val callback = SoundCloudDrmCallback(finalToken)
+                    return DefaultDrmSessionManager.Builder()
+                        .setUuidAndExoMediaDrmProvider(
+                            androidx.media3.common.C.WIDEVINE_UUID,
+                            FrameworkMediaDrm.DEFAULT_PROVIDER
+                        )
+                        .setMultiSession(true)
+                        .build(callback)
+                }
+
+                // Fallback to default which handles offline keySetIds automatically!
+                return androidx.media3.exoplayer.drm.DefaultDrmSessionManagerProvider().get(mediaItem)
             }
         }
+
+        val cache = com.alananasss.kittytune.data.local.ExoCacheManager.getCache(context)
+        val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
+            .setCache(cache)
+            .setUpstreamDataSourceFactory(resolvingDataSourceFactory)
+            .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
         _player = ExoPlayer.Builder(context.applicationContext)
             .setMediaSourceFactory(
                 DefaultMediaSourceFactory(context)
-                    .setDataSourceFactory(resolvingDataSourceFactory)
+                    .setDataSourceFactory(cacheDataSourceFactory)
                     .setDrmSessionManagerProvider(drmSessionManagerProvider)
             )
             .setRenderersFactory(
