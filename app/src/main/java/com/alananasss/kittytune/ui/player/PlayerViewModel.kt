@@ -177,6 +177,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var pendingSeekPosition: Long? = null
     private var saveQueueJob: Job? = null
     private var lyricsJob: Job? = null
+    private var queueChunkingJob: Job? = null
 
     private val syncReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -1940,17 +1941,44 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
+            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId)
+
+            val fullMediaItems = _queue.map { track ->
+                if (track.id == trackToPlay.id) {
+                    newMediaItem
+                } else {
+                    buildMediaItem(track, null, null, null)
+                }
+            }
+
             withContext(Dispatchers.Main) {
                 try {
-                    val mediaItems = _queue.map { track ->
-                        if (track.id == trackToPlay.id) {
-                            buildMediaItem(track, bitmap, resolvedUrl, offlineKeySetId)
+                    queueChunkingJob?.cancel()
+
+                    val countMatches = MusicManager.player.mediaItemCount == _queue.size
+                    val firstMatches = countMatches && _queue.isNotEmpty() && MusicManager.player.mediaItemCount > 0 && MusicManager.player.getMediaItemAt(0).mediaId == _queue[0].id.toString()
+                    val lastMatches = countMatches && _queue.isNotEmpty() && MusicManager.player.mediaItemCount > 0 && MusicManager.player.getMediaItemAt(_queue.size - 1).mediaId == _queue.last().id.toString()
+
+                    var needsChunking = false
+                    var initialChunkEnd = 0
+
+                    if (countMatches && firstMatches && lastMatches) {
+                        MusicManager.player.replaceMediaItem(index, newMediaItem)
+                        if (MusicManager.player.currentMediaItemIndex != index) {
+                            MusicManager.player.seekTo(index, startPosition)
+                        } else if (startPosition > 0L) {
+                            MusicManager.player.seekTo(startPosition)
+                        }
+                    } else {
+                        if (fullMediaItems.size > 200) {
+                            needsChunking = true
+                            initialChunkEnd = minOf(fullMediaItems.size, index + 50)
+                            val initialItems = fullMediaItems.subList(0, initialChunkEnd)
+                            MusicManager.player.setMediaItems(initialItems, index, startPosition)
                         } else {
-                            buildMediaItem(track, null, null, null)
+                            MusicManager.player.setMediaItems(fullMediaItems, index, startPosition)
                         }
                     }
-
-                    MusicManager.player.setMediaItems(mediaItems, index, startPosition)
                     MusicManager.player.prepare()
 
                     if (autoPlay) {
@@ -1960,6 +1988,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
 
                     MusicManager.applyEffects(effectsState)
+
+                    if (needsChunking && initialChunkEnd < fullMediaItems.size) {
+                        queueChunkingJob = viewModelScope.launch(Dispatchers.Main) {
+                            var currentStart = initialChunkEnd
+                            while (currentStart < fullMediaItems.size && isActive) {
+                                if (MusicManager.player.mediaItemCount < currentStart) break
+                                val currentEnd = minOf(fullMediaItems.size, currentStart + 100)
+                                val chunk = fullMediaItems.subList(currentStart, currentEnd)
+                                MusicManager.player.addMediaItems(chunk)
+                                currentStart = currentEnd
+                                delay(16)
+                            }
+                        }
+                    }
 
                 } catch (e: Exception) {
                     e.printStackTrace()
