@@ -122,7 +122,7 @@ fun AudioSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = 4
+                        val totalVisibleItems = 5
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
