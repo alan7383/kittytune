@@ -143,7 +143,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _originalQueue = mutableListOf<Track>()
     private val _queue = mutableListOf<Track>()
     val queue: List<Track> get() = _queue
-    val queueState = mutableStateListOf<Track>()
+    var queueState by mutableStateOf<List<Track>>(emptyList())
+        private set
     var currentQueueIndex by mutableIntStateOf(-1)
 
     var isPreciseLyricsSearchEnabled by mutableStateOf(playerPrefs.getPreciseLyricsSearchEnabled())
@@ -1381,14 +1382,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun updateQueueState() { queueState.clear(); queueState.addAll(_queue) }
+    fun updateQueueState() { queueState = _queue.toList() }
 
     fun moveQueueItem(from: Int, to: Int) {
         if (from == to) return
 
         if (from < queueState.size && to < queueState.size) {
-            val item = queueState.removeAt(from)
-            queueState.add(to, item)
+            val mut = queueState.toMutableList()
+            val item = mut.removeAt(from)
+            mut.add(to, item)
+            queueState = mut
         }
 
         if (from < _queue.size && to < _queue.size) {
@@ -1424,7 +1427,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         // 2. Remove from queueState
         if (index < queueState.size) {
-            queueState.removeAt(index)
+            val mut = queueState.toMutableList()
+            mut.removeAt(index)
+            queueState = mut
         }
 
         // 3. Remove from _originalQueue if present (matching by id)
