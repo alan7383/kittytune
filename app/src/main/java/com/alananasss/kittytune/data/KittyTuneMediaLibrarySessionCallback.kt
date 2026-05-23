@@ -44,7 +44,8 @@
         private val context: Context,
         private val likeRepository: LikeRepository,
         private val api: SoundCloudApi,
-        private val serviceScope: CoroutineScope
+        private val serviceScope: CoroutineScope,
+        private val onControllerConnected: () -> Unit = {}
     ) : MediaLibraryService.MediaLibrarySession.Callback {
     
         companion object {
@@ -69,7 +70,8 @@
             val connectionResult = super.onConnect(session, controller)
             val availableSessionCommands = connectionResult.availableSessionCommands
                 .buildUpon()
-                .add(SessionCommand(KittyTuneMediaLibraryService.CUSTOM_ACTION_LIKE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_LIKE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_REPEAT, Bundle.EMPTY))
                 .build()
     
             return MediaSession.ConnectionResult.accept(
@@ -78,13 +80,21 @@
             )
         }
     
+        override fun onPostConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ) {
+            super.onPostConnect(session, controller)
+            onControllerConnected()
+        }
+
         override fun onCustomCommand(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
             customCommand: SessionCommand,
             args: Bundle
         ): ListenableFuture<SessionResult> {
-            if (customCommand.customAction == KittyTuneMediaLibraryService.CUSTOM_ACTION_LIKE) {
+            if (customCommand.customAction == PlaybackService.CUSTOM_ACTION_LIKE) {
                 val currentTrack = MusicManager.currentTrack
                 if (currentTrack != null) {
                     if (likeRepository.isTrackLiked(currentTrack.id)) {
@@ -93,6 +103,16 @@
                         likeRepository.addLike(currentTrack)
                     }
                 }
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            if (customCommand.customAction == PlaybackService.CUSTOM_ACTION_REPEAT) {
+                val player = MusicManager.player
+                val nextMode = when (player.repeatMode) {
+                    androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
+                    androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
+                    else -> androidx.media3.common.Player.REPEAT_MODE_OFF
+                }
+                player.repeatMode = nextMode
                 return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
             return super.onCustomCommand(session, controller, customCommand, args)

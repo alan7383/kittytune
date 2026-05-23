@@ -38,8 +38,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.SessionCommand
+import com.alananasss.kittytune.data.network.RetrofitClient
 
-class PlaybackService : MediaSessionService() {
+class PlaybackService : MediaLibraryService() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
@@ -50,9 +53,11 @@ class PlaybackService : MediaSessionService() {
         const val ACTION_WIDGET_NEXT = "com.alananasss.kittytune.ACTION_WIDGET_NEXT"
         const val ACTION_WIDGET_PREV = "com.alananasss.kittytune.ACTION_WIDGET_PREV"
         const val ACTION_WIDGET_LIKE = "com.alananasss.kittytune.ACTION_WIDGET_LIKE"
+        const val CUSTOM_ACTION_LIKE = "com.alananasss.kittytune.CUSTOM_ACTION_LIKE"
+        const val CUSTOM_ACTION_REPEAT = "com.alananasss.kittytune.CUSTOM_ACTION_REPEAT"
     }
 
-    private var mediaSession: MediaSession? = null
+    private var mediaSession: MediaLibrarySession? = null
     private lateinit var mediaSessionCompat: MediaSessionCompat
     private val serviceScope = CoroutineScope(Dispatchers.Main)
 
@@ -106,6 +111,10 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         prefs = PlayerPreferences(this)
         MusicManager.init(this)
+        LikeRepository.init(this)
+        HistoryRepository.init(this)
+        RepostRepository.init(this)
+        DownloadManager.init(this)
         createNotificationChannel()
 
         setMediaNotificationProvider(object : MediaNotification.Provider {
@@ -176,7 +185,15 @@ class PlaybackService : MediaSessionService() {
             override fun seekToPreviousMediaItem() { MusicManager.onPreviousClick?.invoke() }
         }
 
-        mediaSession = MediaSession.Builder(this, forwardingPlayer)
+        val librarySessionCallback = KittyTuneMediaLibrarySessionCallback(
+            context = this,
+            likeRepository = LikeRepository,
+            api = RetrofitClient.create(this),
+            serviceScope = serviceScope,
+            onControllerConnected = { requestUpdate(delayed = false) }
+        )
+
+        mediaSession = MediaLibrarySession.Builder(this, forwardingPlayer, librarySessionCallback)
             .setId("KittyTuneSession")
             .setSessionActivity(pendingIntent)
             .build()
@@ -193,6 +210,10 @@ class PlaybackService : MediaSessionService() {
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) { requestUpdate(delayed = false) }
             override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
                 super.onPlaybackParametersChanged(playbackParameters)
+                requestUpdate(delayed = false)
+            }
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                super.onRepeatModeChanged(repeatMode)
                 requestUpdate(delayed = false)
             }
         })
@@ -233,6 +254,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun performUpdate(forceNotification: Boolean = false) {
+        updateMedia3CustomLayout()
+
         val player = MusicManager.player
         val metadata = player.mediaMetadata
         val currentTrack = MusicManager.currentTrack
@@ -325,6 +348,48 @@ class PlaybackService : MediaSessionService() {
         mediaSessionCompat.setPlaybackState(playbackStateBuilder.build())
     }
 
+    private fun updateMedia3CustomLayout() {
+        val session = mediaSession ?: return
+        val currentTrack = MusicManager.currentTrack ?: return
+        val player = MusicManager.player
+        val isLiked = LikeRepository.isTrackLiked(currentTrack.id)
+        val likeIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+        val likeLabel = if (isLiked) R.string.action_unlike else R.string.desc_like
+
+        val likeButton = CommandButton.Builder()
+            .setDisplayName(getString(likeLabel))
+            .setIconResId(likeIcon)
+            .setSessionCommand(SessionCommand(CUSTOM_ACTION_LIKE, Bundle.EMPTY))
+            .setEnabled(true)
+            .build()
+            
+        val repeatMode = player.repeatMode
+        val (repeatIcon, repeatLabel) = when (repeatMode) {
+            Player.REPEAT_MODE_ONE -> Pair(R.drawable.ic_repeat_one, R.string.menu_repeat_one)
+            Player.REPEAT_MODE_ALL -> Pair(R.drawable.ic_repeat, R.string.menu_repeat_all)
+            else -> Pair(R.drawable.ic_repeat_off, R.string.menu_repeat)
+        }
+
+        val repeatButton = CommandButton.Builder()
+            .setDisplayName(getString(repeatLabel))
+            .setIconResId(repeatIcon)
+            .setSessionCommand(SessionCommand(CUSTOM_ACTION_REPEAT, Bundle.EMPTY))
+            .setEnabled(true)
+            .build()
+            
+        val defaultLayout = ImmutableList.of(likeButton)
+        val autoLayout = ImmutableList.of(likeButton, repeatButton)
+        
+        session.setCustomLayout(defaultLayout)
+        
+        for (controller in session.connectedControllers) {
+            val pkg = controller.packageName ?: ""
+            if (pkg.contains("gearhead") || pkg.contains("automotive")) {
+                session.setCustomLayout(controller, autoLayout)
+            }
+        }
+    }
+
     private fun updateCompatMetadata(title: String, artist: String, bitmap: Bitmap?, duration: Long) {
         val player = MusicManager.player
         val builder = MediaMetadataCompat.Builder()
@@ -376,6 +441,15 @@ class PlaybackService : MediaSessionService() {
         builder.addAction(NotificationCompat.Action(R.drawable.ic_skip_next, getString(R.string.desc_next),
             MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)))
 
+        val currentId = MusicManager.currentTrack?.id ?: 0L
+        val isLiked = LikeRepository.isTrackLiked(currentId)
+        val likeIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+        val likeLabel = if (isLiked) getString(R.string.action_unlike) else getString(R.string.desc_like)
+        
+        val likeIntent = Intent(this, PlaybackService::class.java).apply { action = ACTION_WIDGET_LIKE }
+        val pendingLike = PendingIntent.getService(this, 0, likeIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        builder.addAction(NotificationCompat.Action(likeIcon, likeLabel, pendingLike))
+
         builder.setStyle(MediaStyle()
             .setMediaSession(mediaSessionCompat.sessionToken)
             .setShowActionsInCompactView(0, 1, 2)
@@ -408,7 +482,7 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val player = MusicManager.player

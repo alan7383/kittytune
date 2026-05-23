@@ -70,7 +70,8 @@
                 android:exported="true"
                 android:foregroundServiceType="mediaPlayback">
                 <intent-filter>
-                    <action android:name="androidx.media3.session.MediaSessionService" />
+                    <action android:name="androidx.media3.session.MediaLibraryService"/>
+                    <action android:name="android.media.browse.MediaBrowserService"/>
                 </intent-filter>
     
                 <meta-data
@@ -140,15 +141,7 @@
                     android:resource="@xml/provider_paths" />
             </provider>
     
-            <service
-                android:name=".data.KittyTuneMediaLibraryService"
-                android:exported="true"
-                android:foregroundServiceType="mediaPlayback">
-                <intent-filter>
-                    <action android:name="androidx.media3.session.MediaLibraryService"/>
-                    <action android:name="android.media.browse.MediaBrowserService"/>
-                </intent-filter>
-            </service>
+
     
         </application>
     
