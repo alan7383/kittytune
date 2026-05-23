@@ -314,6 +314,28 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
             if (mediaItem == null) return
+            
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) {
+                if (repeatMode == RepeatMode.ALL && MusicManager.player.mediaItemCount == 1) {
+                    MusicManager.player.pause()
+                    playNext(manual = false)
+                    return
+                }
+            }
+            
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                val shiftCount = MusicManager.player.currentMediaItemIndex
+                if (shiftCount > 0) {
+                    currentQueueIndex += shiftCount
+                    if (currentQueueIndex >= _queue.size && repeatMode == RepeatMode.ALL && _queue.isNotEmpty()) {
+                        currentQueueIndex %= _queue.size
+                    }
+                    for (i in 0 until shiftCount) {
+                        try { MusicManager.player.removeMediaItem(0) } catch (e: Exception) {}
+                    }
+                    preloadNextTrack(currentQueueIndex + 1)
+                }
+            }
 
             val trackId = parseIdFromMediaId(mediaItem.mediaId)
 
@@ -392,12 +414,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             currentTrack = finalTrack
 
-            val playerIndex = MusicManager.player.currentMediaItemIndex
-
-            if (playerIndex >= 0 && playerIndex < _queue.size) {
-                currentQueueIndex = playerIndex
-
-                val trackAtPosition = _queue[playerIndex]
+            // KittyTune custom QueueManager: ExoPlayer only holds 1 item, so its internal index is ignored.
+            // currentQueueIndex is strictly managed by playTrackAtIndex and playNext/smartPrevious.
+            
+            if (currentQueueIndex >= 0 && currentQueueIndex < _queue.size) {
+                val trackAtPosition = _queue[currentQueueIndex]
                 if (trackAtPosition.id == finalTrack.id) {
                     finalTrack = trackAtPosition
                 }
@@ -1291,11 +1312,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     ListeningStatsRepository.recordEvent(track, "SKIP_PREVIOUS", currentSessionListenMs)
                 }
             }
-            val realIndex = player.currentMediaItemIndex
-
-            val activeIndex = if (realIndex >= 0 && realIndex < _queue.size) realIndex else currentQueueIndex
-
-            val prev = activeIndex - 1
+            val prev = currentQueueIndex - 1
             if (prev >= 0) {
                 playTrackAtIndex(prev, addToHistory = false)
             } else {
@@ -1341,46 +1358,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun syncQueueFromPlayer() {
-        viewModelScope.launch(Dispatchers.Main) {
-            val player = MusicManager.player
-            val count = player.mediaItemCount
-            if (count == 0) return@launch
-
-            val newQueue = mutableListOf<Track>()
-            for (i in 0 until count) {
-                val item = player.getMediaItemAt(i)
-                val meta = item.mediaMetadata
-
-                val id = parseIdFromMediaId(item.mediaId)
-
-                val track = Track(
-                    id = id,
-                    title = meta.title?.toString(),
-                    user = User(0, meta.artist?.toString() ?: "Unknown", null),
-                    artworkUrl = meta.artworkUri?.toString(),
-                    durationMs = 0L
-                )
-                newQueue.add(track)
-            }
-
-            if (_queue.size != newQueue.size || _queue.firstOrNull()?.id != newQueue.firstOrNull()?.id) {
-                _queue.clear()
-                _queue.addAll(newQueue)
-                _originalQueue.clear()
-                _originalQueue.addAll(newQueue)
-                updateQueueState()
-            }
-
-            val playerIndex = player.currentMediaItemIndex
-            if (playerIndex in 0 until _queue.size) {
-                currentQueueIndex = playerIndex
-                val trackFromQueue = _queue[playerIndex]
-                currentTrack = trackFromQueue
-                MusicManager.currentTrack = trackFromQueue
-            }
-
-            saveStateAsync(saveQueue = true)
-        }
+        // Disabled: KittyTune uses a custom QueueManager approach (like SoundCloud).
+        // ExoPlayer only holds the current track, so its timeline does not represent the full queue.
     }
 
     fun updateQueueState() { queueState = _queue.toList() }
@@ -1941,44 +1920,22 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
-            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId)
-
-            val fullMediaItems = _queue.map { track ->
-                if (track.id == trackToPlay.id) {
-                    newMediaItem
-                } else {
-                    buildMediaItem(track, null, null, null)
+            if (resolvedUrl == null) {
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                    isPlaying = false
+                    if (allowSkipOnFailure) playNext(manual = false)
                 }
+                return@launch
             }
+
+            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId)
 
             withContext(Dispatchers.Main) {
                 try {
                     queueChunkingJob?.cancel()
-
-                    val countMatches = MusicManager.player.mediaItemCount == _queue.size
-                    val firstMatches = countMatches && _queue.isNotEmpty() && MusicManager.player.mediaItemCount > 0 && MusicManager.player.getMediaItemAt(0).mediaId == _queue[0].id.toString()
-                    val lastMatches = countMatches && _queue.isNotEmpty() && MusicManager.player.mediaItemCount > 0 && MusicManager.player.getMediaItemAt(_queue.size - 1).mediaId == _queue.last().id.toString()
-
-                    var needsChunking = false
-                    var initialChunkEnd = 0
-
-                    if (countMatches && firstMatches && lastMatches) {
-                        MusicManager.player.replaceMediaItem(index, newMediaItem)
-                        if (MusicManager.player.currentMediaItemIndex != index) {
-                            MusicManager.player.seekTo(index, startPosition)
-                        } else if (startPosition > 0L) {
-                            MusicManager.player.seekTo(startPosition)
-                        }
-                    } else {
-                        if (fullMediaItems.size > 200) {
-                            needsChunking = true
-                            initialChunkEnd = minOf(fullMediaItems.size, index + 50)
-                            val initialItems = fullMediaItems.subList(0, initialChunkEnd)
-                            MusicManager.player.setMediaItems(initialItems, index, startPosition)
-                        } else {
-                            MusicManager.player.setMediaItems(fullMediaItems, index, startPosition)
-                        }
-                    }
+                    
+                    MusicManager.player.setMediaItem(newMediaItem, startPosition)
                     MusicManager.player.prepare()
 
                     if (autoPlay) {
@@ -1988,27 +1945,58 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
 
                     MusicManager.applyEffects(effectsState)
-
-                    if (needsChunking && initialChunkEnd < fullMediaItems.size) {
-                        queueChunkingJob = viewModelScope.launch(Dispatchers.Main) {
-                            var currentStart = initialChunkEnd
-                            while (currentStart < fullMediaItems.size && isActive) {
-                                if (MusicManager.player.mediaItemCount < currentStart) break
-                                val currentEnd = minOf(fullMediaItems.size, currentStart + 100)
-                                val chunk = fullMediaItems.subList(currentStart, currentEnd)
-                                MusicManager.player.addMediaItems(chunk)
-                                currentStart = currentEnd
-                                delay(16)
-                            }
-                        }
-                    }
-
+                    preloadNextTrack(index + 1)
                 } catch (e: Exception) {
                     e.printStackTrace()
                     isLoading = false
                     isPlaying = false
                 }
             }
+        }
+    }
+
+    private fun preloadNextTrack(nextIndex: Int) {
+        val targetIndex = if (nextIndex >= _queue.size) {
+            if (repeatMode == RepeatMode.ALL && _queue.isNotEmpty()) 0 else return
+        } else nextIndex
+
+        val nextTrack = _queue[targetIndex]
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                var resolvedUrl: String? = null
+                var offlineKeySetId: ByteArray? = null
+
+                val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
+                val localTrack = db.getTrack(nextTrack.id)
+                if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
+                    if (localTrack.localAudioPath.startsWith("exo_cache://")) {
+                        val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
+                        resolvedUrl = parts.getOrNull(1)
+                        val tokenStr = parts.getOrNull(2)
+                        if (!tokenStr.isNullOrEmpty()) offlineKeySetId = android.util.Base64.decode(tokenStr, android.util.Base64.NO_WRAP)
+                    } else {
+                        resolvedUrl = localTrack.localAudioPath
+                    }
+                }
+
+                if (resolvedUrl == null) {
+                    val resolved = com.alananasss.kittytune.data.StreamResolver.resolveStreamWithDrm(context, nextTrack)
+                    resolvedUrl = resolved?.url
+                    if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
+                        MusicManager.putDrmToken(nextTrack.id, resolved.licenseAuthToken)
+                    }
+                }
+
+                if (resolvedUrl != null) {
+                    val nextMediaItem = buildMediaItem(nextTrack, null, resolvedUrl, offlineKeySetId)
+                    withContext(Dispatchers.Main) {
+                        if (MusicManager.player.mediaItemCount == 1) {
+                            MusicManager.player.addMediaItem(nextMediaItem)
+                        }
+                    }
+                }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
