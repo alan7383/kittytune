@@ -25,6 +25,7 @@
         val isUserCreated: Boolean = false,
         val localCoverPath: String? = null,
         val permalinkUrl: String? = null,
+        val isAlbum: Boolean = false,
         val addedAt: Long = System.currentTimeMillis()
     )
     
