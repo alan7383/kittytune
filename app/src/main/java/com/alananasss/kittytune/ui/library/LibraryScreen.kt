@@ -424,9 +424,10 @@
         val playlistsLabel = stringResource(R.string.lib_playlists)
         val albumsLabel = stringResource(R.string.lib_albums)
         val artistsLabel = stringResource(R.string.lib_artists)
+        val stationsLabel = stringResource(R.string.lib_stations)
     
-        val filters = remember(playlistsLabel, albumsLabel, artistsLabel) {
-            listOf(playlistsLabel, albumsLabel, artistsLabel)
+        val filters = remember(playlistsLabel, albumsLabel, artistsLabel, stationsLabel) {
+            listOf(playlistsLabel, albumsLabel, artistsLabel, stationsLabel)
         }
     
         val view = androidx.compose.ui.platform.LocalView.current

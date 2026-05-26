@@ -199,6 +199,8 @@
     <string name="sort_date_added">Date d\'ajout</string>
     <string name="lib_playlists">Playlists</string>
     <string name="lib_artists">Artistes</string>
+    <string name="lib_albums">Albums</string>
+    <string name="lib_stations">Stations</string>
     <string name="lib_liked_tracks">Titres Likés</string>
     <string name="lib_liked_subtitle">Playlist • Auto</string>
     <string name="lib_liked_subtitle_local">Local • Sur cet appareil</string>
@@ -868,7 +870,6 @@
     <string name="warning_title">Attention</string>
     <string name="earrape_warning">Cet effet est extrêmement fort et saturé. À utiliser avec prudence pour éviter des dommages auditifs.</string>
 
-    <string name="lib_albums">Albums</string>
     <string name="nav_search">Rechercher</string>
 
     <string name="pref_bottom_menu_title">Barre de navigation</string>

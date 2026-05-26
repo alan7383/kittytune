@@ -199,6 +199,8 @@
     <string name="sort_date_added">Hozzáadás dátuma</string>
     <string name="lib_playlists">Playlistek</string>
     <string name="lib_artists">Előadók</string>
+    <string name="lib_albums">Albumok</string>
+    <string name="lib_stations">Állomások</string>
     <string name="lib_liked_tracks">Kedvelt zenék</string>
     <string name="lib_liked_subtitle">Playlist • Auto</string>
     <string name="lib_liked_subtitle_local">Helyi • Ezen az eszközön</string>
@@ -872,8 +874,6 @@
     <string name="nav_search">Keresés</string>
     <string name="pref_bottom_menu_fab_stats">Statisztikák</string>
     <string name="pref_bottom_menu_fab_playlist">Lejátszási lista</string>
-    <string name="lib_albums">Albumok</string>
-
     <string name="pref_bottom_menu_title">Navigációs sáv</string>
     <string name="pref_bottom_menu_subtitle">Alsó sáv és FAB testreszabása</string>
     <string name="pref_bottom_menu_style">Menü stílusa</string>
