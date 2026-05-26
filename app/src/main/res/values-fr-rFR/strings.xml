@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos,Grammar">
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- APP & CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="app_name">KittyTune</string>
-    <string name="msg_retrying">Nouvelle tentative...</string>
+    <string name="msg_retrying">Retrying&#8230;</string>
     <string name="success_generic">Opération réussie</string>
     <string name="error_generic">Une erreur est survenue</string>
     <string name="error_security_check">Vérification de sécurité requise</string>
@@ -42,12 +42,13 @@
     <string name="nav_library">Bibliothèque</string>
     <string name="nav_welcome">Bienvenue</string>
     <string name="nav_login">Connexion</string>
+    <string name="nav_search">Search</string>
     <string name="welcome_title">Bienvenue sur\nKittyTune</string>
     <string name="welcome_subtitle">Découvrez, streamez et téléchargez sans limite</string>
     <string name="login_title">Connexion SoundCloud</string>
     <string name="login_soundcloud">Se connecter avec SoundCloud</string>
     <string name="login_guest">Continuer en tant qu\'invité</string>
-    <string name="guest_loading">Lancement de la session invité...</string>
+    <string name="guest_loading">Starting guest session&#8230;</string>
     <string name="login_auth_in_progress">Authentication in progress…</string>
     <string name="login_waiting_browser">Waiting for browser…</string>
     <string name="login_no_browser_hint">If the browser didn\'t open, click below.</string>
@@ -58,7 +59,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- HOME & DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <string name="search_hint">Rechercher un titre, un artiste...</string>
+    <string name="search_hint">Search tracks, artists&#8230;</string>
     <string name="home_discovery_title">Découverte du jour</string>
     <string name="home_discovery_subtitle">Nouveaux titres basés sur vos goûts</string>
     <string name="home_discovery_context_genre">Pour les fans de %1$s</string>
@@ -198,10 +199,11 @@
     <string name="sort_date_added">Date d\'ajout</string>
     <string name="lib_playlists">Playlists</string>
     <string name="lib_artists">Artistes</string>
+    <string name="lib_albums">Albums</string>
     <string name="lib_liked_tracks">Titres Likés</string>
     <string name="lib_liked_subtitle">Playlist • Auto</string>
     <string name="lib_liked_subtitle_local">Local • Sur cet appareil</string>
-    <string name="lib_liked_subtitle_syncing">Synchro...</string>
+    <string name="lib_liked_subtitle_syncing">Syncing&#8230;</string>
     <string name="lib_downloads">Téléchargements</string>
     <string name="lib_downloads_subtitle">Hors ligne • Auto</string>
     <string name="lib_local_media">Fichiers Locaux</string>
@@ -210,10 +212,10 @@
     <string name="lib_create_playlist_hint">Nom de la playlist</string>
     <string name="playlist_num_tracks">%1$d titres</string>
     <string name="playlist_by_user">Par %1$s</string>
-    <string name="playlist_downloading_progress">Téléchargement en cours... %1$d%%</string>
+    <string name="playlist_downloading_progress">Downloading&#8230; %1$d%%</string>
     <string name="add_to_playlist_new">Nouvelle playlist</string>
-    <string name="add_to_playlist_title_single">Ajouter à...</string>
-    <string name="add_to_playlist_title_multi">Ajouter %1$d titres à...</string>
+    <string name="add_to_playlist_title_single">Add to&#8230;</string>
+    <string name="add_to_playlist_title_multi">Add %1$d tracks to&#8230;</string>
     <string name="dialog_delete_playlist_title">Supprimer la playlist ?</string>
     <string name="dialog_delete_playlist_msg">Cette action est irréversible</string>
     <string name="dialog_delete_playlist_from_lib_title">Retirer de la bibliothèque ?</string>
@@ -226,7 +228,6 @@
     <string name="player_queue">File d\'attente</string>
     <string name="queue_shuffle">Aléatoire</string>
     <string name="queue_repeat">Répéter</string>
-    <string name="queue_repeat_one">Répéter un</string>
     <string name="playback_count_formatted">écoutes</string>
     <string name="player_like_action">Like</string>
     <string name="download_comment">Via KittyTune</string>
@@ -249,7 +250,7 @@
     <string name="lyrics_no_data">Aucune parole disponible</string>
     <string name="lyrics_manual_search">Recherche manuelle</string>
     <string name="lyrics_wrong">Paroles incorrectes ?</string>
-    <string name="lyrics_search_hint">Chercher paroles...</string>
+    <string name="lyrics_search_hint">Search lyrics&#8230;</string>
     <string name="lyrics_mode_synced">Synchro</string>
     <string name="lyrics_mode_plain">Texte</string>
     <string name="lyrics_copy_text">Copier le texte</string>
@@ -358,7 +359,6 @@
     <string name="profile_tab_comments">Commentaires</string>
     <string name="profile_comment_on_track">sur %1$s</string>
     <string name="profile_about">À propos</string>
-    <string name="follows_you">Follows you</string>
     <string name="profile_playlists_by_user">Playlists de %1$s</string>
     <string name="profile_likes_by_user">Likes de %1$s</string>
     <string name="profile_update_success">Profil mis à jour</string>
@@ -373,6 +373,8 @@
     <string name="profile_menu_login">Se connecter</string>
     <string name="profile_menu_achievements">Succès</string>
     <string name="profile_menu_settings">Paramètres</string>
+    <string name="pref_bottom_menu_fab_stats">Listening Stats</string>
+    <string name="pref_bottom_menu_fab_playlist">Custom Playlist</string>
     <string name="profile_menu_logout">Déconnexion</string>
     <string name="profile_menu_notifications">Notifications</string>
     <string name="profile_menu_messages">Messages</string>
@@ -381,7 +383,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SOCIAL                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <string name="add_comment_hint">Ajouter un commentaire...</string>
+    <string name="add_comment_hint">Add a comment&#8230;</string>
     <string name="comment_no_comments">Aucun commentaire</string>
     <string name="comment_anonymous">Anonyme</string>
     <string name="comment_send_action">Envoyer</string>
@@ -391,7 +393,7 @@
     <string name="dialog_delete_comment_title">Supprimer le commentaire ?</string>
     <string name="dialog_delete_comment_msg">Voulez-vous vraiment supprimer ce commentaire ?</string>
     <string name="messages_title">Discussions</string>
-    <string name="chat_hint">Écrire un message...</string>
+    <string name="chat_hint">Write a message&#8230;</string>
     <string name="chat_send">Envoyer</string>
     <string name="notifications_title">Activité</string>
     <string name="notif_type_follow">%1$s vous a suivi</string>
@@ -420,7 +422,6 @@
     <string name="settings_cat_playback">Lecture</string>
     <string name="settings_cat_audio">Audio</string>
     <string name="settings_cat_source">Bibliothèque</string>
-    <string name="settings_cat_notifications">Notifications</string>
     <string name="pref_privacy_title">Confidentialité &amp; Suivi</string>
     <string name="pref_privacy_subtitle">Gérez vos statistiques d\'écoute et votre historique</string>
     <string name="pref_privacy_tracking_title">Activer l\'historique d\'écoute</string>
@@ -435,7 +436,6 @@
     <string name="pref_start_screen">Écran de démarrage</string>
     <string name="pref_theme_dynamic">Thème Dynamique (Material You)</string>
     <string name="pref_theme_dynamic_sub">S\'adapte à votre fond d\'écran</string>
-    <string name="pref_theme_mode">Mode Sombre/Clair</string>
     <string name="pref_theme_pure_black">Mode AMOLED (Noir Pur)</string>
     <string name="pref_theme_pure_black_sub">Économie de batterie pour écrans OLED</string>
     <string name="pref_player_style">Style du lecteur</string>
@@ -460,16 +460,10 @@
     <string name="dialog_font_width">Largeur (wdth) : %1$d</string>
     <string name="dialog_font_slant">Inclinaison (slnt) : %1$d</string>
     <string name="dialog_font_roundness">Arrondi (ROND) : %1$d</string>
-    <string name="dialog_font_grade">Graisse (GRAD) : %1$d</string>
-    <string name="dialog_font_optical_size">Taille optique (opsz) : %1$d</string>
     <string name="font_preset_default">Défaut</string>
     <string name="font_preset_rounded">Arrondi</string>
-    <string name="font_preset_compact">Compact</string>
-    <string name="font_preset_slanted">Incliné</string>
     <string name="font_preset_chunky">Massif</string>
     <string name="font_preset_elegant">Élégant</string>
-    <string name="font_preset_playful">Ludique</string>
-    <string name="font_preset_wide">Large</string>
     <!-- AUDIO & PLAYBACK -->
     <string name="pref_audio_title">Audio &amp; Lecture</string>
     <string name="pref_audio_subtitle">Qualité, autoplay, file d\'attente</string>
@@ -513,16 +507,16 @@
     <string name="pref_local_folders">Dossiers à scanner</string>
     <string name="pref_local_add">Ajouter un dossier</string>
     <string name="pref_local_scan">Lancer l\'analyse</string>
-    <string name="pref_local_scanning">Analyse en cours...</string>
+    <string name="pref_local_scanning">Scanning&#8230;</string>
     <string name="pref_local_info">Les sous-dossiers seront aussi analysés</string>
     <string name="pref_local_no_folder">Aucun dossier sélectionné</string>
-    <string name="pref_local_scan_status_prep">Préparation...</string>
-    <string name="pref_local_scan_status_searching">Recherche...</string>
+    <string name="pref_local_scan_status_prep">Preparing&#8230;</string>
+    <string name="pref_local_scan_status_searching">Searching&#8230;</string>
     <string name="pref_local_scan_status_no_folder">Sélectionnez un dossier</string>
     <string name="pref_local_scan_status_no_files">Aucun fichier trouvé</string>
-    <string name="pref_local_scan_status_found">%1$d fichiers détectés...</string>
+    <string name="pref_local_scan_status_found">%1$d files found&#8230;</string>
     <string name="pref_local_scan_status_analyzing">Traitement : %1$d / %2$d</string>
-    <string name="pref_local_scan_status_saving">Enregistrement...</string>
+    <string name="pref_local_scan_status_saving">Saving&#8230;</string>
     <string name="pref_local_scan_status_done">Terminé !</string>
     <string name="pref_local_scan_status_error">Erreur : %1$s</string>
     <!-- STORAGE -->
@@ -543,7 +537,7 @@
     <string name="storage_change_btn">Changer</string>
     <string name="storage_change_cta">Choisir un emplacement</string>
     <string name="storage_db_subtitle">Index &amp; réglages</string>
-    <string name="storage_loading">Calcul...</string>
+    <string name="storage_loading">Calculating&#8230;</string>
     <string name="dialog_clean_title">Nettoyage</string>
     <string name="dialog_clean_audio_msg">Supprimer toutes les musiques téléchargées ?</string>
     <string name="dialog_clean_images_msg">Supprimer le cache des images ? (Pochettes)</string>
@@ -560,7 +554,7 @@
     <string name="backup_success">Sauvegarde terminée !</string>
     <string name="restore_success">Restauration terminée. Veuillez redémarrer l\'app</string>
     <string name="backup_error">Échec : %1$s</string>
-    <string name="backup_in_progress">En cours...</string>
+    <string name="backup_in_progress">Processing&#8230;</string>
     <string name="backup_toast_success">Backup créé</string>
     <string name="backup_toast_error">Erreur backup</string>
     <string name="restore_toast_success">Données restaurées</string>
@@ -605,13 +599,8 @@
     <string name="about_translate_desc">Help translate on Crowdin!</string>
     <string name="about_made_with">Développé par Alan &gt;.&lt;</string>
     <string name="update_available_title">Mise à jour disponible</string>
-    <string name="update_available_msg">Une nouvelle version (%1$s) de KittyTune est disponible !</string>
-    <string name="update_changelog">Nouveautés :</string>
     <string name="update_btn_download">Télécharger &amp; Installer</string>
-    <string name="update_btn_later">Plus tard</string>
-    <string name="update_btn_disable">Ne plus me demander</string>
-    <string name="update_btn_download_with_size">Télécharger (%1$s)</string>
-    <string name="update_downloading">Téléchargement...</string>
+    <string name="update_downloading">Downloading update&#8230;</string>
     <string name="update_error">Échec de la mise à jour</string>
     <string name="update_no_update">Aucune mise à jour disponible</string>
     <string name="update_check_manual">Vérifier les mises à jour</string>
@@ -633,7 +622,7 @@
     <string name="ach_secret_desc">\?</string>
     <string name="pref_achievement_popups">Notifications de succès</string>
     <string name="pref_achievement_popups_sub">Afficher une alerte lors d\'un déblocage</string>
-    <string name="ach_cat_time">Endurance ( ˘_˘) ...</string>
+    <string name="ach_cat_time">Endurance ( ˘_˘) &#8230;</string>
     <string name="ach_cat_volume">Volume ♪└( ＾ω＾ )」</string>
     <string name="ach_cat_loyalty">Séries ( 🔥_🔥 )</string>
     <string name="ach_cat_collection">Collection ( 📦_📦 )</string>
@@ -777,12 +766,12 @@
     <string name="desc_like">Liker</string>
     <string name="desc_artwork">Pochette</string>
     <string name="desc_selected">Sélectionné</string>
-    <string name="empty_downloads_title">C\'est vide ici...</string>
+    <string name="empty_downloads_title">Nothing here yet&#8230;</string>
     <string name="empty_downloads_subtitle">Télécharge des titres pour écouter hors-ligne !</string>
     <string name="empty_downloads_kaomoji">(¬_¬ )</string>
     <string name="empty_playlist_generic">Cette playlist est vide</string>
     <string name="empty_playlist_generic_kaomoji">( . •́ _ʖ •̀ .)</string>
-    <string name="empty_user_playlist_title">C\'est calme... trop calme</string>
+    <string name="empty_user_playlist_title">It\'s quiet&#8230; too quiet</string>
     <string name="empty_user_playlist_subtitle">Ajoute tes premiers sons !</string>
     <string name="empty_user_playlist_kaomoji">( ⓛ ‿ ⓛ )</string>
     <string name="history_untitled_track">Titre inconnu</string>
@@ -805,21 +794,11 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- Sleep Timer -->
     <string name="sleep_timer_title">Minuteur de veille</string>
-    <string name="sleep_timer_subtitle">Arrêter la lecture après un temps défini</string>
-    <string name="sleep_timer_off">Désactivé</string>
-    <string name="sleep_timer_active">Minuteur : %1$s restants</string>
     <string name="sleep_timer_end_of_track">Fin du titre actuel</string>
     <string name="sleep_timer_cancel">Annuler le minuteur</string>
-    <string name="sleep_timer_set">Définir le minuteur</string>
-    <string name="sleep_timer_dialog_title">Minuteur de veille</string>
     <string name="sleep_timer_custom">Personnalisé</string>
     <string name="sleep_timer_custom_hint">Minutes</string>
     <string name="sleep_timer_5">5 min</string>
-    <string name="sleep_timer_10">10 min</string>
-    <string name="sleep_timer_15">15 min</string>
-    <string name="sleep_timer_20">20 min</string>
-    <string name="sleep_timer_30">30 min</string>
-    <string name="sleep_timer_45">45 min</string>
     <string name="sleep_timer_60">1 heure</string>
     <string name="sleep_timer_90">1h 30</string>
     <string name="sleep_timer_minutes_format">%1$d min</string>
@@ -876,7 +855,6 @@
     <string name="listening_stats_duration_days_hrs">%1$dj %2$dh</string>
     <string name="listening_stats_duration_hr_min">%1$dh %2$dm</string>
     <string name="listening_stats_duration_min_sec">%1$dm %2$ds</string>
-    <string name="listening_stats_duration_min">%1$dm</string>
     <string name="listening_stats_duration_sec">%1$ds</string>
     <string name="label_intensity">Intensité : %d%%</string>
     <string name="label_speed_8d">Vitesse de rotation : %d%%</string>
@@ -888,5 +866,20 @@
     <string name="sleep_timer_fade_title">Progressive Fade-out</string>
     <string name="sleep_timer_fade_subtitle">Volume will decrease over %1$d seconds</string>
     <string name="label_duration">Fade duration</string>
-    <string name="lib_albums">Albums</string>
+    <string name="pref_bottom_menu_title">Navigation Bar</string>
+    <string name="pref_bottom_menu_subtitle">Customize the bottom bar and FAB</string>
+    <string name="pref_bottom_menu_style">Menu Style</string>
+    <string name="pref_bottom_menu_style_modern">Modern</string>
+    <string name="pref_bottom_menu_style_classic">Classic</string>
+    <string name="pref_bottom_menu_fab">Floating Action Button</string>
+    <string name="pref_bottom_menu_fab_profile">Profile</string>
+    <string name="pref_bottom_menu_fab_settings">Settings</string>
+    <string name="pref_bottom_menu_blur">Blur Effect</string>
+    <string name="pref_bottom_menu_blur_sub">Apply a frosted glass effect</string>
+    <string name="pref_bottom_menu_tabs">Visible Tabs</string>
+    <string name="fab_settings_no_playlists">No playlist found in your library.</string>
+    <string name="fab_settings_hint">Tip: only playlists added to your library appear here. Feel free to like playlists so you can use them as shortcuts!</string>
+    <string name="fab_settings_radio">Radio • YouTube</string>
+    <string name="welcome_warning_title">Highly Recommended</string>
+    <string name="welcome_warning_desc">KittyTune needs notifications to show the music player in the background. Without it, you won\'t be able to pause or skip tracks outside the app.\n\nAre you sure you want to skip?</string>
 </resources>
