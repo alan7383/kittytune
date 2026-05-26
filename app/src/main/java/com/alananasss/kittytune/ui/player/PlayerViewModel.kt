@@ -1630,6 +1630,83 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     Log.w("PlayerViewModel", "Failed to sync web history: ${respV2.code()}")
                 }
 
+                // 3) Sync context history (updates recently played carousel on SoundCloud home)
+                val contextUrn = currentContext?.let { ctx ->
+                    val navId = ctx.navigationId
+                    when {
+                        navId == "likes" -> {
+                            if (currentUserId == 0L) {
+                                try {
+                                    val me = api.getMe()
+                                    currentUserId = me.id
+                                    currentUser = me
+                                } catch (e: Exception) {
+                                    Log.e("PlayerViewModel", "Failed to fetch user ID for recently-played context", e)
+                                }
+                            }
+                            if (currentUserId != 0L) {
+                                "soundcloud:liked-tracks:$currentUserId"
+                            } else {
+                                null
+                            }
+                        }
+                        navId.startsWith("station:") -> {
+                            val id = navId.removePrefix("station:")
+                            if (id.toLongOrNull() != null) {
+                                "soundcloud:system-playlists:track-stations:$id"
+                            } else {
+                                null
+                            }
+                        }
+                        navId.startsWith("station_artist:") -> {
+                            val id = navId.removePrefix("station_artist:")
+                            if (id.toLongOrNull() != null) {
+                                "soundcloud:system-playlists:artist-stations:$id"
+                            } else {
+                                null
+                            }
+                        }
+                        navId.startsWith("profile:") -> {
+                            val id = navId.removePrefix("profile:")
+                            if (id.toLongOrNull() != null) {
+                                "soundcloud:users:$id"
+                            } else {
+                                null
+                            }
+                        }
+                        navId == "downloads" || navId.startsWith("local_playlist:") || navId.startsWith("yt_radio:") -> {
+                            null
+                        }
+                        else -> {
+                            // Assume it's a playlist or album if it parses to a valid positive long
+                            val playlistId = navId.toLongOrNull()
+                            if (playlistId != null && playlistId > 0L) {
+                                "soundcloud:playlists:$playlistId"
+                            } else {
+                                null
+                            }
+                        }
+                    }
+                }
+
+                if (contextUrn != null) {
+                    val contextEntry = com.alananasss.kittytune.data.network.ApiRecentlyPlayed(
+                        playedAt = now,
+                        urn = contextUrn
+                    )
+                    val contextCollection = com.alananasss.kittytune.data.network.ApiCollection(
+                        collection = listOf(contextEntry)
+                    )
+                    val contextResponse = api.pushRecentlyPlayed(contextCollection)
+                    if (contextResponse.isSuccessful) {
+                        Log.d("PlayerViewModel", "Synced context $contextUrn to recently played")
+                    } else {
+                        Log.w("PlayerViewModel", "Failed to sync context $contextUrn: ${contextResponse.code()}")
+                    }
+                } else {
+                    Log.d("PlayerViewModel", "No valid SoundCloud context URN to sync")
+                }
+
             } catch (e: Exception) {
                 Log.e("PlayerViewModel", "Error syncing history", e)
             }
