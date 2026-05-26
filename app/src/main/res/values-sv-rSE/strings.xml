@@ -200,6 +200,7 @@
     <string name="lib_playlists">Playlists</string>
     <string name="lib_artists">Artists</string>
     <string name="lib_albums">Albums</string>
+    <string name="lib_stations">Stations</string>
     <string name="lib_liked_tracks">Liked Tracks</string>
     <string name="lib_liked_subtitle">Playlist • Auto</string>
     <string name="lib_liked_subtitle_local">Local • On this device</string>
