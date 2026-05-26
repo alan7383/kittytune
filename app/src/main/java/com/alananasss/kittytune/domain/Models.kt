@@ -213,6 +213,41 @@
     data class BasicTrackCollection(val collection: List<Track>, val next_href: String?)
     data class RepostCollection(val collection: List<RepostItem>, val next_href: String?)
     data class RepostItem(val type: String, @SerializedName("created_at") val createdAt: String?, val track: Track?, val playlist: Playlist?)
+    data class StationLibraryResponse(val collection: List<StationLibraryItem>, val next_href: String?)
+    data class StationLibraryItem(
+        @SerializedName("created_at") val createdAt: String?,
+        val type: String?,
+        @SerializedName("system_playlist") val systemPlaylist: SystemPlaylist?
+    )
+    data class SystemPlaylist(
+        val urn: String?,
+        val permalink: String?,
+        @SerializedName("permalink_url") val permalinkUrl: String?,
+        val title: String?,
+        val description: String?,
+        @SerializedName("short_title") val shortTitle: String?,
+        @SerializedName("artwork_url") val artworkUrl: String?,
+        @SerializedName("calculated_artwork_url") val calculatedArtworkUrl: String?,
+        @SerializedName("likes_count") val likesCount: Int?,
+        val tracks: List<Track>? = null,
+        val user: User? = null,
+        val id: String? = null
+    ) {
+        val numericId: Long
+            get() {
+                // urn = "soundcloud:system-playlists:track-stations:1948149687"
+                val parts = (urn ?: id ?: "").split(":")
+                return parts.lastOrNull()?.toLongOrNull() ?: 0L
+            }
+        val isArtistStation: Boolean get() = (urn ?: id ?: "").contains("artist-stations")
+        val isTrackStation: Boolean get() = (urn ?: id ?: "").contains("track-stations")
+        val fullResArtwork: String
+            get() {
+                if (!artworkUrl.isNullOrEmpty()) return artworkUrl.replace("large", "t500x500")
+                if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.replace("large", "t500x500")
+                return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200"
+            }
+    }
     data class UpdateProfileRequest(val username: String?, val description: String?, val city: String?, @SerializedName("country_code") val countryCode: String?, @SerializedName("first_name") val firstName: String? = null, @SerializedName("last_name") val lastName: String? = null)
     data class AvatarUpdateRequest(@SerializedName("image_data") val imageData: String)
     

@@ -140,6 +140,17 @@
         suspend fun unlikeTrack(
             @Body body: TrackLikeRequest
         ): retrofit2.Response<Unit>
+
+        @POST("https://api-mobile.soundcloud.com/likes/playlists/create")
+        suspend fun likePlaylist(
+            @Body body: PlaylistLikeRequest
+        ): retrofit2.Response<Unit>
+
+        @POST("https://api-mobile.soundcloud.com/likes/playlists/delete")
+        suspend fun unlikePlaylist(
+            @Body body: PlaylistLikeRequest
+        ): retrofit2.Response<Unit>
+
     
         @GET("users/{userId}/track_likes")
         suspend fun getUserTrackLikes(
@@ -154,6 +165,12 @@
             @Query("limit") limit: Int = 50
         ): PlaylistLikesResponse
     
+        @GET("me/library/stations")
+        suspend fun getMyLibraryStations(
+            @Query("limit") limit: Int = 50,
+            @Query("linked_partitioning") linkedPartitioning: Int = 1
+        ): StationLibraryResponse
+
         // --- Search ---
     
         @GET("search/tracks")
@@ -443,5 +460,14 @@ data class TrackLikeItem(
 data class TrackLikeRequest(
     @com.google.gson.annotations.SerializedName("likes") val likes: List<TrackLikeItem>
 )
+
+data class PlaylistLikeItem(
+    @com.google.gson.annotations.SerializedName("target_urn") val targetUrn: String
+)
+
+data class PlaylistLikeRequest(
+    @com.google.gson.annotations.SerializedName("likes") val likes: List<PlaylistLikeItem>
+)
+
 
 
