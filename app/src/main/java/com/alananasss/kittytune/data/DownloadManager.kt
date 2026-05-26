@@ -214,97 +214,147 @@
         fun getUserPlaylistsFlow() = database.downloadDao().getUserPlaylists()
         fun isPlaylistInLibraryFlow(playlistId: Long) = database.downloadDao().getPlaylistFlow(playlistId)
     
-        fun importPlaylistToLibrary(playlist: Playlist, tracks: List<Track>) {
-            scope.launch {
-                val dao = database.downloadDao()
-                val baseTime = System.currentTimeMillis()
-    
-                val localPlaylist = LocalPlaylist(
-                    id = playlist.id,
-                    title = playlist.title ?: context.getString(R.string.untitled_track),
-                    artist = playlist.user?.username ?: context.getString(R.string.unknown_artist),
-                    artworkUrl = playlist.fullResArtwork,
-                    trackCount = tracks.size,
-                    isUserCreated = false,
-                    permalinkUrl = playlist.permalinkUrl
-                )
-                dao.insertPlaylist(localPlaylist)
-    
-                tracks.forEachIndexed { index, track ->
-                    val existingTrack = dao.getTrack(track.id)
-    
-                    if (existingTrack == null) {
-                        val localTrack = LocalTrack(
-                            id = track.id,
-                            title = track.title ?: context.getString(R.string.untitled_track),
-                            artist = track.user?.username ?: context.getString(R.string.unknown_artist),
-                            artworkUrl = track.fullResArtwork,
-                            duration = track.durationMs ?: 0L,
-                            localAudioPath = "",
-                            localArtworkPath = ""
+    fun importPlaylistToLibrary(playlist: Playlist, tracks: List<Track>, syncToCloud: Boolean = true) {
+        scope.launch {
+            val tokenManager = TokenManager(context)
+            if (syncToCloud && playlist.id > 0 && !tokenManager.isGuestMode()) {
+                val token = tokenManager.getAccessToken()
+                if (!token.isNullOrEmpty()) {
+                    try {
+                        val permalink = playlist.permalinkUrl ?: ""
+                        val targetUrn = when {
+                            permalink.contains("artist-stations") -> "soundcloud:system-playlists:artist-stations:${playlist.id}"
+                            permalink.contains("track-stations") -> "soundcloud:system-playlists:track-stations:${playlist.id}"
+                            else -> "soundcloud:playlists:${playlist.id}"
+                        }
+                        val payload = com.alananasss.kittytune.data.network.PlaylistLikeRequest(
+                            likes = listOf(com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn))
                         )
-                        dao.insertTrack(localTrack)
+                        val response = api.likePlaylist(payload)
+                        if (response.code() == 401) {
+                            SessionManager.requestSessionRefresh(context, force = true)
+                        }
+                        Log.d("DownloadManager", "Direct playlist like success status: ${response.code()} for $targetUrn")
+                    } catch (e: Exception) {
+                        Log.e("DownloadManager", "Direct playlist like failed", e)
                     }
-    
-                    dao.insertPlaylistTrackRef(
-                        PlaylistTrackCrossRef(
-                            playlistId = playlist.id,
-                            trackId = track.id,
-                            addedAt = baseTime + index
-                        )
+                }
+            }
+
+            val dao = database.downloadDao()
+            val baseTime = System.currentTimeMillis()
+
+            val localPlaylist = LocalPlaylist(
+                id = playlist.id,
+                title = playlist.title ?: context.getString(R.string.untitled_track),
+                artist = playlist.user?.username ?: context.getString(R.string.unknown_artist),
+                artworkUrl = playlist.fullResArtwork,
+                trackCount = tracks.size,
+                isUserCreated = false,
+                permalinkUrl = playlist.permalinkUrl,
+                isAlbum = playlist.isAlbum
+            )
+            dao.insertPlaylist(localPlaylist)
+
+            tracks.forEachIndexed { index, track ->
+                val existingTrack = dao.getTrack(track.id)
+
+                if (existingTrack == null) {
+                    val localTrack = LocalTrack(
+                        id = track.id,
+                        title = track.title ?: context.getString(R.string.untitled_track),
+                        artist = track.user?.username ?: context.getString(R.string.unknown_artist),
+                        artworkUrl = track.fullResArtwork,
+                        duration = track.durationMs ?: 0L,
+                        localAudioPath = "",
+                        localArtworkPath = ""
                     )
+                    dao.insertTrack(localTrack)
                 }
-                _libraryUpdated.tryEmit(Unit)
+
+                dao.insertPlaylistTrackRef(
+                    PlaylistTrackCrossRef(
+                        playlistId = playlist.id,
+                        trackId = track.id,
+                        addedAt = baseTime + index
+                    )
+                )
             }
+            _libraryUpdated.tryEmit(Unit)
         }
-    
-        fun deletePlaylist(playlistId: Long) {
-            scope.launch {
-                val dao = database.downloadDao()
-    
-                val playlistToDelete = dao.getPlaylist(playlistId)
-    
-                if (playlistToDelete != null) {
-                    val folderName = sanitizeFilename(playlistToDelete.title)
-                    val customUriStr = prefs.getDownloadLocation()
-    
-                    if (customUriStr != null) {
-                        try {
-                            val treeUri = Uri.parse(customUriStr)
-                            val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
-                            val playlistDir = rootDoc?.findFile(folderName)
-                            if (playlistDir != null && playlistDir.isDirectory) {
-                                playlistDir.delete()
-                            }
-                        } catch (e: Exception) {
-                            Log.e("DownloadManager", "Failed to delete playlist folder from external storage: $folderName", e)
+    }
+
+    fun deletePlaylist(playlistId: Long, syncToCloud: Boolean = true) {
+        scope.launch {
+            val dao = database.downloadDao()
+            val playlistToDelete = dao.getPlaylist(playlistId)
+
+            val tokenManager = TokenManager(context)
+            if (syncToCloud && playlistId > 0 && !tokenManager.isGuestMode() && playlistToDelete != null) {
+                val token = tokenManager.getAccessToken()
+                if (!token.isNullOrEmpty()) {
+                    try {
+                        val permalink = playlistToDelete.permalinkUrl ?: ""
+                        val targetUrn = when {
+                            permalink.contains("artist-stations") -> "soundcloud:system-playlists:artist-stations:$playlistId"
+                            permalink.contains("track-stations") -> "soundcloud:system-playlists:track-stations:$playlistId"
+                            else -> "soundcloud:playlists:$playlistId"
                         }
-                    } else {
-                        try {
-                            val playlistDir = File(context.filesDir, folderName)
-                            if (playlistDir.exists() && playlistDir.isDirectory) {
-                                playlistDir.deleteRecursively()
-                            }
-                        } catch (e: Exception) {
-                            Log.e("DownloadManager", "Failed to delete playlist folder from internal storage: $folderName", e)
+                        val payload = com.alananasss.kittytune.data.network.PlaylistLikeRequest(
+                            likes = listOf(com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn))
+                        )
+                        val response = api.unlikePlaylist(payload)
+                        if (response.code() == 401) {
+                            SessionManager.requestSessionRefresh(context, force = true)
                         }
+                        Log.d("DownloadManager", "Direct playlist unlike success status: ${response.code()} for $targetUrn")
+                    } catch (e: Exception) {
+                        Log.e("DownloadManager", "Direct playlist unlike failed", e)
                     }
                 }
-    
-                dao.deletePlaylist(playlistId)
-                dao.deletePlaylistRefs(playlistId)
-                HistoryRepository.removeFromHistory(playlistId)
-    
-                val orphans = dao.getOrphanTracksList()
-                orphans.forEach { track ->
-                    deleteFileByPath(track.localAudioPath)
-                    deleteFileByPath(track.localArtworkPath)
-                    dao.deleteTrack(track.id)
-                }
-    
-                _storageTrigger.update { it + 1 }
             }
+
+            if (playlistToDelete != null) {
+                val folderName = sanitizeFilename(playlistToDelete.title)
+                val customUriStr = prefs.getDownloadLocation()
+
+                if (customUriStr != null) {
+                    try {
+                        val treeUri = Uri.parse(customUriStr)
+                        val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
+                        val playlistDir = rootDoc?.findFile(folderName)
+                        if (playlistDir != null && playlistDir.isDirectory) {
+                            playlistDir.delete()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DownloadManager", "Failed to delete playlist folder from external storage: $folderName", e)
+                    }
+                } else {
+                    try {
+                        val playlistDir = File(context.filesDir, folderName)
+                        if (playlistDir.exists() && playlistDir.isDirectory) {
+                            playlistDir.deleteRecursively()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DownloadManager", "Failed to delete playlist folder from internal storage: $folderName", e)
+                    }
+                }
+            }
+
+            dao.deletePlaylist(playlistId)
+            dao.deletePlaylistRefs(playlistId)
+            HistoryRepository.removeFromHistory(playlistId)
+
+            val orphans = dao.getOrphanTracksList()
+            orphans.forEach { track ->
+                deleteFileByPath(track.localAudioPath)
+                deleteFileByPath(track.localArtworkPath)
+                dao.deleteTrack(track.id)
+            }
+
+            _storageTrigger.update { it + 1 }
         }
+    }
     
         fun removePlaylistDownloads(playlistId: Long) {
             scope.launch {

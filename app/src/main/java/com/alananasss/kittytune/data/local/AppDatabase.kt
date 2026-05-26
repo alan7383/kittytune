@@ -186,7 +186,7 @@
         val totalListenMs: Long
     )
 
-    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class], version = 11, exportSchema = false)
+    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class], version = 13, exportSchema = false)
     abstract class AppDatabase : RoomDatabase() {
         abstract fun downloadDao(): DownloadDao
     
