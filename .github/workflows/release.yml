@@ -53,16 +53,21 @@ jobs:
       - name: Get previous tag
         id: prev_tag
         run: |
-          PREV=$(git tag --sort=-version:refname | grep -v "^${{ github.ref_name }}$" | head -1)
+          # Find the closest tag in history before the current ref
+          PREV=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
           echo "Previous tag found: $PREV"
-          echo "tag=$PREV" >> $GITHUB_OUTPUT
+          if [ -z "$PREV" ]; then
+            echo "range=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "range=${PREV}..${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
         id: cliff
         with:
           config: cliff.toml
-          args: --strip header -- ${{ steps.prev_tag.outputs.tag }}..${{ github.ref_name }}
+          args: --strip header -- ${{ steps.prev_tag.outputs.range }}
 
       # ── GitHub Release ───────────────────────────────────────────────────────
       - name: Delete existing release if present
