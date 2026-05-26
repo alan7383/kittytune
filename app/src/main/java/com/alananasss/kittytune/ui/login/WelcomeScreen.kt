@@ -92,16 +92,16 @@ fun WelcomeScreen(
             onDismissRequest = { showPermissionWarningDialog = false },
             icon = { Icon(Icons.Outlined.WarningAmber, contentDescription = null) },
             title = {
-                Text(
-                    text = "Highly Recommended", // Tu peux mettre ça dans ton strings.xml
-                    textAlign = TextAlign.Center
-                )
+                    Text(
+                        text = stringResource(R.string.welcome_warning_title),
+                        textAlign = TextAlign.Center
+                    )
             },
             text = {
-                Text(
-                    text = "KittyTune needs notifications to show the music player in the background. Without it, you won't be able to pause or skip tracks outside the app.\n\nAre you sure you want to skip?",
-                    textAlign = TextAlign.Center
-                )
+                    Text(
+                        text = stringResource(R.string.welcome_warning_desc),
+                        textAlign = TextAlign.Center
+                    )
             },
             confirmButton = {
                 Button(

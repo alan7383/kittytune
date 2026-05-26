@@ -270,7 +270,7 @@
         ) { innerPadding ->
             LazyColumn(
                 modifier = Modifier.padding(innerPadding),
-                contentPadding = PaddingValues(bottom = 120.dp)
+                contentPadding = PaddingValues(bottom = 180.dp)
             ) {
                 // country selector button
                 item {

@@ -3,6 +3,8 @@
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.filled.Home
     import androidx.compose.material.icons.filled.LibraryMusic
+    import androidx.compose.material.icons.filled.Search
+    import androidx.compose.material.icons.filled.Explore
     import androidx.compose.ui.graphics.vector.ImageVector
     import com.alananasss.kittytune.R
     
@@ -10,6 +12,8 @@
         data object Welcome : Screen("welcome", R.string.nav_welcome, null)
         data object Home : Screen("home", R.string.nav_home, Icons.Default.Home)
         data object Library : Screen("library", R.string.nav_library, Icons.Default.LibraryMusic)
+        data object Search : Screen("search", R.string.nav_search, Icons.Default.Search)
+        data object Explore : Screen("genres", R.string.explorer_title, Icons.Default.Explore)
         data object Login : Screen("login", R.string.nav_login, null)
     }
 

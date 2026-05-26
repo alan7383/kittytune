@@ -118,7 +118,7 @@
                     modifier = Modifier
                         .padding(innerPadding)
                         .fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 120.dp),
+                    contentPadding = PaddingValues(bottom = 180.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     // section 1: popular tracks (multi-column horizontal scroll)

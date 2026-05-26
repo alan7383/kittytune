@@ -253,7 +253,8 @@
             }
         }
     
-        fun activateSearch() { isSearching = true }
+        var searchTrigger by mutableStateOf(0)
+        fun activateSearch() { isSearching = true; searchTrigger++ }
         fun clearSearch() { searchQuery = ""; isSearching = false; clearSearchResults() }
         fun onFilterChanged(filter: SearchFilter) { activeFilter = filter; if (searchQuery.isNotBlank()) { searchJob?.cancel(); searchJob = viewModelScope.launch { performSearch(searchQuery) } } }
     

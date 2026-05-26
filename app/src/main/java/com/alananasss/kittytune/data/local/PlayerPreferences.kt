@@ -11,6 +11,7 @@ import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
+import kotlinx.coroutines.channels.awaitClose
 
 enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR }
@@ -87,6 +88,11 @@ class PlayerPreferences(private val context: Context) {
         const val SLEEP_TIMER_FADE_DURATION_MAX = 30
         const val SLEEP_TIMER_FADE_DURATION_DEFAULT = 30
         const val SLEEP_TIMER_FADE_UPDATE_INTERVAL_MS = 50L
+
+        private const val KEY_BOTTOM_MENU_STYLE = "bottom_menu_style"
+        private const val KEY_BOTTOM_MENU_ITEMS = "bottom_menu_items_csv"
+        private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
+        private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -246,6 +252,54 @@ class PlayerPreferences(private val context: Context) {
             SLEEP_TIMER_FADE_DURATION_MIN,
             SLEEP_TIMER_FADE_DURATION_MAX
         )).apply()
+
+    fun getBottomMenuStyle(): String = prefs.getString(KEY_BOTTOM_MENU_STYLE, "classic") ?: "classic"
+    fun setBottomMenuStyle(style: String) = prefs.edit().putString(KEY_BOTTOM_MENU_STYLE, style).apply()
+    fun bottomMenuStyleFlow(): kotlinx.coroutines.flow.Flow<String> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_BOTTOM_MENU_STYLE) trySend(getBottomMenuStyle())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getBottomMenuStyle())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getBottomMenuItems(): List<String> {
+        val defaultItems = "home,library"
+        val csv = prefs.getString(KEY_BOTTOM_MENU_ITEMS, defaultItems) ?: defaultItems
+        return csv.split(",").filter { it.isNotBlank() }
+    }
+    fun setBottomMenuItems(items: List<String>) = prefs.edit().putString(KEY_BOTTOM_MENU_ITEMS, items.joinToString(",")).apply()
+    fun bottomMenuItemsFlow(): kotlinx.coroutines.flow.Flow<List<String>> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_BOTTOM_MENU_ITEMS) trySend(getBottomMenuItems())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getBottomMenuItems())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getBottomMenuFab(): String = prefs.getString(KEY_BOTTOM_MENU_FAB, "settings") ?: "settings"
+    fun setBottomMenuFab(fab: String) = prefs.edit().putString(KEY_BOTTOM_MENU_FAB, fab).apply()
+    fun bottomMenuFabFlow(): kotlinx.coroutines.flow.Flow<String> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_BOTTOM_MENU_FAB) trySend(getBottomMenuFab())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getBottomMenuFab())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getBottomMenuBlurEnabled(): Boolean = prefs.getBoolean(KEY_BOTTOM_MENU_BLUR, true)
+    fun setBottomMenuBlurEnabled(enabled: Boolean) = prefs.edit().putBoolean(KEY_BOTTOM_MENU_BLUR, enabled).apply()
+    fun bottomMenuBlurFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_BOTTOM_MENU_BLUR) trySend(getBottomMenuBlurEnabled())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getBottomMenuBlurEnabled())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     fun savePlaybackState(track: Track?, position: Long, queue: List<Track>, context: PlaybackContext?, shuffleEnabled: Boolean, repeatMode: RepeatMode) {
         if (!getPersistentQueueEnabled()) {

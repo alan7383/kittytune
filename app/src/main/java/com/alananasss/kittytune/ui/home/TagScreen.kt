@@ -135,7 +135,7 @@ fun TagScreen(
                     "SUCCESS" -> {
                         LazyColumn(
                             state = listState,
-                            contentPadding = PaddingValues(bottom = 120.dp)
+                            contentPadding = PaddingValues(bottom = 180.dp)
                         ) {
                             itemsIndexed(currentTracks) { index, track ->
                                 if (index >= currentTracks.size - 3) {

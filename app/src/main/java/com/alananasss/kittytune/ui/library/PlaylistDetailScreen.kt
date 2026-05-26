@@ -551,7 +551,7 @@
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 120.dp)
+                            contentPadding = PaddingValues(bottom = 180.dp)
                         ) {
                             item {
                                 Spacer(modifier = Modifier.statusBarsPadding().height(90.dp))
@@ -1016,7 +1016,7 @@
                         contentPadding = PaddingValues(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(inner).padding(bottom = 100.dp)
+                        modifier = Modifier.padding(inner).padding(bottom = 180.dp)
                     ) {
                         items(downloadedPlaylists) { playlist ->
                             PlaylistSquareCard(playlist = playlist) {

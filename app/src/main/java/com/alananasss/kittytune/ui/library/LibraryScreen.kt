@@ -263,7 +263,7 @@
         LazyVerticalGrid(
             state = listState,
             columns = columns,
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -358,7 +358,7 @@
         val columns = if (isGridLayout) GridCells.Fixed(2) else GridCells.Fixed(1)
         LazyVerticalGrid(
             columns = columns,
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             userScrollEnabled = false

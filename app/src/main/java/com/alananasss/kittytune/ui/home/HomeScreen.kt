@@ -138,11 +138,15 @@ import kotlinx.coroutines.launch
             }
         }
 
-        LaunchedEffect(homeViewModel.isSearching) {
+        LaunchedEffect(homeViewModel.isSearching, homeViewModel.searchTrigger) {
             if (homeViewModel.isSearching) {
-                delay(100)
-                focusRequester.requestFocus()
-                keyboardController?.show()
+                delay(400)
+                try {
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             } else {
                 focusManager.clearFocus()
             }
@@ -497,7 +501,7 @@ import kotlinx.coroutines.launch
 
         LazyColumn(
             state = scrollState,
-            contentPadding = PaddingValues(bottom = 120.dp),
+            contentPadding = PaddingValues(bottom = 180.dp),
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(32.dp)
         ) {
@@ -1253,7 +1257,7 @@ import kotlinx.coroutines.launch
     ) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 120.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize()
@@ -1456,7 +1460,7 @@ import kotlinx.coroutines.launch
             SearchSource.YOUTUBE -> {
                 val listState = rememberLazyListState()
                 if (homeViewModel.searchResultsYoutube.isEmpty()) Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                else LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
+                else LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 180.dp), modifier = Modifier.fillMaxSize()) {
                     val isScrolling = listState.isScrollInProgress
                     itemsIndexed(homeViewModel.searchResultsYoutube) { index, track ->
                         StaggeredItem(index, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
@@ -1469,7 +1473,7 @@ import kotlinx.coroutines.launch
                 val listState = rememberLazyListState()
                 val shouldLoadMore by remember { derivedStateOf { val layoutInfo = listState.layoutInfo; val totalItems = layoutInfo.totalItemsCount; val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0; totalItems > 0 && lastVisibleItemIndex >= totalItems - 5 && activeFilter != SearchFilter.ALL } }
                 LaunchedEffect(shouldLoadMore) { if (shouldLoadMore && !homeViewModel.isSearchLoadingMore) homeViewModel.loadMoreSearchResults() }
-                LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 120.dp), modifier = Modifier.fillMaxSize()) {
+                LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 180.dp), modifier = Modifier.fillMaxSize()) {
                     var globalIndex = 0
                     val isScrolling = listState.isScrollInProgress
                     if (homeViewModel.searchResultsArtists.isNotEmpty()) {

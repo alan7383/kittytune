@@ -191,7 +191,7 @@
                         .padding(innerPadding)
                         .fillMaxSize(),
                     // Ensure padding bottom is sufficient to avoid overlap with MiniPlayer
-                    contentPadding = PaddingValues(bottom = 120.dp),
+                    contentPadding = PaddingValues(bottom = 180.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     // --- 1. Hero Level Card ---

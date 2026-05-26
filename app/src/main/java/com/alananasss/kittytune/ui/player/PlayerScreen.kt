@@ -389,7 +389,7 @@ fun PlainLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
                 .fadingEdge(fadeBrush),
             contentPadding = PaddingValues(
                 top = 70.dp,
-                bottom = 120.dp,
+                bottom = 180.dp,
                 start = 24.dp,
                 end = 24.dp
             ),
