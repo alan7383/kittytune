@@ -200,6 +200,7 @@
     <string name="lib_playlists">Playlistek</string>
     <string name="lib_artists">Előadók</string>
     <string name="lib_albums">Albums</string>
+    <string name="lib_stations">Stations</string>
     <string name="lib_liked_tracks">Kedvelt zenék</string>
     <string name="lib_liked_subtitle">Playlist • Auto</string>
     <string name="lib_liked_subtitle_local">Helyi • Ezen az eszközön</string>
