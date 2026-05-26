@@ -179,7 +179,7 @@
                 Text(stringResource(R.string.detail_no_one_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
+            LazyColumn(contentPadding = PaddingValues(bottom = 180.dp)) {
                 itemsIndexed(users) { index, user ->
                     if (index >= users.size - 5) {
                         LaunchedEffect(Unit) { onLoadMore() }
@@ -233,7 +233,7 @@
                 Text(stringResource(R.string.detail_no_public_playlist), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
+            LazyColumn(contentPadding = PaddingValues(bottom = 180.dp)) {
                 itemsIndexed(playlists) { index, playlist ->
                     if (index >= playlists.size - 5) {
                         LaunchedEffect(Unit) { onLoadMore() }
@@ -291,7 +291,7 @@
                 Text(stringResource(R.string.detail_no_similar), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            LazyColumn(contentPadding = PaddingValues(bottom = 120.dp)) {
+            LazyColumn(contentPadding = PaddingValues(bottom = 180.dp)) {
                 itemsIndexed(tracks) { index, track ->
                     if (index >= tracks.size - 5) {
                         LaunchedEffect(Unit) { onLoadMore() }

@@ -76,6 +76,23 @@ import com.alananasss.kittytune.ui.player.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.ui.profile.*
 import com.alananasss.kittytune.ui.track.TrackDetailScreen
+import com.alananasss.kittytune.ui.navigation.KittyUnifiedBottomBar
+import com.alananasss.kittytune.ui.navigation.KittyTab
+import com.alananasss.kittytune.ui.modifiers.progressiveBlur
+import com.alananasss.kittytune.ui.modifiers.BlurDirection
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.SdStorage
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.asPaddingValues
 import com.alananasss.kittytune.utils.Config
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -106,6 +123,10 @@ fun MainScreen(
     val prefs = remember { PlayerPreferences(context) }
 
     val tokenManager = remember { TokenManager(context) }
+
+    val bottomMenuStyle by prefs.bottomMenuStyleFlow().collectAsState(initial = prefs.getBottomMenuStyle())
+    val rawBottomMenuBlurEnabled by prefs.bottomMenuBlurFlow().collectAsState(initial = prefs.getBottomMenuBlurEnabled())
+    val actualBottomMenuBlurEnabled = bottomMenuStyle == "modern" && rawBottomMenuBlurEnabled
 
     // On dÃ©termine la page d'accueil de maniÃ¨re instantanÃ©e et synchrone
     var startDestination by remember {
@@ -420,53 +441,37 @@ fun MainScreen(
                 }
             },
             bottomBar = {
-                if (currentDestination?.route != Screen.Welcome.route && !isFullScreenRoute) {
-                    AnimatedVisibility(
-                        visible = showBottomUi,
-                        enter = slideInVertically { it },
-                        exit = slideOutVertically { it }
-                    ) {
-                        NavigationBar(
-                            tonalElevation = 0.dp,
-                            containerColor = MaterialTheme.colorScheme.surface
-                        ) {
-                            bottomNavItems.forEach { screen ->
-                                if (screen.icon != null) {
-                                    val isSelected = currentDestination?.hierarchy?.any { it.route == screen.route } == true
-                                    NavigationBarItem(
-                                        icon = {
-                                            Icon(
-                                                screen.icon,
-                                                contentDescription = stringResource(screen.titleResId)
-                                            )
-                                        },
-                                        label = { Text(stringResource(screen.titleResId)) },
-                                        selected = isSelected,
-                                        onClick = {
-                                            if (!isSelected) {
-                                                navController.navigate(screen.route) {
-                                                    popUpTo(navController.graph.findStartDestination().id)
-                                                    launchSingleTop = true
-                                                }
-                                            } else if (screen.route == Screen.Home.route && homeViewModel.isSearching) {
-                                                homeViewModel.clearSearch()
-                                            }
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
             }
         ) { innerPadding ->
 
-            // 1. AJOUTER CE BOX POUR POUVOIR ALIGNER LE MINIPLAYER EN BAS
             Box(modifier = Modifier.fillMaxSize()) {
+                val density = LocalDensity.current
+                val statusBarHeightPx = with(density) {
+                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding().toPx()
+                }
+                val bottomBarHeightPx = with(density) { 150.dp.toPx() } // Hauteur de la zone de flou en bas
+
                 NavHost(
                     navController = navController,
                     startDestination = startDestination,
-                    modifier = Modifier.padding(bottom = if (isFullScreenRoute) 0.dp else innerPadding.calculateBottomPadding()),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .progressiveBlur(
+                            blurRadius = 40f,
+                            height = statusBarHeightPx * 1.15f,
+                            direction = BlurDirection.TOP
+                        )
+                        .then(
+                            if (actualBottomMenuBlurEnabled) {
+                                Modifier.progressiveBlur(
+                                    blurRadius = 40f,
+                                    height = bottomBarHeightPx,
+                                    direction = BlurDirection.BOTTOM
+                                )
+                            } else {
+                                Modifier
+                            }
+                        ),
                     enterTransition = {
                         slideInHorizontally(initialOffsetX = { it })
                     },
@@ -821,6 +826,21 @@ fun MainScreen(
                     clippedComposable("appearance_settings") {
                         AppearanceSettingsScreen(
                             onNavigateToColors = { navController.navigate("color_palette") },
+                            onNavigateToBottomBarSettings = { navController.navigate("bottom_bar_settings") },
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("bottom_bar_settings") {
+                        BottomBarSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigateToFabSettings = { navController.navigate("fab_settings") },
+                            playerViewModel = playerViewModel
+                        )
+                    }
+
+                    clippedComposable("fab_settings") {
+                        com.alananasss.kittytune.ui.profile.FabSettingsScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }
@@ -864,16 +884,99 @@ fun MainScreen(
                 }
 
                 AnimatedVisibility(
-                    visible = showBottomUi && playerViewModel.currentTrack != null && !isFullScreenRoute,
-                    enter = slideInVertically(initialOffsetY = { it }), // Animation plus propre
+                    visible = showBottomUi && !isFullScreenRoute,
+                    enter = slideInVertically(initialOffsetY = { it }),
                     exit = slideOutVertically(targetOffsetY = { it }),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter) // Fonctionne grâce au Box
-                        .padding(bottom = if (isFullScreenRoute) 0.dp else innerPadding.calculateBottomPadding()) // 3. APPLIQUER SEULEMENT LE PADDING DU BAS
+                    modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
-                    MiniPlayer(
-                        viewModel = playerViewModel,
-                        onClick = { playerViewModel.isPlayerExpanded = true }
+                    val allTabKeys = listOf("home", "search", "genres", "library")
+                    val bottomNavItemsKeys = prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems()).value
+                    
+                    val tabs = allTabKeys.mapNotNull { key ->
+                        val screen = when (key) {
+                            "home" -> Screen.Home
+                            "search" -> Screen.Search
+                            "genres" -> Screen.Explore
+                            "library" -> Screen.Library
+                            else -> null
+                        } ?: return@mapNotNull null
+                        
+                        KittyTab(
+                            title = stringResource(screen.titleResId),
+                            icon = screen.icon ?: Icons.Rounded.Home,
+                            route = screen.route,
+                            visible = bottomNavItemsKeys.contains(key)
+                        )
+                    }
+
+                    val selectedRoute = tabs.find { tab ->
+                        if (tab.route == Screen.Home.route) {
+                            currentDestination?.hierarchy?.any { it.route == tab.route } == true && !homeViewModel.isSearching
+                        } else if (tab.route == Screen.Search.route) {
+                            currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true && homeViewModel.isSearching
+                        } else {
+                            currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                        }
+                    }?.route
+
+                    val fabSetting by prefs.bottomMenuFabFlow().collectAsState(initial = prefs.getBottomMenuFab())
+                    val onFabClick: () -> Unit = {
+                        when {
+                            fabSetting == "settings" -> navController.navigate("settings")
+                            fabSetting == "achievements" -> navController.navigate("achievements")
+                            fabSetting == "stats" -> navController.navigate("listening_stats")
+                            fabSetting == "liked" -> navController.navigate("playlist_detail/likes")
+                            fabSetting == "downloads" -> navController.navigate("playlist_detail/downloads")
+                            fabSetting == "local" -> navController.navigate("playlist_detail/local_files")
+                            fabSetting.startsWith("playlist:") -> {
+                                val id = fabSetting.removePrefix("playlist:")
+                                navController.navigate("playlist_detail/$id")
+                            }
+                            else -> showProfileMenu = true
+                        }
+                    }
+                    val fabIcon = when {
+                        fabSetting == "settings" -> Icons.Rounded.Settings
+                        fabSetting == "achievements" -> Icons.Rounded.EmojiEvents
+                        fabSetting == "stats" -> Icons.Rounded.BarChart
+                        fabSetting == "liked" -> Icons.Rounded.Favorite
+                        fabSetting == "downloads" -> Icons.Rounded.Download
+                        fabSetting == "local" -> Icons.Rounded.SdStorage
+                        fabSetting.startsWith("playlist:") -> Icons.Rounded.QueueMusic
+                        else -> Icons.Rounded.Person
+                    }
+
+                    KittyUnifiedBottomBar(
+                        tabs = tabs,
+                        selectedRoute = selectedRoute,
+                        onTabSelected = { tab ->
+                            if (tab.route == Screen.Search.route) {
+                                val isAlreadyOnHome = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true
+                                if (!isAlreadyOnHome) {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id)
+                                        launchSingleTop = true
+                                    }
+                                }
+                                homeViewModel.activateSearch()
+                            } else {
+                                val isSelected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                                if (!isSelected) {
+                                    navController.navigate(tab.route) {
+                                        popUpTo(navController.graph.findStartDestination().id)
+                                        launchSingleTop = true
+                                    }
+                                } else if (tab.route == Screen.Home.route && homeViewModel.isSearching) {
+                                    homeViewModel.clearSearch()
+                                }
+                            }
+                        },
+                        onFabClick = onFabClick,
+                        fabIcon = fabIcon,
+                        playerViewModel = playerViewModel,
+                        onPlayerClick = { playerViewModel.isPlayerExpanded = true },
+                        style = bottomMenuStyle,
+                        blurEnabled = actualBottomMenuBlurEnabled
                     )
                 }
             }

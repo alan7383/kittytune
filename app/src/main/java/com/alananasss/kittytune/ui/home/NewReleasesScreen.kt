@@ -120,7 +120,7 @@
                 // main content in a vertically scrollable column
                 LazyColumn(
                     modifier = Modifier.padding(innerPadding),
-                    contentPadding = PaddingValues(bottom = 120.dp),
+                    contentPadding = PaddingValues(bottom = 180.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // playlists section in a horizontal row

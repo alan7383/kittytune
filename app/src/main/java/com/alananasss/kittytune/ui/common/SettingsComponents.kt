@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -27,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+
+// Removed getSettingsShape
 
 fun getSettingsShape(groupSize: Int, index: Int): Shape {
     if (groupSize <= 1) return RoundedCornerShape(24.dp)
@@ -60,10 +63,12 @@ fun SettingsGroup(
             SettingsGroupTitle(title)
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(
+            modifier = Modifier.clip(RoundedCornerShape(24.dp)),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
             items.forEachIndexed { index, itemContent ->
-                val shape = getSettingsShape(items.size, index)
-                itemContent(shape)
+                itemContent(androidx.compose.ui.graphics.RectangleShape)
             }
         }
     }
@@ -99,7 +104,7 @@ fun SettingsItem(
     Card(
         onClick = { onToggleOrClick() },
         enabled = onClick != null || hasSwitch,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = shape,
         modifier = Modifier.fillMaxWidth(),
         interactionSource = interactionSource
@@ -264,7 +269,7 @@ fun SplitSettingsItem(
 
     Card(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = shape,
         modifier = Modifier.fillMaxWidth()
     ) {

@@ -380,7 +380,7 @@
                 modifier = Modifier
                     .fillMaxSize()
                     .fadingEdge(fadeBrush),
-                contentPadding = PaddingValues(top = 70.dp, bottom = 120.dp, start = 24.dp, end = 24.dp),
+                contentPadding = PaddingValues(top = 70.dp, bottom = 180.dp, start = 24.dp, end = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 items(lines) { line ->

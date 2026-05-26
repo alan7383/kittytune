@@ -130,7 +130,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 180.dp)
             ) {
                 item {
                     Column(

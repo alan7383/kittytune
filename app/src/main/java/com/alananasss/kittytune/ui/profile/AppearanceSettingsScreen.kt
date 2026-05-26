@@ -54,6 +54,7 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 @Composable
 fun AppearanceSettingsScreen(
     onNavigateToColors: () -> Unit,
+    onNavigateToBottomBarSettings: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -174,7 +175,7 @@ fun AppearanceSettingsScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 100.dp)
+            contentPadding = PaddingValues(bottom = 180.dp)
         ) {
 
             item {
@@ -290,6 +291,14 @@ fun AppearanceSettingsScreen(
                 SettingsGroup(
                     title = stringResource(R.string.settings_cat_general),
                     items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_bottom_menu_title),
+                                subtitle = stringResource(R.string.pref_bottom_menu_subtitle),
+                                onClick = onNavigateToBottomBarSettings
+                            )
+                        },
                         { shape ->
                             SettingsItem(
                                 shape = shape,

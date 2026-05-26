@@ -137,7 +137,7 @@ fun ExpandedQueueScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.surface),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            contentPadding = PaddingValues(bottom = 180.dp)
         ) {
             itemsIndexed(
                 items = queueState,

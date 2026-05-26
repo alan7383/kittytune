@@ -34,9 +34,9 @@
             val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
             LazyColumn(
                 modifier = Modifier
-                    .padding(innerPadding)
+                    .padding(top = innerPadding.calculateTopPadding())
                     .fillMaxSize(),
-                contentPadding = PaddingValues(bottom = miniPlayerHeight + 16.dp)
+                contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + miniPlayerHeight + 150.dp, top = 16.dp)
             ) {
     
                 item {

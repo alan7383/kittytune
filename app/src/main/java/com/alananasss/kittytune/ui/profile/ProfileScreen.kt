@@ -158,7 +158,7 @@
     
                 LazyColumn(
                     state = listState,
-                    contentPadding = PaddingValues(bottom = 120.dp),
+                    contentPadding = PaddingValues(bottom = 180.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     item {
@@ -929,7 +929,7 @@
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
             LazyColumn(
-                contentPadding = PaddingValues(bottom = 120.dp),
+                contentPadding = PaddingValues(bottom = 180.dp),
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
@@ -1270,7 +1270,7 @@
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
             LazyColumn(
-                contentPadding = PaddingValues(bottom = 120.dp),
+                contentPadding = PaddingValues(bottom = 180.dp),
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()

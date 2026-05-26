@@ -88,7 +88,7 @@
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 120.dp)
+                contentPadding = PaddingValues(bottom = 180.dp)
             ) {
                 // GAUGE (Kept separate as it's not a list item)
                 item {
