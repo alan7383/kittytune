@@ -390,7 +390,10 @@
                                 playlistTitle = playlistObj.title.takeIf { !it.isNullOrBlank() } ?: context.getString(R.string.radio)
                                 playlistCover = playlistObj.fullResArtwork
                                 playlistUser = playlistObj.user
-                                playlistPermalinkUrl = playlistObj.permalinkUrl
+                                playlistPermalinkUrl = playlistObj.permalinkUrl.takeIf { !it.isNullOrBlank() }
+                                    ?: if (isArtistStation) "https://soundcloud.com/discover/sets/artist-stations:$currentIdLong"
+                                    else if (isTrackStation) "https://soundcloud.com/discover/sets/track-stations:$currentIdLong"
+                                    else null
                                 val rawTracks = playlistObj.tracks ?: emptyList()
                                 val incompleteIds = rawTracks.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
     
