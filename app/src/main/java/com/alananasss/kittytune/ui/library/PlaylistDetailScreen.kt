@@ -288,7 +288,7 @@
                             tracks = null
                         )
                     })
-                    val allDownloadedTracks = db.getAllTracks().first()
+                    val allDownloadedTracks = db.getAllTracksList()
                     newTracks.addAll(allDownloadedTracks.map { local ->
                         Track(
                             id = local.id,
@@ -305,7 +305,7 @@
                         playlistTitle = context.getString(R.string.lib_local_media)
                         defaultIcon = Icons.Default.SdStorage
                         isLocalPlaylist = false
-                        val allTracks = db.getAllTracks().first()
+                        val allTracks = db.getAllTracksList()
                         val localFileTracks = allTracks.filter { it.id < 0 }
                         newTracks.addAll(localFileTracks.map { local ->
                             Track(

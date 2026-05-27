@@ -24,8 +24,8 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.alananasss.kittytune"
         minSdk = 26
         targetSdk = 36
-        versionCode = 25
-        versionName = "2.44.1"
+        versionCode = 26
+        versionName = "2.44.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -29,6 +29,9 @@
     
         @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != '' ORDER BY downloadedAt DESC")
         fun getAllTracks(): Flow<List<LocalTrack>>
+
+        @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != '' ORDER BY downloadedAt DESC")
+        suspend fun getAllTracksList(): List<LocalTrack>
     
         // playlists
         @Insert(onConflict = OnConflictStrategy.REPLACE)
