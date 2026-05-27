@@ -269,37 +269,37 @@
                         }
                     }
     
-                    playlistId == "downloads" -> {
-                        playlistTitle = context.getString(R.string.lib_downloads)
-                        defaultIcon = Icons.Rounded.Folder
-                        isLocalPlaylist = false
-                        val localPlaylists = db.getDownloadedPlaylists().first()
-                        newDownloadedPlaylists.addAll(localPlaylists.map { local ->
-                            val tracksInPlaylist = db.getTracksForPlaylistSync(local.id)
-                            val realDownloadedCount = tracksInPlaylist.count { it.localAudioPath.isNotEmpty() }
-    
-                            Playlist(
-                                id = local.id,
-                                title = local.title,
-                                artworkUrl = local.artworkUrl,
-                                calculatedArtworkUrl = local.localCoverPath,
-                                trackCount = realDownloadedCount,
-                                user = User(0, local.artist, null),
-                                tracks = null
-                            )
-                        })
-                        val orphanTracks = db.getOrphanTracksList()
-                        newTracks.addAll(orphanTracks.map { local ->
-                            Track(
-                                id = local.id,
-                                title = local.title,
-                                artworkUrl = local.localArtworkPath.ifEmpty { local.artworkUrl },
-                                durationMs = local.duration,
-                                user = User(0, local.artist, null),
-                                isLiked = true
-                            )
-                        })
-                    }
+                playlistId == "downloads" -> {
+                    playlistTitle = context.getString(R.string.lib_downloads)
+                    defaultIcon = Icons.Rounded.Folder
+                    isLocalPlaylist = false
+                    val localPlaylists = db.getDownloadedPlaylists().first()
+                    newDownloadedPlaylists.addAll(localPlaylists.map { local ->
+                        val tracksInPlaylist = db.getTracksForPlaylistSync(local.id)
+                        val realDownloadedCount = tracksInPlaylist.count { it.localAudioPath.isNotEmpty() }
+
+                        Playlist(
+                            id = local.id,
+                            title = local.title,
+                            artworkUrl = local.artworkUrl,
+                            calculatedArtworkUrl = local.localCoverPath,
+                            trackCount = realDownloadedCount,
+                            user = User(0, local.artist, null),
+                            tracks = null
+                        )
+                    })
+                    val allDownloadedTracks = db.getAllTracks().first()
+                    newTracks.addAll(allDownloadedTracks.map { local ->
+                        Track(
+                            id = local.id,
+                            title = local.title,
+                            artworkUrl = local.localArtworkPath.ifEmpty { local.artworkUrl },
+                            durationMs = local.duration,
+                            user = User(0, local.artist, null),
+                            isLiked = true
+                        )
+                    })
+                }
     
                     playlistId == "local_files" -> {
                         playlistTitle = context.getString(R.string.lib_local_media)
