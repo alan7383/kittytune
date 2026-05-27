@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.androidx.glance.material3)
     implementation(libs.compose.markdown)
     implementation(libs.newpipe.extractor)
+    implementation(libs.rhino)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(libs.innertune) {
         exclude(group = "com.github.z-huang.InnerTune", module = "kizzy")

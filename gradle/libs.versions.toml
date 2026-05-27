@@ -20,7 +20,8 @@ media = "1.8.0"
 mp3agic = "0.9.1"
 glance = "1.1.1"
 markdown = "0.3.1"
-newpipe = "v0.25.2"
+newpipe = "v0.26.2"
+rhino = "1.8.1"
 desugar = "2.1.5"
 innertune = "0.5.10"
 webkit = "1.16.0"
@@ -71,6 +72,7 @@ androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidge
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "markdown" }
 newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe" }
+rhino = { group = "org.mozilla", name = "rhino", version.ref = "rhino" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs_nio", version.ref = "desugar" }
 innertune = { group = "com.github.z-huang", name = "InnerTune", version.ref = "innertune" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }

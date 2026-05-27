@@ -9,8 +9,12 @@
     import com.alananasss.kittytune.utils.Config
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.withContext
+    import okhttp3.Cookie
+    import okhttp3.CookieJar
+    import okhttp3.HttpUrl
     import okhttp3.OkHttpClient
     import okhttp3.RequestBody.Companion.toRequestBody
+    import java.util.concurrent.ConcurrentHashMap
     import org.json.JSONObject
     import org.schabi.newpipe.extractor.NewPipe
     import org.schabi.newpipe.extractor.ServiceList
@@ -22,7 +26,45 @@
     import java.io.IOException
 
     private object ExtractorDownloader : Downloader() {
-        private val client = OkHttpClient()
+        private val client = OkHttpClient.Builder()
+            .cookieJar(object : CookieJar {
+                private val cookieStore = ConcurrentHashMap<String, MutableList<Cookie>>()
+
+                override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+                    val host = url.host
+                    val existing = cookieStore.getOrPut(host) { mutableListOf() }
+                    val updated = existing.associateBy { it.name }.toMutableMap()
+                    cookies.forEach { updated[it.name] = it }
+                    cookieStore[host] = updated.values.toMutableList()
+                }
+
+                override fun loadForRequest(url: HttpUrl): List<Cookie> {
+                    val host = url.host
+                    val validCookies = mutableListOf<Cookie>()
+                    cookieStore.forEach { (domain, domainCookies) ->
+                        if (host == domain || host.endsWith(".$domain")) {
+                            validCookies.addAll(domainCookies)
+                        }
+                    }
+                    return validCookies
+                }
+            })
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val host = request.url.host
+                if (host.contains("youtube.com") || host.contains("youtu.be")) {
+                    val existingCookies = request.headers("Cookie").joinToString("; ")
+                    if (!existingCookies.contains("CONSENT=")) {
+                        val newCookie = if (existingCookies.isNotEmpty()) "$existingCookies; CONSENT=YES+cb" else "CONSENT=YES+cb"
+                        val newRequest = request.newBuilder()
+                            .header("Cookie", newCookie)
+                            .build()
+                        return@addInterceptor chain.proceed(newRequest)
+                    }
+                }
+                chain.proceed(request)
+            }
+            .build()
 
         @Throws(IOException::class)
         override fun execute(request: Request): Response {
@@ -138,20 +180,59 @@
                 val extractor = youtubeService.getStreamExtractor(firstResultUrl)
                 extractor.fetchPage()
 
-                val bestAudioStream = extractor.audioStreams
-                    .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.format == org.schabi.newpipe.extractor.MediaFormat.M4A && it.url != null }
-                    .maxByOrNull { it.averageBitrate }
-                    ?: extractor.audioStreams
-                        .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.url != null }
-                        .maxByOrNull { it.averageBitrate }
-
-                if (bestAudioStream == null) {
-                    Log.w(TAG, "[NewPipe] No valid audio stream found.")
-                    return null
+                try {
+                    Log.d(TAG, "[NewPipe] Video name: ${extractor.name}, length: ${extractor.length}s")
+                } catch (e: Exception) {
+                    Log.w(TAG, "[NewPipe] Could not get video name/length: ${e.message}")
                 }
 
-                Log.d(TAG, "[NewPipe] Success: ${bestAudioStream.averageBitrate}kbps")
-                bestAudioStream.url
+                // 1) Try dedicated audio streams first (DASH - requires JS deobfuscation)
+                val audioStreams = try {
+                    extractor.audioStreams
+                } catch (e: Exception) {
+                    Log.w(TAG, "[NewPipe] audioStreams extraction failed: ${e.message}")
+                    emptyList()
+                }
+
+                val bestAudioStream = audioStreams
+                    .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.format == org.schabi.newpipe.extractor.MediaFormat.M4A && it.url != null }
+                    .maxByOrNull { it.averageBitrate }
+                    ?: audioStreams
+                        .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.url != null }
+                        .maxByOrNull { it.averageBitrate }
+                    ?: audioStreams
+                        .filter { it.url != null }
+                        .maxByOrNull { it.averageBitrate }
+
+                if (bestAudioStream != null) {
+                    Log.d(TAG, "[NewPipe] Audio stream found: ${bestAudioStream.averageBitrate}kbps")
+                    return bestAudioStream.url
+                }
+
+                // 2) No audio-only streams → fallback to muxed video+audio stream
+                //    ExoPlayer will extract the audio track from the MP4 container automatically
+                Log.d(TAG, "[NewPipe] No audio-only streams, trying muxed video streams...")
+                val videoStreams = try {
+                    extractor.videoStreams
+                } catch (e: Exception) {
+                    Log.w(TAG, "[NewPipe] videoStreams extraction failed: ${e.message}")
+                    emptyList()
+                }
+
+                val bestVideoStream = videoStreams
+                    .filter { it.url != null }
+                    .minByOrNull { 
+                        // Prefer lowest resolution to minimize bandwidth (we only need audio)
+                        it.getResolution()?.replace("p", "")?.toIntOrNull() ?: Int.MAX_VALUE
+                    }
+
+                if (bestVideoStream != null) {
+                    Log.d(TAG, "[NewPipe] Using muxed video stream as audio source: ${bestVideoStream.getResolution()}, format=${bestVideoStream.format}")
+                    return bestVideoStream.url
+                }
+
+                Log.w(TAG, "[NewPipe] No streams available at all (audio=${audioStreams.size}, video=${videoStreams.size})")
+                null
             } catch (e: Exception) {
                 Log.e(TAG, "[NewPipe] Error:", e)
                 null
@@ -164,10 +245,19 @@
                 val service = ServiceList.YouTube
                 val extractor = service.getStreamExtractor(url)
                 extractor.fetchPage()
-                extractor.audioStreams
+                val best = extractor.audioStreams
                     .filter { it.deliveryMethod == org.schabi.newpipe.extractor.stream.DeliveryMethod.PROGRESSIVE_HTTP && it.url != null }
                     .maxByOrNull { it.averageBitrate }
-                    ?.url
+                    ?: extractor.audioStreams
+                        .filter { it.url != null }
+                        .maxByOrNull { it.averageBitrate }
+                if (best != null) return best.url
+
+                // Fallback to muxed video+audio stream (ExoPlayer extracts audio automatically)
+                val muxed = extractor.videoStreams
+                    .filter { it.url != null }
+                    .minByOrNull { it.getResolution()?.replace("p", "")?.toIntOrNull() ?: Int.MAX_VALUE }
+                muxed?.url
             } catch (e: Exception) {
                 Log.e(TAG, "[YouTube] Failed to extract direct stream: ${e.message}")
                 null
