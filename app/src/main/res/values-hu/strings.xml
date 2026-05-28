@@ -194,6 +194,7 @@
     <!-- LIBRARY                                                                          -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_library_hint">Szűrés a könyvtárban</string>
+    <string name="search_playlist_hint">Szűrés a lejátszási listában</string>
     <string name="lib_offline_mode">Offline mód • Csak helyi adatok</string>
     <string name="lib_guest_mode">Vendég mód • Lépj be a szinkronizáláshoz</string>
     <string name="sort_date_added">Hozzáadás dátuma</string>
@@ -775,6 +776,10 @@
     <string name="empty_downloads_kaomoji">(¬_¬ )</string>
     <string name="empty_playlist_generic">Ez a playlist üres</string>
     <string name="empty_playlist_generic_kaomoji">( . •́ _ʖ •̀ .)</string>
+    <string name="empty_playlist_search_kaomoji">( º _ º )</string>
+    <string name="empty_playlist_search_title">Nincs találat</string>
+    <string name="empty_playlist_search_subtitle">Nem találtunk a szűrőnek megfelelő számot</string>
+    <string name="no_tracks_found_filter">Nincs szám</string>
     <string name="empty_user_playlist_title">Nagy a csend&#8230; túl nagy</string>
     <string name="empty_user_playlist_subtitle">Add hozzá az első számot!</string>
     <string name="empty_user_playlist_kaomoji">( ⓛ ‿ ⓛ )</string>
@@ -890,4 +895,9 @@
     <string name="fab_settings_radio">Rádió • YouTube</string>
     <string name="welcome_warning_title">Erősen ajánlott</string>
     <string name="welcome_warning_desc">A KittyTune-nak értesítésekre van szüksége a zenelejátszó háttérben történő megjelenítéséhez. Enélkül nem tudja szüneteltetni vagy átugrani a zeneszámokat az alkalmazáson kívül.\n\nBiztosan ki akarja hagyni?</string>
+    <string name="menu_sort_by">Rendezés</string>
+    <string name="sort_first_added">Legrégebben hozzáadva</string>
+    <string name="sort_recently_added">Legutóbb hozzáadva</string>
+    <string name="sort_title_az">Cím (A-Z)</string>
+    <string name="sort_artist_az">Előadó (A-Z)</string>
 </resources>

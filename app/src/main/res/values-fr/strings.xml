@@ -194,6 +194,7 @@
     <!-- LIBRARY                                                                          -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_library_hint">Filtrer la bibliothèque</string>
+    <string name="search_playlist_hint">Filtrer la playlist</string>
     <string name="lib_offline_mode">Mode Hors Ligne • Accès local uniquement</string>
     <string name="lib_guest_mode">Mode Invité • Connectez-vous pour synchroniser</string>
     <string name="sort_date_added">Date d\'ajout</string>
@@ -773,6 +774,10 @@
     <string name="empty_downloads_kaomoji">(¬_¬ )</string>
     <string name="empty_playlist_generic">Cette playlist est vide</string>
     <string name="empty_playlist_generic_kaomoji">( . •́ _ʖ •̀ .)</string>
+    <string name="empty_playlist_search_kaomoji">( º _ º )</string>
+    <string name="empty_playlist_search_title">Aucun résultat</string>
+    <string name="empty_playlist_search_subtitle">Nous n\'avons rien trouvé correspondant à votre filtre</string>
+    <string name="no_tracks_found_filter">Aucune track</string>
     <string name="empty_user_playlist_title">C\'est calme&#8230; trop calme</string>
     <string name="empty_user_playlist_subtitle">Ajoute tes premiers sons !</string>
     <string name="empty_user_playlist_kaomoji">( ⓛ ‿ ⓛ )</string>
@@ -888,4 +893,9 @@
     <string name="fab_settings_radio">Radio • YouTube</string>
     <string name="welcome_warning_title">Fortement recommandé</string>
     <string name="welcome_warning_desc">KittyTune a besoin des notifications pour afficher le lecteur de musique en arrière-plan. Sans cela, vous ne pourrez pas mettre en pause ou passer des titres en dehors de l\'application.\n\nÊtes-vous sûr de vouloir ignorer ?</string>
+    <string name="menu_sort_by">Trier par</string>
+    <string name="sort_first_added">Ajoutés en premier</string>
+    <string name="sort_recently_added">Récemment ajoutés</string>
+    <string name="sort_title_az">Titre (A-Z)</string>
+    <string name="sort_artist_az">Artiste (A-Z)</string>
 </resources>
