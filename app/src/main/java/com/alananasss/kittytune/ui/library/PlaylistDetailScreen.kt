@@ -73,6 +73,10 @@
     import java.io.File
     import sh.calvin.reorderable.ReorderableItem
     import sh.calvin.reorderable.rememberReorderableLazyListState
+
+enum class TrackSortBy {
+    FIRST_ADDED, RECENTLY_ADDED, TITLE_AZ, ARTIST_AZ
+}
     
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
@@ -138,6 +142,7 @@
         var isLocalPlaylist by remember { mutableStateOf(false) }
         var showPlaylistOptionsSheet by remember { mutableStateOf(false) }
         var showPlaylistDetailsSheet by remember { mutableStateOf(false) }
+        var showPlaylistSortSheet by remember { mutableStateOf(false) }
     
         var playlistPermalinkUrl by remember { mutableStateOf<String?>(null) }
     
@@ -221,7 +226,25 @@
         var showRenameDialog by remember { mutableStateOf(false) }
         var newPlaylistName by remember { mutableStateOf("") }
     
-        val tracksToDisplay = if (playlistId == "likes") likedTracksRepo else tracks
+        var playlistSearchQuery by remember { mutableStateOf("") }
+        var isSearchExpanded by remember { mutableStateOf(false) }
+        var playlistSortBy by remember { mutableStateOf(TrackSortBy.FIRST_ADDED) }
+
+        val rawTracks = if (playlistId == "likes") likedTracksRepo else tracks
+        val tracksToDisplay = remember(rawTracks, playlistSearchQuery, playlistSortBy) {
+            val filtered = if (playlistSearchQuery.isEmpty()) rawTracks else {
+                rawTracks.filter { 
+                    it.title?.contains(playlistSearchQuery, ignoreCase = true) == true || 
+                    it.user?.username?.contains(playlistSearchQuery, ignoreCase = true) == true
+                }
+            }
+            when (playlistSortBy) {
+                TrackSortBy.FIRST_ADDED -> filtered
+                TrackSortBy.RECENTLY_ADDED -> filtered.reversed()
+                TrackSortBy.TITLE_AZ -> filtered.sortedBy { it.title?.lowercase() ?: "" }
+                TrackSortBy.ARTIST_AZ -> filtered.sortedBy { it.user?.username?.lowercase() ?: "" }
+            }
+        }
     
         val downloadedCount = remember(tracksToDisplay, downloadedIds) {
             if (tracksToDisplay.isEmpty()) 0
@@ -536,6 +559,47 @@
             }
         }
     
+        if (showPlaylistSortSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showPlaylistSortSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ) {
+                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                    val options = listOf(
+                        TrackSortBy.FIRST_ADDED to stringResource(R.string.sort_first_added),
+                        TrackSortBy.RECENTLY_ADDED to stringResource(R.string.sort_recently_added),
+                        TrackSortBy.TITLE_AZ to stringResource(R.string.sort_title_az),
+                        TrackSortBy.ARTIST_AZ to stringResource(R.string.sort_artist_az)
+                    )
+
+                    options.forEach { (sortType, label) ->
+                        val isSelected = playlistSortBy == sortType
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { 
+                                    playlistSortBy = sortType
+                                    showPlaylistSortSheet = false 
+                                }
+                                .padding(horizontal = 24.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = label, 
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                            if (isSelected) {
+                                Spacer(modifier = Modifier.weight(1f))
+                                Icon(Icons.Rounded.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         val backgroundColor = MaterialTheme.colorScheme.background
     
         Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
@@ -590,7 +654,15 @@
                                     val trackCountText = when {
                                         playlistId.startsWith("yt_radio:") -> stringResource(R.string.radio) + " • YouTube"
                                         isLoading && playlistId != "likes" -> "..."
-                                        else -> stringResource(R.string.playlist_num_tracks, tracksToDisplay.size + downloadedPlaylists.sumOf { it.trackCount ?: 0 })                                }
+                                        else -> {
+                                            val count = tracksToDisplay.size + downloadedPlaylists.sumOf { it.trackCount ?: 0 }
+                                            if (count == 0 && playlistSearchQuery.isNotEmpty()) {
+                                                stringResource(R.string.no_tracks_found_filter)
+                                            } else {
+                                                stringResource(R.string.playlist_num_tracks, count)
+                                            }
+                                        }
+                                    }
     
                                     if(trackCountText.isNotEmpty()) {
                                         Text(
@@ -786,7 +858,7 @@
                             if (isLoading && playlistId != "likes") {
                                 items(15) { TrackListItemShimmer() }
                             } else {
-                                val isReallyEmpty = tracksToDisplay.isEmpty()
+                                val isReallyEmpty = rawTracks.isEmpty()
                                         && (playlistId != "downloads" || downloadedPlaylists.isEmpty())
                                         && !isYoutubeRadio
     
@@ -798,42 +870,107 @@
                                         )
                                     }
                                 } else {
-                                    if (isYoutubeRadio && tracksToDisplay.isEmpty()) {
+                                    if (isYoutubeRadio && rawTracks.isEmpty()) {
                                         item {
                                             Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                                                 ContainedLoadingIndicator()
                                             }
                                         }
                                     }
-                                    if (tracksToDisplay.isNotEmpty()) {
-                                        item {
+                                    if (rawTracks.isNotEmpty()) {
+                                        item(key = "search_and_buttons") {
+                                            if (tracksToDisplay.isNotEmpty()) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                ) {
+                                                    Button(
+                                                        onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList(), 0, playbackContext) },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
+                                                        shape = RoundedCornerShape(50),
+                                                        modifier = Modifier.weight(1f).height(50.dp)
+                                                    ) {
+                                                        Icon(Icons.Default.PlayArrow, null)
+                                                        Spacer(Modifier.width(8.dp))
+                                                        Text(stringResource(R.string.btn_play), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                                    }
+                                                    FilledTonalButton(
+                                                        onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList().shuffled(), context = playbackContext) },
+                                                        colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.onSurface),
+                                                        shape = RoundedCornerShape(50),
+                                                        modifier = Modifier.weight(1f).height(50.dp)
+                                                    ) {
+                                                        Icon(Icons.Default.Shuffle, null)
+                                                        Spacer(Modifier.width(8.dp))
+                                                        Text(stringResource(R.string.btn_shuffle), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                                Spacer(Modifier.height(16.dp))
+                                            }
+
                                             Row(
                                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                horizontalArrangement = Arrangement.End
                                             ) {
-                                                Button(
-                                                    onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList(), 0, playbackContext) },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
-                                                    shape = RoundedCornerShape(50),
-                                                    modifier = Modifier.weight(1f).height(50.dp)
+                                                AnimatedVisibility(
+                                                    visible = isSearchExpanded,
+                                                    enter = expandHorizontally(expandFrom = Alignment.End) + fadeIn(),
+                                                    exit = shrinkHorizontally(shrinkTowards = Alignment.End) + fadeOut(),
+                                                    modifier = Modifier.weight(1f)
                                                 ) {
-                                                    Icon(Icons.Default.PlayArrow, null)
-                                                    Spacer(Modifier.width(8.dp))
-                                                    Text(stringResource(R.string.btn_play), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                                    OutlinedTextField(
+                                                        value = playlistSearchQuery,
+                                                        onValueChange = { playlistSearchQuery = it },
+                                                        placeholder = { Text(stringResource(R.string.search_playlist_hint)) },
+                                                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                                                        trailingIcon = {
+                                                            IconButton(onClick = { 
+                                                                playlistSearchQuery = ""
+                                                                isSearchExpanded = false
+                                                            }) {
+                                                                Icon(Icons.Rounded.Close, null)
+                                                            }
+                                                        },
+                                                        singleLine = true,
+                                                        shape = CircleShape,
+                                                        colors = OutlinedTextFieldDefaults.colors(
+                                                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                                        )
+                                                    )
                                                 }
-                                                FilledTonalButton(
-                                                    onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList().shuffled(), context = playbackContext) },
-                                                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.onSurface),
-                                                    shape = RoundedCornerShape(50),
-                                                    modifier = Modifier.weight(1f).height(50.dp)
-                                                ) {
-                                                    Icon(Icons.Default.Shuffle, null)
-                                                    Spacer(Modifier.width(8.dp))
-                                                    Text(stringResource(R.string.btn_shuffle), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                                                AnimatedVisibility(visible = !isSearchExpanded) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        IconButton(
+                                                            onClick = { isSearchExpanded = true },
+                                                            shapes = IconButtonDefaults.shapes(),
+                                                            colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        ) {
+                                                            Icon(Icons.Default.Search, "Search")
+                                                        }
+                                                        Spacer(Modifier.width(12.dp))
+                                                        IconButton(
+                                                            onClick = { showPlaylistSortSheet = true },
+                                                            shapes = IconButtonDefaults.shapes(),
+                                                            colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                        ) {
+                                                            Icon(Icons.Rounded.Sort, "Sort")
+                                                        }
+                                                    }
                                                 }
                                             }
                                             Spacer(Modifier.height(16.dp))
+                                        }
+                                        if (tracksToDisplay.isEmpty() && playlistSearchQuery.isNotEmpty()) {
+                                            item {
+                                                EmptyPlaylistView(
+                                                    playlistId = playlistId,
+                                                    isUserCreated = isUserCreated,
+                                                    isEmptySearch = true
+                                                )
+                                            }
                                         }
                                     }
     
@@ -853,7 +990,8 @@
                                         if (isUserCreated) {
                                             ReorderableItem(
                                                 state = reorderableState,
-                                                key = track.id
+                                                key = track.id,
+                                                modifier = Modifier.animateItem()
                                             ) { isDragging ->
                                                 val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
                                                 val scale by animateFloatAsState(if (isDragging) 1.02f else 1f, label = "scale")
@@ -941,6 +1079,7 @@
                                                 isDownloaded = isDownloaded,
                                                 downloadProgress = progress ?: 0,
                                                 showVerifiedBadge = false,
+                                                modifier = Modifier.animateItem(),
                                                 onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList(), index, playbackContext) },
                                                 onOptionClick = {
                                                     val contextId = if (playlistId == "downloads") -2L else if (isUserCreated) currentIdLong else null
@@ -1346,9 +1485,15 @@
     @Composable
     fun EmptyPlaylistView(
         playlistId: String,
-        isUserCreated: Boolean
+        isUserCreated: Boolean,
+        isEmptySearch: Boolean = false
     ) {
         val (kaomoji, title, subtitle) = when {
+            isEmptySearch -> Triple(
+                stringResource(R.string.empty_playlist_search_kaomoji),
+                stringResource(R.string.empty_playlist_search_title),
+                stringResource(R.string.empty_playlist_search_subtitle)
+            )
             playlistId == "downloads" -> Triple(
                 stringResource(R.string.empty_downloads_kaomoji),
                 stringResource(R.string.empty_downloads_title),
