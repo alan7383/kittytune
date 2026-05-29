@@ -194,6 +194,7 @@
     <!-- LIBRARY                                                                          -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_library_hint">Szűrés a könyvtárban</string>
+    <string name="search_playlist_hint">Filter playlist</string>
     <string name="lib_offline_mode">Offline mód • Csak helyi adatok</string>
     <string name="lib_guest_mode">Vendég mód • Lépj be a szinkronizáláshoz</string>
     <string name="sort_date_added">Hozzáadás dátuma</string>
@@ -772,6 +773,10 @@
     <string name="empty_downloads_kaomoji">(¬_¬ )</string>
     <string name="empty_playlist_generic">Ez a playlist üres</string>
     <string name="empty_playlist_generic_kaomoji">( . •́ _ʖ •̀ .)</string>
+    <string name="empty_playlist_search_kaomoji">( º _ º )</string>
+    <string name="empty_playlist_search_title">No tracks found</string>
+    <string name="empty_playlist_search_subtitle">We couldn\'t find anything matching your filter</string>
+    <string name="no_tracks_found_filter">No tracks</string>
     <string name="empty_user_playlist_title">It\'s quiet&#8230; too quiet</string>
     <string name="empty_user_playlist_subtitle">Add hozzá az első számot!</string>
     <string name="empty_user_playlist_kaomoji">( ⓛ ‿ ⓛ )</string>
@@ -883,4 +888,9 @@
     <string name="fab_settings_radio">Radio • YouTube</string>
     <string name="welcome_warning_title">Highly Recommended</string>
     <string name="welcome_warning_desc">KittyTune needs notifications to show the music player in the background. Without it, you won\'t be able to pause or skip tracks outside the app.\n\nAre you sure you want to skip?</string>
+    <string name="menu_sort_by">Sort by</string>
+    <string name="sort_first_added">First Added</string>
+    <string name="sort_recently_added">Recently Added</string>
+    <string name="sort_title_az">Title (A-Z)</string>
+    <string name="sort_artist_az">Artist (A-Z)</string>
 </resources>
