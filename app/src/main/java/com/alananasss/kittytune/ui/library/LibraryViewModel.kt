@@ -76,7 +76,14 @@
                                 null -> !isStation
                                 else -> false // if artist/station filter is selected, standard playlists don't match
                             }
-                            matchesSearch && matchesType
+                            val matchesOwnership = if (matchesType && !isStation) {
+                                when (ownershipFilter) {
+                                    OwnershipFilter.ALL -> true
+                                    OwnershipFilter.CREATED -> item.playlist.user?.id == userProfile?.id || item.playlist.user?.id == 0L || item.playlist.id < 0L
+                                    OwnershipFilter.LIKED -> LikeRepository.isPlaylistLiked(item.playlist.id)
+                                }
+                            } else true
+                            matchesSearch && matchesType && matchesOwnership
                         }
                         is LibraryItem.ArtistItem -> {
                             val matchesSearch = if (searchQuery.isBlank()) true else {
@@ -98,6 +105,7 @@
         var showLocalMedia by mutableStateOf(false)
         val isSyncing = LikeRepository.isSyncing
         var selectedFilter by mutableStateOf<String?>(null)
+        var ownershipFilter by mutableStateOf(OwnershipFilter.ALL)
         var isGridLayout by mutableStateOf(prefs.getBoolean("is_grid_layout", true))
         var isSortDescending by mutableStateOf(true)
     
@@ -126,6 +134,20 @@
                     if (isReady) {
                         loadData()
                     }
+                }
+            }
+
+            viewModelScope.launch {
+                DownloadManager.libraryUpdated.collect {
+                    if (SessionManager.isClientIdValid.value) {
+                        loadData()
+                    }
+                }
+            }
+
+            viewModelScope.launch {
+                DownloadManager.deletedPlaylistIds.collect {
+                    rebuildAllItems()
                 }
             }
     
@@ -160,18 +182,23 @@
         }
     
         private fun rebuildAllItems() {
+            val deletedIds = DownloadManager.deletedPlaylistIds.value
             val localIds = localItemsCache
                 .filterIsInstance<LibraryItem.PlaylistItem>()
                 .map { it.playlist.id }
                 .toSet()
     
             val filteredOnlineItems = onlineItemsCache.filter { item ->
-                if (item is LibraryItem.PlaylistItem) !localIds.contains(item.playlist.id) else true
+                if (item is LibraryItem.PlaylistItem) !localIds.contains(item.playlist.id) && !deletedIds.contains(item.playlist.id) else true
+            }
+            
+            val filteredLocalItems = localItemsCache.filter { item ->
+                if (item is LibraryItem.PlaylistItem) !deletedIds.contains(item.playlist.id) else true
             }
     
             _allItems.clear()
             _allItems.addAll(filteredOnlineItems)
-            _allItems.addAll(localItemsCache)
+            _allItems.addAll(filteredLocalItems)
             _allItems.addAll(savedArtistsCache)
         }
     
@@ -221,20 +248,44 @@
                         val likedPlaylistsDeferred = async { api.getUserPlaylistLikes(user.id) }
                         val createdPlaylistsDeferred = async { api.getUserCreatedPlaylists(user.id) }
                         val repostedPlaylistsDeferred = async { api.getMyPlaylistPosts() }
-                        val stationsDeferred = async { try { api.getMyLibraryStations() } catch (e: Exception) { null } }
+                        val libraryAllDeferred = async { try { api.getMyLibraryAll(limit = 200) } catch (e: Exception) { null } }
     
                         val likedResponse = likedPlaylistsDeferred.await()
                         val createdResponse = createdPlaylistsDeferred.await()
                         val repostedResponse = repostedPlaylistsDeferred.await()
-                        val stationsResponse = stationsDeferred.await()
+                        val libraryAllResponse = libraryAllDeferred.await()
     
                         val newOnlineItems = mutableListOf<LibraryItem>()
                         val addedPlaylistIds = mutableSetOf<Long>()
+                        val trulyLikedIds = mutableSetOf<Long>()
     
-                        likedResponse.collection.forEach { item ->
-                            if (addedPlaylistIds.add(item.playlist.id)) {
+                                                likedResponse.collection.forEach { item ->
+                            val pl = item.playlist
+                            val sp = item.systemPlaylist
+                            
+                            if (pl != null && addedPlaylistIds.add(pl.id)) {
+                                trulyLikedIds.add(pl.id)
                                 val date = try { item.likedAt?.let { isoParser.parse(it)?.time } ?: 0L } catch (e: Exception) { 0L }
-                                newOnlineItems.add(LibraryItem.PlaylistItem(item.playlist, date))
+                                newOnlineItems.add(LibraryItem.PlaylistItem(pl, date))
+                            } else if (sp != null) {
+                                val numId = sp.urn?.hashCode()?.toLong() ?: sp.numericId
+                                if (numId != 0L && addedPlaylistIds.add(numId)) {
+                                    trulyLikedIds.add(numId)
+                                    val stationPermalink = sp.permalinkUrl ?: if (sp.isArtistStation) "https://soundcloud.com/discover/sets/artist-stations:${sp.numericId}" else "https://soundcloud.com/discover/sets/track-stations:${sp.numericId}"
+                                    val fakePlaylist = Playlist(
+                                        id = numId,
+                                        title = sp.title,
+                                        artworkUrl = sp.artworkUrl,
+                                        calculatedArtworkUrl = sp.calculatedArtworkUrl,
+                                        trackCount = sp.tracks?.size,
+                                        user = sp.user,
+                                        tracks = null,
+                                        permalinkUrl = stationPermalink,
+                                        urn = sp.urn
+                                    )
+                                    val date = try { item.likedAt?.let { isoParser.parse(it)?.time } ?: 0L } catch (e: Exception) { 0L }
+                                    newOnlineItems.add(LibraryItem.PlaylistItem(fakePlaylist, date))
+                                }
                             }
                         }
     
@@ -259,12 +310,13 @@
                             }
                         }
 
-                        // Add liked stations to the library view
-                        stationsResponse?.collection?.forEach { item ->
+                        // Add liked system playlists and stations from library/all
+                        libraryAllResponse?.collection?.forEach { item ->
                             val sp = item.systemPlaylist ?: return@forEach
-                            val numId = sp.numericId
-                            if (numId > 0 && addedPlaylistIds.add(numId)) {
-                                val stationPermalink = sp.permalinkUrl ?: if (sp.isArtistStation) "https://soundcloud.com/discover/sets/artist-stations:$numId" else "https://soundcloud.com/discover/sets/track-stations:$numId"
+                            val numId = sp.urn?.hashCode()?.toLong() ?: sp.numericId
+                            if (numId != 0L && addedPlaylistIds.add(numId)) {
+                                trulyLikedIds.add(numId)
+                                val stationPermalink = sp.permalinkUrl ?: if (sp.isArtistStation) "https://soundcloud.com/discover/sets/artist-stations:${sp.numericId}" else "https://soundcloud.com/discover/sets/track-stations:${sp.numericId}"
                                 val fakePlaylist = Playlist(
                                     id = numId,
                                     title = sp.title,
@@ -273,113 +325,18 @@
                                     trackCount = sp.tracks?.size,
                                     user = sp.user,
                                     tracks = null,
-                                    permalinkUrl = stationPermalink
+                                    permalinkUrl = stationPermalink,
+                                    urn = sp.urn
                                 )
                                 val date = try { item.createdAt?.let { isoParser.parse(it)?.time } ?: 0L } catch (e: Exception) { 0L }
                                 newOnlineItems.add(LibraryItem.PlaylistItem(fakePlaylist, date))
                             }
                         }
     
+                        LikeRepository.setLikedPlaylists(trulyLikedIds)
+                        
                         onlineItemsCache = newOnlineItems
                         rebuildAllItems()
-
-                        // Synchronize playlists with SoundCloud in the background
-                        launch(Dispatchers.IO) {
-                            try {
-                                val localPlaylists = db.getAllPlaylists().first()
-                                val localSyncIds = localPlaylists.filter { !it.isUserCreated && it.id > 0 }.map { it.id }.toSet()
-                                
-                                val playlistsToImport = mutableMapOf<Long, Playlist>()
-                                
-                                likedResponse.collection.forEach { item ->
-                                    if (!localSyncIds.contains(item.playlist.id)) {
-                                        playlistsToImport[item.playlist.id] = item.playlist
-                                    }
-                                }
-                                createdResponse.collection.forEach { playlist ->
-                                    if (!localSyncIds.contains(playlist.id)) {
-                                        playlistsToImport[playlist.id] = playlist
-                                    }
-                                }
-                                repostedResponse.collection.forEach { item ->
-                                    val playlist = item.playlist ?: return@forEach
-                                    if (!localSyncIds.contains(playlist.id)) {
-                                        playlistsToImport[playlist.id] = playlist
-                                    }
-                                }
-
-                                // Also import missing stations
-                                stationsResponse?.collection?.forEach { item ->
-                                    val sp = item.systemPlaylist ?: return@forEach
-                                    val numId = sp.numericId
-                                    if (numId > 0 && !localSyncIds.contains(numId)) {
-                                        val stationPermalink = sp.permalinkUrl ?: if (sp.isArtistStation) "https://soundcloud.com/discover/sets/artist-stations:$numId" else "https://soundcloud.com/discover/sets/track-stations:$numId"
-                                        playlistsToImport[numId] = Playlist(
-                                            id = numId,
-                                            title = sp.title,
-                                            artworkUrl = sp.artworkUrl,
-                                            calculatedArtworkUrl = sp.calculatedArtworkUrl,
-                                            trackCount = sp.tracks?.size,
-                                            user = sp.user,
-                                            tracks = null,
-                                            permalinkUrl = stationPermalink
-                                        )
-                                    }
-                                }
-                                
-                                playlistsToImport.values.forEach { playlist ->
-                                    try {
-                                        val permalink = playlist.permalinkUrl ?: ""
-                                        val isArtistStation = permalink.contains("artist-stations")
-                                        val isTrackStation = permalink.contains("track-stations")
-                                        
-                                        val fullPlaylist = if (playlist.tracks.isNullOrEmpty()) {
-                                            when {
-                                                isArtistStation -> api.getArtistStation(playlist.id)
-                                                isTrackStation -> api.getTrackStation(playlist.id)
-                                                else -> api.getPlaylist(playlist.id)
-                                            }
-                                        } else {
-                                            playlist
-                                        }
-                                        
-                                        var finalTracks = fullPlaylist.tracks ?: emptyList()
-                                        val incompleteIds = finalTracks.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
-                                        if (incompleteIds.isNotEmpty()) {
-                                            val fetchedMap = mutableMapOf<Long, com.alananasss.kittytune.domain.Track>()
-                                            incompleteIds.chunked(50).forEach { batch ->
-                                                try {
-                                                    api.getTracksByIds(batch.joinToString(",")).forEach { fetchedMap[it.id] = it }
-                                                } catch (e: Exception) { e.printStackTrace() }
-                                            }
-                                            finalTracks = finalTracks.map { t -> if (t.title.isNullOrBlank() || t.user == null) fetchedMap[t.id] ?: t else t }
-                                        }
-
-                                        DownloadManager.importPlaylistToLibrary(
-                                            fullPlaylist,
-                                            finalTracks,
-                                            syncToCloud = false
-                                        )
-                                    } catch (e: Exception) {
-                                        Log.e("LibraryVM", "Failed to sync import playlist ${playlist.id}", e)
-                                    }
-                                }
-                                
-                                val onlineIds = addedPlaylistIds
-                                val now = System.currentTimeMillis()
-                                localPlaylists.forEach { local ->
-                                    if (!local.isUserCreated && local.id > 0 && !onlineIds.contains(local.id)) {
-                                        if (now - local.addedAt > 60_000L) {
-                                            DownloadManager.deletePlaylist(local.id, syncToCloud = false)
-                                        } else {
-                                            Log.d("LibraryVM", "Skipping immediate deletion of newly liked playlist/station ${local.id} (within 60s cooldown)")
-                                        }
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("LibraryVM", "Playlist sync failed", e)
-                            }
-                        }
     
                         if (!isHydratingLikes) {
                             isHydratingLikes = true
@@ -432,4 +389,8 @@
         }
     }
 
+
+
+
+enum class OwnershipFilter { ALL, CREATED, LIKED }
 
