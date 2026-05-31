@@ -19,7 +19,7 @@
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun PlaylistFansScreen(
-        playlistId: Long,
+        playlistId: String,
         initialTab: Int = 0,
         onBackClick: () -> Unit,
         onNavigate: (String) -> Unit,

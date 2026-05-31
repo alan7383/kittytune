@@ -47,7 +47,7 @@
     @OptIn(ExperimentalLayoutApi::class)
     @Composable
     fun PlaylistDetailsSheet(
-        playlistId: Long,
+        playlistId: String,
         onDismiss: () -> Unit,
         onViewAll: (Int) -> Unit, // 0 = likes, 1 = reposts
         onNavigate: (String) -> Unit,

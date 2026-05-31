@@ -33,13 +33,17 @@
         var isRepostersLoadingMore by mutableStateOf(false)
     
         // to avoid reloading if returning to the screen
-        private var currentPlaylistId: Long = -1L
+        private var currentPlaylistIdStr: String = ""
     
-        fun loadPlaylistDetails(playlistId: Long) {
-            if (playlistId <= 0) { isLoading = false; return }
-            if (currentPlaylistId == playlistId && (likers.isNotEmpty() || reposters.isNotEmpty()) && playlistDetails != null) return
+        fun loadPlaylistDetails(playlistIdStr: String) {
+            val isSystemPlaylist = playlistIdStr.startsWith("system_playlist:")
+            val systemPlaylistUrn = playlistIdStr.removePrefix("system_playlist:")
+            val playlistId = playlistIdStr.toLongOrNull() ?: 0L
+            
+            if (!isSystemPlaylist && playlistId <= 0) { isLoading = false; return }
+            if (currentPlaylistIdStr == playlistIdStr && (likers.isNotEmpty() || reposters.isNotEmpty()) && playlistDetails != null) return
     
-            currentPlaylistId = playlistId
+            currentPlaylistIdStr = playlistIdStr
     
             viewModelScope.launch {
                 isLoading = true
@@ -50,9 +54,18 @@
                 try {
                     coroutineScope {
                         // fetch full objects to get next_href AND playlist details
-                        val playlistDef = async { try { api.getPlaylist(playlistId) } catch(e:Exception){null} }
-                        val likersResponseDef = async { try { api.getPlaylistLikers(playlistId, limit = 50) } catch (e: Exception) { null } }
-                        val repostersResponseDef = async { try { api.getPlaylistReposters(playlistId, limit = 50) } catch (e: Exception) { null } }
+                        val playlistDef = async { 
+                            try { 
+                                if (isSystemPlaylist) api.getSystemPlaylist(systemPlaylistUrn)
+                                else api.getPlaylist(playlistId) 
+                            } catch(e:Exception){null} 
+                        }
+                        val likersResponseDef = async { 
+                            if (isSystemPlaylist) null else try { api.getPlaylistLikers(playlistId, limit = 50) } catch (e: Exception) { null } 
+                        }
+                        val repostersResponseDef = async { 
+                            if (isSystemPlaylist) null else try { api.getPlaylistReposters(playlistId, limit = 50) } catch (e: Exception) { null } 
+                        }
     
                         playlistDetails = playlistDef.await()
                         val likersRes = likersResponseDef.await()
