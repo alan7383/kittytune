@@ -383,7 +383,7 @@
                         val createdDef = async { api.getMyPlaylistPosts(limit = 50) }
                         val likedDef = async { api.getUserPlaylistLikes(me.id, limit = 50) }
                         val created = createdDef.await().collection.mapNotNull { it.playlist }
-                        val liked = likedDef.await().collection.map { it.playlist }
+                        val liked = likedDef.await().collection.mapNotNull { it.playlist }
                         created.forEach { items.add(playlistToMediaItem(it)) }
                         liked.forEach { items.add(playlistToMediaItem(it)) }
                     }
