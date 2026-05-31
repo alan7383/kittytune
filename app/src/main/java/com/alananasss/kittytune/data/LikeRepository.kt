@@ -19,6 +19,7 @@ import java.lang.reflect.Type
 object LikeRepository {
     private const val PREF_NAME = "soundtune_likes_v3"
     private const val KEY_LIKED_TRACKS = "liked_tracks_full"
+    private const val KEY_LIKED_PLAYLISTS = "liked_playlists_ids"
     private const val KEY_LOCALLY_UNLIKED_IDS = "locally_unliked_ids"
 
     private lateinit var prefs: SharedPreferences
@@ -31,6 +32,9 @@ object LikeRepository {
 
     private val _likedTracks = MutableStateFlow<List<Track>>(emptyList())
     val likedTracks = _likedTracks.asStateFlow()
+
+    private val _likedPlaylists = MutableStateFlow<Set<Long>>(emptySet())
+    val likedPlaylists = _likedPlaylists.asStateFlow()
 
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing = _isSyncing.asStateFlow()
@@ -145,6 +149,53 @@ object LikeRepository {
         return _likedTracks.value.any { it.id == trackId }
     }
 
+    fun isPlaylistLiked(playlistId: Long): Boolean {
+        return _likedPlaylists.value.contains(playlistId)
+    }
+
+    fun setLikedPlaylists(ids: Set<Long>) {
+        _likedPlaylists.value = ids
+        scope.launch { saveToPrefs() }
+    }
+
+    fun togglePlaylistLike(playlistId: Long, isLiked: Boolean, permalink: String? = null, urn: String? = null) {
+        val current = _likedPlaylists.value.toMutableSet()
+        if (isLiked) {
+            current.add(playlistId)
+        } else {
+            current.remove(playlistId)
+        }
+        _likedPlaylists.value = current
+        scope.launch {
+            saveToPrefs()
+            
+            val tokenManager = com.alananasss.kittytune.data.TokenManager(appContext)
+            if (tokenManager.isGuestMode()) return@launch
+            val token = tokenManager.getAccessToken()
+            if (!token.isNullOrEmpty()) {
+                try {
+                    val safePermalink = permalink ?: ""
+                    val targetUrn = urn ?: when {
+                        safePermalink.contains("artist-stations") -> "soundcloud:system-playlists:artist-stations:$playlistId"
+                        safePermalink.contains("track-stations") -> "soundcloud:system-playlists:track-stations:$playlistId"
+                        else -> "soundcloud:playlists:$playlistId"
+                    }
+                    val payload = com.alananasss.kittytune.data.network.PlaylistLikeRequest(
+                        likes = listOf(com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn))
+                    )
+                    
+                    val response = if (isLiked) api.likePlaylist(payload) else api.unlikePlaylist(payload)
+                    
+                    if (response.code() == 401) {
+                        com.alananasss.kittytune.data.SessionManager.requestSessionRefresh(appContext, force = true)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
     fun replaceAllLikes(serverTracks: List<Track>) {
         _likedTracks.update { currentLocalList ->
             val blacklist = getBlacklist()
@@ -174,7 +225,10 @@ object LikeRepository {
 
     private fun saveToPrefs() {
         val json = gson.toJson(_likedTracks.value)
-        prefs.edit().putString(KEY_LIKED_TRACKS, json).apply()
+        prefs.edit()
+            .putString(KEY_LIKED_TRACKS, json)
+            .putStringSet(KEY_LIKED_PLAYLISTS, _likedPlaylists.value.map { it.toString() }.toSet())
+            .apply()
     }
 
     private fun loadFromPrefs() {
@@ -200,5 +254,8 @@ object LikeRepository {
                 _likedTracks.value = emptyList()
             }
         }
+        
+        val savedPlaylistIds = prefs.getStringSet(KEY_LIKED_PLAYLISTS, emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet() ?: emptySet()
+        _likedPlaylists.value = savedPlaylistIds
     }
 }
