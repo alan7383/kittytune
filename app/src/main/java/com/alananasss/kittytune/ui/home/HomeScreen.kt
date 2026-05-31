@@ -642,7 +642,97 @@ import kotlinx.coroutines.launch
                         }
                     }
                 }
+                SectionType.HIGHLIGHT_ROW -> {
+                    StandardHorizontalSection(
+                        title = section.title,
+                        subtitle = section.subtitle
+                    ) {
+                        val tracks = section.content.filterIsInstance<Track>()
+                        items(tracks) { track ->
+                            HighlightTrackCard(track) { playerViewModel.playPlaylist(listOf(track), 0, null) }
+                        }
+                    }
+                }
                 else -> {}
+            }
+        }
+    }
+    
+    @Composable
+    fun HighlightTrackCard(track: Track, onClick: () -> Unit) {
+        Card(
+            onClick = onClick,
+            modifier = Modifier
+                .width(200.dp)
+                .height(280.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                AsyncImage(
+                    model = track.fullResArtwork,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.5f),
+                                    Color.Transparent,
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.8f)
+                                )
+                            )
+                        )
+                )
+                
+                Text(
+                    text = "NEW TRACK",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp),
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.TopStart)
+                )
+                
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AsyncImage(
+                        model = track.user?.avatarUrl ?: "https://picsum.photos/100",
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = track.user?.username ?: stringResource(R.string.unknown_user),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (track.user?.verified == true) {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            Icons.Rounded.Verified,
+                            contentDescription = null,
+                            tint = Color(0xFF1DA1F2),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -1240,8 +1330,10 @@ import kotlinx.coroutines.launch
         val isArtistStation = playlist.permalinkUrl == "artist_station_marker"
         val isTrackStation = playlist.permalinkUrl == "track_station_marker"
         val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
+        val isSystemPlaylist = playlist.urn?.startsWith("soundcloud:system-playlists:") == true
     
         return when {
+            isSystemPlaylist -> "system_playlist:${playlist.urn}"
             isLikedBy -> "liked_by:${playlist.id}"
             isArtistStation -> "station_artist:${playlist.id}"
             isYoutubeRadio -> playlist.permalinkUrl!!
