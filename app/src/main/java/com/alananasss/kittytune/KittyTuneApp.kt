@@ -1,7 +1,6 @@
     package com.alananasss.kittytune
     
     import android.app.Application
-    import android.content.Context
     import com.alananasss.kittytune.utils.Config
     import com.zionhuang.innertube.YouTube
     import com.zionhuang.innertube.models.YouTubeLocale
@@ -14,7 +13,6 @@
             instance = this
             Config.init(applicationContext)
     
-            // Initialisation globale d'InnerTune
             YouTube.locale = YouTubeLocale(
                 gl = Locale.getDefault().country,
                 hl = Locale.getDefault().language
