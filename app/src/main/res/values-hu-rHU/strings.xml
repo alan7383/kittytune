@@ -66,7 +66,7 @@
     <string name="home_recently_played">Nemrég hallgatott</string>
     <string name="home_trending">Trending</string>
     <string name="home_charts">Toplisták</string>
-    <string name="home_stream">Stream</string>
+    <string name="home_stream">Latest from artists you follow</string>
     <string name="radio">Rádió</string>
     <string name="home_albums_for_you">Albumok neked</string>
     <string name="home_top_albums_query">Top Albumok</string>
@@ -261,6 +261,8 @@
     <!-- MENUS & CONTEXT                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="menu_play_next">Lejátszás következőként</string>
+    <string name="menu_make_public">Make public</string>
+    <string name="menu_make_private">Make private</string>
     <string name="menu_add_queue">Hozzáadás a sorhoz</string>
     <string name="menu_add_playlist">Hozzáadás playlisthez</string>
     <string name="menu_go_artist">Ugrás az előadóhoz</string>
@@ -792,6 +794,8 @@
     <string name="history_title_downloads">Letöltések</string>
     <string name="search_libraries_hint">Könyvtárak keresése…</string>
     <string name="filter_all">Mind</string>
+    <string name="filter_created">Created</string>
+    <string name="filter_liked">Liked</string>
     <string name="libraries_count_format">%1$d Könyvtár</string>
     <string name="no_libraries_found">Nem található könyvtár</string>
     <string name="license_unknown">Ismeretlen licenc</string>
