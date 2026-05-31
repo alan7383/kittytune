@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.content.edit
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.alananasss.kittytune.data.AchievementManager
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.HistoryRepository
@@ -26,7 +28,6 @@ import com.alananasss.kittytune.data.RepostRepository
 import com.alananasss.kittytune.data.SessionManager
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.UpdateManager
-import com.alananasss.kittytune.data.UpdateStatus
 import com.alananasss.kittytune.data.local.AppThemeMode
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.MainScreen
@@ -38,8 +39,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.zionhuang.innertube.YouTube
 import com.zionhuang.innertube.models.YouTubeLocale
-import kotlinx.coroutines.GlobalScope
-    
+
     class MainActivity : ComponentActivity() {
     
         override fun attachBaseContext(newBase: Context) {
@@ -86,7 +86,9 @@ import kotlinx.coroutines.GlobalScope
     
             // Enforce edge-to-edge contrast policies for Q+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                @Suppress("DEPRECATION")
                 window.isStatusBarContrastEnforced = false
+                @Suppress("DEPRECATION")
                 window.isNavigationBarContrastEnforced = false
             }
     
@@ -101,13 +103,13 @@ import kotlinx.coroutines.GlobalScope
             AchievementManager.resetSessionAchievements()
     
             preferences = PlayerPreferences(applicationContext)
-            sharedPrefs = applicationContext.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+            sharedPrefs = applicationContext.getSharedPreferences("player_state", MODE_PRIVATE)
             sharedPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
     
             val migrationKey = "lyrics_button_default_forced_v1"
             if (!sharedPrefs.getBoolean(migrationKey, false)) {
                 preferences.setShowLyricsButtonEnabled(true)
-                sharedPrefs.edit().putBoolean(migrationKey, true).apply()
+                sharedPrefs.edit { putBoolean(migrationKey, true) }
             }
     
             refreshThemeState()
@@ -115,11 +117,11 @@ import kotlinx.coroutines.GlobalScope
     
             handleIntent(intent)
     
-            YouTube.locale = com.zionhuang.innertube.models.YouTubeLocale(
+            YouTube.locale = YouTubeLocale(
                 gl = "US",
                 hl = "en"
             )
-            GlobalScope.launch {
+            lifecycleScope.launch {
                 YouTube.visitorData().onSuccess {
                     YouTube.visitorData = it
                 }
@@ -200,7 +202,7 @@ import kotlinx.coroutines.GlobalScope
             val openSearch = intent?.getBooleanExtra("open_search", false) ?: false
             if (openSearch) {
                 _shouldOpenSearch.value = true
-                intent?.removeExtra("open_search")
+                intent.removeExtra("open_search")
             }
 
             // Capture SoundCloud OAuth callback redirects

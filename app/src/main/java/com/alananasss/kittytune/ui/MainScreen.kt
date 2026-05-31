@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.SharedPreferences
-import android.view.View
 import androidx.compose.ui.text.font.FontWeight
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -70,8 +69,6 @@ import com.alananasss.kittytune.R
 
 import com.alananasss.kittytune.ui.navigation.Screen
 import com.alananasss.kittytune.ui.navigation.clippedComposable
-import com.alananasss.kittytune.ui.navigation.ClippedScreen
-import com.alananasss.kittytune.ui.navigation.getScreenCornerRadius
 import com.alananasss.kittytune.ui.player.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.ui.profile.*
@@ -80,13 +77,13 @@ import com.alananasss.kittytune.ui.navigation.KittyUnifiedBottomBar
 import com.alananasss.kittytune.ui.navigation.KittyTab
 import com.alananasss.kittytune.ui.modifiers.progressiveBlur
 import com.alananasss.kittytune.ui.modifiers.BlurDirection
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.SdStorage
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.ui.platform.LocalDensity
@@ -114,7 +111,6 @@ fun MainScreen(
     val navController = rememberNavController()
     val playerViewModel: PlayerViewModel = viewModel()
     val homeViewModel: HomeViewModel = viewModel()
-    val bottomNavItems = listOf(Screen.Home, Screen.Library)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -128,7 +124,6 @@ fun MainScreen(
     val rawBottomMenuBlurEnabled by prefs.bottomMenuBlurFlow().collectAsState(initial = prefs.getBottomMenuBlurEnabled())
     val actualBottomMenuBlurEnabled = bottomMenuStyle == "modern" && rawBottomMenuBlurEnabled
 
-    // On dÃ©termine la page d'accueil de maniÃ¨re instantanÃ©e et synchrone
     var startDestination by remember {
         mutableStateOf(
             when {
@@ -325,7 +320,6 @@ fun MainScreen(
     }
 
     LaunchedEffect(Unit) {
-        instantiateWebView = true
         delay(200)
         SessionManager.harvestStoredSession(context)
 
@@ -406,7 +400,6 @@ fun MainScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         val showBottomUi = !playerViewModel.isPlayerExpanded
 
-        // CORRECTION ICI : On utilise startDestination si currentDestination est null Ã  la frame 1
         val currentRoute = currentDestination?.route ?: startDestination
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
                 currentRoute == Screen.Welcome.route ||
@@ -442,14 +435,14 @@ fun MainScreen(
             },
             bottomBar = {
             }
-        ) { innerPadding ->
+        ) { _ ->
 
             Box(modifier = Modifier.fillMaxSize()) {
                 val density = LocalDensity.current
                 val statusBarHeightPx = with(density) {
                     WindowInsets.statusBars.asPaddingValues().calculateTopPadding().toPx()
                 }
-                val bottomBarHeightPx = with(density) { 150.dp.toPx() } // Hauteur de la zone de flou en bas
+                val bottomBarHeightPx = with(density) { 150.dp.toPx() }
 
                 NavHost(
                     navController = navController,
@@ -715,12 +708,12 @@ fun MainScreen(
                     clippedComposable(
                         route = "playlist_fans/{playlistId}?tab={tabIndex}",
                         arguments = listOf(
-                            navArgument("playlistId") { type = NavType.LongType },
+                            navArgument("playlistId") { type = NavType.StringType },
                             navArgument("tabIndex") { type = NavType.IntType; defaultValue = 0 }
                         )
                     ) { entry ->
                         PlaylistFansScreen(
-                            playlistId = entry.arguments?.getLong("playlistId") ?: 0L,
+                            playlistId = entry.arguments?.getString("playlistId") ?: "",
                             initialTab = entry.arguments?.getInt("tabIndex") ?: 0,
                             onBackClick = { navController.popBackStack() },
                             onNavigate = { id ->
@@ -810,7 +803,7 @@ fun MainScreen(
                     }
 
                     clippedComposable("drm_explanation") {
-                        com.alananasss.kittytune.ui.profile.DrmExplanationScreen(
+                        DrmExplanationScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }
@@ -840,7 +833,7 @@ fun MainScreen(
                     }
 
                     clippedComposable("fab_settings") {
-                        com.alananasss.kittytune.ui.profile.FabSettingsScreen(
+                        FabSettingsScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }
@@ -910,12 +903,16 @@ fun MainScreen(
                     }
 
                     val selectedRoute = tabs.find { tab ->
-                        if (tab.route == Screen.Home.route) {
-                            currentDestination?.hierarchy?.any { it.route == tab.route } == true && !homeViewModel.isSearching
-                        } else if (tab.route == Screen.Search.route) {
-                            currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true && homeViewModel.isSearching
-                        } else {
-                            currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                        when (tab.route) {
+                            Screen.Home.route -> {
+                                currentDestination?.hierarchy?.any { it.route == tab.route } == true && !homeViewModel.isSearching
+                            }
+                            Screen.Search.route -> {
+                                currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true && homeViewModel.isSearching
+                            }
+                            else -> {
+                                currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                            }
                         }
                     }?.route
 
@@ -942,7 +939,7 @@ fun MainScreen(
                         fabSetting == "liked" -> Icons.Rounded.Favorite
                         fabSetting == "downloads" -> Icons.Rounded.Download
                         fabSetting == "local" -> Icons.Rounded.SdStorage
-                        fabSetting.startsWith("playlist:") -> Icons.Rounded.QueueMusic
+                        fabSetting.startsWith("playlist:") -> Icons.AutoMirrored.Rounded.QueueMusic
                         else -> Icons.Rounded.Person
                     }
 
@@ -1092,10 +1089,9 @@ fun MainScreen(
                 containerColor = MaterialTheme.colorScheme.surface,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
             ) {
-                CommentsSheetContent(
-                    playerViewModel,
-                    { playerViewModel.showCommentsSheet = false }
-                )
+                CommentsSheetContent(playerViewModel) {
+                    playerViewModel.showCommentsSheet = false
+                }
             }
         }
 
@@ -1194,6 +1190,7 @@ fun MainScreen(
                         AndroidView(
                             factory = { ctx ->
                                 WebView(ctx).apply {
+                                    @SuppressLint("SetJavaScriptEnabled")
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
                                     settings.userAgentString = Config.USER_AGENT
