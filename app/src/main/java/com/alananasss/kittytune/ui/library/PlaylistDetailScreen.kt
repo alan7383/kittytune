@@ -58,12 +58,14 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.DownloadManager
     import com.alananasss.kittytune.data.LikeRepository
+    import com.alananasss.kittytune.data.SessionManager
     import com.alananasss.kittytune.data.local.AppDatabase
     import com.alananasss.kittytune.data.local.LocalTrack
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.User
+    import com.alananasss.kittytune.domain.PlaylistUpdateRequest
     import com.alananasss.kittytune.ui.common.TrackListItemShimmer
     import com.alananasss.kittytune.ui.player.PlaybackContext
     import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -88,6 +90,8 @@ enum class TrackSortBy {
         youtubeRadioViewModel: YoutubeRadioViewModel = viewModel()
     ) {
         val context = LocalContext.current
+        val api = remember { RetrofitClient.create(context) }
+        val scope = rememberCoroutineScope()
         val view = LocalView.current
         val density = LocalDensity.current
         val storageTrigger by DownloadManager.storageTrigger.collectAsState()
@@ -97,10 +101,19 @@ enum class TrackSortBy {
         val downloadedPlaylists = remember { mutableStateListOf<Playlist>() }
     
         val likedTracksRepo by LikeRepository.likedTracks.collectAsState()
+        val likedPlaylistsRepo by LikeRepository.likedPlaylists.collectAsState()
         var isAlbum by remember { mutableStateOf(false) }
     
         var playlistTitle by remember { mutableStateOf("") }
+        var playlistSharing by remember { mutableStateOf<String?>(null) }
         var playlistCover by remember { mutableStateOf<String?>(null) }
+        var playlistDescription by remember { mutableStateOf<String?>(null) }
+        var playlistTagList by remember { mutableStateOf<String?>(null) }
+        var playlistGenre by remember { mutableStateOf<String?>(null) }
+        var playlistSetType by remember { mutableStateOf<String?>(null) }
+        var playlistReleaseDate by remember { mutableStateOf<String?>(null) }
+        var playlistPermalink by remember { mutableStateOf<String?>(null) }
+        var playlistUrn by remember { mutableStateOf<String?>(null) }
         var playlistUser by remember { mutableStateOf<User?>(null) }
         var isLoading by remember { mutableStateOf(true) }
         var defaultIcon by remember { mutableStateOf<ImageVector?>(null) }
@@ -123,17 +136,18 @@ enum class TrackSortBy {
             .replace("local_playlist:", "")
             .replace("yt_radio:", "")
             .replace("downloaded_section:", "")
+            .replace("system_playlist:", "")
     
     
         val currentIdLong = cleanIdStr.toLongOrNull() ?: 0L
     
-        val stableId = remember(playlistId, currentIdLong) {
-            if (currentIdLong != 0L) currentIdLong else playlistId.hashCode().toLong()
+        val stableId = remember(playlistId, cleanIdStr, currentIdLong) {
+            if (currentIdLong != 0L) currentIdLong else cleanIdStr.hashCode().toLong()
         }
     
         val playlistInDb by DownloadManager.isPlaylistInLibraryFlow(stableId).collectAsState(initial = null)
     
-        val effectiveBatchId = if (playlistId == "likes") DownloadManager.LIKES_BATCH_ID else currentIdLong
+        val effectiveBatchId = if (playlistId == "likes") DownloadManager.LIKES_BATCH_ID else stableId
     
         val isPlaylistDownloading = DownloadManager.isPlaylistDownloading(effectiveBatchId)
         val currentPlaylistProgress = playlistDownloadProgress[effectiveBatchId]
@@ -152,22 +166,31 @@ enum class TrackSortBy {
             onMove = { from, to ->
                 val fromId = from.key as? Long ?: return@rememberReorderableLazyListState
                 val toId = to.key as? Long ?: return@rememberReorderableLazyListState
-    
+
                 val fromIndex = tracks.indexOfFirst { it.id == fromId }
                 val toIndex = tracks.indexOfFirst { it.id == toId }
-    
+
                 if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
-                    // Update UI list
-                    val item = tracks.removeAt(fromIndex)
-                    tracks.add(toIndex, item)
-                    // Update Database
-                    DownloadManager.swapTrackOrder(currentIdLong, fromId, toId)
-                    // Haptic
+                    tracks.apply {
+                        add(toIndex, removeAt(fromIndex))
+                    }
                     view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
                 }
             }
         )
-    
+        
+        var wasDragging by remember { mutableStateOf(false) }
+        val isDragging = reorderableState.isAnyItemDragging
+        LaunchedEffect(isDragging) {
+            if (wasDragging && !isDragging) {
+                // Drag ended — persist new order to local DB and sync online
+                val newOrder = tracks.map { it.id }
+                DownloadManager.reorderPlaylistTracks(currentIdLong, newOrder)
+                DownloadManager.syncPlaylistOrderOnline(currentIdLong, newOrder)
+            }
+            wasDragging = isDragging
+        }
+
         val shareUrl = remember(playlistId, currentIdLong, playlistPermalinkUrl, playlistUser) {
             when {
                 playlistId.startsWith("station_artist:") -> "https://soundcloud.com/discover/sets/artist-stations:$currentIdLong"
@@ -231,12 +254,12 @@ enum class TrackSortBy {
         var playlistSortBy by remember { mutableStateOf(TrackSortBy.FIRST_ADDED) }
 
         val rawTracks = if (playlistId == "likes") likedTracksRepo else tracks
-        val tracksToDisplay = remember(rawTracks, playlistSearchQuery, playlistSortBy) {
-            val filtered = if (playlistSearchQuery.isEmpty()) rawTracks else {
-                rawTracks.filter { 
-                    it.title?.contains(playlistSearchQuery, ignoreCase = true) == true || 
-                    it.user?.username?.contains(playlistSearchQuery, ignoreCase = true) == true
-                }
+        val tracksToDisplay = if (playlistSearchQuery.isEmpty() && playlistSortBy == TrackSortBy.FIRST_ADDED) {
+            rawTracks
+        } else {
+            val filtered = rawTracks.filter { 
+                it.title?.contains(playlistSearchQuery, ignoreCase = true) == true || 
+                it.user?.username?.contains(playlistSearchQuery, ignoreCase = true) == true
             }
             when (playlistSortBy) {
                 TrackSortBy.FIRST_ADDED -> filtered
@@ -277,7 +300,10 @@ enum class TrackSortBy {
             val newDownloadedPlaylists = mutableListOf<Playlist>()
     
             try {
-                val api = RetrofitClient.create(context)
+                if (playerViewModel.currentUserId == 0L) {
+                    playerViewModel.fetchUserProfile()
+                }
+
                 val db = AppDatabase.getDatabase(context).downloadDao()
     
                 when {
@@ -372,7 +398,9 @@ enum class TrackSortBy {
                     }
     
                     else -> {
-                        val localPlaylist = if (currentIdLong != 0L) db.getPlaylist(currentIdLong) else null
+                        val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
+                        val forceLocal = isOffline || isDownloadedView || currentIdLong < 0
+                        val localPlaylist = if (currentIdLong != 0L && forceLocal) db.getPlaylist(currentIdLong) else null
                         if (localPlaylist != null) {
                             playlistTitle = localPlaylist.title
                             playlistCover = localPlaylist.localCoverPath ?: localPlaylist.artworkUrl
@@ -399,20 +427,40 @@ enum class TrackSortBy {
                                 )
                             })
                         } else {
-                            if (currentIdLong > 0L) {
+                            val isSystemPlaylistRoute = playlistId.startsWith("system_playlist:")
+                            if (currentIdLong > 0L || isSystemPlaylistRoute) {
                                 val isArtistStation = playlistId.startsWith("station_artist:")
                                 val isTrackStation = playlistId.startsWith("station:")
     
+                                val localFallback = if (currentIdLong != 0L) db.getPlaylist(currentIdLong) else null
+                                if (localFallback != null) {
+                                    playlistTitle = localFallback.title
+                                    playlistCover = localFallback.localCoverPath ?: localFallback.artworkUrl
+                                    playlistUser = User(0, localFallback.artist, null)
+                                    isUserCreated = localFallback.isUserCreated
+                                }
+
                                 val playlistObj = when {
+                                    isSystemPlaylistRoute -> api.getSystemPlaylist(cleanIdStr)
                                     isArtistStation -> api.getArtistStation(currentIdLong)
                                     isTrackStation -> api.getTrackStation(currentIdLong)
                                     else -> api.getPlaylist(currentIdLong)
                                 }
                                 isAlbum = playlistObj.isAlbum
     
-                                playlistTitle = playlistObj.title.takeIf { !it.isNullOrBlank() } ?: context.getString(R.string.radio)
-                                playlistCover = playlistObj.fullResArtwork
-                                playlistUser = playlistObj.user
+                                playlistTitle = playlistObj.title.takeIf { !it.isNullOrBlank() } ?: playlistTitle
+                                playlistCover = playlistObj.fullResArtwork ?: playlistCover
+                                playlistUser = playlistObj.user ?: playlistUser
+                                isUserCreated = (playlistUser?.id != 0L && playlistUser?.id == playerViewModel.currentUserId) || 
+                                                (playerViewModel.currentUser != null && playlistUser?.username == playerViewModel.currentUser?.username)
+                                playlistSharing = playlistObj.sharing
+                                playlistDescription = playlistObj.description
+                                playlistTagList = playlistObj.tagList
+                                playlistGenre = playlistObj.genre
+                                playlistSetType = playlistObj.setType
+                                playlistReleaseDate = playlistObj.releaseDate
+                                playlistPermalink = playlistObj.permalink
+                                playlistUrn = playlistObj.urn
                                 playlistPermalinkUrl = playlistObj.permalinkUrl.takeIf { !it.isNullOrBlank() }
                                     ?: if (isArtistStation) "https://soundcloud.com/discover/sets/artist-stations:$currentIdLong"
                                     else if (isTrackStation) "https://soundcloud.com/discover/sets/track-stations:$currentIdLong"
@@ -474,7 +522,11 @@ enum class TrackSortBy {
                 confirmButton = {
                     TextButton(onClick = {
                         if (stableId != 0L) {
-                            DownloadManager.deletePlaylist(stableId)
+                            DownloadManager.deletePlaylist(
+                                playlistId = stableId,
+                                forceUserCreated = isUserCreated,
+                                forcePermalink = playlistPermalinkUrl
+                            )
                         }
                         showDeleteDialog = false
                         onBackClick()
@@ -494,7 +546,11 @@ enum class TrackSortBy {
                 confirmButton = {
                     TextButton(onClick = {
                         if (currentIdLong != 0L) {
-                            DownloadManager.deletePlaylist(currentIdLong)
+                            DownloadManager.deletePlaylist(
+                                playlistId = currentIdLong,
+                                forceUserCreated = isUserCreated,
+                                forcePermalink = playlistPermalinkUrl
+                            )
                         }
     
                         showRemoveDownloadDialog = false
@@ -509,12 +565,31 @@ enum class TrackSortBy {
         }
     
         if (showRenameDialog) {
-            AlertDialog(
+            EditPlaylistScreen(
+                initialTitle = playlistTitle,
+                initialDescription = playlistDescription,
+                initialSharing = playlistSharing,
+                initialTagList = playlistTagList,
+                initialGenre = playlistGenre,
+                initialSetType = playlistSetType,
+                initialReleaseDate = playlistReleaseDate,
+                initialPermalink = playlistPermalink,
+                playlistUser = playlistUser,
                 onDismissRequest = { showRenameDialog = false },
-                title = { Text(stringResource(R.string.dialog_rename_playlist_title)) },
-                text = { OutlinedTextField(value = newPlaylistName, onValueChange = { newPlaylistName = it }, label = { Text(stringResource(R.string.dialog_rename_playlist_hint)) }, singleLine = true) },
-                confirmButton = { TextButton(onClick = { if (currentIdLong != 0L && newPlaylistName.isNotBlank()) DownloadManager.renamePlaylist(currentIdLong, newPlaylistName); showRenameDialog = false }) { Text(stringResource(R.string.btn_save)) } },
-                dismissButton = { TextButton(onClick = { showRenameDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                onSave = { newTitle, newDesc, newSharing, newTags, newGenre, newSetType, newReleaseDate, newPermalink ->
+                    if (currentIdLong != 0L) {
+                        DownloadManager.editPlaylistMetadata(currentIdLong, newTitle, newDesc, newSharing, newTags, newPermalink, newGenre, newSetType, newReleaseDate)
+                        playlistTitle = newTitle
+                        playlistDescription = newDesc
+                        playlistSharing = newSharing
+                        playlistTagList = newTags
+                        playlistGenre = newGenre
+                        playlistSetType = newSetType
+                        playlistReleaseDate = newReleaseDate
+                        playlistPermalink = newPermalink
+                    }
+                    showRenameDialog = false
+                }
             )
         }
     
@@ -636,7 +711,18 @@ enum class TrackSortBy {
                                         }
                                     }
                                     Spacer(Modifier.height(20.dp))
-                                    Text(text = playlistTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text = playlistTitle, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                                        if (playlistSharing == "private" || playlistSharing == "secret") {
+                                            Spacer(Modifier.width(8.dp))
+                                            Icon(
+                                                imageVector = androidx.compose.material.icons.Icons.Rounded.Lock,
+                                                contentDescription = "Private",
+                                                modifier = Modifier.size(24.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
                                     if (playlistUser != null && playlistUser!!.id > 0) {
                                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { playerViewModel.navigateToArtist(playlistUser!!.id) }) {
                                             Text(text = stringResource(R.string.playlist_by_user, playlistUser!!.username ?: ""), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
@@ -676,7 +762,6 @@ enum class TrackSortBy {
                                     Spacer(Modifier.height(16.dp))
     
                                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start) {
-                                        val stableId = if (currentIdLong != 0L) currentIdLong else playlistId.hashCode().toLong()
                                         if ((isLocalPlaylist || isUserCreated) && !isYoutubeRadio) {
                                             IconButton(
                                                 onClick = { newPlaylistName = playlistTitle; showRenameDialog = true },
@@ -695,30 +780,14 @@ enum class TrackSortBy {
                                                     Icon(Icons.Default.Delete, stringResource(R.string.btn_delete), tint = MaterialTheme.colorScheme.error)
                                                 }
                                             } else {
+                                                val isPlaylistLiked = likedPlaylistsRepo.contains(stableId)
                                                 IconButton(
                                                     onClick = {
-                                                        if (isLocalPlaylist) {
-                                                            showDeleteDialog = true
-                                                        } else {
-                                                            val tracksToSave = if (isYoutubeRadio) emptyList() else tracksToDisplay.toList()
-                                                            if (isYoutubeRadio || tracksToSave.isNotEmpty()) {
-                                                                val fakePlaylist = Playlist(
-                                                                    id = stableId,
-                                                                    title = playlistTitle,
-                                                                    artworkUrl = playlistCover,
-                                                                    calculatedArtworkUrl = null,
-                                                                    trackCount = if (isYoutubeRadio) 0 else tracksToSave.size,
-                                                                    user = playlistUser,
-                                                                    tracks = null,
-                                                                    permalinkUrl = if (isYoutubeRadio) playlistId else playlistPermalinkUrl
-                                                                )
-                                                                DownloadManager.importPlaylistToLibrary(fakePlaylist, tracksToSave)
-                                                            }
-                                                        }
+                                                        LikeRepository.togglePlaylistLike(stableId, !isPlaylistLiked, playlistPermalinkUrl, playlistUrn)
                                                     },
                                                     shapes = IconButtonDefaults.shapes()
                                                 ) {
-                                                    if (isLocalPlaylist) {
+                                                    if (isPlaylistLiked) {
                                                         Icon(Icons.Rounded.Favorite, stringResource(R.string.lib_liked_tracks), tint = MaterialTheme.colorScheme.primary)
                                                     } else {
                                                         Icon(Icons.Outlined.FavoriteBorder, stringResource(R.string.menu_add_playlist), tint = MaterialTheme.colorScheme.onBackground)
@@ -990,8 +1059,7 @@ enum class TrackSortBy {
                                         if (isUserCreated) {
                                             ReorderableItem(
                                                 state = reorderableState,
-                                                key = track.id,
-                                                modifier = Modifier.animateItem()
+                                                key = track.id
                                             ) { isDragging ->
                                                 val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
                                                 val scale by animateFloatAsState(if (isDragging) 1.02f else 1f, label = "scale")
@@ -1177,7 +1245,7 @@ enum class TrackSortBy {
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
                 ) {
                     PlaylistOptionsSheet(
-                        playlistId = if(playlistId == "likes") DownloadManager.LIKES_BATCH_ID else currentIdLong,
+                        playlistId = stableId,
                         playlistTitle = playlistTitle,
                         playlistCover = playlistCover,
                         defaultIcon = defaultIcon,
@@ -1189,6 +1257,47 @@ enum class TrackSortBy {
                         isDownloading = isPlaylistDownloading,
                         onDismiss = { showPlaylistOptionsSheet = false },
                         isYoutubeRadio = isYoutubeRadio,
+                        playlistSharing = playlistSharing,
+                        isUserOwned = (playlistUser?.id != 0L && playlistUser?.id == playerViewModel.currentUserId) || 
+(playerViewModel.currentUser != null && playlistUser?.username == playerViewModel.currentUser?.username),
+                        onSharingToggle = { newSharing ->
+                            scope.launch {
+                                try {
+                                    val onlinePlaylist = api.getPlaylist(currentIdLong)
+                                    val request = PlaylistUpdateRequest(
+                                        trackUrns = (onlinePlaylist.tracks ?: emptyList()).filter { it.id > 0 }.map { "soundcloud:tracks:${it.id}" },
+                                        title = onlinePlaylist.title ?: "",
+                                        description = onlinePlaylist.description ?: "",
+                                        genre = onlinePlaylist.genre ?: "",
+                                        tagList = onlinePlaylist.tagList ?: "",
+                                        isPublic = newSharing == "public"
+                                    )
+                                    var response = api.updatePlaylist(currentIdLong, request)
+                                    if (!response.isSuccessful) {
+                                        var errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+                                        val captchaUrl = SessionManager.extractDataDomeCaptchaUrl(errorBody)
+                                        if (response.code() == 403 && captchaUrl != null) {
+                                            val solved = SessionManager.awaitDataDomeChallenge(context, captchaUrl)
+                                            if (solved) {
+                                                response = api.updatePlaylist(currentIdLong, request)
+                                                if (response.isSuccessful) {
+                                                    playlistSharing = newSharing
+                                                    android.widget.Toast.makeText(context, context.getString(R.string.success_generic), android.widget.Toast.LENGTH_SHORT).show()
+                                                    return@launch
+                                                }
+                                                errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+                                            }
+                                        }
+                                        throw Exception("SoundCloud playlist update failed (${response.code()}): ${errorBody ?: response.message()}")
+                                    }
+                                    playlistSharing = newSharing
+                                    android.widget.Toast.makeText(context, context.getString(R.string.success_generic), android.widget.Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                    android.widget.Toast.makeText(context, context.getString(R.string.error_generic), android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
                         onDetailsClick = {
                             showPlaylistOptionsSheet = false
                             showPlaylistDetailsSheet = true
@@ -1203,7 +1312,7 @@ enum class TrackSortBy {
                     containerColor = MaterialTheme.colorScheme.surface
                 ) {
                     PlaylistDetailsSheet(
-                        playlistId = currentIdLong,
+                        playlistId = if (playlistId.startsWith("system_playlist:")) playlistId else currentIdLong.toString(),
                         onDismiss = { showPlaylistDetailsSheet = false },
                         onViewAll = { tabIndex ->
                             showPlaylistDetailsSheet = false
@@ -1265,6 +1374,9 @@ enum class TrackSortBy {
         isDownloading: Boolean,
         onDismiss: () -> Unit,
         isYoutubeRadio: Boolean = false,
+        playlistSharing: String? = null,
+        isUserOwned: Boolean = false,
+        onSharingToggle: (String) -> Unit = {},
         onDetailsClick: () -> Unit = {}
     ) {
         val context = LocalContext.current
@@ -1330,11 +1442,26 @@ enum class TrackSortBy {
                         add(DockOptionItem(Icons.Default.Add, context.getString(R.string.menu_add_playlist)) { playerViewModel.prepareBulkAdd(tracks); onDismiss() })
                     }
     
-                    if (!isLocal && playlistId > 0) {
+                    if (!isLocal && playlistId != 0L) {
                         add(DockOptionItem(
                             icon = Icons.Rounded.Info,
                             text = context.getString(R.string.menu_playlist_details),
                             onClick = { onDetailsClick() }
+                        ))
+                    }
+                    if (!isLocal && isUserOwned) {
+                        val isPrivate = playlistSharing == "private" || playlistSharing == "secret" || (playlistSharing == null && playlistTitle.contains("Private", ignoreCase = true))
+                        val shareIcon = if (isPrivate) Icons.Rounded.Public else Icons.Rounded.Lock
+                        val shareText = if (isPrivate) context.getString(R.string.menu_make_public) else context.getString(R.string.menu_make_private)
+                        
+                        add(DockOptionItem(
+                            icon = shareIcon,
+                            text = shareText,
+                            onClick = { 
+                                val newSharing = if (isPrivate) "public" else "private"
+                                onSharingToggle(newSharing)
+                                onDismiss()
+                            }
                         ))
                     }
                 }
