@@ -29,6 +29,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONObject
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 @SuppressLint("StaticFieldLeak")
@@ -37,6 +39,8 @@ object SessionManager {
     private const val REFRESH_INTERVAL = 20 * 60 * 1000L
     private const val SESSION_REFRESH_TIMEOUT_MS = 12_000L
     private const val AUTH_API_BASE_URL = "https://api-auth.soundcloud.com/"
+    private const val DATADOME_PREFS = "soundcloud_datadome"
+    private const val KEY_DATADOME_COOKIE = "datadome_cookie"
 
     private val SESSION_COOKIE_URLS = listOf(
         "https://soundcloud.com",
@@ -65,6 +69,11 @@ object SessionManager {
 
     private val apiRefreshLock = Any()
     private var pendingApiRefresh: CompletableDeferred<String?>? = null
+
+    private val dataDomeLock = Any()
+    private var pendingDataDomeChallenge: CompletableDeferred<Boolean>? = null
+    @Volatile private var dataDomeRequestUrl: String? = null
+    @Volatile private var dataDomeCaptchaUrl: String? = null
 
     private val authClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -113,6 +122,20 @@ object SessionManager {
         }
     }
 
+    private class DataDomeBridge {
+        @JavascriptInterface
+        fun onCaptchaSuccess(cookie: String?) {
+            scope.launch {
+                completeDataDomeChallenge(cookie, solved = true)
+            }
+        }
+
+        @JavascriptInterface
+        fun onAdditionalChallengeRedirection(responseType: Int) {
+            // DataDome uses this to toggle challenge visibility for some flows.
+        }
+    }
+
     fun attachGhost(webView: WebView, context: Context) {
         val safeContext = context.applicationContext
         appContext = safeContext
@@ -139,6 +162,7 @@ object SessionManager {
         settings.userAgentString = Config.USER_AGENT
 
         webView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
+        webView.addJavascriptInterface(DataDomeBridge(), "android")
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
@@ -178,9 +202,15 @@ object SessionManager {
     fun harvestStoredSession(context: Context, completePending: Boolean = false): String? {
         val safeContext = context.applicationContext
         appContext = safeContext
-        return SESSION_COOKIE_URLS.firstNotNullOfOrNull { url ->
-            harvestCookie(url, safeContext, completePending)
+
+        var token: String? = null
+        SESSION_COOKIE_URLS.forEach { url ->
+            harvestDataDomeCookie(url, safeContext)
+            if (token == null) {
+                token = harvestCookie(url, safeContext, completePending)
+            }
         }
+        return token
     }
 
     private fun harvestCookie(url: String?, context: Context, completePending: Boolean): String? {
@@ -216,6 +246,12 @@ object SessionManager {
             }
         }
         return null
+    }
+
+    private fun harvestDataDomeCookie(url: String?, context: Context): String? {
+        val cookie = readDataDomeCookie(url) ?: return null
+        saveDataDomeCookie(context, cookie)
+        return cookie
     }
 
     private fun startKeepAliveCycle(context: Context) {
@@ -332,6 +368,81 @@ object SessionManager {
         )
     }
 
+    suspend fun awaitDataDomeChallenge(
+        context: Context,
+        captchaUrl: String,
+        requestUrl: String? = null,
+        timeoutMs: Long = 120_000L
+    ): Boolean {
+        val safeContext = context.applicationContext
+        appContext = safeContext
+
+        val targetRequestUrl = requestUrl
+            ?: extractDataDomeReferer(captchaUrl)
+            ?: "https://api-mobile.soundcloud.com"
+
+        dataDomeRequestUrl = targetRequestUrl
+        dataDomeCaptchaUrl = captchaUrl
+
+        val deferred = synchronized(dataDomeLock) {
+            pendingDataDomeChallenge?.takeIf { !it.isCompleted }
+                ?: CompletableDeferred<Boolean>().also { pendingDataDomeChallenge = it }
+        }
+
+        withContext(Dispatchers.Main.immediate) {
+            val webView = ghostWebView
+            if (webView == null) {
+                deferred.complete(false)
+                return@withContext
+            }
+
+            seedDataDomeCookieForChallenge(safeContext, captchaUrl, targetRequestUrl)
+            _showCaptchaFlow.value = true
+            webView.loadUrl(
+                captchaUrl,
+                mapOf("Accept-Language" to Locale.getDefault().toLanguageTag())
+            )
+        }
+
+        val solved = withTimeoutOrNull(timeoutMs) {
+            deferred.await()
+        } ?: false
+
+        if (!solved) {
+            synchronized(dataDomeLock) {
+                if (pendingDataDomeChallenge === deferred) {
+                    pendingDataDomeChallenge = null
+                }
+            }
+        }
+
+        return solved
+    }
+
+    fun extractDataDomeCaptchaUrl(body: String?): String? {
+        if (body.isNullOrBlank()) return null
+
+        val jsonUrl = runCatching {
+            JSONObject(body).optString("url")
+        }.getOrNull()
+
+        return jsonUrl
+            ?.takeIf { it.contains("captcha-delivery.com") }
+            ?: Regex("\"url\"\\s*:\\s*\"([^\"]+)\"")
+                .find(body)
+                ?.groupValues
+                ?.getOrNull(1)
+                ?.replace("\\/", "/")
+                ?.takeIf { it.contains("captcha-delivery.com") }
+    }
+
+    fun getStoredDataDomeCookie(context: Context): String? {
+        return context.applicationContext
+            .getSharedPreferences(DATADOME_PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_DATADOME_COOKIE, null)
+            ?.let(::normalizeDataDomeCookie)
+    }
+
     private suspend fun refreshAccessTokenFromApi(context: Context): String? {
         val safeContext = context.applicationContext
         val tokenManager = TokenManager(safeContext)
@@ -418,6 +529,94 @@ object SessionManager {
         }
     }
 
+    private fun extractDataDomeReferer(captchaUrl: String): String? {
+        return runCatching {
+            Uri.parse(captchaUrl).getQueryParameter("referer")
+        }.getOrNull()?.takeIf { it.startsWith("http") }
+    }
+
+    private fun seedDataDomeCookieForChallenge(context: Context, captchaUrl: String, requestUrl: String) {
+        val cookie = getStoredDataDomeCookie(context)
+            ?: readDataDomeCookie(requestUrl)
+            ?: readDataDomeCookie(captchaUrl)
+
+        if (cookie != null) {
+            setDataDomeCookie(context, cookie, listOf(captchaUrl, requestUrl))
+        }
+    }
+
+    private fun completeDataDomeChallenge(cookie: String?, solved: Boolean) {
+        val context = appContext
+
+        if (context != null) {
+            val resolvedCookie = normalizeDataDomeCookie(cookie)
+                ?: readDataDomeCookie(dataDomeRequestUrl)
+                ?: readDataDomeCookie(dataDomeCaptchaUrl)
+                ?: getStoredDataDomeCookie(context)
+
+            if (resolvedCookie != null) {
+                setDataDomeCookie(
+                    context = context,
+                    cookie = cookie ?: resolvedCookie,
+                    urls = listOf(
+                        dataDomeRequestUrl,
+                        dataDomeCaptchaUrl,
+                        "https://api-mobile.soundcloud.com",
+                        "https://api-v2.soundcloud.com",
+                        "https://soundcloud.com",
+                        "https://m.soundcloud.com"
+                    )
+                )
+            }
+        }
+
+        _showCaptchaFlow.value = false
+
+        val deferred = synchronized(dataDomeLock) {
+            pendingDataDomeChallenge.also { pendingDataDomeChallenge = null }
+        }
+        deferred?.complete(solved)
+    }
+
+    private fun setDataDomeCookie(context: Context, cookie: String, urls: List<String?>) {
+        val normalizedCookie = normalizeDataDomeCookie(cookie) ?: return
+        saveDataDomeCookie(context, normalizedCookie)
+
+        val cookieManager = CookieManager.getInstance()
+        urls.filterNotNull().filter { it.startsWith("http") }.distinct().forEach { url ->
+            cookieManager.setCookie(url, cookie)
+            if (cookie != normalizedCookie) {
+                cookieManager.setCookie(url, normalizedCookie)
+            }
+        }
+        cookieManager.flush()
+    }
+
+    private fun saveDataDomeCookie(context: Context, cookie: String) {
+        val normalizedCookie = normalizeDataDomeCookie(cookie) ?: return
+        context.applicationContext
+            .getSharedPreferences(DATADOME_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DATADOME_COOKIE, normalizedCookie)
+            .apply()
+    }
+
+    private fun readDataDomeCookie(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        val cookies = CookieManager.getInstance().getCookie(url) ?: return null
+        return extractValue(cookies, "datadome")?.let { "datadome=$it" }
+    }
+
+    private fun normalizeDataDomeCookie(cookie: String?): String? {
+        if (cookie.isNullOrBlank()) return null
+
+        val directPart = cookie.split(";")
+            .map { it.trim() }
+            .firstOrNull { it.startsWith("datadome=") && it.length > "datadome=".length }
+
+        return directPart?.takeIf { !it.equals("datadome=", ignoreCase = true) }
+    }
+
     private fun getOrCreatePendingRefresh(): CompletableDeferred<String?> = synchronized(refreshLock) {
         pendingRefresh?.takeIf { !it.isCompleted } ?: CompletableDeferred<String?>().also {
             pendingRefresh = it
@@ -450,12 +649,12 @@ object SessionManager {
         ?.takeIf { it.isNotBlank() && it != "null" }
 
     fun retryPendingAction() {
-        _showCaptchaFlow.value = false
+        completeDataDomeChallenge(null, solved = true)
         pendingLikeAction?.invoke()
     }
 
     fun cancelCaptcha() {
-        _showCaptchaFlow.value = false
+        completeDataDomeChallenge(null, solved = false)
         pendingLikeAction = null
         reloadSession(forceRefresh = true)
     }

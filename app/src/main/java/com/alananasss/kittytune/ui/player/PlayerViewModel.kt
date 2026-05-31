@@ -136,9 +136,38 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var pendingCommentBody: String? = null
     private var pendingCommentTimestamp: Long? = null
 
-    var showAddToPlaylistSheet by mutableStateOf(false)
+    private var _showAddToPlaylistSheet by mutableStateOf(false)
+    var showAddToPlaylistSheet: Boolean
+        get() = _showAddToPlaylistSheet
+        set(value) {
+            _showAddToPlaylistSheet = value
+            if (value) fetchOnlinePlaylistsForAdd()
+        }
     var tracksToAddInBulk by mutableStateOf<List<Track>?>(null)
     val userPlaylists = mutableStateListOf<LocalPlaylist>()
+
+    private fun fetchOnlinePlaylistsForAdd() {
+        if (TokenManager(context).isGuestMode() || !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)) return
+        viewModelScope.launch {
+            try {
+                val api = RetrofitClient.create(context)
+                val me = api.getMe()
+                val online = api.getUserCreatedPlaylists(me.id).collection
+                val currentLocalIds = userPlaylists.map { it.id }.toSet()
+                val newPlaylists = online.filter { !currentLocalIds.contains(it.id) }.map {
+                    LocalPlaylist(
+                        id = it.id,
+                        title = it.title ?: "",
+                        artist = it.user?.username ?: "",
+                        artworkUrl = it.fullResArtwork,
+                        trackCount = it.trackCount ?: 0,
+                        isUserCreated = true
+                    )
+                }
+                userPlaylists.addAll(newPlaylists)
+            } catch (e: Exception) {}
+        }
+    }
 
     private val _originalQueue = mutableListOf<Track>()
     private val _queue = mutableListOf<Track>()
@@ -1515,8 +1544,29 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             AchievementManager.increment("playlist_creator")
             AchievementManager.increment("playlist_god")
         }
-    }    fun createAndAddToPlaylist(name: String, track: Track) { val id = DownloadManager.createUserPlaylist(name); DownloadManager.addTrackToPlaylist(id, track); showAddToPlaylistSheet = false; emitUiEvent(getString(R.string.success_generic)); AchievementManager.increment("playlist_creator") }
-    fun createAndAddTracksToPlaylist(name: String, tracks: List<Track>) { viewModelScope.launch(Dispatchers.IO) { val id = DownloadManager.createUserPlaylist(name); tracks.forEach { DownloadManager.addTrackToPlaylist(id, it) }; withContext(Dispatchers.Main) { showAddToPlaylistSheet = false; emitUiEvent(getString(R.string.success_generic)); AchievementManager.increment("playlist_creator") } } }
+    }
+    fun createAndAddToPlaylist(name: String, track: Track) { 
+        viewModelScope.launch(Dispatchers.IO) { 
+            val id = DownloadManager.createUserPlaylist(name)
+            DownloadManager.addTrackToPlaylist(id, track)
+            withContext(Dispatchers.Main) { 
+                showAddToPlaylistSheet = false
+                emitUiEvent(getString(R.string.success_generic))
+                AchievementManager.increment("playlist_creator") 
+            }
+        } 
+    }
+    fun createAndAddTracksToPlaylist(name: String, tracks: List<Track>) { 
+        viewModelScope.launch(Dispatchers.IO) { 
+            val id = DownloadManager.createUserPlaylist(name)
+            DownloadManager.addTracksToPlaylistBulk(id, tracks)
+            withContext(Dispatchers.Main) { 
+                showAddToPlaylistSheet = false
+                emitUiEvent(getString(R.string.success_generic))
+                AchievementManager.increment("playlist_creator") 
+            } 
+        } 
+    }
     fun removeFromContextPlaylist(playlistId: Long, track: Track) { DownloadManager.removeTrackFromPlaylist(playlistId, track.id); showMenuSheet = false; emitUiEvent(getString(R.string.success_generic)) }
     fun addToQueue(tracks: List<Track>) {
         if (tracks.isEmpty()) return
@@ -2074,26 +2124,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
             } catch (e: Exception) { e.printStackTrace() }
-        }
-    }
-
-    private fun preparePlayer(mediaItem: MediaItem, startPos: Long, autoPlay: Boolean) {
-        try {
-            performPrepare(mediaItem, startPos, autoPlay)
-        } catch (e: Exception) {
-            if (e is IllegalStateException || e.message?.contains("dead thread", ignoreCase = true) == true) {
-                Log.e("PlayerViewModel", "zombie player detected! resurrecting...", e)
-                try {
-                    MusicManager.releasePlayer()
-                    MusicManager.init(context)
-                    MusicManager.player.addListener(playerListener)
-                    performPrepare(mediaItem, startPos, autoPlay)
-                } catch (retryEx: Exception) {
-                    retryEx.printStackTrace()
-                }
-            } else {
-                e.printStackTrace()
-            }
         }
     }
 

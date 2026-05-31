@@ -35,7 +35,7 @@ object RetrofitClient {
                 val originalRequest = chain.request()
                 val requestBuilder = originalRequest.newBuilder()
 
-                cookieHeaderFor(originalRequest.url)?.let { cookies ->
+                cookieHeaderFor(originalRequest.url, appContext)?.let { cookies ->
                     requestBuilder.header("Cookie", cookies)
                 }
 
@@ -158,7 +158,7 @@ object RetrofitClient {
             !path.contains("/conversations")
     }
 
-    private fun cookieHeaderFor(url: HttpUrl): String? {
+    private fun cookieHeaderFor(url: HttpUrl, context: Context): String? {
         val cookieManager = CookieManager.getInstance()
         val candidates = listOf(
             "${url.scheme}://${url.host}",
@@ -175,8 +175,13 @@ object RetrofitClient {
                 ?.let(cookieParts::addAll)
         }
 
-        return cookieParts.joinToString("; ").takeIf { it.isNotBlank() }
+        val cookieDataDome = cookieParts.firstOrNull { it.startsWith("datadome=") }
+        val storedDataDome = SessionManager.getStoredDataDomeCookie(context)
+        val regularParts = cookieParts.filterNot { it.startsWith("datadome=") }.toMutableList()
+
+        (cookieDataDome ?: storedDataDome)?.let { regularParts.add(it.substringBefore(";")) }
+
+        return regularParts.joinToString("; ").takeIf { it.isNotBlank() }
     }
 }
-
 

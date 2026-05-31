@@ -45,6 +45,12 @@
             @Query("limit") limit: Int = 20,
             @Query("linked_partitioning") linkedPartitioning: Int = 1
         ): StreamResponse
+
+        @GET("https://api-v2.soundcloud.com/mixed-selections")
+        suspend fun getMixedSelections(
+            @Query("limit") limit: Int = 10,
+            @Query("linked_partitioning") linkedPartitioning: Int = 1
+        ): MixedSelectionsResponse
     
         @GET("activities")
         suspend fun getActivities(
@@ -165,9 +171,9 @@
             @Query("limit") limit: Int = 50
         ): PlaylistLikesResponse
     
-        @GET("me/library/stations")
-        suspend fun getMyLibraryStations(
-            @Query("limit") limit: Int = 50,
+        @GET("me/library/all")
+        suspend fun getMyLibraryAll(
+            @Query("limit") limit: Int = 100,
             @Query("linked_partitioning") linkedPartitioning: Int = 1
         ): StationLibraryResponse
 
@@ -311,7 +317,7 @@
             @Query("limit") limit: Int = 50
         ): RepostCollection
     
-        @GET("playlists/{playlistId}")
+        @GET("https://api-v2.soundcloud.com/playlists/{playlistId}")
         suspend fun getPlaylist(@Path("playlistId") playlistId: Long): Playlist
     
         @GET("playlists/{playlistId}/likers")
@@ -333,6 +339,30 @@
     
         @GET("system-playlists/soundcloud:system-playlists:artist-stations:{userId}")
         suspend fun getArtistStation(@Path("userId") userId: Long): Playlist
+
+        @GET("system-playlists/{urn}")
+        suspend fun getSystemPlaylist(@Path("urn", encoded = true) urn: String): Playlist
+    
+        @PUT("https://api-mobile.soundcloud.com/playlists/soundcloud:playlists:{id}")
+        suspend fun updatePlaylist(
+            @Path("id") id: Long,
+            @Body request: PlaylistUpdateRequest
+        ): retrofit2.Response<Unit>
+
+
+        @POST("https://api-mobile.soundcloud.com/playlists")
+        suspend fun createPlaylist(
+            @Body request: PlaylistCreateRequest
+        ): retrofit2.Response<com.google.gson.JsonElement>
+
+        @GET("https://api-v2.soundcloud.com/search/suggest/tags")
+        suspend fun searchTags(
+            @Query("q") query: String,
+            @Query("limit") limit: Int = 10
+        ): TagSuggestionResponse
+
+        @DELETE("https://api-v2.soundcloud.com/playlists/{id}")
+        suspend fun deletePlaylist(@Path("id") id: Long): retrofit2.Response<Unit>
     
         // --- Users ---
     

@@ -207,7 +207,7 @@
         @SerializedName("created_at") val createdAt: String?
     )
     data class PlaylistLikesResponse(val collection: List<PlaylistLikeItem>, val next_href: String?)
-    data class PlaylistLikeItem(val playlist: Playlist, @SerializedName("created_at") val likedAt: String?)
+    data class PlaylistLikeItem(val playlist: Playlist?, @SerializedName("system_playlist") val systemPlaylist: SystemPlaylist?, @SerializedName("created_at") val likedAt: String?)
     data class UserPlaylistsResponse(val collection: List<Playlist>, val next_href: String?)
     data class UserCollection(val collection: List<User>, val next_href: String?)
     data class BasicTrackCollection(val collection: List<Track>, val next_href: String?)
@@ -263,6 +263,54 @@
         @SerializedName("image_url") val imageUrl: String
     )
     
+    // Mixed Selections
+    data class MixedSelectionsResponse(
+        val collection: List<SelectionItem>,
+        val next_href: String? = null
+    )
+    
+    data class SelectionItem(
+        val urn: String?,
+        val id: String?,
+        val title: String?,
+        val description: String?,
+        val items: SelectionItems?,
+        val kind: String?,
+        @SerializedName("tracking_feature_name") val trackingFeatureName: String?
+    )
+
+    data class TagSuggestionResponse(
+        val suggestions: List<TagSuggestion>?
+    )
+
+    data class TagSuggestion(
+        val query: String,
+        val id: String
+    )
+
+    data class PlaylistCreateRequest(
+        val playlist: PlaylistCreatePayload,
+        @SerializedName("track_urns") val trackUrns: List<String> = emptyList()
+    )
+
+    data class PlaylistCreatePayload(
+        val title: String,
+        @SerializedName("public") val isPublic: Boolean
+    )
+
+    data class PlaylistUpdateRequest(
+        @SerializedName("track_urns") val trackUrns: List<String> = emptyList(),
+        val description: String = "",
+        val title: String = "",
+        val genre: String = "",
+        @SerializedName("public") val isPublic: Boolean = false,
+        @SerializedName("tag_list") val tagList: String = ""
+    )
+    
+    data class SelectionItems(
+        val collection: List<com.google.gson.JsonElement>?
+    )
+    
     // playlist
     data class Playlist(
         @JsonAdapter(LongIdAdapter::class) val id: Long,
@@ -271,14 +319,20 @@
         @SerializedName("calculated_artwork_url") val calculatedArtworkUrl: String?,
         @SerializedName("track_count") val trackCount: Int?,
         val user: User?,
-        val tracks: List<Track>? = null,
+        @JsonAdapter(PlaylistTracksAdapter::class) val tracks: List<Track>? = null,
         @SerializedName("is_album") val isAlbum: Boolean = false,
         @SerializedName("permalink_url") val permalinkUrl: String? = null,
+        @SerializedName("permalink") val permalink: String? = null,
         @SerializedName("created_at") val createdAt: String? = null,
+        @SerializedName("urn") val urn: String? = null,
         @SerializedName("last_modified") val lastModified: String? = null,
         @SerializedName("tag_list") val tagList: String? = null,
         @SerializedName("genre") val genre: String? = null,
-        @SerializedName("description") val description: String? = null
+        @SerializedName("description") val description: String? = null,
+        @SerializedName("sharing") val sharing: String? = null,
+        @SerializedName("secret_token") val secretToken: String? = null,
+        @SerializedName("set_type") val setType: String? = null,
+        @SerializedName("release_date") val releaseDate: String? = null
     ) {
         val fullResArtwork: String
             get() {
@@ -304,6 +358,7 @@
         @SerializedName("track_count") val trackCount: Int = 0,
         @SerializedName("description") val description: String? = null,
         @SerializedName("permalink_url") val permalinkUrl: String? = null,
+        @SerializedName("permalink") val permalink: String? = null,
         val visuals: Visuals? = null,
         @SerializedName("verified") val verified: Boolean = false,
         @SerializedName("public_favorites_count") private val _publicFavoritesCount: Int? = 0,
@@ -343,6 +398,23 @@
         @SerializedName("image_url") val imageUrl: String,
         @SerializedName("_resource_type") val resourceType: String = "userVisual"
     )
+
+    class PlaylistTracksAdapter : com.google.gson.JsonDeserializer<List<Track>> {
+        override fun deserialize(
+            json: com.google.gson.JsonElement,
+            typeOfT: java.lang.reflect.Type,
+            context: com.google.gson.JsonDeserializationContext
+        ): List<Track>? {
+            if (json.isJsonArray) {
+                val list = mutableListOf<Track>()
+                json.asJsonArray.forEach { 
+                    list.add(context.deserialize(it, Track::class.java))
+                }
+                return list
+            }
+            return null
+        }
+    }
     
 
 

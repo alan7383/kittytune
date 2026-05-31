@@ -9,6 +9,7 @@
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.data.network.SoundCloudApi
     import com.alananasss.kittytune.domain.Playlist
+    import com.alananasss.kittytune.domain.PlaylistUpdateRequest
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.User
     import com.mpatric.mp3agic.ID3v24Tag
@@ -39,6 +40,62 @@
         private val api: SoundCloudApi by lazy { RetrofitClient.create(context) }
         private val scope = CoroutineScope(Dispatchers.IO)
         private val client = OkHttpClient()
+
+        private fun playlistUrn(playlistId: Long): String = "soundcloud:playlists:$playlistId"
+
+        private fun trackUrns(trackIds: List<Long>): List<String> {
+            return trackIds.filter { it > 0 }.map { "soundcloud:tracks:$it" }
+        }
+
+        private fun appendMissingTrackIds(existingTrackIds: List<Long>, newTrackIds: List<Long>): List<Long> {
+            val merged = existingTrackIds.filter { it > 0 }.toMutableList()
+            newTrackIds.filter { it > 0 }.forEach { trackId ->
+                if (!merged.contains(trackId)) merged.add(trackId)
+            }
+            return merged
+        }
+
+        private fun mergeReorderedTrackIds(remoteTrackIds: List<Long>, reorderedTrackIds: List<Long>): List<Long> {
+            val orderedIds = reorderedTrackIds.filter { it > 0 }
+            val orderedSet = orderedIds.toSet()
+            return orderedIds + remoteTrackIds.filter { it > 0 && it !in orderedSet }
+        }
+
+        private fun playlistUpdateRequest(
+            playlist: Playlist,
+            trackIds: List<Long>,
+            title: String = playlist.title.orEmpty(),
+            description: String = playlist.description.orEmpty(),
+            genre: String = playlist.genre.orEmpty(),
+            tagList: String = playlist.tagList.orEmpty(),
+            isPublic: Boolean = playlist.sharing == "public"
+        ): PlaylistUpdateRequest {
+            return PlaylistUpdateRequest(
+                trackUrns = trackUrns(trackIds),
+                title = title,
+                description = description,
+                genre = genre,
+                tagList = tagList,
+                isPublic = isPublic
+            )
+        }
+
+        private suspend fun updateRemotePlaylist(playlistId: Long, request: PlaylistUpdateRequest) {
+            var response = api.updatePlaylist(playlistId, request)
+            if (!response.isSuccessful) {
+                var errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+                val captchaUrl = SessionManager.extractDataDomeCaptchaUrl(errorBody)
+                if (response.code() == 403 && captchaUrl != null) {
+                    val solved = SessionManager.awaitDataDomeChallenge(context, captchaUrl)
+                    if (solved) {
+                        response = api.updatePlaylist(playlistId, request)
+                        if (response.isSuccessful) return
+                        errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+                    }
+                }
+                throw Exception("SoundCloud playlist update failed (${response.code()}): ${errorBody ?: response.message()}")
+            }
+        }
     
         private val _downloadProgress = MutableStateFlow<Map<Long, Int>>(emptyMap())
         val downloadProgress = _downloadProgress.asStateFlow()
@@ -51,6 +108,10 @@
     
         private val _libraryUpdated = MutableSharedFlow<Unit>(replay = 1)
         val libraryUpdated = _libraryUpdated.asSharedFlow()
+        
+        private val _deletedPlaylistIds = MutableStateFlow<Set<Long>>(emptySet())
+        val deletedPlaylistIds = _deletedPlaylistIds.asStateFlow()
+
     
         lateinit var downloadedIds: StateFlow<Set<Long>>
     
@@ -65,6 +126,26 @@
             downloadedIds = database.downloadDao().getAllTracks()
                 .map { list -> list.map { it.id }.toSet() }
                 .stateIn(scope = scope, started = SharingStarted.Eagerly, initialValue = emptySet())
+
+            // Cleanup legacy cached playlists from the old background sync feature
+            scope.launch {
+                try {
+                    val dao = database.downloadDao()
+                    val allPlaylists = dao.getAllPlaylists().first()
+                    allPlaylists.forEach { localPlaylist ->
+                        if (!localPlaylist.isUserCreated && localPlaylist.id > 0) {
+                            val tracks = dao.getTracksForPlaylistSync(localPlaylist.id)
+                            val hasDownloadedTracks = tracks.any { it.localAudioPath.isNotEmpty() }
+                            if (!hasDownloadedTracks) {
+                                dao.deletePlaylist(localPlaylist.id)
+                                dao.deletePlaylistRefs(localPlaylist.id)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("DownloadManager", "Failed to cleanup legacy cached playlists", e)
+                }
+            }
         }
     
         private fun sanitizeFilename(name: String): String {
@@ -164,11 +245,50 @@
             }
         }
     
-        fun createUserPlaylist(name: String): Long {
-            val newId = -(System.currentTimeMillis())
-            val playlist = LocalPlaylist(id = newId, title = name, artist = context.getString(R.string.me_artist), artworkUrl = "", trackCount = 0, isUserCreated = true)
-            scope.launch { database.downloadDao().insertPlaylist(playlist) }
-            return newId
+        suspend fun createUserPlaylist(name: String): Long {
+            val tokenManager = TokenManager(context)
+            var serverId: Long? = null
+            if (!tokenManager.isGuestMode()) {
+                try {
+                    val req = com.alananasss.kittytune.domain.PlaylistCreateRequest(
+                        com.alananasss.kittytune.domain.PlaylistCreatePayload(title = name, isPublic = true)
+                    )
+                    val response = api.createPlaylist(req)
+                    if (response.isSuccessful) {
+                        val body = response.body()?.asJsonObject
+                        var extractedId = 0L
+                        
+                        if (body != null) {
+                            if (body.has("id")) extractedId = body.get("id").asLong
+                            else if (body.has("playlist")) {
+                                val pObj = body.getAsJsonObject("playlist")
+                                if (pObj.has("id")) extractedId = pObj.get("id").asLong
+                                if (extractedId == 0L && pObj.has("urn")) {
+                                    extractedId = pObj.get("urn").asString.split(":").lastOrNull()?.toLongOrNull() ?: 0L
+                                }
+                            }
+                            if (extractedId == 0L && body.has("urn")) {
+                                extractedId = body.get("urn").asString.split(":").lastOrNull()?.toLongOrNull() ?: 0L
+                            }
+                        }
+                        
+                        if (extractedId > 0L) {
+                            serverId = extractedId
+                            _libraryUpdated.emit(Unit)
+                            return extractedId
+                        }
+                    } else {
+                        Log.e("DownloadManager", "Failed to create playlist. Code: ${response.code()}, errorBody: ${response.errorBody()?.string()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("DownloadManager", "Exception creating playlist on SoundCloud", e)
+                }
+            }
+            val finalId = serverId ?: -(System.currentTimeMillis())
+            val playlist = LocalPlaylist(id = finalId, title = name, artist = context.getString(R.string.me_artist), artworkUrl = "", trackCount = 0, isUserCreated = true)
+            database.downloadDao().insertPlaylist(playlist)
+            _libraryUpdated.emit(Unit)
+            return finalId
         }
         fun addTrackToPlaylist(playlistId: Long, track: Track) {
             scope.launch {
@@ -189,6 +309,18 @@
                 dao.insertPlaylistTrackRef(PlaylistTrackCrossRef(playlistId, track.id))
                 val playlist = dao.getPlaylist(playlistId)
                 if (playlist != null) dao.updatePlaylist(playlist.copy(trackCount = playlist.trackCount + 1))
+                
+                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                    try {
+                        val onlinePlaylist = api.getPlaylist(playlistId)
+                        val trackIds = appendMissingTrackIds(
+                            existingTrackIds = (onlinePlaylist.tracks ?: emptyList()).map { it.id },
+                            newTrackIds = listOf(track.id)
+                        )
+                        val request = playlistUpdateRequest(onlinePlaylist, trackIds)
+                        updateRemotePlaylist(playlistId, request)
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
             }
         }
         fun removeTrackFromPlaylist(playlistId: Long, trackId: Long) {
@@ -197,6 +329,16 @@
                 dao.removeTrackFromPlaylist(playlistId, trackId)
                 val playlist = dao.getPlaylist(playlistId)
                 if (playlist != null) dao.updatePlaylist(playlist.copy(trackCount = (playlist.trackCount - 1).coerceAtLeast(0)))
+                
+                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                    try {
+                        val onlinePlaylist = api.getPlaylist(playlistId)
+                        val trackIds = (onlinePlaylist.tracks ?: emptyList()).map { it.id }.toMutableList()
+                        trackIds.remove(trackId)
+                        val request = playlistUpdateRequest(onlinePlaylist, trackIds)
+                        updateRemotePlaylist(playlistId, request)
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
             }
         }
         fun swapTrackOrder(playlistId: Long, trackId1: Long, trackId2: Long) {
@@ -206,10 +348,65 @@
                 if (ref1 != null && ref2 != null) { dao.updatePlaylistTrackRef(ref1.copy(addedAt = ref2.addedAt)); dao.updatePlaylistTrackRef(ref2.copy(addedAt = ref1.addedAt)) }
             }
         }
+        fun reorderPlaylistTracks(playlistId: Long, orderedTrackIds: List<Long>) {
+            scope.launch {
+                val dao = database.downloadDao()
+                val baseTime = System.currentTimeMillis()
+                orderedTrackIds.forEachIndexed { index, trackId ->
+                    val ref = dao.getRef(playlistId, trackId)
+                    if (ref != null) {
+                        dao.updatePlaylistTrackRef(ref.copy(addedAt = baseTime + index))
+                    }
+                }
+            }
+        }
+        fun syncPlaylistOrderOnline(playlistId: Long, newOrderIds: List<Long>) {
+            scope.launch {
+                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                    try {
+                        val onlinePlaylist = api.getPlaylist(playlistId)
+                        val onlineTrackIds = (onlinePlaylist.tracks ?: emptyList()).map { it.id }
+                        val finalTrackIds = mergeReorderedTrackIds(onlineTrackIds, newOrderIds)
+                        val request = playlistUpdateRequest(onlinePlaylist, finalTrackIds)
+                        updateRemotePlaylist(playlistId, request)
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+            }
+        }
         fun updatePlaylistCover(playlistId: Long, uri: Uri) {
             scope.launch { try { val inputStream = context.contentResolver.openInputStream(uri); val file = File(context.filesDir, "playlist_cover_${playlistId}.jpg"); inputStream?.use { input -> FileOutputStream(file).use { output -> input.copyTo(output) } }; val playlist = database.downloadDao().getPlaylist(playlistId); if (playlist != null) database.downloadDao().updatePlaylist(playlist.copy(localCoverPath = file.absolutePath)) } catch (e: Exception) { e.printStackTrace() } }
         }
-        fun renamePlaylist(playlistId: Long, newTitle: String) { scope.launch { database.downloadDao().updatePlaylistTitle(playlistId, newTitle) } }
+        fun editPlaylistMetadata(
+            playlistId: Long, 
+            newTitle: String, 
+            newDescription: String? = null, 
+            newSharing: String? = null, 
+            newTagList: String? = null,
+            newPermalink: String? = null,
+            newGenre: String? = null,
+            newSetType: String? = null,
+            newReleaseDate: String? = null
+        ) { 
+            scope.launch { 
+                database.downloadDao().updatePlaylistTitle(playlistId, newTitle) 
+                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                    try {
+                        val onlinePlaylist = api.getPlaylist(playlistId)
+                        val request = playlistUpdateRequest(
+                            playlist = onlinePlaylist,
+                            trackIds = (onlinePlaylist.tracks ?: emptyList()).map { it.id },
+                            title = newTitle,
+                            description = newDescription ?: onlinePlaylist.description.orEmpty(),
+                            genre = newGenre ?: onlinePlaylist.genre.orEmpty(),
+                            tagList = newTagList ?: onlinePlaylist.tagList.orEmpty(),
+                            isPublic = newSharing?.let { it == "public" } ?: (onlinePlaylist.sharing == "public")
+                        )
+                        updateRemotePlaylist(playlistId, request)
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+                _libraryUpdated.tryEmit(Unit)
+            } 
+        }
         fun getAllPlaylistsFlow() = database.downloadDao().getAllPlaylists()
         fun getUserPlaylistsFlow() = database.downloadDao().getUserPlaylists()
         fun isPlaylistInLibraryFlow(playlistId: Long) = database.downloadDao().getPlaylistFlow(playlistId)
@@ -222,7 +419,7 @@
                 if (!token.isNullOrEmpty()) {
                     try {
                         val permalink = playlist.permalinkUrl ?: ""
-                        val targetUrn = when {
+                        val targetUrn = playlist.urn ?: when {
                             permalink.contains("artist-stations") -> "soundcloud:system-playlists:artist-stations:${playlist.id}"
                             permalink.contains("track-stations") -> "soundcloud:system-playlists:track-stations:${playlist.id}"
                             else -> "soundcloud:playlists:${playlist.id}"
@@ -284,32 +481,43 @@
         }
     }
 
-    fun deletePlaylist(playlistId: Long, syncToCloud: Boolean = true) {
+    fun deletePlaylist(playlistId: Long, syncToCloud: Boolean = true, forceUserCreated: Boolean? = null, forcePermalink: String? = null) {
         scope.launch {
             val dao = database.downloadDao()
             val playlistToDelete = dao.getPlaylist(playlistId)
 
             val tokenManager = TokenManager(context)
-            if (syncToCloud && playlistId > 0 && !tokenManager.isGuestMode() && playlistToDelete != null) {
+            if (syncToCloud && playlistId > 0 && !tokenManager.isGuestMode()) {
                 val token = tokenManager.getAccessToken()
                 if (!token.isNullOrEmpty()) {
                     try {
-                        val permalink = playlistToDelete.permalinkUrl ?: ""
+                        val permalink = forcePermalink ?: playlistToDelete?.permalinkUrl ?: ""
                         val targetUrn = when {
                             permalink.contains("artist-stations") -> "soundcloud:system-playlists:artist-stations:$playlistId"
                             permalink.contains("track-stations") -> "soundcloud:system-playlists:track-stations:$playlistId"
                             else -> "soundcloud:playlists:$playlistId"
                         }
-                        val payload = com.alananasss.kittytune.data.network.PlaylistLikeRequest(
-                            likes = listOf(com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn))
-                        )
-                        val response = api.unlikePlaylist(payload)
-                        if (response.code() == 401) {
-                            SessionManager.requestSessionRefresh(context, force = true)
+                        
+                        val isUserCreated = forceUserCreated ?: playlistToDelete?.isUserCreated ?: false
+                        
+                        if (isUserCreated) {
+                            val response = api.deletePlaylist(playlistId)
+                            if (response.code() == 401) {
+                                SessionManager.requestSessionRefresh(context, force = true)
+                            }
+                            Log.d("DownloadManager", "Deleted user playlist on SoundCloud: ${response.code()}")
+                        } else {
+                            val payload = com.alananasss.kittytune.data.network.PlaylistLikeRequest(
+                                likes = listOf(com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn))
+                            )
+                            val response = api.unlikePlaylist(payload)
+                            if (response.code() == 401) {
+                                SessionManager.requestSessionRefresh(context, force = true)
+                            }
+                            Log.d("DownloadManager", "Direct playlist unlike success status: ${response.code()} for $targetUrn")
                         }
-                        Log.d("DownloadManager", "Direct playlist unlike success status: ${response.code()} for $targetUrn")
                     } catch (e: Exception) {
-                        Log.e("DownloadManager", "Direct playlist unlike failed", e)
+                        Log.e("DownloadManager", "Failed to sync playlist deletion to server", e)
                     }
                 }
             }
@@ -353,6 +561,9 @@
             }
 
             _storageTrigger.update { it + 1 }
+            _deletedPlaylistIds.update { it + playlistId }
+            _libraryUpdated.tryEmit(Unit)
+
         }
     }
     
@@ -917,6 +1128,18 @@
                 if (playlist != null) {
                     val finalTrackCount = dao.getTracksForPlaylistSync(playlistId).size
                     dao.updatePlaylist(playlist.copy(trackCount = finalTrackCount))
+                }
+                
+                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                    try {
+                        val onlinePlaylist = api.getPlaylist(playlistId)
+                        val trackIds = appendMissingTrackIds(
+                            existingTrackIds = (onlinePlaylist.tracks ?: emptyList()).map { it.id },
+                            newTrackIds = tracks.map { it.id }
+                        )
+                        val request = playlistUpdateRequest(onlinePlaylist, trackIds)
+                        updateRemotePlaylist(playlistId, request)
+                    } catch (e: Exception) { e.printStackTrace() }
                 }
             }
         }
