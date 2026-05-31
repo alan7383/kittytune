@@ -66,7 +66,7 @@
     <string name="home_recently_played">Récemment écoutés</string>
     <string name="home_trending">Tendances</string>
     <string name="home_charts">Classements</string>
-    <string name="home_stream">Stream</string>
+    <string name="home_stream">Latest from artists you follow</string>
     <string name="radio">Radio</string>
     <string name="home_albums_for_you">Albums pour vous</string>
     <string name="home_top_albums_query">Top Albums</string>
@@ -261,6 +261,8 @@
     <!-- MENUS & CONTEXT                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="menu_play_next">Lire juste après</string>
+    <string name="menu_make_public">Make public</string>
+    <string name="menu_make_private">Make private</string>
     <string name="menu_add_queue">Ajouter à la file</string>
     <string name="menu_add_playlist">Ajouter à une playlist</string>
     <string name="menu_go_artist">Voir l\'artiste</string>
@@ -792,6 +794,8 @@
     <string name="history_title_downloads">Téléchargements</string>
     <string name="search_libraries_hint">Rechercher des bibliothèques…</string>
     <string name="filter_all">Tout</string>
+    <string name="filter_created">Created</string>
+    <string name="filter_liked">Liked</string>
     <string name="libraries_count_format">%1$d Bibliothèques</string>
     <string name="no_libraries_found">Aucune bibliothèque trouvée</string>
     <string name="license_unknown">Licence inconnue</string>
