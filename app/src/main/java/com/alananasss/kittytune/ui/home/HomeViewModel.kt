@@ -53,7 +53,7 @@
     )
     
     enum class SectionType {
-        TRACKS_ROW, ARTISTS_ROW, STATIONS_ROW, DISCOVERY_ROW
+        TRACKS_ROW, ARTISTS_ROW, STATIONS_ROW, DISCOVERY_ROW, HIGHLIGHT_ROW
     }
     
     data class HomeCacheData(
@@ -452,6 +452,7 @@
                                 SectionType.STATIONS_ROW -> section.playlists
                                 SectionType.ARTISTS_ROW -> section.users
                                 SectionType.DISCOVERY_ROW -> section.tracks
+                                SectionType.HIGHLIGHT_ROW -> section.tracks
                             }
                             if (content.isNotEmpty()) homeSections.add(HomeSection(section.title, section.subtitle, content, section.type))
                         }
@@ -904,7 +905,7 @@
     
                     val streamTracks = streamDef.await()
                     if (streamTracks.isNotEmpty()) {
-                        allSections.add(HomeSection(getString(R.string.home_stream), null, streamTracks, SectionType.TRACKS_ROW))
+                        allSections.add(HomeSection(getString(R.string.home_stream), null, streamTracks, SectionType.HIGHLIGHT_ROW))
                     }
     
                     val recommendationsSection = recommendationsDef.await()
@@ -916,6 +917,13 @@
                     if (sourceLikes.isNotEmpty()) {
                         val personalSections = fetchPersonalizedSections(sourceLikes, me.username ?: getString(R.string.unknown_user))
                         allSections.addAll(personalSections)
+                    }
+
+                    // Fetch mixed selections (Trending by genre, Latest from artists you follow, etc)
+                    val mixedSelections = fetchMixedSelections()
+                    if (mixedSelections.isNotEmpty()) {
+                        // Add mixed selections to the top or after discovery
+                        allSections.addAll(1, mixedSelections)
                     }
                 }
     
@@ -984,6 +992,63 @@
             }
         }
     
+        private suspend fun fetchMixedSelections(): List<HomeSection> {
+            val sections = mutableListOf<HomeSection>()
+            try {
+                val response = api.getMixedSelections()
+                for (selection in response.collection) {
+                    if (selection.items?.collection.isNullOrEmpty()) continue
+                    if (selection.urn?.contains("recently-played", ignoreCase = true) == true || 
+                        selection.id?.contains("recently-played", ignoreCase = true) == true ||
+                        selection.title?.equals("Recently Played", ignoreCase = true) == true) {
+                        continue
+                    }
+                    val parsedItems = mutableListOf<Any>()
+                    
+                    for (itemJson in selection.items.collection ?: emptyList()) {
+                        try {
+                            val jsonObj = itemJson.asJsonObject
+                            val actualObj = if (jsonObj.has("item")) jsonObj.getAsJsonObject("item") else jsonObj
+                            
+                            val kind = actualObj.get("kind")?.asString
+                            when (kind) {
+                                "track" -> parsedItems.add(gson.fromJson(actualObj, Track::class.java))
+                                "playlist", "system-playlist" -> parsedItems.add(gson.fromJson(actualObj, Playlist::class.java))
+                                "user" -> parsedItems.add(gson.fromJson(actualObj, User::class.java))
+                            }
+                        } catch (e: Exception) { e.printStackTrace() }
+                    }
+                    
+                    if (parsedItems.isNotEmpty()) {
+                        val tracks = parsedItems.filterIsInstance<Track>()
+                        val playlists = parsedItems.filterIsInstance<Playlist>()
+                        val users = parsedItems.filterIsInstance<User>()
+                        
+                        val isLatest = selection.title?.contains("follow", ignoreCase = true) == true || 
+                                       selection.id?.contains("follow", ignoreCase = true) == true ||
+                                       selection.urn?.contains("follow", ignoreCase = true) == true
+
+                        if (tracks.isNotEmpty() && playlists.isEmpty() && users.isEmpty()) {
+                            sections.add(HomeSection(selection.title ?: "Selection", selection.description, tracks, if (isLatest) SectionType.HIGHLIGHT_ROW else SectionType.TRACKS_ROW))
+                        } else if (playlists.isNotEmpty() && tracks.isEmpty() && users.isEmpty()) {
+                            sections.add(HomeSection(selection.title ?: "Selection", selection.description, playlists, SectionType.STATIONS_ROW))
+                        } else if (users.isNotEmpty() && tracks.isEmpty() && playlists.isEmpty()) {
+                            sections.add(HomeSection(selection.title ?: "Selection", selection.description, users, SectionType.ARTISTS_ROW))
+                        } else {
+                            if (tracks.isNotEmpty()) {
+                                sections.add(HomeSection(selection.title ?: "Selection", selection.description, tracks, if (isLatest) SectionType.HIGHLIGHT_ROW else SectionType.TRACKS_ROW))
+                            } else if (playlists.isNotEmpty()) {
+                                sections.add(HomeSection(selection.title ?: "Selection", selection.description, playlists, SectionType.STATIONS_ROW))
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            return sections
+        }
+
         private fun getIconForGenre(genre: String): ImageVector {
             val lowerCaseGenre = genre.lowercase(Locale.ROOT)
             return when {
