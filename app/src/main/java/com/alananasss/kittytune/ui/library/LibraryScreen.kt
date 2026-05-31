@@ -41,6 +41,8 @@
     import androidx.lifecycle.compose.LocalLifecycleOwner
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
+
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.DownloadManager
     import com.alananasss.kittytune.data.TokenManager
@@ -93,6 +95,10 @@
         LaunchedEffect(Unit) {
             libraryViewModel.loadData()
         }
+
+        LaunchedEffect(libraryViewModel.selectedFilter) {
+            listState.scrollToItem(0)
+        }
     
         // refresh when coming back to the screen
         DisposableEffect(lifecycleOwner) {
@@ -107,30 +113,69 @@
     
         var showCreateDialog by remember { mutableStateOf(false) }
         var newPlaylistName by remember { mutableStateOf("") }
+        var isCreatingPlaylist by remember { mutableStateOf(false) }
+        val scope = rememberCoroutineScope()
     
         if (showCreateDialog) {
             AlertDialog(
-                onDismissRequest = { showCreateDialog = false },
+                onDismissRequest = { if (!isCreatingPlaylist) showCreateDialog = false },
                 title = { Text(stringResource(R.string.lib_create_playlist_title)) },
                 text = {
                     OutlinedTextField(
                         value = newPlaylistName,
                         onValueChange = { newPlaylistName = it },
                         label = { Text(stringResource(R.string.lib_create_playlist_hint)) },
-                        singleLine = true
+                        singleLine = true,
+                        enabled = !isCreatingPlaylist
                     )
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        if (newPlaylistName.isNotBlank()) {
-                            val id = DownloadManager.createUserPlaylist(newPlaylistName)
-                            showCreateDialog = false
-                            newPlaylistName = ""
-                            onPlaylistClick("local_playlist:$id")
+                    TextButton(
+                        onClick = {
+                            if (newPlaylistName.isNotBlank() && !isCreatingPlaylist) {
+                                val playlistName = newPlaylistName
+                                isCreatingPlaylist = true
+                                scope.launch {
+                                    val id = DownloadManager.createUserPlaylist(playlistName)
+                                    if (id > 0) {
+                                        val api = com.alananasss.kittytune.data.network.RetrofitClient.create(context)
+                                        for (i in 0..15) {
+                                            try {
+                                                api.getPlaylist(id)
+                                                break
+                                            } catch (e: Exception) {
+                                                kotlinx.coroutines.delay(1000)
+                                            }
+                                        }
+                                    }
+                                    isCreatingPlaylist = false
+                                    showCreateDialog = false
+                                    newPlaylistName = ""
+                                    val navId = if (id < 0) "local_playlist:$id" else id.toString()
+                                    onPlaylistClick(navId)
+                                }
+                            }
+                        },
+                        enabled = !isCreatingPlaylist
+                    ) {
+                        if (isCreatingPlaylist) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(stringResource(R.string.btn_create))
                         }
-                    }) { Text(stringResource(R.string.btn_create)) }
+                    }
                 },
-                dismissButton = { TextButton(onClick = { showCreateDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                dismissButton = { 
+                    TextButton(
+                        onClick = { showCreateDialog = false },
+                        enabled = !isCreatingPlaylist
+                    ) { 
+                        Text(stringResource(R.string.btn_cancel)) 
+                    } 
+                }
             )
         }
         val showLogin = libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode
@@ -195,8 +240,10 @@
             },
             floatingActionButton = {
                 if (!showLogin || isGuest) {
-                    // bump up fab so miniplayer doesn't cover it
-                    val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
+                    // bump up fab so bottom nav and miniplayer don't cover it
+                    val bottomNavHeight = 90.dp
+                    val miniPlayerHeight = if (playerViewModel.currentTrack != null) 72.dp else 0.dp
+                    val totalBottomPadding = bottomNavHeight + miniPlayerHeight
     
                     ExtendedFloatingActionButton(
                         onClick = { showCreateDialog = true },
@@ -205,7 +252,7 @@
                         expanded = fabExpanded,
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(bottom = miniPlayerHeight)
+                        modifier = Modifier.padding(bottom = totalBottomPadding)
                     )
                 }
             }
@@ -330,6 +377,8 @@
         
                             val navId = if (isYoutubeShortcut) {
                                 android.net.Uri.encode(permalink!!)
+                            } else if (item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
+                                "system_playlist:${item.playlist.urn}"
                             } else {
                                 if (item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
                             }
@@ -468,21 +517,50 @@
     
     @Composable
     fun SortAndLayoutControls(viewModel: LibraryViewModel) {
+        val playlistsLabel = stringResource(R.string.lib_playlists)
+        val albumsLabel = stringResource(R.string.lib_albums)
+        val shouldShowOwnershipFilter = viewModel.selectedFilter == null || viewModel.selectedFilter == playlistsLabel || viewModel.selectedFilter == albumsLabel
+
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { viewModel.isSortDescending = !viewModel.isSortDescending }.padding(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = stringResource(R.string.sort_date_added), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = if (viewModel.isSortDescending) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
-                    contentDescription = stringResource(R.string.sort_date_added), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary
-                )
+            if (shouldShowOwnershipFilter) {
+                val filterText = when (viewModel.ownershipFilter) {
+                    OwnershipFilter.ALL -> stringResource(R.string.filter_all)
+                    OwnershipFilter.CREATED -> stringResource(R.string.filter_created)
+                    OwnershipFilter.LIKED -> stringResource(R.string.filter_liked)
+                }
+                Row(
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable {
+                        viewModel.ownershipFilter = when (viewModel.ownershipFilter) {
+                            OwnershipFilter.ALL -> OwnershipFilter.CREATED
+                            OwnershipFilter.CREATED -> OwnershipFilter.LIKED
+                            OwnershipFilter.LIKED -> OwnershipFilter.ALL
+                        }
+                    }.padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = filterText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Rounded.FilterList,
+                        contentDescription = filterText, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { viewModel.isSortDescending = !viewModel.isSortDescending }.padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = stringResource(R.string.sort_date_added), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = if (viewModel.isSortDescending) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
+                        contentDescription = stringResource(R.string.sort_date_added), modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             IconButton(onClick = { viewModel.isGridLayout = !viewModel.isGridLayout }) {
                 Icon(
@@ -558,13 +636,25 @@
                 )
                 Spacer(modifier = Modifier.height(8.dp))
     
-                Text(
-                    text = playlist.title ?: stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = playlist.title ?: stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (playlist.sharing == "private" || playlist.sharing == "secret") {
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            imageVector = androidx.compose.material.icons.Icons.Rounded.Lock,
+                            contentDescription = "Private",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 Text(
                     text = finalSubtitle,
                     style = MaterialTheme.typography.bodySmall,
@@ -578,7 +668,18 @@
                 AsyncImage(model = art, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant))
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text(text = playlist.title ?: stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = playlist.title ?: stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, modifier = Modifier.weight(1f, fill = false))
+                        if (playlist.sharing == "private" || playlist.sharing == "secret") {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Rounded.Lock,
+                                contentDescription = "Private",
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                     Text(
                         text = finalSubtitle,
                         style = MaterialTheme.typography.bodyMedium,
