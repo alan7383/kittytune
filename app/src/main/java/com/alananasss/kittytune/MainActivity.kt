@@ -62,8 +62,8 @@ import com.zionhuang.innertube.models.YouTubeLocale
         private var dynamicColorState by mutableStateOf(true)
         private var pureBlackState by mutableStateOf(false)
         private var keyColorState by mutableIntStateOf(0)
-        private var colorStyleState by mutableStateOf("TonalSpot")
-        private var colorSpecState by mutableStateOf("Default")
+        private var colorStyleState by mutableStateOf("Expressive")
+        private var colorSpecState by mutableStateOf("SPEC_2025")
     
         private val _shouldOpenSearch = MutableStateFlow(false)
         private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
