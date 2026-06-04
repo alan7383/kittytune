@@ -478,7 +478,7 @@ private fun ColorGenerationCard(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 2.dp)
             )
-            val styles = PaletteStyle.entries.map { it.name }
+            val styles = listOf("System") + PaletteStyle.entries.map { it.name }
             SettingsDropdownRow(
                 title = stringResource(R.string.pref_color_style_title),
                 items = styles,
