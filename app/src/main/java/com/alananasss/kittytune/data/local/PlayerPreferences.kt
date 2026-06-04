@@ -236,7 +236,7 @@ class PlayerPreferences(context: Context) {
     fun getKeyColor(): Int = prefs.getInt(KEY_KEY_COLOR, 0)
     fun setKeyColor(color: Int) = prefs.edit { putInt(KEY_KEY_COLOR, color) }
 
-    fun getColorStyle(): String = prefs.getString(KEY_COLOR_STYLE, "Expressive") ?: "Expressive"
+    fun getColorStyle(): String = prefs.getString(KEY_COLOR_STYLE, "System") ?: "System"
     fun setColorStyle(style: String) = prefs.edit { putString(KEY_COLOR_STYLE, style) }
 
     fun getColorSpec(): String = prefs.getString(KEY_COLOR_SPEC, "SPEC_2025") ?: "SPEC_2025"

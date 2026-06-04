@@ -53,6 +53,13 @@ internal fun rememberSoundTuneColorScheme(
     colorSpec: String,
 ): ColorScheme {
     val context = LocalContext.current
+    
+    // Use the native system generated scheme if "System" style is selected with Auto color
+    if (colorStyle.equals("System", ignoreCase = true) && dynamicColor && keyColor == 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val platformScheme = if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        return if (pureBlack && useDarkTheme) platformScheme.withAmoledSurfaces() else platformScheme
+    }
+
     val style = remember(colorStyle) { parseMaterialKolorPaletteStyle(colorStyle) }
     val specVersion = remember(colorSpec) { parseMaterialKolorColorSpec(colorSpec) }
     val seedColor = remember(context, dynamicColor, keyColor, useDarkTheme) {
@@ -109,7 +116,7 @@ fun SoundTuneTheme(
     dynamicColor: Boolean = true,
     pureBlack: Boolean = false,
     keyColor: Int = 0,
-    colorStyle: String = "Expressive",
+    colorStyle: String = "System",
     colorSpec: String = "SPEC_2025",
     typography: androidx.compose.material3.Typography = Typography,
     content: @Composable () -> Unit,
