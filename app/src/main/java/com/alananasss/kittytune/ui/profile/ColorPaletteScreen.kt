@@ -182,8 +182,13 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
                 dynamicColor = dynamicTheme,
                 colorStyle = colorStyle,
                 colorSpec = colorSpec,
+                onSeedChangedRealtime = { seed ->
+                    currentKeyColor = seed
+                    com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor = seed
+                },
                 onSeedChanged = { seed ->
                     currentKeyColor = seed
+                    com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor = null
                     prefs.setKeyColor(seed)
                 }
             )
@@ -325,6 +330,7 @@ private fun CustomSeedPickerCard(
     dynamicColor: Boolean,
     colorStyle: String,
     colorSpec: String,
+    onSeedChangedRealtime: (Int) -> Unit,
     onSeedChanged: (Int) -> Unit
 ) {
     val fallbackArgb = MaterialTheme.colorScheme.primary.toArgb()
@@ -410,7 +416,11 @@ private fun CustomSeedPickerCard(
                     onValueChange = { input ->
                         val normalized = input.trim().take(9)
                         hexText = normalized
-                        parseHexSeedColor(normalized)?.let(::updateWorkingColor)
+                        parseHexSeedColor(normalized)?.let {
+                            updateWorkingColor(it)
+                            onSeedChangedRealtime(it)
+                            onSeedChanged(it)
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -430,6 +440,7 @@ private fun CustomSeedPickerCard(
                 gradientBrush = hueBrush,
                 onValueChange = { hue ->
                     workingArgb = hsvToSeedArgb(hue, hsv[1], hsv[2])
+                    onSeedChangedRealtime(workingArgb)
                 },
                 onValueChangeFinished = { onSeedChanged(workingArgb) }
             )
@@ -441,6 +452,7 @@ private fun CustomSeedPickerCard(
                 gradientBrush = satBrush,
                 onValueChange = { saturation ->
                     workingArgb = hsvToSeedArgb(hsv[0], saturation, hsv[2])
+                    onSeedChangedRealtime(workingArgb)
                 },
                 onValueChangeFinished = { onSeedChanged(workingArgb) }
             )
@@ -452,6 +464,7 @@ private fun CustomSeedPickerCard(
                 gradientBrush = valBrush,
                 onValueChange = { brightness ->
                     workingArgb = hsvToSeedArgb(hsv[0], hsv[1], brightness)
+                    onSeedChangedRealtime(workingArgb)
                 },
                 onValueChangeFinished = { onSeedChanged(workingArgb) }
             )

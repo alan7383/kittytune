@@ -164,12 +164,14 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 val dynamicTypography = com.alananasss.kittytune.ui.theme.getDynamicTypography(
                     customFontEnabledState, fontWghtState, fontWdthState, fontSlntState, fontRondState, fontGradState, fontOpszState
                 )
+
+                val activeKeyColor = com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor ?: keyColorState
     
                 SoundTuneTheme(
                     themeMode = themeModeState,
                     dynamicColor = dynamicColorState,
                     pureBlack = pureBlackState,
-                    keyColor = keyColorState,
+                    keyColor = activeKeyColor,
                     colorStyle = colorStyleState,
                     colorSpec = colorSpecState,
                     typography = dynamicTypography

@@ -22,6 +22,13 @@ import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.scheme.DynamicScheme
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+
+object ThemeState {
+    var previewKeyColor by mutableStateOf<Int?>(null)
+}
 
 internal val KittyTuneDefaultSeedColor = Color(0xFFFF7A1A)
 internal val MaterialKolorColorSpecOptions = listOf("SPEC_2025", "SPEC_2021")
