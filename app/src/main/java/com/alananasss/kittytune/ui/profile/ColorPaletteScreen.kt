@@ -63,8 +63,8 @@ private val groupedKeyColorOptions = listOf(
             SeedColorOption(R.string.color_seed_twilight, Color(0xFF182055).toArgb()),
             SeedColorOption(R.string.color_seed_royal_navy, Color(0xFF101740).toArgb()),
             SeedColorOption(R.string.color_seed_midnight, Color(0xFF071A3D).toArgb()),
-            SeedColorOption(R.string.color_seed_navy, Color(0xFF0D47A1).toArgb())
-        )
+            SeedColorOption(R.string.color_seed_navy, Color(0xFF0D47A1).toArgb()),
+        ),
     ),
     SeedColorGroup(
         titleRes = R.string.color_group_blues_cyans,
@@ -137,7 +137,7 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
     val pureBlack = prefs.getPureBlack()
     val dynamicTheme = prefs.getDynamicTheme()
 
-    val isDark = themeMode == AppThemeMode.DARK || (themeMode == AppThemeMode.SYSTEM && isSystemInDarkTheme())
+    val isDark = ((themeMode == AppThemeMode.DARK) || (themeMode == AppThemeMode.SYSTEM && isSystemInDarkTheme()))
 
     SettingsScaffold(
         title = stringResource(R.string.color_palette_screen_title),
@@ -168,30 +168,28 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
                 dynamicColor = dynamicTheme,
                 colorStyle = colorStyle,
                 colorSpec = colorSpec,
-                onSeedSelected = { seed ->
-                    haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                    currentKeyColor = seed
-                    prefs.setKeyColor(seed)
-                }
-            )
+            ) { seed ->
+                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
+                currentKeyColor = seed
+                prefs.setKeyColor(seed)
+            }
 
-            CustomSeedPickerCard(
-                selectedKeyColor = currentKeyColor,
-                isDark = isDark,
-                pureBlack = pureBlack,
-                dynamicColor = dynamicTheme,
-                colorStyle = colorStyle,
-                colorSpec = colorSpec,
-                onSeedChangedRealtime = { seed ->
-                    currentKeyColor = seed
-                    com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor = seed
-                },
-                onSeedChanged = { seed ->
+                CustomSeedPickerCard(
+                    selectedKeyColor = currentKeyColor,
+                    isDark = isDark,
+                    pureBlack = pureBlack,
+                    dynamicColor = dynamicTheme,
+                    colorStyle = colorStyle,
+                    colorSpec = colorSpec,
+                    onSeedChangedRealtime = { seed ->
+                        currentKeyColor = seed
+                        com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor = seed
+                    },
+                ) { seed ->
                     currentKeyColor = seed
                     com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor = null
                     prefs.setKeyColor(seed)
                 }
-            )
 
             ColorGenerationCard(
                 colorStyle = colorStyle,
@@ -577,7 +575,7 @@ fun SettingsDropdownRow(
     selectedItem: String,
     onItemSelected: (String) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(value = false) }
 
     Row(
         modifier = Modifier
@@ -744,7 +742,7 @@ private fun ColorButtonMaterial(
 
     val rawHsv = remember(seedColor) { seedColor?.toHsv() }
 
-    val color1 = if (seedColor != null) Color(seedColor) else Color.Transparent
+    val color1 = seedColor?.let { Color(it) } ?: Color.Transparent
     val color2 = remember(rawHsv) {
         if (rawHsv != null) {
             Color(hsvToSeedArgb(

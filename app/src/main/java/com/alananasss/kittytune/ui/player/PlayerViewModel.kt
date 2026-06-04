@@ -9,19 +9,21 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
-import android.os.Build
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
+import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.palette.graphics.Palette
-import androidx.compose.runtime.mutableLongStateOf
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
@@ -40,26 +42,21 @@ import com.alananasss.kittytune.domain.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricLine
 import com.alananasss.kittytune.ui.player.lyrics.LyricsUtils
 import com.google.gson.Gson
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Job
 import org.schabi.newpipe.extractor.ServiceList
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import androidx.annotation.StringRes
+import kotlin.time.Duration.Companion.milliseconds
 
-enum class CommentSort(val value: String, @StringRes val labelResId: Int) {
+enum class CommentSort(val value: String, @param:StringRes val labelResId: Int) {
     NEWEST("newest", R.string.sort_newest),
     TIMESTAMP("track-timestamp", R.string.sort_timestamp),
-    OLDEST("oldest", R.string.sort_oldest)
+    OLDEST("oldest", R.string.sort_oldest),
 }
 
 enum class LyricsMode { SYNCED, PLAIN }
@@ -68,7 +65,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private val gson = Gson()
     private val api = RetrofitClient.create(application)
-    private val context = application.applicationContext
+    private val context get() = getApplication<Application>().applicationContext
     private val playerPrefs = PlayerPreferences(context)
     private val tokenManager = TokenManager(context)
 
@@ -95,7 +92,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         get() {
             try {
                 return MusicManager.player
-            } catch (e: IllegalStateException) {
+            } catch (_: IllegalStateException) {
                 MusicManager.init(context)
                 MusicManager.player.addListener(playerListener)
                 MusicManager.applyEffects(effectsState)
@@ -165,7 +162,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     )
                 }
                 userPlaylists.addAll(newPlaylists)
-            } catch (e: Exception) {}
+            } catch (_: Exception) {}
         }
     }
 
@@ -291,6 +288,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
+        @UnstableApi
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             Log.e("PlayerViewModel", "ExoPlayer error: ${error.errorCodeName}", error)
             
@@ -359,8 +357,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     if (currentQueueIndex >= _queue.size && repeatMode == RepeatMode.ALL && _queue.isNotEmpty()) {
                         currentQueueIndex %= _queue.size
                     }
-                    for (i in 0 until shiftCount) {
-                        try { MusicManager.player.removeMediaItem(0) } catch (e: Exception) {}
+                    repeat(shiftCount) {
+                        try { MusicManager.player.removeMediaItem(0) } catch (_: Exception) {}
                     }
                     preloadNextTrack(currentQueueIndex + 1)
                 }
@@ -398,12 +396,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         val filter = IntentFilter("com.alananasss.kittytune.ACTION_FORCE_UPDATE")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(syncReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            @Suppress("DEPRECATION")
-            context.registerReceiver(syncReceiver, filter)
-        }
+        ContextCompat.registerReceiver(context, syncReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         MusicManager.init(context)
         MusicManager.player.addListener(playerListener)
@@ -441,17 +434,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
-            currentTrack = finalTrack
-
             // KittyTune custom QueueManager: ExoPlayer only holds 1 item, so its internal index is ignored.
             // currentQueueIndex is strictly managed by playTrackAtIndex and playNext/smartPrevious.
-            
-            if (currentQueueIndex >= 0 && currentQueueIndex < _queue.size) {
-                val trackAtPosition = _queue[currentQueueIndex]
-                if (trackAtPosition.id == finalTrack.id) {
-                    finalTrack = trackAtPosition
-                }
+            // However, on auto-advance, currentQueueIndex might not be updated yet, so we search the queue.
+            val foundInQueue = _queue.find { it.id == finalTrack.id }
+            if (foundInQueue != null) {
+                finalTrack = foundInQueue
             }
+            
+            currentTrack = finalTrack
+            MusicManager.currentTrack = finalTrack
+
             updatePlayerColors(finalTrack)
 
             viewModelScope.launch {
@@ -459,7 +452,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 loadLyrics(finalTrack)
                 AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")
 
-                if (finalTrack.id > 0 && (finalTrack.permalinkUrl.isNullOrEmpty() || finalTrack.user?.avatarUrl.isNullOrEmpty())) {
+                if (finalTrack.source == "soundcloud" && finalTrack.id > 0 && (finalTrack.permalinkUrl.isNullOrEmpty() || finalTrack.user?.avatarUrl.isNullOrEmpty() || finalTrack.playbackCount == 0)) {
                     try {
                         val fullTracks = api.getTracksByIds(finalTrack.id.toString())
                         val fullTrack = fullTracks.firstOrNull()
@@ -468,8 +461,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             currentTrack = fullTrack
                             MusicManager.currentTrack = fullTrack
                         }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                    } catch (_: Exception) {
                     }
                 }
             }
@@ -479,7 +471,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 duration = MusicManager.player.duration.coerceAtLeast(0L)
                 currentPosition = MusicManager.player.currentPosition
                 if (isPlaying) startProgressUpdate()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
             }
             saveStateAsync(saveQueue = false)
         }
@@ -526,7 +518,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         context.unregisterReceiver(syncReceiver)
         try {
             MusicManager.player.removeListener(playerListener)
-        } catch (e: IllegalStateException) {
+        } catch (_: IllegalStateException) {
         }
     }
 
@@ -560,7 +552,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 duration = player.duration.coerceAtLeast(0L)
                 currentPosition = player.currentPosition
                 if(isPlaying) startProgressUpdate()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
             }
         }
     }
@@ -577,7 +569,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val response = api.repostTrack(track.id)
                 if (response.isSuccessful && !caption.isNullOrBlank()) {
-                    delay(100)
+                    delay(100.milliseconds)
                     api.addRepostCaption(track.id, RepostCaptionRequest(caption))
                 }
             } catch (e: Exception) {
@@ -615,10 +607,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (!forceSheet && playerPrefs.getInlineLyricsEnabled()) {
             toggleInlineLyrics()
         } else {
-            if (lyricsLines.isNotEmpty()) {
-                lyricsMode = LyricsMode.SYNCED
+            lyricsMode = if (lyricsLines.isNotEmpty()) {
+                LyricsMode.SYNCED
             } else {
-                lyricsMode = LyricsMode.PLAIN
+                LyricsMode.PLAIN
             }
             showMenuSheet = false
             showLyricsSheet = true
@@ -664,7 +656,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     val rawLyrics = LyricsUtils.extractLocalLyrics(localTrack.localAudioPath)
                     if (!rawLyrics.isNullOrBlank()) {
                         val parsed = LyricsUtils.parseLrc(rawLyrics, track.durationMs ?: 0L)
-                        val finalLines = if (parsed.isNotEmpty()) parsed else listOf(LyricLine(rawLyrics, 0, track.durationMs ?: 0L))
+                        val finalLines = parsed.ifEmpty { listOf(LyricLine(rawLyrics, 0, track.durationMs ?: 0L)) }
                         withContext(Dispatchers.Main) {
                             lyricsLines.addAll(finalLines)
                             lyricsMode = LyricsMode.SYNCED
@@ -699,7 +691,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     val bestMatch = results.filter { abs(it.duration - trackDurationSec) < 4.0 }.find { !it.syncedLyrics.isNullOrEmpty() } ?: results.firstOrNull()
                     processLyricsResponse(bestMatch, track.durationMs ?: 0L)
                 } catch (e: Exception) {
-                    if (e !is kotlinx.coroutines.CancellationException) {
+                    if (e !is CancellationException) {
                         withContext(Dispatchers.Main) { isLyricsLoading = false }
                     }
                 }
@@ -725,10 +717,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             rawPlainLyrics = response?.plainLyrics ?: response?.syncedLyrics
 
-            if (resultLines.isNotEmpty()) {
-                lyricsMode = LyricsMode.SYNCED
+            lyricsMode = if (resultLines.isNotEmpty()) {
+                LyricsMode.SYNCED
             } else {
-                lyricsMode = LyricsMode.PLAIN
+                LyricsMode.PLAIN
             }
 
             isLyricsLoading = false
@@ -738,7 +730,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun searchLyricsManual(query: String) { if (query.isBlank()) return; isLyricsLoading = true; lyricSearchResults.clear(); viewModelScope.launch(Dispatchers.IO) { try { val results = LrcLibClient.api.searchLyrics(query); withContext(Dispatchers.Main) { lyricSearchResults.addAll(results) } } catch (e: Exception) { e.printStackTrace() } finally { withContext(Dispatchers.Main) { isLyricsLoading = false } } } }
     fun selectLyricResult(result: LrcLibResponse) { viewModelScope.launch(Dispatchers.IO) { processLyricsResponse(result, duration) } }
-    private fun cleanTitleNoise(title: String): String = title.replace(Regex("\\(.*?\\)|\\[.*?\\]"), "").replace(Regex("(?i)(official video|lyrics|ft\\.|feat\\.|prod\\.)"), "").trim()
+    private fun cleanTitleNoise(title: String): String = title.replace(Regex("\\(.*?\\)|\\[.*?]"), "").replace(Regex("(?i)(official video|lyrics|ft\\.|feat\\.|prod\\.)"), "").trim()
 
     fun navigateToTrackDetails(trackId: Long, initialTab: Int = 0) { showMenuSheet = false; showDetailsSheet = false; navigateToPlaylistId = "track_detail:$trackId?tab=$initialTab" }
 
@@ -857,7 +849,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 if (user.id > 0) {
                     navigateToPlaylistId = "profile:${user.id}"
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 emitUiEvent(getString(R.string.error_generic))
             }
         }
@@ -924,7 +916,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         targetUrns.chunked(100).forEach { batchUrns ->
             val parentUrn = "soundcloud:tracks:$trackId"
-            val query = "query UserInteractions(\$parentUrn: String!, \$interactionTypeUrn: String!, \$targetUrns: [String!]!) { user: userInteractions(parentUrn: \$parentUrn, interactionTypeUrn: \$interactionTypeUrn, targetUrns: \$targetUrns) { targetUrn, userInteraction, interactionCounts { count, interactionTypeValueUrn } } }"
+            val query = "query UserInteractions(" + '$' + "parentUrn: String!, " + '$' + "interactionTypeUrn: String!, " + '$' + "targetUrns: [String!]!) { user: userInteractions(parentUrn: " + '$' + "parentUrn, interactionTypeUrn: " + '$' + "interactionTypeUrn, targetUrns: " + '$' + "targetUrns) { targetUrn, userInteraction, interactionCounts { count, interactionTypeValueUrn } } }"
             val variables = GraphQlVariablesUserCheck(parentUrn = parentUrn, targetUrns = batchUrns)
             val request = GraphQlRequest("UserInteractions", query, variables)
             try {
@@ -1004,15 +996,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun toggleCommentLike(comment: Comment) {
-        var foundIndex = -1; var parentIndex = -1
-        foundIndex = commentsList.indexOfFirst { it.id == comment.id }
+        val foundIndex = commentsList.indexOfFirst { it.id == comment.id }
+        var parentIndex = -1
         if (foundIndex == -1) { for (i in commentsList.indices) { if (commentsList[i].replies?.any { it.id == comment.id } == true) { parentIndex = i; break } } }
         if (foundIndex == -1 && parentIndex == -1) return
         val isCurrentlyLiked = comment.isLiked
         val newLikedState = !isCurrentlyLiked
         val newCount = if (newLikedState) comment.likesCount + 1 else (comment.likesCount - 1).coerceAtLeast(0)
         if (foundIndex != -1) commentsList[foundIndex] = comment.copy(isLiked = newLikedState, likesCount = newCount)
-        else if (parentIndex != -1) {
+        else {
             val parent = commentsList[parentIndex]
             val replies = parent.replies!!.toMutableList()
             val rIndex = replies.indexOfFirst { it.id == comment.id }
@@ -1025,11 +1017,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val targetUrn = "soundcloud:comments:${comment.id}"
                 val input = InteractionInput(parentUrn, targetUrn)
                 if (newLikedState) {
-                    val query = "mutation UpsertInteraction(\$input: InteractionInput!) { upsertInteraction(input: \$input) { interactionTypeUrn } }"
+                    val query = "mutation UpsertInteraction(" + '$' + "input: InteractionInput!) { upsertInteraction(input: " + '$' + "input) { interactionTypeUrn } }"
                     val request = GraphQlRequest("UpsertInteraction", query, GraphQlVariablesInteraction(input))
                     api.postGraphQl("https://graph.soundcloud.com/graphql", request)
                 } else {
-                    val query = "mutation RemoveInteraction(\$input: InteractionInput!) { removeInteraction(input: \$input) }"
+                    val query = "mutation RemoveInteraction(" + '$' + "input: InteractionInput!) { removeInteraction(input: " + '$' + "input) }"
                     val request = GraphQlRequest("RemoveInteraction", query, GraphQlVariablesInteraction(input))
                     api.postGraphQl("https://graph.soundcloud.com/graphql", request)
                 }
@@ -1158,7 +1150,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             var finalTrack = trackToPlay
-            if (finalTrack.source == "soundcloud" && trackToPlay.id > 0 && (trackToPlay.user?.id == 0L || trackToPlay.media == null)) {
+            if (finalTrack.source == "soundcloud" && trackToPlay.id > 0 && (trackToPlay.user?.id == 0L || trackToPlay.media == null || trackToPlay.playbackCount == 0)) {
                 try {
                     val fullTrackList = api.getTracksByIds(trackToPlay.id.toString())
                     if (fullTrackList.isNotEmpty()) { finalTrack = fullTrackList[0]; _queue[index] = finalTrack }
@@ -1277,7 +1269,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         avatarUrl = it.uploaderAvatars.firstOrNull()?.url
                     ),
                     artworkUrl = it.thumbnails.firstOrNull()?.url,
-                    durationMs = (it.duration ?: 0) * 1000,
+                    durationMs = it.duration * 1000,
                     permalinkUrl = it.url,
                     source = "youtube"
                 )
@@ -1316,7 +1308,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     MusicManager.updateContext(ctx)
                 }
             }
-        } catch (e: Exception) { e.printStackTrace() } finally { isAutoplayRadioLoading = false }
+        } catch (_: Exception) { } finally { isAutoplayRadioLoading = false }
     }
 
     fun smartPrevious() {
@@ -1353,9 +1345,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleShuffle() { shuffleEnabled = !shuffleEnabled; if (shuffleEnabled) applyShuffle() else revertShuffle(); updateQueueState(); saveStateAsync(saveQueue = true) }
 
     private fun applyShuffle(startIndex: Int = currentQueueIndex, sourceList: List<Track> = _originalQueue) {
-        if (sourceList.isEmpty() || startIndex < 0 || startIndex >= sourceList.size) return
+        if (sourceList.isEmpty() || startIndex !in sourceList.indices) return
 
-        val played = if (startIndex < sourceList.size) sourceList.subList(0, startIndex + 1) else emptyList()
+        val played = sourceList.subList(0, startIndex + 1)
         val upcoming = if (startIndex + 1 < sourceList.size) sourceList.subList(startIndex + 1, sourceList.size) else emptyList()
 
         val shuffledUpcoming = upcoming.shuffled()
@@ -1406,12 +1398,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (from < _queue.size && to < _queue.size) {
             val item = _queue.removeAt(from)
             _queue.add(to, item)
-
-            try {
-                MusicManager.player.moveMediaItem(from, to)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
         }
 
         if (!shuffleEnabled && from < _originalQueue.size && to < _originalQueue.size + 1) {
@@ -1423,11 +1409,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack?.id }.coerceAtLeast(0)
         }
 
+        if (MusicManager.player.mediaItemCount > 1) {
+            try { MusicManager.player.removeMediaItem(1) } catch (_: Exception) {}
+        }
+        preloadNextTrack(currentQueueIndex + 1)
+
         saveStateAsync(saveQueue = true)
     }
 
     fun removeTrackFromQueue(index: Int) {
-        if (index !in 0 until _queue.size) return
+        if (index !in _queue.indices) return
 
         val trackToRemove = _queue[index]
 
@@ -1444,17 +1435,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         // 3. Remove from _originalQueue if present (matching by id)
         _originalQueue.removeAll { it.id == trackToRemove.id }
 
-        // 4. Remove from Player
-        try {
-            MusicManager.player.removeMediaItem(index)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        // 5. Update index if current track was moved
+        // 4. Update index if current track was moved
         if (currentTrack != null) {
             currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack?.id }.coerceAtLeast(0)
         }
+
+        // 5. Reset preloaded track in player
+        if (MusicManager.player.mediaItemCount > 1) {
+            try { MusicManager.player.removeMediaItem(1) } catch (_: Exception) {}
+        }
+        preloadNextTrack(currentQueueIndex + 1)
 
         saveStateAsync(saveQueue = true)
     }
@@ -1465,14 +1455,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         val uniqueTracks = tracks.map { it.copy() }
 
-        val mediaItems = uniqueTracks.map { track ->
-            buildMediaItem(track, null, null)
-        }
-        player.addMediaItems(insertIndex, mediaItems)
-
         _queue.addAll(insertIndex, uniqueTracks)
         _originalQueue.addAll(insertIndex, uniqueTracks)
         updateQueueState()
+        
+        if (MusicManager.player.mediaItemCount > 1) {
+            try { MusicManager.player.removeMediaItem(1) } catch (_: Exception) {}
+        }
+        preloadNextTrack(currentQueueIndex + 1)
+
         saveStateAsync(saveQueue = true)
         emitUiEvent(getString(R.string.menu_play_next))
     }
@@ -1596,7 +1587,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (saveQueue) {
             saveQueueJob?.cancel()
             saveQueueJob = viewModelScope.launch(Dispatchers.IO) {
-                delay(500)
+                delay(500.milliseconds)
                 val qSnapshot = _queue.toList()
                 playerPrefs.savePlaybackState(t, p, qSnapshot, c, s, r)
             }
@@ -1628,9 +1619,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
                     if (effectsState.isBassBoostEnabled || effectsState.isEarrapeEnabled) AchievementManager.increment("bass_addict", 1)
 
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                 }
-                delay(1000)
+                delay(1000.milliseconds)
             }
         }
     }
@@ -1690,8 +1681,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                     val me = api.getMe()
                                     currentUserId = me.id
                                     currentUser = me
-                                } catch (e: Exception) {
-                                    Log.e("PlayerViewModel", "Failed to fetch user ID for recently-played context", e)
+                                } catch (_: Exception) {
+                                    Log.e("PlayerViewModel", "Failed to fetch user ID for recently-played context")
                                 }
                             }
                             if (currentUserId != 0L) {
@@ -1776,17 +1767,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val isFadeEnabled = playerPrefs.getSleepTimerFadeEnabled()
         val fadeDurationSec = if (isFadeEnabled) playerPrefs.getSleepTimerFadeDuration() else 0
         val fadeDurationMs = fadeDurationSec * 1000L
-        val totalDurationMs = durationMs
 
         // Save current volume before any fade
         preFadeVolume = player.volume
 
         val startTime = System.currentTimeMillis()
-        val endTime = startTime + totalDurationMs
+        val endTime = startTime + durationMs
         sleepTimerEndOfTrack = false
 
         showSleepTimerDialog = false
-        showSleepTimerIslandNotification(isStarted = true, durationText = formatRemaining(totalDurationMs))
+        showSleepTimerIslandNotification(isStarted = true, durationText = formatRemaining(durationMs))
         emitUiEvent(getString(R.string.sleep_timer_started))
 
         sleepTimerJob = viewModelScope.launch(Dispatchers.Main) {
@@ -1814,7 +1804,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 sleepTimerRemainingMs = remaining
-                delay(PlayerPreferences.SLEEP_TIMER_FADE_UPDATE_INTERVAL_MS)
+                delay(PlayerPreferences.SLEEP_TIMER_FADE_UPDATE_INTERVAL_MS.milliseconds)
             }
         }
     }
@@ -1901,15 +1891,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         if (currentPlayerMediaId == lastTrack.id.toString()) {
                             isPlaying = MusicManager.player.isPlaying; duration = MusicManager.player.duration.coerceAtLeast(lastTrack.durationMs ?: 0L); currentPosition = MusicManager.player.currentPosition; MusicManager.applyEffects(effectsState)
                         } else {
-                            currentPosition = lastPosition; duration = lastTrack.durationMs ?: 0L;
-                            if (currentQueueIndex >= 0) {
+                            currentPosition = lastPosition
+                        duration = lastTrack.durationMs ?: 0L
+                        if (currentQueueIndex >= 0) {
                                 playRobustly(currentQueueIndex, autoPlay = false, startPosition = lastPosition)
                             }
                         }
-                        delay(200); val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }; startServiceSafe(context, intent)
+                        delay(200.milliseconds)
+                        val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
+                        startServiceSafe(context, intent)
                     }
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (_: Exception) { }
         }
     }
 
@@ -1917,7 +1910,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(Dispatchers.Main) {
             if (MusicManager.currentTrack != null) {
                 currentTrack = MusicManager.currentTrack
-                isPlaying = try { MusicManager.player.isPlaying } catch (e: Exception) { false }
+                isPlaying = try { MusicManager.player.isPlaying } catch (_: Exception) { false }
                 duration = MusicManager.player.duration.coerceAtLeast(0L)
                 currentPosition = MusicManager.player.currentPosition
             }
@@ -1947,7 +1940,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private suspend fun loadBitmap(url: String): Bitmap? { return try { val loader = ImageLoader(context); val request = ImageRequest.Builder(context).data(url).allowHardware(false).build(); (loader.execute(request) as? SuccessResult)?.drawable.let { (it as? BitmapDrawable)?.bitmap } } catch (e: Exception) { null } }
+    private suspend fun loadBitmap(url: String): Bitmap? { return try { val loader = ImageLoader(context); val request = ImageRequest.Builder(context).data(url).allowHardware(false).build(); (loader.execute(request) as? SuccessResult)?.drawable.let { (it as? BitmapDrawable)?.bitmap } } catch (_: Exception) { null } }
 
     private fun updatePlayerColors(track: Track) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -1989,17 +1982,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun startServiceSafe(context: Context, intent: Intent) {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
+            context.startForegroundService(intent)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private suspend fun playRobustly(index: Int, autoPlay: Boolean = true, startPosition: Long = 0L, allowSkipOnFailure: Boolean = true) {
+    private fun playRobustly(index: Int, autoPlay: Boolean = true, startPosition: Long = 0L, allowSkipOnFailure: Boolean = true) {
         if (index !in _queue.indices) return
 
         val trackToPlay = _queue[index]
@@ -2027,7 +2016,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         }
                     } else {
                         val isContentUri = localTrack.localAudioPath.startsWith("content://")
-                        val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
+                        val fileExists = if (isContentUri) true else File(localTrack.localAudioPath).exists()
                         if (fileExists) {
                             resolvedUrl = localTrack.localAudioPath
                         }
@@ -2037,7 +2026,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             if (resolvedUrl == null) {
                 // Not downloaded, resolve from network
-                val resolved = com.alananasss.kittytune.data.StreamResolver.resolveStreamWithDrm(context, trackToPlay)
+                val resolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
                 resolvedUrl = resolved?.url
 
                 // Cache DRM token if present (streaming JWT)
@@ -2107,8 +2096,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
 
-                if (resolvedUrl == null) {
-                    val resolved = com.alananasss.kittytune.data.StreamResolver.resolveStreamWithDrm(context, nextTrack)
+            if (resolvedUrl == null) {
+                    val resolved = StreamResolver.resolveStreamWithDrm(context, nextTrack)
                     resolvedUrl = resolved?.url
                     if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
                         MusicManager.putDrmToken(nextTrack.id, resolved.licenseAuthToken)
@@ -2127,27 +2116,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun performPrepare(mediaItem: MediaItem, startPos: Long, autoPlay: Boolean) {
-        MusicManager.player.setMediaItem(mediaItem)
-        MusicManager.player.prepare()
-        if (startPos > 0) MusicManager.player.seekTo(startPos)
-        if (autoPlay) {
-            val intent = Intent(context, PlaybackService::class.java)
-            startServiceSafe(context, intent)
-            MusicManager.player.play()
-        }
-        MusicManager.applyEffects(effectsState)
-    }
-
     private fun isColorDark(color: Int): Boolean { val darkness = 1 - (0.299 * android.graphics.Color.red(color) + 0.587 * android.graphics.Color.green(color) + 0.114 * android.graphics.Color.blue(color)) / 255; return darkness >= 0.5 }
 
     private fun buildMediaItem(track: Track, bitmap: Bitmap?, urlOverride: String? = null, offlineKeySetId: ByteArray? = null): MediaItem {
-        val uri = if (urlOverride != null) Uri.parse(urlOverride) else Uri.parse("soundtune://track/${track.id}")
+        val uri = urlOverride?.toUri() ?: "soundtune://track/${track.id}".toUri()
 
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(track.title ?: getString(R.string.untitled_track))
             .setArtist(track.user?.username ?: getString(R.string.unknown_artist))
-            .setArtworkUri(Uri.parse(track.fullResArtwork))
+            .setArtworkUri(track.fullResArtwork.toUri())
 
         if (bitmap != null) {
             val stream = ByteArrayOutputStream()
