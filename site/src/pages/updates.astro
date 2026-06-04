@@ -20,99 +20,111 @@ function formatDate(iso: string): string {
 ---
 
 <SiteLayout page={PAGES.updates}>
-
-  <!-- Hero Header -->
-  <section class="updates-hero">
-    <div class="updates-hero-inner">
-      <div class="updates-hero-badge">
+  <div class="container updates-page-container">
+    
+    <!-- Clean Premium M3 Hero -->
+    <section class="updates-premium-hero reveal">
+      <div class="updates-premium-badge">
         <span class="material-icons-round">update</span>
         Updates & Announcements
       </div>
-      <h1>What's New in KittyTune</h1>
-      <p>
+      <h1 class="updates-premium-title">What's New in KittyTune</h1>
+      <p class="updates-premium-desc">
         Track every release, every bug fix, and every new feature.
         Plus announcements straight from the developer. ( ◡‿◡ *)
       </p>
-    </div>
-  </section>
+    </section>
 
-  <!-- Segmented Tabs -->
-  <div class="updates-tabs">
-    <div class="updates-tab-group">
-      <button class="updates-tab active" data-tab="releases" id="tab-releases">
-        <span class="tab-check material-icons-round">check</span>
-        <span class="material-icons-round">new_releases</span>
-        Releases
-      </button>
-      <button class="updates-tab" data-tab="announcements" id="tab-announcements">
-        <span class="tab-check material-icons-round">check</span>
-        <span class="material-icons-round">campaign</span>
-        Announcements
-      </button>
-    </div>
-  </div>
-
-  <!-- Content Panels -->
-  <div class="updates-content">
-
-    <!-- Panel: Releases (loaded dynamically via JS) -->
-    <div class="updates-panel active" id="panel-releases">
-      <div id="releases-timeline">
-        <!-- Loader Premium M3 affiché au chargement -->
-        <div class="timeline-loading-state">
-          <h3 class="m3-loader-text">Checking for updates...</h3>
-          <div class="m3-expressive-loader">
-            <!-- Static track -->
-            <div class="m3-loader-track"></div>
-            <!-- First animated line -->
-            <div class="m3-line m3-line--first">
-              <div class="m3-line-wave"></div>
-            </div>
-            <!-- Second animated line -->
-            <div class="m3-line m3-line--second">
-              <div class="m3-line-wave"></div>
-            </div>
-          </div>
-        </div>
+    <!-- Premium M3 Segmented Tabs -->
+    <div class="updates-tabs-wrapper reveal" style="animation-delay: 0.1s;">
+      <div class="m3-premium-tabs">
+        <button class="m3-premium-tab active" data-tab="releases" id="tab-releases">
+          <span class="m3-premium-tab-ripple"></span>
+          <span class="material-icons-round">new_releases</span>
+          <span class="tab-text">Releases</span>
+        </button>
+        <button class="m3-premium-tab" data-tab="announcements" id="tab-announcements">
+          <span class="m3-premium-tab-ripple"></span>
+          <span class="material-icons-round">campaign</span>
+          <span class="tab-text">Announcements</span>
+        </button>
       </div>
     </div>
 
-    <!-- Panel: Announcements (static from data file) -->
-    <div class="updates-panel" id="panel-announcements">
-      {ANNOUNCEMENTS.length > 0 ? (
-        <div class="announcements-grid">
-          {ANNOUNCEMENTS.map((a) => (
-            <div class={`announcement-card reveal ${a.pinned ? 'pinned' : ''}`} id={`announcement-${a.id}`}>
-              {a.pinned && (
-                <span class="announcement-pin material-icons-round">push_pin</span>
-              )}
-              <div class={`announcement-type-badge ${a.type}`}>
-                <span class="material-icons-round">{typeIcons[a.type] || 'info'}</span>
-                {a.type}
+    <!-- Content Area -->
+    <div class="updates-content-wrapper">
+      
+      <!-- Releases Panel (Dynamic via JS) -->
+      <div class="updates-panel active" id="panel-releases">
+        <div id="releases-timeline" class="releases-premium-feed">
+          
+          <!-- Exact M3 Expressive Loader requested by User -->
+          <div class="timeline-loading-state">
+            <h3 class="m3-loader-text">Checking for updates...</h3>
+            <div class="m3-expressive-loader">
+              <div class="m3-loader-track"></div>
+              <div class="m3-line m3-line--first">
+                <div class="m3-line-wave"></div>
               </div>
-              <div class="announcement-title">{a.title}</div>
-              <div class="announcement-body" set:html={a.body}></div>
-              <div class="announcement-date">
-                <span class="material-icons-round">schedule</span>
-                {formatDate(a.date)}
+              <div class="m3-line m3-line--second">
+                <div class="m3-line-wave"></div>
               </div>
-              {a.link && (
-                <a href={a.link.url} target="_blank" rel="noopener" class="announcement-link">
-                  <span class="material-icons-round">arrow_forward</span>
-                  {a.link.label}
-                </a>
-              )}
             </div>
-          ))}
+          </div>
+          
         </div>
-      ) : (
-        <div class="empty-state">
-          <span class="material-icons-round">inbox</span>
-          <p>No announcements yet. Check back soon! ( > . < )</p>
-        </div>
-      )}
-    </div>
+      </div>
 
+      <!-- Announcements Panel (Static from data) -->
+      <div class="updates-panel" id="panel-announcements">
+        {ANNOUNCEMENTS.length > 0 ? (
+          <div class="announcements-premium-masonry">
+            {ANNOUNCEMENTS.map((a, index) => (
+              <div class={`m3-announcement-card reveal ${a.pinned ? 'pinned' : ''}`} id={`announcement-${a.id}`} style={`animation-delay: ${index * 0.05 + 0.1}s`}>
+                
+                {a.pinned && (
+                  <div class="m3-pin-badge">
+                    <span class="material-icons-round">push_pin</span>
+                  </div>
+                )}
+                
+                <div class="m3-card-header">
+                  <div class={`m3-type-chip ${a.type}`}>
+                    <span class="material-icons-round">{typeIcons[a.type] || 'info'}</span>
+                    {a.type}
+                  </div>
+                  <div class="m3-card-date">
+                    <span class="material-icons-round">schedule</span>
+                    {formatDate(a.date)}
+                  </div>
+                </div>
+                
+                <h3 class="m3-card-title">{a.title}</h3>
+                <div class="m3-card-body" set:html={a.body}></div>
+                
+                {a.link && (
+                  <div class="m3-card-actions">
+                    <a href={a.link.url} target="_blank" rel="noopener" class="m3-card-btn primary">
+                      {a.link.label}
+                      <span class="material-icons-round">arrow_forward</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div class="m3-empty-state reveal">
+            <div class="m3-empty-icon-container">
+              <span class="material-icons-round">inbox</span>
+            </div>
+            <h3>It's pretty quiet here...</h3>
+            <p>No announcements yet. Check back soon! ( > . < )</p>
+          </div>
+        )}
+      </div>
+
+    </div>
   </div>
 
   <script>

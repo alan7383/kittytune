@@ -160,26 +160,21 @@ function renderReleaseCard(release: GitHubRelease, index: number): string {
 
   return `
     <div class="release-card reveal" data-index="${index}">
-      <div class="release-dot">
-        <span class="material-icons-round">new_releases</span>
+      <div class="release-header">
+        <span class="release-version">${escapeHtml(release.name || version)}</span>
+        <span class="release-tag ${isLatest ? 'latest' : 'stable'}">
+          ${isLatest ? '✦ Latest' : 'Stable'}
+        </span>
+        <span class="release-date" title="${formatDate(release.published_at)}">
+          ${relativeTime(release.published_at)}
+        </span>
       </div>
-      <div class="release-card-inner">
-        <div class="release-header">
-          <span class="release-version">${escapeHtml(release.name || version)}</span>
-          <span class="release-tag ${isLatest ? 'latest' : 'stable'}">
-            ${isLatest ? '✦ Latest' : 'Stable'}
-          </span>
-          <span class="release-date" title="${formatDate(release.published_at)}">
-            ${relativeTime(release.published_at)}
-          </span>
-        </div>
-        <div class="release-body">
-          ${groupsHtml}
-        </div>
-        ${metaHtml ? `<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px;">${metaHtml}</div>` : ''}
-        <div class="release-actions">
-          ${actionsHtml}
-        </div>
+      <div class="release-body">
+        ${groupsHtml}
+      </div>
+      ${metaHtml ? `<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px;">${metaHtml}</div>` : ''}
+      <div class="release-actions">
+        ${actionsHtml}
       </div>
     </div>
   `;
@@ -246,7 +241,7 @@ function observeCards(container: Element) {
     });
   }, { threshold: 0.1 });
 
-  container.querySelectorAll('.release-card:not(.visible), .announcement-card:not(.visible)').forEach(card => {
+  container.querySelectorAll('.release-card:not(.visible), .m3-announcement-card:not(.visible)').forEach(card => {
     observer.observe(card);
   });
 }
@@ -268,7 +263,7 @@ async function loadInitialReleases() {
     if (releases.length < PER_PAGE) allLoaded = true;
 
     container.innerHTML = `
-      <div class="timeline" id="timeline-list">
+      <div class="timeline releases-premium-feed" id="timeline-list">
         ${releases.map((r, i) => renderReleaseCard(r, i)).join('')}
       </div>
       ${!allLoaded ? `
@@ -342,7 +337,7 @@ function wireLoadMore() {
 
 /* ===== Tab switching ===== */
 function initTabs() {
-  const tabs   = document.querySelectorAll<HTMLButtonElement>('.updates-tab');
+  const tabs   = document.querySelectorAll<HTMLButtonElement>('.m3-premium-tab');
   const panels = document.querySelectorAll<HTMLElement>('.updates-panel');
 
   tabs.forEach(tab => {
