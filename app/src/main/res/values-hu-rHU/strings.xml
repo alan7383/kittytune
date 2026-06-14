@@ -343,6 +343,7 @@
     <string name="guest_user">Vendég</string>
     <string name="me_artist">Én</string>
     <string name="profile_followers">Követők</string>
+    <string name="profile_followings">Following</string>
     <string name="profile_tracks">Számok</string>
     <string name="profile_edit">Szerkesztés</string>
     <string name="profile_edit_title">Profil szerkesztése</string>
