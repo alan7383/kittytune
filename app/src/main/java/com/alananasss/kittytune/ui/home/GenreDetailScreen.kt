@@ -15,6 +15,7 @@
     import androidx.compose.material.icons.filled.MoreVert
     import androidx.compose.material.icons.rounded.GraphicEq
     import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Check
     import androidx.compose.material3.*
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
@@ -29,14 +30,12 @@
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
     import com.alananasss.kittytune.R
-    import com.alananasss.kittytune.data.DownloadManager
     import com.alananasss.kittytune.data.OfficialPlaylistsData
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.ui.common.TrackListItemShimmer
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import com.alananasss.kittytune.ui.profile.SquareCard
     import com.alananasss.kittytune.ui.profile.SectionTitle
-    import java.io.File
     import java.util.Locale
     
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -101,7 +100,7 @@
                         }
                     },
                     scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                         scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                     )
@@ -313,3 +312,47 @@
     }
 
 
+@Composable
+private fun CountrySelectionCard(
+    countryName: String,
+    flagEmoji: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainer
+    val contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else androidx.compose.ui.graphics.Color.Transparent
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = backgroundColor,
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, borderColor),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = flagEmoji, style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.width(16.dp))
+                Text(
+                    text = countryName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = contentColor
+                )
+            }
+
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = contentColor
+                )
+            }
+        }
+    }
+}

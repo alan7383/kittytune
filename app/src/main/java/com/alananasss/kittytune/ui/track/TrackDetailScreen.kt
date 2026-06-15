@@ -17,6 +17,11 @@
     import androidx.compose.material.icons.automirrored.filled.ArrowBack
     import androidx.compose.material.icons.filled.Person
     import androidx.compose.material.icons.rounded.Verified
+    import androidx.compose.material.icons.rounded.Check
+    import androidx.compose.material.icons.rounded.Close
+    import androidx.compose.material.icons.rounded.Download
+    import androidx.compose.material.icons.rounded.DownloadDone
+    import androidx.compose.material.icons.rounded.Favorite
     import androidx.compose.material3.*
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
@@ -151,7 +156,9 @@
                                     playlists = detailViewModel.inPlaylists,
                                     onNavigate = onNavigate,
                                     onLoadMore = { detailViewModel.loadMorePlaylists() },
-                                    isLoadingMore = detailViewModel.isPlaylistsLoadingMore
+                                    isLoadingMore = detailViewModel.isPlaylistsLoadingMore,
+                                    isSortedByLikes = detailViewModel.isPlaylistsSortedByLikes,
+                                    onToggleSort = { detailViewModel.toggleSortPlaylists() }
                                 )
                                 3 -> TrackList(
                                     tracks = detailViewModel.relatedTracks,
@@ -226,14 +233,85 @@
         playlists: List<Playlist>,
         onNavigate: (String) -> Unit,
         onLoadMore: () -> Unit,
-        isLoadingMore: Boolean
+        isLoadingMore: Boolean,
+        isSortedByLikes: Boolean,
+        onToggleSort: () -> Unit
     ) {
-        if (playlists.isEmpty() && !isLoadingMore) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.detail_no_public_playlist), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+        Column(modifier = Modifier.fillMaxSize()) {
+            Card(
+                onClick = { onToggleSort() },
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                shape = androidx.compose.ui.graphics.RectangleShape,
+                modifier = Modifier.fillMaxWidth(),
+                interactionSource = interactionSource
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(32.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Favorite,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "Sorted by popularity",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    androidx.compose.material3.Switch(
+                        checked = isSortedByLikes,
+                        onCheckedChange = { onToggleSort() },
+                        interactionSource = interactionSource,
+                        thumbContent = {
+                            if (isSortedByLikes) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                                    tint = MaterialTheme.colorScheme.surfaceContainerHighest
+                                )
+                            }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
+                    )
+                }
             }
-        } else {
-            LazyColumn(contentPadding = PaddingValues(bottom = 180.dp)) {
+            
+            if (playlists.isEmpty() && !isLoadingMore) {
+                Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+                    Text(stringResource(R.string.detail_no_public_playlist), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 180.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
                 itemsIndexed(playlists) { index, playlist ->
                     if (index >= playlists.size - 5) {
                         LaunchedEffect(Unit) { onLoadMore() }
@@ -256,7 +334,7 @@
                         Column {
                             Text(playlist.title ?: stringResource(R.string.lib_playlists), fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
-                                stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0) + " • " + stringResource(R.string.playlist_by_user, playlist.user?.username ?: ""),
+                                stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0) + " • " + stringResource(R.string.playlist_by_user, playlist.user?.username ?: "") + if (playlist.likesCount != null && playlist.likesCount > 0) " • ${playlist.likesCount} likes" else "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -275,8 +353,9 @@
             }
         }
     }
+}
     
-    @Composable
+@Composable
     fun TrackList(
         tracks: List<Track>,
         playerViewModel: PlayerViewModel,

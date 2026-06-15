@@ -624,7 +624,8 @@ import kotlinx.coroutines.launch
         }
     
         val authorText = playlist.user?.username ?: stringResource(R.string.me_artist)
-        val finalSubtitle = if (isRadioShortcut) "$subtitleText • YouTube" else "$subtitleText • $authorText"
+        val likesText = if (playlist.likesCount != null && playlist.likesCount > 0) " • ${playlist.likesCount} likes" else ""
+        val finalSubtitle = if (isRadioShortcut) "$subtitleText • YouTube" else "$subtitleText • $authorText$likesText"
     
         if (isGrid) {
             Column(modifier = Modifier.clickable(onClick = onClick).fillMaxWidth()) {
