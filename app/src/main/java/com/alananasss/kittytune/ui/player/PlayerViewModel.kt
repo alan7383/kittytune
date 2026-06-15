@@ -1480,6 +1480,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     maintainPlayerState = true
                 )
             } else {
+                val intent = Intent(context, PlaybackService::class.java)
+                startServiceSafe(context, intent)
                 player.play()
             }
         }
@@ -1982,7 +1984,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun startServiceSafe(context: Context, intent: Intent) {
         try {
-            context.startForegroundService(intent)
+            context.startService(intent)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -2045,7 +2047,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
-            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId)
+            val newMediaItem = buildMediaItem(trackToPlay, resolvedUrl, offlineKeySetId)
 
             withContext(Dispatchers.Main) {
                 try {
@@ -2105,7 +2107,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
 
                 if (resolvedUrl != null) {
-                    val nextMediaItem = buildMediaItem(nextTrack, null, resolvedUrl, offlineKeySetId)
+                    val nextMediaItem = buildMediaItem(nextTrack, resolvedUrl, offlineKeySetId)
                     withContext(Dispatchers.Main) {
                         if (MusicManager.player.mediaItemCount == 1) {
                             MusicManager.player.addMediaItem(nextMediaItem)
@@ -2118,19 +2120,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun isColorDark(color: Int): Boolean { val darkness = 1 - (0.299 * android.graphics.Color.red(color) + 0.587 * android.graphics.Color.green(color) + 0.114 * android.graphics.Color.blue(color)) / 255; return darkness >= 0.5 }
 
-    private fun buildMediaItem(track: Track, bitmap: Bitmap?, urlOverride: String? = null, offlineKeySetId: ByteArray? = null): MediaItem {
+    private fun buildMediaItem(track: Track, urlOverride: String? = null, offlineKeySetId: ByteArray? = null): MediaItem {
         val uri = urlOverride?.toUri() ?: "soundtune://track/${track.id}".toUri()
 
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(track.title ?: getString(R.string.untitled_track))
             .setArtist(track.user?.username ?: getString(R.string.unknown_artist))
             .setArtworkUri(track.fullResArtwork.toUri())
-
-        if (bitmap != null) {
-            val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-            metadataBuilder.setArtworkData(stream.toByteArray(), MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-        }
 
         val builder = MediaItem.Builder()
             .setUri(uri)
