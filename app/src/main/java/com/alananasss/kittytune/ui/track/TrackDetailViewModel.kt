@@ -10,6 +10,7 @@
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.*
     import kotlinx.coroutines.async
+    import kotlinx.coroutines.awaitAll
     import kotlinx.coroutines.coroutineScope
     import kotlinx.coroutines.launch
     
@@ -36,9 +37,10 @@
         var isRepostersLoadingMore by mutableStateOf(false)
         var isPlaylistsLoadingMore by mutableStateOf(false)
         var isRelatedLoadingMore by mutableStateOf(false)
-    
+        var isPlaylistsSortedByLikes by mutableStateOf(false)
+
         fun loadTrackDetails(trackId: Long) {
-            if (trackId == 0L) return
+            if (trackId == 0L || this.track?.id == trackId) return
             viewModelScope.launch {
                 isLoading = true
                 // clean slate
@@ -47,18 +49,17 @@
                 inPlaylists.clear(); playlistsNextUrl = null
                 relatedTracks.clear(); relatedNextUrl = null
     
+                var initialPlaylists: List<Playlist> = emptyList()
                 try {
                     coroutineScope {
                         val trackDef = async { api.getTracksByIds(trackId.toString()).firstOrNull() }
-    
-                        // fetch full objects (not just collection) to get next_href
                         val likersResponseDef = async { try { api.getTrackLikers(trackId) } catch (e: Exception) { null } }
                         val repostersResponseDef = async { try { api.getTrackReposters(trackId) } catch (e: Exception) { null } }
-                        val playlistsResponseDef = async { try { api.getTrackInPlaylists(trackId) } catch (e: Exception) { null } }
+                        val playlistsResponseDef = async { try { api.getTrackInPlaylists(trackId, limit = 50) } catch (e: Exception) { null } }
                         val relatedResponseDef = async { try { api.getRelatedTracks(trackId) } catch (e: Exception) { null } }
-    
+
                         track = trackDef.await()
-    
+
                         likersResponseDef.await()?.let {
                             likers.addAll(it.collection)
                             likersNextUrl = it.next_href
@@ -122,6 +123,56 @@
                     playlistsNextUrl = res.next_href
                 } catch (e: Exception) { e.printStackTrace() }
                 finally { isPlaylistsLoadingMore = false }
+            }
+        }
+
+        private var playlistsFetchJob: kotlinx.coroutines.Job? = null
+
+        fun toggleSortPlaylists() {
+            if (track == null) return
+            
+            // Cancel any ongoing fetch
+            playlistsFetchJob?.cancel()
+            
+            isPlaylistsSortedByLikes = !isPlaylistsSortedByLikes
+            
+            playlistsFetchJob = viewModelScope.launch {
+                isPlaylistsLoadingMore = true
+                inPlaylists.clear()
+                try {
+                    if (isPlaylistsSortedByLikes) {
+                        var nextUrl: String? = playlistsNextUrl?.substringBefore("?") + "?limit=200"
+                        if (playlistsNextUrl == null) nextUrl = "https://api-v2.soundcloud.com/tracks/${track!!.id}/playlists?limit=200"
+                        else nextUrl = playlistsNextUrl?.replace("limit=50", "limit=200")
+                        
+                        val allFetched = mutableListOf<Playlist>()
+                        
+                        // We need to fetch from start, so let's just use the api directly
+                        var currentNextUrl: String? = "https://api-v2.soundcloud.com/tracks/${track!!.id}/playlists?limit=200"
+                        
+                        while (currentNextUrl != null) {
+                            val res = api.getInPlaylistsNextPage(currentNextUrl)
+                            allFetched.addAll(res.collection)
+                            currentNextUrl = res.next_href?.replace("limit=50", "limit=200")
+                        }
+                        
+                        val sorted = allFetched.distinctBy { it.id }.sortedByDescending { it.likesCount ?: 0 }
+                        inPlaylists.addAll(sorted)
+                        playlistsNextUrl = null // No more loading when fully sorted
+                    } else {
+                        // Revert to default lazy loading
+                        val res = api.getTrackInPlaylists(track!!.id, limit = 50)
+                        inPlaylists.addAll(res.collection)
+                        playlistsNextUrl = res.next_href
+                    }
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    // Ignore cancellation
+                    throw e
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    isPlaylistsLoadingMore = false
+                }
             }
         }
     
