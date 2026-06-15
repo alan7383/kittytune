@@ -589,6 +589,7 @@
     <string name="pref_audio_subtitle">Quality, Autoplay, Queue</string>
     <string name="pref_autoplay">Autoplay</string>
     <string name="pref_autoplay_sub">Play similar tracks when queue ends</string>
+    <string name="pref_stop_on_task_clear">Stop music on app close</string>
     <string name="pref_persist_queue">Save Queue</string>
     <string name="pref_persist_queue_sub">Restore playback after restart</string>
     <string name="pref_quality">Stream Quality</string>
