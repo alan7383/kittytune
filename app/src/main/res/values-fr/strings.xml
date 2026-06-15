@@ -531,6 +531,7 @@
     <string name="pref_audio_subtitle">Qualité, autoplay, file d\'attente</string>
     <string name="pref_autoplay">Autoplay</string>
     <string name="pref_autoplay_sub">Jouer des titres similaires à la fin de la file</string>
+    <string name="pref_stop_on_task_clear">Arrêter la musique à la fermeture</string>
     <string name="pref_persist_queue">Sauvegarder la file d\'attente</string>
     <string name="pref_persist_queue_sub">Restaurer la lecture après redémarrage</string>
     <string name="pref_quality">Qualité Stream</string>
