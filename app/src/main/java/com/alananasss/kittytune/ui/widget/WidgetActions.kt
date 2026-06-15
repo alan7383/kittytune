@@ -21,29 +21,33 @@
     
     class PlayPauseAction : ActionCallback {
         override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-            val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_WIDGET_PLAY_PAUSE }
-            startServiceSafe(context, intent)
+            val controller = getMediaController(context)
+            if (controller?.isPlaying == true) controller.pause() else controller?.play()
+            controller?.release()
         }
     }
     
     class SkipNextAction : ActionCallback {
         override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-            val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_WIDGET_NEXT }
-            startServiceSafe(context, intent)
+            val controller = getMediaController(context)
+            controller?.seekToNext()
+            controller?.release()
         }
     }
     
     class SkipPrevAction : ActionCallback {
         override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-            val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_WIDGET_PREV }
-            startServiceSafe(context, intent)
+            val controller = getMediaController(context)
+            controller?.seekToPrevious()
+            controller?.release()
         }
     }
     
     class ToggleLikeAction : ActionCallback {
         override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-            val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_WIDGET_LIKE }
-            startServiceSafe(context, intent)
+            val controller = getMediaController(context)
+            controller?.sendCustomCommand(androidx.media3.session.SessionCommand(PlaybackService.CUSTOM_ACTION_LIKE, android.os.Bundle.EMPTY), android.os.Bundle.EMPTY)
+            controller?.release()
         }
     }
     
@@ -119,12 +123,19 @@
         }
     }
     
-    private fun startServiceSafe(context: Context, intent: Intent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
+    
+    private suspend fun getMediaController(context: Context): androidx.media3.session.MediaController? {
+        return try {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val sessionToken = androidx.media3.session.SessionToken(context, android.content.ComponentName(context, PlaybackService::class.java))
+                val controllerFuture = androidx.media3.session.MediaController.Builder(context, sessionToken).buildAsync()
+                controllerFuture.get()
+            }
+        } catch (e: Exception) {
+            null
         }
     }
+
+    
 
 
