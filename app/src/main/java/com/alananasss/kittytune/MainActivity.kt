@@ -28,6 +28,7 @@ import com.alananasss.kittytune.data.RepostRepository
 import com.alananasss.kittytune.data.SessionManager
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.UpdateManager
+import com.alananasss.kittytune.data.PlaybackService
 import com.alananasss.kittytune.data.local.AppThemeMode
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.MainScreen
@@ -101,6 +102,12 @@ import com.zionhuang.innertube.models.YouTubeLocale
             AchievementManager.init(applicationContext)
             RepostRepository.init(applicationContext)
             AchievementManager.resetSessionAchievements()
+
+            try {
+                startService(Intent(applicationContext, PlaybackService::class.java))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
     
             preferences = PlayerPreferences(applicationContext)
             sharedPrefs = applicationContext.getSharedPreferences("player_state", MODE_PRIVATE)

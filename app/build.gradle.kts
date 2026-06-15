@@ -20,7 +20,7 @@ extensions.configure<ApplicationExtension> {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.alananasss.kittytune"
+        applicationId = "com.alananasss.kittytune.debug"
         minSdk = 26
         targetSdk = 37
         versionCode = 31

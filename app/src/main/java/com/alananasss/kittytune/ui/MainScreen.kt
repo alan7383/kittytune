@@ -320,6 +320,7 @@ fun MainScreen(
     }
 
     LaunchedEffect(Unit) {
+        instantiateWebView = true
         delay(200)
         SessionManager.harvestStoredSession(context)
 

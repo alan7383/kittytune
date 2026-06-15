@@ -7,349 +7,232 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
+import android.support.v4.media.MediaMetadataCompat
+import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
-import androidx.core.app.ServiceCompat
+import androidx.media.app.NotificationCompat.MediaStyle
+import androidx.media.session.MediaButtonReceiver
 import androidx.media3.common.ForwardingPlayer
-import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
-import androidx.media3.session.DefaultMediaNotificationProvider
-import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaNotification
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionResult
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
 import com.alananasss.kittytune.MainActivity
 import com.alananasss.kittytune.R
-import com.alananasss.kittytune.data.local.PlayerPreferences
-import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.ui.widget.MusicWidget
-import com.alananasss.kittytune.utils.CoilBitmapLoader
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.google.common.collect.ImmutableList
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.SessionCommand
+import com.alananasss.kittytune.data.network.RetrofitClient
 
-@OptIn(UnstableApi::class)
-class PlaybackService : MediaLibraryService(), Player.Listener {
+class PlaybackService : MediaLibraryService() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
         private const val CHANNEL_ID = "soundtune_playback_channel"
-
+        private const val ACTION_CUSTOM_LIKE = "ACTION_CUSTOM_LIKE"
         const val ACTION_FORCE_UPDATE = "com.alananasss.kittytune.ACTION_FORCE_UPDATE"
         const val ACTION_WIDGET_PLAY_PAUSE = "com.alananasss.kittytune.ACTION_WIDGET_PLAY_PAUSE"
         const val ACTION_WIDGET_NEXT = "com.alananasss.kittytune.ACTION_WIDGET_NEXT"
         const val ACTION_WIDGET_PREV = "com.alananasss.kittytune.ACTION_WIDGET_PREV"
         const val ACTION_WIDGET_LIKE = "com.alananasss.kittytune.ACTION_WIDGET_LIKE"
-
         const val CUSTOM_ACTION_LIKE = "com.alananasss.kittytune.CUSTOM_ACTION_LIKE"
         const val CUSTOM_ACTION_REPEAT = "com.alananasss.kittytune.CUSTOM_ACTION_REPEAT"
-
-        val commandLike = SessionCommand(CUSTOM_ACTION_LIKE, Bundle.EMPTY)
-        val commandRepeat = SessionCommand(CUSTOM_ACTION_REPEAT, Bundle.EMPTY)
     }
 
     private var mediaSession: MediaLibrarySession? = null
+    private lateinit var mediaSessionCompat: MediaSessionCompat
     private val serviceScope = CoroutineScope(Dispatchers.Main)
+
+    private var lastNotifTitle: String? = null
+    private var lastNotifArtist: String? = null
+    private var lastNotifState: Int? = null
+    private var lastLikedState: Boolean? = null
+    private var updateJob: Job? = null
     private var discordJob: Job? = null
+    private var currentAlbumArt: Bitmap? = null
+    private var lastLoadedArtUrl: String? = null
+    private var lastPlaybackSpeed: Float? = null
     private var discordRpc: DiscordRPC? = null
     private lateinit var prefs: PlayerPreferences
 
+    private val sessionCallback = object : MediaSessionCompat.Callback() {
+        override fun onPlay() { MusicManager.player.play(); requestUpdate(delayed = true) }
+        override fun onPause() { MusicManager.player.pause(); requestUpdate(delayed = true) }
+        override fun onStop() { MusicManager.player.stop(); stopSelf() }
+        override fun onSkipToNext() { MusicManager.onNextClick?.invoke() }
+        override fun onSkipToPrevious() { MusicManager.onPreviousClick?.invoke() }
+        override fun onSeekTo(pos: Long) { MusicManager.player.seekTo(pos); requestUpdate(delayed = true) }
+        override fun onCustomAction(action: String?, extras: Bundle?) {
+            if (action == ACTION_CUSTOM_LIKE) handleLikeToggle()
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_FORCE_UPDATE -> requestUpdate(delayed = false, isForegroundServiceStart = true)
+            ACTION_WIDGET_PLAY_PAUSE -> {
+                if (MusicManager.player.isPlaying) sessionCallback.onPause() else sessionCallback.onPlay()
+                MusicWidget.update(this)
+            }
+            ACTION_WIDGET_NEXT -> { sessionCallback.onSkipToNext(); MusicWidget.update(this) }
+            ACTION_WIDGET_PREV -> { sessionCallback.onSkipToPrevious(); MusicWidget.update(this) }
+            ACTION_WIDGET_LIKE -> { handleLikeToggle() }
+        }
+        if (intent != null) MediaButtonReceiver.handleIntent(mediaSessionCompat, intent)
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun handleLikeToggle() {
+        val track = MusicManager.currentTrack ?: return
+        if (LikeRepository.isTrackLiked(track.id)) LikeRepository.removeLike(track.id)
+        else LikeRepository.addLike(track)
+    }
+
+    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
-
         prefs = PlayerPreferences(this)
         MusicManager.init(this)
         LikeRepository.init(this)
         HistoryRepository.init(this)
         RepostRepository.init(this)
         DownloadManager.init(this)
+        createNotificationChannel()
 
-        setMediaNotificationProvider(
-            DefaultMediaNotificationProvider(
-                this,
-                { NOTIFICATION_ID },
-                CHANNEL_ID,
-                R.string.app_name
-            ).apply {
-                setSmallIcon(R.drawable.ic_notification)
+        setMediaNotificationProvider(object : MediaNotification.Provider {
+            override fun createNotification(
+                mediaSession: MediaSession,
+                customLayout: ImmutableList<CommandButton>,
+                actionFactory: MediaNotification.ActionFactory,
+                onNotificationChangedCallback: MediaNotification.Provider.Callback
+            ): MediaNotification {
+                val title = lastNotifTitle ?: getString(R.string.app_name)
+                val artist = lastNotifArtist ?: ""
+                return MediaNotification(
+                    NOTIFICATION_ID,
+                    buildNotification(title, artist, currentAlbumArt)
+                )
             }
-        )
+
+            override fun handleCustomCommand(
+                session: MediaSession,
+                action: String,
+                extras: Bundle
+            ): Boolean = false
+
+            override fun getNotificationChannelInfo(): MediaNotification.Provider.NotificationChannelInfo {
+                return MediaNotification.Provider.NotificationChannelInfo(
+                    CHANNEL_ID,
+                    getString(R.string.channel_name)
+                )
+            }
+        })
 
         serviceScope.launch {
             LikeRepository.likedTracks.collect {
-                updateMedia3CustomLayout()
-                MusicWidget.update(this@PlaybackService)
+                if (::mediaSessionCompat.isInitialized) {
+                    requestUpdate(delayed = false)
+                    MusicWidget.update(this@PlaybackService)
+                }
             }
         }
 
         val sessionIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, sessionIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val pendingIntent = PendingIntent.getActivity(this, 0, sessionIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         val forwardingPlayer = object : ForwardingPlayer(MusicManager.player) {
             override fun getAvailableCommands(): Player.Commands {
                 return super.getAvailableCommands().buildUpon()
                     .add(Player.COMMAND_SEEK_TO_NEXT)
                     .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                    .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                    .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                    .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                     .build()
             }
 
-            override fun isCurrentMediaItemSeekable(): Boolean {
-                return true
+            override fun isCommandAvailable(command: Int): Boolean {
+                return when (command) {
+                    Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_PREVIOUS,
+                    Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> true
+                    else -> super.isCommandAvailable(command)
+                }
             }
 
             override fun seekToNext() { MusicManager.onNextClick?.invoke() }
             override fun seekToPrevious() { MusicManager.onPreviousClick?.invoke() }
-
-            override fun getMediaMetadata(): androidx.media3.common.MediaMetadata {
-                val baseMetadata = super.getMediaMetadata()
-                val track = MusicManager.currentTrack ?: return baseMetadata
-                
-                return baseMetadata.buildUpon()
-                    .setTitle(track.title)
-                    .setArtist(track.user?.username)
-                    .build()
-            }
-
-            override fun getDuration(): Long {
-                val exoPlayerDuration = super.getDuration()
-                
-                if (exoPlayerDuration == androidx.media3.common.C.TIME_UNSET || exoPlayerDuration <= 0L) {
-                    val apiDuration = MusicManager.currentTrack?.durationMs 
-                    
-                    if (apiDuration != null && apiDuration > 0) {
-                        return apiDuration
-                    }
-                    
-                    return 180_000L
-                }
-                return exoPlayerDuration
-            }
-
-            override fun getCurrentPosition(): Long {
-                val realPosition = super.getCurrentPosition()
-                // Si le lecteur est en train de charger (BUFFERING) une nouvelle musique
-                if (super.getPlaybackState() == Player.STATE_BUFFERING && super.getDuration() == androidx.media3.common.C.TIME_UNSET) {
-                    return 0L
-                }
-                return realPosition
-            }
-
-            override fun getBufferedPosition(): Long {
-                if (super.getPlaybackState() == Player.STATE_BUFFERING && super.getDuration() == androidx.media3.common.C.TIME_UNSET) {
-                    return 0L
-                }
-                return super.getBufferedPosition()
-            }
+            override fun seekToNextMediaItem() { MusicManager.onNextClick?.invoke() }
+            override fun seekToPreviousMediaItem() { MusicManager.onPreviousClick?.invoke() }
         }
 
-        val librarySessionCallback = KittyTuneMediaLibrarySessionCallbackWrapper(
-            baseCallback = KittyTuneMediaLibrarySessionCallback(
-                context = this,
-                likeRepository = LikeRepository,
-                api = RetrofitClient.create(this),
-                serviceScope = serviceScope,
-                onControllerConnected = { updateMedia3CustomLayout() }
-            )
+        val librarySessionCallback = KittyTuneMediaLibrarySessionCallback(
+            context = this,
+            likeRepository = LikeRepository,
+            api = RetrofitClient.create(this),
+            serviceScope = serviceScope,
+            onControllerConnected = { requestUpdate(delayed = false) }
         )
 
         mediaSession = MediaLibrarySession.Builder(this, forwardingPlayer, librarySessionCallback)
             .setId("KittyTuneSession")
             .setSessionActivity(pendingIntent)
-            .setBitmapLoader(CoilBitmapLoader(this, serviceScope))
             .build()
 
-        MusicManager.player.addListener(this)
-        initDiscordRpc()
-
-        setListener(
-            object : MediaSessionService.Listener {
-                override fun onForegroundServiceStartNotAllowedException() {}
-            }
-        )
-
-        if (!ensureStartedAsForegroundOrStop()) {
-            return
+        mediaSessionCompat = MediaSessionCompat(this, "KittyTuneCompat").apply {
+            isActive = true
+            setSessionActivity(pendingIntent)
+            setCallback(sessionCallback)
         }
 
-        updateState()
-    }
+        MusicManager.player.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) { requestUpdate(delayed = true) }
+            override fun onIsPlayingChanged(isPlaying: Boolean) { requestUpdate(delayed = false) }
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) { requestUpdate(delayed = false) }
+            override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
+                super.onPlaybackParametersChanged(playbackParameters)
+                requestUpdate(delayed = false)
+            }
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                super.onRepeatModeChanged(repeatMode)
+                requestUpdate(delayed = false)
+            }
+        })
 
-    private fun ensureStartedAsForegroundOrStop(): Boolean {
-        return try {
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, getString(R.string.app_name), NotificationManager.IMPORTANCE_LOW)
-            )
-            val pending = PendingIntent.getActivity(
-                this, 0, Intent(this, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                },
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            )
+        updateCompatState()
+        val defaultTitle = getString(R.string.app_name)
+        val defaultArtist = getString(R.string.notification_content_default)
+        updateCompatMetadata(defaultTitle, defaultArtist, null, 0L)
 
-            val trackTitle = MusicManager.currentTrack?.title ?: "Chargement..."
-
-            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(trackTitle)
-                .setContentText(getString(R.string.app_name))
-                .setSmallIcon(R.drawable.ic_notification)
-                .setContentIntent(pending)
-                .setStyle(androidx.media3.session.MediaStyleNotificationHelper.MediaStyle(mediaSession!!))
-                .setOngoing(true)
-                .build()
-
+        try {
+            val notification = buildNotification(defaultTitle, defaultArtist, null)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-            true
-        } catch (e: Exception) {
-            e.printStackTrace()
-            stopSelf()
-            false
-        }
-    }
+        } catch (e: Exception) { e.printStackTrace() }
 
-    override fun onPlaybackStateChanged(playbackState: Int) { updateState() }
-    override fun onIsPlayingChanged(isPlaying: Boolean) { updateState() }
-
-    override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
-        super.onMediaMetadataChanged(mediaMetadata)
-        updateState()
-        mediaSession?.let {
-            try {
-                super.onUpdateNotification(it, MusicManager.player.playWhenReady)
-            } catch (e: Exception) {
-            }
-        }
-    }
-
-    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-        super.onMediaItemTransition(mediaItem, reason)
-        updateState()
-        
-        if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-            serviceScope.launch {
-                kotlinx.coroutines.delay(400)
-                updateState()
-                
-                mediaSession?.let {
-                    try {
-                        super.onUpdateNotification(it, MusicManager.player.playWhenReady)
-                    } catch (e: Exception) {
-                    }
-                }
-            }
-        }
-    }
-
-    override fun onRepeatModeChanged(repeatMode: Int) { updateState() }
-
-    override fun onUpdateNotification(
-        session: MediaSession,
-        startInForegroundRequired: Boolean
-    ) {
-        try {
-            super.onUpdateNotification(session, startInForegroundRequired)
-        } catch (e: Exception) {
-        }
-    }
-
-    private fun updateState() {
-        updateMedia3CustomLayout()
-        MusicWidget.update(this)
-
-        val currentTrack = MusicManager.currentTrack
-        if (currentTrack != null) {
-            initDiscordRpc()
-            val currentContextText = MusicManager.contextFlow.value?.displayText
-            discordJob?.cancel()
-            discordJob = serviceScope.launch(Dispatchers.IO) {
-                discordRpc?.updateTrack(currentTrack, currentContextText)
-            }
-        } else {
-            closeDiscordRpc()
-        }
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val result = super.onStartCommand(intent, flags, startId)
-        when (intent?.action) {
-            ACTION_FORCE_UPDATE -> updateState()
-            ACTION_WIDGET_PLAY_PAUSE -> {
-                if (MusicManager.player.isPlaying) MusicManager.player.pause() else MusicManager.player.play()
-                MusicWidget.update(this)
-            }
-            ACTION_WIDGET_NEXT -> { MusicManager.onNextClick?.invoke(); MusicWidget.update(this) }
-            ACTION_WIDGET_PREV -> { MusicManager.onPreviousClick?.invoke(); MusicWidget.update(this) }
-            ACTION_WIDGET_LIKE -> handleLikeToggle()
-        }
-        return result
-    }
-
-    fun handleLikeToggle() {
-        val track = MusicManager.currentTrack ?: return
-        if (LikeRepository.isTrackLiked(track.id)) LikeRepository.removeLike(track.id)
-        else LikeRepository.addLike(track)
-        updateState()
-    }
-
-    private fun updateMedia3CustomLayout() {
-        val session = mediaSession ?: return
-        val currentTrack = MusicManager.currentTrack ?: return
-        val player = MusicManager.player
-
-        val isLiked = LikeRepository.isTrackLiked(currentTrack.id)
-        val likeIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
-        val likeLabel = if (isLiked) R.string.action_unlike else R.string.desc_like
-
-        val likeButton = CommandButton.Builder()
-            .setDisplayName(getString(likeLabel))
-            .setIconResId(likeIcon)
-            .setSessionCommand(commandLike)
-            .setEnabled(true)
-            .build()
-
-        val repeatMode = player.repeatMode
-        val (repeatIcon, repeatLabel) = when (repeatMode) {
-            Player.REPEAT_MODE_ONE -> Pair(R.drawable.ic_repeat_one, R.string.menu_repeat_one)
-            Player.REPEAT_MODE_ALL -> Pair(R.drawable.ic_repeat, R.string.menu_repeat_all)
-            else -> Pair(R.drawable.ic_repeat_off, R.string.menu_repeat)
-        }
-
-        val repeatButton = CommandButton.Builder()
-            .setDisplayName(getString(repeatLabel))
-            .setIconResId(repeatIcon)
-            .setSessionCommand(commandRepeat)
-            .setEnabled(true)
-            .build()
-
-        val standardLayout = ImmutableList.of(likeButton)
-        val autoLayout = ImmutableList.of(likeButton, repeatButton)
-
-        session.setCustomLayout(standardLayout)
-
-        session.connectedControllers.forEach { controller ->
-            if (controller.packageName == "com.google.android.projection.gearhead") {
-                session.setCustomLayout(controller, autoLayout)
-            }
-        }
+        initDiscordRpc()
     }
 
     private fun initDiscordRpc() {
@@ -360,87 +243,267 @@ class PlaybackService : MediaLibraryService(), Player.Listener {
         } else closeDiscordRpc()
     }
 
-    private fun closeDiscordRpc() {
-        discordRpc?.closeRPC()
-        discordRpc = null
+    private fun closeDiscordRpc() { discordRpc?.closeRPC(); discordRpc = null }
+
+    private fun requestUpdate(delayed: Boolean = true, isForegroundServiceStart: Boolean = false) {
+        if (!::mediaSessionCompat.isInitialized) return
+        if (isForegroundServiceStart) { updateJob?.cancel(); performUpdate(forceNotification = true); return }
+        if (!delayed) { updateJob?.cancel(); performUpdate(); return }
+        updateJob?.cancel()
+        updateJob = serviceScope.launch { delay(50); performUpdate() }
+    }
+
+    private fun performUpdate(forceNotification: Boolean = false) {
+        updateMedia3CustomLayout()
+
+        val player = MusicManager.player
+        val metadata = player.mediaMetadata
+        val currentTrack = MusicManager.currentTrack
+
+        if (currentTrack != null) {
+            initDiscordRpc()
+            val currentContextText = MusicManager.contextFlow.value?.displayText
+            discordJob?.cancel()
+            discordJob = serviceScope.launch(Dispatchers.IO) { discordRpc?.updateTrack(currentTrack, currentContextText) }
+        } else closeDiscordRpc()
+
+        val currentSpeed = player.playbackParameters.speed
+        val title = currentTrack?.title ?: metadata.title?.toString() ?: getString(R.string.app_name)
+        val artist = currentTrack?.user?.username ?: metadata.artist?.toString() ?: ""
+        val state = player.playbackState
+        val isPlaying = player.isPlaying
+        val currentId = currentTrack?.id ?: 0L
+        val isLiked = LikeRepository.isTrackLiked(currentId)
+
+        val newArtworkUrl = currentTrack?.fullResArtwork
+        if (newArtworkUrl != lastLoadedArtUrl) {
+            lastLoadedArtUrl = newArtworkUrl
+            currentAlbumArt = null
+            serviceScope.launch(Dispatchers.IO) {
+                if (newArtworkUrl != null) {
+                    val loader = imageLoader
+                    val request = ImageRequest.Builder(this@PlaybackService).data(newArtworkUrl).allowHardware(false).build()
+                    val result = (loader.execute(request) as? SuccessResult)?.drawable
+                    val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                    if (bitmap != null) {
+                        currentAlbumArt = bitmap
+                        launch(Dispatchers.Main) { performUpdate(forceNotification = true) }
+                    }
+                }
+            }
+        }
+
+        if (!forceNotification && title == lastNotifTitle && artist == lastNotifArtist
+            && state == lastNotifState && isPlaying == (lastNotifState == PlaybackStateCompat.STATE_PLAYING)
+            && isLiked == lastLikedState && currentSpeed == lastPlaybackSpeed && currentAlbumArt != null) return
+
+        lastNotifTitle = title
+        lastNotifArtist = artist
+        lastNotifState = if (isPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
+        lastLikedState = isLiked
+        lastPlaybackSpeed = currentSpeed
+
+        val duration = currentTrack?.durationMs?.takeIf { it > 0 } ?: player.duration.takeIf { it > 0 } ?: 0L
+        updateCompatState()
+        updateCompatMetadata(title, artist, currentAlbumArt, duration)
+
+        val notification = buildNotification(title, artist, currentAlbumArt)
+        try {
+            if (forceNotification) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                } else startForeground(NOTIFICATION_ID, notification)
+            } else {
+                val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                manager.notify(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+
+        MusicWidget.update(this)
+    }
+
+    private fun updateCompatState() {
+        val player = MusicManager.player
+        val state = when (player.playbackState) {
+            Player.STATE_BUFFERING -> PlaybackStateCompat.STATE_BUFFERING
+            Player.STATE_READY -> if (player.isPlaying) PlaybackStateCompat.STATE_PLAYING else PlaybackStateCompat.STATE_PAUSED
+            Player.STATE_ENDED -> PlaybackStateCompat.STATE_PAUSED
+            Player.STATE_IDLE -> PlaybackStateCompat.STATE_PAUSED
+            else -> PlaybackStateCompat.STATE_NONE
+        }
+        val currentId = MusicManager.currentTrack?.id ?: 0L
+        val isLiked = LikeRepository.isTrackLiked(currentId)
+        val likeIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+        val likeLabel = if (isLiked) getString(R.string.action_unlike) else getString(R.string.desc_like)
+
+        val playbackStateBuilder = PlaybackStateCompat.Builder()
+            .setActions(
+                PlaybackStateCompat.ACTION_PLAY or PlaybackStateCompat.ACTION_PAUSE or
+                        PlaybackStateCompat.ACTION_STOP or PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                        PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or PlaybackStateCompat.ACTION_SEEK_TO
+            )
+            .setState(state, player.currentPosition, player.playbackParameters.speed)
+            .addCustomAction(PlaybackStateCompat.CustomAction.Builder(ACTION_CUSTOM_LIKE, likeLabel, likeIcon).build())
+
+        mediaSessionCompat.setPlaybackState(playbackStateBuilder.build())
+    }
+
+    private fun updateMedia3CustomLayout() {
+        val session = mediaSession ?: return
+        val currentTrack = MusicManager.currentTrack ?: return
+        val player = MusicManager.player
+        val isLiked = LikeRepository.isTrackLiked(currentTrack.id)
+        val likeIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+        val likeLabel = if (isLiked) R.string.action_unlike else R.string.desc_like
+
+        val likeButton = CommandButton.Builder()
+            .setDisplayName(getString(likeLabel))
+            .setIconResId(likeIcon)
+            .setSessionCommand(SessionCommand(CUSTOM_ACTION_LIKE, Bundle.EMPTY))
+            .setEnabled(true)
+            .build()
+            
+        val repeatMode = player.repeatMode
+        val (repeatIcon, repeatLabel) = when (repeatMode) {
+            Player.REPEAT_MODE_ONE -> Pair(R.drawable.ic_repeat_one, R.string.menu_repeat_one)
+            Player.REPEAT_MODE_ALL -> Pair(R.drawable.ic_repeat, R.string.menu_repeat_all)
+            else -> Pair(R.drawable.ic_repeat_off, R.string.menu_repeat)
+        }
+
+        val repeatButton = CommandButton.Builder()
+            .setDisplayName(getString(repeatLabel))
+            .setIconResId(repeatIcon)
+            .setSessionCommand(SessionCommand(CUSTOM_ACTION_REPEAT, Bundle.EMPTY))
+            .setEnabled(true)
+            .build()
+            
+        val defaultLayout = ImmutableList.of(likeButton)
+        val autoLayout = ImmutableList.of(likeButton, repeatButton)
+        
+        session.setCustomLayout(defaultLayout)
+        
+        for (controller in session.connectedControllers) {
+            val pkg = controller.packageName ?: ""
+            if (pkg.contains("gearhead") || pkg.contains("automotive")) {
+                session.setCustomLayout(controller, autoLayout)
+            }
+        }
+    }
+
+    private fun updateCompatMetadata(title: String, artist: String, bitmap: Bitmap?, duration: Long) {
+        val player = MusicManager.player
+        val builder = MediaMetadataCompat.Builder()
+        builder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, title)
+        builder.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, artist)
+        builder.putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
+        if (bitmap != null) {
+            builder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, bitmap)
+        } else {
+            player.mediaMetadata.artworkData?.let { bytes ->
+                try {
+                    val embedBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    builder.putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, embedBitmap)
+                } catch (_: Exception) {}
+            }
+        }
+        mediaSessionCompat.setMetadata(builder.build())
+    }
+
+    private fun buildNotification(title: String, artist: String, bitmap: Bitmap?): Notification {
+        val player = MusicManager.player
+        val isPlaying = player.isPlaying
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingOpenIntent = PendingIntent.getActivity(this, 0, openAppIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(artist)
+            .setOngoing(isPlaying)
+            .setOnlyAlertOnce(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(pendingOpenIntent)
+            .addAction(NotificationCompat.Action(R.drawable.ic_skip_previous, getString(R.string.desc_previous),
+                MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS)))
+
+        if (isPlaying) {
+            builder.addAction(NotificationCompat.Action(R.drawable.ic_play_arrow, getString(R.string.desc_pause),
+                MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PAUSE)))
+        } else {
+            builder.addAction(NotificationCompat.Action(R.drawable.ic_play_arrow, getString(R.string.desc_play),
+                MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_PLAY)))
+        }
+
+        builder.addAction(NotificationCompat.Action(R.drawable.ic_skip_next, getString(R.string.desc_next),
+            MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_SKIP_TO_NEXT)))
+
+        val currentId = MusicManager.currentTrack?.id ?: 0L
+        val isLiked = LikeRepository.isTrackLiked(currentId)
+        val likeIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
+        val likeLabel = if (isLiked) getString(R.string.action_unlike) else getString(R.string.desc_like)
+        
+        val likeIntent = Intent(this, PlaybackService::class.java).apply { action = ACTION_WIDGET_LIKE }
+        val pendingLike = PendingIntent.getService(this, 0, likeIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        builder.addAction(NotificationCompat.Action(likeIcon, likeLabel, pendingLike))
+
+        builder.setStyle(MediaStyle()
+            .setMediaSession(mediaSessionCompat.sessionToken)
+            .setShowActionsInCompactView(0, 1, 2)
+            .setShowCancelButton(true)
+            .setCancelButtonIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(this, PlaybackStateCompat.ACTION_STOP)))
+
+        if (bitmap != null) {
+            builder.setLargeIcon(bitmap)
+        } else {
+            player.mediaMetadata.artworkData?.let { bytes ->
+                try {
+                    val embedBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    builder.setLargeIcon(embedBitmap)
+                } catch (_: Exception) {}
+            }
+        }
+
+        return builder.build()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(CHANNEL_ID, getString(R.string.channel_name),
+                NotificationManager.IMPORTANCE_LOW).apply {
+                description = getString(R.string.channel_description)
+                setShowBadge(false)
+                setSound(null, null)
+            }
+            getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
         val player = MusicManager.player
-        runCatching {
-            player.stop()
-            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-            pauseAllPlayersAndStopSelf()
-        }.onFailure {
-            runCatching { pauseAllPlayersAndStopSelf() }.onFailure { stopSelf() }
+        if (player.isPlaying) player.pause()
+        player.stop()
+        player.clearMediaItems()
+        MusicManager.currentTrack = null
+        MusicWidget.update(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            @Suppress("DEPRECATION") stopForeground(true)
         }
+        stopSelf()
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
         closeDiscordRpc()
-        mediaSession?.run {
-            player.removeListener(this@PlaybackService)
-            release()
-            mediaSession = null
-        }
-        MusicManager.releasePlayer()
+        mediaSession?.run { release(); mediaSession = null }
+        if (::mediaSessionCompat.isInitialized) mediaSessionCompat.release()
         super.onDestroy()
-    }
-
-    private inner class KittyTuneMediaLibrarySessionCallbackWrapper(
-        private val baseCallback: MediaLibrarySession.Callback
-    ) : MediaLibrarySession.Callback by baseCallback {
-
-        override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-            val connectionResult = baseCallback.onConnect(session, controller)
-            return MediaSession.ConnectionResult.accept(
-                connectionResult.availableSessionCommands.buildUpon()
-                    .add(commandLike)
-                    .add(commandRepeat)
-                    .build(),
-                connectionResult.availablePlayerCommands
-            )
-        }
-
-        override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {
-            when (customCommand.customAction) {
-                CUSTOM_ACTION_LIKE -> handleLikeToggle()
-                CUSTOM_ACTION_REPEAT -> {
-                    val player = session.player
-                    player.repeatMode = when (player.repeatMode) {
-                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                        else -> Player.REPEAT_MODE_OFF
-                    }
-                }
-            }
-            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
-        }
-
-        override fun onPlaybackResumption(
-            mediaSession: MediaSession,
-            controller: MediaSession.ControllerInfo
-        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            val player = MusicManager.player
-
-            if (player.mediaItemCount > 0) {
-                val items = mutableListOf<MediaItem>()
-                for (i in 0 until player.mediaItemCount) {
-                    items.add(player.getMediaItemAt(i))
-                }
-
-                val startIndex = player.currentMediaItemIndex.coerceAtLeast(0)
-                val startPos = player.currentPosition.coerceAtLeast(0L)
-
-                return Futures.immediateFuture(
-                    MediaSession.MediaItemsWithStartPosition(items, startIndex, startPos)
-                )
-            }
-
-            return Futures.immediateFailedFuture(UnsupportedOperationException("No items available to resume"))
-        }
     }
 }
