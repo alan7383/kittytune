@@ -512,7 +512,25 @@
     
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                    Text(text = "${NumberFormat.getNumberInstance(Locale.US).format(user.followersCount)} ${stringResource(R.string.profile_followers)}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "${NumberFormat.getNumberInstance(Locale.US).format(user.followersCount)} ${stringResource(R.string.profile_followers)}",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { onNavigate("followers:${user.id}") }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                    Text(text = " • ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
+                    Text(
+                        text = "${NumberFormat.getNumberInstance(Locale.US).format(user.followingsCount)} ${stringResource(R.string.profile_followings)}",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { onNavigate("followings:${user.id}") }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
                     Text(text = " • ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                     Text(text = "${NumberFormat.getNumberInstance(Locale.US).format(user.trackCount)} ${stringResource(R.string.profile_tracks)}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -1038,10 +1056,14 @@
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = FontWeight.SemiBold
             )
+            val tracksText = stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0)
+            val likesText = if (playlist.likesCount != null && playlist.likesCount > 0) " • ${playlist.likesCount} likes" else ""
             Text(
-                text = stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0),
+                text = "$tracksText$likesText",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

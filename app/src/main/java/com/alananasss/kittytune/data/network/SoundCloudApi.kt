@@ -75,7 +75,8 @@
         @GET("tracks/{trackId}/playlists")
         suspend fun getTrackInPlaylists(
             @Path("trackId") trackId: Long,
-            @Query("limit") limit: Int = 50
+            @Query("limit") limit: Int = 50,
+            @Query("offset") offset: Int? = null
         ): InPlaylistCollection
     
         @GET("tracks/{trackId}/related")
@@ -375,15 +376,20 @@
         @GET("https://api.soundcloud.com/me/followings/{userId}")
         suspend fun checkFollowState(@Path("userId") userId: Long): retrofit2.Response<Unit>
 
-        @GET("users/{userId}/followings")
-        suspend fun getUserFollowings(
-            @Path("userId") userId: Long,
-            @Query("limit") limit: Int = 200,
-            @Query("linked_partitioning") linkedPartitioning: Int = 1
-        ): UserCollection
+    @POST("https://graph.soundcloud.com/graphql")
+    suspend fun getUserFollowersGraphQL(
+        @Body request: GraphQlFollowsRequest
+    ): GraphQlUserFollowersResponse
 
-        @GET
-        suspend fun getUserFollowingsNextPage(@Url url: String): UserCollection
+    @POST("https://graph.soundcloud.com/graphql")
+    suspend fun getUserFollowingsGraphQL(
+        @Body request: GraphQlFollowsRequest
+    ): GraphQlUserFollowingsResponse
+
+    @POST("https://graph.soundcloud.com/graphql")
+    suspend fun getUserProfileGraphQL(
+        @Body request: GraphQlRequest
+    ): GraphQlUserProfileResponse
 
         @GET("users/{userId}")
         suspend fun getUser(@Path("userId") userId: Long): User

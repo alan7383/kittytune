@@ -343,6 +343,7 @@
     <string name="guest_user">Vendég</string>
     <string name="me_artist">Én</string>
     <string name="profile_followers">Követők</string>
+    <string name="profile_followings">Követések</string>
     <string name="profile_tracks">Számok</string>
     <string name="profile_edit">Szerkesztés</string>
     <string name="profile_edit_title">Profil szerkesztése</string>
@@ -528,6 +529,7 @@
     <string name="pref_audio_subtitle">Minőség, Autoplay, Queue</string>
     <string name="pref_autoplay">Autoplay</string>
     <string name="pref_autoplay_sub">Hasonló számok a lista végén</string>
+    <string name="pref_stop_on_task_clear">Zene leállítása bezáráskor</string>
     <string name="pref_persist_queue">Queue mentése</string>
     <string name="pref_persist_queue_sub">Lejátszás visszaállítása újraindításkor</string>
     <string name="pref_quality">Stream minőség</string>

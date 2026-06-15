@@ -164,6 +164,61 @@
     data class ReactionStats(val counts: List<ReactionCount>?)
     data class ReactionCount(val count: Int, @SerializedName("interaction_type_urn") val urn: String?)
     
+    // GraphQL Follows Data Models
+    data class GraphQlFollowsRequest(
+        @SerializedName("operationName") val operationName: String,
+        @SerializedName("query") val query: String,
+        @SerializedName("variables") val variables: GraphQlFollowsVariables
+    )
+
+    data class GraphQlFollowsVariables(
+        @SerializedName("input") val input: GraphQlFollowsInput
+    )
+
+    data class GraphQlFollowsInput(
+        @SerializedName("urn") val urn: String,
+        @SerializedName("first") val first: Int = 30,
+        @SerializedName("after") val after: String? = null
+    )
+
+    data class GraphQlUserFollowersResponse(
+        @SerializedName("data") val data: GraphQlUserFollowersData?
+    )
+
+    data class GraphQlUserFollowersData(
+        @SerializedName("userFollowers") val userFollowers: GraphQlFollowsResult?
+    )
+
+    data class GraphQlUserFollowingsResponse(
+        @SerializedName("data") val data: GraphQlUserFollowingsData?
+    )
+
+    data class GraphQlUserFollowingsData(
+        @SerializedName("userFollowings") val userFollowings: GraphQlFollowsResult?
+    )
+
+    data class GraphQlFollowsResult(
+        @SerializedName("total") val total: Int,
+        @SerializedName("pageInfo") val pageInfo: GraphQlPageInfo?,
+        @SerializedName("items") val items: List<GraphQlFollowsItem>?
+    )
+
+    data class GraphQlPageInfo(
+        @SerializedName("endCursor") val endCursor: String?
+    )
+
+    data class GraphQlFollowsItem(
+        @SerializedName("user") val user: User?
+    )
+
+    data class GraphQlUserProfileResponse(
+        @SerializedName("data") val data: GraphQlUserProfileData?
+    )
+
+    data class GraphQlUserProfileData(
+        @SerializedName("user") val user: User?
+    )
+    
     // track
     data class Track(
         val id: Long,
@@ -332,7 +387,8 @@
         @SerializedName("sharing") val sharing: String? = null,
         @SerializedName("secret_token") val secretToken: String? = null,
         @SerializedName("set_type") val setType: String? = null,
-        @SerializedName("release_date") val releaseDate: String? = null
+        @SerializedName("release_date") val releaseDate: String? = null,
+        @SerializedName("likes_count") val likesCount: Int? = 0
     ) {
         val fullResArtwork: String
             get() {
@@ -350,20 +406,21 @@
     data class User(
         val id: Long,
         val username: String?,
-        @SerializedName("avatar_url") val avatarUrl: String?,
+        @SerializedName("avatar_url", alternate = ["avatarUrl"]) val avatarUrl: String?,
         val city: String? = null,
-        @SerializedName("country_code") val countryCode: String? = null,
-        @SerializedName("followers_count") val followersCount: Int = 0,
-        @SerializedName("followings_count") val followingsCount: Int = 0,
-        @SerializedName("track_count") val trackCount: Int = 0,
+        @SerializedName("country_code", alternate = ["countryCode"]) val countryCode: String? = null,
+        @SerializedName("followers_count", alternate = ["followersCount"]) val followersCount: Int = 0,
+        @SerializedName("followings_count", alternate = ["followingsCount"]) val followingsCount: Int = 0,
+        @SerializedName("track_count", alternate = ["tracksCount"]) val trackCount: Int = 0,
         @SerializedName("description") val description: String? = null,
-        @SerializedName("permalink_url") val permalinkUrl: String? = null,
+        @SerializedName("permalink_url", alternate = ["permalinkUrl"]) val permalinkUrl: String? = null,
         @SerializedName("permalink") val permalink: String? = null,
         val visuals: Visuals? = null,
         @SerializedName("verified") val verified: Boolean = false,
         @SerializedName("public_favorites_count") private val _publicFavoritesCount: Int? = 0,
         @SerializedName("likes_count") private val _likesCount: Int? = 0,
-        @SerializedName("favorites_count") private val _favoritesCount: Int? = 0
+        @SerializedName("favorites_count") private val _favoritesCount: Int? = 0,
+        @SerializedName("urn") val urn: String? = null
     ) {
         val likesCount: Int
             get() = when {
@@ -373,6 +430,13 @@
                 else -> 0
             }
         val bannerUrl: String? get() = visuals?.visuals?.firstOrNull()?.visualUrl
+        
+        // Helper to get ID from URN if ID is 0
+        val numericId: Long
+            get() {
+                if (id != 0L) return id
+                return urn?.split(":")?.lastOrNull()?.toLongOrNull() ?: 0L
+            }
     }
     
     data class Visuals(val visuals: List<VisualItem>?)
