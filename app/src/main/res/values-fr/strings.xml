@@ -343,6 +343,7 @@
     <string name="guest_user">Invité</string>
     <string name="me_artist">Moi</string>
     <string name="profile_followers">Abonnés</string>
+    <string name="profile_followings">Abonnements</string>
     <string name="profile_tracks">Titres</string>
     <string name="profile_edit">Modifier</string>
     <string name="profile_edit_title">Éditer le profil</string>

@@ -385,6 +385,7 @@
     <string name="me_artist">Me</string>
 
     <string name="profile_followers">Followers</string>
+    <string name="profile_followings">Following</string>
     <string name="profile_tracks">Tracks</string>
     <string name="profile_edit">Edit</string>
     <string name="profile_edit_title">Edit Profile</string>

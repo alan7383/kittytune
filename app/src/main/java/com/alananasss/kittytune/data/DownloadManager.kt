@@ -8,10 +8,7 @@
     import com.alananasss.kittytune.data.local.*
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.data.network.SoundCloudApi
-    import com.alananasss.kittytune.domain.Playlist
-    import com.alananasss.kittytune.domain.PlaylistUpdateRequest
-    import com.alananasss.kittytune.domain.Track
-    import com.alananasss.kittytune.domain.User
+    import com.alananasss.kittytune.domain.*
     import com.mpatric.mp3agic.ID3v24Tag
     import com.mpatric.mp3agic.Mp3File
     import kotlinx.coroutines.*
@@ -645,16 +642,41 @@
                 val me = api.getMe()
                 val allFollowings = mutableListOf<User>()
                 
-                var nextUrl: String? = null
-                val firstPage = api.getUserFollowings(me.id, limit = 200)
-                allFollowings.addAll(firstPage.collection)
-                nextUrl = firstPage.next_href
+                var nextCursor: String? = null
+                val userSchema = "urn permalink username avatarUrl firstName lastName city country countryCode tracksCount playlistCount followersCount followingsCount verified isPro description userAvatarUrlTemplate visualUrlTemplate stationUrns createdAt badges"
+                val followingsQuery = "query UserFollowingsQuery(\$input: UserFollowsInput!) { userFollowings(input: \$input) { pageInfo { endCursor } items { user { $userSchema } } } }"
+                
+                val req = GraphQlFollowsRequest(
+                    operationName = "UserFollowingsQuery",
+                    query = followingsQuery,
+                    variables = GraphQlFollowsVariables(
+                        input = GraphQlFollowsInput(
+                            urn = "soundcloud:users:${me.id}",
+                            first = 200,
+                            after = null
+                        )
+                    )
+                )
+                val firstPage = api.getUserFollowingsGraphQL(req)
+                val result = firstPage.data?.userFollowings
+                result?.items?.forEach { it.user?.let { u -> allFollowings.add(u) } }
+                nextCursor = result?.pageInfo?.endCursor
                 
                 var safetyCount = 0
-                while (nextUrl != null && safetyCount < 20) {
-                    val page = api.getUserFollowingsNextPage(nextUrl)
-                    allFollowings.addAll(page.collection)
-                    nextUrl = page.next_href
+                while (nextCursor != null && safetyCount < 20) {
+                    val nextReq = req.copy(
+                        variables = GraphQlFollowsVariables(
+                            input = GraphQlFollowsInput(
+                                urn = "soundcloud:users:${me.id}",
+                                first = 200,
+                                after = nextCursor
+                            )
+                        )
+                    )
+                    val page = api.getUserFollowingsGraphQL(nextReq)
+                    val pageResult = page.data?.userFollowings
+                    pageResult?.items?.forEach { it.user?.let { u -> allFollowings.add(u) } }
+                    nextCursor = pageResult?.pageInfo?.endCursor
                     safetyCount++
                 }
                 

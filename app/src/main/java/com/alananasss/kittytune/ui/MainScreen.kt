@@ -670,8 +670,36 @@ fun MainScreen(
                             playerViewModel,
                             onNavigate = { id ->
                                 if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
+                                else if (id.startsWith("followers:")) navController.navigate("followers/${id.removePrefix("followers:")}")
+                                else if (id.startsWith("followings:")) navController.navigate("followings/${id.removePrefix("followings:")}")
                                 else navController.navigate("playlist_detail/$id")
                             }
+                        )
+                    }
+
+                    clippedComposable(
+                        route = "followers/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                    ) {
+                        val uidStr = it.arguments?.getString("userId") ?: ""
+                        com.alananasss.kittytune.ui.profile.UserListScreen(
+                            userId = uidStr.toLongOrNull() ?: 0L,
+                            type = "followers",
+                            onBack = { navController.popBackStack() },
+                            onUserClick = { uid -> navController.navigate("profile/$uid") }
+                        )
+                    }
+
+                    clippedComposable(
+                        route = "followings/{userId}",
+                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                    ) {
+                        val uidStr = it.arguments?.getString("userId") ?: ""
+                        com.alananasss.kittytune.ui.profile.UserListScreen(
+                            userId = uidStr.toLongOrNull() ?: 0L,
+                            type = "followings",
+                            onBack = { navController.popBackStack() },
+                            onUserClick = { uid -> navController.navigate("profile/$uid") }
                         )
                     }
 
