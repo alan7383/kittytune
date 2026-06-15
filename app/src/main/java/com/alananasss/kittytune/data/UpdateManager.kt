@@ -120,7 +120,7 @@ object UpdateManager {
                     throw Exception("HTTP Error ${response.code}")
                 }
 
-                val body = response.body ?: throw Exception("Empty body")
+                val body = response.body
                 val totalSize = body.contentLength()
                 val file = File(context.getExternalFilesDir(null), "update.apk")
                 if (file.exists()) file.delete()
