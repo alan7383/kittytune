@@ -4,7 +4,6 @@ import com.android.build.api.dsl.ApplicationExtension
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries)
@@ -23,9 +22,9 @@ extensions.configure<ApplicationExtension> {
     defaultConfig {
         applicationId = "com.alananasss.kittytune"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 30
-        versionName = "2.48.0"
+        targetSdk = 37
+        versionCode = 31
+        versionName = "2.49.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
