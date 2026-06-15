@@ -228,7 +228,7 @@
                                 putExtra(Intent.EXTRA_TEXT, url)
                                 type = "text/plain"
                             }
-                            context.startActivity(Intent.createChooser(sendIntent, context.getString(R.string.share_via)))
+                            context.startActivity(Intent.createChooser(sendIntent, null))
                             showArtistMenu = null
                         }
                     )
@@ -259,7 +259,7 @@
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },
-                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                     ),
@@ -474,7 +474,7 @@
     }
     
     @Composable
-    fun CountrySelectionCard(
+    private fun CountrySelectionCard(
         countryName: String,
         flagEmoji: String,
         isSelected: Boolean,
