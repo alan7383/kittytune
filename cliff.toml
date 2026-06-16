@@ -4,7 +4,7 @@
 [changelog]
 header = ""
 body = """
-## {{ version }} ({{ timestamp | date(format="%Y-%m-%d") }})
+## {% if version %}{{ version }}{% else %}Unreleased{% endif %} {% if timestamp %}({{ timestamp | date(format="%Y-%m-%d") }}){% endif %}
 {% for group, commits in commits | group_by(attribute="group") %}\
 ### {{ group }}
 {% for commit in commits %}\
