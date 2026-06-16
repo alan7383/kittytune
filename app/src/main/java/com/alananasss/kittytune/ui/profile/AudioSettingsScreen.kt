@@ -35,6 +35,7 @@ fun AudioSettingsScreen(
     val prefs = remember { PlayerPreferences(context) }
 
     var autoplayEnabled by remember { mutableStateOf(prefs.getAutoplayEnabled()) }
+    var stopOnTaskClear by remember { mutableStateOf(prefs.getStopOnTaskClear()) }
     var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
     var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
 
@@ -122,7 +123,7 @@ fun AudioSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = 5
+                        val totalVisibleItems = 6
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -135,6 +136,14 @@ fun AudioSettingsScreen(
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 1),
+                            title = stringResource(R.string.pref_stop_on_task_clear),
+                            hasSwitch = true,
+                            switchState = stopOnTaskClear,
+                            onSwitchChange = { stopOnTaskClear = it; prefs.setStopOnTaskClear(it) }
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 2),
                             title = stringResource(R.string.pref_persist_queue),
                             subtitle = stringResource(R.string.pref_persist_queue_sub),
                             hasSwitch = true,
@@ -143,7 +152,7 @@ fun AudioSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 2),
+                            shape = getSettingsShape(totalVisibleItems, 3),
                             title = stringResource(R.string.pref_youtube_fallback),
                             subtitle = stringResource(R.string.pref_youtube_fallback_sub),
                             hasSwitch = true,
@@ -152,7 +161,7 @@ fun AudioSettingsScreen(
                         )
 
                         SplitSettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 3),
+                            shape = getSettingsShape(totalVisibleItems, 4),
                             title = stringResource(R.string.pref_download_drm),
                             subtitle = stringResource(R.string.pref_download_drm_sub),
                             onClick = onNavigateToDrmExplanation,
@@ -161,7 +170,7 @@ fun AudioSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 4),
+                            shape = getSettingsShape(totalVisibleItems, 5),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
