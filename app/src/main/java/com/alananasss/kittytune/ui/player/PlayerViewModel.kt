@@ -204,6 +204,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var saveQueueJob: Job? = null
     private var lyricsJob: Job? = null
     private var queueChunkingJob: Job? = null
+    private var trackInitJob: Job? = null
+    private var playJob: Job? = null
 
     private val syncReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -366,6 +368,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             val trackId = parseIdFromMediaId(mediaItem.mediaId)
 
+            val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
+            if (expectedTrackId != null && expectedTrackId != trackId) {
+                return
+            }
+
             if (currentTrack?.id != trackId) {
                 currentSessionListenMs = 0L // reset listen time on track change
                 hasPushedRecentlyPlayed = false
@@ -423,6 +430,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             showInlineLyrics = false
             lyricsLines.clear()
             rawPlainLyrics = null
+
+            val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
+            if (expectedTrackId != null && expectedTrackId != newTrack.id) {
+                // Ignore stale track change events from fast skipping
+                return@trackChangeHandler
+            }
 
             var finalTrack = newTrack
 
@@ -1148,7 +1161,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
         startServiceSafe(context, intent)
 
-        viewModelScope.launch {
+        trackInitJob?.cancel()
+        trackInitJob = viewModelScope.launch {
             var finalTrack = trackToPlay
             if (finalTrack.source == "soundcloud" && trackToPlay.id > 0 && (trackToPlay.user?.id == 0L || trackToPlay.media == null || trackToPlay.playbackCount == 0)) {
                 try {
@@ -1518,6 +1532,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleReverb() { effectsState = effectsState.copy(isReverbEnabled = !effectsState.isReverbEnabled); applyEffectsAndSave() }
     fun setReverbIntensity(v: Float) { effectsState = effectsState.copy(reverbIntensity = v); applyEffectsAndSave() }
     fun toggleEarrape() { val n = !effectsState.isEarrapeEnabled; effectsState = effectsState.copy(isEarrapeEnabled = n); applyEffectsAndSave(); if (n) AchievementManager.increment("bass_addict", 1) }
+
 
     fun hasSeenEarrapeWarning(): Boolean = playerPrefs.hasSeenEarrapeWarning()
     fun setHasSeenEarrapeWarning(seen: Boolean) { playerPrefs.setHasSeenEarrapeWarning(seen) }
@@ -1982,7 +1997,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun startServiceSafe(context: Context, intent: Intent) {
         try {
-            context.startForegroundService(intent)
+            context.startService(intent)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -1993,7 +2008,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         val trackToPlay = _queue[index]
 
-        viewModelScope.launch(Dispatchers.IO) {
+        playJob?.cancel()
+        playJob = viewModelScope.launch(Dispatchers.IO) {
             val bitmap = loadBitmap(trackToPlay.fullResArtwork)
 
             var resolvedUrl: String? = null
