@@ -499,6 +499,8 @@
     <string name="pref_theme_dynamic_sub">Igazodik a háttérképedhez</string>
     <string name="pref_theme_pure_black">AMOLED mód (Tiszta fekete)</string>
     <string name="pref_theme_pure_black_sub">Akkukímélő OLED kijelzőkhöz</string>
+    <string name="settings_cat_player">Player</string>
+    <string name="pref_new_player_design">New player design</string>
     <string name="pref_player_style">Lejátszó stílusa</string>
     <string name="pref_language">Nyelv</string>
     <string name="pref_language_sub">App nyelve</string>
@@ -955,4 +957,6 @@
     <string name="sort_recently_added">Recently Added</string>
     <string name="sort_title_az">Title (A-Z)</string>
     <string name="sort_artist_az">Artist (A-Z)</string>
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
 </resources>
