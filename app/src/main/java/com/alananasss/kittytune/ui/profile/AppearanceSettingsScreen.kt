@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.BrightnessAuto
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,6 +67,7 @@ fun AppearanceSettingsScreen(
     var themeMode by remember { mutableStateOf(prefs.getThemeMode()) }
     var pureBlack by remember { mutableStateOf(prefs.getPureBlack()) }
     var playerStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
+    var newPlayerDesign by remember { mutableStateOf(prefs.getNewPlayerDesignEnabled()) }
     var appLanguage by remember { mutableStateOf(prefs.getAppLanguage()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
@@ -302,18 +304,6 @@ fun AppearanceSettingsScreen(
                         { shape ->
                             SettingsItem(
                                 shape = shape,
-                                title = stringResource(R.string.pref_player_style),
-                                subtitle = when(playerStyle) {
-                                    PlayerBackgroundStyle.THEME -> stringResource(R.string.style_theme)
-                                    PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.style_gradient)
-                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.style_blur)
-                                },
-                                onClick = { showPlayerStyleDialog = true }
-                            )
-                        },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
                                 title = stringResource(R.string.pref_start_screen),
                                 subtitle = if (startDestination == StartDestination.HOME) stringResource(R.string.nav_home) else stringResource(R.string.nav_library),
                                 onClick = { showStartDestDialog = true }
@@ -343,6 +333,38 @@ fun AppearanceSettingsScreen(
                                     achievementPopupsEnabled = it
                                     prefs.setAchievementPopupsEnabled(it)
                                 }
+                            )
+                        }
+                    )
+                )
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_cat_player),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_new_player_design),
+                                hasSwitch = true,
+                                switchState = newPlayerDesign,
+                                onSwitchChange = {
+                                    newPlayerDesign = it
+                                    prefs.setNewPlayerDesignEnabled(it)
+                                }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_player_style),
+                                subtitle = when(playerStyle) {
+                                    PlayerBackgroundStyle.THEME -> stringResource(R.string.style_theme)
+                                    PlayerBackgroundStyle.GRADIENT -> stringResource(R.string.style_gradient)
+                                    PlayerBackgroundStyle.BLUR -> stringResource(R.string.style_blur)
+                                },
+                                onClick = { showPlayerStyleDialog = true }
                             )
                         }
                     )

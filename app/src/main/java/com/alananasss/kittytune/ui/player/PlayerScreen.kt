@@ -447,6 +447,36 @@ fun PlayerScreen(
     viewModel: PlayerViewModel,
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    var useNewDesign by remember { mutableStateOf(prefs.getNewPlayerDesignEnabled()) }
+
+    DisposableEffect(Unit) {
+        val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "new_player_design_enabled") {
+                useNewDesign = prefs.getNewPlayerDesignEnabled()
+            }
+        }
+        sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            sharedPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    if (useNewDesign) {
+        NewPlayerScreen(viewModel, onClose)
+    } else {
+        OldPlayerScreen(viewModel, onClose)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NewPlayerScreen(
+    viewModel: PlayerViewModel,
+    onClose: () -> Unit
+) {
     val track = viewModel.currentTrack ?: return
     BackHandler(enabled = !viewModel.showLyricsSheet, onBack = onClose)
 
@@ -952,53 +982,52 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 }
             }
         }
+        Spacer(Modifier.height(24.dp))
 
-        val gridItems = remember(viewModel.isMenuContextFromPlayer, isLocalFile, viewModel.menuContextPlaylistId, isReposted, track.source) {
-            mutableListOf<DockOptionItem>().apply {
-                if (viewModel.isMenuContextFromPlayer) {
-                    add(DockOptionItem(Icons.Rounded.Shuffle, context.getString(R.string.menu_shuffle)) { viewModel.toggleShuffle() })
-                    add(DockOptionItem(Icons.Rounded.Repeat, context.getString(R.string.menu_repeat)) { viewModel.toggleRepeatMode() })
+        val gridItems = mutableListOf<DockOptionItem>().apply {
+            if (viewModel.isMenuContextFromPlayer) {
+                add(DockOptionItem(Icons.Rounded.Shuffle, stringResource(R.string.menu_shuffle)) { viewModel.toggleShuffle() })
+                add(DockOptionItem(Icons.Rounded.Repeat, stringResource(R.string.menu_repeat)) { viewModel.toggleRepeatMode() })
+            }
+            if (!viewModel.isMenuContextFromPlayer) {
+                add(DockOptionItem(Icons.AutoMirrored.Rounded.PlaylistPlay, stringResource(R.string.menu_play_next)) { viewModel.insertNext(listOf(track)); viewModel.showMenuSheet = false })
+                add(DockOptionItem(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.menu_add_queue)) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
+            }
+            if (track.source != "youtube" && !isLocalFile) {
+                add(DockOptionItem(Icons.AutoMirrored.Rounded.Comment, stringResource(R.string.menu_comments)) { viewModel.openComments(track) })
+            }
+            if (track.source != "youtube" && !isLocalFile) {
+                if (isReposted) {
+                    add(DockOptionItem(Icons.Rounded.Repeat, stringResource(R.string.menu_reposted)) { showDeleteRepostConfirm = true })
+                } else {
+                    add(DockOptionItem(Icons.Rounded.Repeat, stringResource(R.string.menu_repost)) { showRepostDialog = true })
                 }
-                if (!viewModel.isMenuContextFromPlayer) {
-                    add(DockOptionItem(Icons.AutoMirrored.Rounded.PlaylistPlay, context.getString(R.string.menu_play_next)) { viewModel.insertNext(listOf(track)); viewModel.showMenuSheet = false })
-                    add(DockOptionItem(Icons.AutoMirrored.Rounded.QueueMusic, context.getString(R.string.menu_add_queue)) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
-                }
-                if (track.source != "youtube" && !isLocalFile) {
-                    add(DockOptionItem(Icons.AutoMirrored.Rounded.Comment, context.getString(R.string.menu_comments)) { viewModel.openComments(track) })
-                }
-                if (track.source != "youtube" && !isLocalFile) {
-                    if (isReposted) {
-                        add(DockOptionItem(Icons.Rounded.Repeat, context.getString(R.string.menu_reposted)) { showDeleteRepostConfirm = true })
+            }
+            if (track.source != "youtube") {
+                add(DockOptionItem(Icons.Rounded.Info, stringResource(R.string.menu_details)) { viewModel.openTrackDetails(track) })
+            }
+            add(DockOptionItem(Icons.Rounded.Description, stringResource(R.string.player_lyrics)) { viewModel.openLyrics(track, forceSheet = true)  })
+            add(DockOptionItem(Icons.Default.Add, stringResource(R.string.menu_add_playlist)) { viewModel.showMenuSheet = false; viewModel.showAddToPlaylistSheet = true })
+            if (track.source != "youtube" && !isLocalFile) {
+                add(DockOptionItem(Icons.Default.Person, stringResource(R.string.menu_go_artist)) { track.user?.id?.let { viewModel.navigateToArtist(it) } })
+            }
+            if (!isLocalFile) {
+                add(DockOptionItem(Icons.Rounded.Radio, stringResource(R.string.menu_track_radio)) {
+                    if (track.source == "youtube") {
+                        viewModel.startYoutubeRadio(track)
                     } else {
-                        add(DockOptionItem(Icons.Rounded.Repeat, context.getString(R.string.menu_repost)) { showRepostDialog = true })
+                        viewModel.startRadioFromTrack(track)
                     }
-                }
-                if (track.source != "youtube") {
-                    add(DockOptionItem(Icons.Rounded.Info, context.getString(R.string.menu_details)) { viewModel.openTrackDetails(track) })
-                }
-                add(DockOptionItem(Icons.Rounded.Description, context.getString(R.string.player_lyrics)) { viewModel.openLyrics(track, forceSheet = true)  })
-                add(DockOptionItem(Icons.Default.Add, context.getString(R.string.menu_add_playlist)) { viewModel.showMenuSheet = false; viewModel.showAddToPlaylistSheet = true })
-                if (track.source != "youtube" && !isLocalFile) {
-                    add(DockOptionItem(Icons.Default.Person, context.getString(R.string.menu_go_artist)) { track.user?.id?.let { viewModel.navigateToArtist(it) } })
-                }
-                if (!isLocalFile) {
-                    add(DockOptionItem(Icons.Rounded.Radio, context.getString(R.string.menu_track_radio)) {
-                        if (track.source == "youtube") {
-                            viewModel.startYoutubeRadio(track)
-                        } else {
-                            viewModel.startRadioFromTrack(track)
-                        }
-                    })
-                }
-                if (!isLocalFile) {
-                    add(DockOptionItem(Icons.Outlined.Share, context.getString(R.string.btn_share)) { viewModel.shareTrack(track) })
-                }
-                if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId!! < 0) {
-                    add(DockOptionItem(Icons.Outlined.Delete, context.getString(R.string.menu_remove)) { viewModel.removeFromContextPlaylist(viewModel.menuContextPlaylistId!!, track) })
-                }
-                if (viewModel.isMenuContextFromPlayer) {
-                    add(DockOptionItem(Icons.Rounded.Bedtime, context.getString(R.string.sleep_timer_title)) { viewModel.showSleepTimerDialog = true })
-                }
+                })
+            }
+            if (!isLocalFile) {
+                add(DockOptionItem(Icons.Outlined.Share, stringResource(R.string.btn_share)) { viewModel.shareTrack(track) })
+            }
+            if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId!! < 0) {
+                add(DockOptionItem(Icons.Outlined.Delete, stringResource(R.string.menu_remove)) { viewModel.removeFromContextPlaylist(viewModel.menuContextPlaylistId!!, track) })
+            }
+            if (viewModel.isMenuContextFromPlayer) {
+                add(DockOptionItem(Icons.Rounded.Bedtime, stringResource(R.string.sleep_timer_title)) { viewModel.showSleepTimerDialog = true })
             }
         }
 
@@ -1563,41 +1592,228 @@ fun PlayerControls(
     animatedMainColor: Color = MaterialTheme.colorScheme.primary,
     contentColorOverride: Color
 ) {
-    val buttonWidth by animateDpAsState(targetValue = if (viewModel.isPlaying) 110.dp else 72.dp, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "width")
-    val buttonColor = if (viewModel.isPlaying) animatedMainColor else contentColorOverride.copy(alpha = 0.2f)
-    val isButtonLight = buttonColor.luminance() > 0.4f
-    val playIconColor = if (viewModel.isPlaying) { if (isButtonLight) Color(0xFF1D1B20) else Color.White } else contentColorOverride
+    val isButtonLight = animatedMainColor.luminance() > 0.4f
+    val playIconColor = if (isButtonLight) Color(0xFF1D1B20) else Color.White
+    val sideButtonContainerColor = contentColorOverride.copy(alpha = 0.15f)
+    val sideButtonContentColor = contentColorOverride
 
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onEffectsClick) {
-            Icon(Icons.Default.Equalizer, stringResource(R.string.player_effects), tint = contentColorOverride.copy(alpha = 0.7f), modifier = Modifier.size(28.dp))
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            IconButton(onClick = { viewModel.smartPrevious() }, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Rounded.SkipPrevious, null, tint = contentColorOverride, modifier = Modifier.size(36.dp))
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Main playback controls row (full width, Metrolist style)
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val backInteractionSource = remember { MutableInteractionSource() }
+            val nextInteractionSource = remember { MutableInteractionSource() }
+            val playPauseInteractionSource = remember { MutableInteractionSource() }
+
+            val isPlayPausePressed by playPauseInteractionSource.collectIsPressedAsState()
+            val isBackPressed by backInteractionSource.collectIsPressedAsState()
+            val isNextPressed by nextInteractionSource.collectIsPressedAsState()
+
+            val playPauseWeight by animateFloatAsState(
+                targetValue = if (isPlayPausePressed) 1.9f
+                    else if (isBackPressed || isNextPressed) 1.1f
+                    else 1.3f,
+                animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+                label = "playPauseWeight"
+            )
+
+            val backButtonWeight by animateFloatAsState(
+                targetValue = if (isBackPressed) 0.65f
+                    else if (isPlayPausePressed) 0.35f
+                    else 0.45f,
+                animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+                label = "backButtonWeight"
+            )
+
+            val nextButtonWeight by animateFloatAsState(
+                targetValue = if (isNextPressed) 0.65f
+                    else if (isPlayPausePressed) 0.35f
+                    else 0.45f,
+                animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+                label = "nextButtonWeight"
+            )
+
+            // Previous button
+            Box(
+                modifier = Modifier
+                    .height(68.dp)
+                    .weight(backButtonWeight)
+                    .clip(RoundedCornerShape(50))
+                    .background(sideButtonContainerColor)
+                    .clickable(
+                        interactionSource = backInteractionSource,
+                        indication = ripple()
+                    ) { viewModel.smartPrevious() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.SkipPrevious, null, tint = sideButtonContentColor, modifier = Modifier.size(32.dp))
             }
-            Box(modifier = Modifier.height(72.dp).width(buttonWidth).clip(CircleShape).background(buttonColor).clickable { viewModel.togglePlayPause() }, contentAlignment = Alignment.Center) {
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Play/Pause button
+            Box(
+                modifier = Modifier
+                    .height(68.dp)
+                    .weight(playPauseWeight)
+                    .clip(RoundedCornerShape(50))
+                    .background(animatedMainColor)
+                    .clickable(
+                        interactionSource = playPauseInteractionSource,
+                        indication = ripple()
+                    ) { viewModel.togglePlayPause() },
+                contentAlignment = Alignment.Center
+            ) {
                 AnimatedContent(
                     targetState = Pair(viewModel.isLoading, viewModel.isPlaying),
-                    transitionSpec = { (scaleIn() + fadeIn()).togetherWith(scaleOut() + fadeOut()) },
+                    transitionSpec = {
+                        val springSpec = spring<Float>(dampingRatio = 0.6f, stiffness = 1000f)
+                        (scaleIn(initialScale = 0.8f, animationSpec = springSpec) + fadeIn(tween(100)))
+                            .togetherWith(scaleOut(targetScale = 0.8f, animationSpec = springSpec) + fadeOut(tween(100)))
+                            .using(SizeTransform(clip = false, sizeAnimationSpec = { _, _ -> spring(dampingRatio = 0.6f, stiffness = 1000f) }))
+                    },
                     label = "playPauseLoading"
                 ) { (isLoading, isPlaying) ->
                     if (isLoading) {
                         LoadingIndicator(color = playIconColor, modifier = Modifier.size(32.dp))
                     } else {
-                        Icon(imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = null, tint = playIconColor, modifier = Modifier.size(32.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            Icon(
+                                imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = playIconColor,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(if (isPlaying) R.string.action_pause else R.string.action_play),
+                                color = playIconColor,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
-            IconButton(onClick = { viewModel.playNext() }, modifier = Modifier.size(48.dp)) {
-                Icon(Icons.Rounded.SkipNext, null, tint = contentColorOverride, modifier = Modifier.size(36.dp))
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Next button
+            Box(
+                modifier = Modifier
+                    .height(68.dp)
+                    .weight(nextButtonWeight)
+                    .clip(RoundedCornerShape(50))
+                    .background(sideButtonContainerColor)
+                    .clickable(
+                        interactionSource = nextInteractionSource,
+                        indication = ripple()
+                    ) { viewModel.playNext() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Rounded.SkipNext, null, tint = sideButtonContentColor, modifier = Modifier.size(32.dp))
             }
         }
-        IconButton(onClick = onQueueClick) {
-            Icon(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.player_queue), tint = contentColorOverride.copy(alpha = 0.7f), modifier = Modifier.size(28.dp))
+
+        // Secondary controls row (effects + queue) — M3 Expressive pill pair
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Left pill pair: effects + shuffle
+            val leftStartShape = RoundedCornerShape(
+                topStart = 50.dp, bottomStart = 50.dp,
+                topEnd = 3.dp, bottomEnd = 3.dp
+            )
+            val leftEndShape = RoundedCornerShape(
+                topStart = 3.dp, bottomStart = 3.dp,
+                topEnd = 50.dp, bottomEnd = 50.dp
+            )
+
+            val pillContainerColor = contentColorOverride.copy(alpha = 0.12f)
+            val pillContentColor = contentColorOverride
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilledIconButton(
+                    onClick = onEffectsClick,
+                    shape = leftStartShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = pillContainerColor,
+                        contentColor = pillContentColor
+                    ),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(Icons.Default.Equalizer, stringResource(R.string.player_effects), modifier = Modifier.size(22.dp))
+                }
+                FilledIconButton(
+                    onClick = { viewModel.toggleShuffle() },
+                    shape = leftEndShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = if (viewModel.shuffleEnabled) animatedMainColor else pillContainerColor,
+                        contentColor = if (viewModel.shuffleEnabled) playIconColor else pillContentColor
+                    ),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(22.dp))
+                }
+            }
+
+            // Right pill pair: repeat + queue
+            val rightStartShape = RoundedCornerShape(
+                topStart = 50.dp, bottomStart = 50.dp,
+                topEnd = 3.dp, bottomEnd = 3.dp
+            )
+            val rightEndShape = RoundedCornerShape(
+                topStart = 3.dp, bottomStart = 3.dp,
+                topEnd = 50.dp, bottomEnd = 50.dp
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val repeatActive = viewModel.repeatMode != RepeatMode.NONE
+                FilledIconButton(
+                    onClick = { viewModel.toggleRepeatMode() },
+                    shape = rightStartShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = if (repeatActive) animatedMainColor else pillContainerColor,
+                        contentColor = if (repeatActive) playIconColor else pillContentColor
+                    ),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(
+                        imageVector = when (viewModel.repeatMode) {
+                            RepeatMode.ONE -> Icons.Rounded.RepeatOne
+                            else -> Icons.Rounded.Repeat
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                FilledIconButton(
+                    onClick = onQueueClick,
+                    shape = rightEndShape,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = pillContainerColor,
+                        contentColor = pillContentColor
+                    ),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.player_queue), modifier = Modifier.size(22.dp))
+                }
+            }
         }
     }
 }
+
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -1906,7 +2122,8 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                 AnimatedVisibility(visible = replyingTo != null && !isGuest) { Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) { Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) { Text(text = "Replying to ${replyingTo?.user?.username}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer); IconButton(onClick = { viewModel.cancelReplying(); commentText = "" }, modifier = Modifier.size(24.dp)) { Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.onSecondaryContainer) } } } }
                 Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 16.dp, shadowElevation = 16.dp) {
                     if (isGuest) {
-                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)).clickable { Toast.makeText(context, context.getString(R.string.login_to_comment), Toast.LENGTH_SHORT).show() }, contentAlignment = Alignment.Center) { Text(text = stringResource(R.string.login_to_comment), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold) }
+                        val loginToCommentMsg = stringResource(R.string.login_to_comment)
+                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(24.dp)).clickable { Toast.makeText(context, loginToCommentMsg, Toast.LENGTH_SHORT).show() }, contentAlignment = Alignment.Center) { Text(text = loginToCommentMsg, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold) }
                     } else {
                         Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.Bottom) {
                             TextField(value = commentText, onValueChange = { commentText = it }, placeholder = { Text(if(replyingTo != null) "Write a reply..." else stringResource(R.string.add_comment_hint)) }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(24.dp), colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)), maxLines = 4, enabled = !isPosting, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { if (commentText.isNotBlank()) { viewModel.postComment(commentText, null); commentText = "" } }))
@@ -1980,6 +2197,7 @@ fun CommentRowItem(comment: Comment, isMine: Boolean, isReply: Boolean, isGuest:
     val isVisuallyReply = isReply || comment.body.trim().startsWith("@")
     val startPadding = if (isVisuallyReply) 56.dp else 16.dp
     val avatarSize = if (isVisuallyReply) 40.dp else 48.dp
+    val loginToInteractMsg = stringResource(R.string.login_to_interact)
 
     Row(modifier = Modifier.fillMaxWidth().padding(start = startPadding, end = 16.dp, top = 12.dp, bottom = 12.dp)) {
         Box(modifier = Modifier.size(avatarSize).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onNavigateToProfile() }, contentAlignment = Alignment.Center) {
@@ -2005,9 +2223,9 @@ fun CommentRowItem(comment: Comment, isMine: Boolean, isReply: Boolean, isGuest:
                 if (comment.trackTimestamp != null) { Surface(onClick = { onSeekTo(comment.trackTimestamp) }, shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.primary) { Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(12.dp)); Spacer(Modifier.width(4.dp)); Text(text = makeTimeString(comment.trackTimestamp), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)) } } }
                 Spacer(modifier = Modifier.weight(1f))
                 if (isMine) { IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) { Icon(Icons.Outlined.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp)) }; Spacer(Modifier.width(4.dp)) }
-                IconButton(onClick = { if (isGuest) Toast.makeText(context, context.getString(R.string.login_to_interact), Toast.LENGTH_SHORT).show() else onReply() }, modifier = Modifier.size(32.dp)) { Icon(Icons.AutoMirrored.Rounded.Reply, contentDescription = "Reply", tint = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.3f) else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)) }
+                IconButton(onClick = { if (isGuest) Toast.makeText(context, loginToInteractMsg, Toast.LENGTH_SHORT).show() else onReply() }, modifier = Modifier.size(32.dp)) { Icon(Icons.AutoMirrored.Rounded.Reply, contentDescription = "Reply", tint = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.3f) else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp)) }
                 Spacer(Modifier.width(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(RoundedCornerShape(50)).clickable { if (isGuest) Toast.makeText(context, context.getString(R.string.login_to_interact), Toast.LENGTH_SHORT).show() else onToggleLike() }.padding(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clip(RoundedCornerShape(50)).clickable { if (isGuest) Toast.makeText(context, loginToInteractMsg, Toast.LENGTH_SHORT).show() else onToggleLike() }.padding(4.dp)) {
                     val icon = if (comment.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
                     val tint = if (comment.isLiked) Color(0xFFFF4081) else MaterialTheme.colorScheme.onSurfaceVariant.let { if (isGuest) it.copy(alpha = 0.3f) else it }
                     Icon(imageVector = icon, contentDescription = stringResource(R.string.player_like_action), tint = tint, modifier = Modifier.size(16.dp))
@@ -2151,4 +2369,511 @@ private fun android.content.Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OldPlayerScreen(
+    viewModel: PlayerViewModel,
+    onClose: () -> Unit
+) {
+    val track = viewModel.currentTrack ?: return
+    BackHandler(enabled = !viewModel.showLyricsSheet, onBack = onClose)
+
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    DisposableEffect(viewModel.showInlineLyrics) {
+        val activity = context.findActivity()
+        if (viewModel.showInlineLyrics) {
+            activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+    val backgroundStyle = remember { prefs.getPlayerStyle() }
+    var showLyricsButtonEnabled by remember { mutableStateOf(prefs.getShowLyricsButtonEnabled()) }
+    DisposableEffect(Unit) {
+        val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "show_lyrics_button_enabled") {
+                showLyricsButtonEnabled = prefs.getShowLyricsButtonEnabled()
+            }
+        }
+        sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            sharedPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    val isBlurMode = backgroundStyle == PlayerBackgroundStyle.BLUR
+
+    val mainContentColor = if (isBlurMode) Color.White else MaterialTheme.colorScheme.onBackground
+    val subContentColor = if (isBlurMode) Color.White.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+    val iconTint = if (isBlurMode) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+    var showEffectsSheet by remember { mutableStateOf(false) }
+    var showQueueSheet by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val animatedColor by animateColorAsState(
+        targetValue = viewModel.backgroundColor,
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = "backgroundColor"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (isBlurMode) Color.Black else MaterialTheme.colorScheme.background)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {})
+            }
+    ) {
+        when (backgroundStyle) {
+            PlayerBackgroundStyle.BLUR -> {
+                Crossfade(
+                    targetState = track.fullResArtwork,
+                    animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+                    label = "BlurBackgroundTransition"
+                ) { artworkUrl ->
+                    AsyncImage(
+                        model = artworkUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().blur(80.dp).alpha(0.6f)
+                    )
+                }
+            }
+            PlayerBackgroundStyle.GRADIENT -> {
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                animatedColor.copy(alpha = 0.7f),
+                                animatedColor.copy(alpha = 0.3f),
+                                MaterialTheme.colorScheme.background
+                            )
+                        )
+                    )
+                )
+            }
+            PlayerBackgroundStyle.THEME -> {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+            }
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier.fillMaxSize().systemBarsPadding(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                        PlayerHeader(onClose, viewModel, mainContentColor, subContentColor, animatedColor)
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    val pagerState = androidx.compose.foundation.pager.rememberPagerState(
+                        initialPage = viewModel.currentQueueIndex.coerceAtLeast(0),
+                        pageCount = { viewModel.queueState.size.takeIf { it > 0 } ?: 1 }
+                    )
+
+                    LaunchedEffect(viewModel.currentQueueIndex) {
+                        if (viewModel.currentQueueIndex >= 0 && viewModel.currentQueueIndex != pagerState.currentPage && viewModel.currentQueueIndex < pagerState.pageCount) {
+                            try {
+                                pagerState.animateScrollToPage(viewModel.currentQueueIndex)
+                            } catch (e: Exception) {
+                                pagerState.scrollToPage(viewModel.currentQueueIndex)
+                            }
+                        }
+                    }
+
+                    LaunchedEffect(pagerState) {
+                        snapshotFlow { pagerState.settledPage }.collect { settledPage ->
+                            if (settledPage != viewModel.currentQueueIndex && settledPage in viewModel.queueState.indices) {
+                                viewModel.skipToQueueItem(settledPage)
+                            }
+                        }
+                    }
+
+                    AnimatedContent(
+                        targetState = viewModel.showInlineLyrics,
+                        transitionSpec = {
+                            fadeIn(animationSpec = tween(400)) togetherWith
+                                    fadeOut(animationSpec = tween(400))
+                        },
+                        label = "ArtworkLyricsToggle",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ) { showLyrics ->
+                        if (showLyrics) {
+                            // Transparent container for lyrics (InnerTune effect)
+                            Box(modifier = Modifier.padding(24.dp).fillMaxWidth().aspectRatio(1f)) {
+                                InlineLyricsContent(viewModel = viewModel)
+                            }
+                        } else {
+                            if (viewModel.queueState.isNotEmpty()) {
+                                androidx.compose.foundation.pager.HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    pageSpacing = 16.dp,
+                                    contentPadding = PaddingValues(24.dp)
+                                ) { page ->
+                                    val pageTrack = viewModel.queueState.getOrNull(page) ?: track
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                            .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    ) {
+                                        AsyncImage(
+                                            model = pageTrack.fullResArtwork,
+                                            contentDescription = null,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            } else {
+                                // Stylized container (Card) only for the artwork
+                                Box(
+                                    modifier = Modifier
+                                        .padding(24.dp)
+                                        .fillMaxWidth()
+                                        .aspectRatio(1f)
+                                        .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                ) {
+                                    AsyncImage(
+                                        model = track.fullResArtwork,
+                                        contentDescription = null,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+
+                            Column(
+                                modifier = Modifier.weight(1f)
+                                    .padding(end = 8.dp)
+                            ) {
+                                PremiumMarqueeText(
+                                    text = track.title ?: stringResource(R.string.untitled_track),
+                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = mainContentColor,
+                                    edgeGradientWidth = 24.dp,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clickable {
+                                        track.user?.id?.let {
+                                            if (it > 0) viewModel.navigateToArtist(
+                                                it
+                                            )
+                                        }
+                                    }
+                                ) {
+                                    PremiumMarqueeText(
+                                        text = track.user?.username
+                                            ?: stringResource(R.string.unknown_artist),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = subContentColor,
+                                        edgeGradientWidth = 16.dp,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+
+                                    if (track.user?.verified == true) {
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = Icons.Rounded.Verified,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AnimatedVisibility(
+                                    visible = viewModel.hasLyrics && showLyricsButtonEnabled,
+                                    enter = fadeIn(animationSpec = tween(400)),
+                                    exit = fadeOut(animationSpec = tween(200))
+                                ) {
+                                    IconButton(
+                                        onClick = { viewModel.openLyrics() },
+                                        modifier = Modifier.size(44.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Description,
+                                            contentDescription = stringResource(R.string.player_lyrics),
+                                            tint = if (viewModel.showInlineLyrics) animatedColor else iconTint.copy(alpha = 0.8f), // Active color
+                                            modifier = Modifier.size(26.dp)
+                                        )
+                                    }
+                                }
+
+                                val view = LocalView.current
+                                IconButton(
+                                    onClick = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        viewModel.toggleLike()
+                                    },
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    val targetColor =
+                                        if (viewModel.isLiked) animatedColor else iconTint
+                                    val heartColor by animateColorAsState(
+                                        targetValue = targetColor,
+                                        animationSpec = tween(300),
+                                        label = "color"
+                                    )
+
+                                    AnimatedContent(
+                                        targetState = viewModel.isLiked,
+                                        transitionSpec = {
+                                            if (targetState) {
+                                                (fadeIn(tween(300)) + scaleIn(
+                                                    initialScale = 0.7f,
+                                                    animationSpec = tween(
+                                                        300,
+                                                        easing = LinearOutSlowInEasing
+                                                    )
+                                                ))
+                                                    .togetherWith(fadeOut(tween(200)))
+                                            } else {
+                                                (fadeIn(tween(300)) + scaleIn(
+                                                    initialScale = 1.0f,
+                                                    animationSpec = tween(300)
+                                                ))
+                                                    .togetherWith(
+                                                        fadeOut(tween(200)) + scaleOut(
+                                                            targetScale = 0.7f,
+                                                            animationSpec = tween(200)
+                                                        )
+                                                    )
+                                            }
+                                        },
+                                        label = "LikeAnimation"
+                                    ) { isLiked ->
+                                        Icon(
+                                            imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                            contentDescription = stringResource(R.string.player_like_action),
+                                            tint = heartColor,
+                                            modifier = Modifier.size(32.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                        OldPlayerProgress(viewModel, mainContentColor)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                        OldPlayerControls(
+                            viewModel = viewModel,
+                            animatedMainColor = animatedColor,
+                            contentColorOverride = mainContentColor,
+                            onEffectsClick = { showEffectsSheet = true },
+                            onQueueClick = { showQueueSheet = true }
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+
+        if (showEffectsSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showEffectsSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                AudioControlDock(viewModel)
+                Spacer(Modifier.height(32.dp))
+            }
+        }
+
+        if (showQueueSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showQueueSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                QueueContent(
+                    viewModel = viewModel,
+                    isQueueOpen = true,
+                    onCloseQueue = { showQueueSheet = false },
+                    onOpenExpandedQueue = {
+                        showQueueSheet = false
+                        viewModel.navigateToExpandedQueue()
+                    }
+                )
+                Spacer(Modifier.height(16.dp))
+            }
+        }
+
+        SleepTimerDialog(viewModel)
+    }
+}
+
+@Composable
+fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
+    val view = LocalView.current
+    var isDragging by remember { mutableStateOf(false) }
+    var dragPosition by remember { mutableFloatStateOf(0f) }
+
+    var lastValidDuration by remember { mutableFloatStateOf(180000f) }
+    if (viewModel.duration > 1000) {
+        lastValidDuration = viewModel.duration.toFloat()
+    }
+    val totalDuration = if (viewModel.duration > 1000) viewModel.duration.toFloat() else lastValidDuration
+
+    val rawPosition = viewModel.currentPosition.toFloat()
+
+    var currentTrackId by remember { mutableStateOf(viewModel.currentTrack?.id) }
+    var isTransitioning by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel.currentTrack?.id) {
+        if (viewModel.currentTrack?.id != currentTrackId) {
+            currentTrackId = viewModel.currentTrack?.id
+            isTransitioning = true
+            delay(1500)
+            isTransitioning = false
+        }
+    }
+
+    LaunchedEffect(rawPosition) {
+        if (isTransitioning && rawPosition < 2000f) {
+            isTransitioning = false
+        }
+    }
+
+    val targetPos = when {
+        isTransitioning -> 0f
+        rawPosition > totalDuration -> 0f
+        else -> rawPosition
+    }
+
+    val progressState = remember { Animatable(0f) }
+    val sliderPosition = if (isDragging) dragPosition else progressState.value
+    LaunchedEffect(targetPos, isDragging) {
+        if (isDragging) {
+            progressState.snapTo(dragPosition)
+        } else {
+            val currentVal = progressState.value
+            val diff = targetPos - currentVal
+            val absDiff = kotlin.math.abs(diff)
+
+            if (targetPos < 1000f && currentVal > 2000f) {
+                progressState.animateTo(0f, tween(600, easing = FastOutSlowInEasing))
+            } else if (absDiff > 2000f) {
+                progressState.animateTo(targetPos, tween(300, easing = FastOutSlowInEasing))
+            } else if (diff > 0) {
+                progressState.animateTo(targetPos, tween(1000, easing = LinearEasing))
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Slider(
+            value = sliderPosition.coerceIn(0f, totalDuration),
+            valueRange = 0f..totalDuration,
+            onValueChange = {
+                isDragging = true
+                dragPosition = it
+                viewModel.updateScrubPosition(it.toLong())
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+            },
+            onValueChangeFinished = {
+                viewModel.seekTo(dragPosition.toLong())
+                isDragging = false
+            },
+            colors = SliderDefaults.colors(
+                thumbColor = textColor,
+                activeTrackColor = textColor,
+                inactiveTrackColor = textColor.copy(alpha = 0.2f)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                text = makeTimeString(if (isDragging) dragPosition.toLong() else progressState.value.toLong()),
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor.copy(alpha = 0.7f)
+            )
+            Text(
+                text = makeTimeString(totalDuration.toLong()),
+                style = MaterialTheme.typography.labelSmall,
+                color = textColor.copy(alpha = 0.7f)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class)
+@Composable
+fun OldPlayerControls(
+    viewModel: PlayerViewModel,
+    onEffectsClick: () -> Unit,
+    onQueueClick: () -> Unit,
+    animatedMainColor: Color = MaterialTheme.colorScheme.primary,
+    contentColorOverride: Color
+) {
+    val buttonWidth by animateDpAsState(targetValue = if (viewModel.isPlaying) 110.dp else 72.dp, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "width")
+    val buttonColor = if (viewModel.isPlaying) animatedMainColor else contentColorOverride.copy(alpha = 0.2f)
+    val isButtonLight = buttonColor.luminance() > 0.4f
+    val playIconColor = if (viewModel.isPlaying) { if (isButtonLight) Color(0xFF1D1B20) else Color.White } else contentColorOverride
+
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onEffectsClick) {
+            Icon(Icons.Default.Equalizer, stringResource(R.string.player_effects), tint = contentColorOverride.copy(alpha = 0.7f), modifier = Modifier.size(28.dp))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            IconButton(onClick = { viewModel.smartPrevious() }, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Rounded.SkipPrevious, null, tint = contentColorOverride, modifier = Modifier.size(36.dp))
+            }
+            Box(modifier = Modifier.height(72.dp).width(buttonWidth).clip(CircleShape).background(buttonColor).clickable { viewModel.togglePlayPause() }, contentAlignment = Alignment.Center) {
+                AnimatedContent(
+                    targetState = Pair(viewModel.isLoading, viewModel.isPlaying),
+                    transitionSpec = { (scaleIn() + fadeIn()).togetherWith(scaleOut() + fadeOut()) },
+                    label = "playPauseLoading"
+                ) { (isLoading, isPlaying) ->
+                    if (isLoading) {
+                        LoadingIndicator(color = playIconColor, modifier = Modifier.size(32.dp))
+                    } else {
+                        Icon(imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, contentDescription = null, tint = playIconColor, modifier = Modifier.size(32.dp))
+                    }
+                }
+            }
+            IconButton(onClick = { viewModel.playNext() }, modifier = Modifier.size(48.dp)) {
+                Icon(Icons.Rounded.SkipNext, null, tint = contentColorOverride, modifier = Modifier.size(36.dp))
+            }
+        }
+        IconButton(onClick = onQueueClick) {
+            Icon(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.player_queue), tint = contentColorOverride.copy(alpha = 0.7f), modifier = Modifier.size(28.dp))
+        }
+    }
 }

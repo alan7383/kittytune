@@ -95,6 +95,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
         private const val KEY_STOP_ON_TASK_CLEAR = "stop_on_task_clear"
+        private const val KEY_NEW_PLAYER_DESIGN = "new_player_design_enabled"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -302,6 +303,8 @@ class PlayerPreferences(context: Context) {
 
     fun getStopOnTaskClear(): Boolean = prefs.getBoolean(KEY_STOP_ON_TASK_CLEAR, true)
     fun setStopOnTaskClear(enabled: Boolean) = prefs.edit { putBoolean(KEY_STOP_ON_TASK_CLEAR, enabled) }
+    fun getNewPlayerDesignEnabled(): Boolean = prefs.getBoolean(KEY_NEW_PLAYER_DESIGN, true)
+    fun setNewPlayerDesignEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_NEW_PLAYER_DESIGN, enabled) }
     fun bottomMenuBlurFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_BOTTOM_MENU_BLUR) trySend(getBottomMenuBlurEnabled())

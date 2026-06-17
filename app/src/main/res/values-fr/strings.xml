@@ -500,6 +500,8 @@
     <string name="pref_theme_dynamic_sub">S\'adapte à votre fond d\'écran</string>
     <string name="pref_theme_pure_black">Mode AMOLED (Noir Pur)</string>
     <string name="pref_theme_pure_black_sub">Économie de batterie pour écrans OLED</string>
+    <string name="settings_cat_player">Lecteur</string>
+    <string name="pref_new_player_design">Nouveau design du lecteur</string>
     <string name="pref_player_style">Style du lecteur</string>
     <string name="pref_language">Langue</string>
     <string name="pref_language_sub">Langue de l\'interface</string>
@@ -961,4 +963,6 @@
     <string name="sort_recently_added">Récemment ajoutés</string>
     <string name="sort_title_az">Titre (A-Z)</string>
     <string name="sort_artist_az">Artiste (A-Z)</string>
+    <string name="action_play">Lecture</string>
+    <string name="action_pause">Pause</string>
 </resources>
