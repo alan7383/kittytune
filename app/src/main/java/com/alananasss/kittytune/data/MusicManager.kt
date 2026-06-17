@@ -31,6 +31,7 @@ import com.alananasss.kittytune.ui.player.audio.EightDAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.FxAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.ReverbAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.EarrapeAudioProcessor
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -85,6 +86,7 @@ object MusicManager {
     private val fxProcessor = FxAudioProcessor()
     private val reverbProcessor = ReverbAudioProcessor()
     private val earrapeProcessor = EarrapeAudioProcessor()
+
     var onNextClick: (() -> Unit)? = null
     var onPreviousClick: (() -> Unit)? = null
     private var rainPlayer: RainPlayer? = null
@@ -342,6 +344,7 @@ object MusicManager {
         reverbProcessor.setEnabled(state.isReverbEnabled)
         reverbProcessor.setDecay(state.reverbIntensity)
         earrapeProcessor.setEnabled(state.isEarrapeEnabled)
+
         rainPlayer?.setEnabled(state.isRainEnabled)
         rainPlayer?.setVolume(state.rainVolume)
     }
