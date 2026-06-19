@@ -44,11 +44,13 @@ class DiscordRPC(
             null
         }
 
+        val trackArtwork = track.fullResArtwork
+
         try {
             sendPresence(
                 track = track,
                 contextName = contextName,
-                largeImage = RpcImage.DiscordImage(logoAssetId),
+                largeImage = if (trackArtwork.isNotEmpty() && !trackArtwork.contains("picsum")) RpcImage.ExternalImage(trackArtwork) else RpcImage.DiscordImage(logoAssetId),
                 startTime = startTime
             )
         } catch (e: Exception) {

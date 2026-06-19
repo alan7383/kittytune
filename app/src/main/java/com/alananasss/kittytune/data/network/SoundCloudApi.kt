@@ -19,6 +19,9 @@
     
         @GET("me")
         suspend fun getMe(): User
+        
+        @GET("https://api-mobile.soundcloud.com/me")
+        suspend fun getMeMobile(): MeResponse
     
         @PUT("me")
         suspend fun updateMe(@Body body: UpdateProfileRequest): User
@@ -237,29 +240,28 @@
     
         // --- Messaging ---
     
-        @GET("users/{userId}/conversations")
-        suspend fun getConversations(
-            @Path("userId") userId: Long,
+        @GET("https://api-mobile.soundcloud.com/conversations")
+        suspend fun getInbox(
             @Query("limit") limit: Int = 20,
             @Query("linked_partitioning") linkedPartitioning: Int = 1
-        ): ConversationResponse
+        ): InboxCollection
+
+        @GET("https://api-mobile.soundcloud.com/conversations/unread")
+        suspend fun getUnreadConversations(): UnreadConversationsResponse
     
-        // Retrieve messages. API sometimes uses otherUserId as conversationId.
-        @GET("users/{userId}/conversations/{conversationId}/messages")
+        @GET("https://api-mobile.soundcloud.com/conversations/{conversationId}/messages")
         suspend fun getConversationMessages(
-            @Path("userId") userId: Long,
             @Path("conversationId") conversationId: String,
             @Query("limit") limit: Int = 20,
             @Query("offset") offset: Int = 0,
             @Query("linked_partitioning") linkedPartitioning: Int = 1
-        ): MessageResponse
+        ): MessageCollection
     
-        @POST("users/{userId}/conversations/{otherUserId}")
+        @POST("https://api-mobile.soundcloud.com/conversations/{conversationId}")
         suspend fun sendMessage(
-            @Path("userId") userId: Long,
-            @Path("otherUserId") otherUserId: String,
+            @Path("conversationId") conversationId: String,
             @Body request: SendMessageRequest
-        ): Message
+        ): MessageSentResponse
     
         // --- Pagination Next Href Helpers ---
     
@@ -282,10 +284,10 @@
         suspend fun getActivitiesNextPage(@Url url: String): ActivitiesResponse
     
         @GET
-        suspend fun getConversationsNextPage(@Url url: String): ConversationResponse
+        suspend fun getConversationsNextPage(@Url url: String): InboxCollection
     
         @GET
-        suspend fun getMessagesNextPage(@Url url: String): MessageResponse
+        suspend fun getMessagesNextPage(@Url url: String): MessageCollection
     
         @GET
         suspend fun getSearchTracksNextPage(@Url url: String): BasicTrackCollection

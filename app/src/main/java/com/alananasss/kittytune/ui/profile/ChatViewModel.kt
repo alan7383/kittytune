@@ -9,7 +9,8 @@
     import androidx.lifecycle.AndroidViewModel
     import androidx.lifecycle.viewModelScope
     import com.alananasss.kittytune.data.network.RetrofitClient
-    import com.alananasss.kittytune.domain.Message
+    import com.alananasss.kittytune.domain.InboxMessage
+    import com.alananasss.kittytune.domain.InboxSender
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.SendMessageRequest
     import com.alananasss.kittytune.domain.Track
@@ -24,12 +25,12 @@
         private val api = RetrofitClient.create(application)
         private val gson = Gson()
     
-        val messages = mutableStateListOf<Message>()
+        val messages = mutableStateListOf<InboxMessage>()
         var isLoading by mutableStateOf(true)
         var isSending by mutableStateOf(false)
     
-        var myUser by mutableStateOf<User?>(null)
-        var currentOtherUserId: String? = null
+        var myUserUrn by mutableStateOf("")
+        var currentConversationId: String? = null
     
         val linkMetadataCache = mutableStateMapOf<String, Any?>()
         private val processedLinks = mutableSetOf<String>()
@@ -38,17 +39,18 @@
     
         private val pendingSentContents = mutableListOf<String>()
     
-        fun loadMessages(otherUserId: String) {
-            currentOtherUserId = otherUserId
+        fun loadMessages(conversationId: String) {
+            currentConversationId = conversationId
             stopPolling()
     
             viewModelScope.launch {
                 isLoading = true
                 try {
-                    val me = api.getMe()
-                    myUser = me
+                    val meResponse = api.getMeMobile()
+                    val me = meResponse.user
+                    myUserUrn = me.urn ?: "soundcloud:users:${me.id}"
     
-                    val response = api.getConversationMessages(me.id, otherUserId)
+                    val response = api.getConversationMessages(conversationId)
                     messages.clear()
                     pendingSentContents.clear()
                     messages.addAll(response.collection)
@@ -66,29 +68,29 @@
             if (pollingJob?.isActive == true) return
     
             pollingJob = viewModelScope.launch {
-                val meId = myUser?.id ?: return@launch
-                val otherId = currentOtherUserId ?: return@launch
+                val convId = currentConversationId ?: return@launch
     
                 while (isActive) {
                     delay(5000)
                     try {
-                        val response = api.getConversationMessages(meId, otherId, limit = 10)
+                        val response = api.getConversationMessages(convId, limit = 10)
     
                         val newMessages = response.collection.filter { serverMsg ->
                             val isAlreadyDisplayed = messages.any { local ->
-                                local.content == serverMsg.content &&
-                                        local.sender?.id == serverMsg.sender?.id &&
+                                local.urn == serverMsg.urn ||
+                                    (local.content == serverMsg.content &&
+                                        local.sender?.urn == serverMsg.sender?.urn &&
                                         (local.sentAt == serverMsg.sentAt ||
-                                                (serverMsg.sender?.id == myUser?.id && serverMsg.content in pendingSentContents))
+                                            (serverMsg.sender?.urn == myUserUrn && serverMsg.content in pendingSentContents)))
                             }
                             !isAlreadyDisplayed
                         }
     
                         if (newMessages.isNotEmpty()) {
                             newMessages.forEach { serverMsg ->
-                                if (serverMsg.sender?.id == myUser?.id && serverMsg.content in pendingSentContents) {
+                                if (serverMsg.sender?.urn == myUserUrn && serverMsg.content in pendingSentContents) {
                                     val localIndex = messages.indexOfFirst { local ->
-                                        local.sender?.id == myUser?.id && local.content == serverMsg.content
+                                        local.sender?.urn == myUserUrn && local.content == serverMsg.content
                                     }
                                     if (localIndex != -1) {
                                         messages[localIndex] = serverMsg
@@ -117,8 +119,7 @@
         }
     
         fun sendMessage(text: String) {
-            val targetId = currentOtherUserId ?: return
-            val me = myUser ?: return
+            val convId = currentConversationId ?: return
             if (text.isBlank()) return
     
             viewModelScope.launch {
@@ -126,8 +127,7 @@
                 stopPolling()
     
                 try {
-                    val request = SendMessageRequest(contents = text)
-                    val newMessage = api.sendMessage(me.id, targetId, request)
+                    val sentResponse = api.sendMessage(convId, SendMessageRequest(contents = text))
     
                     val currentTimestamp = java.text.SimpleDateFormat(
                         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US
@@ -135,10 +135,12 @@
                         timeZone = java.util.TimeZone.getTimeZone("UTC")
                     }.format(java.util.Date())
     
-                    val displayMessage = newMessage.copy(
-                        sender = me,
-                        sentAt = newMessage.sentAt ?: currentTimestamp,
-                        content = text
+                    val displayMessage = InboxMessage(
+                        urn = sentResponse.urn,
+                        content = text,
+                        conversationId = convId,
+                        sender = null,
+                        sentAt = currentTimestamp
                     )
     
                     messages.add(0, displayMessage)
