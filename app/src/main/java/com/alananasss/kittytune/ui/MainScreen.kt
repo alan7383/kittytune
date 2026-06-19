@@ -403,7 +403,8 @@ fun MainScreen(
         val currentRoute = currentDestination?.route ?: startDestination
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
                 currentRoute == Screen.Welcome.route ||
-                currentRoute == "update"
+                currentRoute == "update" ||
+                currentRoute?.startsWith("chat/") == true
 
         val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -763,20 +764,22 @@ fun MainScreen(
                     clippedComposable("conversations") {
                         ConversationsScreen(
                             onBackClick = { navController.popBackStack() },
-                            onConversationClick = { otherId, username ->
-                                navController.navigate("chat/$otherId/$username")
+                            onConversationClick = { conversationId, otherUserId, username ->
+                                navController.navigate("chat/$conversationId/$otherUserId/$username")
                             }
                         )
                     }
-
+    
                     clippedComposable(
-                        route = "chat/{otherUserId}/{username}",
+                        route = "chat/{conversationId}/{otherUserId}/{username}",
                         arguments = listOf(
+                            navArgument("conversationId") { type = NavType.StringType },
                             navArgument("otherUserId") { type = NavType.StringType },
                             navArgument("username") { type = NavType.StringType }
                         )
                     ) { entry ->
                         ChatScreen(
+                            conversationId = entry.arguments?.getString("conversationId") ?: "",
                             otherUserId = entry.arguments?.getString("otherUserId") ?: "",
                             username = entry.arguments?.getString("username") ?: "",
                             onBackClick = { navController.popBackStack() },

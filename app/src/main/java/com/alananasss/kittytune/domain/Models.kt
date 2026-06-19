@@ -83,40 +83,151 @@
         val comment: Comment? // if mention
     )
     
-    // messaging
-    
-    data class ConversationResponse(
-        val collection: List<Conversation>,
-        val next_href: String?
+    // --- Private API Messaging Models ---
+    // Based on SoundCloud official app (api-mobile.soundcloud.com)
+
+    data class InboxCollection(
+        val collection: List<InboxConversation>,
+        @SerializedName("_links") val links: Map<String, Link>? = null
     )
-    
-    data class Conversation(
-        val id: String, // format "myId:otherId"
-        @SerializedName("last_message") val lastMessage: Message?,
-        val users: List<User> // participants
+
+    data class Link(
+        val href: String?
+    )
+
+    data class InboxConversation(
+        val id: String,
+        @SerializedName("last_message") val lastMessage: InboxMessage,
+        @SerializedName("read") val isRead: Boolean,
+        @SerializedName("between") val betweenUsers: List<ConversationParticipant>
     ) {
-        // helper to find the other user
-        fun getOtherUser(myId: Long): User? {
-            return users.find { it.id != myId }
+        fun getOtherParticipant(myUrn: String): ConversationParticipant? {
+            return betweenUsers.find { !it.matches(myUrn) }
+        }
+
+        fun getOtherUserUrn(myUrn: String): String? {
+            return getOtherParticipant(myUrn)?.let { it.urn ?: "soundcloud:users:${it.id}" }
+                ?: run {
+                    val myId = myUrn.removePrefix("soundcloud:users:")
+                    id.split(":").find { it != myId }?.let { "soundcloud:users:$it" }
+                }
+        }
+        fun getOtherUsername(myUrn: String): String? {
+            return getOtherParticipant(myUrn)?.username ?: "SoundCloud User"
+        }
+        fun getOtherAvatar(myUrn: String): String? {
+            return getOtherParticipant(myUrn)?.avatarUrl
         }
     }
-    
-    data class MessageResponse(
-        val collection: List<Message>,
-        val next_href: String?
+
+    data class ConversationParticipant(
+        val id: Long? = null,
+        @SerializedName("urn") val urn: String? = null,
+        val permalink: String?,
+        val username: String?,
+        @SerializedName("avatar_url") val avatarUrl: String? = null,
+        @SerializedName("first_name") val firstName: String? = null,
+        @SerializedName("last_name") val lastName: String? = null,
+        @SerializedName("followers_count") val followersCount: Long = 0,
+        @SerializedName("followings_count") val followingsCount: Long = 0,
+        val verified: Boolean = false,
+        @SerializedName("is_pro") val isPro: Boolean = false,
+        val city: String? = null,
+        val country: String? = null
+    ) {
+        fun matches(myUrn: String): Boolean {
+            val normalizedMyUrn = myUrn.removePrefix("soundcloud:users:")
+            if (id != null && id.toString() == normalizedMyUrn) return true
+            if (urn != null && urn.removePrefix("soundcloud:users:") == normalizedMyUrn) return true
+            return false
+        }
+    }
+
+    data class MessageCollection(
+        val collection: List<InboxMessage>,
+        @SerializedName("_links") val links: Map<String, Link>? = null
     )
-    
-    data class Message(
-        val content: String?,
-        @SerializedName("conversation_id") val conversationId: String?,
-        val sender: User?,
+
+    data class InboxMessage(
+        val urn: String,
+        val content: String,
+        @SerializedName("conversation_id") val conversationId: String,
+        val sender: InboxSender?,
+        @SerializedName("sender_type") val senderType: String? = null,
         @SerializedName("sent_at") val sentAt: String? = null
     )
-    
-    // payload for sending messages
+
+    data class InboxSender(
+        @SerializedName("avatar_url") val avatarUrl: String? = null,
+        val username: String,
+        @SerializedName("urn") val urn: String,
+        @SerializedName("avatar_url_template") val avatarUrlTemplate: String? = null,
+        val badges: List<String>? = null,
+        val city: String? = null,
+        val country: String? = null,
+        @SerializedName("country_code") val countryCode: String? = null,
+        @SerializedName("first_name") val firstName: String? = null,
+        @SerializedName("followers_count") val followersCount: Int = 0,
+        @SerializedName("followings_count") val followingsCount: Int = 0,
+        @SerializedName("is_pro") val isPro: Boolean = false,
+        @SerializedName("last_name") val lastName: String? = null,
+        val permalink: String? = null,
+        @SerializedName("tracks_count") val tracksCount: Int = 0,
+        val verified: Boolean = false
+    )
+
+    data class MessageSentResponse(
+        val urn: String
+    )
+
+    // payloads
     data class SendMessageRequest(
         val contents: String
     )
+
+    data class CreateConversationRequest(
+        val participants: List<String>
+    )
+
+    // unread
+    data class UnreadConversationsResponse(
+        @SerializedName("unread_conversation_count") val unreadCount: Int
+    )
+
+    // can-send / can-create
+    data class CanSendResponse(
+        @SerializedName("can_send") val canSend: Boolean,
+        val reason: String? = null
+    )
+
+    data class CanCreateResponse(
+        @SerializedName("can_create") val canCreate: Boolean,
+        val reason: String? = null
+    )
+
+    data class MeResponse(
+        val user: User
+    )
+
+    // configuration
+    data class ConversationsPreferences(
+        val privacy: PrivacySettings
+    )
+
+    data class PrivacySettings(
+        @SerializedName("allows_messages_from_unfollowed_users")
+        val allowsMessagesFromUnfollowedUsers: Boolean
+    )
+
+    // URN helpers
+    fun parseUserIdFromUrn(urn: String): Long? {
+        val prefix = "soundcloud:users:"
+        return if (urn.startsWith(prefix)) {
+            urn.removePrefix(prefix).toLongOrNull()
+        } else null
+    }
+
+    fun formatUserUrn(userId: Long): String = "soundcloud:users:$userId"
     
     // interactions
     data class GraphQlRequest(

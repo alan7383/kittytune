@@ -39,7 +39,7 @@
     import android.text.format.DateFormat
     import coil.compose.AsyncImage
     import com.alananasss.kittytune.R
-    import com.alananasss.kittytune.domain.Message
+    import com.alananasss.kittytune.domain.InboxMessage
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.User
@@ -51,6 +51,7 @@
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun ChatScreen(
+        conversationId: String,
         otherUserId: String,
         username: String,
         onBackClick: () -> Unit,
@@ -59,8 +60,8 @@
         viewModel: ChatViewModel = viewModel(),
         onNavigate: (String) -> Unit = {}
     ) {
-        LaunchedEffect(otherUserId) {
-            viewModel.loadMessages(otherUserId)
+        LaunchedEffect(conversationId) {
+            viewModel.loadMessages(conversationId)
         }
     
         DisposableEffect(Unit) {
@@ -73,6 +74,7 @@
         val otherUserAvatar by remember {
             derivedStateOf {
                 viewModel.messages.find { it.sender?.username == username }?.sender?.avatarUrl
+                    ?: viewModel.messages.find { it.sender?.urn != viewModel.myUserUrn }?.sender?.avatarUrl
             }
         }
     
@@ -152,9 +154,9 @@
                 ) {
                     items(
                         items = viewModel.messages,
-                        key = { it.hashCode() }
+                        key = { it.urn }
                     ) { message ->
-                        val isMe = message.sender?.id == viewModel.myUser?.id
+                        val isMe = message.sender?.urn == viewModel.myUserUrn
                         MessageBubble(
                             message = message,
                             isMe = isMe,
@@ -196,7 +198,7 @@
     
     @Composable
     fun MessageBubble(
-        message: Message,
+        message: InboxMessage,
         isMe: Boolean,
         viewModel: ChatViewModel,
         onPreviewClick: (Any) -> Unit,
@@ -211,7 +213,7 @@
         val containerColor = if (isMe) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
         val contentColor = if (isMe) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
     
-        val content = message.content ?: ""
+        val content = message.content
         val formattedTime = formatMessageDate(message.sentAt)
     
         val urlPattern = Pattern.compile("(https?://(on\\.)?soundcloud\\.com/\\S+)")

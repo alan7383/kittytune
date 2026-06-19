@@ -55,12 +55,15 @@ object RetrofitClient {
                 }
 
                 val targetClientId = if (!token.isNullOrEmpty()) Config.OFFICIAL_CLIENT_ID else Config.CLIENT_ID
-                val isOfficialCred = targetClientId == Config.OFFICIAL_CLIENT_ID
 
                 val newUrl = originalRequest.url.let { url ->
-                    url.newBuilder()
-                        .setQueryParameter("client_id", targetClientId)
-                        .build()
+                    if (url.host == "api-mobile.soundcloud.com") {
+                        url
+                    } else {
+                        url.newBuilder()
+                            .setQueryParameter("client_id", targetClientId)
+                            .build()
+                    }
                 }
 
                 val deviceId = Config.getOrCreateSoundCloudDeviceId(appContext)
@@ -75,10 +78,6 @@ object RetrofitClient {
                     .header("Accept", "application/json")
                     .header("App-Version", "330120")
                     .header("UDID", deviceId)
-
-                if (isOfficialCred) {
-                    requestBuilder.header("Authorization-Signature", Config.OFFICIAL_CLIENT_SIGNATURE)
-                }
 
                 if (!token.isNullOrEmpty()) {
                     requestBuilder.header("Authorization", "OAuth $token")
