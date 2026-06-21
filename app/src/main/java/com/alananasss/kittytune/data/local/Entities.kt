@@ -59,6 +59,16 @@
         val originalUrl: String? = null
     )
 
+    @Entity(tableName = "recognition_history")
+    data class RecognitionHistoryItem(
+        @PrimaryKey(autoGenerate = true) val id: Long = 0,
+        val trackId: Long?,
+        val title: String,
+        val artist: String,
+        val artworkUrl: String?,
+        val timestamp: Long = System.currentTimeMillis()
+    )
+
     @Entity(tableName = "listening_stats")
     data class ListeningStatsEvent(
         @PrimaryKey(autoGenerate = true) val id: Long = 0,

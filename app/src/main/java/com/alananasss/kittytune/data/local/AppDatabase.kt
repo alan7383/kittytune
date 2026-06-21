@@ -169,6 +169,21 @@
         suspend fun clearStats()
     }
 
+    @Dao
+    interface RecognitionHistoryDao {
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        suspend fun insertItem(item: RecognitionHistoryItem)
+
+        @Query("SELECT * FROM recognition_history ORDER BY timestamp DESC")
+        fun getAllItems(): Flow<List<RecognitionHistoryItem>>
+
+        @Query("DELETE FROM recognition_history")
+        suspend fun clearHistory()
+        
+        @Query("DELETE FROM recognition_history WHERE id = :itemId")
+        suspend fun deleteItem(itemId: Long)
+    }
+
     data class TopTrackResult(
         val trackId: Long,
         val trackTitle: String,
@@ -189,9 +204,10 @@
         val totalListenMs: Long
     )
 
-    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class], version = 13, exportSchema = false)
+    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class, RecognitionHistoryItem::class], version = 14, exportSchema = false)
     abstract class AppDatabase : RoomDatabase() {
         abstract fun downloadDao(): DownloadDao
+        abstract fun recognitionHistoryDao(): RecognitionHistoryDao
     
         companion object {
             @Volatile private var INSTANCE: AppDatabase? = null
