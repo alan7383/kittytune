@@ -30,3 +30,8 @@ node_modules/
 site/dist/
 site/.astro/
 !site/public/robots.txt
+
+# Custom temporary/junk files and build products
+/.artifacts/
+/SoundCloud v2025.12.10-release (Premium)/
+/*.json
