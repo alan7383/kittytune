@@ -1046,6 +1046,7 @@
     <string name="pref_bottom_menu_fab">Floating Action Button</string>
     <string name="pref_bottom_menu_fab_profile">Profile</string>
     <string name="pref_bottom_menu_fab_settings">Settings</string>
+    <string name="pref_bottom_menu_fab_recognition">Music Recognition</string>
     <string name="pref_bottom_menu_blur">Blur Effect</string>
     <string name="pref_bottom_menu_blur_sub">Apply a frosted glass effect</string>
     <string name="pref_bottom_menu_tabs">Visible Tabs</string>
@@ -1060,5 +1061,23 @@
     <string name="sort_title_az">Title (A-Z)</string>
     <string name="sort_artist_az">Artist (A-Z)</string>
     <string name="action_play">Play</string>
-    <string name="action_pause">Pause</string>
+    <string name="action_pause">Pause</string>    <!-- Shazam integration -->
+    <string name="recognize_music">Detect Music</string>
+    <!-- Music Recognition & Recognition History -->
+    <string name="recognition_history_title">History</string>
+    <string name="dialog_clear_history_title">Clear history?</string>
+    <string name="dialog_clear_history_msg">Are you sure you want to clear all your music recognition history?</string>
+    <string name="btn_clear">Clear</string>
+    <string name="desc_clear_history">Clear history</string>
+    <string name="search_history_hint">Search history</string>
+    <string name="no_history">No history</string>
+    <string name="date_today">Today</string>
+    <string name="date_yesterday">Yesterday</string>
+    <string name="recognition_tap_to_identify">Tap to identify music</string>
+    <string name="recognition_listening">Listening&#8230;</string>
+    <string name="recognition_listening_desc">Listen to music around you</string>
+    <string name="recognition_processing">Analyzing&#8230;</string>
+    <string name="recognition_listen_on_kittytune">Listen on KittyTune</string>
+    <string name="btn_retry">Retry</string>
+    <string name="recognition_track_not_found">Track not found</string>
 </resources>

@@ -952,6 +952,7 @@
     <string name="pref_bottom_menu_fab">Lebegő Akciógomb</string>
     <string name="pref_bottom_menu_fab_profile">Profil</string>
     <string name="pref_bottom_menu_fab_settings">Beállítások</string>
+    <string name="pref_bottom_menu_fab_recognition">Zeneazonosítás</string>
     <string name="pref_bottom_menu_blur">Elmosódás</string>
     <string name="pref_bottom_menu_blur_sub">Homályos üveg hatás</string>
     <string name="pref_bottom_menu_tabs">Látható lapok</string>
@@ -967,4 +968,22 @@
     <string name="sort_artist_az">Előadó (A-Z)</string>
     <string name="action_play">Lejátszás</string>
     <string name="action_pause">Szünet</string>
+    <string name="recognize_music">Zene felismerése</string>
+    <!-- Music Recognition & Recognition History -->
+    <string name="recognition_history_title">Előzmények</string>
+    <string name="dialog_clear_history_title">Előzmények törlése?</string>
+    <string name="dialog_clear_history_msg">Biztosan törölni szeretné a teljes zenefelismerési előzményeit?</string>
+    <string name="btn_clear">Törlés</string>
+    <string name="desc_clear_history">Előzmények törlése</string>
+    <string name="search_history_hint">Keresés az előzményekben</string>
+    <string name="no_history">Nincsenek előzmények</string>
+    <string name="date_today">Ma</string>
+    <string name="date_yesterday">Tegnap</string>
+    <string name="recognition_tap_to_identify">Koppintson a zene azonosításához</string>
+    <string name="recognition_listening">Hallgatás&#8230;</string>
+    <string name="recognition_listening_desc">Zene hallgatása a környezetében</string>
+    <string name="recognition_processing">Elemzés&#8230;</string>
+    <string name="recognition_listen_on_kittytune">Hallgatás a KittyTune-on</string>
+    <string name="btn_retry">Újra</string>
+    <string name="recognition_track_not_found">A zeneszám nem található</string>
 </resources>
