@@ -30,16 +30,30 @@ fun getDynamicTypography(
         )
     )
 
+    val customFamilyRounded = FontFamily(
+        Font(
+            resId = R.font.google_sans_flex,
+            variationSettings = FontVariation.Settings(
+                FontVariation.weight(wght),
+                FontVariation.width(wdth),
+                FontVariation.slant(slnt),
+                FontVariation.Setting("ROND", 100f),
+                FontVariation.Setting("GRAD", grad),
+                FontVariation.Setting("opsz", opsz)
+            )
+        )
+    )
+
     return Typography(
-        displayLarge = Typography.displayLarge.copy(fontFamily = customFamily),
-        displayMedium = Typography.displayMedium.copy(fontFamily = customFamily),
-        displaySmall = Typography.displaySmall.copy(fontFamily = customFamily),
-        headlineLarge = Typography.headlineLarge.copy(fontFamily = customFamily),
-        headlineMedium = Typography.headlineMedium.copy(fontFamily = customFamily),
-        headlineSmall = Typography.headlineSmall.copy(fontFamily = customFamily),
-        titleLarge = Typography.titleLarge.copy(fontFamily = customFamily),
-        titleMedium = Typography.titleMedium.copy(fontFamily = customFamily),
-        titleSmall = Typography.titleSmall.copy(fontFamily = customFamily),
+        displayLarge = Typography.displayLarge.copy(fontFamily = customFamilyRounded),
+        displayMedium = Typography.displayMedium.copy(fontFamily = customFamilyRounded),
+        displaySmall = Typography.displaySmall.copy(fontFamily = customFamilyRounded),
+        headlineLarge = Typography.headlineLarge.copy(fontFamily = customFamilyRounded),
+        headlineMedium = Typography.headlineMedium.copy(fontFamily = customFamilyRounded),
+        headlineSmall = Typography.headlineSmall.copy(fontFamily = customFamilyRounded),
+        titleLarge = Typography.titleLarge.copy(fontFamily = customFamilyRounded),
+        titleMedium = Typography.titleMedium.copy(fontFamily = customFamilyRounded),
+        titleSmall = Typography.titleSmall.copy(fontFamily = customFamilyRounded),
         bodyLarge = Typography.bodyLarge.copy(fontFamily = customFamily),
         bodyMedium = Typography.bodyMedium.copy(fontFamily = customFamily),
         bodySmall = Typography.bodySmall.copy(fontFamily = customFamily),
