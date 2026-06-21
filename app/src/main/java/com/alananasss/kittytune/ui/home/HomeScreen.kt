@@ -284,25 +284,34 @@ import kotlinx.coroutines.launch
                                                 }
                                             }
                                         } else {
-                                            IconButton(onClick = {
-                                                if (userProfile != null) {
-                                                    onNavigate("my_profile_menu")
-                                                } else {
-                                                    onNavigate("login_required")
-                                                }
-                                            }) {
-                                                if (userProfile?.avatarUrl != null) {
-                                                    ArtistAvatar(
-                                                        avatarUrl = userProfile.avatarUrl,
-                                                        modifier = Modifier.size(32.dp).clip(CircleShape)
-                                                    )
-                                                } else {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                IconButton(onClick = { onNavigate("recognition") }) {
                                                     Icon(
-                                                        imageVector = Icons.Default.AccountCircle,
-                                                        contentDescription = stringResource(R.string.guest_user),
-                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        modifier = Modifier.size(32.dp)
+                                                        imageVector = Icons.Rounded.GraphicEq,
+                                                        contentDescription = stringResource(R.string.recognize_music),
+                                                        tint = MaterialTheme.colorScheme.primary
                                                     )
+                                                }
+                                                IconButton(onClick = {
+                                                    if (userProfile != null) {
+                                                        onNavigate("my_profile_menu")
+                                                    } else {
+                                                        onNavigate("login_required")
+                                                    }
+                                                }) {
+                                                    if (userProfile?.avatarUrl != null) {
+                                                        ArtistAvatar(
+                                                            avatarUrl = userProfile.avatarUrl,
+                                                            modifier = Modifier.size(32.dp).clip(CircleShape)
+                                                        )
+                                                    } else {
+                                                        Icon(
+                                                            imageVector = Icons.Default.AccountCircle,
+                                                            contentDescription = stringResource(R.string.guest_user),
+                                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(32.dp)
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }

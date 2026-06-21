@@ -137,6 +137,7 @@ fun BottomBarSettingsScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 val currentSubtitle = when {
                                     fab == "settings" -> stringResource(R.string.pref_bottom_menu_fab_settings)
+                                    fab == "recognition" -> stringResource(R.string.pref_bottom_menu_fab_recognition)
                                     fab == "achievements" -> stringResource(R.string.achievements_title)
                                     fab == "stats" -> stringResource(R.string.pref_bottom_menu_fab_stats)
                                     fab == "liked" -> stringResource(R.string.lib_liked_tracks)

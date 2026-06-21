@@ -57,6 +57,7 @@ fun FabSettingsScreen(
     val systemOptions = mutableListOf(
         "profile" to stringResource(R.string.pref_bottom_menu_fab_profile),
         "settings" to stringResource(R.string.pref_bottom_menu_fab_settings),
+        "recognition" to stringResource(R.string.pref_bottom_menu_fab_recognition),
         "achievements" to stringResource(R.string.achievements_title),
         "stats" to stringResource(R.string.pref_bottom_menu_fab_stats),
         "liked" to stringResource(R.string.lib_liked_tracks),

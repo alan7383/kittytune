@@ -72,6 +72,7 @@ import com.alananasss.kittytune.ui.navigation.clippedComposable
 import com.alananasss.kittytune.ui.player.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.ui.profile.*
+import com.alananasss.kittytune.ui.recognition.RecognitionScreen
 import com.alananasss.kittytune.ui.track.TrackDetailScreen
 import com.alananasss.kittytune.ui.navigation.KittyUnifiedBottomBar
 import com.alananasss.kittytune.ui.navigation.KittyTab
@@ -81,6 +82,7 @@ import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Person
@@ -335,6 +337,7 @@ fun MainScreen(
                 navigateToAuthenticatedStart()
             }
         }
+        instantiateWebView = true
     }
 
     LaunchedEffect(isGuestLoading, isClientIdValid) {
@@ -404,7 +407,8 @@ fun MainScreen(
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
-                currentRoute?.startsWith("chat/") == true
+                currentRoute?.startsWith("chat/") == true ||
+                currentRoute == Screen.Recognition.route
 
         val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -519,6 +523,8 @@ fun MainScreen(
                                 navController.navigate(id)
                             } else if (id.startsWith("genre_playlists/")) {
                                 navController.navigate(id)
+                            } else if (id == "recognition") {
+                                navController.navigate("recognition")
                             }
                             else if (id.startsWith("yt_radio:")) {
                                 val rawUrl = id.removePrefix("yt_radio:")
@@ -817,6 +823,21 @@ fun MainScreen(
                         )
                     }
 
+                    clippedComposable(Screen.Recognition.route) {
+                        RecognitionScreen(
+                            onBackClick = { navController.popBackStack() },
+                            playerViewModel = playerViewModel,
+                            onNavigate = { dest -> navController.navigate(dest) }
+                        )
+                    }
+                    clippedComposable(Screen.RecognitionHistory.route) {
+                        com.alananasss.kittytune.ui.recognition.RecognitionHistoryScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigate = { dest -> navController.navigate(dest) },
+                            playerViewModel = playerViewModel
+                        )
+                    }
+
                     clippedComposable("settings") {
                         SettingsScreen(navController, { navController.popBackStack() }, playerViewModel)
                     }
@@ -949,22 +970,51 @@ fun MainScreen(
 
                     val fabSetting by prefs.bottomMenuFabFlow().collectAsState(initial = prefs.getBottomMenuFab())
                     val onFabClick: () -> Unit = {
+                        val currentRoute = currentDestination?.route
                         when {
-                            fabSetting == "settings" -> navController.navigate("settings")
-                            fabSetting == "achievements" -> navController.navigate("achievements")
-                            fabSetting == "stats" -> navController.navigate("listening_stats")
-                            fabSetting == "liked" -> navController.navigate("playlist_detail/likes")
-                            fabSetting == "downloads" -> navController.navigate("playlist_detail/downloads")
-                            fabSetting == "local" -> navController.navigate("playlist_detail/local_files")
+                            fabSetting == "settings" -> {
+                                if (currentRoute != "settings") navController.navigate("settings")
+                            }
+                            fabSetting == "recognition" -> {
+                                if (currentRoute != "recognition") navController.navigate("recognition")
+                            }
+                            fabSetting == "achievements" -> {
+                                if (currentRoute != "achievements") navController.navigate("achievements")
+                            }
+                            fabSetting == "stats" -> {
+                                if (currentRoute != "listening_stats") navController.navigate("listening_stats")
+                            }
+                            fabSetting == "liked" -> {
+                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "likes") {
+                                    navController.navigate("playlist_detail/likes")
+                                }
+                            }
+                            fabSetting == "downloads" -> {
+                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "downloads") {
+                                    navController.navigate("playlist_detail/downloads")
+                                }
+                            }
+                            fabSetting == "local" -> {
+                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "local_files") {
+                                    navController.navigate("playlist_detail/local_files")
+                                }
+                            }
                             fabSetting.startsWith("playlist:") -> {
                                 val id = fabSetting.removePrefix("playlist:")
-                                navController.navigate("playlist_detail/$id")
+                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != id) {
+                                    navController.navigate("playlist_detail/$id")
+                                }
                             }
                             else -> showProfileMenu = true
                         }
                     }
                     val fabIcon = when {
                         fabSetting == "settings" -> Icons.Rounded.Settings
+                        fabSetting == "recognition" -> Icons.Rounded.GraphicEq
                         fabSetting == "achievements" -> Icons.Rounded.EmojiEvents
                         fabSetting == "stats" -> Icons.Rounded.BarChart
                         fabSetting == "liked" -> Icons.Rounded.Favorite
