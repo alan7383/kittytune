@@ -950,6 +950,7 @@
     <string name="pref_bottom_menu_fab">Bouton Flottant (FAB)</string>
     <string name="pref_bottom_menu_fab_profile">Profil</string>
     <string name="pref_bottom_menu_fab_settings">Paramètres</string>
+    <string name="pref_bottom_menu_fab_recognition">Reconnaissance musicale</string>
     <string name="pref_bottom_menu_blur">Effet de flou</string>
     <string name="pref_bottom_menu_blur_sub">Appliquer un effet verre dépoli</string>
     <string name="pref_bottom_menu_tabs">Onglets visibles</string>
@@ -964,5 +965,23 @@
     <string name="sort_title_az">Titre (A-Z)</string>
     <string name="sort_artist_az">Artiste (A-Z)</string>
     <string name="action_play">Lecture</string>
-    <string name="action_pause">Pause</string>
+    <string name="action_pause">Pause</string>    <!-- Shazam integration -->
+    <string name="recognize_music">Détecter la musique</string>
+    <!-- Music Recognition & Recognition History -->
+    <string name="recognition_history_title">Historique</string>
+    <string name="dialog_clear_history_title">Vider l\'historique ?</string>
+    <string name="dialog_clear_history_msg">Voulez-vous vraiment supprimer tout votre historique de reconnaissance de musique ?</string>
+    <string name="btn_clear">Vider</string>
+    <string name="desc_clear_history">Vider l\'historique</string>
+    <string name="search_history_hint">Historique des recherches</string>
+    <string name="no_history">Aucun historique</string>
+    <string name="date_today">Aujourd\'hui</string>
+    <string name="date_yesterday">Hier</string>
+    <string name="recognition_tap_to_identify">Appuyez pour identifier cette musique</string>
+    <string name="recognition_listening">En écoute&#8230;</string>
+    <string name="recognition_listening_desc">Captez la musique autour de vous</string>
+    <string name="recognition_processing">Analyse en cours&#8230;</string>
+    <string name="recognition_listen_on_kittytune">Écouter sur KittyTune</string>
+    <string name="btn_retry">Réessayer</string>
+    <string name="recognition_track_not_found">Titre introuvable</string>
 </resources>
