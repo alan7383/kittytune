@@ -57,6 +57,7 @@ class PlaybackService : MediaLibraryService() {
         MusicManager.init(this)
         LikeRepository.init(this)
         HistoryRepository.init(this)
+        com.alananasss.kittytune.data.RecognitionHistoryRepository.init(this)
         RepostRepository.init(this)
         DownloadManager.init(this)
 
