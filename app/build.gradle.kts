@@ -20,7 +20,7 @@ extensions.configure<ApplicationExtension> {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.alananasss.kittytune"
+        applicationId = "com.alananasss.kittytune.debug"
         minSdk = 26
         targetSdk = 37
         versionCode = 33
@@ -98,6 +98,7 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.encoding)
     implementation(project(":kizzy"))
+    implementation(project(":shazamkit"))
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -107,6 +108,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.material.kolor)
     implementation(libs.accompanist.drawablepainter)
+    implementation("com.airbnb.android:lottie-compose:6.4.1")
 }
 
 kotlin {

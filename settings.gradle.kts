@@ -22,3 +22,4 @@
     rootProject.name = "KittyTune"
     include(":app")
     include(":kizzy")
+    include(":shazamkit")

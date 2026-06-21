@@ -35,6 +35,7 @@ json = "20260522"
 material3 = "1.5.0-alpha22"
 materialKolor = "5.0.0-alpha07"
 accompanist = "0.37.3"
+timber = "5.0.1"
 
 
 [libraries]
@@ -90,6 +91,7 @@ ktor-client-encoding = { group = "io.ktor", name = "ktor-client-encoding", versi
 json = { group = "org.json", name = "json", version.ref = "json" }
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
