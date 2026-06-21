@@ -1,0 +1,65 @@
+uniform float2 iResolution;
+uniform float iTime;
+uniform half4 iColor;
+
+// 2D Simplex Noise
+float2 hash( float2 p ) {
+    p = float2( dot(p,float2(127.1,311.7)), dot(p,float2(269.5,183.3)) );
+    return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+}
+float noise( in float2 p ) {
+    const float K1 = 0.366025404; // (sqrt(3)-1)/2
+    const float K2 = 0.211324865; // (3-sqrt(3))/6
+    float2 i = floor( p + (p.x+p.y)*K1 );
+    float2 a = p - i + (i.x+i.y)*K2;
+    float2 o = (a.x>a.y) ? float2(1.0,0.0) : float2(0.0,1.0);
+    float2 b = a - o + K2;
+    float2 c = a - 1.0 + 2.0*K2;
+    float3 h = max( 0.5-float3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
+    float3 n = h*h*h*h*float3( dot(a,hash(i+0.0)), dot(b,hash(i+o)), dot(c,hash(i+1.0)));
+    return dot( n, float3(70.0) );
+}
+
+// Function to sample noise multiple times for a blur effect
+float blurred_noise(in float2 uv, in float timeFactor) {
+    float total = 0.0;
+    float2 offset = float2(1.5 / iResolution.x, 1.5 / iResolution.y);
+
+    total += noise(uv + float2(0.0, -timeFactor)); // Center
+    total += noise(uv + float2(-offset.x, 0.0) + float2(0.0, -timeFactor)); // Left
+    total += noise(uv + float2(offset.x, 0.0) + float2(0.0, -timeFactor)); // Right
+    total += noise(uv + float2(0.0, -offset.y) + float2(0.0, -timeFactor)); // Top
+    total += noise(uv + float2(0.0, offset.y) + float2(0.0, -timeFactor)); // Bottom
+
+    return total / 5.0;
+}
+
+half4 main(float2 fragCoord) {
+    float2 uv = fragCoord / iResolution.xy;
+    float y_fade = uv.y;
+
+    float falloff_power = 2.0;
+    float vertical_intensity = pow(y_fade, falloff_power);
+
+    // --- Adjust Noise Scale for softer features ---
+    float2 noiseCoord = uv * float2(1.2, 0.4); // Smaller scale factors
+    float timeFactor = iTime * 0.35; // Animation speed
+
+    // --- Use blurred noise function ---
+    float raw_noise = blurred_noise(noiseCoord, timeFactor);
+
+    // Normalize noise to 0.0 - 1.0
+    float norm_noise = raw_noise * 0.5 + 0.5;
+
+    // Remap norm_noise from 0.0-1.0 to min_brightness-1.0
+    float min_brightness = 0.25;
+    float remapped_noise = min_brightness + (norm_noise * (1.0 - min_brightness));
+
+    // Combine with vertical falloff
+    float intensity = remapped_noise * vertical_intensity;
+    intensity = clamp(intensity, 0.0, 1.0);
+
+    half4 color = iColor;
+    // Output premultiplied alpha
+    return half4(color.rgb * color.a * intensity, color.a * intensity);
+}
