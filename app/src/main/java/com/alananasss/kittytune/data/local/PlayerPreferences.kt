@@ -121,7 +121,7 @@ class PlayerPreferences(context: Context) {
     fun getCrossfadeDuration(): Int = prefs.getInt(KEY_CROSSFADE_DURATION, 5)
     fun setCrossfadeDuration(seconds: Int) = prefs.edit { putInt(KEY_CROSSFADE_DURATION, seconds.coerceIn(1, 12)) }
 
-    fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, false)
+    fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, true)
     fun setCustomFontEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled) }
 
     fun getFontWght() = prefs.getInt(KEY_FONT_WGHT, 400)
@@ -261,7 +261,7 @@ class PlayerPreferences(context: Context) {
             )
         }
 
-    fun getBottomMenuStyle(): String = prefs.getString(KEY_BOTTOM_MENU_STYLE, "classic") ?: "classic"
+    fun getBottomMenuStyle(): String = prefs.getString(KEY_BOTTOM_MENU_STYLE, "modern") ?: "modern"
     fun setBottomMenuStyle(style: String) = prefs.edit { putString(KEY_BOTTOM_MENU_STYLE, style) }
     fun bottomMenuStyleFlow(): kotlinx.coroutines.flow.Flow<String> = kotlinx.coroutines.flow.callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -273,7 +273,7 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getBottomMenuItems(): List<String> {
-        val defaultItems = "home,library"
+        val defaultItems = "home,search,genres,library"
         val csv = prefs.getString(KEY_BOTTOM_MENU_ITEMS, defaultItems) ?: defaultItems
         return csv.split(",").filter { it.isNotBlank() }
     }
