@@ -798,6 +798,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     localFilePathForDetails = null
                     showMenuSheet = false
                     showDetailsSheet = true
+
+                    if (target.source == "soundcloud" && target.id > 0 && (target.user?.id == 0L || target.playbackCount == 0)) {
+                        try {
+                            val fullTracks = api.getTracksByIds(target.id.toString())
+                            val fullTrack = fullTracks.firstOrNull()
+                            if (fullTrack != null) {
+                                selectedTrackForSheet = fullTrack
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
             }
         }
