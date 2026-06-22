@@ -96,7 +96,7 @@ import com.alananasss.kittytune.domain.parseUserIdFromUrn
                     modifier = Modifier
                         .padding(innerPadding)
                         .fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = 180.dp)
                 ) {
                     items(viewModel.conversations) { conversation ->
                         ConversationItemCard(

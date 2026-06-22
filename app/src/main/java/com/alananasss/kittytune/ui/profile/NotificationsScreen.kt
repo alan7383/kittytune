@@ -97,7 +97,7 @@
                         .padding(innerPadding)
                         .fillMaxSize()
                         .padding(horizontal = 16.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 180.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     itemsIndexed(viewModel.activities) { index, item ->

@@ -79,7 +79,7 @@
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 32.dp)
+                contentPadding = PaddingValues(bottom = 180.dp)
             ) {
                 item {
                     SettingsGroup(
