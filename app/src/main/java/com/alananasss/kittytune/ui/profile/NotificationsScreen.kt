@@ -186,7 +186,7 @@
             when {
                 item.track != null -> onNavigate("track_detail/${item.track.id}")
                 item.playlist != null -> onNavigate("playlist_detail/${item.playlist.id}")
-                else -> onNavigate("profile:${user.id}")
+                else -> onNavigate("profile:${user.numericId}")
             }
         }
     

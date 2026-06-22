@@ -195,7 +195,7 @@
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onNavigate("profile:${user.id}") }
+                            .clickable { onNavigate("profile:${user.numericId}") }
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

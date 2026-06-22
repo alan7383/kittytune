@@ -597,20 +597,21 @@
         fun toggleSaveArtist(user: User) {
         scope.launch {
             val dao = database.downloadDao()
-            val isSaved = dao.getArtist(user.id) != null
+        val userId = user.numericId
+            val isSaved = dao.getArtist(userId) != null
             if (isSaved) {
-                dao.deleteArtist(user.id)
+                dao.deleteArtist(userId)
             } else {
-                dao.insertArtist(LocalArtist(user.id, user.username ?: context.getString(R.string.menu_go_artist), user.avatarUrl ?: "", user.trackCount))
+                dao.insertArtist(LocalArtist(userId, user.username ?: context.getString(R.string.menu_go_artist), user.avatarUrl ?: "", user.trackCount))
             }
 
             val tokenManager = TokenManager(context)
             if (!tokenManager.isGuestMode()) {
                 try {
                     if (isSaved) {
-                        api.unfollowUser(user.id)
+                        api.unfollowUser(userId)
                     } else {
-                        api.followUser(user.id)
+                        api.followUser(userId)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -626,7 +627,7 @@
     }
 
     suspend fun saveArtist(user: User) {
-        database.downloadDao().insertArtist(com.alananasss.kittytune.data.local.LocalArtist(user.id, user.username ?: "", user.avatarUrl ?: "", user.trackCount))
+        database.downloadDao().insertArtist(com.alananasss.kittytune.data.local.LocalArtist(user.numericId, user.username ?: "", user.avatarUrl ?: "", user.trackCount))
     }
 
     suspend fun deleteArtist(artistId: Long) {
@@ -683,7 +684,7 @@
                 val dao = database.downloadDao()
                 // Update local DB with new followings
                 allFollowings.forEach { user ->
-                    dao.insertArtist(com.alananasss.kittytune.data.local.LocalArtist(user.id, user.username ?: "", user.avatarUrl ?: "", user.trackCount))
+                    dao.insertArtist(com.alananasss.kittytune.data.local.LocalArtist(user.numericId, user.username ?: "", user.avatarUrl ?: "", user.trackCount))
                 }
                 // Optional: remove artists that are no longer followed?
                 // The official app does clear and sync. For now, we just insert.
