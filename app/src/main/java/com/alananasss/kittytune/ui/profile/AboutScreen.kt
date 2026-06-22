@@ -46,7 +46,7 @@ data class Contributor(
     val url: String
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AboutScreen(
     onBackClick: () -> Unit,
@@ -54,6 +54,7 @@ fun AboutScreen(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val view = androidx.compose.ui.platform.LocalView.current
     val appVersion = AppUtils.getAppVersion(context)
     val scope = rememberCoroutineScope()
     var tapCount by remember { mutableIntStateOf(0) }
@@ -125,7 +126,7 @@ fun AboutScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 32.dp)
+            contentPadding = PaddingValues(bottom = 180.dp)
         ) {
 
             // --- COOL HERO SECTION ---
@@ -214,18 +215,21 @@ fun AboutScreen(
 
                         Spacer(Modifier.height(32.dp))
 
-                        FilledTonalButton(
+                        Button(
                             onClick = {
+                                view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                                 scope.launch {
                                     UpdateManager.checkForUpdate(context, isManual = true)
                                 }
                             },
                             enabled = updateStatus != UpdateStatus.CHECKING && updateStatus != UpdateStatus.DOWNLOADING,
-                            shape = RoundedCornerShape(16.dp),
+                            shapes = ButtonDefaults.shapes(),
                             modifier = Modifier.fillMaxWidth().height(52.dp),
-                            colors = ButtonDefaults.filledTonalButtonColors(
+                            colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                contentColor = MaterialTheme.colorScheme.onSurface
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+                                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                         ) {
                             if (updateStatus == UpdateStatus.CHECKING) {
