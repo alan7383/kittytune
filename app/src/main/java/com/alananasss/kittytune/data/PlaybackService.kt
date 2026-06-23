@@ -193,8 +193,13 @@ class PlaybackService : MediaLibraryService() {
         if (currentTrack != null) {
             initDiscordRpc()
             val currentContextText = MusicManager.contextFlow.value?.displayText
+            val isPlaying = MusicManager.player.isPlaying
+            val position = MusicManager.player.currentPosition
             discordJob?.cancel()
-            discordJob = serviceScope.launch(Dispatchers.IO) { discordRpc?.updateTrack(currentTrack, currentContextText) }
+            discordJob = serviceScope.launch(Dispatchers.IO) {
+                delay(500)
+                discordRpc?.updatePresence(currentTrack, currentContextText, isPlaying, position)
+            }
         } else closeDiscordRpc()
 
         // Widget update
