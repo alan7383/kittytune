@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import android.os.HandlerThread
 import java.io.IOException
@@ -45,15 +46,18 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 object MusicManager {
-    private var _player: ExoPlayer? = null
+    private var _player1: ExoPlayer? = null
+    private var _player2: ExoPlayer? = null
+    private var activePlayerIndex = 1
+    
+    var lastPlayer: ExoPlayer? = null
+    val onPlayerSwappedFlow = MutableStateFlow(0)
+    
+    @Volatile var isCrossfadingOut = false
+    private var fadingPlayer: ExoPlayer? = null
 
     val player: ExoPlayer
-        get() {
-            if (_player == null) {
-                throw IllegalStateException("MusicManager not initialized! Call init() first.")
-            }
-            return _player!!
-        }
+        get() = if (activePlayerIndex == 1) _player1!! else _player2!!
 
     var currentTrack: Track? = null
 
@@ -82,10 +86,11 @@ object MusicManager {
     var onTrackChange: ((Track) -> Unit)? = null
 
     private var preloadedTrack: Track? = null
-    private val eightDProcessor = EightDAudioProcessor()
-    private val fxProcessor = FxAudioProcessor()
-    private val reverbProcessor = ReverbAudioProcessor()
-    private val earrapeProcessor = EarrapeAudioProcessor()
+    
+    private val eightDProcessors = listOf(EightDAudioProcessor(), EightDAudioProcessor())
+    private val fxProcessors = listOf(FxAudioProcessor(), FxAudioProcessor())
+    private val reverbProcessors = listOf(ReverbAudioProcessor(), ReverbAudioProcessor())
+    private val earrapeProcessors = listOf(EarrapeAudioProcessor(), EarrapeAudioProcessor())
 
     var onNextClick: (() -> Unit)? = null
     var onPreviousClick: (() -> Unit)? = null
@@ -93,7 +98,7 @@ object MusicManager {
     private val scope = CoroutineScope(Dispatchers.Main)
 
     fun init(context: Context) {
-        if (_player != null) return
+        if (_player1 != null) return
 
         rainPlayer = RainPlayer(context.applicationContext)
 
@@ -270,29 +275,34 @@ object MusicManager {
             .setUpstreamDataSourceFactory(resolvingDataSourceFactory)
             .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
-        _player = ExoPlayer.Builder(context.applicationContext)
-            .setMediaSourceFactory(
-                DefaultMediaSourceFactory(context)
-                    .setDataSourceFactory(cacheDataSourceFactory)
-                    .setDrmSessionManagerProvider(drmSessionManagerProvider)
-            )
-            .setRenderersFactory(
-                object : DefaultRenderersFactory(context) {
-                    override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
-                        return DefaultAudioSink.Builder(context)
-                            .setAudioProcessors(arrayOf(fxProcessor, reverbProcessor, eightDProcessor, earrapeProcessor))
-                            .setEnableFloatOutput(enableFloatOutput)
-                            .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
-                            .build()
+        val createExoPlayer = { index: Int ->
+            ExoPlayer.Builder(context.applicationContext)
+                .setMediaSourceFactory(
+                    DefaultMediaSourceFactory(context)
+                        .setDataSourceFactory(cacheDataSourceFactory)
+                        .setDrmSessionManagerProvider(drmSessionManagerProvider)
+                )
+                .setRenderersFactory(
+                    object : DefaultRenderersFactory(context) {
+                        override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
+                            return DefaultAudioSink.Builder(context)
+                                .setAudioProcessors(arrayOf(fxProcessors[index], reverbProcessors[index], eightDProcessors[index], earrapeProcessors[index]))
+                                .setEnableFloatOutput(enableFloatOutput)
+                                .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                                .build()
+                        }
                     }
-                }
-            )
-            .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
-            .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_NETWORK)
-            .build()
+                )
+                .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
+                .setHandleAudioBecomingNoisy(true)
+                .setWakeMode(C.WAKE_MODE_NETWORK)
+                .build()
+        }
 
-        _player?.addListener(object : Player.Listener {
+        _player1 = createExoPlayer(0)
+        _player2 = createExoPlayer(1)
+
+        val listener = object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
                 if (mediaItem == null) return
@@ -328,30 +338,102 @@ object MusicManager {
                     }
                 }
             }
-        })
+        }
+        
+        _player1?.addListener(listener)
+        _player2?.addListener(listener)
+    }
+
+    fun crossfadeToMediaItem(mediaItem: MediaItem, startPositionMs: Long, crossfadeDurationMs: Long) {
+        val oldPlayer = player
+        activePlayerIndex = if (activePlayerIndex == 1) 2 else 1
+        val newPlayer = player
+        
+        isCrossfadingOut = true
+        fadingPlayer = oldPlayer
+        
+        lastPlayer = oldPlayer
+        onPlayerSwappedFlow.value += 1
+        
+        newPlayer.setMediaItem(mediaItem, startPositionMs)
+        newPlayer.prepare()
+        
+        val targetVolume = 1f
+        newPlayer.volume = 0f
+        
+        if (oldPlayer.playWhenReady) newPlayer.play()
+        
+        scope.launch {
+            // Wait for newPlayer to prepare and begin buffering/rendering audio before volume ramping
+            var waitCount = 0
+            while (newPlayer.playbackState == Player.STATE_BUFFERING && waitCount < 50) {
+                delay(100)
+                waitCount++
+            }
+
+            var remainingMs = oldPlayer.duration - oldPlayer.currentPosition
+            if (remainingMs < 0) remainingMs = 0
+            
+            val actualCrossfadeMs = if (oldPlayer.isPlaying && remainingMs > 0 && remainingMs < crossfadeDurationMs) {
+                remainingMs
+            } else if (!oldPlayer.isPlaying || remainingMs == 0L) {
+                0L
+            } else {
+                crossfadeDurationMs
+            }
+            
+            if (actualCrossfadeMs <= 0L) {
+                newPlayer.volume = targetVolume
+                oldPlayer.stop()
+                oldPlayer.clearMediaItems()
+                fadingPlayer = null
+                isCrossfadingOut = false
+            } else {
+                val steps = 40
+                val delayMs = actualCrossfadeMs / steps
+                for (i in 1..steps) {
+                    if (fadingPlayer != oldPlayer) break
+                    val ratio = i.toFloat() / steps
+                    newPlayer.volume = targetVolume * ratio
+                    oldPlayer.volume = targetVolume * (1f - ratio)
+                    delay(delayMs)
+                }
+                if (fadingPlayer == oldPlayer) {
+                    newPlayer.volume = targetVolume
+                    oldPlayer.stop()
+                    oldPlayer.clearMediaItems()
+                    fadingPlayer = null
+                    isCrossfadingOut = false
+                }
+            }
+        }
     }
 
 
     fun applyEffects(state: AudioEffectsState) {
-        if (_player == null) return
+        if (_player1 == null) return
         val pitch = if (state.isPitchEnabled) state.speed else 1f
-        _player?.playbackParameters = PlaybackParameters(state.speed, pitch)
-        eightDProcessor.setEnabled(state.is8DEnabled)
-        eightDProcessor.setSpeed(state.eightDSpeed)
-        fxProcessor.setEffects(state.isMuffledEnabled, state.isBassBoostEnabled)
-        fxProcessor.setBassBoostGain(state.bassBoostIntensity)
-        fxProcessor.setMuffledCutoff(state.muffledIntensity)
-        reverbProcessor.setEnabled(state.isReverbEnabled)
-        reverbProcessor.setDecay(state.reverbIntensity)
-        earrapeProcessor.setEnabled(state.isEarrapeEnabled)
+        
+        _player1?.playbackParameters = PlaybackParameters(state.speed, pitch)
+        _player2?.playbackParameters = PlaybackParameters(state.speed, pitch)
+        
+        eightDProcessors.forEach { it.setEnabled(state.is8DEnabled); it.setSpeed(state.eightDSpeed) }
+        fxProcessors.forEach { 
+            it.setEffects(state.isMuffledEnabled, state.isBassBoostEnabled)
+            it.setBassBoostGain(state.bassBoostIntensity)
+            it.setMuffledCutoff(state.muffledIntensity)
+        }
+        reverbProcessors.forEach { it.setEnabled(state.isReverbEnabled); it.setDecay(state.reverbIntensity) }
+        earrapeProcessors.forEach { it.setEnabled(state.isEarrapeEnabled) }
 
         rainPlayer?.setEnabled(state.isRainEnabled)
         rainPlayer?.setVolume(state.rainVolume)
     }
 
     fun releasePlayer() {
-        _player?.release()
-        _player = null
+        _player1?.release(); _player1 = null
+        _player2?.release(); _player2 = null
+        fadingPlayer?.release(); fadingPlayer = null
         rainPlayer?.release()
         rainPlayer = null
         drmTokenCache.clear()

@@ -18,7 +18,7 @@ enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR }
 enum class StartDestination { HOME, LIBRARY }
 enum class LyricsAlignment { LEFT, CENTER, RIGHT }
-enum class DiscordStatusDisplay { ACTIVITY, ARTIST, SONG }
+enum class DiscordStatusDisplay { ACTIVITY, SOUNDCLOUD, ARTIST, SONG }
 
 enum class AppLanguage(val code: String) {
     SYSTEM("system"),

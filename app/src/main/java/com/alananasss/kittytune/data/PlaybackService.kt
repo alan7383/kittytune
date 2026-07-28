@@ -87,7 +87,8 @@ class PlaybackService : MediaLibraryService() {
         val pendingIntent = PendingIntent.getActivity(this, 0, sessionIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
-        val forwardingPlayer = object : ForwardingPlayer(MusicManager.player) {
+    fun createForwardingPlayer(): ForwardingPlayer {
+        return object : ForwardingPlayer(MusicManager.player) {
             override fun getAvailableCommands(): Player.Commands {
                 return super.getAvailableCommands().buildUpon()
                     .add(Player.COMMAND_SEEK_TO_NEXT)
@@ -110,6 +111,7 @@ class PlaybackService : MediaLibraryService() {
             override fun seekToNextMediaItem() { MusicManager.onNextClick?.invoke() }
             override fun seekToPreviousMediaItem() { MusicManager.onPreviousClick?.invoke() }
         }
+    }
 
         val librarySessionCallback = KittyTuneMediaLibrarySessionCallback(
             context = this,
@@ -119,12 +121,12 @@ class PlaybackService : MediaLibraryService() {
             onControllerConnected = { requestUpdate(delayed = false) }
         )
 
-        mediaSession = MediaLibrarySession.Builder(this, forwardingPlayer, librarySessionCallback)
+        mediaSession = MediaLibrarySession.Builder(this, createForwardingPlayer(), librarySessionCallback)
             .setId("KittyTuneSession")
             .setSessionActivity(pendingIntent)
             .build()
 
-        MusicManager.player.addListener(object : Player.Listener {
+        val serviceListener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) { requestUpdate(delayed = true) }
             override fun onIsPlayingChanged(isPlaying: Boolean) { requestUpdate(delayed = false) }
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) { requestUpdate(delayed = false) }
@@ -136,7 +138,19 @@ class PlaybackService : MediaLibraryService() {
                 super.onRepeatModeChanged(repeatMode)
                 requestUpdate(delayed = false)
             }
-        })
+        }
+        
+        MusicManager.player.addListener(serviceListener)
+        
+        serviceScope.launch {
+            MusicManager.onPlayerSwappedFlow.collect { swappedCount ->
+                if (swappedCount > 0) {
+                    MusicManager.lastPlayer?.removeListener(serviceListener)
+                    MusicManager.player.addListener(serviceListener)
+                    mediaSession?.player = createForwardingPlayer()
+                }
+            }
+        }
 
         // Keep a connected controller so that Media3 automatically posts the notification
         val sessionToken = androidx.media3.session.SessionToken(this, android.content.ComponentName(this, PlaybackService::class.java))

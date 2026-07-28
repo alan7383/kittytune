@@ -52,6 +52,10 @@ fun DiscordSettingsScreen(
                         statusDisplay = it; prefs.setDiscordStatusDisplay(it); showStatusDialog = false
                         context.startService(Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE })
                     }
+                    StatusDisplayRadioButton(stringResource(R.string.discord_status_soundcloud), DiscordStatusDisplay.SOUNDCLOUD, statusDisplay) {
+                        statusDisplay = it; prefs.setDiscordStatusDisplay(it); showStatusDialog = false
+                        context.startService(Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE })
+                    }
                     StatusDisplayRadioButton(stringResource(R.string.discord_status_artist), DiscordStatusDisplay.ARTIST, statusDisplay) {
                         statusDisplay = it; prefs.setDiscordStatusDisplay(it); showStatusDialog = false
                         context.startService(Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE })
@@ -138,6 +142,7 @@ fun DiscordSettingsScreen(
                                     title = stringResource(R.string.pref_discord_status_display),
                                     subtitle = when(statusDisplay) {
                                         DiscordStatusDisplay.ACTIVITY -> stringResource(R.string.discord_status_activity)
+                                        DiscordStatusDisplay.SOUNDCLOUD -> stringResource(R.string.discord_status_soundcloud)
                                         DiscordStatusDisplay.ARTIST -> stringResource(R.string.discord_status_artist)
                                         DiscordStatusDisplay.SONG -> stringResource(R.string.discord_status_song)
                                     },

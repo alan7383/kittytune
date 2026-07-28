@@ -98,6 +98,7 @@
 
         private const val TAG = "StreamResolver"
         private val client = OkHttpClient()
+        private val streamCache = ConcurrentHashMap<Long, ResolvedStream>()
 
         init {
             try {
@@ -119,41 +120,51 @@
         }
 
         suspend fun resolveStreamWithDrm(context: Context, track: Track, forDownload: Boolean = false): ResolvedStream? {
-            return withContext(Dispatchers.IO) {
-                try {
-                    val localTrack = DownloadManager.getLocalTrack(track.id)
-                    if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
-                        val isContentUri = localTrack.localAudioPath.startsWith("content://")
-                        val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
+            if (!forDownload && streamCache.containsKey(track.id)) {
+                Log.d(TAG, "Using cached stream resolution for track ${track.id}")
+                return streamCache[track.id]
+            }
 
-                        if (fileExists) {
-                            Log.d(TAG, "Offline mode: Playing from local storage -> ${localTrack.localAudioPath}")
-                            return@withContext ResolvedStream(localTrack.localAudioPath)
+            return withContext(Dispatchers.IO) {
+                val resolved: ResolvedStream? = run {
+                    try {
+                        val localTrack = DownloadManager.getLocalTrack(track.id)
+                        if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
+                            val isContentUri = localTrack.localAudioPath.startsWith("content://")
+                            val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
+
+                            if (fileExists) {
+                                Log.d(TAG, "Offline mode: Playing from local storage -> ${localTrack.localAudioPath}")
+                                return@run ResolvedStream(localTrack.localAudioPath)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error checking local file", e)
+                    }
+                    if (track.source == "youtube") {
+                        Log.d(TAG, "Resolving YouTube track: ${track.title}")
+                        val url = resolveFromYoutubeDirect(track)
+                        return@run url?.let { ResolvedStream(it) }
+                    }
+
+                    val prefs = PlayerPreferences(context)
+                    val allowYoutube = prefs.getYouTubeFallbackEnabled()
+
+                    if (isRestricted(track) && allowYoutube) {
+                        val streamUrl = resolveViaNewPipe(track)
+
+                        if (streamUrl != null) {
+                            return@run ResolvedStream(streamUrl)
                         }
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error checking local file", e)
-                }
-                if (track.source == "youtube") {
-                    Log.d(TAG, "Resolving YouTube track: ${track.title}")
-                    val url = resolveFromYoutubeDirect(track)
-                    return@withContext url?.let { ResolvedStream(it) }
+
+                    resolveFromSoundCloudWithDrm(context, track, forDownload)
                 }
 
-                val prefs = PlayerPreferences(context)
-                val allowYoutube = prefs.getYouTubeFallbackEnabled()
-
-                if (isRestricted(track) && allowYoutube) {
-                    val streamUrl = resolveViaNewPipe(track)
-
-                    if (streamUrl != null) {
-                        return@withContext ResolvedStream(streamUrl)
-                    } else {
-                            Log.w(TAG, "Unlock via NewPipe failed, falling back to SoundCloud standard.")
-                        }
+                if (resolved != null && !forDownload) {
+                    streamCache[track.id] = resolved
                 }
-
-                return@withContext resolveFromSoundCloudWithDrm(context, track, forDownload)
+                resolved
             }
         }
 
