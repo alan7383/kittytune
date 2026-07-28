@@ -644,6 +644,7 @@
     <string name="discord_enable_rpc_desc">Show current music on Discord</string>
     <string name="pref_discord_status_display">Pick Status Display</string>
     <string name="discord_status_activity">Activity Name (KittyTune)</string>
+    <string name="discord_status_soundcloud">Activity Name (SoundCloud)</string>
     <string name="discord_status_artist">Artist Name</string>
     <string name="discord_status_song">Song Title</string>
     <!-- ABOUT -->
@@ -936,6 +937,8 @@
     <string name="sleep_timer_fade_title">Progressive Fade-out</string>
     <string name="sleep_timer_fade_subtitle">Volume will decrease over %1$d seconds</string>
     <string name="label_duration">Fade duration</string>
+    <string name="pref_crossfade_title">Crossfade</string>
+    <string name="pref_crossfade_sub">Smoothly transition between tracks without gaps</string>
     <string name="pref_bottom_menu_title">Navigation Bar</string>
     <string name="pref_bottom_menu_subtitle">Customize the bottom bar and FAB</string>
     <string name="pref_bottom_menu_style">Menu Style</string>
