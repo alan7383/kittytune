@@ -43,9 +43,13 @@ fun AudioSettingsScreen(
     var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
     var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
     var fadeDuration by remember { mutableStateOf(prefs.getSleepTimerFadeDuration()) }
+    
+    var crossfadeEnabled by remember { mutableStateOf(prefs.getCrossfadeEnabled()) }
+    var crossfadeDuration by remember { mutableStateOf(prefs.getCrossfadeDuration()) }
 
     var showQualityDialog by remember { mutableStateOf(false) }
     var showFadeDurationDialog by remember { mutableStateOf(false) }
+    var showCrossfadeDurationDialog by remember { mutableStateOf(false) }
 
     if (showFadeDurationDialog) {
         AlertDialog(
@@ -72,6 +76,37 @@ fun AudioSettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showFadeDurationDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
+
+    if (showCrossfadeDurationDialog) {
+        AlertDialog(
+            onDismissRequest = { showCrossfadeDurationDialog = false },
+            title = { Text(stringResource(R.string.pref_crossfade_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = "${crossfadeDuration}s",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Slider(
+                        value = crossfadeDuration.toFloat(),
+                        onValueChange = {
+                            crossfadeDuration = it.toInt()
+                            prefs.setCrossfadeDuration(it.toInt())
+                        },
+                        valueRange = 1f..12f,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCrossfadeDurationDialog = false }) {
                     Text(stringResource(R.string.btn_ok))
                 }
             }
@@ -223,6 +258,54 @@ fun AudioSettingsScreen(
                                 title = stringResource(R.string.label_duration),
                                 subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
                                 onClick = { showFadeDurationDialog = true }
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.pref_crossfade_title))
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val crossfadeBottomRadius by animateDpAsState(
+                            targetValue = if (crossfadeEnabled) 4.dp else 24.dp,
+                            label = "CrossfadeCornerAnimation"
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(
+                                topStart = 24.dp,
+                                topEnd = 24.dp,
+                                bottomStart = crossfadeBottomRadius,
+                                bottomEnd = crossfadeBottomRadius
+                            ),
+                            title = stringResource(R.string.pref_crossfade_title),
+                            subtitle = stringResource(R.string.pref_crossfade_sub),
+                            hasSwitch = true,
+                            switchState = crossfadeEnabled,
+                            onSwitchChange = { 
+                                crossfadeEnabled = it
+                                prefs.setCrossfadeEnabled(it)
+                            }
+                        )
+
+                        AnimatedVisibility(
+                            visible = crossfadeEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            SettingsItem(
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 24.dp,
+                                    bottomEnd = 24.dp
+                                ),
+                                title = stringResource(R.string.label_duration),
+                                subtitle = "${crossfadeDuration}s",
+                                onClick = { showCrossfadeDurationDialog = true }
                             )
                         }
                     }

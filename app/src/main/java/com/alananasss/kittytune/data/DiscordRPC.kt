@@ -94,6 +94,12 @@ class DiscordRPC(
                 detailsLine = trackTitle
                 stateLine = "by $artistName"
             }
+
+            DiscordStatusDisplay.SOUNDCLOUD -> {
+                activityName = "SoundCloud"
+                detailsLine = trackTitle
+                stateLine = "by $artistName"
+            }
         }
 
         setActivity(

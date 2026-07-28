@@ -106,6 +106,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var repeatMode by mutableStateOf(playerPrefs.getLastRepeatMode())
     var shuffleEnabled by mutableStateOf(playerPrefs.getLastShuffleEnabled())
     private var isAutoplayRadioLoading by mutableStateOf(false)
+    private var boundPlayer: ExoPlayer? = null
 
     var repostedTrackIds by mutableStateOf<Set<Long>>(emptySet())
         private set
@@ -206,6 +207,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var queueChunkingJob: Job? = null
     private var trackInitJob: Job? = null
     private var playJob: Job? = null
+    private var progressJob: Job? = null
 
     private val syncReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -285,7 +287,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     MusicManager.player.seekTo(0)
                     MusicManager.player.play()
                 } else {
-                    playNext(manual = false)
+                    if (!MusicManager.isCrossfadingOut) {
+                        playNext(manual = false, isCrossfade = playerPrefs.getCrossfadeEnabled())
+                    }
                 }
             }
         }
@@ -406,12 +410,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         ContextCompat.registerReceiver(context, syncReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
         MusicManager.init(context)
-        MusicManager.player.addListener(playerListener)
+        bindToActivePlayer()
         MusicManager.applyEffects(effectsState)
         applyRepeatMode()
 
+        viewModelScope.launch {
+            MusicManager.onPlayerSwappedFlow.collect {
+                bindToActivePlayer()
+            }
+        }
 
-        MusicManager.onNextClick = { playNext(manual = true) }
+        MusicManager.onNextClick = { 
+            val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
+            playNext(manual = true, isCrossfade = crossfadeEnabled) 
+        }
         MusicManager.onPreviousClick = { smartPrevious() }
 
         MusicManager.onTrackChange = trackChangeHandler@{ newTrack ->
@@ -519,6 +531,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         restoreSession()
         syncWithCurrentPlayback()
+    }
+
+    private fun bindToActivePlayer() {
+        try {
+            boundPlayer?.removeListener(playerListener)
+        } catch (_: Exception) {}
+        
+        val activePlayer = MusicManager.player
+        activePlayer.addListener(playerListener)
+        boundPlayer = activePlayer
+        
+        try {
+            isPlaying = activePlayer.isPlaying
+            duration = activePlayer.duration.coerceAtLeast(0L)
+            currentPosition = activePlayer.currentPosition
+            if (isPlaying) startProgressUpdate()
+        } catch (_: Exception) {}
     }
 
     fun toggleInlineLyrics() {
@@ -1162,13 +1191,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun playTrackAtPosition(track: Track, position: Long) { pendingSeekPosition = position; playPlaylist(listOf(track), 0); showCommentsSheet = false; isPlayerExpanded = true }
     fun skipToQueueItem(index: Int) { playTrackAtIndex(index, addToHistory = false); AchievementManager.trackSkipped(); AchievementManager.increment("skipper_100"); AchievementManager.increment("skipper_1000") }
 
-    private fun playTrackAtIndex(index: Int, addToHistory: Boolean = true) {
+    private fun playTrackAtIndex(index: Int, addToHistory: Boolean = true, isCrossfade: Boolean = false) {
         if (index < 0 || index >= _queue.size) { currentContext = null; return }
         currentQueueIndex = index
         val trackToPlay = _queue[index]
-        isLoading = true; duration = trackToPlay.durationMs ?: 0L; currentPosition = 0L
+        
+        isLoading = true
+        duration = trackToPlay.durationMs ?: 0L
+        if (!isCrossfade) {
+            currentPosition = 0L
+            MusicManager.isCrossfadingOut = false
+        }
         currentSessionListenMs = 0L
         hasPushedRecentlyPlayed = false
+        
         currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
         val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
         startServiceSafe(context, intent)
@@ -1189,7 +1225,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")
             saveStateAsync(saveQueue = false)
 
-            playRobustly(index, autoPlay = true)
+            playRobustly(index, autoPlay = true, isCrossfade = isCrossfade)
 
             if (addToHistory && currentContext?.navigationId?.startsWith("station:") != true && currentContext?.navigationId?.startsWith("yt_radio:") != true) {
                 HistoryRepository.addToHistory(finalTrack)
@@ -1197,7 +1233,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun playNext(manual: Boolean = true) {
+    fun playNext(manual: Boolean = true, isCrossfade: Boolean = false) {
         if (isAutoplayRadioLoading) return
 
         if (manual && player.currentPosition > 2000) {
@@ -1222,10 +1258,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         if (nextIndex < _queue.size) {
-            playTrackAtIndex(nextIndex, addToHistory = false)
+            playTrackAtIndex(nextIndex, addToHistory = false, isCrossfade = isCrossfade)
         } else {
             if (repeatMode == RepeatMode.ALL) {
-                playTrackAtIndex(0, addToHistory = false)
+                playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade)
             } else {
                 val autoPlayEnabled = playerPrefs.getAutoplayEnabled()
                 val isYoutube = currentTrack?.source == "youtube"
@@ -1242,7 +1278,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                         val newNextIndex = currentQueueIndex + 1
                         if (newNextIndex < _queue.size) {
-                            playTrackAtIndex(newNextIndex, addToHistory = false)
+                            playTrackAtIndex(newNextIndex, addToHistory = false, isCrossfade = isCrossfade)
                         } else {
                             MusicManager.player.pause()
                             MusicManager.player.seekTo(0)
@@ -1337,12 +1373,29 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         } catch (_: Exception) { } finally { isAutoplayRadioLoading = false }
     }
 
+    fun playPrevious(manual: Boolean = true, isCrossfade: Boolean = false) {
+        if (manual) {
+            currentTrack?.let { track ->
+                if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
+                    ListeningStatsRepository.recordEvent(track, "SKIP_PREVIOUS", currentSessionListenMs)
+                }
+            }
+        }
+
+        val prevIndex = currentQueueIndex - 1
+        if (prevIndex >= 0) {
+            playTrackAtIndex(prevIndex, addToHistory = false, isCrossfade = isCrossfade)
+        } else {
+            playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade)
+        }
+    }
+
     fun smartPrevious() {
         if (player.currentPosition > 2000) {
             incrementPlayCount()
         }
 
-        if (player.currentPosition > 3000) {
+        if (player.currentPosition > 5000) {
             // User is restarting the same track — this is a manual replay
             currentTrack?.let { track ->
                 if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
@@ -1353,19 +1406,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             currentPosition = 0L
             player.seekTo(0)
         } else {
-            // User is going to previous track
-            currentTrack?.let { track ->
-                if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
-                    ListeningStatsRepository.recordEvent(track, "SKIP_PREVIOUS", currentSessionListenMs)
-                }
-            }
-            val prev = currentQueueIndex - 1
-            if (prev >= 0) {
-                playTrackAtIndex(prev, addToHistory = false)
-            } else {
-                currentPosition = 0L
-                player.seekTo(0)
-            }
+            val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
+            playPrevious(manual = true, isCrossfade = crossfadeEnabled)
         }
     }
     fun toggleShuffle() { shuffleEnabled = !shuffleEnabled; if (shuffleEnabled) applyShuffle() else revertShuffle(); updateQueueState(); saveStateAsync(saveQueue = true) }
@@ -1627,7 +1669,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun startProgressUpdate() {
-        viewModelScope.launch {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
             val tokenManager = TokenManager(context)
             val isGuest = tokenManager.isGuestMode()
             while (isActive && isPlaying) {
@@ -1635,10 +1678,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     if (!isScrubbing) {
                         currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                         currentSessionListenMs += 1000L
-                        Log.d("PlayerViewModel", "Listen MS: $currentSessionListenMs")
                         
+                        val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
+                        val crossfadeMs = playerPrefs.getCrossfadeDuration() * 1000L
+                        val dur = if (MusicManager.player.duration > 0) MusicManager.player.duration else duration
+                        
+                        if (crossfadeEnabled && dur > 0 && currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
+                            MusicManager.isCrossfadingOut = true
+                            playNext(manual = false, isCrossfade = true)
+                        }
+
                         if (currentSessionListenMs >= 30_000L && !hasPushedRecentlyPlayed) {
-                            Log.d("PlayerViewModel", "Threshold reached, pushing history for track ${currentTrack?.id}")
                             hasPushedRecentlyPlayed = true
                             pushRecentlyPlayedToSoundCloud(currentTrack)
                         }
@@ -2015,7 +2065,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun playRobustly(index: Int, autoPlay: Boolean = true, startPosition: Long = 0L, allowSkipOnFailure: Boolean = true) {
+    private fun playRobustly(index: Int, autoPlay: Boolean = true, startPosition: Long = 0L, allowSkipOnFailure: Boolean = true, isCrossfade: Boolean = false) {
         if (index !in _queue.indices) return
 
         val trackToPlay = _queue[index]
@@ -2079,13 +2129,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 try {
                     queueChunkingJob?.cancel()
                     
-                    MusicManager.player.setMediaItem(newMediaItem, startPosition)
-                    MusicManager.player.prepare()
-
-                    if (autoPlay) {
-                        val intent = Intent(context, PlaybackService::class.java)
-                        startServiceSafe(context, intent)
-                        MusicManager.player.play()
+                    if (isCrossfade) {
+                        val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
+                        MusicManager.crossfadeToMediaItem(newMediaItem, startPosition, crossfadeDurationMs)
+                    } else {
+                        MusicManager.player.setMediaItem(newMediaItem, startPosition)
+                        MusicManager.player.prepare()
+                        if (autoPlay) {
+                            val intent = Intent(context, PlaybackService::class.java)
+                            startServiceSafe(context, intent)
+                            MusicManager.player.play()
+                        }
                     }
 
                     MusicManager.applyEffects(effectsState)
