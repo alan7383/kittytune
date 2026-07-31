@@ -113,10 +113,6 @@ object MusicManager {
         val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
             .setUserAgent(customUserAgent)
             .setAllowCrossProtocolRedirects(true)
-            
-        if (!token.isNullOrEmpty()) {
-            httpDataSourceFactory.setDefaultRequestProperties(mapOf("Authorization" to "OAuth $token"))
-        }
         
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
 
