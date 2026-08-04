@@ -20,9 +20,15 @@
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.rounded.Close
     import androidx.compose.material.icons.rounded.Add
+    import androidx.compose.material.icons.rounded.ArrowDropDown
     import androidx.compose.material.icons.rounded.ContentCopy
+    import androidx.compose.material.icons.rounded.FormatAlignLeft
+    import androidx.compose.material.icons.rounded.FormatAlignCenter
+    import androidx.compose.material.icons.rounded.FormatAlignRight
     import androidx.compose.material.icons.rounded.Remove
     import androidx.compose.material.icons.rounded.Search
+    import androidx.compose.material.icons.rounded.Settings
+    import androidx.compose.material.icons.rounded.Star
     import androidx.compose.material.icons.rounded.Timer
     import androidx.compose.material.icons.rounded.Tune
     import androidx.compose.material3.*
@@ -32,36 +38,49 @@
     import androidx.compose.ui.draw.alpha
     import androidx.compose.ui.draw.blur
     import androidx.compose.ui.draw.clip
-    import androidx.compose.ui.draw.drawWithContent
-    import androidx.compose.ui.draw.scale
-    import androidx.compose.ui.graphics.BlendMode
-    import androidx.compose.ui.graphics.Brush
-    import androidx.compose.ui.graphics.Color
-    import androidx.compose.ui.graphics.CompositingStrategy
-    import androidx.compose.ui.graphics.graphicsLayer
-    import androidx.compose.ui.platform.LocalClipboardManager
-    import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
     import androidx.compose.ui.res.stringResource
-    import androidx.compose.ui.text.AnnotatedString
-    import androidx.compose.ui.text.font.FontWeight
-    import androidx.compose.ui.text.input.ImeAction
-    import androidx.compose.ui.text.style.TextAlign
-    import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
     import androidx.compose.ui.unit.dp
-    import androidx.compose.ui.unit.sp
-    import androidx.compose.ui.zIndex
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.zIndex
     import com.alananasss.kittytune.R
-    import com.alananasss.kittytune.data.local.LyricsAlignment
-    import com.alananasss.kittytune.data.network.LrcLibResponse
-    import com.alananasss.kittytune.ui.player.LyricsMode
-    import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.data.local.LyricsAlignment
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.network.LrcLibResponse
+import com.alananasss.kittytune.ui.player.LyricsMode
+import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.UnifiedLyricResult
     import com.alananasss.kittytune.utils.makeTimeString
     import com.alananasss.kittytune.ui.utils.fadingEdge
     import androidx.compose.ui.input.pointer.pointerInput
     import androidx.compose.foundation.gestures.detectTapGestures
     import kotlinx.coroutines.delay
-    import kotlinx.coroutines.isActive
-    import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
     
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -73,6 +92,23 @@
     
         val hasSynced = viewModel.lyricsLines.any { it.endTime > 0 }
         val hasPlain = !viewModel.rawPlainLyrics.isNullOrBlank()
+
+        var showQuickSettingsDialog by remember { mutableStateOf(false) }
+        var showUploadYamlDialog by remember { mutableStateOf(false) }
+
+        if (showQuickSettingsDialog) {
+            QuickLyricsSettingsDialog(
+                viewModel = viewModel,
+                onDismiss = { showQuickSettingsDialog = false }
+            )
+        }
+
+        if (showUploadYamlDialog) {
+            UploadYamlDialog(
+                viewModel = viewModel,
+                onDismiss = { showUploadYamlDialog = false }
+            )
+        }
     
         Scaffold(
             containerColor = Color.Transparent,
@@ -92,9 +128,11 @@
                             }
                         },
                         actions = {
-                            IconButton(onClick = { viewModel.showLyricsOffsetControls = !viewModel.showLyricsOffsetControls }) {
-                                val tint = if (viewModel.lyricsOffset != 0L) MaterialTheme.colorScheme.primary else Color.White
-                                Icon(Icons.Rounded.Tune, stringResource(R.string.lyrics_sync), tint = tint)
+                            IconButton(onClick = { showUploadYamlDialog = true }) {
+                                Icon(Icons.Rounded.Add, stringResource(R.string.btn_upload_yaml), tint = Color.White)
+                            }
+                            IconButton(onClick = { showQuickSettingsDialog = true }) {
+                                Icon(Icons.Rounded.Settings, stringResource(R.string.pref_lyrics_title), tint = Color.White)
                             }
                             IconButton(onClick = { viewModel.isSearchingLyrics = true }) {
                                 Icon(Icons.Rounded.Search, stringResource(R.string.lyrics_manual_search), tint = Color.White)
@@ -264,6 +302,24 @@
                 listState.animateScrollToItem(index = activeIndex)
             }
         }
+
+        val isPlaying = viewModel.isPlaying
+        val speed = viewModel.effectsState.speed
+        var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
+
+        LaunchedEffect(currentPosition, isPlaying, speed) {
+            if (isPlaying) {
+                val startTime = System.currentTimeMillis()
+                val startPos = currentPosition.toFloat()
+                while (isActive) {
+                    withFrameMillis { }
+                    val elapsed = System.currentTimeMillis() - startTime
+                    smoothDrawPosition = startPos + (elapsed * speed)
+                }
+            } else {
+                smoothDrawPosition = currentPosition.toFloat()
+            }
+        }
     
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val screenHeight = maxHeight
@@ -281,21 +337,13 @@
                 itemsIndexed(lyrics) { index, line ->
                     val isActive = index == activeIndex
                     val targetScale = if (isActive) 1.05f else 0.95f
-                    val targetAlpha = if (isActive) 1f else 0.5f
+                    val targetAlpha = if (isActive) 1f else (if (index < activeIndex) 0.45f else 0.70f)
                     val targetBlur = if (isActive) 0.dp else 1.dp
     
                     val scale by animateFloatAsState(targetScale, tween(400), label = "scale")
                     val alpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
     
-                    Text(
-                        text = line.text,
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = fontSize.sp,
-                            lineHeight = (fontSize * 1.4).sp
-                        ),
-                        color = Color.White,
-                        textAlign = alignment,
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp)
@@ -305,49 +353,161 @@
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { viewModel.seekTo(line.startTime) }
-                    )
+                            ) { viewModel.seekTo(line.startTime) },
+                        horizontalAlignment = when(viewModel.lyricsAlignment) {
+                            LyricsAlignment.LEFT -> Alignment.Start
+                            LyricsAlignment.CENTER -> Alignment.CenterHorizontally
+                            LyricsAlignment.RIGHT -> Alignment.End
+                        }
+                    ) {
+                        val isWordSync = viewModel.isWordSyncEnabled
+                        val isAppleEffect = viewModel.isAppleMusicEffectEnabled
+                        val displayWords = if (isWordSync) line.words.orEmpty() else emptyList()
+
+                        if (isActive && displayWords.isNotEmpty()) {
+                            if (isAppleEffect) {
+                                var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+                                val reconstructedText = remember(displayWords) { displayWords.joinToString("") { it.word } }
+                                val wordRanges = remember(displayWords) {
+                                    val ranges = mutableListOf<Pair<Int, Int>>()
+                                    var currentLen = 0
+                                    for (w in displayWords) {
+                                        ranges.add(currentLen to currentLen + w.word.length)
+                                        currentLen += w.word.length
+                                    }
+                                    ranges
+                                }
+
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = reconstructedText,
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = fontSize.sp,
+                                            lineHeight = (fontSize * 1.4).sp
+                                        ),
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        textAlign = alignment,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onTextLayout = { textLayoutResult = it }
+                                    )
+                                    Text(
+                                        text = reconstructedText,
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = fontSize.sp,
+                                            lineHeight = (fontSize * 1.4).sp
+                                        ),
+                                        color = Color.White,
+                                        textAlign = alignment,
+                                        modifier = Modifier.fillMaxWidth().drawWithContent {
+                                            val currentPos = smoothDrawPosition + viewModel.lyricsOffset
+                                            val layout = textLayoutResult ?: return@drawWithContent
+                                            val path = Path()
+                                            val safeTextLength = (reconstructedText.length - 1).coerceAtLeast(0)
+                                            for (i in displayWords.indices) {
+                                                val w = displayWords[i]
+                                                val range = wordRanges[i]
+                                                if (range.first >= range.second) continue
+                                                if (currentPos >= w.endTime) {
+                                                    for (c in range.first until range.second) path.addRect(layout.getBoundingBox(c.coerceIn(0, safeTextLength)))
+                                                } else if (currentPos >= w.startTime) {
+                                                    val progress = ((currentPos - w.startTime).toFloat() / (w.endTime - w.startTime).coerceAtLeast(1L)).coerceIn(0f, 1f)
+                                                    val exactProgressChars = progress * (range.second - range.first)
+                                                    val fullySungChars = exactProgressChars.toInt()
+                                                    val charFraction = exactProgressChars - fullySungChars
+                                                    for (c in range.first until range.first + fullySungChars) path.addRect(layout.getBoundingBox(c.coerceIn(0, safeTextLength)))
+                                                    val partialCharIdx = range.first + fullySungChars
+                                                    if (partialCharIdx < range.second) {
+                                                        val cBbox = layout.getBoundingBox(partialCharIdx.coerceIn(0, safeTextLength))
+                                                        val cX = cBbox.left + (cBbox.right - cBbox.left) * charFraction
+                                                        path.addRect(Rect(cBbox.left, cBbox.top, cX, cBbox.bottom))
+                                                    }
+                                                }
+                                            }
+                                            clipPath(path) { this@drawWithContent.drawContent() }
+                                        }
+                                    )
+                                }
+                            } else {
+                                val reconstructedText = buildAnnotatedString {
+                                    displayWords.forEach { word ->
+                                        val isWordActive = (viewModel.currentPosition + viewModel.lyricsOffset) >= word.startTime
+                                        val wordColor = if (isWordActive) Color.White else Color.White.copy(alpha = 0.5f)
+                                        withStyle(SpanStyle(color = wordColor)) { append(word.word) }
+                                    }
+                                }
+                                Text(
+                                    text = reconstructedText,
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = fontSize.sp,
+                                        lineHeight = (fontSize * 1.4).sp
+                                    ),
+                                    textAlign = alignment,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        } else {
+                            val textColor = if (isActive) Color.White else Color.White.copy(alpha = 0.5f)
+                            Text(
+                                text = line.text,
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+                                    fontSize = fontSize.sp,
+                                    lineHeight = (fontSize * 1.4).sp
+                                ),
+                                color = textColor,
+                                textAlign = alignment,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = viewModel.isRomanizationEnabled && !line.romanization.isNullOrBlank(),
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Text(
+                                text = line.romanization ?: "",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = (fontSize * 0.85f).sp,
+                                    lineHeight = (fontSize * 1.2f).sp
+                                ),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = if (isActive) 0.9f else 0.4f),
+                                textAlign = alignment,
+                                modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                            )
+                        }
+                        AnimatedVisibility(
+                            visible = viewModel.isLyricsTranslationEnabled && !line.translation.isNullOrBlank(),
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            Text(
+                                text = line.translation ?: "",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = (fontSize * 0.70f).sp,
+                                    lineHeight = (fontSize * 1.0f).sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                                textAlign = alignment,
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
     
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 32.dp) // Fixed bottom margin
+                    .padding(bottom = 32.dp)
             ) {
-                AnimatedContent(
-                    targetState = viewModel.showLyricsOffsetControls,
-                    transitionSpec = {
-                        if (targetState) {
-                            // Opening: The panel slides from bottom to top
-                            (slideInVertically { height -> height } + fadeIn())
-                                .togetherWith(fadeOut(animationSpec = tween(100))) // Button disappears quickly
-                        } else {
-                            // Closing: The panel slides down
-                            (fadeIn(animationSpec = tween(100, delayMillis = 150))) // Button reappears with a small delay
-                                .togetherWith(slideOutVertically { height -> height } + fadeOut())
-                        }
-                    },
-                    contentAlignment = Alignment.BottomCenter, // <--- CRUCIAL: Keeps everything stuck at the bottom
-                    label = "controls_anim"
-                ) { showControls ->
-                    if (showControls) {
-                        // Remove vertical padding here so it's managed by the transition
-                        // to avoid visual "jumping"
-                        LyricsOffsetControls(
-                            offset = viewModel.lyricsOffset,
-                            onAdjust = { viewModel.adjustLyricsOffset(it) },
-                            onReset = { viewModel.lyricsOffset = 0L },
-                            onClose = { viewModel.showLyricsOffsetControls = false },
-                            // Override modifier to adjust padding specifically here
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                    } else {
-                        WrongLyricsButton(
-                            onClick = { viewModel.isSearchingLyrics = true }
-                        )
-                    }
-                }
+                WrongLyricsButton(
+                    onClick = { viewModel.isSearchingLyrics = true }
+                )
             }
         }
     }
@@ -502,12 +662,12 @@
                     ),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = {
-                        viewModel.searchLyricsManual(query)
+                        viewModel.searchLyricsManual(query, viewModel.manualSearchProvider)
                         focusManager.clearFocus()
                     })
                 )
                 IconButton(onClick = {
-                    viewModel.searchLyricsManual(query)
+                    viewModel.searchLyricsManual(query, viewModel.manualSearchProvider)
                     focusManager.clearFocus()
                 }) {
                     Icon(Icons.Rounded.Search, stringResource(R.string.search_hint), tint = Color.White)
@@ -518,17 +678,42 @@
                 LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color.White)
             }
 
-            val searchResults = remember(viewModel.lyricSearchResults.toList()) {
-                viewModel.lyricSearchResults.toList()
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FilterChip(
+                    selected = viewModel.manualSearchProvider == "MUSIXMATCH",
+                    onClick = { viewModel.searchLyricsManual(query, "MUSIXMATCH") },
+                    label = { Text("Musixmatch", color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = Color.White
+                    )
+                )
+                FilterChip(
+                    selected = viewModel.manualSearchProvider == "LRCLIB",
+                    onClick = { viewModel.searchLyricsManual(query, "LRCLIB") },
+                    label = { Text("LrcLib", color = Color.White) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = Color.White
+                    )
+                )
+            }
+
+            val searchResults = remember(viewModel.unifiedLyricSearchResults.toList()) {
+                viewModel.unifiedLyricSearchResults.toList()
             }
     
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(items = searchResults, key = { it.id }) { result ->
+                items(items = searchResults, key = { it.id + it.provider }) { result ->
                     Card(
-                        onClick = { viewModel.selectLyricResult(result) },
+                        onClick = { viewModel.selectUnifiedLyricResult(result) },
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -545,9 +730,19 @@
                             }
                             Spacer(Modifier.width(8.dp))
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(makeTimeString((result.duration * 1000).toLong()), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.7f))
-                                if (!result.syncedLyrics.isNullOrEmpty()) {
-                                    Icon(Icons.Rounded.Timer, null, tint = Color.Green, modifier = Modifier.size(16.dp))
+                                Text(makeTimeString((result.durationSec * 1000).toLong()), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.7f))
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    if (result.hasLineSync) {
+                                        Icon(Icons.Rounded.Timer, null, tint = Color.Yellow, modifier = Modifier.size(14.dp))
+                                    }
+                                    if (result.hasWordSync) {
+                                        Icon(Icons.Rounded.Star, null, tint = Color.Green, modifier = Modifier.size(14.dp))
+                                    }
+                                    Text(
+                                        result.provider,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (result.provider == "MUSIXMATCH") Color(0xFFFF9800) else Color(0xFF4CAF50)
+                                    )
                                 }
                             }
                         }
@@ -680,5 +875,434 @@
             }
         }
     }
+
+@Composable
+fun QuickLyricsSettingsDialog(
+    viewModel: PlayerViewModel,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    val fontSize = viewModel.lyricsFontSize
+    val alignment = viewModel.lyricsAlignment
+    var preferLocal by remember { mutableStateOf(prefs.getLyricsPreferLocal()) }
+    var enableTranslation by remember { mutableStateOf(viewModel.isLyricsTranslationEnabled) }
+    var targetLang by remember { mutableStateOf(viewModel.lyricsTranslationLang) }
+    var showLangDialog by remember { mutableStateOf(false) }
+
+    if (showLangDialog) {
+        val systemLangCode = java.util.Locale.getDefault().language
+        val systemLabel = stringResource(R.string.theme_system)
+        val allLanguages = remember {
+            val locales = java.util.Locale.getISOLanguages()
+                .map { code ->
+                    val loc = java.util.Locale.forLanguageTag(code)
+                    code to loc.getDisplayLanguage(loc).replaceFirstChar { if (it.isLowerCase()) it.titlecase(loc) else it.toString() }
+                }
+                .filter { it.second.isNotBlank() && it.first.length == 2 }
+                .distinctBy { it.first }
+                .sortedBy { it.second }
+            val list = mutableListOf<Pair<String, String>>()
+            val systemLoc = locales.find { it.first == systemLangCode }
+            if (systemLoc != null) list.add(systemLoc.first to "${systemLoc.second} ($systemLabel)")
+            list.addAll(locales.filter { it.first != systemLangCode })
+            list
+        }
+        AlertDialog(
+            onDismissRequest = { showLangDialog = false },
+            title = { Text(stringResource(R.string.pref_lyrics_translation_lang)) },
+            text = {
+                LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                    items(allLanguages) { (code, name) ->
+                        Row(
+                            Modifier.fillMaxWidth().clickable {
+                                targetLang = code; showLangDialog = false
+                                viewModel.updateLyricsTranslationLang(code)
+                            }.padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = (targetLang == code), onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(name)
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showLangDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+        )
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = true)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Settings, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            stringResource(R.string.pref_lyrics_title),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Rounded.Close, stringResource(R.string.btn_close))
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // --- PROVIDER ---
+                Text(
+                    stringResource(R.string.pref_lyrics_provider_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = viewModel.lyricsProvider == com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY,
+                        onClick = { viewModel.updateLyricsProvider(com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY) },
+                        label = { Text(stringResource(R.string.pref_lyrics_provider_max_quality)) }
+                    )
+                    FilterChip(
+                        selected = viewModel.lyricsProvider == com.alananasss.kittytune.ui.player.LyricsProvider.OPEN_SOURCE,
+                        onClick = { viewModel.updateLyricsProvider(com.alananasss.kittytune.ui.player.LyricsProvider.OPEN_SOURCE) },
+                        label = { Text(stringResource(R.string.pref_lyrics_provider_open_source)) }
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // --- SYNC OFFSET ---
+                val currentOffsetMs = viewModel.lyricsOffset
+                val currentOffsetSec = currentOffsetMs / 1000f
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Timer, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(R.string.lyrics_sync),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    val sign = if (currentOffsetMs > 0) "+" else ""
+                    Text(
+                        text = String.format(java.util.Locale.US, "%s%.2fs", sign, currentOffsetSec),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (currentOffsetMs != 0L) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(
+                        "-1s" to -1000L,
+                        "-.1s" to -100L,
+                        "0s" to 0L,
+                        "+.1s" to 100L,
+                        "+1s" to 1000L
+                    ).forEach { (label, amount) ->
+                        val isReset = amount == 0L
+                        OutlinedButton(
+                            onClick = {
+                                if (isReset) viewModel.lyricsOffset = 0L
+                                else viewModel.adjustLyricsOffset(amount)
+                            },
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            colors = if (isReset && currentOffsetMs == 0L) ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ) else ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // --- FONT SIZE ---
+                Text(
+                    stringResource(R.string.pref_lyrics_size),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "${fontSize.roundToInt()} sp",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(56.dp)
+                    )
+                    IconButton(
+                        onClick = { viewModel.updateLyricsFontSize((fontSize - 2f).coerceAtLeast(12f)) },
+                        modifier = Modifier.size(36.dp)
+                    ) { Icon(Icons.Rounded.Remove, null) }
+                    Slider(
+                        value = fontSize,
+                        onValueChange = { viewModel.updateLyricsFontSize(it) },
+                        valueRange = 12f..48f,
+                        steps = 17,
+                        modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
+                    )
+                    IconButton(
+                        onClick = { viewModel.updateLyricsFontSize((fontSize + 2f).coerceAtMost(48f)) },
+                        modifier = Modifier.size(36.dp)
+                    ) { Icon(Icons.Rounded.Add, null) }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // --- ALIGNMENT ---
+                Text(
+                    stringResource(R.string.pref_lyrics_align),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = alignment == LyricsAlignment.LEFT,
+                        onClick = { viewModel.updateLyricsAlignment(LyricsAlignment.LEFT) },
+                        label = { Text(stringResource(R.string.align_left)) },
+                        leadingIcon = { Icon(Icons.Rounded.FormatAlignLeft, null, Modifier.size(16.dp)) }
+                    )
+                    FilterChip(
+                        selected = alignment == LyricsAlignment.CENTER,
+                        onClick = { viewModel.updateLyricsAlignment(LyricsAlignment.CENTER) },
+                        label = { Text(stringResource(R.string.align_center_simple)) },
+                        leadingIcon = { Icon(Icons.Rounded.FormatAlignCenter, null, Modifier.size(16.dp)) }
+                    )
+                    FilterChip(
+                        selected = alignment == LyricsAlignment.RIGHT,
+                        onClick = { viewModel.updateLyricsAlignment(LyricsAlignment.RIGHT) },
+                        label = { Text(stringResource(R.string.align_right)) },
+                        leadingIcon = { Icon(Icons.Rounded.FormatAlignRight, null, Modifier.size(16.dp)) }
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider()
+
+                // --- TOGGLES ---
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                        Text(stringResource(R.string.pref_lyrics_local), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.pref_lyrics_local_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = preferLocal, onCheckedChange = { preferLocal = it; prefs.setLyricsPreferLocal(it) })
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                        Text(stringResource(R.string.pref_lyrics_word_sync), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.pref_lyrics_word_sync_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = viewModel.isWordSyncEnabled, onCheckedChange = { viewModel.toggleWordSync(it) })
+                }
+
+                AnimatedVisibility(visible = viewModel.isWordSyncEnabled) {
+                    Column {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                                Text(stringResource(R.string.pref_lyrics_apple_effect), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.pref_lyrics_apple_effect_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(checked = viewModel.isAppleMusicEffectEnabled, onCheckedChange = { viewModel.toggleAppleMusicEffect(it) })
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                        Text(stringResource(R.string.pref_lyrics_translation_title), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.pref_lyrics_translation_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = enableTranslation,
+                        onCheckedChange = {
+                            enableTranslation = it
+                            viewModel.toggleLyricsTranslation(it)
+                        }
+                    )
+                }
+
+                if (enableTranslation) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable { showLangDialog = true }.padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(stringResource(R.string.pref_lyrics_translation_lang), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(targetLang.uppercase(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            Icon(Icons.Rounded.ArrowDropDown, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+                        Text(stringResource(R.string.pref_lyrics_romanization), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.pref_lyrics_romanization_sub), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = viewModel.isRomanizationEnabled,
+                        onCheckedChange = { viewModel.toggleRomanization(it) }
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(12.dp))
+
+                Button(
+                    onClick = {
+                        onDismiss()
+                        viewModel.isSearchingLyrics = true
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Icon(Icons.Rounded.Search, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.lyrics_manual_search), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun UploadYamlDialog(
+    viewModel: PlayerViewModel,
+    onDismiss: () -> Unit
+) {
+    var lyricsText by remember { mutableStateOf("") }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = true)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.btn_upload_yaml), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.btn_close)) }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = lyricsText,
+                    onValueChange = { lyricsText = it },
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 300.dp),
+                    placeholder = { Text(stringResource(R.string.lyrics_paste_hint)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                    )
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        if (lyricsText.isNotBlank()) {
+                            viewModel.loadCustomLyrics(lyricsText)
+                            onDismiss()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = lyricsText.isNotBlank()
+                ) {
+                    Text(stringResource(R.string.btn_load))
+                }
+            }
+        }
+    }
+}
 
 
