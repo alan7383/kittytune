@@ -58,6 +58,7 @@
     import androidx.compose.ui.zIndex
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
+    import com.alananasss.kittytune.ui.common.viewableCover
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.DownloadManager
     import com.alananasss.kittytune.domain.Playlist
@@ -423,11 +424,12 @@
             contentAlignment = Alignment.Center
         ) {
             if (!avatarUrl.isNullOrEmpty()) {
+                val fullUrl = avatarUrl.replace("large", "t500x500")
                 AsyncImage(
-                    model = avatarUrl.replace("large", "t500x500"),
+                    model = fullUrl,
                     contentDescription = stringResource(R.string.profile_avatar),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().viewableCover(fullUrl)
                 )
             } else {
                 Icon(
@@ -543,7 +545,7 @@
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        shape = RoundedCornerShape(50),
+                        shapes = ButtonDefaults.shapes(),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     ) {
                         Text(stringResource(R.string.profile_edit), fontWeight = FontWeight.SemiBold)
@@ -561,7 +563,7 @@
                                 },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(56.dp), shape = RoundedCornerShape(50),
+                                    .height(56.dp), shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
                                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                             ) {
@@ -577,7 +579,7 @@
                                 onClick = { onNavigate("station_artist:${user.id}") },
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(56.dp), shape = RoundedCornerShape(50),
+                                    .height(56.dp), shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
                             ) {
                                 Icon(Icons.Default.Radio, null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(8.dp));
@@ -962,13 +964,15 @@
                         Button(
                             onClick = { playerViewModel.playPlaylist(tracks, context = context) },
                             modifier = Modifier.weight(1f),
+                            shapes = ButtonDefaults.shapes(),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_play))
                         }
                         FilledTonalButton(
                             onClick = { playerViewModel.playPlaylist(tracks.shuffled(), context = context) },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Shuffle, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_shuffle))
                         }

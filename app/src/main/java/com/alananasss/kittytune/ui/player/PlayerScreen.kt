@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import coil.compose.AsyncImage
+import com.alananasss.kittytune.ui.common.viewableCover
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.local.LyricsAlignment
@@ -969,7 +970,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp).padding(horizontal = 8.dp)) {
-            AsyncImage(model = track.fullResArtwork, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop)
+            AsyncImage(model = track.fullResArtwork, contentDescription = null, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant).viewableCover(track.fullResArtwork), contentScale = ContentScale.Crop)
             Spacer(Modifier.width(16.dp))
             Column {
                 Text(text = track.title ?: stringResource(R.string.untitled_track), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -2266,7 +2267,7 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
 
     LazyColumn(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding()) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp, top = 16.dp)) { AsyncImage(model = track.fullResArtwork, contentDescription = null, modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant), contentScale = ContentScale.Crop); Spacer(Modifier.width(16.dp)); Column {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp, top = 16.dp)) { AsyncImage(model = track.fullResArtwork, contentDescription = null, modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).viewableCover(track.fullResArtwork), contentScale = ContentScale.Crop); Spacer(Modifier.width(16.dp)); Column {
                 Text(text = track.title ?: stringResource(R.string.untitled_track), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 // updated verified row in details sheet
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { if (track.id > 0) { onClose(); track.user?.id?.let { if (it > 0) viewModel.navigateToArtist(it) } } }) {
@@ -2296,8 +2297,8 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { DetailStatItem(icon = Icons.Rounded.PlayArrow, value = formatNumber(track.playbackCount), label = stringResource(R.string.detail_stats_plays)); DetailStatItem(icon = Icons.Rounded.Favorite, value = formatNumber(track.likesCount), label = stringResource(R.string.detail_stats_likes), onClick = { viewModel.navigateToTrackDetails(track.id, 0) }); DetailStatItem(icon = Icons.Rounded.Repeat, value = formatNumber(track.repostsCount), label = stringResource(R.string.detail_stats_reposts), onClick = { viewModel.navigateToTrackDetails(track.id, 1) }) }
                 Spacer(Modifier.height(24.dp))
             }
-            item { OutlinedButton(onClick = { onClose(); viewModel.navigateToTrackDetails(track.id) }, modifier = Modifier.fillMaxWidth().height(50.dp), shape = RoundedCornerShape(50), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)) { Icon(Icons.Rounded.Hub, null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.detail_see_similar), fontWeight = FontWeight.SemiBold) }; Spacer(Modifier.height(16.dp)) }
-            item { Button(onClick = onOpenComments, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(16.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) { Icon(Icons.AutoMirrored.Rounded.Comment, null); Spacer(Modifier.width(12.dp)); Text(text = stringResource(R.string.detail_see_comments, formatNumber(track.commentCount)), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)) }; Spacer(Modifier.height(24.dp)) }
+            item { OutlinedButton(onClick = { onClose(); viewModel.navigateToTrackDetails(track.id) }, modifier = Modifier.fillMaxWidth().height(50.dp), shapes = ButtonDefaults.shapes(), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)), colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)) { Icon(Icons.Rounded.Hub, null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(12.dp)); Text(stringResource(R.string.detail_see_similar), fontWeight = FontWeight.SemiBold) }; Spacer(Modifier.height(16.dp)) }
+            item { Button(onClick = onOpenComments, modifier = Modifier.fillMaxWidth().height(56.dp), shapes = ButtonDefaults.shapes(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)) { Icon(Icons.AutoMirrored.Rounded.Comment, null); Spacer(Modifier.width(12.dp)); Text(text = stringResource(R.string.detail_see_comments, formatNumber(track.commentCount)), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)) }; Spacer(Modifier.height(24.dp)) }
             item { DetailInfoRow(stringResource(R.string.detail_release_date), releaseDateStr); if (!track.genre.isNullOrBlank()) { DetailInfoRow(stringResource(R.string.detail_genre), track.genre) }; Spacer(Modifier.height(16.dp)) }
             if (!track.description.isNullOrBlank()) { item { Text(stringResource(R.string.detail_description), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold); Spacer(Modifier.height(8.dp)); ExpandableDescription(text = track.description, onUrlClick = { url -> uriHandler.openUri(url) }, onMentionClick = { username -> onClose(); viewModel.resolveAndNavigateToArtist(username) }); Spacer(Modifier.height(24.dp)) } }
             if (tags.isNotEmpty()) {
