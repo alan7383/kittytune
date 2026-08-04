@@ -2,6 +2,10 @@
     
     enum class RepeatMode { NONE, ALL, ONE }
     
+    enum class LyricsProvider { MAX_QUALITY, OPEN_SOURCE }
+    
+    enum class NormalizationLevel { QUIET, NORMAL, LOUD }
+    
     data class AudioEffectsState(
         val speed: Float = 1f,
         val isPitchEnabled: Boolean = true,
@@ -15,7 +19,10 @@
         val eightDSpeed: Float = 0.5f,
         val reverbIntensity: Float = 0.5f,
         val muffledIntensity: Float = 0.5f,
-        val isEarrapeEnabled: Boolean = false
+        val isEarrapeEnabled: Boolean = false,
+        val isMonoEnabled: Boolean = false,
+        val isNormalizationEnabled: Boolean = false,
+        val normalizationLevel: NormalizationLevel = NormalizationLevel.NORMAL
     )
     
     data class PlaybackContext(
@@ -25,5 +32,4 @@
         val artistName: String? = null,
         val isVerified: Boolean = false
     )
-
 

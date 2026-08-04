@@ -55,6 +55,7 @@
     import androidx.compose.ui.zIndex
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
+    import com.alananasss.kittytune.ui.common.viewableCover
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.DownloadManager
     import com.alananasss.kittytune.data.LikeRepository
@@ -700,7 +701,7 @@ enum class TrackSortBy {
                                 Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
                                     Box {
                                         Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(12.dp), modifier = Modifier.size(160.dp)) {
-                                            if (!playlistCover.isNullOrEmpty()) AsyncImage(model = playlistCover, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                                            if (!playlistCover.isNullOrEmpty()) AsyncImage(model = playlistCover, contentDescription = null, modifier = Modifier.fillMaxSize().viewableCover(playlistCover), contentScale = ContentScale.Crop)
                                             else if (defaultIcon != null) Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) { Icon(defaultIcon!!, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary) }
                                             else Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) { Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                                         }

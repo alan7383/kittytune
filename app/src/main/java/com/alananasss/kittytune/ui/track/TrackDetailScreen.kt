@@ -35,6 +35,7 @@
     import androidx.compose.ui.unit.dp
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
+    import com.alananasss.kittytune.ui.common.viewableCover
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.DownloadManager
     import com.alananasss.kittytune.domain.Playlist
@@ -112,7 +113,7 @@
                             AsyncImage(
                                 model = track!!.fullResArtwork,
                                 contentDescription = null,
-                                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)),
+                                modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).viewableCover(track.fullResArtwork),
                                 contentScale = ContentScale.Crop
                             )
                             Spacer(Modifier.width(16.dp))

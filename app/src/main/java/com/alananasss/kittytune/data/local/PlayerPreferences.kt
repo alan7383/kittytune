@@ -67,6 +67,13 @@ class PlayerPreferences(context: Context) {
         private const val KEY_PRECISE_LYRICS_SEARCH = "precise_lyrics_search_enabled"
         private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
 
+        private const val KEY_LYRICS_PROVIDER = "lyrics_provider"
+        private const val KEY_LYRICS_TRANSLATION = "lyrics_translation_enabled"
+        private const val KEY_LYRICS_TRANSLATION_LANG = "lyrics_translation_lang"
+        private const val KEY_LYRICS_ROMANIZATION = "lyrics_romanization_enabled"
+        private const val KEY_LYRICS_WORD_SYNC = "lyrics_word_sync_enabled"
+        private const val KEY_LYRICS_APPLE_EFFECT = "lyrics_apple_effect_enabled"
+
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
         private const val KEY_CUSTOM_FONT_ENABLED = "custom_font_enabled"
@@ -211,6 +218,31 @@ class PlayerPreferences(context: Context) {
 
     fun getLyricsFontSize(): Float = getSafeFloat(KEY_LYRICS_FONT_SIZE, 26f)
     fun setLyricsFontSize(size: Float) = prefs.edit { putFloat(KEY_LYRICS_FONT_SIZE, size) }
+
+    fun getLyricsProvider(): com.alananasss.kittytune.ui.player.LyricsProvider {
+        val name = prefs.getString(KEY_LYRICS_PROVIDER, com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY.name)
+        return try { com.alananasss.kittytune.ui.player.LyricsProvider.valueOf(name!!) } catch (_: Exception) { com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY }
+    }
+    fun setLyricsProvider(provider: com.alananasss.kittytune.ui.player.LyricsProvider) = prefs.edit { putString(KEY_LYRICS_PROVIDER, provider.name) }
+
+    fun getLyricsTranslationEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_TRANSLATION, false)
+    fun setLyricsTranslationEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_TRANSLATION, enabled) }
+
+    fun getLyricsTranslationLang(): String {
+        val code = prefs.getString(KEY_LYRICS_TRANSLATION_LANG, null)
+        if (code != null) return code
+        return java.util.Locale.getDefault().language.take(2).lowercase()
+    }
+    fun setLyricsTranslationLang(lang: String) = prefs.edit { putString(KEY_LYRICS_TRANSLATION_LANG, lang) }
+
+    fun getLyricsRomanizationEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_ROMANIZATION, false)
+    fun setLyricsRomanizationEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_ROMANIZATION, enabled) }
+
+    fun getLyricsWordSyncEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_WORD_SYNC, true)
+    fun setLyricsWordSyncEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_WORD_SYNC, enabled) }
+
+    fun getLyricsAppleEffectEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_APPLE_EFFECT, true)
+    fun setLyricsAppleEffectEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_APPLE_EFFECT, enabled) }
     fun getLocalMediaEnabled(): Boolean = prefs.getBoolean(KEY_LOCAL_MEDIA_ENABLED, false)
     fun setLocalMediaEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LOCAL_MEDIA_ENABLED, enabled) }
     fun getLocalMediaUris(): Set<String> = prefs.getStringSet(KEY_LOCAL_MEDIA_URIS_SET, emptySet()) ?: emptySet()

@@ -210,9 +210,7 @@
                 try {
                     val response = api.getUserCommentsNextPage(commentsNextUrl!!)
                     val validComments = response.collection.filter { it.track != null }
-    
                     userComments.addAll(validComments)
-    
                     commentsNextUrl = response.next_href
                 } catch (e: Exception) {
                     e.printStackTrace()
