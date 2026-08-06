@@ -22,7 +22,7 @@ object FreeTranslator {
             .build()
 
         val request = okhttp3.Request.Builder()
-            .url("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=\$targetLang&dt=t")
+            .url("https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=$targetLang&dt=t")
             .post(requestBody)
             .header("User-Agent", "Mozilla/5.0")
             .build()
