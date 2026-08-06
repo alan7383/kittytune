@@ -1,45 +1,60 @@
-    package com.alananasss.kittytune.data.network
-    
-    import com.google.gson.annotations.SerializedName
-    import retrofit2.Retrofit
-    import retrofit2.converter.gson.GsonConverterFactory
-    import retrofit2.http.GET
-    import retrofit2.http.Query
-    
-    data class LrcLibResponse(
-        val id: Long,
-        val name: String,
-        @SerializedName("artistName") val artistName: String,
-        @SerializedName("albumName") val albumName: String?,
-        @SerializedName("duration") val duration: Double,
-        @SerializedName("plainLyrics") val plainLyrics: String?,
-        @SerializedName("syncedLyrics") val syncedLyrics: String?
-    )
-    
-    interface LrcLibApiService {
-        @GET("get")
-        suspend fun getLyrics(
-            @Query("track_name") trackName: String,
-            @Query("artist_name") artistName: String,
-            @Query("duration") duration: Long
-        ): LrcLibResponse
-    
-        @GET("search")
-        suspend fun searchLyrics(
-            @Query("q") query: String
-        ): List<LrcLibResponse>
-    }
-    
-    object LrcLibClient {
-        private const val BASE_URL = "https://lrclib.net/api/"
-    
-        val api: LrcLibApiService by lazy {
-            Retrofit.Builder()
-                .baseUrl(BASE_URL)
-                .addConverterFactory(GsonConverterFactory.create())
+package com.alananasss.kittytune.data.network
+
+import com.google.gson.annotations.SerializedName
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
+import retrofit2.http.Query
+import java.util.concurrent.TimeUnit
+
+data class LrcLibResponse(
+    val id: Long,
+    val name: String,
+    @SerializedName("artistName") val artistName: String,
+    @SerializedName("albumName") val albumName: String?,
+    @SerializedName("duration") val duration: Double,
+    @SerializedName("plainLyrics") val plainLyrics: String?,
+    @SerializedName("syncedLyrics") val syncedLyrics: String?
+)
+
+interface LrcLibApiService {
+    @GET("get")
+    suspend fun getLyrics(
+        @Query("track_name") trackName: String,
+        @Query("artist_name") artistName: String,
+        @Query("duration") duration: Long
+    ): LrcLibResponse
+
+    @GET("search")
+    suspend fun searchLyrics(
+        @Query("q") query: String
+    ): List<LrcLibResponse>
+}
+
+object LrcLibClient {
+    private const val BASE_URL = "https://lrclib.net/api/"
+
+    private val httpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("User-Agent", "KittyTune/1.0 (Android; https://github.com/alananasss/kittytune)")
+                .header("Accept", "application/json")
                 .build()
-                .create(LrcLibApiService::class.java)
+            chain.proceed(request)
         }
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
+    val api: LrcLibApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(httpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(LrcLibApiService::class.java)
     }
+}
 
 

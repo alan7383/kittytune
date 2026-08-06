@@ -190,6 +190,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
                             shouldOpenSearch = openSearchState,
                             onSearchHandled = { _shouldOpenSearch.value = false }
                         )
+                        com.alananasss.kittytune.ui.common.CoverViewerOverlay()
                     }
                 }
             }
