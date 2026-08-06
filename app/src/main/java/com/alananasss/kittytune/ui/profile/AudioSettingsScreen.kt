@@ -199,7 +199,6 @@ fun AudioSettingsScreen(
                                         com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> stringResource(R.string.pref_norm_level_loud)
                                     },
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
@@ -210,7 +209,7 @@ fun AudioSettingsScreen(
                                         com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> "\u221211 LUFS"
                                     },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = androidx.compose.material3.LocalContentColor.current.copy(alpha = 0.8f),
                                     maxLines = 1
                                 )
                             }
