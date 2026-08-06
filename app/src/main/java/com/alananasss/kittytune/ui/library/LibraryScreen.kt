@@ -450,7 +450,8 @@ import kotlinx.coroutines.launch
                     ) {
                         ArtistAvatar(
                             avatarUrl = if (isGuest) null else avatarUrl,
-                            modifier = Modifier.size(32.dp).clip(CircleShape)
+                            modifier = Modifier.size(32.dp).clip(CircleShape),
+                            enableViewer = false
                         )
                     }
                 }
