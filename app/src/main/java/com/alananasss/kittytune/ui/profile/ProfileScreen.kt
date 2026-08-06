@@ -70,6 +70,9 @@
     import com.alananasss.kittytune.ui.player.PlaybackContext
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import com.alananasss.kittytune.domain.Comment
+    import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.launch
+    import kotlinx.coroutines.withContext
     import java.io.File
     import java.text.NumberFormat
     import java.util.Locale
@@ -418,7 +421,7 @@
     
     
     @Composable
-    fun ArtistAvatar(modifier: Modifier = Modifier, avatarUrl: String?) {
+    fun ArtistAvatar(modifier: Modifier = Modifier, avatarUrl: String?, enableViewer: Boolean = true) {
         Box(
             modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -429,7 +432,7 @@
                     model = fullUrl,
                     contentDescription = stringResource(R.string.profile_avatar),
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().viewableCover(fullUrl)
+                    modifier = Modifier.fillMaxSize().let { if (enableViewer) it.viewableCover(fullUrl) else it }
                 )
             } else {
                 Icon(
@@ -1234,10 +1237,15 @@
                         }
                     }
     
+                    var translatedText by remember { mutableStateOf<String?>(null) }
+                    var showTranslation by remember { mutableStateOf(false) }
+                    var isTranslating by remember { mutableStateOf(false) }
+                    val scope = rememberCoroutineScope()
+
                     Spacer(Modifier.height(12.dp))
-    
+
                     Text(
-                        text = comment.body,
+                        text = if (showTranslation && !translatedText.isNullOrEmpty()) translatedText!! else comment.body,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             lineHeight = 20.sp
                         ),
@@ -1245,7 +1253,75 @@
                         maxLines = 4,
                         overflow = TextOverflow.Ellipsis
                     )
-    
+
+                    val currentLocale = java.util.Locale.getDefault()
+                    val langName = remember(currentLocale) {
+                        currentLocale.getDisplayLanguage(currentLocale).replaceFirstChar { if (it.isLowerCase()) it.titlecase(currentLocale) else it.toString() }
+                    }
+                    val langCode = currentLocale.language
+                    val context = LocalContext.current
+
+                    var isTargetLanguage by remember(comment.body, langCode) { mutableStateOf(false) }
+                    LaunchedEffect(comment.body, langCode) {
+                        val cleanText = comment.body.replace(Regex("[^\\p{L}\\p{Nd}\\s]"), "").trim()
+                        if (cleanText.isBlank()) {
+                            isTargetLanguage = true
+                        } else {
+                            val languageIdentifier = com.google.mlkit.nl.languageid.LanguageIdentification.getClient()
+                            languageIdentifier.identifyLanguage(cleanText)
+                                .addOnSuccessListener { language ->
+                                    if (language == langCode || language == "und") {
+                                        isTargetLanguage = true
+                                    }
+                                }
+                        }
+                    }
+
+                    if (translatedText == null && !isTranslating && !isTargetLanguage) {
+                        Text(
+                            text = stringResource(R.string.comment_translate, langName),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    isTranslating = true
+                                    scope.launch(Dispatchers.IO) {
+                                        val res = com.alananasss.kittytune.data.network.FreeTranslator.translateMissing(listOf(comment.body), langCode)
+                                        val t = res[comment.body.trim()]
+                                        withContext(Dispatchers.Main) {
+                                            if (t != null && t.lowercase() != comment.body.trim().lowercase()) {
+                                                translatedText = t
+                                                showTranslation = true
+                                            } else {
+                                                translatedText = ""
+                                            }
+                                            isTranslating = false
+                                        }
+                                    }
+                                }
+                                .padding(vertical = 2.dp)
+                        )
+                    } else if (isTranslating) {
+                        Text(
+                            text = stringResource(R.string.comment_translating),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        )
+                    } else if (!translatedText.isNullOrEmpty()) {
+                        Text(
+                            text = if (showTranslation) stringResource(R.string.comment_see_original) else stringResource(R.string.comment_translate, langName),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { showTranslation = !showTranslation }
+                                .padding(vertical = 2.dp)
+                        )
+                    }
+
                     Text(
                         text = com.alananasss.kittytune.ui.library.getRelativeTime(comment.createdAt, LocalContext.current),
                         style = MaterialTheme.typography.labelSmall,

@@ -267,7 +267,7 @@ import kotlinx.coroutines.launch
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = onLoginClick) { Text(stringResource(R.string.login_soundcloud)) }
+                        Button(onClick = onLoginClick, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.login_soundcloud)) }
                     }
                 }
             } else {

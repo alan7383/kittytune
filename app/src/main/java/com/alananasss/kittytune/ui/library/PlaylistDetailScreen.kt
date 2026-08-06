@@ -958,7 +958,7 @@ enum class TrackSortBy {
                                                     Button(
                                                         onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList(), 0, playbackContext) },
                                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary),
-                                                        shape = RoundedCornerShape(50),
+                                                        shapes = ButtonDefaults.shapes(),
                                                         modifier = Modifier.weight(1f).height(50.dp)
                                                     ) {
                                                         Icon(Icons.Default.PlayArrow, null)
@@ -968,7 +968,7 @@ enum class TrackSortBy {
                                                     FilledTonalButton(
                                                         onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList().shuffled(), context = playbackContext) },
                                                         colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest, contentColor = MaterialTheme.colorScheme.onSurface),
-                                                        shape = RoundedCornerShape(50),
+                                                        shapes = ButtonDefaults.shapes(),
                                                         modifier = Modifier.weight(1f).height(50.dp)
                                                     ) {
                                                         Icon(Icons.Default.Shuffle, null)
