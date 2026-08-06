@@ -31,6 +31,9 @@
     <string name="btn_shuffle">Aléatoire</string>
     <string name="btn_download">Télécharger</string>
     <string name="btn_downloaded">Téléchargé</string>
+    <string name="comment_translate">Traduire en %1$s</string>
+    <string name="comment_translating">Traduction…</string>
+    <string name="comment_see_original">Voir l\'original</string>
     <string name="btn_share">Partager</string>
     <string name="btn_follow">Follow</string>
     <string name="all_filters">Tout</string>
@@ -221,8 +224,6 @@
     <string name="dialog_delete_playlist_title">Supprimer la playlist ?</string>
     <string name="dialog_delete_playlist_msg">Cette action est irréversible</string>
     <string name="dialog_delete_playlist_from_lib_title">Retirer de la bibliothèque ?</string>
-    <string name="dialog_rename_playlist_title">Renommer</string>
-    <string name="dialog_rename_playlist_hint">Nouveau nom</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -442,7 +443,6 @@
     <string name="pref_seed_palette_title">Palette de seeds</string>
     <string name="pref_custom_seed_title">Seed personnalise</string>
     <string name="pref_color_generation_title">Moteur couleur</string>
-    <string name="color_seed_auto">Auto</string>
     <string name="color_hex_label">Hex</string>
     <string name="color_hue_label">Teinte</string>
     <string name="color_saturation_label">Saturation</string>
@@ -547,13 +547,21 @@
     <string name="pref_download_drm_sub">Activez pour garder les DRM en cache interne. Désactivez pour forcer la conversion MP3 via YouTube (NewPipe).</string>
     <string name="drm_explanation_text">Les pistes protégées par DRM sont cryptées par les ayants droit pour empêcher leur extraction et garantir les droits d\'auteur.\n\n• Activé (Recommandé) : La musique est téléchargée dans sa qualité d\'origine au sein du cache sécurisé de KittyTune. Elle ne sera lisible qu\'à l\'intérieur de l\'application et n\'apparaîtra pas dans votre dossier de téléchargement configuré.\n\n• Désactivé : KittyTune ignorera la version protégée et tentera de télécharger la chanson via YouTube. Le fichier sera converti en MP3 standard et sauvegardé dans le dossier de votre choix. Attention : la recherche étant automatique, il est possible de télécharger un contenu erroné (comme un clip vidéo ou une reprise) si le titre n\'est pas très connu.</string>
     <!-- SYNC -->
+    <!-- AUDIO DSP & PERSISTANCE -->
+    <string name="pref_audio_mono">Audio Mono</string>
+    <string name="pref_audio_mono_sub">Mixe les deux canaux en un seul, utile pour les malentendants</string>
+    <string name="pref_norm_title">Normalisation du volume</string>
+    <string name="pref_norm_sub">Équilibre le volume entre les pistes comme Spotify</string>
+    <string name="pref_norm_level_quiet">Silencieux</string>
+    <string name="pref_norm_level_normal">Normal</string>
+    <string name="pref_norm_level_loud">Fort</string>
+    <string name="pref_save_position">Se souvenir de la position</string>
+    <string name="pref_save_position_sub">Reprend là où vous vous étiez arrêté au redémarrage</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Paroles</string>
     <string name="pref_lyrics_subtitle">Affichage et source</string>
     <string name="pref_lyrics_local">Priorité aux fichiers locaux</string>
     <string name="pref_lyrics_local_sub">Utiliser les tags ID3 intégrés si disponibles</string>
-    <string name="pref_lyrics_precise">Recherche précise</string>
-    <string name="pref_lyrics_precise_sub">Utiliser artiste + titre pour des résultats plus précis</string>
     <string name="pref_lyrics_align">Alignement</string>
     <string name="pref_lyrics_size">Taille</string>
     <string name="pref_lyrics_show_button">Afficher le bouton paroles</string>
@@ -572,9 +580,11 @@
     <string name="pref_lyrics_word_sync_sub">Surligne les paroles mot par mot quand c\'est disponible.</string>
     <string name="pref_lyrics_apple_effect">Effet de remplissage fluide</string>
     <string name="pref_lyrics_apple_effect_sub">Remplit les lettres de façon fluide au lieu de sauter d\'un mot à l\'autre.</string>
-    <string name="lyrics_paste_hint">Coller paroles LRC ou YAML…</string>
-    <string name="btn_upload_yaml">Charger paroles personnalisées</string>
-    <string name="btn_load">Charger</string>
+    <string name="custom_lyrics_title">Importer Lyricsfile (YAML)</string>
+    <string name="custom_lyrics_desc_1">Le format Lyricsfile est un format YAML ouvert pour les paroles synchronisées ligne par ligne ou mot par mot (Karaoké). Il permet une précision d\'affichage parfaite pour chaque mot.</string>
+    <string name="custom_lyrics_desc_2">Vous pouvez importer un fichier .lyricsfile.yaml ou .lrc depuis votre appareil pour tester la synchronisation en direct sur KittyTune !</string>
+    <string name="custom_lyrics_doc">Documentation: https://lrclib.net/lyricsfile</string>
+    <string name="btn_import_yaml">+ Importer YAML</string>
     <string name="align_left">Gauche</string>
     <string name="align_center">Centré</string>
     <string name="align_center_simple">Centré</string>
@@ -825,8 +835,6 @@
     <string name="streak_popup_subtitle">%1$d Jour(s)</string>
     <string name="test_notification_triggered">Test notification envoyé</string>
     <string name="channel_name">Lecteur</string>
-    <string name="channel_description">Contrôle la musique</string>
-    <string name="notification_content_default">Lecture</string>
     <string name="desc_previous">Précédent</string>
     <string name="action_unlike">Unlike</string>
     <string name="widget_default_title">KittyTune</string>
@@ -977,7 +985,6 @@
     <string name="fab_settings_radio">Radio • YouTube</string>
     <string name="welcome_warning_title">Fortement recommandé</string>
     <string name="welcome_warning_desc">KittyTune a besoin des notifications pour afficher le lecteur de musique en arrière-plan. Sans cela, vous ne pourrez pas mettre en pause ou passer des titres en dehors de l\'application.\n\nÊtes-vous sûr de vouloir ignorer ?</string>
-    <string name="menu_sort_by">Trier par</string>
     <string name="sort_first_added">Ajoutés en premier</string>
     <string name="sort_recently_added">Récemment ajoutés</string>
     <string name="sort_title_az">Titre (A-Z)</string>
@@ -1002,4 +1009,12 @@
     <string name="recognition_listen_on_kittytune">Écouter sur KittyTune</string>
     <string name="btn_retry">Réessayer</string>
     <string name="recognition_track_not_found">Titre introuvable</string>
+    <string name="cover_copy_link">Copier le lien</string>
+    <string name="cover_saved">Image sauvegardée</string>
+    <string name="cover_save_error">Erreur lors de la sauvegarde</string>
+    <string name="pref_norm_desc">La normalisation du volume équilibre les pistes douces et fortes pour une écoute cohérente (norme ITU 1770 via libebur128). Le volume est ajusté dynamiquement pour correspondre au LUFS cible, avec un limiteur intégré pour éviter la distorsion.</string>
+    <!-- Volume Normalization Info Dialog -->
+    <string name="pref_norm_info_title">Comprendre la normalisation du volume</string>
+    <string name="pref_norm_info_body_1">Certaines chansons sont enregistrées très fort et d\'autres beaucoup plus doucement. La normalisation ajuste automatiquement le volume de chaque morceau pour que toutes vos musiques s\'enchaînent au même niveau sonore, sans que vous n\'ayez besoin de régler le volume sans arrêt.</string>
+    <string name="pref_norm_info_body_2">Comment ça marche ?\n• KittyTune mesure le niveau sonore réel de chaque musique (en LUFS).\n• Pendant la lecture, le volume est ajusté de manière fluide pour atteindre le niveau cible que vous avez choisi.\n• Un limiteur intégré empêche toute saturation ou grésillement.\n\nNiveaux disponibles :\n• Calme (-19 LUFS) : Idéal pour une écoute détendue au casque ou au calme.\n• Normal (-14 LUFS) : Le standard utilisé par Spotify et YouTube, équilibré pour la plupart des morceaux.\n• Fort (-11 LUFS) : Pour les environnements bruyants (voiture, extérieur) ou enceintes.</string>
 </resources>

@@ -66,6 +66,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_DISCORD_ENABLED = "discord_rpc_enabled"
         private const val KEY_PRECISE_LYRICS_SEARCH = "precise_lyrics_search_enabled"
         private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
+        private const val KEY_SAVE_POSITION = "save_position_enabled"
 
         private const val KEY_LYRICS_PROVIDER = "lyrics_provider"
         private const val KEY_LYRICS_TRANSLATION = "lyrics_translation_enabled"
@@ -346,6 +347,16 @@ class PlayerPreferences(context: Context) {
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
+    fun getSavePositionEnabled(): Boolean = prefs.getBoolean(KEY_SAVE_POSITION, true)
+    fun setSavePositionEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SAVE_POSITION, enabled) }
+
+    /** Quickly saves only the playback position (called every 5 s during playback). */
+    fun savePosition(position: Long) {
+        if (getSavePositionEnabled()) {
+            prefs.edit { putLong(KEY_POSITION, position) }
+        }
+    }
+
     fun savePlaybackState(track: Track?, position: Long, queue: List<Track>, context: PlaybackContext?, shuffleEnabled: Boolean, repeatMode: RepeatMode) {
         if (!getPersistentQueueEnabled()) {
             prefs.edit {
@@ -358,7 +369,7 @@ class PlayerPreferences(context: Context) {
             }
             return
         }
-        
+
         if (queue.isNotEmpty()) {
             try {
                 FileWriter(queueFile).use { writer ->
@@ -368,11 +379,11 @@ class PlayerPreferences(context: Context) {
                 e.printStackTrace()
             }
         }
-        
+
         prefs.edit {
             track?.let { putString(KEY_TRACK_JSON, gson.toJson(it)) }
             putString(KEY_CONTEXT_JSON, gson.toJson(context))
-            putLong(KEY_POSITION, position)
+            if (getSavePositionEnabled()) putLong(KEY_POSITION, position) else remove(KEY_POSITION)
             putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled)
             putString(KEY_REPEAT_MODE, repeatMode.name)
         }
@@ -381,7 +392,7 @@ class PlayerPreferences(context: Context) {
     fun saveDownloadLocation(uriString: String?) { if (uriString != null) prefs.edit { putString(KEY_DOWNLOAD_DIR, uriString) } else prefs.edit { remove(KEY_DOWNLOAD_DIR) } }
     fun getDownloadLocation(): String? = prefs.getString(KEY_DOWNLOAD_DIR, null)
     fun getLastTrack(): Track? { if (!getPersistentQueueEnabled()) return null; val json = prefs.getString(KEY_TRACK_JSON, null) ?: return null; return try { gson.fromJson(json, Track::class.java) } catch (_: Exception) { null } }
-    fun getLastPosition(): Long = prefs.getLong(KEY_POSITION, 0L)
+    fun getLastPosition(): Long = if (getSavePositionEnabled()) prefs.getLong(KEY_POSITION, 0L) else 0L
     fun getLastQueue(): List<Track> {
         if (!getPersistentQueueEnabled()) return emptyList()
         if (queueFile.exists()) {

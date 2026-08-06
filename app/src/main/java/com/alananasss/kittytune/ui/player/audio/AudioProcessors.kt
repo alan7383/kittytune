@@ -347,4 +347,152 @@
         }
     }
 
+    // --- 5. MONO (Downmix stereo -> mono duplicated on both channels) ---
+    class MonoAudioProcessor : BaseAudioProcessor() {
+        private var enabled = false
+
+        fun setEnabled(enabled: Boolean) {
+            this.enabled = enabled
+        }
+
+        override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+            return inputAudioFormat
+        }
+
+        override fun queueInput(inputBuffer: ByteBuffer) {
+            val remaining = inputBuffer.remaining()
+            if (remaining == 0) return
+
+            if (!enabled || inputAudioFormat.channelCount != 2) {
+                val buffer = replaceOutputBuffer(remaining)
+                buffer.put(inputBuffer)
+                buffer.flip()
+                return
+            }
+
+            val buffer = replaceOutputBuffer(remaining)
+
+            while (inputBuffer.remaining() >= 4) {
+                val left = inputBuffer.getShort().toInt()
+                val right = inputBuffer.getShort().toInt()
+
+                val mixed = ((left + right) / 2).toShort()
+
+                buffer.putShort(mixed)
+                buffer.putShort(mixed)
+            }
+            buffer.flip()
+        }
+    }
+
+    // --- 6. R128 NORMALIZATION (EBU R128 via libebur128 JNI + Lookahead Limiter) ---
+    class R128AudioProcessor : BaseAudioProcessor() {
+        private var enabled = false
+        private var level = com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL
+        private var nativeHandle: Long = 0
+        private var lastChannels = 0
+        private var lastSampleRate = 0
+
+        init {
+            System.loadLibrary("kittytune_audio_dsp")
+        }
+
+        fun setParameters(enabled: Boolean, level: com.alananasss.kittytune.ui.player.NormalizationLevel) {
+            this.enabled = enabled
+            this.level = level
+            if (nativeHandle != 0L) {
+                nativeSetTargetLevel(nativeHandle, getTargetLufs())
+            }
+        }
+
+        private fun getTargetLufs(): Float = when (level) {
+            com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> -19f
+            com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> -14f
+            com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> -11f
+        }
+
+        private fun ensureNativeHandle(channels: Int, sampleRate: Int) {
+            if (nativeHandle == 0L || channels != lastChannels || sampleRate != lastSampleRate) {
+                destroyNative()
+                lastChannels = channels
+                lastSampleRate = sampleRate
+                nativeHandle = nativeInit(channels, sampleRate)
+                nativeSetTargetLevel(nativeHandle, getTargetLufs())
+            }
+        }
+
+        private fun destroyNative() {
+            if (nativeHandle != 0L) {
+                nativeDestroy(nativeHandle)
+                nativeHandle = 0
+            }
+        }
+
+        override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+            ensureNativeHandle(inputAudioFormat.channelCount, inputAudioFormat.sampleRate)
+            return inputAudioFormat
+        }
+
+        override fun onFlush() {
+            if (nativeHandle != 0L) {
+                nativeResetLoudness(nativeHandle)
+            }
+        }
+
+        override fun onReset() {
+            destroyNative()
+        }
+
+        override fun queueInput(inputBuffer: ByteBuffer) {
+            val remaining = inputBuffer.remaining()
+            if (remaining == 0) return
+
+            if (!enabled || nativeHandle == 0L) {
+                val buffer = replaceOutputBuffer(remaining)
+                buffer.put(inputBuffer)
+                buffer.flip()
+                return
+            }
+
+            val buffer = replaceOutputBuffer(remaining)
+
+            // Use direct buffer access for zero-copy JNI processing
+            val numFrames = remaining / (inputAudioFormat.channelCount * 2) // 2 bytes per short
+
+            if (inputBuffer.isDirect && buffer.isDirect && numFrames > 0) {
+                // Zero-copy: process directly via JNI
+                val inOffset = inputBuffer.position()
+                nativeProcessShort(nativeHandle, inputBuffer, buffer, numFrames, inOffset)
+                inputBuffer.position(inputBuffer.limit())
+                buffer.position(remaining)
+                buffer.flip()
+            } else {
+                // Fallback: copy through (should not happen with ExoPlayer)
+                buffer.put(inputBuffer)
+                buffer.flip()
+            }
+        }
+
+        fun getIntegratedLoudness(): Float {
+            if (nativeHandle == 0L) return -70f
+            return nativeGetIntegratedLoudness(nativeHandle)
+        }
+
+        fun getMaxTruePeakDb(): Float {
+            if (nativeHandle == 0L) return -120f
+            return nativeGetTruePeakDb(nativeHandle)
+        }
+
+        // --- JNI native methods ---
+        private external fun nativeInit(channels: Int, sampleRate: Int): Long
+        private external fun nativeDestroy(handle: Long)
+        private external fun nativeSetTargetLevel(handle: Long, targetLUFS: Float)
+        private external fun nativeProcessShort(handle: Long, inputBuffer: ByteBuffer, outputBuffer: ByteBuffer, numFrames: Int, inOffset: Int)
+        private external fun nativeResetLoudness(handle: Long)
+        private external fun nativeGetShortTermLoudness(handle: Long): Float
+        private external fun nativeGetIntegratedLoudness(handle: Long): Float
+        private external fun nativeGetTruePeakDb(handle: Long): Float
+        private external fun nativeGetCurrentGainDb(handle: Long): Float
+    }
+
 

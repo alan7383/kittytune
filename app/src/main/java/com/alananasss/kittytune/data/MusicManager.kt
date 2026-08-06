@@ -8,6 +8,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackParameters
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.ResolvingDataSource
@@ -31,6 +32,8 @@ import com.alananasss.kittytune.ui.player.audio.EightDAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.FxAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.ReverbAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.EarrapeAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.MonoAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.R128AudioProcessor
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -91,6 +94,8 @@ object MusicManager {
     private val fxProcessors = listOf(FxAudioProcessor(), FxAudioProcessor())
     private val reverbProcessors = listOf(ReverbAudioProcessor(), ReverbAudioProcessor())
     private val earrapeProcessors = listOf(EarrapeAudioProcessor(), EarrapeAudioProcessor())
+    private val monoProcessors = listOf(MonoAudioProcessor(), MonoAudioProcessor())
+    private val normalizerProcessors = listOf(R128AudioProcessor(), R128AudioProcessor())
 
     var onNextClick: (() -> Unit)? = null
     var onPreviousClick: (() -> Unit)? = null
@@ -282,7 +287,7 @@ object MusicManager {
                     object : DefaultRenderersFactory(context) {
                         override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(fxProcessors[index], reverbProcessors[index], eightDProcessors[index], earrapeProcessors[index]))
+                                .setAudioProcessors(arrayOf(fxProcessors[index], reverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index]))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()
@@ -297,6 +302,9 @@ object MusicManager {
 
         _player1 = createExoPlayer(0)
         _player2 = createExoPlayer(1)
+
+        _player1?.setSeekParameters(SeekParameters.EXACT)
+        _player2?.setSeekParameters(SeekParameters.EXACT)
 
         val listener = object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -421,6 +429,8 @@ object MusicManager {
         }
         reverbProcessors.forEach { it.setEnabled(state.isReverbEnabled); it.setDecay(state.reverbIntensity) }
         earrapeProcessors.forEach { it.setEnabled(state.isEarrapeEnabled) }
+        monoProcessors.forEach { it.setEnabled(state.isMonoEnabled) }
+        normalizerProcessors.forEach { it.setParameters(state.isNormalizationEnabled, state.normalizationLevel) }
 
         rainPlayer?.setEnabled(state.isRainEnabled)
         rainPlayer?.setVolume(state.rainVolume)
