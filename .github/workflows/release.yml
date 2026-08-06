@@ -31,7 +31,7 @@ jobs:
 
       # ── Android NDK ─────────────────────────────────────────────────────────
       - name: Setup Android NDK
-        uses: nkmrkm/setup-android-ndk@v1
+        uses: nttld/setup-ndk@v1
         with:
           ndk-version: '27.1.12297006'
           link-to-sdk: true
