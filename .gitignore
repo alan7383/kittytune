@@ -35,3 +35,5 @@ site/.astro/
 /.artifacts/
 /SoundCloud v2025.12.10-release (Premium)/
 /*.json
+.cxx/
+app/.cxx/
