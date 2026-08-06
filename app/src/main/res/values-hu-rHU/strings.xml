@@ -31,6 +31,12 @@
     <string name="btn_shuffle">Shuffle</string>
     <string name="btn_download">Letöltés</string>
     <string name="btn_downloaded">Letöltve</string>
+    <string name="cover_copy_link">Copy link</string>
+    <string name="cover_saved">Image saved</string>
+    <string name="cover_save_error">Error saving image</string>
+    <string name="comment_translate">Translate to %1$s</string>
+    <string name="comment_translating">Translating…</string>
+    <string name="comment_see_original">See original</string>
     <string name="btn_share">Megosztás</string>
     <string name="btn_follow">Follow</string>
     <string name="all_filters">Mind</string>
@@ -221,8 +227,6 @@
     <string name="dialog_delete_playlist_title">Playlist törlése?</string>
     <string name="dialog_delete_playlist_msg">Ez a művelet nem vonható vissza</string>
     <string name="dialog_delete_playlist_from_lib_title">Eltávolítja a könyvtárból?</string>
-    <string name="dialog_rename_playlist_title">Átnevezés</string>
-    <string name="dialog_rename_playlist_hint">Új név</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -442,7 +446,6 @@
     <string name="pref_seed_palette_title">Seed Palette</string>
     <string name="pref_custom_seed_title">Custom Seed</string>
     <string name="pref_color_generation_title">Color Engine</string>
-    <string name="color_seed_auto">Auto</string>
     <string name="color_hex_label">Hex</string>
     <string name="color_hue_label">Hue</string>
     <string name="color_saturation_label">Saturation</string>
@@ -545,19 +548,45 @@
     <string name="pref_download_drm">Download Native DRM</string>
     <string name="pref_download_drm_sub">Keep enabled to cache DRM natively for internal playback. Disable to force unencrypted MP3 downloads via YouTube fallback.</string>
     <string name="drm_explanation_text">DRM-protected tracks are encrypted by rightsholders to prevent extraction and protect copyrights.\n\n• Enabled (Recommended): The track is downloaded in its native high quality to KittyTune\'s secure internal cache. It can only be played inside the app and will not appear in your configured download folder.\n\n• Disabled: KittyTune will ignore the encrypted version and attempt to find and download the song via YouTube. The file will be converted to a standard MP3 and saved in your designated folder. Warning: Since the search is automatic, it may download incorrect content (such as a music video or a cover) if the track is not well-known.</string>
+    <!-- AUDIO DSP & PERSISTENCE -->
+    <string name="pref_audio_mono">Mono Audio</string>
+    <string name="pref_audio_mono_sub">Mix both channels into one, useful for hearing-impaired use</string>
+    <string name="pref_norm_title">Volume Normalization</string>
+    <string name="pref_norm_sub">Equalizes volume across tracks like Spotify</string>
+    <string name="pref_norm_desc">Loudness normalization balances soft and loud songs for a consistent listening experience (ITU 1770 standard via libebur128). Tracks are dynamically adjusted to match your target LUFS, with an integrated limiter to prevent distortion.</string>
+    <string name="pref_norm_level_quiet">Quiet</string>
+    <string name="pref_norm_level_normal">Normal</string>
+    <string name="pref_norm_level_loud">Loud</string>
+    <string name="pref_save_position">Remember playback position</string>
+    <string name="pref_save_position_sub">Resumes from where you left off on restart</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Dalszövegek</string>
     <string name="pref_lyrics_subtitle">Megjelenítés és forrás</string>
     <string name="pref_lyrics_local">Helyi fájlok előnyben</string>
     <string name="pref_lyrics_local_sub">Beágyazott (ID3) szövegek használata</string>
-    <string name="pref_lyrics_precise">Precíz keresés</string>
-    <string name="pref_lyrics_precise_sub">Művész + cím használata a pontosabb eredményekért</string>
     <string name="pref_lyrics_align">Igazítás</string>
     <string name="pref_lyrics_size">Méret</string>
     <string name="pref_lyrics_show_button">Dalszöveg gomb megjelenítése</string>
     <string name="pref_lyrics_show_button_sub">Gyors elérésű gomb megjelenítése a lejátszóban</string>
     <string name="pref_lyrics_inline">Beágyazott dalszöveg</string>
     <string name="pref_lyrics_inline_sub">Megjeleníti a dalszöveget a lejátszóban a borítókép helyén</string>
+    <string name="pref_lyrics_provider_title">Lyrics provider</string>
+    <string name="pref_lyrics_provider_max_quality">Maximum quality (Musixmatch)</string>
+    <string name="pref_lyrics_provider_open_source">100% Free (LrcLib)</string>
+    <string name="pref_lyrics_translation_title">Translate lyrics</string>
+    <string name="pref_lyrics_translation_sub">Display line-by-line translation below each line (if available)</string>
+    <string name="pref_lyrics_translation_lang">Translation language</string>
+    <string name="pref_lyrics_romanization">Show pronunciation (Romaji)</string>
+    <string name="pref_lyrics_romanization_sub">Converts foreign alphabets to Latin letters.</string>
+    <string name="pref_lyrics_word_sync">Word-by-word sync (Karaoke)</string>
+    <string name="pref_lyrics_word_sync_sub">Highlights lyrics word by word when available.</string>
+    <string name="pref_lyrics_apple_effect">Smooth fill effect</string>
+    <string name="pref_lyrics_apple_effect_sub">Fills letters smoothly instead of jumping from word to word.</string>
+    <string name="custom_lyrics_title">Import Lyricsfile (YAML)</string>
+    <string name="custom_lyrics_desc_1">The Lyricsfile format is an open YAML format for synced lyrics line-by-line or word-by-word (Karaoke). It allows perfect precision for every word.</string>
+    <string name="custom_lyrics_desc_2">You can import a .lyricsfile.yaml or .lrc file from your device to test live synchronization on KittyTune!</string>
+    <string name="custom_lyrics_doc">Documentation: https://lrclib.net/lyricsfile</string>
+    <string name="btn_import_yaml">+ Import YAML</string>
     <string name="align_left">Balra</string>
     <string name="align_center">Középre</string>
     <string name="align_center_simple">Középre</string>
@@ -808,8 +837,6 @@
     <string name="streak_popup_subtitle">%1$d Nap</string>
     <string name="test_notification_triggered">Teszt értesítés kiküldve</string>
     <string name="channel_name">Lejátszó</string>
-    <string name="channel_description">Zene irányítása</string>
-    <string name="notification_content_default">Lejátszás</string>
     <string name="desc_previous">Előző</string>
     <string name="action_unlike">Unlike</string>
     <string name="widget_default_title">KittyTune</string>
@@ -956,7 +983,6 @@
     <string name="fab_settings_radio">Radio • YouTube</string>
     <string name="welcome_warning_title">Highly Recommended</string>
     <string name="welcome_warning_desc">KittyTune needs notifications to show the music player in the background. Without it, you won\'t be able to pause or skip tracks outside the app.\n\nAre you sure you want to skip?</string>
-    <string name="menu_sort_by">Sort by</string>
     <string name="sort_first_added">First Added</string>
     <string name="sort_recently_added">Recently Added</string>
     <string name="sort_title_az">Title (A-Z)</string>
@@ -982,4 +1008,16 @@
     <string name="recognition_listen_on_kittytune">Listen on KittyTune</string>
     <string name="btn_retry">Retry</string>
     <string name="recognition_track_not_found">Track not found</string>
+    <!-- About Screen Redesign -->
+    <string name="about_kofi_title">Support KittyTune</string>
+    <string name="about_kofi_desc">This project is entirely free and open-source. If you enjoy my work, please consider supporting its development by buying me a coffee on Ko-fi!</string>
+    <string name="about_kofi_btn">Ko-fi</string>
+    <string name="about_website_group">KittyTune everywhere</string>
+    <string name="about_website_title">Website</string>
+    <string name="about_downloads_title">Other platforms</string>
+    <string name="about_downloads_desc">Windows, Linux, macOS</string>
+    <!-- Volume Normalization Info Dialog -->
+    <string name="pref_norm_info_title">Understanding Volume Normalization</string>
+    <string name="pref_norm_info_body_1">Different songs are often recorded at different loudness levels. Volume normalization automatically balances your tracks so that every song plays at a consistent, comfortable volume without you needing to adjust it constantly.</string>
+    <string name="pref_norm_info_body_2">How it works:\n• KittyTune measures the true loudness of each song (in LUFS).\n• During playback, volume is dynamically adjusted to match your selected target level.\n• An integrated limiter prevents any distortion or clipping.\n\nLevels:\n• Quiet (-19 LUFS): Ideal for nighttime listening or headphones.\n• Normal (-14 LUFS): The standard used by Spotify &amp; YouTube.\n• Loud (-11 LUFS): Best for noisy environments or outdoor speakers.</string>
 </resources>
