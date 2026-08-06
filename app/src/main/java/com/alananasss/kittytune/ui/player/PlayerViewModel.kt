@@ -99,6 +99,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var commentSort by mutableStateOf(CommentSort.NEWEST)
 
     var currentContext by mutableStateOf<PlaybackContext?>(null)
+    @Volatile private var isRestoringSession = true
 
     val player: ExoPlayer
         get() {
@@ -835,6 +836,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             for (query in queries) {
                 if (!isActive) return@launch
+                android.util.Log.d("LyricsFetch", "▶ Trying query: '$query' | preferLrcLib=$preferLrcLib")
 
                 if (preferLrcLib) {
                     val lrcAll = try { LrcLibClient.api.searchLyrics(query) } catch (e: Exception) { emptyList() }
@@ -850,20 +852,38 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         finalPlain = lrcPlain
                         break
                     }
-                    if (!lrcPlain.isNullOrBlank() && finalPlain == null) {
-                        finalPlain = lrcPlain
+                    if (!lrcPlain.isNullOrBlank()) {
+                        if (finalPlain == null) finalPlain = lrcPlain
+                        // Got plain lyrics — no need to keep hammering the API
+                        break
                     }
                 } else {
-                    val mxmAll = try { MusixmatchClient.search(context, query) } catch (e: Exception) { emptyList() }
-                    val mxmFiltered = mxmAll.filter { abs(it.trackLength - trackDurationSec) < 15.0 }
+                    // Run MXM search and LRCLib search in parallel to save time
+                    val (mxmAll, lrcAll) = kotlinx.coroutines.coroutineScope {
+                        val mxmDeferred = async {
+                            try { MusixmatchClient.search(context, query) } catch (e: Exception) {
+                                android.util.Log.e("LyricsFetch", "MXM search exception: ${e.message}")
+                                emptyList()
+                            }
+                        }
+                        val lrcDeferred = async {
+                            try { LrcLibClient.api.searchLyrics(query) } catch (e: Exception) { emptyList<LrcLibResponse>() }
+                        }
+                        Pair(mxmDeferred.await(), lrcDeferred.await())
+                    }
+
+                    android.util.Log.d("LyricsFetch", "MXM search results: ${mxmAll.size} | LRC search results: ${lrcAll.size}")
+
+                    val mxmFiltered = mxmAll.filter { it.trackLength == 0 || abs(it.trackLength - trackDurationSec) < 15.0 }
                     val topMxm = if (mxmFiltered.isNotEmpty()) mxmFiltered else mxmAll.take(10)
                     val mxmMatch = topMxm.maxByOrNull { it.hasRichSync * 2 + it.hasSubtitles }
+
+                    android.util.Log.d("LyricsFetch", "MXM best match: ${mxmMatch?.trackName} | hasRichSync=${mxmMatch?.hasRichSync} | hasSubtitles=${mxmMatch?.hasSubtitles}")
 
                     val targetLang = if (playerPrefs.getLyricsTranslationEnabled()) playerPrefs.getLyricsTranslationLang() else null
                     val mxmData = mxmMatch?.let { MusixmatchClient.getLyricsData(context, it.trackId, trackDurationMs, targetLang, isRomanizationEnabled) }
 
-                    val lrcAll = try { LrcLibClient.api.searchLyrics(query) } catch (e: Exception) { emptyList() }
-                    val lrcFiltered = lrcAll.filter { abs(it.duration - trackDurationSec) < 15.0 }
+                    val lrcFiltered = lrcAll.filter { it.duration == 0.0 || abs(it.duration - trackDurationSec) < 15.0 }
                     val topLrc = if (lrcFiltered.isNotEmpty()) lrcFiltered else lrcAll.take(10)
                     val lrcMatch = topLrc.maxByOrNull { if (!it.syncedLyrics.isNullOrEmpty()) 1 else 0 }
 
@@ -877,17 +897,41 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     val hasMxmPlain = !mxmData?.second.isNullOrBlank()
                     val hasLrcPlain = !lrcPlain.isNullOrBlank()
 
-                    if (mxmWordSync || lrcWordSync) {
-                        if (mxmWordSync) { finalLines = mxmData!!.first; finalPlain = mxmData.second }
-                        else { finalLines = lrcLines; finalPlain = lrcPlain }
-                        break
+                    android.util.Log.d("LyricsFetch", "MXM: wordSync=$mxmWordSync lineSync=$mxmLineSync plain=$hasMxmPlain linesCount=${mxmData?.first?.size}")
+                    android.util.Log.d("LyricsFetch", "LRC: wordSync=$lrcWordSync lineSync=$lrcLineSync plain=$hasLrcPlain linesCount=${lrcLines.size}")
+
+                    // Strict priority: MXM word-sync > LRC word-sync > MXM line-sync > LRC line-sync
+                    when {
+                        mxmWordSync -> {
+                            android.util.Log.d("LyricsFetch", "✅ Picked: MXM word-sync")
+                            finalLines = mxmData!!.first
+                            finalPlain = mxmData.second
+                            break
+                        }
+                        lrcWordSync -> {
+                            android.util.Log.d("LyricsFetch", "✅ Picked: LRC word-sync")
+                            finalLines = lrcLines
+                            finalPlain = lrcPlain
+                            break
+                        }
+                        mxmLineSync -> {
+                            android.util.Log.d("LyricsFetch", "✅ Picked: MXM line-sync")
+                            // MXM line-sync wins over LRCLib even if LRC also has line-sync
+                            bestMxmLineSync = mxmData
+                            if (hasMxmPlain) finalPlain = mxmData!!.second
+                            break
+                        }
+                        lrcLineSync -> {
+                            android.util.Log.d("LyricsFetch", "✅ Picked: LRC line-sync (MXM had nothing)")
+                            // Only use LRCLib line-sync if MXM found nothing synced
+                            bestLrcLineSync = lrcMatch
+                            if (hasLrcPlain) finalPlain = lrcPlain
+                            break
+                        }
+                        hasMxmPlain -> { if (finalPlain == null) finalPlain = mxmData!!.second }
+                        hasLrcPlain -> { if (finalPlain == null) finalPlain = lrcPlain }
                     }
 
-                    if (mxmLineSync && bestMxmLineSync == null) bestMxmLineSync = mxmData
-                    if (lrcLineSync && bestLrcLineSync == null) bestLrcLineSync = lrcMatch
-
-                    if (hasMxmPlain && finalPlain == null) finalPlain = mxmData!!.second
-                    if (hasLrcPlain && finalPlain == null) finalPlain = lrcPlain
                 }
             }
 
@@ -1826,6 +1870,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun togglePlayPause() {
         if (player.isPlaying) {
             player.pause()
+            saveStateAsync(savePositionOnly = true)
         } else {
             if (player.currentMediaItem == null && currentTrack != null) {
                 pendingSeekPosition = currentPosition
@@ -1875,6 +1920,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun setReverbIntensity(v: Float) { effectsState = effectsState.copy(reverbIntensity = v); applyEffectsAndSave() }
     fun toggleEarrape() { val n = !effectsState.isEarrapeEnabled; effectsState = effectsState.copy(isEarrapeEnabled = n); applyEffectsAndSave(); if (n) AchievementManager.increment("bass_addict", 1) }
 
+    fun toggleMono() { val n = !effectsState.isMonoEnabled; effectsState = effectsState.copy(isMonoEnabled = n); applyEffectsAndSave() }
+    fun toggleNormalization() { val n = !effectsState.isNormalizationEnabled; effectsState = effectsState.copy(isNormalizationEnabled = n); applyEffectsAndSave() }
+    fun setNormalizationLevel(level: com.alananasss.kittytune.ui.player.NormalizationLevel) { effectsState = effectsState.copy(normalizationLevel = level); applyEffectsAndSave() }
 
     fun hasSeenEarrapeWarning(): Boolean = playerPrefs.hasSeenEarrapeWarning()
     fun setHasSeenEarrapeWarning(seen: Boolean) { playerPrefs.setHasSeenEarrapeWarning(seen) }
@@ -1935,22 +1983,34 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun downloadTrack(track: Track) { if (DownloadManager.isTrackDownloading(track.id)) return; DownloadManager.downloadTrack(track); AchievementManager.increment("download_1000") }
 
     private fun emitUiEvent(msg: String) { viewModelScope.launch { _uiEvent.emit(msg) } }
-    private fun saveStateAsync(saveQueue: Boolean = false) {
+    private fun saveStateAsync(saveQueue: Boolean = false, savePositionOnly: Boolean = false) {
+        if (isRestoringSession) return
         val t = currentTrack
-        val p = MusicManager.player.currentPosition
+        val p = currentPosition
         val c = currentContext
         val s = shuffleEnabled
         val r = repeatMode
+        if (savePositionOnly) {
+            viewModelScope.launch(Dispatchers.IO) { playerPrefs.savePosition(p) }
+            return
+        }
         if (saveQueue) {
             saveQueueJob?.cancel()
-            saveQueueJob = viewModelScope.launch(Dispatchers.IO) {
+            saveQueueJob = viewModelScope.launch(Dispatchers.Main) {
                 delay(500.milliseconds)
+                val freshT = currentTrack
+                val freshP = currentPosition
+                val freshC = currentContext
+                val freshS = shuffleEnabled
+                val freshR = repeatMode
                 val qSnapshot = _queue.toList()
-                playerPrefs.savePlaybackState(t, p, qSnapshot, c, s, r)
+                withContext(Dispatchers.IO) {
+                    playerPrefs.savePlaybackState(freshT, freshP, qSnapshot, freshC, freshS, freshR)
+                }
             }
         } else {
+            val q = _queue.toList()
             viewModelScope.launch(Dispatchers.IO) {
-                val q = _queue.toList()
                 playerPrefs.savePlaybackState(t, p, q, c, s, r)
             }
         }
@@ -1961,12 +2021,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         progressJob = viewModelScope.launch {
             val tokenManager = TokenManager(context)
             val isGuest = tokenManager.isGuestMode()
+            var lastSaveTime = System.currentTimeMillis()
             while (isActive && isPlaying) {
                 try {
                     if (!isScrubbing) {
                         currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                         currentSessionListenMs += 1000L
-                        
+
+                        val now = System.currentTimeMillis()
+                        if (now - lastSaveTime > 5000L) {
+                            lastSaveTime = now
+                            saveStateAsync(savePositionOnly = true)
+                        }
+
                         val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
                         val crossfadeMs = playerPrefs.getCrossfadeDuration() * 1000L
                         val dur = if (MusicManager.player.duration > 0) MusicManager.player.duration else duration
@@ -2257,8 +2324,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             isPlaying = MusicManager.player.isPlaying; duration = MusicManager.player.duration.coerceAtLeast(lastTrack.durationMs ?: 0L); currentPosition = MusicManager.player.currentPosition; MusicManager.applyEffects(effectsState)
                         } else {
                             currentPosition = lastPosition
-                        duration = lastTrack.durationMs ?: 0L
-                        if (currentQueueIndex >= 0) {
+                            duration = lastTrack.durationMs ?: 0L
+                            if (currentQueueIndex >= 0) {
                                 playRobustly(currentQueueIndex, autoPlay = false, startPosition = lastPosition)
                             }
                         }
@@ -2267,7 +2334,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         startServiceSafe(context, intent)
                     }
                 }
-            } catch (_: Exception) { }
+            } catch (_: Exception) { } finally {
+                isRestoringSession = false
+            }
         }
     }
 

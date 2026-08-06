@@ -98,7 +98,6 @@
 
         private const val TAG = "StreamResolver"
         private val client = OkHttpClient()
-        private val streamCache = ConcurrentHashMap<Long, ResolvedStream>()
 
         init {
             try {
@@ -120,11 +119,8 @@
         }
 
         suspend fun resolveStreamWithDrm(context: Context, track: Track, forDownload: Boolean = false): ResolvedStream? {
-            if (!forDownload && streamCache.containsKey(track.id)) {
-                Log.d(TAG, "Using cached stream resolution for track ${track.id}")
-                return streamCache[track.id]
-            }
-
+            // Note: We deliberately do NOT cache stream URLs because CDN links and YouTube streams
+            // expire after a short period, leading to 403 Forbidden errors if reused.
             return withContext(Dispatchers.IO) {
                 val resolved: ResolvedStream? = run {
                     try {
@@ -160,10 +156,7 @@
 
                     resolveFromSoundCloudWithDrm(context, track, forDownload)
                 }
-
-                if (resolved != null && !forDownload) {
-                    streamCache[track.id] = resolved
-                }
+                
                 resolved
             }
         }

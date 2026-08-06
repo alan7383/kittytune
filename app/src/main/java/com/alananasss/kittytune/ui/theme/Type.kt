@@ -17,31 +17,59 @@ fun getDynamicTypography(
     if (!useCustomFont) return Typography
 
     val customFamily = FontFamily(
-        Font(
-            resId = R.font.google_sans_flex,
-            variationSettings = FontVariation.Settings(
-                FontVariation.weight(wght),
-                FontVariation.width(wdth),
-                FontVariation.slant(slnt),
-                FontVariation.Setting("ROND", rond),
-                FontVariation.Setting("GRAD", grad),
-                FontVariation.Setting("opsz", opsz)
+        listOf(
+            androidx.compose.ui.text.font.FontWeight.W100,
+            androidx.compose.ui.text.font.FontWeight.W200,
+            androidx.compose.ui.text.font.FontWeight.W300,
+            androidx.compose.ui.text.font.FontWeight.W400,
+            androidx.compose.ui.text.font.FontWeight.W500,
+            androidx.compose.ui.text.font.FontWeight.W600,
+            androidx.compose.ui.text.font.FontWeight.W700,
+            androidx.compose.ui.text.font.FontWeight.W800,
+            androidx.compose.ui.text.font.FontWeight.W900
+        ).map { fw ->
+            val adjustedWeight = (wght + (fw.weight - 400)).coerceIn(100, 1000)
+            Font(
+                resId = R.font.google_sans_flex,
+                weight = fw,
+                variationSettings = FontVariation.Settings(
+                    FontVariation.weight(adjustedWeight),
+                    FontVariation.width(wdth),
+                    FontVariation.slant(slnt),
+                    FontVariation.Setting("ROND", rond),
+                    FontVariation.Setting("GRAD", grad),
+                    FontVariation.Setting("opsz", opsz)
+                )
             )
-        )
+        }
     )
 
     val customFamilyRounded = FontFamily(
-        Font(
-            resId = R.font.google_sans_flex,
-            variationSettings = FontVariation.Settings(
-                FontVariation.weight(wght),
-                FontVariation.width(wdth),
-                FontVariation.slant(slnt),
-                FontVariation.Setting("ROND", 100f),
-                FontVariation.Setting("GRAD", grad),
-                FontVariation.Setting("opsz", opsz)
+        listOf(
+            androidx.compose.ui.text.font.FontWeight.W100,
+            androidx.compose.ui.text.font.FontWeight.W200,
+            androidx.compose.ui.text.font.FontWeight.W300,
+            androidx.compose.ui.text.font.FontWeight.W400,
+            androidx.compose.ui.text.font.FontWeight.W500,
+            androidx.compose.ui.text.font.FontWeight.W600,
+            androidx.compose.ui.text.font.FontWeight.W700,
+            androidx.compose.ui.text.font.FontWeight.W800,
+            androidx.compose.ui.text.font.FontWeight.W900
+        ).map { fw ->
+            val adjustedWeight = (wght + (fw.weight - 400)).coerceIn(100, 1000)
+            Font(
+                resId = R.font.google_sans_flex,
+                weight = fw,
+                variationSettings = FontVariation.Settings(
+                    FontVariation.weight(adjustedWeight),
+                    FontVariation.width(wdth),
+                    FontVariation.slant(slnt),
+                    FontVariation.Setting("ROND", 100f),
+                    FontVariation.Setting("GRAD", grad),
+                    FontVariation.Setting("opsz", opsz)
+                )
             )
-        )
+        }
     )
 
     return Typography(
