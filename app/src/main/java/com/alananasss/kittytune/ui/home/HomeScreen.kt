@@ -302,7 +302,8 @@ import kotlinx.coroutines.launch
                                                     if (userProfile?.avatarUrl != null) {
                                                         ArtistAvatar(
                                                             avatarUrl = userProfile.avatarUrl,
-                                                            modifier = Modifier.size(32.dp).clip(CircleShape)
+                                                            modifier = Modifier.size(32.dp).clip(CircleShape),
+                                                            enableViewer = false
                                                         )
                                                     } else {
                                                         Icon(

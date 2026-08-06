@@ -110,7 +110,7 @@
                         OutlinedButton(
                             onClick = { onDismiss(); onViewProfile() },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.profile_menu_manage_account))
                         }
@@ -118,7 +118,7 @@
                         OutlinedButton(
                             onClick = { onDismiss(); onLogoutClick() },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.profile_menu_login))
                         }

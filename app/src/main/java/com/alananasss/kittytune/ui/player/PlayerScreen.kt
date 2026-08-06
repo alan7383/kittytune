@@ -51,6 +51,8 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Comment
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
+import com.alananasss.kittytune.ui.player.lyrics.LyricLine
+import com.alananasss.kittytune.ui.player.lyrics.LyricWord
 import com.alananasss.kittytune.ui.utils.fadingEdge
 import com.alananasss.kittytune.utils.makeTimeString
 import java.io.File
@@ -264,6 +266,7 @@ fun PremiumMarqueeText(
 @Composable
 fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
     val currentPosition = viewModel.currentPosition
+    val adjustedPosition = currentPosition + viewModel.lyricsOffset
     val lyrics = viewModel.lyricsLines
     val listState = rememberLazyListState()
     val fontSize = viewModel.lyricsFontSize
@@ -282,28 +285,43 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         )
     }
 
-    val activeIndex = remember(currentPosition, lyrics) {
-        val exactMatch = lyrics.indexOfFirst { currentPosition >= it.startTime && currentPosition < it.endTime }
+    val activeIndex = remember(adjustedPosition, lyrics) {
+        lyrics.indexOfFirst { adjustedPosition >= it.startTime && adjustedPosition < it.endTime }
+            .takeIf { it != -1 }
+            ?: lyrics.indexOfLast { adjustedPosition >= it.startTime }
+    }
 
-        if (exactMatch != -1) {
-            exactMatch
-        } else {
-            lyrics.indexOfLast { currentPosition >= it.startTime }
+    LaunchedEffect(activeIndex) {
+        if (activeIndex >= 0 && !listState.isScrollInProgress) {
+            listState.animateScrollToItem(index = activeIndex, scrollOffset = 0)
         }
     }
 
-    LaunchedEffect(activeIndex, currentPosition) {
-        if (!listState.isScrollInProgress) {
-            if (activeIndex >= 0) {
-                listState.animateScrollToItem(index = activeIndex, scrollOffset = 0)
-            } else {
-                val firstLineTime = lyrics.firstOrNull()?.startTime ?: 0L
-                if (currentPosition < firstLineTime) {
-                    listState.animateScrollToItem(0)
-                }
+    // Moteur d'interpolation identique Windows : delta-based, ne redémarre PAS sur currentPosition
+    val isPlaying = viewModel.isPlaying
+    val speed = viewModel.effectsState.speed
+    var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
+
+    // Loop delta-based : ne se relance QUE si isPlaying ou speed change
+    LaunchedEffect(isPlaying, speed) {
+        var lastFrameNanos = System.nanoTime()
+        while (isActive && isPlaying) {
+            withFrameNanos { frameNanos ->
+                val deltaMs = (frameNanos - lastFrameNanos) / 1_000_000f
+                lastFrameNanos = frameNanos
+                smoothDrawPosition += deltaMs * speed
             }
         }
     }
+
+    // Correction de drift uniquement si >400ms (seeks) — pas de reset sur mise à jour normale
+    LaunchedEffect(currentPosition) {
+        val drift = kotlin.math.abs(smoothDrawPosition - currentPosition)
+        if (drift > 400f) {
+            smoothDrawPosition = currentPosition.toFloat()
+        }
+    }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val screenHeight = maxHeight
         val halfHeight = screenHeight / 2
@@ -319,33 +337,154 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         ) {
             itemsIndexed(lyrics) { index, line ->
                 val isActive = index == activeIndex
-                val targetScale = if (isActive) 1.05f else 0.95f
-                val targetAlpha = if (isActive) 1f else 0.5f
-                val targetBlur = if (isActive) 0.dp else 1.dp
+                val targetScale = 1.0f
+                val targetAlpha = if (isActive) 1.0f else (if (index < activeIndex) 0.45f else 0.70f)
 
                 val scale by animateFloatAsState(targetScale, tween(400), label = "scale")
                 val alpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
 
-                Text(
-                    text = line.text,
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = fontSize.sp,
-                        lineHeight = (fontSize * 1.4).sp
-                    ),
-                    color = Color.White,
-                    textAlign = alignment,
+                val hzAlignment = when (alignment) {
+                    TextAlign.Left -> Alignment.Start
+                    TextAlign.Center -> Alignment.CenterHorizontally
+                    TextAlign.Right -> Alignment.End
+                    else -> Alignment.CenterHorizontally
+                }
+
+                val linePaddingValues = when (alignment) {
+                    TextAlign.Left -> PaddingValues(start = 8.dp, end = 24.dp)
+                    TextAlign.Right -> PaddingValues(start = 24.dp, end = 8.dp)
+                    else -> PaddingValues(horizontal = 16.dp)
+                }
+
+                Column(
+                    horizontalAlignment = hzAlignment,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                        .padding(linePaddingValues)
                         .scale(scale)
                         .alpha(alpha)
-                        .blur(targetBlur)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { viewModel.seekTo(line.startTime) }
-                )
+                ) {
+                    val isWordSync = viewModel.isWordSyncEnabled
+                    val isAppleEffect = viewModel.isAppleMusicEffectEnabled
+                    val displayWords = if (isWordSync) line.words.orEmpty() else emptyList()
+
+                    if (isActive && displayWords.isNotEmpty()) {
+                        if (isAppleEffect) {
+                            // Apple Music-style: smooth character-level clip reveal
+                            var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+                            val reconstructedText = remember(displayWords) {
+                                displayWords.joinToString("") { it.word }
+                            }
+                            val wordRanges = remember(displayWords) {
+                                val ranges = mutableListOf<Pair<Int, Int>>()
+                                var currentLen = 0
+                                for (w in displayWords) {
+                                    ranges.add(currentLen to currentLen + w.word.length)
+                                    currentLen += w.word.length
+                                }
+                                ranges
+                            }
+
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                // Dimmed background text
+                                Text(
+                                    text = reconstructedText,
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = fontSize.sp,
+                                        lineHeight = (fontSize * 1.4).sp
+                                    ),
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    textAlign = alignment,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onTextLayout = { textLayoutResult = it }
+                                )
+                                // Bright foreground text clipped by progress
+                                Text(
+                                    text = reconstructedText,
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = fontSize.sp,
+                                        lineHeight = (fontSize * 1.4).sp
+                                    ),
+                                    color = Color.White,
+                                    textAlign = alignment,
+                                    modifier = Modifier.fillMaxWidth().drawWithContent {
+                                        val currentPos = smoothDrawPosition + viewModel.lyricsOffset
+                                        val layout = textLayoutResult ?: return@drawWithContent
+                                        val path = Path()
+                                        val safeTextLength = (reconstructedText.length - 1).coerceAtLeast(0)
+                                        for (i in displayWords.indices) {
+                                            val w = displayWords[i]
+                                            val range = wordRanges[i]
+                                            if (range.first >= range.second) continue
+                                            if (currentPos >= w.endTime) {
+                                                for (c in range.first until range.second) {
+                                                    path.addRect(layout.getBoundingBox(c.coerceIn(0, safeTextLength)))
+                                                }
+                                            } else if (currentPos >= w.startTime) {
+                                                val progress = ((currentPos - w.startTime).toFloat() /
+                                                    (w.endTime - w.startTime).coerceAtLeast(1L)).coerceIn(0f, 1f)
+                                                val exactProgressChars = progress * (range.second - range.first)
+                                                val fullySungChars = exactProgressChars.toInt()
+                                                val charFraction = exactProgressChars - fullySungChars
+                                                for (c in range.first until range.first + fullySungChars) {
+                                                    path.addRect(layout.getBoundingBox(c.coerceIn(0, safeTextLength)))
+                                                }
+                                                val partialCharIdx = range.first + fullySungChars
+                                                if (partialCharIdx < range.second) {
+                                                    val cBbox = layout.getBoundingBox(
+                                                        partialCharIdx.coerceIn(0, safeTextLength)
+                                                    )
+                                                    val cX = cBbox.left + (cBbox.right - cBbox.left) * charFraction
+                                                    path.addRect(Rect(cBbox.left, cBbox.top, cX, cBbox.bottom))
+                                                }
+                                            }
+                                        }
+                                        clipPath(path) { this@drawWithContent.drawContent() }
+                                    }
+                                )
+                            }
+                        } else {
+                            // Simple word-by-word color highlight
+                            val reconstructedText = buildAnnotatedString {
+                                displayWords.forEach { word ->
+                                    val isWordActive = (adjustedPosition) >= word.startTime
+                                    val wordColor = if (isWordActive) Color.White else Color.White.copy(alpha = 0.5f)
+                                    withStyle(SpanStyle(color = wordColor)) { append(word.word) }
+                                }
+                            }
+                            Text(
+                                text = reconstructedText,
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = fontSize.sp,
+                                    lineHeight = (fontSize * 1.4).sp
+                                ),
+                                textAlign = alignment,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    } else {
+                        // No word sync or line not active — plain text
+                        val textColor = if (isActive) Color.White else Color.White.copy(alpha = 0.5f)
+                        Text(
+                            text = line.text,
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
+                                fontSize = fontSize.sp,
+                                lineHeight = (fontSize * 1.4).sp
+                            ),
+                            color = textColor,
+                            textAlign = alignment,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
 
@@ -372,6 +511,18 @@ fun PlainLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         LyricsAlignment.RIGHT -> TextAlign.Right
     }
 
+    val startPadding = when (alignment) {
+        TextAlign.Left -> 8.dp
+        TextAlign.Right -> 24.dp
+        else -> 16.dp
+    }
+    
+    val endPadding = when (alignment) {
+        TextAlign.Left -> 24.dp
+        TextAlign.Right -> 8.dp
+        else -> 16.dp
+    }
+
     val lines = remember(text) { text.split("\n") }
 
     val fadeBrush = remember {
@@ -391,8 +542,8 @@ fun PlainLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
             contentPadding = PaddingValues(
                 top = 70.dp,
                 bottom = 180.dp,
-                start = 24.dp,
-                end = 24.dp
+                start = startPadding,
+                end = endPadding
             ),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -1201,7 +1352,7 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
                                     containerColor = MaterialTheme.colorScheme.errorContainer,
                                     contentColor = MaterialTheme.colorScheme.onErrorContainer
                                 ),
-                                shape = RoundedCornerShape(12.dp)
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(Icons.Rounded.Close, null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -1323,7 +1474,7 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
                                 }
                             },
                             enabled = customMinutes.isNotBlank() && (customMinutes.toLongOrNull() ?: 0) > 0,
-                            shape = RoundedCornerShape(12.dp)
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.btn_ok))
                         }
@@ -2200,6 +2351,11 @@ fun CommentRowItem(comment: Comment, isMine: Boolean, isReply: Boolean, isGuest:
     val avatarSize = if (isVisuallyReply) 40.dp else 48.dp
     val loginToInteractMsg = stringResource(R.string.login_to_interact)
 
+    var translatedText by remember { mutableStateOf<String?>(null) }
+    var showTranslation by remember { mutableStateOf(false) }
+    var isTranslating by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     Row(modifier = Modifier.fillMaxWidth().padding(start = startPadding, end = 16.dp, top = 12.dp, bottom = 12.dp)) {
         Box(modifier = Modifier.size(avatarSize).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { onNavigateToProfile() }, contentAlignment = Alignment.Center) {
             if (!avatarUrl.isNullOrEmpty()) { AsyncImage(model = avatarUrl, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
@@ -2210,7 +2366,6 @@ fun CommentRowItem(comment: Comment, isMine: Boolean, isReply: Boolean, isGuest:
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text(text = username, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, fontSize = if(isVisuallyReply) 13.sp else 14.sp), color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false).clickable { onNavigateToProfile() })
                 Spacer(Modifier.width(8.dp))
-                // verify icon for comments user
                 if (comment.user?.verified == true) {
                     Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
                     Spacer(Modifier.width(4.dp))
@@ -2218,7 +2373,75 @@ fun CommentRowItem(comment: Comment, isMine: Boolean, isReply: Boolean, isGuest:
                 Text(text = getRelativeTime(comment.createdAt, context), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(2.dp))
-            Text(text = comment.body, style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 20.sp, fontSize = 15.sp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+            Text(text = if (showTranslation && !translatedText.isNullOrEmpty()) translatedText!! else comment.body, style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 20.sp, fontSize = 15.sp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+            
+            val currentLocale = java.util.Locale.getDefault()
+            val langName = remember(currentLocale) {
+                currentLocale.getDisplayLanguage(currentLocale).replaceFirstChar { if (it.isLowerCase()) it.titlecase(currentLocale) else it.toString() }
+            }
+            val langCode = currentLocale.language
+            val context = LocalContext.current
+            
+            var isTargetLanguage by remember(comment.body, langCode) { mutableStateOf(false) }
+            LaunchedEffect(comment.body, langCode) {
+                val cleanText = comment.body.replace(Regex("[^\\p{L}\\p{Nd}\\s]"), "").trim()
+                if (cleanText.isBlank()) {
+                    isTargetLanguage = true
+                } else {
+                    val languageIdentifier = com.google.mlkit.nl.languageid.LanguageIdentification.getClient()
+                    languageIdentifier.identifyLanguage(cleanText)
+                        .addOnSuccessListener { language ->
+                            if (language == langCode || language == "und") {
+                                isTargetLanguage = true
+                            }
+                        }
+                }
+            }
+
+            if (translatedText == null && !isTranslating && !isTargetLanguage) {
+                Text(
+                    text = stringResource(R.string.comment_translate, langName),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable {
+                            isTranslating = true
+                            scope.launch(Dispatchers.IO) {
+                                val res = com.alananasss.kittytune.data.network.FreeTranslator.translateMissing(listOf(comment.body), langCode)
+                                val t = res[comment.body.trim()]
+                                withContext(Dispatchers.Main) {
+                                    if (t != null && t.lowercase() != comment.body.trim().lowercase()) {
+                                        translatedText = t
+                                        showTranslation = true
+                                    } else {
+                                        translatedText = ""
+                                    }
+                                    isTranslating = false
+                                }
+                            }
+                        }
+                        .padding(vertical = 2.dp)
+                )
+            } else if (isTranslating) {
+                Text(
+                    text = stringResource(R.string.comment_translating),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            } else if (!translatedText.isNullOrEmpty()) {
+                Text(
+                    text = if (showTranslation) stringResource(R.string.comment_see_original) else stringResource(R.string.comment_translate, langName),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { showTranslation = !showTranslation }
+                        .padding(vertical = 2.dp)
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (comment.trackTimestamp != null) { Surface(onClick = { onSeekTo(comment.trackTimestamp) }, shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f), contentColor = MaterialTheme.colorScheme.primary) { Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Rounded.PlayArrow, null, modifier = Modifier.size(12.dp)); Spacer(Modifier.width(4.dp)); Text(text = makeTimeString(comment.trackTimestamp), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)) } } }

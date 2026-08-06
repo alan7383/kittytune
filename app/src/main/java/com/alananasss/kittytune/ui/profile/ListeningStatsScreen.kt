@@ -35,6 +35,7 @@ import java.util.Locale
 import java.util.Calendar
 import androidx.compose.ui.platform.LocalContext
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -318,26 +319,22 @@ private fun PeriodSelector(
     selectedPeriod: StatsPeriod,
     onPeriodSelected: (StatsPeriod) -> Unit
 ) {
-    SingleChoiceSegmentedButtonRow(
+    ExpressiveConnectedButtonGroup(
+        options = StatsPeriod.entries,
+        selectedOption = selectedPeriod,
+        onOptionSelected = onPeriodSelected,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-    ) {
-        StatsPeriod.entries.forEachIndexed { index, period ->
+            .padding(horizontal = 16.dp),
+        labelProvider = { period ->
             val label = when (period) {
                 StatsPeriod.WEEK -> stringResource(R.string.listening_stats_period_week)
                 StatsPeriod.MONTH -> stringResource(R.string.listening_stats_period_month)
                 StatsPeriod.ALL_TIME -> stringResource(R.string.listening_stats_period_all)
             }
-            SegmentedButton(
-                selected = selectedPeriod == period,
-                onClick = { onPeriodSelected(period) },
-                shape = SegmentedButtonDefaults.itemShape(index, StatsPeriod.entries.size)
-            ) {
-                Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
+            Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
         }
-    }
+    )
 }
 
 // ─── Empty State ──────────────────────────────────────────────────
