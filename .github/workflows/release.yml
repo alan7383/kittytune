@@ -31,10 +31,7 @@ jobs:
 
       # ── Android NDK ─────────────────────────────────────────────────────────
       - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: '27.0.12077973'
-          link-to-sdk: true
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;27.0.12077973"
 
       - name: Accept Android SDK Licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
