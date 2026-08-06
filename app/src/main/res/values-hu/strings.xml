@@ -221,8 +221,6 @@
     <string name="dialog_delete_playlist_title">Playlist törlése?</string>
     <string name="dialog_delete_playlist_msg">Ez a művelet nem vonható vissza</string>
     <string name="dialog_delete_playlist_from_lib_title">Eltávolítja a könyvtárból?</string>
-    <string name="dialog_rename_playlist_title">Átnevezés</string>
-    <string name="dialog_rename_playlist_hint">Új név</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -440,7 +438,6 @@
     <string name="pref_seed_palette_title">Seed paletta</string>
     <string name="pref_custom_seed_title">Egyedi seed</string>
     <string name="pref_color_generation_title">Szinmotor</string>
-    <string name="color_seed_auto">Auto</string>
     <string name="color_hex_label">Hex</string>
     <string name="color_hue_label">Arnyalat</string>
     <string name="color_saturation_label">Telitettseg</string>
@@ -549,13 +546,21 @@
 
 • Letiltva: A KittyTune figyelmen kívül hagyja a titkosított verziót, és megpróbálja letölteni a dalt a YouTube-ról. A fájlt szabványos MP3-formátumba konvertálja, és a megadott mappába menti. Figyelem: Mivel a keresés automatikus, előfordulhat, hogy helytelen tartalmat (például videoklipet vagy feldolgozást) tölt le, ha a dal nem annyira ismert.</string>
     <!-- SYNC -->
+    <!-- AUDIO DSP & MEGŐRZÉS -->
+    <string name="pref_audio_mono">Mono hang</string>
+    <string name="pref_audio_mono_sub">Mindkét csatornát egybe keveri, hallássérültek számára hasznos</string>
+    <string name="pref_norm_title">Hangerő-normalizálás</string>
+    <string name="pref_norm_sub">Egyenlíti a hangerőt a zeneszámok között, mint a Spotify</string>
+    <string name="pref_norm_level_quiet">Halk</string>
+    <string name="pref_norm_level_normal">Normál</string>
+    <string name="pref_norm_level_loud">Hangos</string>
+    <string name="pref_save_position">Lejátszási pozíció megjegyzése</string>
+    <string name="pref_save_position_sub">Az újraindítás után onnan folytatja, ahol abbahagyta</string>
     <!-- LYRICS -->
     <string name="pref_lyrics_title">Dalszövegek</string>
     <string name="pref_lyrics_subtitle">Megjelenítés és forrás</string>
     <string name="pref_lyrics_local">Helyi fájlok előnyben</string>
     <string name="pref_lyrics_local_sub">Beágyazott (ID3) szövegek használata</string>
-    <string name="pref_lyrics_precise">Precíz keresés</string>
-    <string name="pref_lyrics_precise_sub">Művész + cím használata a pontosabb eredményekért</string>
     <string name="pref_lyrics_align">Igazítás</string>
     <string name="pref_lyrics_size">Méret</string>
     <string name="pref_lyrics_show_button">Dalszöveg gomb megjelenítése</string>
@@ -574,9 +579,11 @@
     <string name="pref_lyrics_word_sync_sub">Kiemeli a dalszöveget szavanként, ha elérhető.</string>
     <string name="pref_lyrics_apple_effect">Fokozatos kitöltés effektus</string>
     <string name="pref_lyrics_apple_effect_sub">Sima betűkitöltés a szavak közötti ugrálás helyett.</string>
-    <string name="lyrics_paste_hint">LRC vagy YAML szöveg beillesztése…</string>
-    <string name="btn_upload_yaml">Egyedi szöveg betöltése</string>
-    <string name="btn_load">Betöltés</string>
+    <string name="custom_lyrics_title">Lyricsfile (YAML) importálása</string>
+    <string name="custom_lyrics_desc_1">A Lyricsfile egy nyílt YAML formátum szinkronizált dalszövegekhez soronként vagy szavanként (Karaoke). Tökéletes pontosságot tesz lehetővé minden szónál.</string>
+    <string name="custom_lyrics_desc_2">Importálhatsz egy .lyricsfile.yaml vagy .lrc fájlt az eszközödről, hogy élőben teszteld a szinkronizációt a KittyTune-ban!</string>
+    <string name="custom_lyrics_doc">Dokumentáció: https://lrclib.net/lyricsfile</string>
+    <string name="btn_import_yaml">+ YAML importálása</string>
     <string name="align_left">Balra</string>
     <string name="align_center">Középre</string>
     <string name="align_center_simple">Középre</string>
@@ -827,8 +834,6 @@
     <string name="streak_popup_subtitle">%1$d Nap</string>
     <string name="test_notification_triggered">Teszt értesítés kiküldve</string>
     <string name="channel_name">Lejátszó</string>
-    <string name="channel_description">Zene irányítása</string>
-    <string name="notification_content_default">Lejátszás</string>
     <string name="desc_previous">Előző</string>
     <string name="action_unlike">Unlike</string>
     <string name="widget_default_title">KittyTune</string>
@@ -977,7 +982,6 @@
     <string name="fab_settings_radio">Rádió • YouTube</string>
     <string name="welcome_warning_title">Erősen ajánlott</string>
     <string name="welcome_warning_desc">A KittyTune-nak értesítésekre van szüksége a zenelejátszó háttérben történő megjelenítéséhez. Enélkül nem tudja szüneteltetni vagy átugrani a zeneszámokat az alkalmazáson kívül.\n\nBiztosan ki akarja hagyni?</string>
-    <string name="menu_sort_by">Rendezés</string>
     <string name="sort_first_added">Legrégebben hozzáadva</string>
     <string name="sort_recently_added">Legutóbb hozzáadva</string>
     <string name="sort_title_az">Cím (A-Z)</string>
@@ -1002,4 +1006,13 @@
     <string name="recognition_listen_on_kittytune">Hallgatás a KittyTune-on</string>
     <string name="btn_retry">Újra</string>
     <string name="recognition_track_not_found">A zeneszám nem található</string>
+    <string name="cover_copy_link">Hivatkozás másolása</string>
+    <string name="cover_saved">Kép mentve</string>
+    <string name="cover_save_error">Hiba a kép mentésekor</string>
+    <string name="comment_translate">Fordítás erre: %1$s</string>
+    <string name="comment_translating">Fordítás…</string>
+    <string name="comment_see_original">Eredeti megtekintése</string>
+    <string name="pref_norm_desc">A hangerő-normalizálás kiegyenlíti a halk és hangos zenéket az egyenletes hallgatási élmény érdekében (ITU 1770 szabvány a libebur128 segítségével). A számok dinamikusan igazodnak a cél LUFS-hoz, egy beépített limiterrel a torzítás elkerülése érdekében.</string>
+    <string name="pref_crossfade_title">Keresztkeverés</string>
+    <string name="pref_crossfade_sub">Az aktuális szám végének elhalkítása, miközben a következő felerősödik</string>
 </resources>

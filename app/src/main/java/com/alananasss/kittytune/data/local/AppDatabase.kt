@@ -32,6 +32,9 @@
 
         @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != '' ORDER BY downloadedAt DESC")
         suspend fun getAllTracksList(): List<LocalTrack>
+
+        @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != '' AND lufs IS NULL")
+        suspend fun getTracksWithNullLufs(): List<LocalTrack>
     
         // playlists
         @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -204,7 +207,7 @@
         val totalListenMs: Long
     )
 
-    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class, RecognitionHistoryItem::class], version = 14, exportSchema = false)
+    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class, RecognitionHistoryItem::class], version = 15, exportSchema = false)
     abstract class AppDatabase : RoomDatabase() {
         abstract fun downloadDao(): DownloadDao
         abstract fun recognitionHistoryDao(): RecognitionHistoryDao

@@ -6,6 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Equalizer
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.TokenManager
@@ -50,6 +56,8 @@ fun AudioSettingsScreen(
     var showQualityDialog by remember { mutableStateOf(false) }
     var showFadeDurationDialog by remember { mutableStateOf(false) }
     var showCrossfadeDurationDialog by remember { mutableStateOf(false) }
+    var showNormalizationDialog by remember { mutableStateOf(false) }
+    var showNormalizationInfoDialog by remember { mutableStateOf(false) }
 
     if (showFadeDurationDialog) {
         AlertDialog(
@@ -141,6 +149,117 @@ fun AudioSettingsScreen(
         )
     }
 
+    if (showNormalizationDialog) {
+        AlertDialog(
+            onDismissRequest = { showNormalizationDialog = false },
+            icon = { Icon(Icons.Rounded.Equalizer, null) },
+            title = {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.pref_norm_title),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = 32.dp)
+                    )
+                    IconButton(
+                        onClick = { showNormalizationInfoDialog = true },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .size(32.dp),
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Info,
+                            contentDescription = stringResource(R.string.pref_norm_info_title),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.pref_norm_sub), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(16.dp))
+                    com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup(
+                        options = com.alananasss.kittytune.ui.player.NormalizationLevel.entries,
+                        selectedOption = playerViewModel.effectsState.normalizationLevel,
+                        onOptionSelected = { level ->
+                            playerViewModel.setNormalizationLevel(level)
+                            if (!playerViewModel.effectsState.isNormalizationEnabled) playerViewModel.toggleNormalization()
+                        },
+                        labelProvider = { level ->
+                            val isSelected = (level == playerViewModel.effectsState.normalizationLevel)
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = when (level) {
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> stringResource(R.string.pref_norm_level_quiet)
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> stringResource(R.string.pref_norm_level_normal)
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> stringResource(R.string.pref_norm_level_loud)
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = when (level) {
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> "\u221219 LUFS"
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> "\u221214 LUFS"
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> "\u221211 LUFS"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LocalContentColor.current.copy(alpha = 0.8f),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { showNormalizationDialog = false }) { Text(stringResource(R.string.btn_ok)) } }
+        )
+    }
+
+    if (showNormalizationInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showNormalizationInfoDialog = false },
+            icon = { Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_norm_info_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.pref_norm_info_body_1),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.pref_norm_info_body_2),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNormalizationInfoDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
+
     SettingsScaffold(
         title = stringResource(R.string.pref_audio_title),
         onBackClick = onBackClick
@@ -153,12 +272,13 @@ fun AudioSettingsScreen(
         ) {
 
 
+
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = 6
+                        val totalVisibleItems = 7
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -186,8 +306,18 @@ fun AudioSettingsScreen(
                             onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) }
                         )
 
+                        var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 3),
+                            title = stringResource(R.string.pref_save_position),
+                            subtitle = stringResource(R.string.pref_save_position_sub),
+                            hasSwitch = true,
+                            switchState = savePositionEnabled,
+                            onSwitchChange = { savePositionEnabled = it; prefs.setSavePositionEnabled(it) }
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 4),
                             title = stringResource(R.string.pref_youtube_fallback),
                             subtitle = stringResource(R.string.pref_youtube_fallback_sub),
                             hasSwitch = true,
@@ -196,7 +326,7 @@ fun AudioSettingsScreen(
                         )
 
                         SplitSettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 4),
+                            shape = getSettingsShape(totalVisibleItems, 5),
                             title = stringResource(R.string.pref_download_drm),
                             subtitle = stringResource(R.string.pref_download_drm_sub),
                             onClick = onNavigateToDrmExplanation,
@@ -205,12 +335,40 @@ fun AudioSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 5),
+                            shape = getSettingsShape(totalVisibleItems, 6),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
                             switchState = playerViewModel.isPreciseSpeedEnabled,
                             onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
+                        )
+                    }
+                }
+            }
+
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle("Audio DSP")
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val totalVisibleItems = 2
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 0),
+                            title = stringResource(R.string.pref_audio_mono),
+                            subtitle = stringResource(R.string.pref_audio_mono_sub),
+                            hasSwitch = true,
+                            switchState = playerViewModel.effectsState.isMonoEnabled,
+                            onSwitchChange = { playerViewModel.toggleMono() }
+                        )
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 1),
+                            title = stringResource(R.string.pref_norm_title),
+                            subtitle = stringResource(R.string.pref_norm_sub),
+                            onClick = { showNormalizationDialog = true },
+                            switchState = playerViewModel.effectsState.isNormalizationEnabled,
+                            onSwitchChange = { playerViewModel.toggleNormalization() }
                         )
                     }
                 }

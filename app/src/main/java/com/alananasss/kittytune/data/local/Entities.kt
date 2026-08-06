@@ -12,7 +12,9 @@
         val duration: Long,
         val localAudioPath: String,
         val localArtworkPath: String,
-        val downloadedAt: Long = System.currentTimeMillis()
+        val downloadedAt: Long = System.currentTimeMillis(),
+        val lufs: Float? = null,
+        val truePeak: Float? = null
     )
     
     @Entity(tableName = "downloaded_playlists")
