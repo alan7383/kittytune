@@ -25,6 +25,7 @@ dump_project_context.txt
 *.dm
 .kotlin/
 *.txt
+!CMakeLists.txt
 .vscode/
 node_modules/
 site/dist/
