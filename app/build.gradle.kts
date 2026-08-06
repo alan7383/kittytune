@@ -18,6 +18,7 @@ if (localPropertiesFile.exists()) {
 extensions.configure<ApplicationExtension> {
     namespace = "com.alananasss.kittytune"
     compileSdk = 37
+    ndkVersion = "27.1.12297006"
 
     defaultConfig {
         applicationId = "com.alananasss.kittytune"
@@ -27,6 +28,17 @@ extensions.configure<ApplicationExtension> {
         versionName = "2.53.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {
@@ -48,6 +60,12 @@ extensions.configure<ApplicationExtension> {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 }
 
@@ -99,6 +117,7 @@ dependencies {
     implementation(libs.ktor.client.encoding)
     implementation(project(":kizzy"))
     implementation(project(":shazamkit"))
+    implementation(libs.mlkit.language.id)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

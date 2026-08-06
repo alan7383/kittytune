@@ -36,7 +36,7 @@ material3 = "1.5.0-alpha24"
 materialKolor = "5.0.0"
 accompanist = "0.37.3"
 timber = "5.0.1"
-
+mlkit-language-id = "17.0.6"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -92,6 +92,7 @@ json = { group = "org.json", name = "json", version.ref = "json" }
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkit-language-id" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -100,3 +101,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+[bundles]
