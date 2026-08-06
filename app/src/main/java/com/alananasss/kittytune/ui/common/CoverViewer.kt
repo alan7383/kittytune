@@ -48,7 +48,6 @@ object CoverViewerState {
 
     fun hide() {
         visible = false
-        currentUrl = null
     }
 }
 
@@ -92,24 +91,42 @@ fun CoverViewerOverlay() {
         }
     }
 
-    if (visible) {
-        BackHandler {
-            CoverViewerState.hide()
-        }
-    }
+    val transitionState = remember { androidx.compose.animation.core.MutableTransitionState(false) }
+    transitionState.targetState = visible
 
-    AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.85f))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { CoverViewerState.hide() }
-                ),
-            contentAlignment = Alignment.Center
+    if (transitionState.currentState || transitionState.targetState) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { CoverViewerState.hide() },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
         ) {
+            val view = androidx.compose.ui.platform.LocalView.current
+            SideEffect {
+                val window = (view.parent as? androidx.compose.ui.window.DialogWindowProvider)?.window
+                if (window != null) {
+                    window.setDimAmount(0f)
+                    window.setWindowAnimations(0)
+                }
+            }
+
+            AnimatedVisibility(
+                visibleState = transitionState,
+                enter = fadeIn(),
+                exit = fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.85f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { CoverViewerState.hide() }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
             AnimatedVisibility(visible = visible, enter = scaleIn(initialScale = 0.9f), exit = scaleOut(targetScale = 0.9f)) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -178,6 +195,8 @@ fun CoverViewerOverlay() {
             ) {
                 Icon(Icons.Rounded.Close, null, tint = Color.White)
             }
+            }
         }
     }
+}
 }
