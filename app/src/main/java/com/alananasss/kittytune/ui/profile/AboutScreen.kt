@@ -144,48 +144,42 @@ fun AboutScreen(
                             .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // App Logo - Material You Style
-                        Surface(
-                            modifier = Modifier.size(110.dp),
-                            shape = RoundedCornerShape(32.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shadowElevation = 6.dp // Légère ombre pour le faire ressortir
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable {
-                                        tapCount++
-                                        if (tapCount >= 7) {
-                                            tapCount = 0
-                                            scope.launch {
-                                                AchievementNotificationManager.showNotification(
-                                                    AchievementNotification(
-                                                        title = context.getString(R.string.achievement_unlocked),
-                                                        subtitle = "Meow Mode Activated 🐱",
-                                                        iconEmoji = "🧶",
-                                                        xpReward = 1337
-                                                    )
+                        // App Logo
+                        Box(
+                            modifier = Modifier
+                                .size(110.dp)
+                                .clickable(
+                                    interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    tapCount++
+                                    if (tapCount >= 7) {
+                                        tapCount = 0
+                                        scope.launch {
+                                            AchievementNotificationManager.showNotification(
+                                                AchievementNotification(
+                                                    title = context.getString(R.string.achievement_unlocked),
+                                                    subtitle = "Meow Mode Activated 🐱",
+                                                    iconEmoji = "🧶",
+                                                    xpReward = 1337
                                                 )
-                                            }
-                                            Toast.makeText(
-                                                context,
-                                                context.getString(R.string.test_notification_triggered),
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            )
                                         }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_monochrome),
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .scale(1.5f) // Bypass de la marge invisible
-                                )
-                            }
+                                        Toast.makeText(
+                                            context,
+                                            context.getString(R.string.test_notification_triggered),
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_monochrome),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.fillMaxSize().scale(1.8f)
+                            )
                         }
 
                         Spacer(Modifier.height(24.dp))
@@ -256,6 +250,88 @@ fun AboutScreen(
                         }
                     }
                 }
+            }
+
+            item {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = stringResource(R.string.about_kofi_title),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Icon(
+                                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_kofi_symbol),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                                )
+                            }
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(R.string.about_kofi_desc),
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(
+                                onClick = { uriHandler.openUri("https://ko-fi.com/alan7383") },
+                                shapes = ButtonDefaults.shapes(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                            ) {
+                                Icon(
+                                    painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_kofi_logo),
+                                    contentDescription = stringResource(R.string.about_kofi_btn),
+                                    modifier = Modifier.width(62.dp).height(17.dp),
+                                    tint = androidx.compose.ui.graphics.Color.Unspecified
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.about_website_group),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                icon = Icons.Rounded.Language,
+                                title = stringResource(R.string.about_website_title),
+                                onClick = { uriHandler.openUri("https://alan7383.github.io/kittytune-website/") }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                icon = Icons.Rounded.Download,
+                                title = stringResource(R.string.about_downloads_title),
+                                subtitle = stringResource(R.string.about_downloads_desc),
+                                onClick = { uriHandler.openUri("https://alan7383.github.io/kittytune-website/download") }
+                            )
+                        }
+                    )
+                )
             }
 
             item {
