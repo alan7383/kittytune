@@ -151,6 +151,7 @@
                     ) {
                         ArtistAvatar(
                             avatarUrl = user.avatarUrl,
+                            enableViewer = false,
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
@@ -420,6 +421,7 @@
             // avatar
             ArtistAvatar(
                 avatarUrl = ranking.user.avatarUrl,
+                enableViewer = false,
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
