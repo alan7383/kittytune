@@ -421,7 +421,7 @@
     
     
     @Composable
-    fun ArtistAvatar(modifier: Modifier = Modifier, avatarUrl: String?, enableViewer: Boolean = true) {
+    fun ArtistAvatar(modifier: Modifier = Modifier, avatarUrl: String?, enableViewer: Boolean = false) {
         Box(
             modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -476,6 +476,7 @@
                     Surface(shape = CircleShape, shadowElevation = 12.dp, color = Color.Transparent, modifier = Modifier.size(140.dp)) {
                         ArtistAvatar(
                             avatarUrl = user.avatarUrl,
+                            enableViewer = true,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
