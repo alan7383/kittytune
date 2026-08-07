@@ -285,18 +285,6 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         )
     }
 
-    val activeIndex = remember(adjustedPosition, lyrics) {
-        lyrics.indexOfFirst { adjustedPosition >= it.startTime && adjustedPosition < it.endTime }
-            .takeIf { it != -1 }
-            ?: lyrics.indexOfLast { adjustedPosition >= it.startTime }
-    }
-
-    LaunchedEffect(activeIndex) {
-        if (activeIndex >= 0 && !listState.isScrollInProgress) {
-            listState.animateScrollToItem(index = activeIndex, scrollOffset = 0)
-        }
-    }
-
     // Moteur d'interpolation identique Windows : delta-based, ne redémarre PAS sur currentPosition
     val isPlaying = viewModel.isPlaying
     val speed = viewModel.effectsState.speed
@@ -319,6 +307,21 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         val drift = kotlin.math.abs(smoothDrawPosition - currentPosition)
         if (drift > 400f) {
             smoothDrawPosition = currentPosition.toFloat()
+        }
+    }
+
+    val activeIndex by remember(lyrics, viewModel.lyricsOffset) {
+        derivedStateOf {
+            val pos = (smoothDrawPosition + viewModel.lyricsOffset).toLong()
+            lyrics.indexOfFirst { pos >= it.startTime && pos < it.endTime }
+                .takeIf { it != -1 }
+                ?: lyrics.indexOfLast { pos >= it.startTime }
+        }
+    }
+
+    LaunchedEffect(activeIndex) {
+        if (activeIndex >= 0 && !listState.isScrollInProgress) {
+            listState.animateScrollToItem(index = activeIndex, scrollOffset = 0)
         }
     }
 
@@ -747,22 +750,15 @@ fun NewPlayerScreen(
                         }
                     }
 
-                    AnimatedContent(
-                        targetState = viewModel.showInlineLyrics,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(400)) togetherWith
-                                    fadeOut(animationSpec = tween(400))
-                        },
-                        label = "ArtworkLyricsToggle",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    ) { showLyrics ->
-                        if (showLyrics) {
-                            // Transparent container for lyrics (InnerTune effect)
-                            Box(modifier = Modifier.padding(24.dp).fillMaxWidth().aspectRatio(1f)) {
-                                InlineLyricsContent(viewModel = viewModel)
-                            }
-                        } else {
+                    val showLyrics = viewModel.showInlineLyrics
+                    val lyricsAlpha by animateFloatAsState(targetValue = if (showLyrics) 1f else 0f, tween(400), label = "lyricsAlpha")
+                    val coverAlpha by animateFloatAsState(targetValue = if (showLyrics) 0f else 1f, tween(400), label = "coverAlpha")
+                    
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth().alpha(coverAlpha).zIndex(if (showLyrics) 0f else 1f)) {
                             if (viewModel.queueState.isNotEmpty()) {
                                 androidx.compose.foundation.pager.HorizontalPager(
                                     state = pagerState,
@@ -804,6 +800,14 @@ fun NewPlayerScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
                                     )
+                                }
+                            }
+                        }
+                        
+                        Box(modifier = Modifier.fillMaxWidth().alpha(lyricsAlpha).zIndex(if (showLyrics) 1f else 0f)) {
+                            if (lyricsAlpha > 0f) {
+                                Box(modifier = Modifier.padding(24.dp).fillMaxWidth().aspectRatio(1f)) {
+                                    InlineLyricsContent(viewModel = viewModel)
                                 }
                             }
                         }
@@ -2718,23 +2722,15 @@ fun OldPlayerScreen(
                             }
                         }
                     }
-
-                    AnimatedContent(
-                        targetState = viewModel.showInlineLyrics,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(400)) togetherWith
-                                    fadeOut(animationSpec = tween(400))
-                        },
-                        label = "ArtworkLyricsToggle",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    ) { showLyrics ->
-                        if (showLyrics) {
-                            // Transparent container for lyrics (InnerTune effect)
-                            Box(modifier = Modifier.padding(24.dp).fillMaxWidth().aspectRatio(1f)) {
-                                InlineLyricsContent(viewModel = viewModel)
-                            }
-                        } else {
+                    val showLyrics = viewModel.showInlineLyrics
+                    val lyricsAlpha by animateFloatAsState(targetValue = if (showLyrics) 1f else 0f, tween(400), label = "lyricsAlpha")
+                    val coverAlpha by animateFloatAsState(targetValue = if (showLyrics) 0f else 1f, tween(400), label = "coverAlpha")
+                    
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth().alpha(coverAlpha).zIndex(if (showLyrics) 0f else 1f)) {
                             if (viewModel.queueState.isNotEmpty()) {
                                 androidx.compose.foundation.pager.HorizontalPager(
                                     state = pagerState,
@@ -2747,7 +2743,7 @@ fun OldPlayerScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(1f)
-                                            .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
+                                            .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = animatedColor)
                                             .clip(RoundedCornerShape(20.dp))
                                             .background(MaterialTheme.colorScheme.surfaceVariant)
                                     ) {
@@ -2766,7 +2762,7 @@ fun OldPlayerScreen(
                                         .padding(24.dp)
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
-                                        .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = if (isBlurMode) Color.Black else animatedColor)
+                                        .shadow(24.dp, RoundedCornerShape(20.dp), spotColor = animatedColor)
                                         .clip(RoundedCornerShape(20.dp))
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
@@ -2776,6 +2772,14 @@ fun OldPlayerScreen(
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
                                     )
+                                }
+                            }
+                        }
+                        
+                        Box(modifier = Modifier.fillMaxWidth().alpha(lyricsAlpha).zIndex(if (showLyrics) 1f else 0f)) {
+                            if (lyricsAlpha > 0f) {
+                                Box(modifier = Modifier.padding(24.dp).fillMaxWidth().aspectRatio(1f)) {
+                                    InlineLyricsContent(viewModel = viewModel)
                                 }
                             }
                         }
