@@ -300,18 +300,6 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         )
     }
 
-    val activeIndex = remember(adjustedPosition, lyrics) {
-        lyrics.indexOfFirst { adjustedPosition >= it.startTime && adjustedPosition < it.endTime }
-            .takeIf { it != -1 }
-            ?: lyrics.indexOfLast { adjustedPosition >= it.startTime }
-    }
-
-    LaunchedEffect(activeIndex) {
-        if (activeIndex >= 0 && !listState.isScrollInProgress) {
-            listState.animateScrollToItem(index = activeIndex)
-        }
-    }
-
     // Moteur d'interpolation identique Windows : delta-based, ne redémarre PAS sur currentPosition
     val isPlaying = viewModel.isPlaying
     val speed = viewModel.effectsState.speed
@@ -335,6 +323,21 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         val drift = kotlin.math.abs(smoothDrawPosition - currentPosition)
         if (drift > 400f) {
             smoothDrawPosition = currentPosition.toFloat()
+        }
+    }
+
+    val activeIndex by remember(lyrics, viewModel.lyricsOffset) {
+        derivedStateOf {
+            val pos = (smoothDrawPosition + viewModel.lyricsOffset).toLong()
+            lyrics.indexOfFirst { pos >= it.startTime && pos < it.endTime }
+                .takeIf { it != -1 }
+                ?: lyrics.indexOfLast { pos >= it.startTime }
+        }
+    }
+
+    LaunchedEffect(activeIndex) {
+        if (activeIndex >= 0 && !listState.isScrollInProgress) {
+            listState.animateScrollToItem(index = activeIndex)
         }
     }
 
