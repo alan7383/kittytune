@@ -1583,7 +1583,7 @@ import kotlinx.coroutines.launch
                         if (activeFilter == SearchFilter.ARTISTS) items(homeViewModel.searchResultsArtists) { artist -> val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { Row(modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onNavigate("profile:${artist.id}") }
-                            .padding(16.dp), verticalAlignment = Alignment.CenterVertically) { ArtistAvatar(avatarUrl = artist.avatarUrl, modifier = Modifier
+                            .padding(16.dp), verticalAlignment = Alignment.CenterVertically) { ArtistAvatar(avatarUrl = artist.avatarUrl, enableViewer = false, modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)); Spacer(Modifier.width(16.dp)); Column { Row(verticalAlignment = Alignment.CenterVertically) { Text(artist.username ?: stringResource(R.string.unknown_artist), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold); if (artist.verified) { Spacer(Modifier.width(4.dp)); Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp)) } };             Text(
                             text = "${artist.followersCount} ${stringResource(R.string.profile_followers)}",
@@ -1678,7 +1678,7 @@ import kotlinx.coroutines.launch
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
             .width(120.dp)
             .clickable { onClick() }) {
-            ArtistAvatar(avatarUrl = user.avatarUrl, modifier = Modifier
+            ArtistAvatar(avatarUrl = user.avatarUrl, enableViewer = false, modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape))
             Spacer(Modifier.height(8.dp))
@@ -1735,7 +1735,8 @@ import kotlinx.coroutines.launch
                             if (item.type == "PROFILE") {
                                 ArtistAvatar(
                                     avatarUrl = item.imageUrl,
-                                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp))
+                                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)),
+                                    enableViewer = false
                                 )
                             } else {
                                 AsyncImage(
