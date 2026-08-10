@@ -127,7 +127,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.material.kolor)
     implementation(libs.accompanist.drawablepainter)
-    implementation("com.airbnb.android:lottie-compose:6.4.1")
+    implementation(libs.lottie.compose)
 }
 
 kotlin {
