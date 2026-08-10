@@ -63,21 +63,27 @@
             const val API_BATCH_LIMIT = 50
         }
     
-        override fun onConnect(
+        @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+        override fun onConnectAsync(
             session: MediaSession,
             controller: MediaSession.ControllerInfo
-        ): MediaSession.ConnectionResult {
-            val connectionResult = super.onConnect(session, controller)
-            val availableSessionCommands = connectionResult.availableSessionCommands
+        ): ListenableFuture<MediaSession.ConnectionResult> {
+            @Suppress("DEPRECATION")
+            val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+            val defaultResult = builder.build()
+            
+            val availableSessionCommands = defaultResult.availableSessionCommands
                 .buildUpon()
                 .add(SessionCommand(PlaybackService.CUSTOM_ACTION_LIKE, Bundle.EMPTY))
                 .add(SessionCommand(PlaybackService.CUSTOM_ACTION_REPEAT, Bundle.EMPTY))
                 .build()
     
-            return MediaSession.ConnectionResult.accept(
+            val connectionResult = MediaSession.ConnectionResult.accept(
                 availableSessionCommands,
-                connectionResult.availablePlayerCommands
+                defaultResult.availablePlayerCommands
             )
+            
+            return Futures.immediateFuture(connectionResult)
         }
     
         override fun onPostConnect(
