@@ -16,13 +16,17 @@
          * @param imageState Current transformation state (zoom, pan X, pan Y).
          * @param viewWidth Width of the image display area.
          * @param viewHeight Height of the image display area.
+         * @param targetWidth Final output width in pixels.
+         * @param targetHeight Final output height in pixels.
          */
         fun cropBitmap(
             source: Bitmap,
             cropRect: RectF,
             imageState: ImageState,
             viewWidth: Float,
-            viewHeight: Float
+            viewHeight: Float,
+            targetWidth: Int = 2048,
+            targetHeight: Int = 2048
         ): Bitmap {
             val matrix = Matrix()
     
@@ -58,7 +62,7 @@
             val height = min(srcRect.height(), imageHeight - top)
     
             // If selection is invalid, return a safe fallback (scaled original)
-            if (width <= 0 || height <= 0) return Bitmap.createScaledBitmap(source, 1000, 1000, true)
+            if (width <= 0 || height <= 0) return Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
     
             // 4. Create the cropped bitmap
             val cropped = Bitmap.createBitmap(
@@ -69,8 +73,8 @@
                 height.toInt()
             )
     
-            // 5. Resize to 1000x1000 (SoundCloud standard)
-            return Bitmap.createScaledBitmap(cropped, 1000, 1000, true)
+            // 5. Resize to target output size (2048x2048 avatar, 1240x260 banner)
+            return Bitmap.createScaledBitmap(cropped, targetWidth, targetHeight, true)
         }
     }
     

@@ -26,11 +26,11 @@
         @PUT("me")
         suspend fun updateMe(@Body body: UpdateProfileRequest): User
     
-        @PUT("me/profile/avatar")
-        suspend fun updateAvatar(@Body body: AvatarUpdateRequest): User
+        @POST("https://api-mobile.soundcloud.com/you/profile/avatar")
+        suspend fun updateAvatar(@Body body: AvatarUpdateRequest): retrofit2.Response<Unit>
     
-        @DELETE("me/profile/avatar")
-        suspend fun deleteAvatar(): User
+        @DELETE("https://api-mobile.soundcloud.com/you/profile/avatar")
+        suspend fun deleteAvatar(): retrofit2.Response<Unit>
     
         // --- Discovery & Home ---
     
@@ -99,24 +99,14 @@
         @GET
         suspend fun getStreamUrl(@Url url: String): StreamUrlResponse
     
-        // --- Profile Visuals (Banner Upload Flow) ---
+        // --- Profile Visuals (Avatar & Banner Upload Flow, mobile API) ---
     
-        // 1. Request S3 upload policy
-        @GET("presign/visuals")
-        suspend fun getBannerPresign(
-            @Query("contentType") contentType: String = "image/jpeg"
-        ): PresignResponse
+        // Upload banner: POST /you/profile/header_image with {"image_data": base64 JPEG}
+        @POST("https://api-mobile.soundcloud.com/you/profile/header_image")
+        suspend fun updateBanner(@Body body: BannerUploadRequest): retrofit2.Response<Unit>
     
-        // 2. Confirm upload completion
-        @POST("visuals")
-        suspend fun confirmBannerUpload(@Body body: VisualsConfirmRequest): BannerUploadResponse
-    
-        @DELETE("visuals")
+        @DELETE("https://api-mobile.soundcloud.com/you/profile/header_image")
         suspend fun deleteBanner(): retrofit2.Response<Unit>
-    
-        // Legacy direct upload
-        @POST("visuals")
-        suspend fun updateBanner(@Body body: BannerUploadRequest): BannerUploadResponse
     
         // --- Reposts ---
     
