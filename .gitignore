@@ -10,7 +10,9 @@ build/
 *.dex
 output-metadata.json
 lint-results-*.xml
-.idea/
+.idea/*
+!.idea/runConfigurations/
+!.idea/runConfigurations/*.xml
 *.iml
 *.ipr
 *.iws
