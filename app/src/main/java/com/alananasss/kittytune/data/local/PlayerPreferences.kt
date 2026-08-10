@@ -55,6 +55,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_ALIGNMENT = "lyrics_alignment"
         private const val KEY_LYRICS_FONT_SIZE = "lyrics_font_size"
         private const val KEY_APP_LANGUAGE = "app_language_code"
+        private const val KEY_APP_ICON = "app_icon_id"
         private const val KEY_ACHIEVEMENT_POPUPS = "achievement_popups_enabled"
         private const val KEY_PRECISE_SPEED = "precise_speed_enabled"
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
@@ -200,6 +201,12 @@ class PlayerPreferences(context: Context) {
 
     fun setAppLanguage(language: AppLanguage) {
         prefs.edit { putString(KEY_APP_LANGUAGE, language.code) }
+    }
+
+    fun getAppIconId(): String = prefs.getString(KEY_APP_ICON, "default") ?: "default"
+
+    fun setAppIconId(id: String) {
+        prefs.edit { putString(KEY_APP_ICON, id) }
     }
 
     fun getLyricsPreferLocal(): Boolean = prefs.getBoolean(KEY_LYRICS_PREFER_LOCAL, false)
