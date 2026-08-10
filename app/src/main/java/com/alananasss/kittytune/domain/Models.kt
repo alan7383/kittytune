@@ -417,17 +417,8 @@
     data class UpdateProfileRequest(val username: String?, val description: String?, val city: String?, @SerializedName("country_code") val countryCode: String?, @SerializedName("first_name") val firstName: String? = null, @SerializedName("last_name") val lastName: String? = null)
     data class AvatarUpdateRequest(@SerializedName("image_data") val imageData: String)
     
-    // legacy banner request (safety)
-    data class BannerUploadRequest(
-        @SerializedName("image_url") val imageUrl: String,
-        @SerializedName("_resource_type") val resourceType: String = "userVisual"
-    )
-    
-    // response for banner confirmation
-    data class BannerUploadResponse(
-        @SerializedName("user_urn") val userUrn: String,
-        @SerializedName("image_url") val imageUrl: String
-    )
+    // banner upload body — mobile API: {"image_data": base64 JPEG}
+    data class BannerUploadRequest(@SerializedName("image_data") val imageData: String)
     
     // Mixed Selections
     data class MixedSelectionsResponse(
@@ -560,20 +551,6 @@
         @SerializedName("licenseAuthToken") val licenseAuthToken: String? = null
     )
     
-    // new banner flow models
-    
-    // response from get /presign/visuals
-    data class PresignResponse(
-        @SerializedName("url") val url: String,
-        @SerializedName("fields") val fields: Map<String, String>
-    )
-    
-    // request body for post /visuals (confirm)
-    data class VisualsConfirmRequest(
-        @SerializedName("image_url") val imageUrl: String,
-        @SerializedName("_resource_type") val resourceType: String = "userVisual"
-    )
-
     class PlaylistTracksAdapter : com.google.gson.JsonDeserializer<List<Track>> {
         override fun deserialize(
             json: com.google.gson.JsonElement,

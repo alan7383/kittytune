@@ -59,7 +59,7 @@
         val density = LocalDensity.current
     
         // soundcloud banner ratio: 2480 / 520 ≈ 4.77
-        val targetRatio = 2480f / 520f
+        val targetRatio = 1240f / 260f
     
         Dialog(
             onDismissRequest = onDismiss,
@@ -280,6 +280,7 @@
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(
                                 onClick = onDismiss,
+                                shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Text(stringResource(R.string.btn_cancel))
@@ -324,18 +325,18 @@
                                                 cropRect = cropRect,
                                                 imageState = state,
                                                 viewWidth = size.width,
-                                                viewHeight = size.height
+                                                viewHeight = size.height,
+                                                targetWidth = 1240,
+                                                targetHeight = 260
                                             )
     
-                                            // Resize to SoundCloud recommended banner size
-                                            val finalBanner = Bitmap.createScaledBitmap(result, 2480, 520, true)
-    
                                             withContext(Dispatchers.Main) {
-                                                onSave(finalBanner)
+                                                onSave(result)
                                             }
                                         }
                                     }
                                 },
+                                shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary

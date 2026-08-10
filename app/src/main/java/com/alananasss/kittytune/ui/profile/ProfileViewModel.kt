@@ -23,15 +23,7 @@
     import kotlinx.coroutines.async
     import kotlinx.coroutines.coroutineScope
     import kotlinx.coroutines.launch
-    import kotlinx.coroutines.withContext
-    import okhttp3.MediaType.Companion.toMediaTypeOrNull
-    import okhttp3.MultipartBody
-    import okhttp3.OkHttpClient
-    import okhttp3.Request
-    import okhttp3.RequestBody.Companion.asRequestBody
     import java.io.ByteArrayOutputStream
-    import java.io.File
-    import java.io.FileOutputStream
     
     // Tab enum
     enum class ProfileTab {
@@ -260,19 +252,20 @@
             viewModelScope.launch {
                 isLoading = true
                 try {
-                    // 1. Compress Bitmap
                     val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                     val byteArray = outputStream.toByteArray()
     
-                    // 2. Encode to Base64
-                    val base64String = Base64.encodeToString(byteArray, Base64.DEFAULT)
-    
-                    // 3. API Call
+                    val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
                     val request = AvatarUpdateRequest(imageData = base64String)
-                    val updatedUser = api.updateAvatar(request)
+                    val response = api.updateAvatar(request)
     
-                    // 4. Update UI
+                    if (!response.isSuccessful) {
+                        val errorBody = response.errorBody()?.string()
+                        throw Exception("Avatar upload failed: ${response.code()} - $errorBody")
+                    }
+    
+                    val updatedUser = api.getMe()
                     user = updatedUser
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
     
@@ -298,14 +291,19 @@
                     }
     
                     val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                     val byteArray = outputStream.toByteArray()
     
-                    val base64String = Base64.encodeToString(byteArray, Base64.DEFAULT)
-    
+                    val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
                     val request = AvatarUpdateRequest(imageData = base64String)
-                    val updatedUser = api.updateAvatar(request)
+                    val response = api.updateAvatar(request)
     
+                    if (!response.isSuccessful) {
+                        val errorBody = response.errorBody()?.string()
+                        throw Exception("Avatar upload failed: ${response.code()} - $errorBody")
+                    }
+    
+                    val updatedUser = api.getMe()
                     user = updatedUser
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
     
@@ -331,14 +329,17 @@
                     }
     
                     val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                     val byteArray = outputStream.toByteArray()
     
                     val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
-                    val dataUri = "data:image/jpeg;base64,$base64String"
+                    val request = BannerUploadRequest(imageData = base64String)
+                    val response = api.updateBanner(request)
     
-                    val request = BannerUploadRequest(imageUrl = dataUri)
-                    api.updateBanner(request)
+                    if (!response.isSuccessful) {
+                        val errorBody = response.errorBody()?.string()
+                        throw Exception("Banner upload failed: ${response.code()} - $errorBody")
+                    }
     
                     val updatedUser = api.getMe()
                     user = updatedUser
@@ -358,7 +359,14 @@
             viewModelScope.launch {
                 isLoading = true
                 try {
-                    val updatedUser = api.deleteAvatar()
+                    val response = api.deleteAvatar()
+
+                    if (!response.isSuccessful) {
+                        val errorBody = response.errorBody()?.string()
+                        throw Exception("Avatar delete failed: ${response.code()} - $errorBody")
+                    }
+
+                    val updatedUser = api.getMe()
                     user = updatedUser
                     Toast.makeText(getApplication(), getString(R.string.profile_avatar_deleted), Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
@@ -397,54 +405,19 @@
             viewModelScope.launch {
                 isLoading = true
                 try {
-                    // 1. Prepare file locally
-                    val file = File(context.cacheDir, "banner_temp.jpg")
-                    val os = FileOutputStream(file)
-                    // SoundCloud banners are heavy, use high quality
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, os)
-                    os.flush()
-                    os.close()
+                    val outputStream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+                    val byteArray = outputStream.toByteArray()
     
-                    // 2. Initialize Upload (Get Signed URL & Policy from SoundCloud API)
-                    val presign = api.getBannerPresign("image/jpeg")
+                    val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
+                    val request = BannerUploadRequest(imageData = base64String)
+                    val response = api.updateBanner(request)
     
-                    // 3. Construct S3 Multipart Request
-                    val client = OkHttpClient()
-                    val builder = MultipartBody.Builder().setType(MultipartBody.FORM)
-    
-                    presign.fields.forEach { (key, value) ->
-                        builder.addFormDataPart(key, value)
+                    if (!response.isSuccessful) {
+                        val errorBody = response.errorBody()?.string()
+                        throw Exception("Banner upload failed: ${response.code()} - $errorBody")
                     }
     
-                    // File must be the last part
-                    val fileBody = file.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                    builder.addFormDataPart("file", "blob", fileBody)
-    
-                    val requestS3 = Request.Builder()
-                        .url(presign.url)
-                        .post(builder.build())
-                        .build()
-    
-                    // 4. Execute upload to S3
-                    withContext(Dispatchers.IO) {
-                        val response = client.newCall(requestS3).execute()
-                        if (!response.isSuccessful) {
-                            val errorBody = response.body?.string()
-                            throw Exception("S3 Upload failed: ${response.code} - $errorBody")
-                        }
-                    }
-    
-                    // 5. Confirm Upload to SoundCloud
-                    val s3Key = presign.fields["key"] ?: throw Exception("Missing S3 key")
-                    val finalS3Url = presign.url + s3Key
-    
-                    val confirmRequest = VisualsConfirmRequest(
-                        imageUrl = finalS3Url
-                    )
-    
-                    api.confirmBannerUpload(confirmRequest)
-    
-                    // 6. Refresh User Profile
                     val updatedUser = api.getMe()
                     user = updatedUser
     

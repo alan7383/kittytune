@@ -286,6 +286,7 @@
                         ) {
                             TextButton(
                                 onClick = onDismiss,
+                                shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.textButtonColors(
                                     contentColor = MaterialTheme.colorScheme.primary
                                 )
@@ -318,7 +319,9 @@
                                                 cropRect = cropRect,
                                                 imageState = state,
                                                 viewWidth = size.width,
-                                                viewHeight = size.height
+                                                viewHeight = size.height,
+                                                targetWidth = 2048,
+                                                targetHeight = 2048
                                             )
     
                                             withContext(Dispatchers.Main) {
@@ -328,6 +331,7 @@
                                     }
                                 },
                                 enabled = !isSaving,
+                                shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
