@@ -679,13 +679,17 @@
                             profileViewModel.deleteAvatar(context)
                             showDeleteConfirm = false
                         },
+                        shapes = ButtonDefaults.shapes(),
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Text(stringResource(R.string.btn_delete))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) {
+                    TextButton(
+                        onClick = { showDeleteConfirm = false },
+                        shapes = ButtonDefaults.shapes()
+                    ) {
                         Text(stringResource(R.string.btn_cancel))
                     }
                 }
@@ -703,13 +707,17 @@
                             profileViewModel.deleteBanner(context)
                             showDeleteBannerConfirm = false
                         },
+                        shapes = ButtonDefaults.shapes(),
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Text(stringResource(R.string.btn_delete))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteBannerConfirm = false }) {
+                    TextButton(
+                        onClick = { showDeleteBannerConfirm = false },
+                        shapes = ButtonDefaults.shapes()
+                    ) {
                         Text(stringResource(R.string.btn_cancel))
                     }
                 }
@@ -878,7 +886,7 @@
                     Button(
                         onClick = { onSave(name, bio, city) },
                         modifier = Modifier.fillMaxWidth().height(50.dp),
-                        shape = RoundedCornerShape(50),
+                        shapes = ButtonDefaults.shapes(),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(stringResource(R.string.btn_save_changes))
@@ -1033,7 +1041,7 @@
             if (showMore) {
                 TextButton(
                     onClick = onMoreClick,
-                    shape = RoundedCornerShape(12.dp)
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_see_all), fontWeight = FontWeight.Bold)
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
