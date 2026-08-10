@@ -23,3 +23,6 @@
     include(":app")
     include(":kizzy")
     include(":shazamkit")
+    include(":innertube")
+    include(":lrclib")
+    include(":kugou")

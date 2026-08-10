@@ -97,9 +97,9 @@ dependencies {
     implementation(libs.newpipe.extractor)
     implementation(libs.rhino)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
-    implementation(libs.innertune) {
-        exclude(group = "com.github.z-huang.InnerTune", module = "kizzy")
-    }
+    implementation(project(":innertube"))
+    implementation(project(":lrclib"))
+    implementation(project(":kugou"))
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.browser)
     implementation(libs.kotlinx.serialization.json)
