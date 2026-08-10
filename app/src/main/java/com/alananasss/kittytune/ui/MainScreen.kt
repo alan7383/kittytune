@@ -872,6 +872,13 @@ fun MainScreen(
                         AppearanceSettingsScreen(
                             onNavigateToColors = { navController.navigate("color_palette") },
                             onNavigateToBottomBarSettings = { navController.navigate("bottom_bar_settings") },
+                            onNavigateToAppIconSettings = { navController.navigate("app_icon_settings") },
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("app_icon_settings") {
+                        AppIconSettingsScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }

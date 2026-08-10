@@ -56,6 +56,7 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 fun AppearanceSettingsScreen(
     onNavigateToColors: () -> Unit,
     onNavigateToBottomBarSettings: () -> Unit,
+    onNavigateToAppIconSettings: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -72,6 +73,7 @@ fun AppearanceSettingsScreen(
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
     var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
+    var appIcon by remember { mutableStateOf(prefs.getAppIconId()) }
 
     var showPlayerStyleDialog by remember { mutableStateOf(false) }
     var showStartDestDialog by remember { mutableStateOf(false) }
@@ -239,6 +241,23 @@ fun AppearanceSettingsScreen(
                         )
                     }
                 }
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_cat_app_icon),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_app_icon_title),
+                                subtitle = stringResource(R.string.pref_app_icon_subtitle),
+                                trailingText = getAppIconDisplayName(context, appIcon),
+                                onClick = onNavigateToAppIconSettings
+                            )
+                        }
+                    )
+                )
             }
 
             item {
