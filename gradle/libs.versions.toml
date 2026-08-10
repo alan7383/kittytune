@@ -31,13 +31,15 @@ kotlinxSerialization = "1.11.0"
 coroutinesGuava = "1.11.0"
 reorderable = "3.1.0"
 aboutlibraries = "15.0.4"
-ktor = "2.3.12"
+ktor = "3.5.2"
 json = "20260719"
 material3 = "1.5.0-alpha25"
 materialKolor = "5.0.0"
 accompanist = "0.37.3"
 timber = "5.0.1"
 mlkit-language-id = "17.0.6"
+brotli = "0.1.2"
+opencc4j = "1.8.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -95,6 +97,8 @@ material-kolor = { group = "com.materialkolor", name = "material-kolor", version
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkit-language-id" }
+brotli = { group = "org.brotli", name = "dec", version.ref = "brotli" }
+opencc4j = { group = "com.github.houbb", name = "opencc4j", version.ref = "opencc4j" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
