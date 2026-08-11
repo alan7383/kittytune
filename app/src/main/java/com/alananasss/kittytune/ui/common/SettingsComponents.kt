@@ -81,6 +81,10 @@ fun SettingsItem(
     subtitle: String? = null,
     trailingText: String? = null,
     icon: ImageVector? = null,
+    iconRes: Int? = null,
+    iconTint: Color? = null,
+    iconContainerColor: Color? = null,
+    iconShape: Shape = CircleShape,
     onClick: (() -> Unit)? = null,
     hasSwitch: Boolean = false,
     switchState: Boolean = false,
@@ -116,19 +120,28 @@ fun SettingsItem(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (icon != null) {
+            if (icon != null || iconRes != null) {
                 Surface(
                     modifier = Modifier.size(42.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.secondaryContainer
+                    shape = iconShape,
+                    color = iconContainerColor ?: (if (iconRes != null) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                        if (iconRes != null) {
+                            Icon(
+                                painter = androidx.compose.ui.res.painterResource(iconRes),
+                                contentDescription = null,
+                                modifier = Modifier.size(if (iconContainerColor != null) 24.dp else 36.dp),
+                                tint = iconTint ?: Color.Unspecified
+                            )
+                        } else if (icon != null) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = iconTint ?: MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
@@ -218,6 +231,7 @@ fun SettingsItem(
 fun SettingsScaffold(
     title: String,
     onBackClick: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -241,6 +255,7 @@ fun SettingsScaffold(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.btn_back))
                     }
                 },
+                actions = actions,
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.largeTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,

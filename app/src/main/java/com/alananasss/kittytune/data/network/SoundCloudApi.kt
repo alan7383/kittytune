@@ -470,6 +470,11 @@
 
         @POST
         suspend fun postGraphQl(@Url url: String, @Body request: GraphQlRequest): JsonObject
+
+        // --- Music Import (Transfer your gems) GraphQL API (graph, OAuth) ---
+
+        @POST("https://graph.soundcloud.com/graphql")
+        suspend fun postMusicImportGraphQl(@Body request: GraphQlRequest): JsonObject
     }
 
 data class ApiRecentlyPlayed(

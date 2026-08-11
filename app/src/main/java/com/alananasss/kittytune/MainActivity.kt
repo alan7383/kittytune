@@ -216,6 +216,15 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 if (code != null) {
                     com.alananasss.kittytune.data.AuthFlowManager.setAuthCode(code)
                 }
+
+                // Music import (Transfer your gems) callback: soundcloud://musicapi/auth?data64=...
+                if (data.scheme == "soundcloud" && data.host == "musicapi" && data.path?.startsWith("/auth") == true) {
+                    data.getQueryParameter("data64")?.let { data64 ->
+                        com.alananasss.kittytune.data.musicimport.MusicApiAuth.fromData64(data64)?.let { auth ->
+                            com.alananasss.kittytune.data.musicimport.MusicImportCoordinator.deliverAuth(auth)
+                        }
+                    }
+                }
             }
         }
     

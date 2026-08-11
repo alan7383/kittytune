@@ -72,6 +72,7 @@ import com.alananasss.kittytune.ui.navigation.clippedComposable
 import com.alananasss.kittytune.ui.player.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.ui.profile.*
+import com.alananasss.kittytune.ui.musicimport.*
 import com.alananasss.kittytune.ui.recognition.RecognitionScreen
 import com.alananasss.kittytune.ui.track.TrackDetailScreen
 import com.alananasss.kittytune.ui.navigation.KittyUnifiedBottomBar
@@ -408,6 +409,8 @@ fun MainScreen(
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
                 currentRoute?.startsWith("chat/") == true ||
+                currentRoute?.startsWith("music_import/") == true ||
+                currentRoute == "music_import_transfer" ||
                 currentRoute == Screen.Recognition.route
 
         val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
@@ -460,7 +463,7 @@ fun MainScreen(
                             direction = BlurDirection.TOP
                         )
                         .then(
-                            if (actualBottomMenuBlurEnabled) {
+                            if (actualBottomMenuBlurEnabled && !isFullScreenRoute) {
                                 Modifier.progressiveBlur(
                                     blurRadius = 40f,
                                     height = bottomBarHeightPx,
@@ -840,6 +843,40 @@ fun MainScreen(
 
                     clippedComposable("settings") {
                         SettingsScreen(navController, { navController.popBackStack() }, playerViewModel)
+                    }
+
+                    clippedComposable("music_import") {
+                        MusicImportScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onPlatformSelected = { platform ->
+                                navController.navigate("music_import/$platform")
+                            },
+                            onLoginClick = { navController.navigate(Screen.Login.route) }
+                        )
+                    }
+
+                    clippedComposable(
+                        route = "music_import/{platform}",
+                        arguments = listOf(navArgument("platform") { type = NavType.StringType })
+                    ) { entry ->
+                        val platform = entry.arguments?.getString("platform") ?: ""
+                        MusicImportSelectionScreen(
+                            platformProviderName = platform,
+                            onBackClick = { navController.popBackStack() },
+                            onStartTransfer = { navController.navigate("music_import_transfer") }
+                        )
+                    }
+
+                    clippedComposable("music_import_transfer") {
+                        MusicImportTransferScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onDone = {
+                                navController.popBackStack(
+                                    navController.graph.findStartDestination().id,
+                                    inclusive = false
+                                )
+                            }
+                        )
                     }
 
                     clippedComposable("backup_restore") {
