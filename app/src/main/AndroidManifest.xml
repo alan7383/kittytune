@@ -52,6 +52,13 @@
                     <category android:name="android.intent.category.BROWSABLE" />
                     <data android:scheme="sc" android:host="auth" />
                 </intent-filter>
+                <!-- Music import (Transfer your gems) OAuth callback from app.musicapi.com -->
+                <intent-filter android:autoVerify="false">
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="soundcloud" android:host="musicapi" android:pathPrefix="/auth" />
+                </intent-filter>
                 <intent-filter android:autoVerify="false">
                     <action android:name="android.intent.action.VIEW" />
                     <category android:name="android.intent.category.DEFAULT" />

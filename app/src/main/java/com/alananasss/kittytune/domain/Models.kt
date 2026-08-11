@@ -239,6 +239,10 @@
     data class GraphQlVariablesInteraction(
         @SerializedName("input") val input: InteractionInput
     )
+
+    data class GraphQlVariablesMusicImport(
+        @SerializedName("input") val input: Any
+    )
     
     data class GraphQlVariablesUserCheck(
         @SerializedName("parentUrn") val parentUrn: String,

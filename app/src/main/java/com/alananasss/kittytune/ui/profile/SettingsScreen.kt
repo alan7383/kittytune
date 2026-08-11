@@ -125,6 +125,15 @@
                             { shape ->
                                 SettingsItem(
                                     shape = shape,
+                                    title = stringResource(R.string.music_import_title),
+                                    subtitle = stringResource(R.string.music_import_settings_subtitle),
+                                    icon = Icons.Rounded.ImportExport,
+                                    onClick = { navController.navigate("music_import") }
+                                )
+                            },
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
                                     title = stringResource(R.string.pref_about_title),
                                     subtitle = stringResource(R.string.pref_about_subtitle),
                                     icon = Icons.Rounded.Info,
