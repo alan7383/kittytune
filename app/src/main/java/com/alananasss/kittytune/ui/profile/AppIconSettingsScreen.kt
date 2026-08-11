@@ -6,9 +6,10 @@ import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,14 +37,12 @@ fun AppIconSettingsScreen(onBackClick: () -> Unit) {
         title = stringResource(R.string.pref_app_icon_title),
         onBackClick = onBackClick
     ) { innerPadding ->
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 96.dp),
+        LazyColumn(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 180.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(AppIconSwitcher.ICON_IDS) { id ->
                 val selected = id == appIcon
@@ -53,7 +52,7 @@ fun AppIconSettingsScreen(onBackClick: () -> Unit) {
                         prefs.setAppIconId(id)
                         AppIconSwitcher.applyIcon(context, id)
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp),
                     shapes = ButtonDefaults.shapes(),
                     colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = if (selected) {
@@ -66,28 +65,36 @@ fun AppIconSettingsScreen(onBackClick: () -> Unit) {
                         } else {
                             MaterialTheme.colorScheme.onSurface
                         }
-                    )
+                    ),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         val iconBitmap = rememberAdaptiveIconBitmap(context, id)
                         if (iconBitmap != null) {
                             Image(
                                 bitmap = iconBitmap,
                                 contentDescription = null,
-                                modifier = Modifier.size(52.dp)
+                                modifier = Modifier.size(42.dp)
                             )
                         }
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.width(16.dp))
                         Text(
                             text = getAppIconDisplayName(context, id),
-                            style = MaterialTheme.typography.labelMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                         )
+                        Spacer(Modifier.weight(1f))
+                        if (selected) {
+                            Icon(
+                                imageVector = Icons.Rounded.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
