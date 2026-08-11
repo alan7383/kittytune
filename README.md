@@ -37,7 +37,7 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 <summary><b>$ music import & transfer</b></summary>
 
 * **Import your music & playlists** from 7 major platforms (**Spotify, Apple Music, YouTube Music, Deezer, Tidal, Amazon Music, BoomPlay**) straight into your SoundCloud account.
-* **Real-time transfer progress** with live percentage and smooth Material 3 Expressive UI.
+* **Powered by the real SoundCloud API** for direct, native account sync and progress tracking.
 
 <p align="center">
   <img src="app/src/main/music_import_preview.png" width="300" alt="Music Import Transfer Preview">
