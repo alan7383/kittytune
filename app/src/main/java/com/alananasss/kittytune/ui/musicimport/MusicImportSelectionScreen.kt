@@ -50,9 +50,12 @@ fun MusicImportSelectionScreen(
             ?: stringResource(R.string.music_import_title),
         onBackClick = onBackClick,
         actions = {
-            IconButton(onClick = {
-                viewModel.logout(onLoggedOut = onBackClick)
-            }) {
+            IconButton(
+                onClick = {
+                    viewModel.logout(onLoggedOut = onBackClick)
+                },
+                shapes = IconButtonDefaults.shapes()
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.Logout,
                     contentDescription = stringResource(R.string.btn_logout),
@@ -67,7 +70,7 @@ fun MusicImportSelectionScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 140.dp)
+                    contentPadding = PaddingValues(bottom = 180.dp)
                 ) {
                     if (viewModel.error != null) {
                         item {

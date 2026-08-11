@@ -119,7 +119,7 @@ fun MusicImportScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 48.dp)
+                    contentPadding = PaddingValues(bottom = 180.dp)
                 ) {
                 item {
                     Text(
@@ -176,7 +176,7 @@ fun MusicImportScreen(
 
             if (viewModel.isConnecting) {
                 CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp)
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 180.dp)
                 )
             }
         }
@@ -204,13 +204,16 @@ fun MusicImportScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { 
-                    val platform = platformPendingAuth!!
-                    platformPendingAuth = null
-                    viewModel.markConnecting(true)
-                    viewModel.markAuthError(null)
-                    MusicApiAuthLauncher.launch(context, platform)
-                }) {
+                TextButton(
+                    onClick = { 
+                        val platform = platformPendingAuth!!
+                        platformPendingAuth = null
+                        viewModel.markConnecting(true)
+                        viewModel.markAuthError(null)
+                        MusicApiAuthLauncher.launch(context, platform)
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
                     Text(stringResource(R.string.music_import_auth_warning_ok))
                 }
             }
