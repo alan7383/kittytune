@@ -14,6 +14,9 @@
   <a href="https://github.com/alan7383/kittytune/stargazers">
     <img src="https://img.shields.io/github/stars/alan7383/kittytune?style=for-the-badge&logo=github" alt="Stars">
   </a>
+  <a href="https://ko-fi.com/alan7383">
+    <img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
+  </a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android Badge">
 </p>
 
@@ -219,6 +222,18 @@ cd kittytune
 * **LrcLib**
 * **Kizzy**
 * **ShazamKit**
+
+---
+
+### ☕ support
+
+If you enjoy using **KittyTune** and want to support its ongoing development, consider buying me a coffee!
+
+<p align="center">
+  <a href="https://ko-fi.com/alan7383" target="_blank">
+    <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=3" height="42" alt="Buy Me a Coffee at ko-fi.com">
+  </a>
+</p>
 
 ---
 
