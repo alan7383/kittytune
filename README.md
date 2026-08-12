@@ -28,7 +28,7 @@
 </p>
 
 > [!TIP]
-> 💻 **Looking for KittyTune on Desktop?** KittyTune is also available for **Windows**, **macOS**, and **Linux** (*Arch Linux*, *Debian / Ubuntu `.deb`*, *Fedora / openSUSE `.rpm`*, and *universal `.AppImage`*)! Check out [KittyTuneDesktop](https://github.com/alan7383/KittyTuneDesktop).
+> 💻 **Looking for KittyTune on Desktop?** KittyTune is also available for **Windows**, **Linux** (*Arch Linux*, *Debian / Ubuntu `.deb`*, *Fedora / openSUSE `.rpm`*, and *universal `.AppImage`*), and **macOS**! Check out [KittyTuneDesktop](https://github.com/alan7383/KittyTuneDesktop).
 
 ---
 
