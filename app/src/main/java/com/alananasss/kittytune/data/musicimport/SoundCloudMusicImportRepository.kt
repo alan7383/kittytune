@@ -205,7 +205,7 @@ class SoundCloudMusicImportRepository(
         return node.takeIf { it.isJsonPrimitive }?.asLong
     }
 
-    private val gson = com.google.gson.Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
     companion object {
         const val DEFAULT_PAGE_LIMIT = 50

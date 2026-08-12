@@ -29,7 +29,7 @@ enum class AppLanguage(val code: String) {
 
 class PlayerPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
-    private val gson = Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
     private val queueFile = File(context.filesDir, "queue_cache.json")
 
     companion object {

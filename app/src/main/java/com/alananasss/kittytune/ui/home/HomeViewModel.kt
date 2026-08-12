@@ -79,9 +79,12 @@
     }
     
     class HomeViewModel(application: Application) : AndroidViewModel(application) {
+        companion object {
+            private val YOUTUBE_PATTERN = Pattern.compile("(?<=watch\\?v=|/videos/|embed/|youtu.be/|/v/|/e/|watch\\?v%3D|watch\\?feature=player_embedded&v=|%2Fvideos%2F|embed%\\u200C\\u200B2F|youtu.be%2F|%2Fv%2F)[^#&?\\n]*")
+        }
         private val api = RetrofitClient.create(application)
         private val prefs = application.getSharedPreferences("home_cache", Context.MODE_PRIVATE)
-        private val gson = Gson()
+        private val gson = com.alananasss.kittytune.utils.AppUtils.gson
         private val tokenManager = TokenManager(application)
     
         private val _navigateTo = MutableSharedFlow<String>()
@@ -472,9 +475,7 @@
         }
 
         private fun extractYoutubeVideoId(url: String): String? {
-            val pattern = "(?<=watch\\?v=|/videos/|embed/|youtu.be/|/v/|/e/|watch\\?v%3D|watch\\?feature=player_embedded&v=|%2Fvideos%2F|embed%\u200C\u200B2F|youtu.be%2F|%2Fv%2F)[^#&?\\n]*"
-            val compiledPattern = Pattern.compile(pattern)
-            val matcher = compiledPattern.matcher(url)
+            val matcher = YOUTUBE_PATTERN.matcher(url)
             return if (matcher.find()) matcher.group() else null
         }
 

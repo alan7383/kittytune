@@ -31,7 +31,7 @@ data class FullBackupData(
 )
 
 object BackupManager {
-    private val gson = Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
     suspend fun createBackup(context: Context, uri: Uri) {
         withContext(Dispatchers.IO) {
