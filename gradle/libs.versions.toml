@@ -24,7 +24,6 @@ markdown = "0.3.1"
 newpipe = "v0.26.2"
 rhino = "1.9.1"
 desugar = "2.1.5"
-innertune = "0.5.10"
 webkit = "1.16.0"
 browser = "1.10.0"
 kotlinxSerialization = "1.11.0"
@@ -39,7 +38,7 @@ accompanist = "0.37.3"
 timber = "5.0.1"
 mlkit-language-id = "17.0.6"
 brotli = "0.1.2"
-opencc4j = "1.8.1"
+opencc4j = "1.14.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -79,7 +78,6 @@ compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown",
 newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe" }
 rhino = { group = "org.mozilla", name = "rhino", version.ref = "rhino" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs_nio", version.ref = "desugar" }
-innertune = { group = "com.github.z-huang", name = "InnerTune", version.ref = "innertune" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
