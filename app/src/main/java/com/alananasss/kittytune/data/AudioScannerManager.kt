@@ -16,6 +16,7 @@ import java.nio.ByteBuffer
 
 object AudioScannerManager {
     private val TAG = "AudioScannerManager"
+    private var reusableFloatBuffer = FloatArray(16384 * 2)
 
     init {
         System.loadLibrary("kittytune_audio_dsp")
@@ -166,21 +167,22 @@ object AudioScannerManager {
         val numFrames = bufferInfo.size / (channels * 2)
         if (numFrames <= 0) return
 
-        val floatArray = FloatArray(numFrames * channels)
+        val requiredSize = numFrames * channels
+        if (reusableFloatBuffer.size < requiredSize) {
+            reusableFloatBuffer = FloatArray(requiredSize)
+        }
 
         val shortBuf = buffer.duplicate()
         shortBuf.position(bufferInfo.offset)
         shortBuf.limit(bufferInfo.offset + bufferInfo.size)
 
-        for (i in floatArray.indices) {
-            if (shortBuf.remaining() >= 2) {
-                floatArray[i] = shortBuf.getShort().toFloat() / 32768f
-            } else {
-                floatArray[i] = 0f
-            }
+        for (i in 0 until requiredSize) {
+            reusableFloatBuffer[i] = if (shortBuf.remaining() >= 2) {
+                shortBuf.getShort().toFloat() / 32768f
+            } else 0f
         }
 
-        nativeAddFramesFloat(nativeHandle, floatArray, numFrames)
+        nativeAddFramesFloat(nativeHandle, reusableFloatBuffer, numFrames)
     }
 
     private fun resolveAudioPath(track: LocalTrack): String? {
