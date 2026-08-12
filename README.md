@@ -18,11 +18,17 @@
     <img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
   </a>
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android Badge">
+  <a href="https://github.com/alan7383/KittyTuneDesktop">
+    <img src="https://img.shields.io/badge/Desktop-Windows%20%7C%20Linux%20%7C%20macOS-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Desktop Version">
+  </a>
 </p>
 
 <p align="center">
   <strong>A SoundCloud-first Android player with guest mode, YouTube fallback, local files, offline downloads, lyrics, widgets, and a lot of real extras.</strong>
 </p>
+
+> [!TIP]
+> 💻 **Looking for KittyTune on Desktop?** KittyTune is also available on **Windows**, **Linux** (and compatible distros), and **macOS**! Check out [KittyTuneDesktop](https://github.com/alan7383/KittyTuneDesktop).
 
 ---
 
