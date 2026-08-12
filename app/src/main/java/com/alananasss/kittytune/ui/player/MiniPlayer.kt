@@ -23,6 +23,7 @@
     import androidx.compose.ui.text.font.FontWeight
     import androidx.compose.ui.unit.dp
     import coil.compose.AsyncImage
+    import kotlinx.coroutines.flow.collectLatest
     import com.alananasss.kittytune.R
     
     @Composable
@@ -33,54 +34,49 @@
     ) {
         val track = viewModel.currentTrack ?: return
     
-        val targetProgress = if (viewModel.duration > 0) {
-            viewModel.currentPosition.toFloat() / viewModel.duration.toFloat()
-        } else 0f
-    
         val animatedProgress = remember { Animatable(0f) }
         var lastTrackKey by remember { mutableStateOf<Any?>(null) }
         val trackKey: Any = track.id
     
-        LaunchedEffect(trackKey, targetProgress) {
+        LaunchedEffect(trackKey) {
             val isTrackChange = lastTrackKey != null && lastTrackKey != trackKey
             lastTrackKey = trackKey
     
-            val delta = targetProgress - animatedProgress.value
-    
-            when {
-                isTrackChange -> {
-                    animatedProgress.animateTo(
-                        targetValue = 0f,
-                        animationSpec = tween(
-                            durationMillis = 280,
-                            easing = FastOutSlowInEasing
-                        )
+            if (isTrackChange) {
+                animatedProgress.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(
+                        durationMillis = 280,
+                        easing = FastOutSlowInEasing
                     )
-                    animatedProgress.animateTo(
-                        targetValue = targetProgress,
-                        animationSpec = tween(
-                            durationMillis = 500,
-                            easing = LinearEasing
+                )
+            }
+            
+            androidx.compose.runtime.snapshotFlow { 
+                if (viewModel.duration > 0) {
+                    viewModel.currentPosition.toFloat() / viewModel.duration.toFloat()
+                } else 0f 
+            }.collectLatest { tp ->
+                val delta = tp - animatedProgress.value
+                when {
+                    delta < -0.01f || delta > 0.05f -> {
+                        animatedProgress.animateTo(
+                            targetValue = tp,
+                            animationSpec = tween(
+                                durationMillis = 150,
+                                easing = FastOutSlowInEasing
+                            )
                         )
-                    )
-                }
-                delta < -0.01f || delta > 0.05f -> {
-                    animatedProgress.animateTo(
-                        targetValue = targetProgress,
-                        animationSpec = tween(
-                            durationMillis = 150,
-                            easing = FastOutSlowInEasing
+                    }
+                    else -> {
+                        animatedProgress.animateTo(
+                            targetValue = tp,
+                            animationSpec = tween(
+                                durationMillis = 1000,
+                                easing = LinearEasing
+                            )
                         )
-                    )
-                }
-                else -> {
-                    animatedProgress.animateTo(
-                        targetValue = targetProgress,
-                        animationSpec = tween(
-                            durationMillis = 1000,
-                            easing = LinearEasing
-                        )
-                    )
+                    }
                 }
             }
         }
