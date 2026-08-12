@@ -81,7 +81,7 @@ object SessionManager {
         .writeTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    private val gson = Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
     private val _isClientIdValid = MutableStateFlow(false)
     val isClientIdValid = _isClientIdValid.asStateFlow()
@@ -389,34 +389,44 @@ object SessionManager {
                 ?: CompletableDeferred<Boolean>().also { pendingDataDomeChallenge = it }
         }
 
-        withContext(Dispatchers.Main.immediate) {
-            val webView = ghostWebView
-            if (webView == null) {
-                deferred.complete(false)
-                return@withContext
+        try {
+            withContext(Dispatchers.Main.immediate) {
+                val webView = ghostWebView
+                if (webView == null) {
+                    deferred.complete(false)
+                    return@withContext
+                }
+
+                seedDataDomeCookieForChallenge(safeContext, captchaUrl, targetRequestUrl)
+                _showCaptchaFlow.value = true
+                webView.loadUrl(
+                    captchaUrl,
+                    mapOf("Accept-Language" to Locale.getDefault().toLanguageTag())
+                )
             }
 
-            seedDataDomeCookieForChallenge(safeContext, captchaUrl, targetRequestUrl)
-            _showCaptchaFlow.value = true
-            webView.loadUrl(
-                captchaUrl,
-                mapOf("Accept-Language" to Locale.getDefault().toLanguageTag())
-            )
-        }
+            val solved = withTimeoutOrNull(timeoutMs) {
+                deferred.await()
+            } ?: false
 
-        val solved = withTimeoutOrNull(timeoutMs) {
-            deferred.await()
-        } ?: false
+            if (!solved) {
+                synchronized(dataDomeLock) {
+                    if (pendingDataDomeChallenge === deferred) {
+                        pendingDataDomeChallenge = null
+                    }
+                }
+            }
 
-        if (!solved) {
+            return solved
+        } catch (e: Exception) {
+            e.printStackTrace()
             synchronized(dataDomeLock) {
                 if (pendingDataDomeChallenge === deferred) {
                     pendingDataDomeChallenge = null
                 }
             }
+            return false
         }
-
-        return solved
     }
 
     fun extractDataDomeCaptchaUrl(body: String?): String? {
