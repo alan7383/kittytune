@@ -26,7 +26,7 @@
     
     class ChartsViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-        private val gson = Gson()
+        private val gson = com.alananasss.kittytune.utils.AppUtils.gson
     
         var selectedCountryIndex by mutableStateOf(0)
         val chartPlaylists = mutableStateListOf<Playlist>()

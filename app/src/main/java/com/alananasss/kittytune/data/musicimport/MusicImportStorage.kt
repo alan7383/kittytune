@@ -12,7 +12,7 @@ class MusicImportStorage(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences("music_import", Context.MODE_PRIVATE)
 
-    private val gson = Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
     private fun platformKey(platform: String): String = "auth_$platform"
     private fun revertKey(platform: String): String = "revert_$platform"

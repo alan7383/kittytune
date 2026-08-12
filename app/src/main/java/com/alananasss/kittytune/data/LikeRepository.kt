@@ -25,7 +25,7 @@ object LikeRepository {
     private lateinit var prefs: SharedPreferences
     private lateinit var api: com.alananasss.kittytune.data.network.SoundCloudApi
     private lateinit var appContext: Context
-    private val gson = Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
     private var cachedUserId: Long? = null
 
     private val scope = CoroutineScope(Dispatchers.IO)

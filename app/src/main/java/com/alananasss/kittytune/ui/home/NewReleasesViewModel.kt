@@ -20,7 +20,7 @@
     class NewReleasesViewModel(application: Application) : AndroidViewModel(application) {
         // basic setup for api requests
         private val api = RetrofitClient.create(application)
-        private val gson = Gson()
+        private val gson = com.alananasss.kittytune.utils.AppUtils.gson
     
         // ui state management
         var isLoading by mutableStateOf(true)

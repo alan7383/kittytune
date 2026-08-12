@@ -126,7 +126,7 @@ object MusixmatchClient {
     private const val MXM_APP_ID = "android-player-v1.0"
     
     private val MXM_SECRET = "mNdca@6W7TeEcFn6*3.s97sJ*yPMd".toByteArray(Charsets.UTF_8)
-    private val gson = Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()

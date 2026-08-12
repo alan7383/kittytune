@@ -21,7 +21,7 @@
     
     class GenreDetailViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-        private val gson = Gson()
+        private val gson = com.alananasss.kittytune.utils.AppUtils.gson
     
         // ui state
         var isLoading by mutableStateOf(true)

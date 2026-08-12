@@ -19,7 +19,7 @@ data class MusicApiAuth(
     companion object {
         fun fromData64(data64: String): MusicApiAuth? = try {
             val json = String(Base64.getUrlDecoder().decode(data64), Charsets.UTF_8)
-            Gson().fromJson(json, MusicApiAuth::class.java)
+            com.alananasss.kittytune.utils.AppUtils.gson.fromJson(json, MusicApiAuth::class.java)
         } catch (e: Exception) {
             null
         }
