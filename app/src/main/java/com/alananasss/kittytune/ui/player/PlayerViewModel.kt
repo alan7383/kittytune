@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import java.util.concurrent.CopyOnWriteArrayList
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -75,7 +76,7 @@ data class UnifiedLyricResult(
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val gson = Gson()
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
     private val api = RetrofitClient.create(application)
     private val context get() = getApplication<Application>().applicationContext
     private val playerPrefs = PlayerPreferences(context)
@@ -180,8 +181,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private val _originalQueue = mutableListOf<Track>()
-    private val _queue = mutableListOf<Track>()
+    private val _originalQueue = CopyOnWriteArrayList<Track>()
+    private val _queue = CopyOnWriteArrayList<Track>()
     val queue: List<Track> get() = _queue
     var queueState by mutableStateOf<List<Track>>(emptyList())
         private set
@@ -2473,9 +2474,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             if (resolvedUrl == null) {
                 withContext(Dispatchers.Main) {
-                    isLoading = false
-                    isPlaying = false
-                    if (allowSkipOnFailure) playNext(manual = false, ignoreRepeatOne = true)
+                    if (!com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)) {
+                        isLoading = true
+                        isPlaying = false
+                        viewModelScope.launch(Dispatchers.IO) {
+                            while (!com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)) {
+                                delay(2000)
+                            }
+                            withContext(Dispatchers.Main) {
+                                if (currentQueueIndex == index) {
+                                    playRobustly(index, autoPlay, startPosition, allowSkipOnFailure, isCrossfade)
+                                }
+                            }
+                        }
+                    } else {
+                        isLoading = false
+                        isPlaying = false
+                        if (allowSkipOnFailure) playNext(manual = false, ignoreRepeatOne = true)
+                    }
                 }
                 return@launch
             }
