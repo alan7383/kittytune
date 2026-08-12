@@ -58,9 +58,21 @@ object MusicManager {
     
     @Volatile var isCrossfadingOut = false
     private var fadingPlayer: ExoPlayer? = null
+    
+    private var exoPlayerFactory: ((Int) -> ExoPlayer)? = null
+    private var playerListener: Player.Listener? = null
 
     val player: ExoPlayer
-        get() = if (activePlayerIndex == 1) _player1!! else _player2!!
+        get() = if (activePlayerIndex == 1) _player1!! else getOrInitPlayer2()
+
+    private fun getOrInitPlayer2(): ExoPlayer {
+        if (_player2 == null) {
+            _player2 = exoPlayerFactory?.invoke(1)
+            _player2?.setSeekParameters(SeekParameters.EXACT)
+            playerListener?.let { _player2?.addListener(it) }
+        }
+        return _player2!!
+    }
 
     var currentTrack: Track? = null
 
@@ -300,11 +312,9 @@ object MusicManager {
                 .build()
         }
 
+        this.exoPlayerFactory = createExoPlayer
         _player1 = createExoPlayer(0)
-        _player2 = createExoPlayer(1)
-
         _player1?.setSeekParameters(SeekParameters.EXACT)
-        _player2?.setSeekParameters(SeekParameters.EXACT)
 
         val listener = object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -345,7 +355,7 @@ object MusicManager {
         }
         
         _player1?.addListener(listener)
-        _player2?.addListener(listener)
+        this.playerListener = listener
     }
 
     fun crossfadeToMediaItem(mediaItem: MediaItem, startPositionMs: Long, crossfadeDurationMs: Long) {
