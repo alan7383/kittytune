@@ -61,6 +61,8 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * **Guest mode** works without connecting a SoundCloud account.
 
 <p align="center">
+  <img src="docs/screenshots/welcomescreen.png" width="250" alt="Welcome & Guest Mode">
+  &nbsp;&nbsp;
   <img src="docs/screenshots/homescreen.png" width="250" alt="Home Feed & Stations">
   &nbsp;&nbsp;
   <img src="docs/screenshots/shazam.png" width="250" alt="Shazam Track Recognition">
