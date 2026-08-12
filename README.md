@@ -29,6 +29,12 @@ KittyTune is an open-source Android music player built around **SoundCloud**, wi
 
 It also pulls in the things a lot of music apps either skip or hide behind rough UX: **offline downloads**, **local folder scanning**, **lyrics**, **audio recognition**, **audio effects**, **Discord Rich Presence**, **widgets**, **listening stats**, **achievements**, and **Android Auto** support.
 
+<p align="center">
+  <img src="docs/screenshots/homescreen.png" width="31%" alt="Home Screen">
+  <img src="docs/screenshots/playerscreen.png" width="31%" alt="Player Screen">
+  <img src="docs/screenshots/lyrics.png" width="31%" alt="Synced Lyrics">
+</p>
+
 ---
 
 ### * features
@@ -40,7 +46,7 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * **Powered by the native SoundCloud mobile GraphQL API**, analyzed and integrated directly for account sync and progress tracking.
 
 <p align="center">
-  <img src="app/src/main/music_import_preview.png" width="300" alt="Music Import Transfer Preview">
+  <img src="docs/screenshots/transferyourgems.png" width="280" alt="Music Import & Transfer Preview">
 </p>
 </details>
 
@@ -53,6 +59,12 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * **Switch search source to YouTube** when you want direct video/audio results instead.
 * **Paste SoundCloud or YouTube links** directly into search and jump to the right track, playlist, profile, or station.
 * **Guest mode** works without connecting a SoundCloud account.
+
+<p align="center">
+  <img src="docs/screenshots/homescreen.png" width="250" alt="Home Feed & Stations">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/shazam.png" width="250" alt="Shazam Track Recognition">
+</p>
 </details>
 
 <details>
@@ -76,6 +88,14 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * **Live lyrics translation** to quickly understand songs in your native language.
 * **Local lyrics support** for files that already contain embedded lyrics.
 * **YouTube fallback for restricted SoundCloud tracks** when enabled in settings.
+
+<p align="center">
+  <img src="docs/screenshots/playerscreen.png" width="250" alt="Expressive Player">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/lyrics.png" width="250" alt="Synced Lyrics">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/lyricssettings.png" width="250" alt="Lyrics Settings">
+</p>
 </details>
 
 <details>
@@ -87,6 +107,10 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * **Configurable home widget** with playback controls, like toggle, speed shortcuts, and effect toggles.
 * **Mini player widget** for quick controls.
 * **Search widget** to jump straight into app search.
+
+<p align="center">
+  <img src="docs/screenshots/audiofx.png" width="280" alt="Audio Effects & Normalization">
+</p>
 </details>
 
 <details>
@@ -98,6 +122,10 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * **Listening stats** for top tracks, top artists, play history, and total listening time.
 * **47 achievements** with XP, streak tracking, and optional popup notifications.
 * **Android Auto** media support.
+
+<p align="center">
+  <img src="docs/screenshots/profile.png" width="280" alt="Profile & Conversations">
+</p>
 </details>
 
 <details>
@@ -110,6 +138,14 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * Translated resources for **many locales**, with explicit in-app language switching for **French, English, and Hungarian**.
 * Built-in **GitHub release update checker**.
 * Redesigned about screen with **Ko-fi support card** to easily tip if you like the app.
+
+<p align="center">
+  <img src="docs/screenshots/amoled.png" width="250" alt="Pure Black AMOLED Theme">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/iconchanger.png" width="250" alt="App Icon Selector">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/settings.png" width="250" alt="App Settings">
+</p>
 </details>
 
 <details>
