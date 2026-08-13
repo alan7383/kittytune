@@ -3,7 +3,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- APP & CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <string name="app_name">КиттиТюн</string>
+    <string name="app_name">KittyTune</string>
     <string name="msg_retrying">Повторная попытка&#8230;</string>
     <string name="success_generic">Успешно</string>
     <string name="error_generic">Что-то пошло не так</string>
