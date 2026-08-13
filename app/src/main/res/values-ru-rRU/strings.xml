@@ -691,7 +691,7 @@
     <string name="storage_cat_images">Images / Cache</string>
     <string name="storage_cat_cache">App Cache</string>
     <string name="storage_cat_db">Database</string>
-    <string name="storage_internal_mem">Internal Storage</string>
+    <string name="storage_internal_mem">Внутренняя память</string>
     <string name="storage_internal_mem_sub">/ %1$s</string>
     <string name="storage_sd_card">SD Card</string>
     <string name="storage_custom_folder">Custom</string>
