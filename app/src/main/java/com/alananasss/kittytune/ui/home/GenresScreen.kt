@@ -59,7 +59,7 @@
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+                columns = GridCells.Adaptive(minSize = 160.dp),
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize(),
