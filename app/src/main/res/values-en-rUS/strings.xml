@@ -400,6 +400,7 @@
     <string name="comment_anonymous">Anonymous</string>
     <string name="comment_send_action">Post</string>
     <string name="comment_default_avatar">Default Avatar</string>
+    <string name="comment_reply">Reply</string>
     <string name="login_to_interact">Log in to interact</string>
     <string name="login_to_comment">Log in to comment</string>
     <string name="dialog_delete_comment_title">Delete Comment?</string>
@@ -584,6 +585,7 @@
     <string name="lang_french">Français</string>
     <string name="lang_english">English</string>
     <string name="lang_hungarian">Magyar</string>
+    <string name="lang_russian">Русский</string>
     <!-- TYPOGRAPHY -->
     <string name="pref_font_custom_title">Google Sans Flex</string>
     <string name="pref_font_custom_subtitle">Use custom variable font</string>
