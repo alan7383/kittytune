@@ -400,6 +400,7 @@
     <string name="comment_anonymous">Anonim</string>
     <string name="comment_send_action">Küldés</string>
     <string name="comment_default_avatar">Alapértelmezett profilkép</string>
+    <string name="comment_reply">Reply</string>
     <string name="login_to_interact">Jelentkezz be az interakcióhoz</string>
     <string name="login_to_comment">Jelentkezz be a kommenteléshez</string>
     <string name="dialog_delete_comment_title">Komment törlése?</string>
@@ -584,6 +585,7 @@
     <string name="lang_french">Français</string>
     <string name="lang_english">English</string>
     <string name="lang_hungarian">Magyar</string>
+    <string name="lang_russian">Русский</string>
     <!-- TYPOGRAPHY -->
     <string name="pref_font_custom_title">Google Sans Flex</string>
     <string name="pref_font_custom_subtitle">Egyedi variálható betűtípus használata</string>
