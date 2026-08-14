@@ -400,6 +400,7 @@
     <string name="comment_anonymous">Anonyme</string>
     <string name="comment_send_action">Envoyer</string>
     <string name="comment_default_avatar">Avatar par défaut</string>
+    <string name="comment_reply">Reply</string>
     <string name="login_to_interact">Connectez-vous pour interagir</string>
     <string name="login_to_comment">Connectez-vous pour commenter</string>
     <string name="dialog_delete_comment_title">Supprimer le commentaire ?</string>
@@ -584,6 +585,7 @@
     <string name="lang_french">Français</string>
     <string name="lang_english">English</string>
     <string name="lang_hungarian">Magyar</string>
+    <string name="lang_russian">Русский</string>
     <!-- TYPOGRAPHY -->
     <string name="pref_font_custom_title">Google Sans Flex</string>
     <string name="pref_font_custom_subtitle">Utiliser la police variable</string>
