@@ -7,7 +7,7 @@
     import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.rounded.Add
-    import androidx.compose.material.icons.rounded.Article // Import ajouté
+    import androidx.compose.material.icons.rounded.Article
     import androidx.compose.material.icons.rounded.Description
     import androidx.compose.material.icons.rounded.FormatAlignLeft
     import androidx.compose.material.icons.rounded.FormatSize

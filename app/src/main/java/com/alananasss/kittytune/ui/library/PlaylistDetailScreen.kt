@@ -636,7 +636,7 @@ enum class TrackSortBy {
         }
     
         if (showPlaylistSortSheet) {
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { showPlaylistSortSheet = false },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer
             ) {
@@ -678,10 +678,12 @@ enum class TrackSortBy {
 
         val backgroundColor = MaterialTheme.colorScheme.background
     
+        val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+
         Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
             if (!showAllPlaylists) {
                 Scaffold(containerColor = Color.Transparent) { innerPadding ->
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                         if (!playlistCover.isNullOrEmpty()) {
                             Box(modifier = Modifier.fillMaxWidth().height(500.dp)) {
                                 AsyncImage(model = playlistCover, contentDescription = null, modifier = Modifier.fillMaxSize().blur(100.dp).alpha(0.6f), contentScale = ContentScale.Crop)
@@ -690,21 +692,24 @@ enum class TrackSortBy {
                         } else {
                             Box(modifier = Modifier.fillMaxWidth().height(300.dp).background(Brush.verticalGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, backgroundColor))))
                         }
-    
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 180.dp)
+
+                        Box(
+                            modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 820.dp).fillMaxSize() else Modifier.fillMaxSize()
                         ) {
-                            item {
-                                Spacer(modifier = Modifier.statusBarsPadding().height(90.dp))
-                                Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
-                                    Box {
-                                        Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(12.dp), modifier = Modifier.size(160.dp)) {
-                                            if (!playlistCover.isNullOrEmpty()) AsyncImage(model = playlistCover, contentDescription = null, modifier = Modifier.fillMaxSize().viewableCover(playlistCover), contentScale = ContentScale.Crop)
-                                            else if (defaultIcon != null) Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) { Icon(defaultIcon!!, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary) }
-                                            else Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) { Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-                                        }
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 180.dp)
+                            ) {
+                                item {
+                                    Spacer(modifier = Modifier.statusBarsPadding().height(90.dp))
+                                    Column(modifier = Modifier.padding(horizontal = 24.dp).padding(bottom = 16.dp)) {
+                                        Box {
+                                            Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(12.dp), modifier = Modifier.size(160.dp)) {
+                                                if (!playlistCover.isNullOrEmpty()) AsyncImage(model = playlistCover, contentDescription = null, modifier = Modifier.fillMaxSize().viewableCover(playlistCover), contentScale = ContentScale.Crop)
+                                                else if (defaultIcon != null) Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerHigh), contentAlignment = Alignment.Center) { Icon(defaultIcon!!, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary) }
+                                                else Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) { Icon(Icons.Default.MusicNote, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                            }
                                         if (isUserCreated) {
                                             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), modifier = Modifier.align(Alignment.BottomEnd).offset(x = 8.dp, y = 8.dp).clickable { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
                                                 Icon(Icons.Outlined.Image, stringResource(R.string.storage_change_btn), modifier = Modifier.padding(8.dp), tint = MaterialTheme.colorScheme.onSurface)
@@ -1194,6 +1199,7 @@ enum class TrackSortBy {
                     }
                 }
             }
+        }
     
             AnimatedVisibility(
                 visible = showAllPlaylists,
@@ -1223,7 +1229,7 @@ enum class TrackSortBy {
                     containerColor = MaterialTheme.colorScheme.background
                 ) { inner ->
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
+                        columns = GridCells.Adaptive(minSize = 160.dp),
                         contentPadding = PaddingValues(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -1240,7 +1246,7 @@ enum class TrackSortBy {
             }
     
             if (showPlaylistOptionsSheet) {
-                ModalBottomSheet(
+                com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                     onDismissRequest = { showPlaylistOptionsSheet = false },
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
                     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1308,7 +1314,7 @@ enum class TrackSortBy {
             }
     
             if (showPlaylistDetailsSheet) {
-                ModalBottomSheet(
+                com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                     onDismissRequest = { showPlaylistDetailsSheet = false },
                     containerColor = MaterialTheme.colorScheme.surface
                 ) {

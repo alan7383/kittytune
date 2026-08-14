@@ -749,6 +749,8 @@ import kotlinx.coroutines.launch
     
     @Composable
     fun ExplorerSection(onNavigate: (String) -> Unit) {
+        val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -765,7 +767,7 @@ import kotlinx.coroutines.launch
             )
     
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ExplorerButton(
@@ -1358,7 +1360,7 @@ import kotlinx.coroutines.launch
         onCategoryClick: (SearchCategory) -> Unit
     ) {
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Adaptive(minSize = 160.dp),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
