@@ -31,8 +31,8 @@ Translating the app is the best way to help out. We use **Crowdin** to manage tr
 
 **Current languages & maintainers:**
 - **English & French**: [alananasss](https://github.com/alan7383)
-- **Hungarian**: mattdotcat
-- **Russian**: Community contributors
+- **Hungarian**: [mattdotcat](https://t.me/b37246)
+- **Russian**: [Егор Белоусов (kivoyoso)](https://crowdin.com/profile/kivoyoso)
 
 ### Reporting Issues
 If you find a bug, please open an issue with:
