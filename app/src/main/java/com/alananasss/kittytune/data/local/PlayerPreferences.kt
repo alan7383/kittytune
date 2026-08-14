@@ -24,7 +24,8 @@ enum class AppLanguage(val code: String) {
     SYSTEM("system"),
     FRENCH("fr"),
     ENGLISH("en"),
-    HUNGARIAN("hu")
+    HUNGARIAN("hu"),
+    RUSSIAN("ru")
 }
 
 class PlayerPreferences(context: Context) {

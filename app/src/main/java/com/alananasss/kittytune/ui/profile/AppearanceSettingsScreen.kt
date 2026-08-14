@@ -121,6 +121,7 @@ fun AppearanceSettingsScreen(
                     LanguageRadioButton(stringResource(R.string.lang_french), AppLanguage.FRENCH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
                     LanguageRadioButton(stringResource(R.string.lang_english), AppLanguage.ENGLISH, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
                     LanguageRadioButton(stringResource(R.string.lang_hungarian), AppLanguage.HUNGARIAN, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
+                    LanguageRadioButton(stringResource(R.string.lang_russian), AppLanguage.RUSSIAN, appLanguage) { prefs.setAppLanguage(it); restartApp(context) }
                 }
             },
             confirmButton = { TextButton(onClick = { showLanguageDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
@@ -205,6 +206,7 @@ fun AppearanceSettingsScreen(
                                 AppLanguage.FRENCH -> stringResource(R.string.lang_french)
                                 AppLanguage.ENGLISH -> stringResource(R.string.lang_english)
                                 AppLanguage.HUNGARIAN -> stringResource(R.string.lang_hungarian)
+                                AppLanguage.RUSSIAN -> stringResource(R.string.lang_russian)
                             },
                             onClick = { showLanguageDialog = true }
                         )
