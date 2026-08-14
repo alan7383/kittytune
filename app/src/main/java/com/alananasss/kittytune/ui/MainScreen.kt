@@ -75,7 +75,9 @@ import com.alananasss.kittytune.ui.profile.*
 import com.alananasss.kittytune.ui.musicimport.*
 import com.alananasss.kittytune.ui.recognition.RecognitionScreen
 import com.alananasss.kittytune.ui.track.TrackDetailScreen
+import com.alananasss.kittytune.ui.common.rememberWindowSizeInfo
 import com.alananasss.kittytune.ui.navigation.KittyUnifiedBottomBar
+import com.alananasss.kittytune.ui.navigation.KittyNavigationRail
 import com.alananasss.kittytune.ui.navigation.KittyTab
 import com.alananasss.kittytune.ui.modifiers.progressiveBlur
 import com.alananasss.kittytune.ui.modifiers.BlurDirection
@@ -92,7 +94,12 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.ui.draw.clipToBounds
 import com.alananasss.kittytune.utils.Config
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -125,7 +132,6 @@ fun MainScreen(
 
     val bottomMenuStyle by prefs.bottomMenuStyleFlow().collectAsState(initial = prefs.getBottomMenuStyle())
     val rawBottomMenuBlurEnabled by prefs.bottomMenuBlurFlow().collectAsState(initial = prefs.getBottomMenuBlurEnabled())
-    val actualBottomMenuBlurEnabled = bottomMenuStyle == "modern" && rawBottomMenuBlurEnabled
 
     var startDestination by remember {
         mutableStateOf(
@@ -381,6 +387,10 @@ fun MainScreen(
         playerViewModel.isSearchingLyrics = false
     }
 
+    BackHandler(enabled = playerViewModel.isSidePlayerOpen && !playerViewModel.isPlayerExpanded) {
+        playerViewModel.isSidePlayerOpen = false
+    }
+
     // Update Manager Logic Moved from MainActivity
     val updateStatus by UpdateManager.status.collectAsState()
     val downloadProgress by UpdateManager.downloadProgress.collectAsState()
@@ -401,7 +411,9 @@ fun MainScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val windowSizeInfo = rememberWindowSizeInfo(maxWidth, maxHeight)
+        val actualBottomMenuBlurEnabled = (bottomMenuStyle == "modern" || windowSizeInfo.showTabletDock) && rawBottomMenuBlurEnabled
         val showBottomUi = !playerViewModel.isPlayerExpanded
 
         val currentRoute = currentDestination?.route ?: startDestination
@@ -412,6 +424,10 @@ fun MainScreen(
                 currentRoute?.startsWith("music_import/") == true ||
                 currentRoute == "music_import_transfer" ||
                 currentRoute == Screen.Recognition.route
+
+        val hideNavRail = currentRoute == Screen.Login.route ||
+                currentRoute == Screen.Welcome.route ||
+                currentRoute == "update"
 
         val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -444,35 +460,198 @@ fun MainScreen(
             bottomBar = {
             }
         ) { _ ->
+            val allTabKeys = listOf("home", "search", "genres", "library")
+            val bottomNavItemsKeys = prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems()).value
+            
+            val tabs = allTabKeys.mapNotNull { key ->
+                val screen = when (key) {
+                    "home" -> Screen.Home
+                    "search" -> Screen.Search
+                    "genres" -> Screen.Explore
+                    "library" -> Screen.Library
+                    else -> null
+                } ?: return@mapNotNull null
+                
+                KittyTab(
+                    title = stringResource(screen.titleResId),
+                    icon = screen.icon ?: Icons.Rounded.Home,
+                    route = screen.route,
+                    visible = bottomNavItemsKeys.contains(key)
+                )
+            }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                val density = LocalDensity.current
-                val statusBarHeightPx = with(density) {
-                    WindowInsets.statusBars.asPaddingValues().calculateTopPadding().toPx()
+            val selectedRoute = tabs.find { tab ->
+                when (tab.route) {
+                    Screen.Home.route -> {
+                        currentDestination?.hierarchy?.any { it.route == tab.route } == true && !homeViewModel.isSearching
+                    }
+                    Screen.Search.route -> {
+                        currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true && homeViewModel.isSearching
+                    }
+                    else -> {
+                        currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                    }
                 }
-                val bottomBarHeightPx = with(density) { 150.dp.toPx() }
+            }?.route
 
-                NavHost(
-                    navController = navController,
-                    startDestination = startDestination,
+            val fabSetting by prefs.bottomMenuFabFlow().collectAsState(initial = prefs.getBottomMenuFab())
+            val onFabClick: () -> Unit = {
+                val currentRoute = currentDestination?.route
+                when {
+                    fabSetting == "settings" -> {
+                        if (currentRoute != "settings") navController.navigate("settings")
+                    }
+                    fabSetting == "recognition" -> {
+                        if (currentRoute != "recognition") navController.navigate("recognition")
+                    }
+                    fabSetting == "achievements" -> {
+                        if (currentRoute != "achievements") navController.navigate("achievements")
+                    }
+                    fabSetting == "stats" -> {
+                        if (currentRoute != "listening_stats") navController.navigate("listening_stats")
+                    }
+                    fabSetting == "liked" -> {
+                        val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                        if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "likes") {
+                            navController.navigate("playlist_detail/likes")
+                        }
+                    }
+                    fabSetting == "downloads" -> {
+                        val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                        if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "downloads") {
+                            navController.navigate("playlist_detail/downloads")
+                        }
+                    }
+                    fabSetting == "local" -> {
+                        val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                        if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "local_files") {
+                            navController.navigate("playlist_detail/local_files")
+                        }
+                    }
+                    fabSetting.startsWith("playlist:") -> {
+                        val id = fabSetting.removePrefix("playlist:")
+                        val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
+                        if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != id) {
+                            navController.navigate("playlist_detail/$id")
+                        }
+                    }
+                    else -> showProfileMenu = true
+                }
+            }
+            val fabIcon = when {
+                fabSetting == "settings" -> Icons.Rounded.Settings
+                fabSetting == "recognition" -> Icons.Rounded.GraphicEq
+                fabSetting == "achievements" -> Icons.Rounded.EmojiEvents
+                fabSetting == "stats" -> Icons.Rounded.BarChart
+                fabSetting == "liked" -> Icons.Rounded.Favorite
+                fabSetting == "downloads" -> Icons.Rounded.Download
+                fabSetting == "local" -> Icons.Rounded.SdStorage
+                fabSetting.startsWith("playlist:") -> Icons.AutoMirrored.Rounded.QueueMusic
+                else -> Icons.Rounded.Person
+            }
+
+            val fabLabel = when {
+                fabSetting == "settings" -> stringResource(R.string.pref_bottom_menu_fab_settings)
+                fabSetting == "recognition" -> stringResource(R.string.pref_bottom_menu_fab_recognition)
+                fabSetting == "achievements" -> stringResource(R.string.achievements_title)
+                fabSetting == "stats" -> stringResource(R.string.pref_bottom_menu_fab_stats)
+                fabSetting == "liked" -> stringResource(R.string.lib_liked_tracks)
+                fabSetting == "downloads" -> stringResource(R.string.lib_downloads)
+                fabSetting == "local" -> stringResource(R.string.lib_local_media)
+                fabSetting.startsWith("playlist:") -> stringResource(R.string.pref_bottom_menu_fab_playlist)
+                else -> stringResource(R.string.pref_bottom_menu_fab_profile)
+            }
+
+            val onTabSelected: (KittyTab) -> Unit = { tab ->
+                if (tab.route == Screen.Search.route) {
+                    val isAlreadyOnHome = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true
+                    if (!isAlreadyOnHome) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
+                        }
+                    }
+                    homeViewModel.activateSearch()
+                } else {
+                    val isSelected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
+                    if (!isSelected) {
+                        navController.navigate(tab.route) {
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
+                        }
+                    } else if (tab.route == Screen.Home.route && homeViewModel.isSearching) {
+                        homeViewModel.clearSearch()
+                    }
+                }
+            }
+            val isSidePlayerVisible = windowSizeInfo.showTabletDock && playerViewModel.isSidePlayerOpen && !playerViewModel.isPlayerExpanded && playerViewModel.currentTrack != null
+            val sidePanelWidth = 420.dp
+            val animatedSidePanelWidth by animateDpAsState(
+                targetValue = if (isSidePlayerVisible) sidePanelWidth else 0.dp,
+                animationSpec = spring(
+                    dampingRatio = 0.85f,
+                    stiffness = 380f
+                ),
+                label = "sidePanelWidth"
+            )
+
+            Row(modifier = Modifier.fillMaxSize()) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = windowSizeInfo.showNavRail && showBottomUi && !hideNavRail,
+                    enter = slideInHorizontally(initialOffsetX = { -it }) + expandHorizontally(expandFrom = Alignment.Start),
+                    exit = slideOutHorizontally(targetOffsetX = { -it }) + shrinkHorizontally(shrinkTowards = Alignment.Start)
+                ) {
+                    KittyNavigationRail(
+                        tabs = tabs,
+                        selectedRoute = selectedRoute,
+                        onTabSelected = onTabSelected,
+                        onFabClick = onFabClick,
+                        fabIcon = fabIcon,
+                        fabLabel = fabLabel,
+                        playerViewModel = playerViewModel,
+                        onPlayerClick = { playerViewModel.isPlayerExpanded = true }
+                    )
+                }
+
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .progressiveBlur(
-                            blurRadius = 40f,
-                            height = statusBarHeightPx * 1.15f,
-                            direction = BlurDirection.TOP
-                        )
+                        .weight(1f)
+                        .fillMaxHeight()
                         .then(
-                            if (actualBottomMenuBlurEnabled && !isFullScreenRoute) {
-                                Modifier.progressiveBlur(
-                                    blurRadius = 40f,
-                                    height = bottomBarHeightPx,
-                                    direction = BlurDirection.BOTTOM
-                                )
+                            if (windowSizeInfo.showNavRail && showBottomUi && !hideNavRail) {
+                                Modifier.consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Start))
                             } else {
                                 Modifier
                             }
-                        ),
+                        )
+                ) {
+                    val density = LocalDensity.current
+                    val statusBarHeightPx = with(density) {
+                        WindowInsets.statusBars.asPaddingValues().calculateTopPadding().toPx()
+                    }
+                    val bottomBarHeightPx = with(density) { if (windowSizeInfo.showTabletDock) 130.dp.toPx() else 150.dp.toPx() }
+
+                    NavHost(
+                        navController = navController,
+                        startDestination = startDestination,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .progressiveBlur(
+                                blurRadius = 40f,
+                                height = statusBarHeightPx * 1.15f,
+                                direction = BlurDirection.TOP
+                            )
+                            .then(
+                                if (actualBottomMenuBlurEnabled && !isFullScreenRoute && (windowSizeInfo.showPhoneBottomBar || windowSizeInfo.showTabletDock)) {
+                                    Modifier.progressiveBlur(
+                                        blurRadius = 40f,
+                                        height = bottomBarHeightPx,
+                                        direction = BlurDirection.BOTTOM
+                                    )
+                                } else {
+                                    Modifier
+                                }
+                            ),
                     enterTransition = {
                         slideInHorizontally(initialOffsetX = { it })
                     },
@@ -972,127 +1151,16 @@ fun MainScreen(
 
                 }
 
-                AnimatedVisibility(
-                    visible = showBottomUi && !isFullScreenRoute,
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = windowSizeInfo.showPhoneBottomBar && showBottomUi && !isFullScreenRoute,
                     enter = slideInVertically(initialOffsetY = { it }),
                     exit = slideOutVertically(targetOffsetY = { it }),
                     modifier = Modifier.align(Alignment.BottomCenter)
                 ) {
-                    val allTabKeys = listOf("home", "search", "genres", "library")
-                    val bottomNavItemsKeys = prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems()).value
-                    
-                    val tabs = allTabKeys.mapNotNull { key ->
-                        val screen = when (key) {
-                            "home" -> Screen.Home
-                            "search" -> Screen.Search
-                            "genres" -> Screen.Explore
-                            "library" -> Screen.Library
-                            else -> null
-                        } ?: return@mapNotNull null
-                        
-                        KittyTab(
-                            title = stringResource(screen.titleResId),
-                            icon = screen.icon ?: Icons.Rounded.Home,
-                            route = screen.route,
-                            visible = bottomNavItemsKeys.contains(key)
-                        )
-                    }
-
-                    val selectedRoute = tabs.find { tab ->
-                        when (tab.route) {
-                            Screen.Home.route -> {
-                                currentDestination?.hierarchy?.any { it.route == tab.route } == true && !homeViewModel.isSearching
-                            }
-                            Screen.Search.route -> {
-                                currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true && homeViewModel.isSearching
-                            }
-                            else -> {
-                                currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                            }
-                        }
-                    }?.route
-
-                    val fabSetting by prefs.bottomMenuFabFlow().collectAsState(initial = prefs.getBottomMenuFab())
-                    val onFabClick: () -> Unit = {
-                        val currentRoute = currentDestination?.route
-                        when {
-                            fabSetting == "settings" -> {
-                                if (currentRoute != "settings") navController.navigate("settings")
-                            }
-                            fabSetting == "recognition" -> {
-                                if (currentRoute != "recognition") navController.navigate("recognition")
-                            }
-                            fabSetting == "achievements" -> {
-                                if (currentRoute != "achievements") navController.navigate("achievements")
-                            }
-                            fabSetting == "stats" -> {
-                                if (currentRoute != "listening_stats") navController.navigate("listening_stats")
-                            }
-                            fabSetting == "liked" -> {
-                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
-                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "likes") {
-                                    navController.navigate("playlist_detail/likes")
-                                }
-                            }
-                            fabSetting == "downloads" -> {
-                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
-                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "downloads") {
-                                    navController.navigate("playlist_detail/downloads")
-                                }
-                            }
-                            fabSetting == "local" -> {
-                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
-                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != "local_files") {
-                                    navController.navigate("playlist_detail/local_files")
-                                }
-                            }
-                            fabSetting.startsWith("playlist:") -> {
-                                val id = fabSetting.removePrefix("playlist:")
-                                val currentPlaylistId = navBackStackEntry?.arguments?.getString("playlistId")
-                                if (currentRoute != "playlist_detail/{playlistId}" || currentPlaylistId != id) {
-                                    navController.navigate("playlist_detail/$id")
-                                }
-                            }
-                            else -> showProfileMenu = true
-                        }
-                    }
-                    val fabIcon = when {
-                        fabSetting == "settings" -> Icons.Rounded.Settings
-                        fabSetting == "recognition" -> Icons.Rounded.GraphicEq
-                        fabSetting == "achievements" -> Icons.Rounded.EmojiEvents
-                        fabSetting == "stats" -> Icons.Rounded.BarChart
-                        fabSetting == "liked" -> Icons.Rounded.Favorite
-                        fabSetting == "downloads" -> Icons.Rounded.Download
-                        fabSetting == "local" -> Icons.Rounded.SdStorage
-                        fabSetting.startsWith("playlist:") -> Icons.AutoMirrored.Rounded.QueueMusic
-                        else -> Icons.Rounded.Person
-                    }
-
                     KittyUnifiedBottomBar(
                         tabs = tabs,
                         selectedRoute = selectedRoute,
-                        onTabSelected = { tab ->
-                            if (tab.route == Screen.Search.route) {
-                                val isAlreadyOnHome = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true
-                                if (!isAlreadyOnHome) {
-                                    navController.navigate(Screen.Home.route) {
-                                        popUpTo(navController.graph.findStartDestination().id)
-                                        launchSingleTop = true
-                                    }
-                                }
-                                homeViewModel.activateSearch()
-                            } else {
-                                val isSelected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
-                                if (!isSelected) {
-                                    navController.navigate(tab.route) {
-                                        popUpTo(navController.graph.findStartDestination().id)
-                                        launchSingleTop = true
-                                    }
-                                } else if (tab.route == Screen.Home.route && homeViewModel.isSearching) {
-                                    homeViewModel.clearSearch()
-                                }
-                            }
-                        },
+                        onTabSelected = onTabSelected,
                         onFabClick = onFabClick,
                         fabIcon = fabIcon,
                         playerViewModel = playerViewModel,
@@ -1101,8 +1169,69 @@ fun MainScreen(
                         blurEnabled = actualBottomMenuBlurEnabled
                     )
                 }
+
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = windowSizeInfo.showTabletDock && showBottomUi && !isFullScreenRoute,
+                    enter = slideInVertically(initialOffsetY = { it }),
+                    exit = slideOutVertically(targetOffsetY = { it }),
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    com.alananasss.kittytune.ui.navigation.TabletBottomDock(
+                        tabs = tabs,
+                        selectedRoute = selectedRoute,
+                        onTabSelected = onTabSelected,
+                        onFabClick = onFabClick,
+                        fabIcon = fabIcon,
+                        fabLabel = fabLabel,
+                        playerViewModel = playerViewModel,
+                        onPlayerClick = {
+                            if (windowSizeInfo.showTabletDock) {
+                                playerViewModel.isSidePlayerOpen = true
+                                playerViewModel.isPlayerExpanded = false
+                            } else {
+                                playerViewModel.isPlayerExpanded = true
+                            }
+                        }
+                    )
+                }
+            }
+
+            // Tablet Side Player Panel (Smoothly animates layout width in sync with main content)
+            if (animatedSidePanelWidth > 0.dp) {
+                val panelAlpha = (animatedSidePanelWidth / sidePanelWidth).coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .width(animatedSidePanelWidth)
+                        .fillMaxHeight()
+                        .clipToBounds()
+                        .alpha(panelAlpha)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(sidePanelWidth)
+                            .fillMaxHeight()
+                    ) {
+                        com.alananasss.kittytune.ui.player.TabletSidePlayerPanel(
+                            viewModel = playerViewModel,
+                            onExpandFullScreen = {
+                                playerViewModel.isPlayerExpanded = true
+                                playerViewModel.isSidePlayerOpen = false
+                            },
+                            onClose = {
+                                playerViewModel.isSidePlayerOpen = false
+                            },
+                            onOpenFullLyrics = {
+                                playerViewModel.showLyricsSheet = true
+                            },
+                            onNavigateToArtist = { artistId: Long ->
+                                navController.navigate("profile/$artistId")
+                            }
+                        )
+                    }
+                }
             }
         }
+    }
 
 
         AnimatedVisibility(
@@ -1170,7 +1299,7 @@ fun MainScreen(
         }
 
         if (playerViewModel.showMenuSheet) {
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { playerViewModel.showMenuSheet = false },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1181,7 +1310,7 @@ fun MainScreen(
         }
 
         if (playerViewModel.showAddToPlaylistSheet) {
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { playerViewModel.showAddToPlaylistSheet = false },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1192,7 +1321,7 @@ fun MainScreen(
         }
 
         if (playerViewModel.showDetailsSheet) {
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { playerViewModel.showDetailsSheet = false },
                 containerColor = MaterialTheme.colorScheme.surface,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
@@ -1209,7 +1338,7 @@ fun MainScreen(
         }
 
         if (playerViewModel.showCommentsSheet) {
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { playerViewModel.showCommentsSheet = false },
                 containerColor = MaterialTheme.colorScheme.surface,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1223,7 +1352,7 @@ fun MainScreen(
         if (showProfileMenu) {
             val tokenManager = remember { TokenManager(context) }
             val isGuest = tokenManager.isGuestMode()
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { showProfileMenu = false },
                 containerColor = MaterialTheme.colorScheme.surface,
                 sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

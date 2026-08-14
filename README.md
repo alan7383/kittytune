@@ -146,7 +146,7 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 * **Dynamic color / Material You**, light mode, dark mode, and pure black mode.
 * **Custom color palette controls** and multiple player background styles.
 * **Variable font controls** for weight, width, slant, roundness, and more.
-* Translated resources for **many locales**, with explicit in-app language switching for **French, English, and Hungarian**.
+* Translated resources for **many locales**, with explicit in-app language switching for **French, English, Hungarian, and Russian**.
 * Built-in **GitHub release update checker**.
 * Redesigned about screen with **Ko-fi support card** to easily tip if you like the app.
 

@@ -234,6 +234,7 @@ fun SettingsScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
+    val windowSizeInfo = rememberWindowSizeInfo()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -265,7 +266,22 @@ fun SettingsScaffold(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
-        content(padding)
+        if (windowSizeInfo.isTablet) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = 760.dp)
+                        .fillMaxWidth()
+                ) {
+                    content(padding)
+                }
+            }
+        } else {
+            content(padding)
+        }
     }
 }
 

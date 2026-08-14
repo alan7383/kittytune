@@ -19,10 +19,12 @@
     import androidx.compose.foundation.lazy.items
     import androidx.compose.foundation.lazy.itemsIndexed
     import androidx.compose.foundation.lazy.rememberLazyListState
+    import androidx.compose.foundation.rememberScrollState
     import androidx.compose.foundation.shape.CircleShape
     import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.foundation.text.ClickableText
     import androidx.compose.foundation.text.KeyboardOptions
+    import androidx.compose.foundation.verticalScroll
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.filled.ArrowBack
     import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -120,51 +122,53 @@
             }
         }
     
-        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+
+        Box(
+            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter
+        ) {
             if (profileViewModel.isLoading && user == null) {
                 ProfileScreenShimmer(onBackClick)
             } else if (user != null) {
-                // overlay for expanded sections
-                AnimatedVisibility(
-                    visible = expandedSection != null,
-                    enter = slideInHorizontally { it },
-                    exit = slideOutHorizontally { it },
-                    modifier = Modifier.zIndex(2f)
-                ) {
-                    if (expandedSection == "comments") {
-                        FullCommentListScreen(
-                            comments = profileViewModel.userComments,
-                            onBack = { expandedSection = null },
-                            playerViewModel = playerViewModel,
-                            profileViewModel = profileViewModel
+                val bgModel = user.bannerUrl ?: user.avatarUrl
+                if (bgModel != null) {
+                    Box(modifier = Modifier.fillMaxWidth().height(480.dp)) {
+                        AsyncImage(
+                            model = bgModel,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(60.dp)
+                                .alpha(0.6f)
                         )
-                    } else {
-                        val (title, list) = when (expandedSection) {
-                            "popular" -> stringResource(R.string.profile_tab_popular) to profileViewModel.popularTracks.toList()
-                            "tracks" -> stringResource(R.string.profile_tab_tracks) to profileViewModel.allTracks.toList()
-                            "reposts" -> stringResource(R.string.profile_tab_reposts) to profileViewModel.repostedTracks.toList()
-                            "likes" -> stringResource(R.string.profile_tab_likes, user.username ?: "") to profileViewModel.likedTracks.toList()
-                            else -> "" to emptyList<Track>()
-                        }
-    
-                        val contextForList = if (expandedSection == "likes") null else artistPlaybackContext
-    
-                        FullListScreen(
-                            title = title,
-                            tracks = list,
-                            onBack = { expandedSection = null },
-                            playerViewModel = playerViewModel,
-                            downloadProgress = downloadProgress,
-                            context = contextForList
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                            MaterialTheme.colorScheme.background,
+                                            MaterialTheme.colorScheme.background
+                                        ),
+                                        startY = 0f
+                                    )
+                                )
                         )
                     }
                 }
-    
-                LazyColumn(
-                    state = listState,
-                    contentPadding = PaddingValues(bottom = 180.dp),
-                    modifier = Modifier.fillMaxSize()
+
+                Box(
+                    modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp).fillMaxSize() else Modifier.fillMaxSize()
                 ) {
+                    LazyColumn(
+                        state = listState,
+                        contentPadding = PaddingValues(bottom = 180.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                     item {
                         ModernProfileHeader(
                             user = user,
@@ -361,8 +365,45 @@
                     )
                 }
             }
+
+            // overlay for expanded sections (full screen layer covering entire display)
+            AnimatedVisibility(
+                visible = expandedSection != null,
+                enter = slideInHorizontally { it },
+                exit = slideOutHorizontally { it },
+                modifier = Modifier.fillMaxSize().zIndex(10f)
+            ) {
+                if (expandedSection == "comments") {
+                    FullCommentListScreen(
+                        comments = profileViewModel.userComments,
+                        onBack = { expandedSection = null },
+                        playerViewModel = playerViewModel,
+                        profileViewModel = profileViewModel
+                    )
+                } else {
+                    val (title, list) = when (expandedSection) {
+                        "popular" -> stringResource(R.string.profile_tab_popular) to profileViewModel.popularTracks.toList()
+                        "tracks" -> stringResource(R.string.profile_tab_tracks) to profileViewModel.allTracks.toList()
+                        "reposts" -> stringResource(R.string.profile_tab_reposts) to profileViewModel.repostedTracks.toList()
+                        "likes" -> stringResource(R.string.profile_tab_likes, user.username ?: "") to profileViewModel.likedTracks.toList()
+                        else -> "" to emptyList<Track>()
+                    }
+
+                    val contextForList = if (expandedSection == "likes") null else artistPlaybackContext
+
+                    FullListScreen(
+                        title = title,
+                        tracks = list,
+                        onBack = { expandedSection = null },
+                        playerViewModel = playerViewModel,
+                        downloadProgress = downloadProgress,
+                        context = contextForList
+                    )
+                }
+            }
         }
     }
+}
     
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -455,22 +496,18 @@
         profileViewModel: ProfileViewModel,
         artistContext: PlaybackContext?
     ) {
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .height(480.dp)) {
-            val bgModel = user.bannerUrl ?: user.avatarUrl
-            AsyncImage(model = bgModel, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier
-                .fillMaxSize()
-                .blur(60.dp)
-                .alpha(0.6f))
-            Box(modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background.copy(alpha = 0.5f), MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.background), startY = 0f)))
-    
-            Column(modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(480.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
     
                 Box {
                     Surface(shape = CircleShape, shadowElevation = 12.dp, color = Color.Transparent, modifier = Modifier.size(140.dp)) {
@@ -724,7 +761,7 @@
             )
         }
     
-        ModalBottomSheet(
+        com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = MaterialTheme.colorScheme.surface,
@@ -732,6 +769,7 @@
         ) {
             Column(modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
                 .imePadding()
             ) {
@@ -939,59 +977,69 @@
         downloadProgress: Map<Long, Int>,
         context: PlaybackContext?
     ) {
+        val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text(title, fontWeight = FontWeight.Bold) },
-                    navigationIcon = {
-                        FilledTonalIconButton(
-                            onClick = onBack,
-                            shapes = IconButtonDefaults.shapes(),
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        ) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                )
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
+                        TopAppBar(
+                            title = { Text(title, fontWeight = FontWeight.Bold) },
+                            navigationIcon = {
+                                FilledTonalIconButton(
+                                    onClick = onBack,
+                                    shapes = IconButtonDefaults.shapes(),
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                        )
+                    }
+                }
             },
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 180.dp),
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-            ) {
-                item {
-                    Row(
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Box(modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp).fillMaxSize() else Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(bottom = 180.dp),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            .padding(innerPadding)
+                            .fillMaxSize()
                     ) {
-                        Button(
-                            onClick = { playerViewModel.playPlaylist(tracks, context = context) },
-                            modifier = Modifier.weight(1f),
-                            shapes = ButtonDefaults.shapes(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_play))
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Button(
+                                    onClick = { playerViewModel.playPlaylist(tracks, context = context) },
+                                    modifier = Modifier.weight(1f),
+                                    shapes = ButtonDefaults.shapes(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_play))
+                                }
+                                FilledTonalButton(
+                                    onClick = { playerViewModel.playPlaylist(tracks.shuffled(), context = context) },
+                                    modifier = Modifier.weight(1f),
+                                    shapes = ButtonDefaults.shapes()
+                                ) {
+                                    Icon(Icons.Default.Shuffle, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_shuffle))
+                                }
+                            }
                         }
-                        FilledTonalButton(
-                            onClick = { playerViewModel.playPlaylist(tracks.shuffled(), context = context) },
-                            modifier = Modifier.weight(1f),
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            Icon(Icons.Default.Shuffle, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_shuffle))
+                        itemsIndexed(tracks) { index, track ->
+                            ProfileTrackItem(track, index, playerViewModel, downloadProgress, tracks, context)
                         }
                     }
-                }
-                itemsIndexed(tracks) { index, track ->
-                    ProfileTrackItem(track, index, playerViewModel, downloadProgress, tracks, context)
                 }
             }
         }
@@ -1349,81 +1397,89 @@
         playerViewModel: PlayerViewModel,
         profileViewModel: ProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     ) {
+        val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+    
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            stringResource(R.string.profile_tab_comments),
-                            fontWeight = FontWeight.Bold
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp).fillMaxWidth() else Modifier.fillMaxWidth()) {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    stringResource(R.string.profile_tab_comments),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            navigationIcon = {
+                                FilledTonalIconButton(
+                                    onClick = onBack,
+                                    shapes = IconButtonDefaults.shapes(),
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowBack,
+                                        stringResource(R.string.btn_back)
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.background
+                            )
                         )
-                    },
-                    navigationIcon = {
-                        FilledTonalIconButton(
-                            onClick = onBack,
-                            shapes = IconButtonDefaults.shapes(),
-                            colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                stringResource(R.string.btn_back)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
-                    )
-                )
+                    }
+                }
             },
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 180.dp),
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-            ) {
-                itemsIndexed(comments) { index, comment ->
-                    if (index >= comments.size - 5 && !profileViewModel.isCommentsLoadingMore) {
-                        LaunchedEffect(Unit) {
-                            profileViewModel.loadMoreUserComments()
-                        }
-                    }
-    
-                    UserCommentItem(
-                        comment = comment,
-                        onTrackClick = {
-                            comment.track?.let { track ->
-                                if (comment.trackTimestamp != null && comment.trackTimestamp > 0) {
-                                    playerViewModel.playTrackAtPosition(track, comment.trackTimestamp)
-                                } else {
-                                    playerViewModel.playPlaylist(listOf(track), 0)
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Box(modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp).fillMaxSize() else Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(bottom = 180.dp),
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize()
+                    ) {
+                        itemsIndexed(comments) { index, comment ->
+                            if (index >= comments.size - 5 && !profileViewModel.isCommentsLoadingMore) {
+                                LaunchedEffect(Unit) {
+                                    profileViewModel.loadMoreUserComments()
                                 }
                             }
-                        }
-                    )
-                }
-
-                if (profileViewModel.isCommentsLoadingMore) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            LoadingIndicator(
-                                modifier = Modifier.size(28.dp),
-                                color = MaterialTheme.colorScheme.primary
+    
+                            UserCommentItem(
+                                comment = comment,
+                                onTrackClick = {
+                                    comment.track?.let { track ->
+                                        if (comment.trackTimestamp != null && comment.trackTimestamp > 0) {
+                                            playerViewModel.playTrackAtPosition(track, comment.trackTimestamp)
+                                        } else {
+                                            playerViewModel.playPlaylist(listOf(track), 0)
+                                        }
+                                    }
+                                }
                             )
+                        }
+    
+                        if (profileViewModel.isCommentsLoadingMore) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    LoadingIndicator(
+                                        modifier = Modifier.size(28.dp),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
     }
-
-

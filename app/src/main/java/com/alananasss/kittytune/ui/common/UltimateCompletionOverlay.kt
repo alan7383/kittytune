@@ -114,8 +114,8 @@
                         brush = rayGradient,
                         start = center,
                         end = Offset(endX, endY),
-                        strokeWidth = 150f, // Rayons plus larges
-                        alpha = 0.05f // Très subtil
+                        strokeWidth = 150f, // Wider rays
+                        alpha = 0.05f // Very subtle
                     )
                 }
     

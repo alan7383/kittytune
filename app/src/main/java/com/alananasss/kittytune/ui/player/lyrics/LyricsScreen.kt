@@ -300,13 +300,13 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         )
     }
 
-    // Moteur d'interpolation identique Windows : delta-based, ne redémarre PAS sur currentPosition
+    // Delta-based interpolation engine: does NOT restart on currentPosition
     val isPlaying = viewModel.isPlaying
     val speed = viewModel.effectsState.speed
 
     var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
 
-    // Loop delta-based : ne se relance QUE si isPlaying ou speed change
+    // Delta-based loop: only relaunches if isPlaying or speed changes
     LaunchedEffect(isPlaying, speed) {
         var lastFrameNanos = System.nanoTime()
         while (isActive && isPlaying) {
@@ -318,7 +318,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         }
     }
 
-    // Correction de drift uniquement si >400ms (seeks, sauts) — pas de reset sur mise à jour normale
+    // Drift correction only if >400ms (seeks, skips) — no reset on normal updates
     LaunchedEffect(currentPosition) {
         val drift = kotlin.math.abs(smoothDrawPosition - currentPosition)
         if (drift > 400f) {
@@ -940,7 +940,7 @@ fun QuickLyricsSettingsDialog(
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
+    com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface,

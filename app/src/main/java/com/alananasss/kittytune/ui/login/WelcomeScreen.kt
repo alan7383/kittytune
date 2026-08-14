@@ -69,14 +69,14 @@ fun WelcomeScreen(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         isNotificationsGranted = isGranted
-        // S'il a cliqué sur "Autoriser" depuis le dialogue de warning et qu'il accepte, on exécute l'action de connexion direct
+        // If user accepted notification permission, execute the pending login action
         if (isGranted && pendingAction != null) {
             pendingAction?.invoke()
             pendingAction = null
         }
     }
 
-    // Fonction d'interception
+    // Permission check handler
     fun handleLoginAttempt(action: () -> Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !isNotificationsGranted) {
             pendingAction = action
@@ -86,7 +86,7 @@ fun WelcomeScreen(
         }
     }
 
-    // Boîte de dialogue d'avertissement (façon ReVanced Safeguard)
+    // Warning dialog
     if (showPermissionWarningDialog) {
         AlertDialog(
             onDismissRequest = { showPermissionWarningDialog = false },
@@ -118,12 +118,12 @@ fun WelcomeScreen(
                 TextButton(
                     onClick = {
                         showPermissionWarningDialog = false
-                        pendingAction?.invoke() // Exécute la connexion quand même
+                        pendingAction?.invoke()
                         pendingAction = null
                     },
                     shapes = ButtonDefaults.shapes()
                 ) {
-                    Text(stringResource(R.string.btn_cancel)) // Ou "Skip anyway"
+                    Text(stringResource(R.string.btn_cancel))
                 }
             }
         )

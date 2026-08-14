@@ -94,6 +94,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var currentPosition by mutableLongStateOf(0L)
     var isScrubbing by mutableStateOf(false)
     var isPlayerExpanded by mutableStateOf(false)
+    var isSidePlayerOpen by mutableStateOf(false)
+    var isTabletSplitMode by mutableStateOf(true)
     var isLiked by mutableStateOf(false)
     var backgroundColor by mutableStateOf(Color(0xFF1E1E1E))
     val hasLyrics by derivedStateOf { lyricsLines.isNotEmpty() || !rawPlainLyrics.isNullOrBlank() }
@@ -759,18 +761,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    // Générateur intelligent de requêtes pour déjouer les titres SoundCloud
+    // Smart search query generator for SoundCloud track titles
     private fun generateSearchQueries(title: String, uploader: String): List<String> {
         val queries = mutableSetOf<String>()
 
-        // Nettoyage extrême de l'artiste (enlève emojis, étoiles, symboles bizarres)
+        // Clean up artist name (strip emojis, symbols)
         val cleanArtist = uploader.replace(Regex("[^\\p{L}\\p{Nd}\\s\\-&'$]"), "").trim()
         val cleanTitle = title.replace(Regex("(?i)\\[.*?\\]|\\(.*?\\)"), "").trim()
 
         var parsedArtist = cleanArtist
         var parsedTitle = cleanTitle
 
-        // Détection du format "Artiste - Titre" (très courant sur SoundCloud)
+        // Detect "Artist - Title" format (common on SoundCloud)
         if (cleanTitle.contains("-")) {
             val parts = cleanTitle.split("-", limit = 2)
             parsedArtist = parts[0].replace(Regex("[^\\p{L}\\p{Nd}\\s\\-&'$]"), "").trim()
