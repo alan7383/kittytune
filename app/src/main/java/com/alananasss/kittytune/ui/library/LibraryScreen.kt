@@ -8,6 +8,8 @@
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
+    import androidx.compose.foundation.lazy.LazyRow
+    import androidx.compose.foundation.lazy.items
     import androidx.compose.foundation.lazy.grid.GridCells
     import androidx.compose.foundation.lazy.grid.GridItemSpan
     import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -300,7 +302,7 @@ import kotlinx.coroutines.launch
         onArtistClick: (Long) -> Unit,
         isGuest: Boolean
     ) {
-        val columns = if (viewModel.isGridLayout) GridCells.Fixed(2) else GridCells.Fixed(1)
+        val columns = if (viewModel.isGridLayout) GridCells.Adaptive(minSize = 160.dp) else GridCells.Fixed(1)
         val isSyncing by viewModel.isSyncing.collectAsState()
     
         // grab strings here before using them in logic
@@ -404,7 +406,7 @@ import kotlinx.coroutines.launch
     
     @Composable
     fun LibraryShimmerGrid(isGridLayout: Boolean) {
-        val columns = if (isGridLayout) GridCells.Fixed(2) else GridCells.Fixed(1)
+        val columns = if (isGridLayout) GridCells.Adaptive(minSize = 160.dp) else GridCells.Fixed(1)
         LazyVerticalGrid(
             columns = columns,
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 180.dp),
@@ -481,13 +483,14 @@ import kotlinx.coroutines.launch
         }
     
         val view = androidx.compose.ui.platform.LocalView.current
-        Row(
+        LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 12.dp, start = 16.dp, end = 16.dp),
+                .padding(top = 12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            filters.forEach { label ->
+            items(filters) { label ->
                 val isSelected = viewModel.selectedFilter == label
                 
                 val containerColor by androidx.compose.animation.animateColorAsState(
@@ -510,7 +513,7 @@ import kotlinx.coroutines.launch
                         contentColor = contentColor
                     )
                 ) {
-                    Text(label)
+                    Text(label, maxLines = 1)
                 }
             }
         }

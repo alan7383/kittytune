@@ -56,7 +56,7 @@ import androidx.compose.material.icons.rounded.Check
         }
     
         if (showCountrySelector) {
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { showCountrySelector = false },
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 dragHandle = { BottomSheetDefaults.DragHandle() }

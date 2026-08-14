@@ -74,11 +74,12 @@ fun AboutScreen(
 
     val contributors = listOf(
         Contributor("alananasss", R.string.about_role_dev, "https://github.com/alan7383"),
-        Contributor("mattdotcat", R.string.about_role_translation, "https://t.me/b37246")
+        Contributor("mattdotcat", R.string.about_role_translation, "https://t.me/b37246"),
+        Contributor("Егор Белоусов (kivoyoso)", R.string.about_role_translation, "https://crowdin.com/profile/kivoyoso")
     )
 
     if (showCreditsSheet) {
-        ModalBottomSheet(
+        com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
             onDismissRequest = { showCreditsSheet = false },
             containerColor = MaterialTheme.colorScheme.surface,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)

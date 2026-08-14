@@ -95,7 +95,7 @@
     
         // country selector sheet
         if (showCountrySelector) {
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { showCountrySelector = false },
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
@@ -136,7 +136,7 @@
         // artist options menu with new design
         if (showArtistMenu != null) {
             val user = showArtistMenu!!
-            ModalBottomSheet(
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { showArtistMenu = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)

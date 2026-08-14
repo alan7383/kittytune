@@ -433,30 +433,34 @@
         }
 
         private suspend fun fetchUser(userId: Long): User {
-            val req = GraphQlRequest(
-                operationName = "UserProfile",
-                query = """
-                    query UserProfile(${'$'}urn: ID!) {
-                      user(urn: ${'$'}urn) {
-                        urn
-                        username
-                        avatarUrl
-                        city
-                        countryCode
-                        followersCount
-                        followingsCount
-                        tracksCount
-                        description
-                        permalinkUrl
-                        permalink
-                        verified
-                      }
-                    }
-                """.trimIndent(),
-                variables = mapOf("urn" to "soundcloud:users:$userId")
-            )
-            val response = api.getUserProfileGraphQL(req)
-            return response.data?.user?.copy(id = userId) ?: throw Exception("User not found via GraphQL")
+            return try {
+                val req = GraphQlRequest(
+                    operationName = "UserProfile",
+                    query = """
+                        query UserProfile(${'$'}urn: ID!) {
+                          user(urn: ${'$'}urn) {
+                            urn
+                            username
+                            avatarUrl
+                            city
+                            countryCode
+                            followersCount
+                            followingsCount
+                            tracksCount
+                            description
+                            permalinkUrl
+                            permalink
+                            verified
+                          }
+                        }
+                    """.trimIndent(),
+                    variables = mapOf("urn" to "soundcloud:users:$userId")
+                )
+                val response = api.getUserProfileGraphQL(req)
+                response.data?.user?.copy(id = userId) ?: api.getUser(userId)
+            } catch (e: Exception) {
+                api.getUser(userId)
+            }
         }
     
         fun onTabSelected(tab: ProfileTab) { selectedTab = tab }
