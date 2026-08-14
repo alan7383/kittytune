@@ -1124,4 +1124,17 @@
     <string name="pref_norm_desc">A hangerő-normalizálás kiegyenlíti a halk és hangos zenéket az egyenletes hallgatási élmény érdekében (ITU 1770 szabvány a libebur128 segítségével). A számok dinamikusan igazodnak a cél LUFS-hoz, egy beépített limiterrel a torzítás elkerülése érdekében.</string>
     <string name="pref_crossfade_title">Keresztkeverés</string>
     <string name="pref_crossfade_sub">Az aktuális szám végének elhalkítása, miközben a következő felerősödik</string>
+    <string name="comment_reply">Válasz</string>
+    <string name="about_kofi_title">KittyTune támogatása</string>
+    <string name="about_kofi_desc">Ez a projekt teljesen ingyenes és nyílt forráskódú. Ha tetszik a munkám, kérlek fontold meg a fejlesztés támogatását egy kávé meghívásával a Ko-fi-n!</string>
+    <string name="about_kofi_btn">Ko-fi</string>
+    <string name="about_website_group">KittyTune mindenhol</string>
+    <string name="about_website_title">Weboldal</string>
+    <string name="about_downloads_title">Más platformok</string>
+    <string name="about_downloads_desc">Windows, Linux, macOS</string>
+    <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
+    <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
+    <string name="pref_norm_info_title">A hangerő normalizálásról</string>
+    <string name="pref_norm_info_body_1">A különböző dalokat gyakran eltérő hangerővel rögzítik. A hangerő normalizálás automatikusan kiegyenlíti a számokat, így minden dal egyenletes, kényelmes hangerővel szólal meg anélkül, hogy folyamatosan állítanod kellene rajta.</string>
+    <string name="pref_norm_info_body_2">Hogyan működik:\n• A KittyTune megméri az egyes dalok valós hangerejét (LUFS-ban).\n• Lejátszás közben a hangerő dinamikusan igazodik a kiválasztott célszinthez.\n• Egy beépített limiter megakadályozza a torzítást vagy levágást.\n\nSzintek:\n• Csendes (-19 LUFS): Ideális éjszakai zenehallgatáshoz vagy fejhallgatóhoz.\n• Normál (-14 LUFS): A Spotify és YouTube által használt szabvány.\n• Hangos (-11 LUFS): A legjobb zajos környezetben vagy kültéri hangszórókhoz.</string>
 </resources>
