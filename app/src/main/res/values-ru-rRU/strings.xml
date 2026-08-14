@@ -401,6 +401,7 @@
     <string name="comment_anonymous">Аноним</string>
     <string name="comment_send_action">Опубликовать</string>
     <string name="comment_default_avatar">Аватар по умолчанию</string>
+    <string name="comment_reply">Reply</string>
     <string name="login_to_interact">Войти для взаимодействия</string>
     <string name="login_to_comment">Войти в комментарий</string>
     <string name="dialog_delete_comment_title">Удалить комментарий?</string>
@@ -585,6 +586,7 @@
     <string name="lang_french">Французский</string>
     <string name="lang_english">Английский </string>
     <string name="lang_hungarian">Венгерский</string>
+    <string name="lang_russian">Русский</string>
     <!-- TYPOGRAPHY -->
     <string name="pref_font_custom_title">Google без Flex</string>
     <string name="pref_font_custom_subtitle">Использовать свой переменный шрифт</string>
