@@ -100,7 +100,7 @@
     <string name="home_electro">Электро-хаус</string>
     <string name="home_pop">Поп</string>
     <!-- Offline Home Screen -->
-    <string name="home_offline_title">Ууупс,нет соединения</string>
+    <string name="home_offline_title">Oops, no connection</string>
     <string name="home_offline_desc">KittyTune нужен интернет для загрузки новых треков. Вы можете слушать ваши загруженные треки.</string>
     <string name="home_offline_btn_retry">Повторить</string>
     <string name="home_offline_btn_downloads">В загрузки</string>
