@@ -1127,4 +1127,13 @@
     <string name="pref_norm_info_title">Comprendre la normalisation du volume</string>
     <string name="pref_norm_info_body_1">Certaines chansons sont enregistrées très fort et d\'autres beaucoup plus doucement. La normalisation ajuste automatiquement le volume de chaque morceau pour que toutes vos musiques s\'enchaînent au même niveau sonore, sans que vous n\'ayez besoin de régler le volume sans arrêt.</string>
     <string name="pref_norm_info_body_2">Comment ça marche ?\n• KittyTune mesure le niveau sonore réel de chaque musique (en LUFS).\n• Pendant la lecture, le volume est ajusté de manière fluide pour atteindre le niveau cible que vous avez choisi.\n• Un limiteur intégré empêche toute saturation ou grésillement.\n\nNiveaux disponibles :\n• Calme (-19 LUFS) : Idéal pour une écoute détendue au casque ou au calme.\n• Normal (-14 LUFS) : Le standard utilisé par Spotify et YouTube, équilibré pour la plupart des morceaux.\n• Fort (-11 LUFS) : Pour les environnements bruyants (voiture, extérieur) ou enceintes.</string>
+    <string name="about_kofi_title">Soutenir KittyTune</string>
+    <string name="about_kofi_desc">Ce projet est entièrement gratuit et open-source. Si vous appréciez mon travail, vous pouvez soutenir son développement en m\'offrant un café sur Ko-fi !</string>
+    <string name="about_kofi_btn">Ko-fi</string>
+    <string name="about_website_group">KittyTune partout</string>
+    <string name="about_website_title">Site web</string>
+    <string name="about_downloads_title">Autres plateformes</string>
+    <string name="about_downloads_desc">Windows, Linux, macOS</string>
+    <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
+    <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
 </resources>

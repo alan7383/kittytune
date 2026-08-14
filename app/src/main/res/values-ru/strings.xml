@@ -1126,4 +1126,7 @@
     <string name="pref_norm_info_title">Нормализация звука</string>
     <string name="pref_norm_info_body_1">KittyTune использует стандарт EBU R128 (ITU-R BS.1770) для измерения воспринимаемой громкости в LUFS. Ваши треки будут звучать с одинаковой комфортной громкостью.</string>
     <string name="pref_norm_info_body_2">Как это работает:\n• KittyTune измеряет истинную громкость каждой песни (в LUFS).\n• При воспроизведении громкость динамически корректируется в соответствии с выбранным целевым уровнем.\n• Встроенный лимитер предотвращает любые искажения и клиппинг.\n\nУровни:\n• Тихий (-19 LUFS): Идеально подходит для ночного прослушивания или наушников.\n• Нормальный (-14 LUFS): Стандарт, используемый Spotify и YouTube.\n• Громкий (-11 LUFS): Лучше всего для шумной обстановки или внешних колонок.</string>
+    <string name="comment_reply">Ответить</string>
+    <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
+    <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
 </resources>
