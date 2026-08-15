@@ -162,10 +162,13 @@ object LikeRepository {
         val current = _likedPlaylists.value.toMutableSet()
         if (isLiked) {
             current.add(playlistId)
+            DownloadManager.clearDeletedPlaylistId(playlistId)
         } else {
             current.remove(playlistId)
+            DownloadManager.clearDeletedPlaylistId(playlistId)
         }
         _likedPlaylists.value = current
+        DownloadManager.notifyLibraryUpdated()
         scope.launch {
             saveToPrefs()
 

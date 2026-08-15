@@ -183,10 +183,12 @@ enum class TrackSortBy {
         val isDragging = reorderableState.isAnyItemDragging
         LaunchedEffect(isDragging) {
             if (wasDragging && !isDragging) {
-                // Drag ended — persist new order to local DB and sync online
+                // Drag ended — persist new order to local DB and sync online only if user's own cloud playlist
                 val newOrder = tracks.map { it.id }
                 DownloadManager.reorderPlaylistTracks(currentIdLong, newOrder)
-                DownloadManager.syncPlaylistOrderOnline(currentIdLong, newOrder)
+                if (isUserCreated && !isDownloadedView && currentIdLong > 0) {
+                    DownloadManager.syncPlaylistOrderOnline(currentIdLong, newOrder)
+                }
             }
             wasDragging = isDragging
         }
@@ -228,12 +230,12 @@ enum class TrackSortBy {
 
         LaunchedEffect(playlistInDb) {
             if (playlistInDb != null) {
-                isLocalPlaylist = true
+                isLocalPlaylist = currentIdLong < 0 || isDownloadedView
                 isUserCreated = playlistInDb!!.isUserCreated || currentIdLong < 0
                 playlistTitle = playlistInDb!!.title
                 playlistCover = playlistInDb!!.localCoverPath ?: playlistInDb!!.artworkUrl
             } else {
-                isLocalPlaylist = currentIdLong < 0
+                isLocalPlaylist = currentIdLong < 0 || isDownloadedView
                 isUserCreated = currentIdLong < 0
             }
         }
@@ -268,7 +270,7 @@ enum class TrackSortBy {
             }
         }
 
-        val downloadedCount = remember(tracksToDisplay, downloadedIds) {
+        val downloadedCount = remember(tracks.size, tracksToDisplay.size, downloadedIds) {
             if (tracksToDisplay.isEmpty()) 0
             else tracksToDisplay.count { track -> track.id < 0 || downloadedIds.contains(track.id) }
         }
@@ -277,9 +279,10 @@ enum class TrackSortBy {
             if (tracksToDisplay.isEmpty()) false
             else {
                 val ratio = downloadedCount.toFloat() / tracksToDisplay.size.toFloat()
-                downloadedCount == tracksToDisplay.size || (ratio > 0.9f && !isPlaylistDownloading)
+                (downloadedCount == tracksToDisplay.size || (ratio > 0.9f && !isPlaylistDownloading)) && downloadedCount > 0
             }
         }
+        val hasDownloadedTracks = isFullyDownloaded || isDownloadedView || downloadedCount > 0
         val refreshTrigger = if (playlistId == "downloads" || playlistId == "local_files") storageTrigger else 0
 
         LaunchedEffect(playlistId, refreshTrigger) {
@@ -405,7 +408,7 @@ enum class TrackSortBy {
 
                             playlistUser = User(0, localPlaylist.artist, null)
                             isUserCreated = localPlaylist.isUserCreated || currentIdLong < 0
-                            isLocalPlaylist = true
+                            isLocalPlaylist = currentIdLong < 0 || isDownloadedView
                             playlistPermalinkUrl = localPlaylist.permalinkUrl
 
                             val playlistTracks = db.getTracksForPlaylistSync(currentIdLong)
@@ -437,6 +440,7 @@ enum class TrackSortBy {
                                     playlistUser = User(0, localFallback.artist, null)
                                     isUserCreated = localFallback.isUserCreated
                                 }
+                                isLocalPlaylist = currentIdLong < 0 || isDownloadedView
 
                                 val playlistObj = when {
                                     isSystemPlaylistRoute -> api.getSystemPlaylist(cleanIdStr)
@@ -542,12 +546,10 @@ enum class TrackSortBy {
                 text = { Text(stringResource(R.string.dialog_remove_download_msg)) },
                 confirmButton = {
                     TextButton(onClick = {
-                        if (currentIdLong != 0L) {
-                            DownloadManager.deletePlaylist(
-                                playlistId = currentIdLong,
-                                forceUserCreated = isUserCreated,
-                                forcePermalink = playlistPermalinkUrl
-                            )
+                        if (playlistId == "likes") {
+                            DownloadManager.removeDownloads(tracksToDisplay.toList())
+                        } else if (currentIdLong != 0L) {
+                            DownloadManager.removePlaylistDownloads(currentIdLong)
                         }
 
                         showRemoveDownloadDialog = false
@@ -575,7 +577,18 @@ enum class TrackSortBy {
                 onDismissRequest = { showRenameDialog = false },
                 onSave = { newTitle, newDesc, newSharing, newTags, newGenre, newSetType, newReleaseDate, newPermalink ->
                     if (currentIdLong != 0L) {
-                        DownloadManager.editPlaylistMetadata(currentIdLong, newTitle, newDesc, newSharing, newTags, newPermalink, newGenre, newSetType, newReleaseDate)
+                        DownloadManager.editPlaylistMetadata(
+                            playlistId = currentIdLong,
+                            newTitle = newTitle,
+                            newDescription = newDesc,
+                            newSharing = newSharing,
+                            newTagList = newTags,
+                            newPermalink = newPermalink,
+                            newGenre = newGenre,
+                            newSetType = newSetType,
+                            newReleaseDate = newReleaseDate,
+                            syncToCloud = isUserCreated && !isDownloadedView && currentIdLong > 0
+                        )
                         playlistTitle = newTitle
                         playlistDescription = newDesc
                         playlistSharing = newSharing
@@ -762,7 +775,7 @@ enum class TrackSortBy {
                                     Spacer(Modifier.height(16.dp))
 
                                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Start) {
-                                        if ((isLocalPlaylist || isUserCreated) && !isYoutubeRadio) {
+                                        if ((isLocalPlaylist || isUserCreated || isDownloadedView) && !isYoutubeRadio) {
                                             IconButton(
                                                 onClick = { newPlaylistName = playlistTitle; showRenameDialog = true },
                                                 shapes = IconButtonDefaults.shapes()
@@ -772,7 +785,7 @@ enum class TrackSortBy {
                                         }
                                         if (playlistId != "downloads" && playlistId != "likes" && playlistId != "local_files") {
 
-                                            if (isUserCreated) {
+                                            if (isUserCreated && !isDownloadedView) {
                                                 IconButton(
                                                     onClick = { showDeleteDialog = true },
                                                     shapes = IconButtonDefaults.shapes()
@@ -799,29 +812,29 @@ enum class TrackSortBy {
                                         if (!isYoutubeRadio && playlistId != "downloads" && tracksToDisplay.isNotEmpty()) {
                                             IconButton(
                                                 onClick = {
-                                                val targetBatchId = if (playlistId == "likes") DownloadManager.LIKES_BATCH_ID else stableId
+                                                    val targetBatchId = if (playlistId == "likes") DownloadManager.LIKES_BATCH_ID else stableId
 
-                                                if (isFullyDownloaded || isDownloadedView) {
-                                                    showRemoveDownloadDialog = true
-                                                } else if (isPlaylistDownloading) {
-                                                    DownloadManager.cancelBatch(targetBatchId)
-                                                } else {
-                                                    if (playlistId == "likes") {
-                                                        DownloadManager.downloadBatch(tracksToDisplay.toList(), DownloadManager.LIKES_BATCH_ID)
-                                                    } else if (stableId != 0L) {
-                                                        val fakePlaylist = Playlist(stableId, playlistTitle, playlistCover, null, tracks.size, playlistUser, null)
-                                                        DownloadManager.downloadPlaylist(fakePlaylist, tracks.toList())
+                                                    if (isPlaylistDownloading) {
+                                                        DownloadManager.cancelBatch(targetBatchId)
+                                                    } else if (hasDownloadedTracks) {
+                                                        showRemoveDownloadDialog = true
+                                                    } else {
+                                                        if (playlistId == "likes") {
+                                                            DownloadManager.downloadBatch(tracksToDisplay.toList(), DownloadManager.LIKES_BATCH_ID)
+                                                        } else if (stableId != 0L) {
+                                                            val fakePlaylist = Playlist(stableId, playlistTitle, playlistCover, null, tracks.size, playlistUser, null)
+                                                            DownloadManager.downloadPlaylist(fakePlaylist, tracks.toList())
+                                                        }
                                                     }
-                                                }
                                                 },
                                                 shapes = IconButtonDefaults.shapes()
                                             ) {
                                                 when {
-                                                    isFullyDownloaded || isDownloadedView -> {
-                                                        Icon(Icons.Rounded.Delete, stringResource(R.string.btn_delete), tint = MaterialTheme.colorScheme.error)
-                                                    }
                                                     isPlaylistDownloading -> {
                                                         Icon(Icons.Rounded.Close, stringResource(R.string.btn_cancel))
+                                                    }
+                                                    hasDownloadedTracks -> {
+                                                        Icon(Icons.Rounded.Delete, stringResource(R.string.btn_delete), tint = MaterialTheme.colorScheme.error)
                                                     }
                                                     else -> {
                                                         Icon(Icons.Rounded.Download, stringResource(R.string.btn_download), tint = MaterialTheme.colorScheme.onBackground)
@@ -1055,7 +1068,9 @@ enum class TrackSortBy {
                                             (track.id < 0 && track.source != "youtube") || downloadedIds.contains(track.id)
                                         }
 
-                                        if (isUserCreated) {
+                                        val isCanReorder = isUserCreated || isDownloadedView
+
+                                        if (isCanReorder) {
                                             ReorderableItem(
                                                 state = reorderableState,
                                                 key = track.id
@@ -1122,7 +1137,7 @@ enum class TrackSortBy {
                                                                 }
                                                             },
                                                             onOptionClick = {
-                                                                val contextId = if (playlistId == "downloads") -2L else if (isUserCreated) currentIdLong else null
+                                                                val contextId = if (playlistId == "downloads") -2L else if (isUserCreated || isDownloadedView) currentIdLong else null
                                                                 playerViewModel.showTrackOptions(track, contextId)
                                                             }
                                                         )
@@ -1133,7 +1148,11 @@ enum class TrackSortBy {
                                                     if (isDeleted) {
                                                         delay(500)
                                                         tracks.remove(track)
-                                                        DownloadManager.removeTrackFromPlaylist(currentIdLong, track.id)
+                                                        DownloadManager.removeTrackFromPlaylist(
+                                                            playlistId = currentIdLong,
+                                                            trackId = track.id,
+                                                            syncToCloud = isUserCreated && !isDownloadedView && currentIdLong > 0
+                                                        )
                                                     }
                                                 }
                                             }
@@ -1149,7 +1168,7 @@ enum class TrackSortBy {
                                                 modifier = Modifier.animateItem(),
                                                 onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList(), index, playbackContext) },
                                                 onOptionClick = {
-                                                    val contextId = if (playlistId == "downloads") -2L else if (isUserCreated) currentIdLong else null
+                                                    val contextId = if (playlistId == "downloads") -2L else if (isUserCreated || isDownloadedView) currentIdLong else null
                                                     playerViewModel.showTrackOptions(track, contextId)
                                                 }
                                             )
@@ -1253,7 +1272,7 @@ enum class TrackSortBy {
                         isLocal = isLocalPlaylist || playlistId == "downloads",
                         shareUrl = shareUrl,
                         playerViewModel = playerViewModel,
-                        isFullyDownloaded = isFullyDownloaded,
+                        isFullyDownloaded = hasDownloadedTracks,
                         isDownloading = isPlaylistDownloading,
                         onDismiss = { showPlaylistOptionsSheet = false },
                         isYoutubeRadio = isYoutubeRadio,
@@ -1431,7 +1450,7 @@ enum class TrackSortBy {
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(text = playlistTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            val items = remember(isLocal, playlistId, isYoutubeRadio) {
+            val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing) {
                 mutableListOf(
                     DockOptionItem(Icons.Rounded.PlayArrow, context.getString(R.string.btn_play)) { playerViewModel.playPlaylist(tracks, 0); onDismiss() },
                     DockOptionItem(Icons.Default.Shuffle, context.getString(R.string.btn_shuffle)) { playerViewModel.playPlaylist(tracks.shuffled(), 0); onDismiss() }
@@ -1442,7 +1461,7 @@ enum class TrackSortBy {
                         add(DockOptionItem(Icons.Default.Add, context.getString(R.string.menu_add_playlist)) { playerViewModel.prepareBulkAdd(tracks); onDismiss() })
                     }
 
-                    if (!isLocal && playlistId != 0L) {
+                    if (playlistId > 0L && !isYoutubeRadio) {
                         add(DockOptionItem(
                             icon = Icons.Rounded.Info,
                             text = context.getString(R.string.menu_playlist_details),
@@ -1480,7 +1499,7 @@ enum class TrackSortBy {
                         Text(item.text, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
-                if (!isLocal && tracks.isNotEmpty() && !isYoutubeRadio) {
+                if ((!isLocal || isFullyDownloaded) && tracks.isNotEmpty() && !isYoutubeRadio) {
                     item {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable {
                             if (isFullyDownloaded) {

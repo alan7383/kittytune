@@ -364,6 +364,7 @@
         isLoadingMore: Boolean
     ) {
         val downloadProgress by DownloadManager.downloadProgress.collectAsState()
+        val downloadedIds by DownloadManager.downloadedIds.collectAsState()
         val context = LocalContext.current
 
         if (tracks.isEmpty() && !isLoadingMore) {
@@ -379,8 +380,8 @@
 
                     val progress = downloadProgress[track.id]
                     val isDownloading = progress != null
-                    val isDownloaded = remember(track.id, downloadProgress) {
-                        File(context.filesDir, "track_${track.id}.mp3").exists()
+                    val isDownloaded = remember(track.id, downloadedIds) {
+                        (track.id < 0 && track.source != "youtube") || downloadedIds.contains(track.id)
                     }
 
                     TrackListItem(

@@ -34,6 +34,7 @@
     import androidx.compose.material.icons.outlined.FavoriteBorder
     import androidx.compose.material.icons.outlined.LocationOn
     import androidx.compose.material.icons.outlined.Share
+    import androidx.compose.material.icons.rounded.History
     import androidx.compose.material.icons.rounded.Verified
     import androidx.compose.material3.*
     import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -580,15 +581,35 @@
                 Spacer(Modifier.height(32.dp))
 
                 if (isCurrentUser) {
-                    Button(
-                        onClick = onEditClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shapes = ButtonDefaults.shapes(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(stringResource(R.string.profile_edit), fontWeight = FontWeight.SemiBold)
+                        Button(
+                            onClick = onEditClick,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shapes = ButtonDefaults.shapes(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                        ) {
+                            Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.profile_edit), fontWeight = FontWeight.SemiBold)
+                        }
+
+                        FilledTonalButton(
+                            onClick = { onNavigate("history") },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shapes = ButtonDefaults.shapes(),
+                            colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+                        ) {
+                            Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.history_title), fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 } else {
                     if (user.trackCount > 0) {
