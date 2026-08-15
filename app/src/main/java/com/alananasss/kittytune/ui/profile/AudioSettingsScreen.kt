@@ -45,6 +45,10 @@ fun AudioSettingsScreen(
     var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
     var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
 
+    val tokenManager = remember { TokenManager(context) }
+    val isGuest = remember { tokenManager.isGuestMode() }
+    var scHistorySyncEnabled by remember { mutableStateOf(prefs.getSoundCloudHistorySyncEnabled()) }
+
     var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
     var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
     var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
@@ -276,7 +280,7 @@ fun AudioSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = 7
+                        val totalVisibleItems = if (!isGuest) 8 else 7
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -340,6 +344,20 @@ fun AudioSettingsScreen(
                             switchState = playerViewModel.isPreciseSpeedEnabled,
                             onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
                         )
+
+                        if (!isGuest) {
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, 7),
+                                title = stringResource(R.string.pref_sc_sync_title),
+                                subtitle = stringResource(R.string.pref_sc_sync_sub),
+                                hasSwitch = true,
+                                switchState = scHistorySyncEnabled,
+                                onSwitchChange = {
+                                    scHistorySyncEnabled = it
+                                    prefs.setSoundCloudHistorySyncEnabled(it)
+                                }
+                            )
+                        }
                     }
                 }
             }
