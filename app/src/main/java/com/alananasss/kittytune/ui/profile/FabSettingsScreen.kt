@@ -45,14 +45,14 @@ fun FabSettingsScreen(
 
     val libraryViewModel: LibraryViewModel = viewModel()
     val haptic = LocalHapticFeedback.current
-    
+
     // Make sure data is loaded
     LaunchedEffect(Unit) {
         libraryViewModel.loadData()
     }
 
     val playlists = libraryViewModel.displayedItems.filterIsInstance<LibraryItem.PlaylistItem>().map { it.playlist }.filter { !it.isAlbum }
-    
+
     // Default system actions
     val systemOptions = mutableListOf(
         "profile" to stringResource(R.string.pref_bottom_menu_fab_profile),
@@ -100,7 +100,7 @@ fun FabSettingsScreen(
                     }
                 }
             }
-            
+
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -180,7 +180,7 @@ fun FabSettingsScreen(
                     }
                 }
             }
-            
+
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(

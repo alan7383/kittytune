@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.library
-    
+
     import android.content.Context
     import androidx.compose.animation.animateContentSize
     import androidx.compose.foundation.background
@@ -43,7 +43,7 @@
     import java.text.SimpleDateFormat
     import java.util.Locale
     import java.util.regex.Pattern
-    
+
     @OptIn(ExperimentalLayoutApi::class)
     @Composable
     fun PlaylistDetailsSheet(
@@ -56,13 +56,13 @@
     ) {
         val context = LocalContext.current
         val uriHandler = LocalUriHandler.current
-    
+
         LaunchedEffect(playlistId) {
             viewModel.loadPlaylistDetails(playlistId)
         }
-    
+
         val playlist = viewModel.playlistDetails
-    
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -84,7 +84,7 @@
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-    
+
                     if (playlist?.user != null) {
                         Text(
                             text = stringResource(R.string.playlist_by_user, playlist.user.username ?: ""),
@@ -100,7 +100,7 @@
                         )
                     }
                 }
-    
+
                 IconButton(
                     onClick = onDismiss,
                     modifier = Modifier.size(32.dp),
@@ -128,8 +128,7 @@
                         .verticalScroll(rememberScrollState())
                         .padding(bottom = 24.dp)
                 ) {
-    
-                    // --- INFO PLAYLIST (DATE & TAGS) ---
+
                     if (playlist != null) {
                         Column(
                             modifier = Modifier
@@ -155,7 +154,7 @@
                                     )
                                 }
                             }
-    
+
                             val tags = remember(playlist.tagList, playlist.genre) {
                                 val list = parseSoundCloudTags(playlist.tagList).toMutableList()
                                 if (!playlist.genre.isNullOrBlank() && !list.contains(playlist.genre)) {
@@ -163,7 +162,7 @@
                                 }
                                 list
                             }
-    
+
                             if (tags.isNotEmpty()) {
                                 FlowRow(modifier = Modifier.fillMaxWidth()) {
                                     tags.take(10).forEach { tag ->
@@ -199,7 +198,7 @@
                                 }
                             }
                         }
-    
+
                         Spacer(Modifier.height(24.dp))
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 24.dp),
@@ -207,8 +206,7 @@
                         )
                         Spacer(Modifier.height(24.dp))
                     }
-    
-                    // --- DESCRIPTION ---
+
                     if (!playlist?.description.isNullOrBlank()) {
                         Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                             Text(
@@ -218,7 +216,7 @@
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(Modifier.height(8.dp))
-    
+
                             ExpandableDescription(
                                 text = playlist.description!!,
                                 onUrlClick = { url -> uriHandler.openUri(url) },
@@ -228,7 +226,7 @@
                                 }
                             )
                         }
-    
+
                         Spacer(Modifier.height(24.dp))
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 24.dp),
@@ -236,8 +234,7 @@
                         )
                         Spacer(Modifier.height(24.dp))
                     }
-    
-                    // --- STATS (LIKES & REPOSTS) ---
+
                     if (viewModel.likers.isEmpty() && viewModel.reposters.isEmpty()) {
                         Box(Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -259,7 +256,7 @@
                             )
                             Spacer(Modifier.height(32.dp))
                         }
-    
+
                         if (viewModel.reposters.isNotEmpty()) {
                             UserSection(
                                 title = stringResource(R.string.detail_stats_reposts),
@@ -273,8 +270,7 @@
             }
         }
     }
-    
-    
+
     @Composable
     fun UserSection(
         title: String,
@@ -300,7 +296,7 @@
                         fontWeight = FontWeight.Bold
                     )
                 }
-    
+
                 Text(
                     text = stringResource(R.string.btn_see_all),
                     style = MaterialTheme.typography.labelMedium,
@@ -308,9 +304,9 @@
                     fontWeight = FontWeight.SemiBold
                 )
             }
-    
+
             Spacer(Modifier.height(12.dp))
-    
+
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy((-12).dp)
@@ -318,7 +314,7 @@
                 items(users.take(10)) { user ->
                     AvatarItem(user.avatarUrl)
                 }
-    
+
                 item {
                     Box(
                         modifier = Modifier
@@ -342,7 +338,7 @@
             }
         }
     }
-    
+
     @Composable
     fun AvatarItem(url: String?) {
         Box(
@@ -363,7 +359,7 @@
             )
         }
     }
-    
+
     @Composable
     fun ExpandableDescription(
         text: String,
@@ -373,24 +369,24 @@
         var isExpanded by remember { mutableStateOf(false) }
         val urlPattern = Pattern.compile("((https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])")
         val mentionPattern = Pattern.compile("@[\\w-]+")
-    
+
         val annotatedString = buildAnnotatedString {
             val fullText = text
             append(fullText)
-    
+
             val urlMatcher = urlPattern.matcher(fullText)
             while (urlMatcher.find()) {
                 addStringAnnotation(tag = "URL", annotation = urlMatcher.group(), start = urlMatcher.start(), end = urlMatcher.end())
                 addStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold), start = urlMatcher.start(), end = urlMatcher.end())
             }
-    
+
             val mentionMatcher = mentionPattern.matcher(fullText)
             while (mentionMatcher.find()) {
                 addStringAnnotation(tag = "MENTION", annotation = mentionMatcher.group(), start = mentionMatcher.start(), end = mentionMatcher.end())
                 addStyle(style = SpanStyle(color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.SemiBold), start = mentionMatcher.start(), end = mentionMatcher.end())
             }
         }
-    
+
         Column(modifier = Modifier.animateContentSize()) {
             ClickableText(
                 text = annotatedString,
@@ -413,7 +409,7 @@
                     }
                 }
             )
-    
+
             if (text.length > 150 || text.lines().size > 3) {
                 Text(
                     text = if (isExpanded) stringResource(R.string.detail_show_less) else stringResource(R.string.detail_show_more),
@@ -426,7 +422,7 @@
             }
         }
     }
-    
+
     fun parseSoundCloudTags(tagList: String?): List<String> {
         if (tagList.isNullOrBlank()) return emptyList()
         val tags = mutableListOf<String>()
@@ -441,13 +437,13 @@
         }
         return tags
     }
-    
+
     fun getRelativeTime(dateStr: String, context: Context): String {
         try {
             val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
             val date = format.parse(dateStr) ?: return ""
             val diff = System.currentTimeMillis() - date.time
-    
+
             val seconds = diff / 1000
             val minutes = seconds / 60
             val hours = minutes / 60
@@ -455,7 +451,7 @@
             val weeks = days / 7
             val months = days / 30
             val years = days / 365
-    
+
             return when {
                 seconds < 60 -> context.getString(R.string.time_now)
                 minutes < 60 -> context.getString(R.string.time_minutes_ago, minutes)
@@ -468,5 +464,4 @@
             }
         } catch (e: Exception) { return "" }
     }
-
 

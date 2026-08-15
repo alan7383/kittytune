@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import android.net.Uri
     import androidx.compose.foundation.layout.Arrangement
     import androidx.compose.foundation.layout.PaddingValues
@@ -22,7 +22,7 @@
     import androidx.compose.foundation.lazy.grid.itemsIndexed
     import androidx.lifecycle.viewmodel.compose.viewModel
     import com.alananasss.kittytune.R
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun GenresScreen(
@@ -31,7 +31,7 @@
         viewModel: GenresViewModel = viewModel()
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -76,7 +76,7 @@
                         modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
                     )
                 }
-    
+
                 items(viewModel.moodCategories) { category ->
                     SearchCategoryCard(category) {
                         val encodedTitle = Uri.encode(category.title)
@@ -84,7 +84,7 @@
                         onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
                     }
                 }
-    
+
                 // genres section
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
@@ -94,7 +94,7 @@
                         modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
                     )
                 }
-    
+
                 items(viewModel.genreCategories) { category ->
                     SearchCategoryCard(category) {
                         val encodedTitle = Uri.encode(category.title)
@@ -105,5 +105,4 @@
             }
         }
     }
-
 

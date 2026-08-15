@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.net.Uri
     import androidx.activity.compose.rememberLauncherForActivityResult
     import androidx.activity.result.contract.ActivityResultContracts
@@ -29,7 +29,7 @@
     import com.alananasss.kittytune.ui.common.SettingsScaffold
     import kotlinx.coroutines.delay
     import kotlinx.coroutines.launch
-    
+
     @Composable
     fun LocalMediaSettingsScreen(
         onBackClick: () -> Unit
@@ -37,15 +37,15 @@
         val context = LocalContext.current
         val prefs = remember { PlayerPreferences(context) }
         val scope = rememberCoroutineScope()
-    
+
         var isEnabled by remember { mutableStateOf(prefs.getLocalMediaEnabled()) }
         var folderUris by remember { mutableStateOf(prefs.getLocalMediaUris().toList()) }
-    
+
         val deletingUris = remember { mutableStateListOf<String>() }
-    
+
         val isScanning by LocalMediaRepository.isScanning.collectAsState()
         val scanProgress by LocalMediaRepository.scanProgress.collectAsState()
-    
+
         val folderPicker = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocumentTree()
         ) { uri: Uri? ->
@@ -54,13 +54,13 @@
                 try {
                     context.contentResolver.takePersistableUriPermission(uri, takeFlags)
                 } catch (e: Exception) { e.printStackTrace() }
-    
+
                 val uriString = uri.toString()
                 prefs.addLocalMediaUri(uriString)
                 folderUris = prefs.getLocalMediaUris().toList()
             }
         }
-    
+
         fun deleteFolderWithAnimation(uriString: String) {
             scope.launch {
                 deletingUris.add(uriString)
@@ -70,7 +70,7 @@
                 deletingUris.remove(uriString)
             }
         }
-    
+
         SettingsScaffold(
             title = stringResource(R.string.pref_local_title),
             onBackClick = onBackClick
@@ -101,7 +101,7 @@
                         )
                     )
                 }
-    
+
                 item {
                     AnimatedVisibility(
                         visible = isEnabled,
@@ -115,7 +115,7 @@
                         ) + fadeOut()
                     ) {
                         Column {
-    
+
                             val dynamicContentItem: @Composable (Shape) -> Unit = { shape ->
                                 AnimatedContent(
                                     targetState = folderUris.isEmpty(),
@@ -151,7 +151,7 @@
                                             folderUris.forEachIndexed { index, uriString ->
                                                 key(uriString) {
                                                     val isVisible = !deletingUris.contains(uriString)
-    
+
                                                     AnimatedVisibility(
                                                         visible = isVisible,
                                                         enter = expandVertically() + fadeIn(),
@@ -163,9 +163,9 @@
                                                         ) + fadeOut(animationSpec = tween(200))
                                                     ) {
                                                         val path = Uri.parse(uriString).path?.substringAfter("primary:") ?: uriString
-    
+
                                                         val itemShape = if (index == folderUris.lastIndex) shape else androidx.compose.ui.graphics.RectangleShape
-    
+
                                                         Surface(
                                                             color = MaterialTheme.colorScheme.surfaceContainer,
                                                             shape = itemShape,
@@ -211,9 +211,9 @@
                                     }
                                 }
                             }
-                            
+
                             val itemsList = mutableListOf<@Composable (Shape) -> Unit>()
-    
+
                             itemsList.add { shape ->
                                 SettingsItem(
                                     shape = shape,
@@ -222,16 +222,16 @@
                                     titleColor = MaterialTheme.colorScheme.primary
                                 )
                             }
-    
+
                             itemsList.add(dynamicContentItem)
-    
+
                             SettingsGroup(
                                 title = stringResource(R.string.pref_local_folders),
                                 items = itemsList
                             )
-    
+
                             Spacer(Modifier.height(32.dp))
-    
+
                             AnimatedVisibility(
                                 visible = folderUris.isNotEmpty(),
                                 enter = fadeIn() + expandVertically(),
@@ -287,7 +287,7 @@
                                             )
                                         }
                                     }
-    
+
                                     AnimatedVisibility(visible = isScanning) {
                                         Text(
                                             text = scanProgress,
@@ -299,7 +299,7 @@
                                             textAlign = TextAlign.Center
                                         )
                                     }
-    
+
                                     Spacer(Modifier.height(16.dp))
                                     Row(
                                         modifier = Modifier
@@ -322,7 +322,7 @@
                                     }
                                 }
                             }
-    
+
                             Spacer(Modifier.height(24.dp))
                         }
                     }
@@ -330,5 +330,4 @@
             }
         }
     }
-
 

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.track
-    
+
     import androidx.compose.animation.*
     import androidx.compose.animation.core.tween
     import androidx.compose.foundation.ExperimentalFoundationApi
@@ -46,7 +46,7 @@
     import com.alananasss.kittytune.ui.profile.ArtistAvatar
     import kotlinx.coroutines.launch
     import java.io.File
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun TrackDetailScreen(
@@ -65,13 +65,13 @@
             stringResource(R.string.detail_in_playlists),
             stringResource(R.string.detail_related)
         )
-    
+
         LaunchedEffect(trackId) {
             detailViewModel.loadTrackDetails(trackId)
         }
-    
+
         val track = detailViewModel.track
-    
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -128,7 +128,7 @@
                                 }
                             }
                         }
-    
+
                         TabRow(selectedTabIndex = pagerState.currentPage) {
                             tabs.forEachIndexed { index, title ->
                                 Tab(
@@ -138,7 +138,7 @@
                                 )
                             }
                         }
-    
+
                         HorizontalPager(state = pagerState) { page ->
                             when (page) {
                                 0 -> UserList(
@@ -174,7 +174,7 @@
             }
         }
     }
-    
+
     @Composable
     fun UserList(
         users: List<User>,
@@ -192,7 +192,7 @@
                     if (index >= users.size - 5) {
                         LaunchedEffect(Unit) { onLoadMore() }
                     }
-    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -228,7 +228,7 @@
             }
         }
     }
-    
+
     @Composable
     fun PlaylistList(
         playlists: List<Playlist>,
@@ -303,7 +303,7 @@
                     )
                 }
             }
-            
+
             if (playlists.isEmpty() && !isLoadingMore) {
                 Box(Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                     Text(stringResource(R.string.detail_no_public_playlist), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -317,7 +317,7 @@
                     if (index >= playlists.size - 5) {
                         LaunchedEffect(Unit) { onLoadMore() }
                     }
-    
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -355,7 +355,7 @@
         }
     }
 }
-    
+
 @Composable
     fun TrackList(
         tracks: List<Track>,
@@ -365,7 +365,7 @@
     ) {
         val downloadProgress by DownloadManager.downloadProgress.collectAsState()
         val context = LocalContext.current
-    
+
         if (tracks.isEmpty() && !isLoadingMore) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(stringResource(R.string.detail_no_similar), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -376,13 +376,13 @@
                     if (index >= tracks.size - 5) {
                         LaunchedEffect(Unit) { onLoadMore() }
                     }
-    
+
                     val progress = downloadProgress[track.id]
                     val isDownloading = progress != null
                     val isDownloaded = remember(track.id, downloadProgress) {
                         File(context.filesDir, "track_${track.id}.mp3").exists()
                     }
-    
+
                     TrackListItem(
                         track = track,
                         currentlyPlayingTrack = playerViewModel.currentTrack,
@@ -404,5 +404,4 @@
             }
         }
     }
-
 

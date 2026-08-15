@@ -1,9 +1,9 @@
     package com.alananasss.kittytune.ui.player.lyrics
-    
+
     import com.mpatric.mp3agic.Mp3File
     import java.io.File
     import java.util.regex.Pattern
-    
+
     data class LyricWord(
         val word: String,
         val startTime: Long,
@@ -19,15 +19,15 @@
         val translation: String? = null,
         val romanization: String? = null
     )
-    
+
     object LyricsUtils {
-    
+
         // standard lrc regex: [mm:ss.xx] lyrics
         private val LRC_PATTERN = Pattern.compile("\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})\\](.*)")
-    
+
         // enhanced lrc word markers: <mm:ss.xx>word
         private val ENHANCED_WORD_PATTERN = Pattern.compile("<(\\d{2}):(\\d{2})\\.(\\d{2,3})>([^<]*)")
-    
+
         fun parseLyricsContent(content: String, totalDurationMs: Long): List<LyricLine> {
             return if (content.trim().startsWith("version:")) {
                 parseLyricsFile(content, totalDurationMs)
@@ -35,7 +35,7 @@
                 parseLrc(content, totalDurationMs)
             }
         }
-    
+
         // Lightweight parser for the InnerTune-style YAML lyrics format:
         // version: 1
         // lines:
@@ -127,7 +127,7 @@
             }
             return parsedLines
         }
-    
+
         private fun indentOf(line: String): Int = line.length - line.trimStart().length
 
         private fun parseKeyValue(part: String): Pair<String, String>? {
@@ -144,7 +144,7 @@
         fun parseLrc(lrcContent: String, totalDurationMs: Long): List<LyricLine> {
             val lines = lrcContent.split("\n")
             val parsedLines = mutableListOf<ParsedLineTemp>()
-    
+
             for (line in lines) {
                 val matcher = LRC_PATTERN.matcher(line.trim())
                 if (matcher.matches()) {
@@ -153,10 +153,10 @@
                     val msStr = matcher.group(3) ?: "00"
                     // handle 2 digit vs 3 digit milliseconds
                     val ms = if (msStr.length == 2) msStr.toLong() * 10 else msStr.toLong()
-    
+
                     val rawText = matcher.group(4)?.trim() ?: ""
                     val startTime = (min * 60 * 1000) + (sec * 1000) + ms
-    
+
                     val words = mutableListOf<LyricWord>()
                     var cleanText = rawText
                     if (rawText.contains("<")) {
@@ -168,7 +168,7 @@
                             val wMsStr = wordMatcher.group(3) ?: "00"
                             val wMs = if (wMsStr.length == 2) wMsStr.toLong() * 10 else wMsStr.toLong()
                             val wText = wordMatcher.group(4) ?: ""
-    
+
                             val wTime = (wMin * 60 * 1000) + (wSec * 1000) + wMs
                             extractedWords.add(LyricWord(wText, wTime, 0L))
                         }
@@ -181,15 +181,15 @@
                             }
                         }
                     }
-    
+
                     if (cleanText.isNotEmpty()) {
                         parsedLines.add(ParsedLineTemp(cleanText, startTime, words))
                     }
                 }
             }
-    
+
             if (parsedLines.isEmpty()) return emptyList()
-    
+
             // calculate end times based on the next line
             return parsedLines.mapIndexed { index, current ->
                 val nextTime = if (index < parsedLines.size - 1) {
@@ -203,15 +203,14 @@
                 LyricLine(current.text, current.startTime, nextTime, updatedWords.ifEmpty { null })
             }
         }
-    
+
         private data class ParsedLineTemp(val text: String, val startTime: Long, val words: List<LyricWord> = emptyList())
-    
-        // --- local extraction ---
+
         fun extractLocalLyrics(filePath: String): String? {
             return try {
                 val file = File(filePath)
                 if (!file.exists()) return null
-    
+
                 val mp3file = Mp3File(filePath)
                 if (mp3file.hasId3v2Tag()) {
                     val tag = mp3file.id3v2Tag

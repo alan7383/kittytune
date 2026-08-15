@@ -141,7 +141,6 @@ fun WelcomeScreen(
             val useSplitLayout = maxWidth >= maxHeight
 
             if (useSplitLayout) {
-                // --- MODE PAYSAGE / TABLETTE ---
                 Row(modifier = Modifier.fillMaxSize()) {
                     Column(
                         modifier = Modifier
@@ -175,7 +174,6 @@ fun WelcomeScreen(
                     }
                 }
             } else {
-                // --- MODE PORTRAIT ---
                 Column(
                     modifier = Modifier
                         .fillMaxSize()

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.library
-    
+
     import android.content.Context
     import android.net.ConnectivityManager
     import android.net.Network
@@ -54,7 +54,7 @@ import kotlinx.coroutines.launch
     import com.alananasss.kittytune.ui.common.SquareCardShimmer
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import com.alananasss.kittytune.ui.profile.ArtistAvatar
-    
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun LibraryScreen(
@@ -67,7 +67,7 @@ import kotlinx.coroutines.launch
     ) {
         val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
-    
+
         val listState = rememberLazyGridState()
         // collapse fab text when scrolling
         val fabExpanded by remember {
@@ -75,7 +75,7 @@ import kotlinx.coroutines.launch
                 listState.firstVisibleItemIndex == 0
             }
         }
-    
+
         // keep an eye on network status
         DisposableEffect(context) {
             val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -93,7 +93,7 @@ import kotlinx.coroutines.launch
             try { connectivityManager.registerNetworkCallback(request, networkCallback) } catch (e: Exception) { e.printStackTrace() }
             onDispose { try { connectivityManager.unregisterNetworkCallback(networkCallback) } catch (e: Exception) {} }
         }
-    
+
         LaunchedEffect(Unit) {
             libraryViewModel.loadData()
         }
@@ -101,7 +101,7 @@ import kotlinx.coroutines.launch
         LaunchedEffect(libraryViewModel.selectedFilter) {
             listState.scrollToItem(0)
         }
-    
+
         // refresh when coming back to the screen
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
@@ -112,12 +112,12 @@ import kotlinx.coroutines.launch
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
-    
+
         var showCreateDialog by remember { mutableStateOf(false) }
         var newPlaylistName by remember { mutableStateOf("") }
         var isCreatingPlaylist by remember { mutableStateOf(false) }
         val scope = rememberCoroutineScope()
-    
+
         if (showCreateDialog) {
             AlertDialog(
                 onDismissRequest = { if (!isCreatingPlaylist) showCreateDialog = false },
@@ -182,7 +182,7 @@ import kotlinx.coroutines.launch
         }
         val showLogin = libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode
         val isGuest = libraryViewModel.isGuestUser
-    
+
         Scaffold(
             topBar = {
                 Column(
@@ -209,7 +209,7 @@ import kotlinx.coroutines.launch
                             Text(stringResource(R.string.lib_offline_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onErrorContainer)
                         }
                     }
-    
+
                     // guest banner
                     if (isGuest && !libraryViewModel.isOfflineMode) {
                         Row(
@@ -228,7 +228,7 @@ import kotlinx.coroutines.launch
                             Text(stringResource(R.string.lib_guest_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
                         }
                     }
-    
+
                     SearchBarHeader(
                         query = libraryViewModel.searchQuery,
                         onQueryChange = { libraryViewModel.searchQuery = it },
@@ -236,7 +236,7 @@ import kotlinx.coroutines.launch
                         onProfileClick = onProfileClick,
                         isGuest = isGuest
                     )
-    
+
                     FilterChipsRow(libraryViewModel)
                 }
             },
@@ -246,7 +246,7 @@ import kotlinx.coroutines.launch
                     val bottomNavHeight = 90.dp
                     val miniPlayerHeight = if (playerViewModel.currentTrack != null) 72.dp else 0.dp
                     val totalBottomPadding = bottomNavHeight + miniPlayerHeight
-    
+
                     ExtendedFloatingActionButton(
                         onClick = { showCreateDialog = true },
                         icon = { Icon(Icons.Rounded.Add, stringResource(R.string.lib_create_playlist_title)) },
@@ -275,7 +275,7 @@ import kotlinx.coroutines.launch
             } else {
                 Column(modifier = Modifier.padding(innerPadding)) {
                     SortAndLayoutControls(libraryViewModel)
-    
+
                     if (libraryViewModel.isLoading && libraryViewModel.displayedItems.isEmpty()) {
                         LibraryShimmerGrid(isGridLayout = libraryViewModel.isGridLayout)
                     } else {
@@ -292,7 +292,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun LibraryContentGrid(
         listState: LazyGridState,
@@ -304,11 +304,11 @@ import kotlinx.coroutines.launch
     ) {
         val columns = if (viewModel.isGridLayout) GridCells.Adaptive(minSize = 160.dp) else GridCells.Fixed(1)
         val isSyncing by viewModel.isSyncing.collectAsState()
-    
+
         // grab strings here before using them in logic
         val playlistsFilter = stringResource(R.string.lib_playlists)
         val shouldShowPlaylists = viewModel.selectedFilter == null || viewModel.selectedFilter == playlistsFilter
-    
+
         LazyVerticalGrid(
             state = listState,
             columns = columns,
@@ -332,7 +332,7 @@ import kotlinx.coroutines.launch
                         )
                     }
                 }
-    
+
                 item(span = { GridItemSpan(1) }, key = "downloads") {
                     Box(modifier = Modifier.animateItem()) {
                         StaticLibraryCard(
@@ -345,7 +345,7 @@ import kotlinx.coroutines.launch
                         )
                     }
                 }
-    
+
                 if (viewModel.showLocalMedia) {
                     item(span = { GridItemSpan(1) }, key = "local_media") {
                         Box(modifier = Modifier.animateItem()) {
@@ -361,7 +361,7 @@ import kotlinx.coroutines.launch
                     }
                 }
             }
-    
+
             items(
                 items = viewModel.displayedItems,
                 key = { item ->
@@ -376,7 +376,7 @@ import kotlinx.coroutines.launch
                         is LibraryItem.PlaylistItem -> {
                             val permalink = item.playlist.permalinkUrl
                             val isYoutubeShortcut = permalink != null && permalink.startsWith("yt_radio:")
-        
+
                             val navId = if (isYoutubeShortcut) {
                                 android.net.Uri.encode(permalink!!)
                             } else if (item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
@@ -384,7 +384,7 @@ import kotlinx.coroutines.launch
                             } else {
                                 if (item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
                             }
-        
+
                             DynamicPlaylistCard(
                                 playlist = item.playlist,
                                 isGrid = viewModel.isGridLayout,
@@ -403,7 +403,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun LibraryShimmerGrid(isGridLayout: Boolean) {
         val columns = if (isGridLayout) GridCells.Adaptive(minSize = 160.dp) else GridCells.Fixed(1)
@@ -419,7 +419,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun SearchBarHeader(
         query: String,
@@ -469,7 +469,7 @@ import kotlinx.coroutines.launch
             singleLine = true
         )
     }
-    
+
     @OptIn(ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun FilterChipsRow(viewModel: LibraryViewModel) {
@@ -477,11 +477,11 @@ import kotlinx.coroutines.launch
         val albumsLabel = stringResource(R.string.lib_albums)
         val artistsLabel = stringResource(R.string.lib_artists)
         val stationsLabel = stringResource(R.string.lib_stations)
-    
+
         val filters = remember(playlistsLabel, albumsLabel, artistsLabel, stationsLabel) {
             listOf(playlistsLabel, albumsLabel, artistsLabel, stationsLabel)
         }
-    
+
         val view = androidx.compose.ui.platform.LocalView.current
         LazyRow(
             modifier = Modifier
@@ -492,7 +492,7 @@ import kotlinx.coroutines.launch
         ) {
             items(filters) { label ->
                 val isSelected = viewModel.selectedFilter == label
-                
+
                 val containerColor by androidx.compose.animation.animateColorAsState(
                     targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
                     label = "chip_container_color"
@@ -518,7 +518,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun SortAndLayoutControls(viewModel: LibraryViewModel) {
         val playlistsLabel = stringResource(R.string.lib_playlists)
@@ -574,7 +574,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun StaticLibraryCard(title: String, subtitle: String, icon: ImageVector, isGrid: Boolean, isLoading: Boolean, onClick: () -> Unit) {
         val height = if (isGrid) 160.dp else 80.dp
@@ -616,7 +616,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun DynamicPlaylistCard(playlist: Playlist, isGrid: Boolean, onClick: () -> Unit) {
         val art = playlist.fullResArtwork
@@ -626,11 +626,11 @@ import kotlinx.coroutines.launch
         } else {
             stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0)
         }
-    
+
         val authorText = playlist.user?.username ?: stringResource(R.string.me_artist)
         val likesText = if (playlist.likesCount != null && playlist.likesCount > 0) " • ${playlist.likesCount} likes" else ""
         val finalSubtitle = if (isRadioShortcut) "$subtitleText • YouTube" else "$subtitleText • $authorText$likesText"
-    
+
         if (isGrid) {
             Column(modifier = Modifier.clickable(onClick = onClick).fillMaxWidth()) {
                 AsyncImage(
@@ -640,7 +640,7 @@ import kotlinx.coroutines.launch
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-    
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = playlist.title ?: stringResource(R.string.app_name),
@@ -694,7 +694,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun ArtistLibraryCard(artist: LocalArtist, isGrid: Boolean, onClick: () -> Unit) {
         if (isGrid) {
@@ -726,5 +726,4 @@ import kotlinx.coroutines.launch
             }
         }
     }
-
 

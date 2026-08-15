@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.widget
-    
+
     import android.app.Activity
     import android.appwidget.AppWidgetManager
     import android.content.Intent
@@ -32,28 +32,28 @@
     import kotlinx.coroutines.launch
     import java.util.Locale
     import kotlin.math.roundToInt
-    
+
     // Model for custom speed buttons
     data class CustomSpeedButton(val label: String, val value: Float)
-    
+
     class WidgetConfigActivity : ComponentActivity() {
-    
+
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
-    
+
             val appWidgetId = intent?.extras?.getInt(
                 AppWidgetManager.EXTRA_APPWIDGET_ID,
                 AppWidgetManager.INVALID_APPWIDGET_ID
             ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
-    
+
             if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
                 finish()
                 return
             }
-    
+
             val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
             setResult(Activity.RESULT_CANCELED, resultValue)
-    
+
             setContent {
                 SoundTuneTheme {
                     WidgetConfigScreen(
@@ -64,7 +64,7 @@
                 }
             }
         }
-    
+
         private fun saveConfigAndFinish(
             appWidgetId: Int,
             enabledEffects: Set<String>,
@@ -73,7 +73,7 @@
             val context = this
             MainScope().launch {
                 val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
-    
+
                 updateAppWidgetState(context, glanceId) { prefs ->
                     // Save boolean flags for effects
                     prefs[MusicWidget.KEY_SHOW_BASS] = enabledEffects.contains("BASS")
@@ -81,30 +81,30 @@
                     prefs[MusicWidget.KEY_SHOW_MUFFLED] = enabledEffects.contains("MUFFLED")
                     prefs[MusicWidget.KEY_SHOW_REVERB] = enabledEffects.contains("REVERB")
                     prefs[MusicWidget.KEY_SHOW_PITCH] = enabledEffects.contains("PITCH")
-    
+
                     // Serialize speeds to a string: "Label:Value|Label:Value"
                     val speedString = customSpeeds.joinToString("|") { "${it.label}:${it.value}" }
                     prefs[MusicWidget.KEY_CUSTOM_SPEEDS] = speedString
                 }
-    
+
                 // Force update THIS widget instance immediately
                 MusicWidget().update(context, glanceId)
                 // Trigger global update to fetch current track info
                 MusicWidget.update(context)
-    
+
                 val resultValue = Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 setResult(Activity.RESULT_OK, resultValue)
                 finish()
             }
         }
     }
-    
+
     @Composable
     fun WidgetConfigScreen(onConfirm: (Set<String>, List<CustomSpeedButton>) -> Unit) {
         val enabledEffects = remember { mutableStateListOf<String>() }
         val customSpeeds = remember { mutableStateListOf<CustomSpeedButton>() }
         var showAddSpeedDialog by remember { mutableStateOf(false) }
-    
+
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = MaterialTheme.colorScheme.surface,
@@ -141,8 +141,7 @@
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-    
-                // --- EFFECTS SECTION ---
+
                 item {
                     Text(stringResource(R.string.player_special_effects), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
@@ -160,8 +159,7 @@
                         }
                     }
                 }
-    
-                // --- SPEEDS SECTION ---
+
                 item {
                     Row(
                         Modifier.fillMaxWidth(),
@@ -178,7 +176,7 @@
                             Text(stringResource(R.string.btn_create))
                         }
                     }
-    
+
                     if (customSpeeds.isEmpty()) {
                         Box(
                             modifier = Modifier
@@ -193,7 +191,7 @@
                         }
                     }
                 }
-    
+
                 items(customSpeeds) { speedItem ->
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -228,7 +226,7 @@
                 }
             }
         }
-    
+
         if (showAddSpeedDialog) {
             AddSpeedDialog(
                 onDismiss = { showAddSpeedDialog = false },
@@ -239,7 +237,7 @@
             )
         }
     }
-    
+
     @Composable
     fun ConfigCheckboxRow(label: String, key: String, selectedList: MutableList<String>) {
         val isSelected = selectedList.contains(key)
@@ -258,12 +256,12 @@
             Text(label, style = MaterialTheme.typography.bodyLarge)
         }
     }
-    
+
     @Composable
     fun AddSpeedDialog(onDismiss: () -> Unit, onAdd: (String, Float) -> Unit) {
         var label by remember { mutableStateOf("") }
         var speedValue by remember { mutableFloatStateOf(1.2f) }
-    
+
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.player_speed)) },
@@ -277,9 +275,9 @@
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )
-    
+
                     Spacer(Modifier.height(24.dp))
-    
+
                     // HEADER VALUE
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -294,7 +292,7 @@
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-    
+
                     // SLIDER
                     Slider(
                         value = speedValue,
@@ -303,7 +301,7 @@
                         steps = 29, // Allows jumps of 0.05
                         modifier = Modifier.fillMaxWidth()
                     )
-    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -327,5 +325,4 @@
             }
         )
     }
-
 

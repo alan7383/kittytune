@@ -34,6 +34,32 @@ import com.alananasss.kittytune.ui.player.audio.ReverbAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.EarrapeAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.MonoAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.R128AudioProcessor
+import com.alananasss.kittytune.ui.player.audio.VintageMp3AudioProcessor
+import com.alananasss.kittytune.ui.player.audio.VocalRemoverAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.VocalBoostAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.FlangerAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.PartyNextDoorAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.SuperWideAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.VinylLoFiAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.PhaserAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.MegaphoneRadioAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.RobotVocoderAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.ChorusAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.UnderwaterAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.TranceGateAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.PingPongDelayAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.ChiptuneAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.ShimmerReverbAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.RotarySpeakerAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.TapeSaturationAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.SubOctaverAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.EmptyMallAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.GramophoneAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.ReverseEchoAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.StadiumAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.CassetteWalkmanAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.AsmrVocalAudioProcessor
+import com.alananasss.kittytune.ui.player.audio.NightDriveAudioProcessor
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,13 +78,13 @@ object MusicManager {
     private var _player1: ExoPlayer? = null
     private var _player2: ExoPlayer? = null
     private var activePlayerIndex = 1
-    
+
     var lastPlayer: ExoPlayer? = null
     val onPlayerSwappedFlow = MutableStateFlow(0)
-    
+
     @Volatile var isCrossfadingOut = false
     private var fadingPlayer: ExoPlayer? = null
-    
+
     private var exoPlayerFactory: ((Int) -> ExoPlayer)? = null
     private var playerListener: Player.Listener? = null
 
@@ -76,7 +102,6 @@ object MusicManager {
 
     var currentTrack: Track? = null
 
-    // --- DRM token cache ---
     // Stores the licenseAuthToken per trackId for DRM-protected streams
     private val drmTokenCache = ConcurrentHashMap<Long, String>()
 
@@ -90,7 +115,6 @@ object MusicManager {
         return drmTokenCache[trackId]
     }
 
-    // --- SHARED CONTEXT ---
     private val _contextFlow = MutableStateFlow<PlaybackContext?>(null)
     val contextFlow = _contextFlow.asStateFlow()
 
@@ -101,13 +125,39 @@ object MusicManager {
     var onTrackChange: ((Track) -> Unit)? = null
 
     private var preloadedTrack: Track? = null
-    
+
     private val eightDProcessors = listOf(EightDAudioProcessor(), EightDAudioProcessor())
     private val fxProcessors = listOf(FxAudioProcessor(), FxAudioProcessor())
     private val reverbProcessors = listOf(ReverbAudioProcessor(), ReverbAudioProcessor())
     private val earrapeProcessors = listOf(EarrapeAudioProcessor(), EarrapeAudioProcessor())
     private val monoProcessors = listOf(MonoAudioProcessor(), MonoAudioProcessor())
     private val normalizerProcessors = listOf(R128AudioProcessor(), R128AudioProcessor())
+    private val vintageMp3Processors = listOf(VintageMp3AudioProcessor(), VintageMp3AudioProcessor())
+    private val vocalRemoverProcessors = listOf(VocalRemoverAudioProcessor(), VocalRemoverAudioProcessor())
+    private val vocalBoostProcessors = listOf(VocalBoostAudioProcessor(), VocalBoostAudioProcessor())
+    private val flangerProcessors = listOf(FlangerAudioProcessor(), FlangerAudioProcessor())
+    private val partyNextDoorProcessors = listOf(PartyNextDoorAudioProcessor(), PartyNextDoorAudioProcessor())
+    private val superWideProcessors = listOf(SuperWideAudioProcessor(), SuperWideAudioProcessor())
+    private val vinylLoFiProcessors = listOf(VinylLoFiAudioProcessor(), VinylLoFiAudioProcessor())
+    private val phaserProcessors = listOf(PhaserAudioProcessor(), PhaserAudioProcessor())
+    private val megaphoneProcessors = listOf(MegaphoneRadioAudioProcessor(), MegaphoneRadioAudioProcessor())
+    private val robotVocoderProcessors = listOf(RobotVocoderAudioProcessor(), RobotVocoderAudioProcessor())
+    private val chorusProcessors = listOf(ChorusAudioProcessor(), ChorusAudioProcessor())
+    private val underwaterProcessors = listOf(UnderwaterAudioProcessor(), UnderwaterAudioProcessor())
+    private val tranceGateProcessors = listOf(TranceGateAudioProcessor(), TranceGateAudioProcessor())
+    private val pingPongDelayProcessors = listOf(PingPongDelayAudioProcessor(), PingPongDelayAudioProcessor())
+    private val chiptuneProcessors = listOf(ChiptuneAudioProcessor(), ChiptuneAudioProcessor())
+    private val shimmerReverbProcessors = listOf(ShimmerReverbAudioProcessor(), ShimmerReverbAudioProcessor())
+    private val rotarySpeakerProcessors = listOf(RotarySpeakerAudioProcessor(), RotarySpeakerAudioProcessor())
+    private val tapeSaturationProcessors = listOf(TapeSaturationAudioProcessor(), TapeSaturationAudioProcessor())
+    private val subOctaverProcessors = listOf(SubOctaverAudioProcessor(), SubOctaverAudioProcessor())
+    private val emptyMallProcessors = listOf(EmptyMallAudioProcessor(), EmptyMallAudioProcessor())
+    private val gramophoneProcessors = listOf(GramophoneAudioProcessor(), GramophoneAudioProcessor())
+    private val reverseEchoProcessors = listOf(ReverseEchoAudioProcessor(), ReverseEchoAudioProcessor())
+    private val stadiumProcessors = listOf(StadiumAudioProcessor(), StadiumAudioProcessor())
+    private val cassetteWalkmanProcessors = listOf(CassetteWalkmanAudioProcessor(), CassetteWalkmanAudioProcessor())
+    private val asmrVocalProcessors = listOf(AsmrVocalAudioProcessor(), AsmrVocalAudioProcessor())
+    private val nightDriveProcessors = listOf(NightDriveAudioProcessor(), NightDriveAudioProcessor())
 
     var onNextClick: (() -> Unit)? = null
     var onPreviousClick: (() -> Unit)? = null
@@ -126,11 +176,11 @@ object MusicManager {
         val tokenManager = com.alananasss.kittytune.data.TokenManager(context.applicationContext)
         val token = com.alananasss.kittytune.data.SessionManager.harvestStoredSession(context.applicationContext) ?: tokenManager.getAccessToken()
         val customUserAgent = "SoundCloud/2025.12.10-release (Android 10; Android)"
-        
+
         val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
             .setUserAgent(customUserAgent)
             .setAllowCrossProtocolRedirects(true)
-        
+
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
 
         val resolvingDataSourceFactory = ResolvingDataSource.Factory(dataSourceFactory, object : ResolvingDataSource.Resolver {
@@ -299,7 +349,7 @@ object MusicManager {
                     object : DefaultRenderersFactory(context) {
                         override fun buildAudioSink(context: Context, enableFloatOutput: Boolean, enableAudioTrackPlaybackParams: Boolean): AudioSink {
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(fxProcessors[index], reverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index]))
+                                .setAudioProcessors(arrayOf(vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()
@@ -353,7 +403,7 @@ object MusicManager {
                 }
             }
         }
-        
+
         _player1?.addListener(listener)
         this.playerListener = listener
     }
@@ -362,21 +412,21 @@ object MusicManager {
         val oldPlayer = player
         activePlayerIndex = if (activePlayerIndex == 1) 2 else 1
         val newPlayer = player
-        
+
         isCrossfadingOut = true
         fadingPlayer = oldPlayer
-        
+
         lastPlayer = oldPlayer
         onPlayerSwappedFlow.value += 1
-        
+
         newPlayer.setMediaItem(mediaItem, startPositionMs)
         newPlayer.prepare()
-        
+
         val targetVolume = 1f
         newPlayer.volume = 0f
-        
+
         if (oldPlayer.playWhenReady) newPlayer.play()
-        
+
         scope.launch {
             // Wait for newPlayer to prepare and begin buffering/rendering audio before volume ramping
             var waitCount = 0
@@ -387,7 +437,7 @@ object MusicManager {
 
             var remainingMs = oldPlayer.duration - oldPlayer.currentPosition
             if (remainingMs < 0) remainingMs = 0
-            
+
             val actualCrossfadeMs = if (oldPlayer.isPlaying && remainingMs > 0 && remainingMs < crossfadeDurationMs) {
                 remainingMs
             } else if (!oldPlayer.isPlaying || remainingMs == 0L) {
@@ -395,7 +445,7 @@ object MusicManager {
             } else {
                 crossfadeDurationMs
             }
-            
+
             if (actualCrossfadeMs <= 0L) {
                 newPlayer.volume = targetVolume
                 oldPlayer.stop()
@@ -423,27 +473,191 @@ object MusicManager {
         }
     }
 
+    fun preloadNext(nextTrack: Track, context: Context) {
+        preloadedTrack = nextTrack
+        val inactivePlayer = if (activePlayerIndex == 1) getOrInitPlayer2() else _player1!!
+        inactivePlayer.stop()
+        inactivePlayer.clearMediaItems()
+
+        val uri = android.net.Uri.parse("soundtune://track/${nextTrack.id}")
+
+        val mediaMetadata = androidx.media3.common.MediaMetadata.Builder()
+            .setTitle(nextTrack.title ?: "Unknown")
+            .setArtist(nextTrack.user?.username ?: "Unknown")
+            .setArtworkUri(if (nextTrack.artworkUrl != null) android.net.Uri.parse(nextTrack.artworkUrl) else null)
+            .build()
+
+        val mediaItem = MediaItem.Builder()
+            .setUri(uri)
+            .setMediaId(if (nextTrack.source == "youtube") "yt_${nextTrack.id}" else "${nextTrack.id}")
+            .setMediaMetadata(mediaMetadata)
+            .build()
+
+        inactivePlayer.setMediaItem(mediaItem)
+        inactivePlayer.prepare()
+    }
 
     fun applyEffects(state: AudioEffectsState) {
-        if (_player1 == null) return
         val pitch = if (state.isPitchEnabled) state.speed else 1f
-        
         _player1?.playbackParameters = PlaybackParameters(state.speed, pitch)
         _player2?.playbackParameters = PlaybackParameters(state.speed, pitch)
-        
-        eightDProcessors.forEach { it.setEnabled(state.is8DEnabled); it.setSpeed(state.eightDSpeed) }
-        fxProcessors.forEach { 
+
+        eightDProcessors.forEach {
+            it.setEnabled(state.is8DEnabled)
+            it.setSpeed(state.eightDSpeed)
+        }
+        fxProcessors.forEach {
             it.setEffects(state.isMuffledEnabled, state.isBassBoostEnabled)
             it.setBassBoostGain(state.bassBoostIntensity)
             it.setMuffledCutoff(state.muffledIntensity)
         }
-        reverbProcessors.forEach { it.setEnabled(state.isReverbEnabled); it.setDecay(state.reverbIntensity) }
-        earrapeProcessors.forEach { it.setEnabled(state.isEarrapeEnabled) }
-        monoProcessors.forEach { it.setEnabled(state.isMonoEnabled) }
-        normalizerProcessors.forEach { it.setParameters(state.isNormalizationEnabled, state.normalizationLevel) }
+        reverbProcessors.forEach {
+            it.setEnabled(state.isReverbEnabled)
+            it.setDecay(state.reverbIntensity)
+        }
+        earrapeProcessors.forEach {
+            it.setEnabled(state.isEarrapeEnabled)
+            it.setIntensity(state.earrapeIntensity)
+        }
+        monoProcessors.forEach {
+            it.setEnabled(state.isMonoEnabled)
+        }
+        normalizerProcessors.forEach {
+            it.setParameters(state.isNormalizationEnabled, state.normalizationLevel)
+        }
+        vintageMp3Processors.forEach {
+            it.setEnabled(state.isVintageMp3Enabled)
+            it.setCompression(state.vintageMp3Compression)
+        }
+        vocalRemoverProcessors.forEach {
+            it.setEnabled(state.isVocalRemoverEnabled)
+            it.setSuppressionLevel(state.vocalRemoverLevel)
+        }
+        vocalBoostProcessors.forEach {
+            it.setEnabled(state.isVocalBoostEnabled)
+            it.setIntensity(state.vocalBoostIntensity)
+        }
+        flangerProcessors.forEach {
+            it.setEnabled(state.isFlangerEnabled)
+            it.setIntensity(state.flangerIntensity)
+            it.setSpeed(state.flangerSpeed)
+        }
+        partyNextDoorProcessors.forEach {
+            it.setEnabled(state.isPartyNextDoorEnabled)
+            it.setIsolation(state.partyNextDoorIsolation)
+            it.setReverb(state.partyNextDoorReverb)
+            it.setBassRumble(state.partyNextDoorBassRumble)
+        }
+        superWideProcessors.forEach {
+            it.setEnabled(state.isSuperWideEnabled)
+            it.setWidth(state.superWideWidth)
+            it.setDepth(state.superWideDepth)
+        }
+        vinylLoFiProcessors.forEach {
+            it.setEnabled(state.isVinylLoFiEnabled)
+            it.setCrackles(state.vinylCrackles)
+            it.setFlutter(state.vinylFlutter)
+        }
+        phaserProcessors.forEach {
+            it.setEnabled(state.isPhaserEnabled)
+            it.setSpeed(state.phaserSpeed)
+            it.setFeedback(state.phaserFeedback)
+        }
+        megaphoneProcessors.forEach {
+            it.setEnabled(state.isMegaphoneEnabled)
+            it.setTone(state.megaphoneTone)
+            it.setDrive(state.megaphoneDrive)
+        }
+        robotVocoderProcessors.forEach {
+            it.setEnabled(state.isRobotVocoderEnabled)
+            it.setFrequency(state.robotFrequency)
+            it.setMix(state.robotMix)
+        }
+        chorusProcessors.forEach {
+            it.setEnabled(state.isChorusEnabled)
+            it.setRate(state.chorusRate)
+            it.setDepth(state.chorusDepth)
+        }
+        underwaterProcessors.forEach {
+            it.setEnabled(state.isUnderwaterEnabled)
+            it.setDepth(state.underwaterDepth)
+            it.setBubbles(state.underwaterBubbles)
+        }
+        tranceGateProcessors.forEach {
+            it.setEnabled(state.isTranceGateEnabled)
+            it.setSpeed(state.tranceGateSpeed)
+            it.setPattern(state.tranceGatePattern)
+            it.setMix(state.tranceGateMix)
+        }
+        pingPongDelayProcessors.forEach {
+            it.setEnabled(state.isPingPongDelayEnabled)
+            it.setDelayTime(state.pingPongDelayTime)
+            it.setFeedback(state.pingPongFeedback)
+        }
+        chiptuneProcessors.forEach {
+            it.setEnabled(state.isChiptuneEnabled)
+            it.setBits(state.chiptuneBits)
+            it.setSampleRateDown(state.chiptuneSampleRate)
+        }
+        shimmerReverbProcessors.forEach {
+            it.setEnabled(state.isShimmerReverbEnabled)
+            it.setSize(state.shimmerSize)
+            it.setShimmerMix(state.shimmerMix)
+        }
+        rotarySpeakerProcessors.forEach {
+            it.setEnabled(state.isRotarySpeakerEnabled)
+            it.setSpeed(state.rotarySpeed)
+            it.setDepth(state.rotaryDepth)
+        }
+        tapeSaturationProcessors.forEach {
+            it.setEnabled(state.isTapeSaturationEnabled)
+            it.setWarmth(state.tapeWarmth)
+            it.setExciter(state.tapeExciter)
+        }
+        subOctaverProcessors.forEach {
+            it.setEnabled(state.isSubOctaverEnabled)
+            it.setSubLevel(state.subOctaverLevel)
+            it.setSubCutoff(state.subOctaverCutoff)
+        }
+        emptyMallProcessors.forEach {
+            it.setEnabled(state.isEmptyMallEnabled)
+            it.setDistance(state.emptyMallDistance)
+            it.setGlassReverb(state.emptyMallReverb)
+        }
+        gramophoneProcessors.forEach {
+            it.setEnabled(state.isGramophoneEnabled)
+            it.setShellacAge(state.gramophoneAge)
+            it.setHornResonance(state.gramophoneHorn)
+        }
+        reverseEchoProcessors.forEach {
+            it.setEnabled(state.isReverseEchoEnabled)
+            it.setTime(state.reverseEchoTime)
+            it.setFeedback(state.reverseEchoFeedback)
+        }
+        stadiumProcessors.forEach {
+            it.setEnabled(state.isStadiumEnabled)
+            it.setStadiumSize(state.stadiumSize)
+            it.setAtmosphere(state.stadiumAtmosphere)
+        }
+        cassetteWalkmanProcessors.forEach {
+            it.setEnabled(state.isWalkmanEnabled)
+            it.setDrive(state.walkmanDrive)
+            it.setTapeHiss(state.walkmanHiss)
+        }
+        asmrVocalProcessors.forEach {
+            it.setEnabled(state.isAsmrVocalEnabled)
+            it.setProximity(state.asmrProximity)
+            it.setAirSheen(state.asmrAir)
+        }
+        nightDriveProcessors.forEach {
+            it.setEnabled(state.isNightDriveEnabled)
+            it.setCabinWidth(state.nightDriveCabin)
+            it.setRoadRumble(state.nightDriveRoad)
+        }
 
         rainPlayer?.setEnabled(state.isRainEnabled)
         rainPlayer?.setVolume(state.rainVolume)
+        rainPlayer?.setAmbientType(state.ambientType)
     }
 
     fun releasePlayer() {

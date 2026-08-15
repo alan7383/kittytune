@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.data
-    
+
     import android.content.Context
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.data.network.SoundCloudApi
@@ -10,26 +10,26 @@
     import kotlinx.coroutines.flow.asStateFlow
     import kotlinx.coroutines.flow.update
     import kotlinx.coroutines.launch
-    
+
 object RepostRepository {
         private lateinit var api: SoundCloudApi
         private lateinit var appContext: Context
         private var currentUserId: Long = 0L // cache the user id
-    
+
         private val scope = CoroutineScope(Dispatchers.IO)
-    
+
         private val _repostedTrackIds = MutableStateFlow<Set<Long>>(emptySet())
         val repostedTrackIds = _repostedTrackIds.asStateFlow()
-    
+
         fun init(context: Context) {
             appContext = context.applicationContext
             api = RetrofitClient.create(context)
         }
-    
+
         fun clearUser() {
             currentUserId = 0L
         }
-    
+
         // fetches the complete list of reposts from the server to sync local state
         fun refreshReposts() {
             scope.launch {
@@ -45,11 +45,11 @@ object RepostRepository {
                         currentUserId = me.id
                     }
                     if (currentUserId == 0L) return@launch
-    
+
                     val allRepostTrackIds = mutableSetOf<Long>()
                     var nextUrl: String? = null
                     var initialCall = true
-    
+
                     // handle pagination
                     while (initialCall || nextUrl != null) {
                         val response = if (initialCall) {
@@ -58,21 +58,21 @@ object RepostRepository {
                         } else {
                             api.getRepostsNextPage(nextUrl!!)
                         }
-    
+
                         val idsFromPage = response.collection.mapNotNull { it.track?.id }
                         allRepostTrackIds.addAll(idsFromPage)
-    
+
                         nextUrl = response.next_href
                     }
-    
+
                     _repostedTrackIds.value = allRepostTrackIds
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
         }
-    
+
         // optimistic add (trigger network automatically)
         fun addRepost(trackId: Long) {
             _repostedTrackIds.update { it + trackId }
@@ -85,7 +85,7 @@ object RepostRepository {
                 }
             }
         }
-    
+
         // optimistic remove (trigger network automatically)
         fun removeRepost(trackId: Long) {
             _repostedTrackIds.update { it - trackId }
@@ -98,7 +98,7 @@ object RepostRepository {
                 }
             }
         }
-    
+
         // new: update local state only (used when viewmodel handles network)
         fun syncLocalState(trackId: Long, isReposted: Boolean) {
             if (isReposted) {
@@ -108,5 +108,4 @@ object RepostRepository {
             }
         }
     }
-
 

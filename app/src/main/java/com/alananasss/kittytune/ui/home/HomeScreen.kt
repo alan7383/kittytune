@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import android.net.Uri
     import androidx.activity.compose.BackHandler
     import androidx.compose.animation.*
@@ -667,7 +667,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun HighlightTrackCard(track: Track, onClick: () -> Unit) {
         Card(
@@ -685,7 +685,7 @@ import kotlinx.coroutines.launch
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-                
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -700,7 +700,7 @@ import kotlinx.coroutines.launch
                             )
                         )
                 )
-                
+
                 Text(
                     text = "NEW TRACK",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp),
@@ -709,7 +709,7 @@ import kotlinx.coroutines.launch
                         .padding(16.dp)
                         .align(Alignment.TopStart)
                 )
-                
+
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -746,7 +746,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun ExplorerSection(onNavigate: (String) -> Unit) {
         val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
@@ -765,7 +765,7 @@ import kotlinx.coroutines.launch
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 20.dp)
             )
-    
+
             Row(
                 modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -777,7 +777,7 @@ import kotlinx.coroutines.launch
                     onClick = { onNavigate("new_releases") },
                     modifier = Modifier.weight(1f)
                 )
-    
+
                 ExplorerButton(
                     icon = Icons.Rounded.TrendingUp,
                     label = stringResource(R.string.explorer_charts),
@@ -785,7 +785,7 @@ import kotlinx.coroutines.launch
                     onClick = { onNavigate("charts") },
                     modifier = Modifier.weight(1f)
                 )
-    
+
                 ExplorerButton(
                     icon = Icons.Rounded.Mood,
                     label = stringResource(R.string.explorer_moods_genres),
@@ -902,7 +902,7 @@ import kotlinx.coroutines.launch
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
-    
+
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -913,7 +913,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun QuickHistoryTile(item: HistoryItem, onClick: () -> Unit) {
         Column(
@@ -973,7 +973,7 @@ import kotlinx.coroutines.launch
                     }
                 }
             }
-    
+
             Spacer(Modifier.height(8.dp))
             Text(
                 text = item.title,
@@ -993,7 +993,7 @@ import kotlinx.coroutines.launch
             )
         }
     }
-    
+
     @Composable
     fun StandardHorizontalSection(
         title: String,
@@ -1026,7 +1026,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun DiscoverySectionCarousel(
         title: String,
@@ -1035,7 +1035,7 @@ import kotlinx.coroutines.launch
         onTrackClick: (Track) -> Unit
     ) {
         val pagerState = rememberPagerState(pageCount = { minOf(tracks.size, 8) })
-    
+
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier
@@ -1061,9 +1061,9 @@ import kotlinx.coroutines.launch
                     }
                 }
             }
-    
+
             Spacer(Modifier.height(16.dp))
-    
+
             HorizontalPager(
                 state = pagerState,
                 contentPadding = PaddingValues(horizontal = 32.dp),
@@ -1074,7 +1074,7 @@ import kotlinx.coroutines.launch
                     .height(320.dp)
             ) { page ->
                 val track = tracks[page]
-    
+
                 val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                 val scaleFactor = lerp(
                     start = 0.92f,
@@ -1086,7 +1086,7 @@ import kotlinx.coroutines.launch
                     stop = 1f,
                     fraction = 1f - pageOffset.absoluteValue.coerceIn(0f, 1f)
                 )
-    
+
                 DiscoveryBigCard(
                     track = track,
                     scale = scaleFactor,
@@ -1096,7 +1096,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun DiscoveryBigCard(
         track: Track,
@@ -1124,7 +1124,7 @@ import kotlinx.coroutines.launch
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-    
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -1139,7 +1139,7 @@ import kotlinx.coroutines.launch
                             )
                         )
                 )
-    
+
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -1156,9 +1156,9 @@ import kotlinx.coroutines.launch
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-    
+
                     Spacer(Modifier.height(8.dp))
-    
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = track.user?.username ?: stringResource(R.string.unknown_artist),
@@ -1179,15 +1179,15 @@ import kotlinx.coroutines.launch
                             )
                         }
                     }
-    
+
                     Spacer(Modifier.height(12.dp))
-    
+
                     val contextText = if (!track.genre.isNullOrBlank()) {
                         stringResource(R.string.home_discovery_context_genre, track.genre)
                     } else {
                         stringResource(R.string.home_section_similar, track.user?.username ?: "Music")
                     }
-    
+
                     Text(
                         text = contextText,
                         style = MaterialTheme.typography.labelMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
@@ -1197,12 +1197,12 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun StationCardLarge(playlist: Playlist, onClick: () -> Unit) {
         val isLikedBy = playlist.permalinkUrl == "liked_by_marker"
         val isArtistStation = playlist.permalinkUrl == "artist_station_marker"
-    
+
         val title = when {
             isLikedBy -> playlist.title
             isArtistStation -> playlist.user?.username
@@ -1213,7 +1213,7 @@ import kotlinx.coroutines.launch
             isArtistStation -> stringResource(R.string.home_artist_station_subtitle)
             else -> playlist.user?.username ?: stringResource(R.string.lib_playlists)
         }
-    
+
         Card(
             onClick = onClick,
             shape = RoundedCornerShape(16.dp),
@@ -1263,7 +1263,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun TrackCardModern(track: Track, onClick: () -> Unit) {
         Column(modifier = Modifier
@@ -1295,14 +1295,14 @@ import kotlinx.coroutines.launch
             )
         }
     }
-    
+
     @Composable
     fun SearchSourceSelector(
         selectedSource: SearchSource,
         onSelect: (SearchSource) -> Unit
     ) {
         var isSourceMenuExpanded by remember { mutableStateOf(false) }
-    
+
         Box {
             FilledTonalIconButton(
                 onClick = { isSourceMenuExpanded = true },
@@ -1312,7 +1312,7 @@ import kotlinx.coroutines.launch
                 val icon = if (selectedSource == SearchSource.SOUNDCLOUD) Icons.Default.CloudQueue else Icons.Default.SmartDisplay
                 Icon(icon, contentDescription = "Change Search Source", modifier = Modifier.size(24.dp))
             }
-    
+
             DropdownMenu(
                 expanded = isSourceMenuExpanded,
                 onDismissRequest = { isSourceMenuExpanded = false }
@@ -1336,14 +1336,14 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     fun getStationNavId(playlist: Playlist): String {
         val isLikedBy = playlist.permalinkUrl == "liked_by_marker"
         val isArtistStation = playlist.permalinkUrl == "artist_station_marker"
         val isTrackStation = playlist.permalinkUrl == "track_station_marker"
         val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
         val isSystemPlaylist = playlist.urn?.startsWith("soundcloud:system-playlists:") == true
-    
+
         return when {
             isSystemPlaylist -> "system_playlist:${playlist.urn}"
             isLikedBy -> "liked_by:${playlist.id}"
@@ -1374,11 +1374,11 @@ import kotlinx.coroutines.launch
                     modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
                 )
             }
-    
+
             items(moods) { category ->
                 SearchCategoryCard(category = category) { onCategoryClick(category) }
             }
-    
+
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = stringResource(R.string.search_section_genres),
@@ -1387,13 +1387,13 @@ import kotlinx.coroutines.launch
                     modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
                 )
             }
-    
+
             items(genres) { category ->
                 SearchCategoryCard(category = category) { onCategoryClick(category) }
             }
         }
     }
-    
+
     @Composable
     fun SearchCategoryCard(
         category: SearchCategory,
@@ -1613,7 +1613,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun StaggeredItem(
         index: Int,
@@ -1622,13 +1622,13 @@ import kotlinx.coroutines.launch
         content: @Composable () -> Unit
     ) {
         var hasAnimated by rememberSaveable(key) { mutableStateOf(false) }
-    
+
         val skipAnimation = hasAnimated || index >= 8 || isScrolling
-    
+
         val alpha = remember(key) { Animatable(if (skipAnimation) 1f else 0f) }
         val offsetY = remember(key) { Animatable(if (skipAnimation) 0f else 20f) }
         val scale = remember(key) { Animatable(if (skipAnimation) 1f else 0.95f) }
-    
+
         LaunchedEffect(key) {
             if (!skipAnimation) {
                 val staggerDelay = index * 30L
@@ -1642,7 +1642,7 @@ import kotlinx.coroutines.launch
                 hasAnimated = true
             }
         }
-        
+
         Box(
             modifier = Modifier
                 .graphicsLayer {
@@ -1666,7 +1666,7 @@ import kotlinx.coroutines.launch
             Color.hsl(hue, saturation, lightness)
         }
     }
-    
+
     @Composable
     fun getCategoryGradient(seedColor: Color): Brush {
         val isDark = isSystemInDarkTheme()
@@ -1674,7 +1674,7 @@ import kotlinx.coroutines.launch
         val endAlpha = if (isDark) 0.1f else 0.05f
         return Brush.linearGradient(colors = listOf(seedColor.copy(alpha = startAlpha), seedColor.copy(alpha = endAlpha)), start = androidx.compose.ui.geometry.Offset.Zero, end = androidx.compose.ui.geometry.Offset.Infinite)
     }
-    
+
     @Composable
     fun ArtistCircle(user: User, onClick: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
@@ -1690,7 +1690,7 @@ import kotlinx.coroutines.launch
             }
         }
     }
-    
+
     @Composable
     fun HomeScreenShimmer() {
         LazyColumn(modifier = Modifier.fillMaxSize(), userScrollEnabled = false) {
@@ -1751,7 +1751,7 @@ import kotlinx.coroutines.launch
                         }
                     }
                 }
-    
+
                 Spacer(Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -1848,5 +1848,4 @@ import kotlinx.coroutines.launch
             }
         }
     }
-
 

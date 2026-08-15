@@ -43,23 +43,23 @@ fun EditPlaylistScreen(
     var title by remember { mutableStateOf(initialTitle) }
     var description by remember { mutableStateOf(initialDescription ?: "") }
     var sharing by remember { mutableStateOf(initialSharing ?: "public") }
-    
+
     var genre by remember { mutableStateOf(initialGenre ?: "") }
     var setType by remember { mutableStateOf(initialSetType ?: "") }
     var releaseDate by remember { mutableStateOf(initialReleaseDate ?: "") }
     var permalink by remember { mutableStateOf(initialPermalink ?: "") }
-    
+
     var showGenreDropdown by remember { mutableStateOf(false) }
     var showSetTypeDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
-    
+
     var tags by remember { 
         mutableStateOf(
             parseTags(initialTagList ?: "")
         ) 
     }
     var tagInput by remember { mutableStateOf("") }
-    
+
     var tagSuggestions by remember { mutableStateOf<List<TagSuggestion>>(emptyList()) }
     var isSearchingTags by remember { mutableStateOf(false) }
 
@@ -125,7 +125,7 @@ fun EditPlaylistScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
-                
+
                 item {
                     OutlinedTextField(
                         value = title,
@@ -220,7 +220,7 @@ fun EditPlaylistScreen(
                         }
                     }
                 }
-                
+
                 if (setType != "") {
                     item {
                         OutlinedTextField(
@@ -243,7 +243,7 @@ fun EditPlaylistScreen(
                     Text("Genre", style = MaterialTheme.typography.titleMedium)
                     val predefinedGenres = listOf("None", "Custom", "Alternative Rock", "Ambient", "Classical", "Country", "Dance & EDM", "Dancehall", "Deep House", "Disco", "Drum & Bass", "Dubstep", "Electronic", "Folk & Singer-Songwriter", "Hip-hop & Rap", "House", "Indie", "Jazz & Blues", "Latin", "Metal", "Piano", "Pop", "R&B & Soul", "Reggae", "Reggaeton", "Rock", "Soundtrack", "Techno", "Trance", "Trap", "Triphop", "World", "Audiobooks", "Business", "Comedy", "Entertainment", "Learning", "News & Politics", "Religion & Spirituality", "Science", "Sports", "Storytelling", "Technology")
                     var selectedGenreCategory by remember { mutableStateOf(if (genre in predefinedGenres || genre == "") genre else "Custom") }
-                    
+
                     ExposedDropdownMenuBox(
                         expanded = showGenreDropdown,
                         onExpandedChange = { showGenreDropdown = it }
@@ -307,7 +307,7 @@ fun EditPlaylistScreen(
                         }
                     )
                 }
-                
+
                 if (tagSuggestions.isNotEmpty()) {
                     items(tagSuggestions) { suggestion ->
                         ListItem(
@@ -345,7 +345,7 @@ fun EditPlaylistScreen(
             }
         }
     }
-    
+
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState()
         DatePickerDialog(

@@ -123,7 +123,6 @@ private val groupedKeyColorOptions = listOf(
     )
 )
 
-
 @Composable
 fun ColorPaletteScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
@@ -208,8 +207,6 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
         }
     }
 }
-
-
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -535,7 +532,7 @@ private fun PickerSlider(
                 fontWeight = FontWeight.Medium
             )
         }
-        
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -550,7 +547,7 @@ private fun PickerSlider(
                     .clip(RoundedCornerShape(5.dp))
                     .background(gradientBrush)
             )
-            
+
             Slider(
                 value = value,
                 onValueChange = onValueChange,

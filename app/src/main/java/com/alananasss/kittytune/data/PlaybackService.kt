@@ -139,9 +139,9 @@ class PlaybackService : MediaLibraryService() {
                 requestUpdate(delayed = false)
             }
         }
-        
+
         MusicManager.player.addListener(serviceListener)
-        
+
         serviceScope.launch {
             MusicManager.onPlayerSwappedFlow.collect { swappedCount ->
                 if (swappedCount > 0) {
@@ -235,7 +235,7 @@ class PlaybackService : MediaLibraryService() {
             .setSessionCommand(SessionCommand(CUSTOM_ACTION_LIKE, Bundle.EMPTY))
             .setEnabled(true)
             .build()
-            
+
         val repeatMode = player.repeatMode
         val (repeatIcon, repeatLabel) = when (repeatMode) {
             Player.REPEAT_MODE_ONE -> Pair(R.drawable.ic_repeat_one, R.string.menu_repeat_one)
@@ -249,12 +249,12 @@ class PlaybackService : MediaLibraryService() {
             .setSessionCommand(SessionCommand(CUSTOM_ACTION_REPEAT, Bundle.EMPTY))
             .setEnabled(true)
             .build()
-            
+
         val defaultLayout = ImmutableList.of(likeButton)
         val autoLayout = ImmutableList.of(likeButton, repeatButton)
-        
+
         session.setCustomLayout(defaultLayout)
-        
+
         for (controller in session.connectedControllers) {
             val pkg = controller.packageName ?: ""
             if (pkg.contains("gearhead") || pkg.contains("automotive")) {

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.content.Context
     import android.widget.Toast
     import androidx.compose.animation.AnimatedVisibility
@@ -43,12 +43,12 @@
     import com.alananasss.kittytune.data.AchievementManager
     import com.alananasss.kittytune.ui.common.UltimateCompletionOverlay
     import java.util.Locale
-    
+
     // Utility for formatting achievement values
     private fun formatDisplayValue(value: Int, achievementId: String): String {
         val timeBasedIds = listOf("marathon", "night_shift_pro", "bass_addict", "speed_demon", "ghost")
         val isTimeBased = achievementId.startsWith("time_") || timeBasedIds.contains(achievementId)
-    
+
         if (isTimeBased) {
             val hours = value / 3600
             val minutes = (value % 3600) / 60
@@ -62,10 +62,10 @@
                 else -> "${value}s"
             }
         }
-    
+
         return if (value >= 1000) String.format(Locale.US, "%.0fk", value / 1000f) else value.toString()
     }
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun AchievementsScreen(onBackClick: () -> Unit) {
@@ -73,25 +73,24 @@
         val isAllUnlocked by AchievementManager.isAllUnlocked.collectAsState()
         val (level, currentXP, neededXP) = AchievementManager.getLevelInfo()
         val context = LocalContext.current
-    
+
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         val levelProgress = (currentXP.toFloat() / neededXP.toFloat()).coerceIn(0f, 1f)
         val animatedProgress by animateFloatAsState(
             targetValue = levelProgress,
             animationSpec = tween(1500),
             label = "progress"
         )
-    
+
         val groupedAchievements = remember { AchievementManager.definitions.groupBy { it.category } }
-    
+
         var showResetDialog1 by remember { mutableStateOf(false) }
         var showResetDialog2 by remember { mutableStateOf(false) }
-    
+
         // Variable to trigger the overlay (manually or automatically)
         var showCompletionOverlay by remember { mutableStateOf(false) }
-    
-        // --- Automatic display logic on completion ---
+
         // We use SharedPreferences to show it only once automatically
         LaunchedEffect(isAllUnlocked) {
             if (isAllUnlocked) {
@@ -103,7 +102,7 @@
                 }
             }
         }
-    
+
         if (showResetDialog1) {
             AlertDialog(
                 onDismissRequest = { showResetDialog1 = false },
@@ -120,7 +119,7 @@
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         }
-    
+
         if (showResetDialog2) {
             AlertDialog(
                 onDismissRequest = { showResetDialog2 = false },
@@ -144,7 +143,7 @@
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         }
-    
+
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -194,7 +193,6 @@
                     contentPadding = PaddingValues(bottom = 180.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // --- 1. Hero Level Card ---
                     item {
                         LevelProgressCard(
                             level = level,
@@ -203,13 +201,12 @@
                             progress = animatedProgress
                         )
                     }
-    
-                    // --- 2. Categories ---
+
                     for ((category, achievements) in groupedAchievements) {
                         item {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 PaddingTitle(stringResource(category.titleResId))
-    
+
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -218,7 +215,7 @@
                                         val progress = progressMap[def.id]
                                         val currentValue = progress?.currentValue ?: 0
                                         val isUnlocked = progress?.isUnlocked == true
-    
+
                                         if (def.isSecret && !isUnlocked) {
                                             SecretAchievementTile()
                                         } else {
@@ -229,8 +226,7 @@
                             }
                         }
                     }
-    
-                    // --- 3. Buttons ---
+
                     item {
                         Column(
                             modifier = Modifier
@@ -241,7 +237,7 @@
                         ) {
                             // Spacer
                             Spacer(Modifier.height(8.dp))
-    
+
                             // REPLAY BUTTON: Only visible if everything is unlocked
                             if (isAllUnlocked) {
                                 Button(
@@ -261,7 +257,7 @@
                                     )
                                 }
                             }
-    
+
                             // BOUTON RESET
                             OutlinedButton(
                                 onClick = { showResetDialog1 = true },
@@ -279,8 +275,7 @@
                     }
                 }
             }
-    
-            // --- OVERLAY WITH SMOOTH TRANSITION ---
+
             AnimatedVisibility(
                 visible = showCompletionOverlay,
                 enter = fadeIn(animationSpec = tween(1000)), // Smooth appearance (1s)
@@ -291,7 +286,7 @@
             }
         }
     }
-    
+
     @Composable
     fun LevelProgressCard(level: Int, currentXP: Int, neededXP: Int, progress: Float) {
         Card(
@@ -318,7 +313,7 @@
                         color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.sp
                     )
-    
+
                     Text(
                         text = "$level",
                         style = MaterialTheme.typography.displayLarge.copy(
@@ -327,9 +322,9 @@
                         ),
                         color = MaterialTheme.colorScheme.onSurface
                     )
-    
+
                     Spacer(Modifier.height(4.dp))
-    
+
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         shape = RoundedCornerShape(50),
@@ -343,7 +338,7 @@
                         )
                     }
                 }
-    
+
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.size(100.dp)) {
                     CircularProgressIndicator(
                         progress = { 1f },
@@ -353,7 +348,7 @@
                         trackColor = Color.Transparent,
                         strokeCap = StrokeCap.Round
                     )
-    
+
                     CircularProgressIndicator(
                         progress = { progress },
                         modifier = Modifier.fillMaxSize(),
@@ -362,7 +357,7 @@
                         trackColor = Color.Transparent,
                         strokeCap = StrokeCap.Round
                     )
-    
+
                     Icon(
                         imageVector = Icons.Rounded.EmojiEvents,
                         contentDescription = null,
@@ -373,7 +368,7 @@
             }
         }
     }
-    
+
     @Composable
     fun PaddingTitle(text: String) {
         Text(
@@ -384,18 +379,18 @@
             modifier = Modifier.padding(start = 16.dp, bottom = 12.dp, top = 8.dp)
         )
     }
-    
+
     @Composable
     fun AchievementTile(def: Achievement, current: Int, isUnlocked: Boolean) {
         val progress = (current.toFloat() / def.targetValue.toFloat()).coerceIn(0f, 1f)
-    
+
         val containerColor = MaterialTheme.colorScheme.surfaceContainer
         val titleColor = MaterialTheme.colorScheme.onSurface
         val alpha = if (isUnlocked) 1f else 0.4f
         val iconColor = if (isUnlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    
+
         val borderStroke = if (isUnlocked) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)) else null
-    
+
         Card(
             colors = CardDefaults.cardColors(containerColor = containerColor),
             border = borderStroke,
@@ -421,7 +416,7 @@
                         fontSize = 32.sp,
                         modifier = Modifier.alpha(alpha)
                     )
-    
+
                     if (isUnlocked) {
                         Icon(
                             Icons.Rounded.CheckCircle,
@@ -444,7 +439,7 @@
                         }
                     }
                 }
-    
+
                 // Middle
                 Column {
                     Text(
@@ -465,12 +460,12 @@
                         lineHeight = 16.sp
                     )
                 }
-    
+
                 // Bottom
                 Column {
                     val displayCurrent = formatDisplayValue(current, def.id)
                     val displayTarget = formatDisplayValue(def.targetValue, def.id)
-    
+
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(
                             text = if(isUnlocked) stringResource(R.string.achievements_status_done) else displayCurrent,
@@ -486,9 +481,9 @@
                             )
                         }
                     }
-    
+
                     Spacer(Modifier.height(8.dp))
-    
+
                     if (isUnlocked) {
                         Box(modifier = Modifier.fillMaxWidth().height(4.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), CircleShape))
                     } else {
@@ -504,7 +499,7 @@
             }
         }
     }
-    
+
     @Composable
     fun SecretAchievementTile() {
         Card(
@@ -546,5 +541,4 @@
             }
         }
     }
-
 

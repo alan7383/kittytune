@@ -215,7 +215,6 @@ fun RecognitionScreen(
     }
 }
 
-
 @Composable
 private fun IdleView(onTap: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -227,7 +226,7 @@ private fun IdleView(onTap: () -> Unit) {
         modifier = Modifier.fillMaxSize()
     ) {
         Spacer(modifier = Modifier.weight(0.417f))
-        
+
         Box(
             modifier = Modifier
                 .size(180.dp)
@@ -248,9 +247,9 @@ private fun IdleView(onTap: () -> Unit) {
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
-        
+
         Spacer(Modifier.height(36.dp))
-        
+
         Text(
             text = stringResource(R.string.recognition_tap_to_identify),
             style = MaterialTheme.typography.titleLarge,
@@ -258,7 +257,7 @@ private fun IdleView(onTap: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp)
         )
-        
+
         Spacer(modifier = Modifier.weight(0.583f))
     }
 }
@@ -277,7 +276,7 @@ private fun ListeningView() {
         modifier = Modifier.fillMaxSize()
     ) {
         Spacer(modifier = Modifier.weight(0.417f))
-        
+
         Box(
             modifier = Modifier
                 .size(180.dp)
@@ -292,9 +291,9 @@ private fun ListeningView() {
                 tint = MaterialTheme.colorScheme.onPrimary
             )
         }
-        
+
         Spacer(Modifier.height(36.dp))
-        
+
         Text(
             text = stringResource(R.string.recognition_listening),
             style = MaterialTheme.typography.titleLarge,
@@ -308,7 +307,7 @@ private fun ListeningView() {
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.weight(0.583f))
     }
 }
@@ -327,7 +326,7 @@ private fun ProcessingView() {
         modifier = Modifier.fillMaxSize()
     ) {
         Spacer(modifier = Modifier.weight(0.417f))
-        
+
         Box(
             modifier = Modifier
                 .size(180.dp)
@@ -340,20 +339,19 @@ private fun ProcessingView() {
                 strokeWidth = 6.dp
             )
         }
-        
+
         Spacer(Modifier.height(36.dp))
-        
+
         Text(
             text = stringResource(R.string.recognition_processing),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             textAlign = TextAlign.Center
         )
-        
+
         Spacer(modifier = Modifier.weight(0.583f))
     }
 }
-
 
 @Composable
 private fun SuccessView(
@@ -377,7 +375,7 @@ private fun SuccessView(
         ) {
             Spacer(modifier = Modifier.statusBarsPadding())
             Spacer(modifier = Modifier.height(72.dp))
-            
+
             Text(
                 text = title,
                 style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
@@ -386,9 +384,9 @@ private fun SuccessView(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(4.dp))
-            
+
             Text(
                 text = artist,
                 style = MaterialTheme.typography.titleLarge,
@@ -397,9 +395,9 @@ private fun SuccessView(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
-            
+
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             Row(
                 modifier = Modifier
                     .padding(horizontal = 24.dp)
@@ -449,7 +447,7 @@ private fun SuccessView(
                         )
                     }
                 }
-                
+
                 Button(
                     onClick = {
                         soundcloudTrack?.let { track ->
@@ -478,7 +476,7 @@ private fun SuccessView(
                         tint = if (isLiked) MaterialTheme.colorScheme.primary else LocalContentColor.current
                     )
                 }
-                
+
                 if (soundcloudTrack != null) {
                     Button(
                         onClick = onRetry,
@@ -494,7 +492,7 @@ private fun SuccessView(
                     }
                 }
             }
-            
+
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -529,12 +527,11 @@ private fun SuccessView(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(120.dp))
         }
     }
 }
-
 
 @Composable
 private fun ErrorView(error: String, onRetry: () -> Unit) {

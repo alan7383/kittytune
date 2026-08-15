@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.player
-    
+
     import androidx.compose.animation.core.Animatable
     import androidx.compose.animation.core.FastOutSlowInEasing
     import androidx.compose.animation.core.LinearEasing
@@ -25,7 +25,7 @@
     import coil.compose.AsyncImage
     import kotlinx.coroutines.flow.collectLatest
     import com.alananasss.kittytune.R
-    
+
     @Composable
     fun MiniPlayer(
         viewModel: PlayerViewModel,
@@ -33,15 +33,15 @@
         modifier: Modifier = Modifier
     ) {
         val track = viewModel.currentTrack ?: return
-    
+
         val animatedProgress = remember { Animatable(0f) }
         var lastTrackKey by remember { mutableStateOf<Any?>(null) }
         val trackKey: Any = track.id
-    
+
         LaunchedEffect(trackKey) {
             val isTrackChange = lastTrackKey != null && lastTrackKey != trackKey
             lastTrackKey = trackKey
-    
+
             if (isTrackChange) {
                 animatedProgress.animateTo(
                     targetValue = 0f,
@@ -51,7 +51,7 @@
                     )
                 )
             }
-            
+
             androidx.compose.runtime.snapshotFlow { 
                 if (viewModel.duration > 0) {
                     viewModel.currentPosition.toFloat() / viewModel.duration.toFloat()
@@ -80,7 +80,7 @@
                 }
             }
         }
-    
+
         Box(
             modifier = modifier
                 .fillMaxWidth()
@@ -104,9 +104,9 @@
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
-    
+
                 Spacer(modifier = Modifier.width(12.dp))
-    
+
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -130,7 +130,7 @@
                         velocity = 25.dp
                     )
                 }
-    
+
                 IconButton(onClick = { viewModel.togglePlayPause() }) {
                     Icon(
                         imageVector = if (viewModel.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -138,7 +138,7 @@
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
-    
+
                 IconButton(onClick = { viewModel.playNext() }) {
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
@@ -147,7 +147,7 @@
                     )
                 }
             }
-    
+
             LinearProgressIndicator(
                 progress = { animatedProgress.value },
                 modifier = Modifier
@@ -159,5 +159,4 @@
             )
         }
     }
-
 

@@ -32,13 +32,13 @@ object RecognitionHistoryRepository {
     fun getHistory(): Flow<List<RecognitionHistoryItem>> {
         return database.recognitionHistoryDao().getAllItems()
     }
-    
+
     fun clearHistory() {
         scope.launch {
             database.recognitionHistoryDao().clearHistory()
         }
     }
-    
+
     fun deleteItem(itemId: Long) {
         scope.launch {
             database.recognitionHistoryDao().deleteItem(itemId)

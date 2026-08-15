@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.foundation.layout.PaddingValues
     import androidx.compose.ui.res.vectorResource
     import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +19,7 @@
     import com.alananasss.kittytune.ui.common.SettingsItem
     import com.alananasss.kittytune.ui.common.SettingsScaffold
     import com.alananasss.kittytune.ui.player.PlayerViewModel
-    
+
     @Composable
     fun SettingsScreen(
         navController: NavController,
@@ -30,7 +30,7 @@
             title = stringResource(R.string.settings_title),
             onBackClick = onBackClick
         ) { innerPadding ->
-    
+
             val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
             LazyColumn(
                 modifier = Modifier
@@ -38,7 +38,7 @@
                     .fillMaxSize(),
                 contentPadding = PaddingValues(bottom = innerPadding.calculateBottomPadding() + miniPlayerHeight + 150.dp, top = 16.dp)
             ) {
-    
+
                 item {
                     SettingsGroup(
                         title = stringResource(R.string.settings_cat_appearance),
@@ -64,7 +64,7 @@
                         )
                     )
                 }
-    
+
                 item {
                     SettingsGroup(
                         title = stringResource(R.string.settings_cat_playback),
@@ -81,7 +81,7 @@
                         )
                     )
                 }
-    
+
                 item {
                     SettingsGroup(
                         title = stringResource(R.string.settings_cat_general),
@@ -146,6 +146,4 @@
             }
         }
     }
-    
-
 

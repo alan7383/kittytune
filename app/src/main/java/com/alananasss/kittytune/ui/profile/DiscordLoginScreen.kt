@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.annotation.SuppressLint
     import android.graphics.Bitmap
     import android.view.View
@@ -26,9 +26,9 @@
     import com.alananasss.kittytune.data.local.PlayerPreferences
     import com.alananasss.kittytune.R
     import kotlinx.coroutines.launch
-    
+
     const val JS_SNIPPET = "javascript:(function()%7Bvar%20i%3Ddocument.createElement('iframe')%3Bdocument.body.appendChild(i)%3Balert(i.contentWindow.localStorage.token.slice(1,-1))%7D)()"
-    
+
     @SuppressLint("SetJavaScriptEnabled")
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
@@ -40,7 +40,7 @@
         val prefs = remember { PlayerPreferences(context) }
         val scope = rememberCoroutineScope()
         var webView: WebView? = null
-    
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -70,20 +70,20 @@
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
-    
+
                         settings.apply {
                             javaScriptEnabled = true
                             domStorageEnabled = true
                             databaseEnabled = true
                             userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36"
                         }
-    
+
                         CookieManager.getInstance().apply {
                             removeAllCookies(null)
                             flush()
                         }
                         WebStorage.getInstance().deleteAllData()
-    
+
                         webChromeClient = object : WebChromeClient() {
                             override fun onJsAlert(
                                 view: WebView?,
@@ -104,7 +104,7 @@
                                 return super.onJsAlert(view, url, message, result)
                             }
                         }
-    
+
                         webViewClient = object : WebViewClient() {
                             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                 super.onPageStarted(view, url, favicon)
@@ -112,7 +112,7 @@
                                     view?.loadUrl(JS_SNIPPET)
                                 }
                             }
-    
+
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)
                                 if (url?.contains("discord.com/app") == true || url?.contains("discord.com/channels/@me") == true) {
@@ -121,18 +121,16 @@
                                 }
                             }
                         }
-    
+
                         webView = this
                         loadUrl("https://discord.com/login")
                     }
                 }
             )
         }
-    
+
         BackHandler(enabled = webView?.canGoBack() == true) {
             webView?.goBack()
         }
     }
-    
-
 

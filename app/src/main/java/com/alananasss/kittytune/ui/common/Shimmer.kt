@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.common
-    
+
     import androidx.compose.animation.core.animateFloat
     import androidx.compose.animation.core.infiniteRepeatable
     import androidx.compose.animation.core.rememberInfiniteTransition
@@ -18,7 +18,7 @@
     import androidx.compose.ui.graphics.Brush
     import androidx.compose.ui.graphics.Color
     import androidx.compose.ui.unit.dp
-    
+
     // the magic gradient that moves across the screen
     @Composable
     private fun ShimmerBrush(targetValue: Float = 1000f): Brush {
@@ -27,7 +27,7 @@
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
         )
-    
+
         val transition = rememberInfiniteTransition(label = "shimmer")
         val translateAnimation = transition.animateFloat(
             initialValue = 0f,
@@ -36,23 +36,21 @@
                 animation = tween(durationMillis = 1000)
             ), label = "shimmer_translate"
         )
-    
+
         return Brush.linearGradient(
             colors = shimmerColors,
             start = Offset.Zero,
             end = Offset(x = translateAnimation.value, y = translateAnimation.value)
         )
     }
-    
+
     // easy extension to slap the shimmer on any composable
     fun Modifier.shimmerBackground(shape: androidx.compose.ui.graphics.Shape): Modifier = composed {
         this
             .background(ShimmerBrush(), shape)
             .clip(shape)
     }
-    
-    // --- basic building blocks ---
-    
+
     // just looks like a line of text
     @Composable
     fun ShimmerLine(modifier: Modifier = Modifier) {
@@ -62,7 +60,7 @@
                 .shimmerBackground(RoundedCornerShape(8.dp))
         )
     }
-    
+
     // generic box placeholder
     @Composable
     fun ShimmerBox(modifier: Modifier = Modifier) {
@@ -70,10 +68,7 @@
             modifier = modifier.shimmerBackground(RoundedCornerShape(12.dp))
         )
     }
-    
-    
-    // --- specific skeletons ---
-    
+
     // pretend this is a song row in a list
     @Composable
     fun TrackListItemShimmer(modifier: Modifier = Modifier) {
@@ -99,7 +94,7 @@
             }
         }
     }
-    
+
     // square card placeholder (playlists/albums)
     @Composable
     fun SquareCardShimmer(modifier: Modifier = Modifier) {
@@ -115,7 +110,7 @@
             ShimmerLine(modifier = Modifier.fillMaxWidth(0.5f).height(12.dp))
         }
     }
-    
+
     // round placeholder for artist profiles
     @Composable
     fun ArtistCircleShimmer(modifier: Modifier = Modifier) {
@@ -132,5 +127,4 @@
             ShimmerLine(modifier = Modifier.fillMaxWidth(0.7f))
         }
     }
-
 

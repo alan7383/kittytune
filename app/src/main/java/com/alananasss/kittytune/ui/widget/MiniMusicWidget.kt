@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.widget
-    
+
     import android.content.Context
     import android.graphics.Bitmap
     import android.graphics.BitmapFactory
@@ -37,9 +37,9 @@
     import androidx.glance.text.Text
     import androidx.glance.text.TextStyle
     import com.alananasss.kittytune.R
-    
+
     class MiniMusicWidget : GlanceAppWidget() {
-    
+
         override suspend fun provideGlance(context: Context, id: GlanceId) {
             provideContent {
                 GlanceTheme {
@@ -47,18 +47,18 @@
                 }
             }
         }
-    
+
         @Composable
         fun MiniPillContent() {
             val context = LocalContext.current
             val prefs = currentState<Preferences>()
-    
+
             // retrieving data
             val title = prefs[MusicWidget.KEY_TITLE] ?: context.getString(R.string.widget_default_title)
             val artist = prefs[MusicWidget.KEY_ARTIST] ?: context.getString(R.string.widget_default_artist)
             val coverPath = prefs[MusicWidget.KEY_COVER_PATH] ?: ""
             val isPlaying = prefs[MusicWidget.KEY_IS_PLAYING] ?: false
-    
+
             // container: pill shape with surface container color
             Box(
                 modifier = GlanceModifier
@@ -99,9 +99,9 @@
                             )
                         }
                     }
-    
+
                     Spacer(GlanceModifier.width(12.dp))
-    
+
                     // 2. text info (middle, expands to fill space)
                     Column(
                         modifier = GlanceModifier.defaultWeight(),
@@ -126,15 +126,14 @@
                             maxLines = 1
                         )
                     }
-    
+
                     Spacer(GlanceModifier.width(8.dp))
-    
+
                     // 3. controls (right side)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalAlignment = Alignment.End
                     ) {
-                        // previous button
                         Image(
                             provider = ImageProvider(R.drawable.ic_skip_previous),
                             contentDescription = context.getString(R.string.desc_previous),
@@ -144,10 +143,9 @@
                                 .clickable(actionRunCallback<SkipPrevAction>())
                                 .padding(6.dp)
                         )
-    
+
                         Spacer(GlanceModifier.width(4.dp))
-    
-                        // play/pause button (filled circle style)
+
                         Box(
                             modifier = GlanceModifier
                                 .size(48.dp)
@@ -158,7 +156,7 @@
                         ) {
                             val iconId = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_arrow
                             val descId = if (isPlaying) R.string.desc_pause else R.string.desc_play
-    
+
                             Image(
                                 provider = ImageProvider(iconId),
                                 contentDescription = context.getString(descId),
@@ -166,10 +164,9 @@
                                 modifier = GlanceModifier.size(28.dp)
                             )
                         }
-    
+
                         Spacer(GlanceModifier.width(4.dp))
-    
-                        // next button
+
                         Image(
                             provider = ImageProvider(R.drawable.ic_skip_next),
                             contentDescription = context.getString(R.string.desc_next),
@@ -183,7 +180,7 @@
                 }
             }
         }
-    
+
         @Composable
         private fun rememberBitmapFromPath(path: String): Bitmap? {
             if (path.isEmpty()) return null
@@ -194,5 +191,4 @@
             }
         }
     }
-
 

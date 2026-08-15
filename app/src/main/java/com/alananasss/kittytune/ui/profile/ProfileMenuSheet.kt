@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
@@ -27,7 +27,7 @@
     import androidx.compose.ui.unit.dp
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.domain.User
-    
+
     @Composable
     fun ProfileMenuSheet(
         user: User?,
@@ -54,9 +54,9 @@
             ) {
                 Text(stringResource(id = R.string.app_name), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             }
-    
+
             Spacer(Modifier.height(16.dp))
-    
+
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -84,9 +84,9 @@
                                 )
                             }
                         }
-    
+
                         Spacer(Modifier.width(16.dp))
-    
+
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = if (isGuest) stringResource(R.string.guest_user) else user?.username ?: stringResource(R.string.unknown_user),
@@ -101,14 +101,14 @@
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-    
+
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.Rounded.Close, stringResource(R.string.btn_close))
                         }
                     }
-    
+
                     Spacer(Modifier.height(16.dp))
-    
+
                     if (!isGuest) {
                         OutlinedButton(
                             onClick = { onDismiss(); onViewProfile() },
@@ -128,9 +128,9 @@
                     }
                 }
             }
-    
+
             Spacer(Modifier.height(8.dp))
-    
+
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -148,7 +148,7 @@
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
                     }
-    
+
                     MenuRowItem(
                         icon = Icons.Rounded.Mail,
                         label = stringResource(R.string.profile_menu_messages),
@@ -195,7 +195,7 @@
             }
         }
     }
-    
+
     @Composable
     fun MenuRowItem(
         icon: ImageVector,
@@ -223,5 +223,4 @@
             }
         }
     }
-
 

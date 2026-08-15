@@ -18,7 +18,7 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
     var isLoading by mutableStateOf(true)
     var isLoadingMore by mutableStateOf(false)
     var title by mutableStateOf("")
-    
+
     private var nextCursor: String? = null
     private var currentUserId: Long = 0
     private var currentType: String = ""
@@ -29,18 +29,18 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
 
     fun loadUsers(userId: Long, type: String) {
         if (currentUserId == userId && currentType == type) return
-        
+
         currentUserId = userId
         currentType = type
         viewModelScope.launch {
             isLoading = true
             users.clear()
             nextCursor = null
-            
+
             try {
                 val operationName = if (type == "followers") "UserFollowersQuery" else "UserFollowingsQuery"
                 val queryStr = if (type == "followers") followersQuery else followingsQuery
-                
+
                 val req = GraphQlFollowsRequest(
                     operationName = operationName,
                     query = queryStr,
@@ -52,9 +52,9 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
                         )
                     )
                 )
-                
+
                 val newUsers = mutableListOf<User>()
-                
+
                 if (type == "followers") {
                     val response = api.getUserFollowersGraphQL(req)
                     val result = response.data?.userFollowers
@@ -66,7 +66,7 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
                     result?.items?.forEach { it.user?.let { u -> newUsers.add(u) } }
                     nextCursor = result?.pageInfo?.endCursor
                 }
-                
+
                 users.addAll(newUsers)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -84,7 +84,7 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
             try {
                 val operationName = if (currentType == "followers") "UserFollowersQuery" else "UserFollowingsQuery"
                 val queryStr = if (currentType == "followers") followersQuery else followingsQuery
-                
+
                 val req = GraphQlFollowsRequest(
                     operationName = operationName,
                     query = queryStr,
@@ -96,9 +96,9 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
                         )
                     )
                 )
-                
+
                 val newUsers = mutableListOf<User>()
-                
+
                 if (currentType == "followers") {
                     val response = api.getUserFollowersGraphQL(req)
                     val result = response.data?.userFollowers
@@ -110,7 +110,7 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
                     result?.items?.forEach { it.user?.let { u -> newUsers.add(u) } }
                     nextCursor = result?.pageInfo?.endCursor
                 }
-                
+
                 users.addAll(newUsers)
             } catch (e: Exception) {
                 e.printStackTrace()

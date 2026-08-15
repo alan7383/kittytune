@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -20,41 +20,41 @@
     import kotlinx.coroutines.delay
     import kotlinx.coroutines.isActive
     import kotlinx.coroutines.launch
-    
+
     class ChatViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
         private val gson = com.alananasss.kittytune.utils.AppUtils.gson
-    
+
         val messages = mutableStateListOf<InboxMessage>()
         var isLoading by mutableStateOf(true)
         var isSending by mutableStateOf(false)
-    
+
         var myUserUrn by mutableStateOf("")
         var currentConversationId: String? = null
-    
+
         val linkMetadataCache = mutableStateMapOf<String, Any?>()
         private val processedLinks = mutableSetOf<String>()
-    
+
         private var pollingJob: Job? = null
-    
+
         private val pendingSentContents = mutableListOf<String>()
-    
+
         fun loadMessages(conversationId: String) {
             currentConversationId = conversationId
             stopPolling()
-    
+
             viewModelScope.launch {
                 isLoading = true
                 try {
                     val meResponse = api.getMeMobile()
                     val me = meResponse.user
                     myUserUrn = me.urn ?: "soundcloud:users:${me.id}"
-    
+
                     val response = api.getConversationMessages(conversationId)
                     messages.clear()
                     pendingSentContents.clear()
                     messages.addAll(response.collection)
-    
+
                     startPolling()
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -63,18 +63,18 @@
                 }
             }
         }
-    
+
         private fun startPolling() {
             if (pollingJob?.isActive == true) return
-    
+
             pollingJob = viewModelScope.launch {
                 val convId = currentConversationId ?: return@launch
-    
+
                 while (isActive) {
                     delay(5000)
                     try {
                         val response = api.getConversationMessages(convId, limit = 10)
-    
+
                         val newMessages = response.collection.filter { serverMsg ->
                             val isAlreadyDisplayed = messages.any { local ->
                                 local.urn == serverMsg.urn ||
@@ -85,7 +85,7 @@
                             }
                             !isAlreadyDisplayed
                         }
-    
+
                         if (newMessages.isNotEmpty()) {
                             newMessages.forEach { serverMsg ->
                                 if (serverMsg.sender?.urn == myUserUrn && serverMsg.content in pendingSentContents) {
@@ -107,34 +107,34 @@
                 }
             }
         }
-    
+
         fun stopPolling() {
             pollingJob?.cancel()
             pollingJob = null
         }
-    
+
         override fun onCleared() {
             super.onCleared()
             stopPolling()
         }
-    
+
         fun sendMessage(text: String) {
             val convId = currentConversationId ?: return
             if (text.isBlank()) return
-    
+
             viewModelScope.launch {
                 isSending = true
                 stopPolling()
-    
+
                 try {
                     val sentResponse = api.sendMessage(convId, SendMessageRequest(contents = text))
-    
+
                     val currentTimestamp = java.text.SimpleDateFormat(
                         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US
                     ).apply {
                         timeZone = java.util.TimeZone.getTimeZone("UTC")
                     }.format(java.util.Date())
-    
+
                     val displayMessage = InboxMessage(
                         urn = sentResponse.urn,
                         content = text,
@@ -142,10 +142,10 @@
                         sender = null,
                         sentAt = currentTimestamp
                     )
-    
+
                     messages.add(0, displayMessage)
                     pendingSentContents.add(text)
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
@@ -155,23 +155,23 @@
                 }
             }
         }
-    
+
         fun fetchLinkMetadata(url: String) {
             if (linkMetadataCache.containsKey(url) || processedLinks.contains(url)) return
-    
+
             processedLinks.add(url)
             viewModelScope.launch {
                 try {
                     val jsonObject = api.resolveUrl(url)
                     val kind = jsonObject.get("kind")?.asString
-    
+
                     val result: Any? = when (kind) {
                         "track" -> gson.fromJson(jsonObject, Track::class.java)
                         "playlist" -> gson.fromJson(jsonObject, Playlist::class.java)
                         "user" -> gson.fromJson(jsonObject, User::class.java)
                         else -> null
                     }
-    
+
                     if (result != null) {
                         linkMetadataCache[url] = result
                     }
@@ -182,5 +182,4 @@
             }
         }
     }
-
 

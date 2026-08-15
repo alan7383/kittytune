@@ -69,6 +69,8 @@ class PlayerPreferences(context: Context) {
         private const val KEY_PRECISE_LYRICS_SEARCH = "precise_lyrics_search_enabled"
         private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
         private const val KEY_SAVE_POSITION = "save_position_enabled"
+        private const val KEY_PINNED_AUDIO_FX = "pinned_audio_fx_list"
+        val DEFAULT_PINNED_AUDIO_FX = listOf("bass_boost", "earrape", "eight_d", "muffled", "reverb", "rain")
 
         private const val KEY_LYRICS_PROVIDER = "lyrics_provider"
         private const val KEY_LYRICS_TRANSLATION = "lyrics_translation_enabled"
@@ -154,7 +156,11 @@ class PlayerPreferences(context: Context) {
 
     fun getDiscordStatusDisplay(): DiscordStatusDisplay {
         val name = prefs.getString(KEY_DISCORD_STATUS_DISPLAY, DiscordStatusDisplay.ACTIVITY.name)
-        return try { DiscordStatusDisplay.valueOf(name!!) } catch (_: Exception) { DiscordStatusDisplay.ACTIVITY }
+        return try {
+            DiscordStatusDisplay.valueOf(name!!)
+        } catch (_: Exception) {
+            DiscordStatusDisplay.ACTIVITY
+        }
     }
 
     fun setDiscordStatusDisplay(display: DiscordStatusDisplay) {
@@ -169,7 +175,6 @@ class PlayerPreferences(context: Context) {
     fun getDiscordRpcEnabled(): Boolean = prefs.getBoolean(KEY_DISCORD_ENABLED, false)
     fun setDiscordRpcEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DISCORD_ENABLED, enabled) }
 
-    // --- LOGO FUNCTIONS ---
     fun getDiscordAssetLogo(): String? = prefs.getString(KEY_DISCORD_ASSET_LOGO, null)
     fun setDiscordAssetLogo(assetId: String?) {
         prefs.edit { putString(KEY_DISCORD_ASSET_LOGO, assetId) }
@@ -183,7 +188,7 @@ class PlayerPreferences(context: Context) {
 
     fun getYouTubeFallbackEnabled(): Boolean = prefs.getBoolean(KEY_YOUTUBE_FALLBACK, true)
     fun setYouTubeFallbackEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_YOUTUBE_FALLBACK, enabled) }
-    
+
     fun getDownloadDrmStreamsEnabled(): Boolean = prefs.getBoolean(KEY_DOWNLOAD_DRM_STREAMS, true)
     fun setDownloadDrmStreamsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DOWNLOAD_DRM_STREAMS, enabled) }
     fun getAutoUpdateEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_UPDATE, true)
@@ -221,18 +226,30 @@ class PlayerPreferences(context: Context) {
 
     fun getLyricsAlignment(): LyricsAlignment {
         val name = prefs.getString(KEY_LYRICS_ALIGNMENT, LyricsAlignment.CENTER.name)
-        return try { LyricsAlignment.valueOf(name!!) } catch (_: Exception) { LyricsAlignment.CENTER }
+        return try {
+            LyricsAlignment.valueOf(name!!)
+        } catch (_: Exception) {
+            LyricsAlignment.CENTER
+        }
     }
+
     fun setLyricsAlignment(align: LyricsAlignment) = prefs.edit { putString(KEY_LYRICS_ALIGNMENT, align.name) }
 
     fun getLyricsFontSize(): Float = getSafeFloat(KEY_LYRICS_FONT_SIZE, 26f)
     fun setLyricsFontSize(size: Float) = prefs.edit { putFloat(KEY_LYRICS_FONT_SIZE, size) }
 
     fun getLyricsProvider(): com.alananasss.kittytune.ui.player.LyricsProvider {
-        val name = prefs.getString(KEY_LYRICS_PROVIDER, com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY.name)
-        return try { com.alananasss.kittytune.ui.player.LyricsProvider.valueOf(name!!) } catch (_: Exception) { com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY }
+        val name =
+            prefs.getString(KEY_LYRICS_PROVIDER, com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY.name)
+        return try {
+            com.alananasss.kittytune.ui.player.LyricsProvider.valueOf(name!!)
+        } catch (_: Exception) {
+            com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY
+        }
     }
-    fun setLyricsProvider(provider: com.alananasss.kittytune.ui.player.LyricsProvider) = prefs.edit { putString(KEY_LYRICS_PROVIDER, provider.name) }
+
+    fun setLyricsProvider(provider: com.alananasss.kittytune.ui.player.LyricsProvider) =
+        prefs.edit { putString(KEY_LYRICS_PROVIDER, provider.name) }
 
     fun getLyricsTranslationEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_TRANSLATION, false)
     fun setLyricsTranslationEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_TRANSLATION, enabled) }
@@ -242,6 +259,7 @@ class PlayerPreferences(context: Context) {
         if (code != null) return code
         return java.util.Locale.getDefault().language.take(2).lowercase()
     }
+
     fun setLyricsTranslationLang(lang: String) = prefs.edit { putString(KEY_LYRICS_TRANSLATION_LANG, lang) }
 
     fun getLyricsRomanizationEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_ROMANIZATION, false)
@@ -255,17 +273,49 @@ class PlayerPreferences(context: Context) {
     fun getLocalMediaEnabled(): Boolean = prefs.getBoolean(KEY_LOCAL_MEDIA_ENABLED, false)
     fun setLocalMediaEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LOCAL_MEDIA_ENABLED, enabled) }
     fun getLocalMediaUris(): Set<String> = prefs.getStringSet(KEY_LOCAL_MEDIA_URIS_SET, emptySet()) ?: emptySet()
-    fun addLocalMediaUri(uri: String) { val c = getLocalMediaUris().toMutableSet(); c.add(uri); prefs.edit { putStringSet(KEY_LOCAL_MEDIA_URIS_SET, c) } }
-    fun removeLocalMediaUri(uri: String) { val c = getLocalMediaUris().toMutableSet(); c.remove(uri); prefs.edit { putStringSet(KEY_LOCAL_MEDIA_URIS_SET, c) } }
-    fun getStartDestination(): StartDestination { val n = prefs.getString(KEY_START_DESTINATION, StartDestination.HOME.name); return try { StartDestination.valueOf(n!!) } catch (_: Exception) { StartDestination.HOME } }
+    fun addLocalMediaUri(uri: String) {
+        val c = getLocalMediaUris().toMutableSet(); c.add(uri); prefs.edit { putStringSet(KEY_LOCAL_MEDIA_URIS_SET, c) }
+    }
+
+    fun removeLocalMediaUri(uri: String) {
+        val c = getLocalMediaUris().toMutableSet(); c.remove(uri); prefs.edit {
+            putStringSet(
+                KEY_LOCAL_MEDIA_URIS_SET,
+                c
+            )
+        }
+    }
+
+    fun getStartDestination(): StartDestination {
+        val n = prefs.getString(KEY_START_DESTINATION, StartDestination.HOME.name); return try {
+            StartDestination.valueOf(n!!)
+        } catch (_: Exception) {
+            StartDestination.HOME
+        }
+    }
+
     fun setStartDestination(dest: StartDestination) = prefs.edit { putString(KEY_START_DESTINATION, dest.name) }
     fun getDynamicTheme(): Boolean = prefs.getBoolean(KEY_DYNAMIC_THEME, true)
     fun setDynamicTheme(enabled: Boolean) = prefs.edit { putBoolean(KEY_DYNAMIC_THEME, enabled) }
-    fun getThemeMode(): AppThemeMode { val n = prefs.getString(KEY_THEME_MODE, AppThemeMode.SYSTEM.name); return try { AppThemeMode.valueOf(n!!) } catch (_: Exception) { AppThemeMode.SYSTEM } }
+    fun getThemeMode(): AppThemeMode {
+        val n = prefs.getString(KEY_THEME_MODE, AppThemeMode.SYSTEM.name); return try {
+            AppThemeMode.valueOf(n!!)
+        } catch (_: Exception) {
+            AppThemeMode.SYSTEM
+        }
+    }
+
     fun setThemeMode(mode: AppThemeMode) = prefs.edit { putString(KEY_THEME_MODE, mode.name) }
     fun getPureBlack(): Boolean = prefs.getBoolean(KEY_PURE_BLACK, false)
     fun setPureBlack(enabled: Boolean) = prefs.edit { putBoolean(KEY_PURE_BLACK, enabled) }
-    fun getPlayerStyle(): PlayerBackgroundStyle { val n = prefs.getString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.BLUR.name); return try { PlayerBackgroundStyle.valueOf(n!!) } catch (_: Exception) { PlayerBackgroundStyle.BLUR } }
+    fun getPlayerStyle(): PlayerBackgroundStyle {
+        val n = prefs.getString(KEY_PLAYER_STYLE, PlayerBackgroundStyle.BLUR.name); return try {
+            PlayerBackgroundStyle.valueOf(n!!)
+        } catch (_: Exception) {
+            PlayerBackgroundStyle.BLUR
+        }
+    }
+
     fun setPlayerStyle(style: PlayerBackgroundStyle) = prefs.edit { putString(KEY_PLAYER_STYLE, style.name) }
     fun getAutoplayEnabled(): Boolean = prefs.getBoolean(KEY_AUTOPLAY_STATION, true)
     fun setAutoplayEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTOPLAY_STATION, enabled) }
@@ -318,7 +368,10 @@ class PlayerPreferences(context: Context) {
         val csv = prefs.getString(KEY_BOTTOM_MENU_ITEMS, defaultItems) ?: defaultItems
         return csv.split(",").filter { it.isNotBlank() }
     }
-    fun setBottomMenuItems(items: List<String>) = prefs.edit { putString(KEY_BOTTOM_MENU_ITEMS, items.joinToString(",")) }
+
+    fun setBottomMenuItems(items: List<String>) =
+        prefs.edit { putString(KEY_BOTTOM_MENU_ITEMS, items.joinToString(",")) }
+
     fun bottomMenuItemsFlow(): kotlinx.coroutines.flow.Flow<List<String>> = kotlinx.coroutines.flow.callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_BOTTOM_MENU_ITEMS) trySend(getBottomMenuItems())
@@ -358,14 +411,20 @@ class PlayerPreferences(context: Context) {
     fun getSavePositionEnabled(): Boolean = prefs.getBoolean(KEY_SAVE_POSITION, true)
     fun setSavePositionEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SAVE_POSITION, enabled) }
 
-    /** Quickly saves only the playback position (called every 5 s during playback). */
     fun savePosition(position: Long) {
         if (getSavePositionEnabled()) {
             prefs.edit { putLong(KEY_POSITION, position) }
         }
     }
 
-    fun savePlaybackState(track: Track?, position: Long, queue: List<Track>, context: PlaybackContext?, shuffleEnabled: Boolean, repeatMode: RepeatMode) {
+    fun savePlaybackState(
+        track: Track?,
+        position: Long,
+        queue: List<Track>,
+        context: PlaybackContext?,
+        shuffleEnabled: Boolean,
+        repeatMode: RepeatMode
+    ) {
         if (!getPersistentQueueEnabled()) {
             prefs.edit {
                 putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled)
@@ -396,10 +455,29 @@ class PlayerPreferences(context: Context) {
             putString(KEY_REPEAT_MODE, repeatMode.name)
         }
     }
-    fun saveEffects(state: AudioEffectsState) { prefs.edit { putString(KEY_EFFECTS, gson.toJson(state)) } }
-    fun saveDownloadLocation(uriString: String?) { if (uriString != null) prefs.edit { putString(KEY_DOWNLOAD_DIR, uriString) } else prefs.edit { remove(KEY_DOWNLOAD_DIR) } }
+
+    fun saveEffects(state: AudioEffectsState) {
+        prefs.edit { putString(KEY_EFFECTS, gson.toJson(state)) }
+    }
+
+    fun saveDownloadLocation(uriString: String?) {
+        if (uriString != null) prefs.edit { putString(KEY_DOWNLOAD_DIR, uriString) } else prefs.edit {
+            remove(
+                KEY_DOWNLOAD_DIR
+            )
+        }
+    }
+
     fun getDownloadLocation(): String? = prefs.getString(KEY_DOWNLOAD_DIR, null)
-    fun getLastTrack(): Track? { if (!getPersistentQueueEnabled()) return null; val json = prefs.getString(KEY_TRACK_JSON, null) ?: return null; return try { gson.fromJson(json, Track::class.java) } catch (_: Exception) { null } }
+    fun getLastTrack(): Track? {
+        if (!getPersistentQueueEnabled()) return null;
+        val json = prefs.getString(KEY_TRACK_JSON, null) ?: return null; return try {
+            gson.fromJson(json, Track::class.java)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun getLastPosition(): Long = if (getSavePositionEnabled()) prefs.getLong(KEY_POSITION, 0L) else 0L
     fun getLastQueue(): List<Track> {
         if (!getPersistentQueueEnabled()) return emptyList()
@@ -415,10 +493,51 @@ class PlayerPreferences(context: Context) {
         }
         val json = prefs.getString("last_queue_full_json", null) ?: return emptyList()
         val type = object : TypeToken<List<Track>>() {}.type
-        return try { gson.fromJson(json, type) ?: emptyList() } catch (_: Exception) { emptyList() }
+        return try {
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
-    fun getLastContext(): PlaybackContext? { if (!getPersistentQueueEnabled()) return null; val json = prefs.getString(KEY_CONTEXT_JSON, null) ?: return null; return try { gson.fromJson(json, PlaybackContext::class.java) } catch (_: Exception) { null } }
+
+    fun getLastContext(): PlaybackContext? {
+        if (!getPersistentQueueEnabled()) return null;
+        val json = prefs.getString(KEY_CONTEXT_JSON, null) ?: return null; return try {
+            gson.fromJson(json, PlaybackContext::class.java)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun getLastShuffleEnabled(): Boolean = prefs.getBoolean(KEY_SHUFFLE_MODE, false)
-    fun getLastRepeatMode(): RepeatMode { val modeName = prefs.getString(KEY_REPEAT_MODE, RepeatMode.NONE.name); return try { RepeatMode.valueOf(modeName ?: RepeatMode.NONE.name) } catch (_: Exception) { RepeatMode.NONE } }
-    fun getLastEffects(): AudioEffectsState { val json = prefs.getString(KEY_EFFECTS, null) ?: return AudioEffectsState(); return try { gson.fromJson(json, AudioEffectsState::class.java) } catch (_: Exception) { AudioEffectsState() } }
+    fun getLastRepeatMode(): RepeatMode {
+        val modeName = prefs.getString(KEY_REPEAT_MODE, RepeatMode.NONE.name); return try {
+            RepeatMode.valueOf(modeName ?: RepeatMode.NONE.name)
+        } catch (_: Exception) {
+            RepeatMode.NONE
+        }
+    }
+
+    fun getLastEffects(): AudioEffectsState {
+        val json = prefs.getString(KEY_EFFECTS, null) ?: return AudioEffectsState(); return try {
+            gson.fromJson(json, AudioEffectsState::class.java)
+        } catch (_: Exception) {
+            AudioEffectsState()
+        }
+    }
+
+    fun getPinnedAudioFx(): List<String> {
+        val json = prefs.getString(KEY_PINNED_AUDIO_FX, null) ?: return DEFAULT_PINNED_AUDIO_FX
+        return try {
+            val type = object : TypeToken<List<String>>() {}.type
+            val list: List<String>? = gson.fromJson(json, type)
+            if (list.isNullOrEmpty()) DEFAULT_PINNED_AUDIO_FX else list
+        } catch (_: Exception) {
+            DEFAULT_PINNED_AUDIO_FX
+        }
+    }
+
+    fun setPinnedAudioFx(fxIds: List<String>) {
+        prefs.edit { putString(KEY_PINNED_AUDIO_FX, gson.toJson(fxIds)) }
+    }
 }

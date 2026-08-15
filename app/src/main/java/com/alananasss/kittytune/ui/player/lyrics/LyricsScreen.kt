@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.player.lyrics
-    
+
     import androidx.compose.animation.*
     import androidx.compose.animation.core.animateFloatAsState
     import androidx.compose.animation.core.tween
@@ -967,7 +967,6 @@ fun QuickLyricsSettingsDialog(
                 .padding(bottom = 32.dp)
                 .navigationBarsPadding()
         ) {
-            // --- HEADER ---
             Row(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -983,7 +982,6 @@ fun QuickLyricsSettingsDialog(
                 }
             }
 
-            // --- PROVIDER ---
             SettingsSectionLabel(stringResource(R.string.pref_lyrics_provider_title))
             Spacer(Modifier.height(8.dp))
             val providers = listOf(
@@ -999,7 +997,6 @@ fun QuickLyricsSettingsDialog(
 
             Spacer(Modifier.height(20.dp))
 
-            // --- SYNC OFFSET ---
             val currentOffsetMs = viewModel.lyricsOffset
             val currentOffsetSec = currentOffsetMs / 1000f
             val sign = if (currentOffsetMs > 0) "+" else ""
@@ -1045,7 +1042,6 @@ fun QuickLyricsSettingsDialog(
 
             Spacer(Modifier.height(20.dp))
 
-            // --- FONT SIZE ---
             SettingsSectionLabel(
                 text = stringResource(R.string.pref_lyrics_size),
                 trailing = {
@@ -1094,7 +1090,6 @@ fun QuickLyricsSettingsDialog(
 
             Spacer(Modifier.height(20.dp))
 
-            // --- ALIGNMENT ---
             SettingsSectionLabel(stringResource(R.string.pref_lyrics_align))
             Spacer(Modifier.height(8.dp))
             val alignments = listOf(
@@ -1118,7 +1113,6 @@ fun QuickLyricsSettingsDialog(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(8.dp))
 
-            // --- TOGGLES ---
             LyricsToggleRow(
                 title = stringResource(R.string.pref_lyrics_local),
                 subtitle = stringResource(R.string.pref_lyrics_local_sub),
@@ -1192,7 +1186,6 @@ fun QuickLyricsSettingsDialog(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(16.dp))
 
-            // --- SEARCH BUTTON ---
             Button(
                 onClick = { onDismiss(); viewModel.isSearchingLyrics = true },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -1317,9 +1310,9 @@ fun CustomLyricsDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Spacer(Modifier.height(16.dp))
-                
+
                 val uriHandler = LocalUriHandler.current
                 val docUrl = "https://lrclib.net/lyricsfile"
                 Text(

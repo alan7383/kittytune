@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.content.Intent
     import android.graphics.Bitmap
     import android.graphics.ImageDecoder
@@ -79,7 +79,7 @@
     import java.text.NumberFormat
     import java.util.Locale
     import java.util.regex.Pattern
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun ProfileScreen(
@@ -95,19 +95,19 @@
         var showEditSheet by remember { mutableStateOf(false) }
         val uriHandler = LocalUriHandler.current
         val context = LocalContext.current
-    
+
         LaunchedEffect(userId) {
             val id = userId.toLongOrNull()
             if (id != null) profileViewModel.loadProfile(id)
         }
-    
+
         val user = profileViewModel.user
-    
+
         // handle back press if section expanded
         BackHandler(enabled = expandedSection != null) {
             expandedSection = null
         }
-    
+
         // create playback context
         val artistText = stringResource(R.string.generic_artist)
         val artistPlaybackContext = remember(user, artistText) {
@@ -121,7 +121,7 @@
                 )
             }
         }
-    
+
         val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
 
         Box(
@@ -180,7 +180,7 @@
                             artistContext = artistPlaybackContext
                         )
                     }
-    
+
                     // bio section
                     if (!user.description.isNullOrBlank()) {
                         item {
@@ -202,21 +202,21 @@
                             }
                         }
                     }
-    
+
                     if (profileViewModel.popularTracks.isNotEmpty()) {
                         item { SectionTitle(title = stringResource(R.string.profile_tab_popular), showMore = profileViewModel.popularTracks.size > 5, onMoreClick = { expandedSection = "popular" }) }
                         itemsIndexed(profileViewModel.popularTracks.take(5)) { index, track ->
                             ProfileTrackItem(track, index, playerViewModel, downloadProgress, profileViewModel.popularTracks, artistPlaybackContext)
                         }
                     }
-    
+
                     if (profileViewModel.allTracks.isNotEmpty()) {
                         item { SectionTitle(title = stringResource(R.string.profile_latest_tracks), showMore = true, onMoreClick = { expandedSection = "tracks" }) }
                         itemsIndexed(profileViewModel.allTracks.take(5)) { index, track ->
                             ProfileTrackItem(track, index, playerViewModel, downloadProgress, profileViewModel.allTracks, artistPlaybackContext)
                         }
                     }
-    
+
                     if (profileViewModel.albums.isNotEmpty()) {
                         item { SectionTitle(stringResource(R.string.profile_tab_albums)) }
                         item {
@@ -225,7 +225,7 @@
                             }
                         }
                     }
-    
+
                     if (profileViewModel.playlists.isNotEmpty()) {
                         item {
                             val name = user.username ?: stringResource(R.string.generic_artist)
@@ -237,7 +237,7 @@
                             }
                         }
                     }
-    
+
                     if (profileViewModel.likedTracks.isNotEmpty()) {
                         item {
                             val name = user.username ?: stringResource(R.string.generic_artist)
@@ -247,7 +247,7 @@
                             ProfileTrackItem(track, index, playerViewModel, downloadProgress, profileViewModel.likedTracks, null)
                         }
                     }
-    
+
                     if (profileViewModel.repostedTracks.isNotEmpty()) {
                         item {
                             SectionTitle(title = stringResource(R.string.profile_tab_reposts), showMore = true, onMoreClick = { expandedSection = "reposts" })
@@ -275,7 +275,7 @@
                             )
                         }
                     }
-    
+
                     if (profileViewModel.similarArtists.isNotEmpty()) {
                         item { Spacer(Modifier.height(24.dp)) }
                         item { SectionTitle(stringResource(R.string.profile_similar_artists)) }
@@ -286,14 +286,14 @@
                         }
                     }
                 }
-    
+
                 // dynamic app bar logic
                 val showBarBackground by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 300 } }
                 val barColor by animateColorAsState(if (showBarBackground) MaterialTheme.colorScheme.surface.copy(alpha = 0.98f) else Color.Transparent, label = "bar")
                 val contentColor by animateColorAsState(if (showBarBackground) MaterialTheme.colorScheme.onSurface else Color.White, label = "content")
-    
+
                 val isArtistSaved by DownloadManager.isArtistSavedFlow(user.id).collectAsState(initial = null)
-    
+
                 CenterAlignedTopAppBar(
                     title = {
                         AnimatedVisibility(visible = showBarBackground, enter = fadeIn(), exit = fadeOut()) {
@@ -331,7 +331,7 @@
                                 Icon(if (isArtistSaved != null) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, stringResource(R.string.btn_follow))
                             }
                         }
-    
+
                         IconButton(
                             onClick = {
                                 val cleanUsername = user.username?.replace(" ", "")?.lowercase() ?: "user"
@@ -352,7 +352,7 @@
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = barColor, titleContentColor = MaterialTheme.colorScheme.onSurface, actionIconContentColor = MaterialTheme.colorScheme.onSurface),
                     modifier = Modifier.align(Alignment.TopCenter).zIndex(1f)
                 )
-    
+
                 if (showEditSheet) {
                     EditProfileSheet(
                         user = user,
@@ -404,7 +404,7 @@
         }
     }
 }
-    
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ProfileScreenShimmer(onBackClick: () -> Unit) {
@@ -420,7 +420,7 @@
                         Box(modifier = Modifier
                             .fillMaxSize()
                             .background(Brush.verticalGradient(colors = listOf(Color.Transparent, MaterialTheme.colorScheme.background.copy(alpha = 0.5f), MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.background), startY = 0f)))
-    
+
                         Column(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
@@ -459,8 +459,7 @@
             )
         }
     }
-    
-    
+
     @Composable
     fun ArtistAvatar(modifier: Modifier = Modifier, avatarUrl: String?, enableViewer: Boolean = false) {
         Box(
@@ -485,7 +484,7 @@
             }
         }
     }
-    
+
     @Composable
     fun ModernProfileHeader(
         user: User,
@@ -508,7 +507,7 @@
                     .padding(bottom = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-    
+
                 Box {
                     Surface(shape = CircleShape, shadowElevation = 12.dp, color = Color.Transparent, modifier = Modifier.size(140.dp)) {
                         ArtistAvatar(
@@ -532,9 +531,9 @@
                         }
                     }
                 }
-    
+
                 Spacer(Modifier.height(20.dp))
-    
+
                 // verified icon row
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Text(text = user.username ?: stringResource(R.string.unknown_artist), style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp), textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onBackground)
@@ -543,7 +542,7 @@
                         Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                     }
                 }
-    
+
                 if (!user.city.isNullOrBlank() || !user.countryCode.isNullOrBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -552,7 +551,7 @@
                         Text(text = listOfNotNull(user.city, user.countryCode).joinToString(", "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-    
+
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     Text(
@@ -577,9 +576,9 @@
                     Text(text = " • ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                     Text(text = "${NumberFormat.getNumberInstance(Locale.US).format(user.trackCount)} ${stringResource(R.string.profile_tracks)}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-    
+
                 Spacer(Modifier.height(32.dp))
-    
+
                 if (isCurrentUser) {
                     Button(
                         onClick = onEditClick,
@@ -637,7 +636,7 @@
             }
         }
     }
-    
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun EditProfileSheet(
@@ -650,14 +649,14 @@
         var bio by remember { mutableStateOf(user.description ?: "") }
         var city by remember { mutableStateOf(user.city ?: "") }
         val context = LocalContext.current
-    
+
         var showCropDialog by remember { mutableStateOf(false) }
         var showBannerCropDialog by remember { mutableStateOf(false) }
         var tempBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    
+
         var showDeleteConfirm by remember { mutableStateOf(false) }
         var showDeleteBannerConfirm by remember { mutableStateOf(false) }
-    
+
         val avatarPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
             onResult = { uri ->
@@ -681,7 +680,7 @@
                 }
             }
         )
-    
+
         // banner picker
         val bannerPickerLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.PickVisualMedia(),
@@ -704,7 +703,7 @@
                 }
             }
         )
-    
+
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteConfirm = false },
@@ -732,7 +731,7 @@
                 }
             )
         }
-    
+
         if (showDeleteBannerConfirm) {
             AlertDialog(
                 onDismissRequest = { showDeleteBannerConfirm = false },
@@ -760,7 +759,7 @@
                 }
             )
         }
-    
+
         com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -783,11 +782,11 @@
                     Text(stringResource(R.string.profile_edit_title), style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, stringResource(R.string.btn_close)) }
                 }
-    
+
                 Box(modifier = Modifier
                     .fillMaxWidth()
                     .height(220.dp)) {
-    
+
                     // banner area
                     Box(
                         modifier = Modifier
@@ -832,7 +831,7 @@
                             }
                         }
                     }
-    
+
                     // avatar container
                     Box(
                         modifier = Modifier
@@ -864,9 +863,9 @@
                                 Icon(Icons.Outlined.Edit, stringResource(R.string.profile_edit), tint = Color.White, modifier = Modifier.size(32.dp))
                             }
                         }
-    
+
                         val hasCustomAvatar = user.avatarUrl != null && !user.avatarUrl.contains("default_avatar")
-    
+
                         if (hasCustomAvatar) {
                             Surface(
                                 onClick = { showDeleteConfirm = true },
@@ -890,9 +889,9 @@
                         }
                     }
                 }
-    
+
                 Spacer(Modifier.height(24.dp))
-    
+
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     OutlinedTextField(
                         value = name,
@@ -933,7 +932,7 @@
                 }
             }
         }
-    
+
         if (showCropDialog && tempBitmap != null) {
             AvatarCropDialog(
                 bitmap = tempBitmap,
@@ -950,7 +949,7 @@
                 }
             )
         }
-    
+
         if (showBannerCropDialog && tempBitmap != null) {
             BannerCropDialog(
                 bitmap = tempBitmap,
@@ -966,7 +965,7 @@
             )
         }
     }
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun FullListScreen(
@@ -1044,7 +1043,7 @@
             }
         }
     }
-    
+
     @Composable
     fun ProfileTrackItem(
         track: Track,
@@ -1060,7 +1059,7 @@
         val isDownloaded = remember(track.id, downloadProgress) {
             File(currentContext.filesDir, "track_${track.id}.mp3").exists()
         }
-    
+
         TrackListItem(
             track = track,
             currentlyPlayingTrack = playerViewModel.currentTrack,
@@ -1075,7 +1074,7 @@
             onOptionClick = { playerViewModel.showTrackOptions(track) }
         )
     }
-    
+
     @Composable
     fun SectionTitle(title: String, showMore: Boolean = false, onMoreClick: () -> Unit = {}) {
         Row(
@@ -1097,7 +1096,7 @@
             }
         }
     }
-    
+
     @Composable
     fun SquareCard(playlist: Playlist, onClick: () -> Unit) {
         Column(modifier = Modifier
@@ -1131,7 +1130,7 @@
             )
         }
     }
-    
+
     @Composable
     fun ArtistCircle(user: User, onClick: () -> Unit) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
@@ -1153,7 +1152,7 @@
             }
         }
     }
-    
+
     @Composable
     fun ExpandableDescription(
         text: String,
@@ -1161,14 +1160,14 @@
         onMentionClick: (String) -> Unit
     ) {
         var isExpanded by remember { mutableStateOf(false) }
-    
+
         val urlPattern = Pattern.compile("((https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])")
         val mentionPattern = Pattern.compile("@[\\w-]+")
-    
+
         val annotatedString = buildAnnotatedString {
             val fullText = text
             append(fullText)
-    
+
             val urlMatcher = urlPattern.matcher(fullText)
             while (urlMatcher.find()) {
                 addStringAnnotation(
@@ -1186,7 +1185,7 @@
                     end = urlMatcher.end()
                 )
             }
-    
+
             val mentionMatcher = mentionPattern.matcher(fullText)
             while (mentionMatcher.find()) {
                 addStringAnnotation(
@@ -1205,7 +1204,7 @@
                 )
             }
         }
-    
+
         Column(modifier = Modifier.animateContentSize()) {
             ClickableText(
                 text = annotatedString,
@@ -1228,7 +1227,7 @@
                     }
                 }
             )
-    
+
             if (text.length > 200) {
                 Text(
                     text = if (isExpanded) stringResource(R.string.detail_show_less) else stringResource(R.string.detail_show_more),
@@ -1247,7 +1246,7 @@
         onTrackClick: () -> Unit
     ) {
         val track = comment.track ?: return
-    
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1273,7 +1272,7 @@
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                         )
                         Spacer(Modifier.width(8.dp))
-    
+
                         Text(
                             text = stringResource(R.string.profile_comment_on_track, track.title ?: ""),
                             style = MaterialTheme.typography.labelSmall,
@@ -1282,7 +1281,7 @@
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
                         )
-    
+
                         if (comment.trackTimestamp != null) {
                             Text(
                                 text = " • " + com.alananasss.kittytune.utils.makeTimeString(comment.trackTimestamp),
@@ -1293,7 +1292,7 @@
                             )
                         }
                     }
-    
+
                     var translatedText by remember { mutableStateOf<String?>(null) }
                     var showTranslation by remember { mutableStateOf(false) }
                     var isTranslating by remember { mutableStateOf(false) }
@@ -1398,7 +1397,7 @@
         profileViewModel: ProfileViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     ) {
         val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
-    
+
         Scaffold(
             topBar = {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -1448,7 +1447,7 @@
                                     profileViewModel.loadMoreUserComments()
                                 }
                             }
-    
+
                             UserCommentItem(
                                 comment = comment,
                                 onTrackClick = {
@@ -1462,7 +1461,7 @@
                                 }
                             )
                         }
-    
+
                         if (profileViewModel.isCommentsLoadingMore) {
                             item {
                                 Box(

@@ -41,7 +41,7 @@ fun UserListScreen(
     }
 
     val listState = rememberLazyListState()
-    
+
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
             .collect { lastIndex ->
@@ -94,7 +94,7 @@ fun UserListScreen(
                 items(viewModel.users) { user ->
                     UserRow(user = user, onClick = { onUserClick(user.numericId) })
                 }
-                
+
                 if (viewModel.isLoadingMore) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
@@ -126,9 +126,9 @@ fun UserRow(user: User, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxSize()
             )
         }
-        
+
         Spacer(Modifier.width(16.dp))
-        
+
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -147,9 +147,9 @@ fun UserRow(user: User, onClick: () -> Unit) {
                     )
                 }
             }
-            
+
             Spacer(Modifier.height(2.dp))
-            
+
             val formattedFollowers = NumberFormat.getNumberInstance(Locale.US).format(user.followersCount)
             Text(
                 text = "$formattedFollowers ${stringResource(R.string.profile_followers)}",

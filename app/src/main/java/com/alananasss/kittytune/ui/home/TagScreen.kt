@@ -206,7 +206,7 @@ fun TagStaggeredItem(
             hasAnimated = true
         }
     }
-    
+
     Box(
         modifier = Modifier
             .graphicsLayer {

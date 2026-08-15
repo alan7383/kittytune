@@ -1,11 +1,11 @@
     package com.alananasss.kittytune.data
-    
+
     import android.content.Context
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.rounded.*
     import androidx.compose.ui.graphics.vector.ImageVector
     import com.alananasss.kittytune.R
-    
+
     // shared data model for categories
     data class SearchCategory(
         val id: String,
@@ -13,14 +13,14 @@
         val query: String,
         val icon: ImageVector
     )
-    
+
     object GenreData {
-    
+
         // helper to get string resources
         private fun getString(context: Context, resId: Int): String {
             return context.getString(resId)
         }
-    
+
         fun getMoods(context: Context): List<SearchCategory> {
             return listOf(
                 SearchCategory("feelgood", getString(context, R.string.category_mood_feelgood), "Feel Good", Icons.Rounded.Mood),
@@ -37,7 +37,7 @@
                 SearchCategory("sad", getString(context, R.string.category_mood_sad), "Sad", Icons.Rounded.SentimentVeryDissatisfied)
             )
         }
-    
+
         fun getGenres(context: Context): List<SearchCategory> {
             return listOf(
                 SearchCategory("hiphop", getString(context, R.string.category_genre_hiphop), "Hip Hop", Icons.Rounded.Mic),
@@ -46,7 +46,7 @@
                 SearchCategory("rnb", getString(context, R.string.category_genre_rnb), "R&B", Icons.Rounded.FavoriteBorder),
                 SearchCategory("funk", getString(context, R.string.category_genre_funk), "Funk", Icons.Rounded.Nightlife),
                 SearchCategory("disco", getString(context, R.string.category_genre_disco), "Disco", Icons.Rounded.Album),
-    
+
                 SearchCategory("dance", getString(context, R.string.category_genre_dance), "EDM", Icons.Rounded.FlashOn),
                 SearchCategory("house", getString(context, R.string.category_genre_house), "House", Icons.Rounded.Nightlife),
                 SearchCategory("hardstyle", getString(context, R.string.category_genre_hardstyle), "Hardstyle", Icons.Rounded.Bolt),
@@ -62,7 +62,7 @@
                 SearchCategory("breakcore", getString(context, R.string.category_genre_breakcore), "Breakcore", Icons.Rounded.BrokenImage),
                 SearchCategory("garage", getString(context, R.string.category_genre_garage), "UK Garage", Icons.Rounded.Garage),
                 SearchCategory("idm", getString(context, R.string.category_genre_idm), "IDM", Icons.Rounded.Memory),
-    
+
                 SearchCategory("pop", getString(context, R.string.category_genre_pop), "Pop", Icons.Rounded.Star),
                 SearchCategory("hyperpop", getString(context, R.string.category_genre_hyperpop), "Hyperpop", Icons.Rounded.Flare),
                 SearchCategory("scenecore", getString(context, R.string.category_genre_scenecore), "Scenecore", Icons.Rounded.Style),
@@ -77,19 +77,19 @@
                 SearchCategory("kpop", getString(context, R.string.category_genre_kpop), "K-Pop", Icons.Rounded.StarBorder),
                 SearchCategory("popfr", getString(context, R.string.category_genre_popfr), "Variété Française", Icons.Rounded.MusicNote),
                 SearchCategory("urbanfr", getString(context, R.string.category_genre_urbanfr), "Pop Urbaine", Icons.Rounded.Mic),
-    
+
                 SearchCategory("rock", getString(context, R.string.category_genre_rock), "Rock", Icons.Rounded.Whatshot),
                 SearchCategory("alt", getString(context, R.string.category_genre_alt), "Alternative", Icons.Rounded.Album),
                 SearchCategory("metal", getString(context, R.string.category_genre_metal), "Metal", Icons.Rounded.Bolt),
                 SearchCategory("emo", getString(context, R.string.category_genre_emo), "Emo", Icons.Rounded.SentimentDissatisfied),
                 SearchCategory("grunge", getString(context, R.string.category_genre_grunge), "Grunge", Icons.Rounded.MusicOff),
                 SearchCategory("shoegaze", getString(context, R.string.category_genre_shoegaze), "Shoegaze", Icons.Rounded.Waves),
-    
+
                 SearchCategory("lofi", getString(context, R.string.category_genre_lofi), "Lofi", Icons.Rounded.LocalCafe),
                 SearchCategory("ambient", getString(context, R.string.category_genre_ambient), "Ambient", Icons.Rounded.WbCloudy),
                 SearchCategory("vaporwave", getString(context, R.string.category_genre_vaporwave), "Vaporwave", Icons.Rounded.Computer),
                 SearchCategory("synthwave", getString(context, R.string.category_genre_synthwave), "Synthwave", Icons.Rounded.Brightness4),
-    
+
                 SearchCategory("latin", getString(context, R.string.category_genre_latin), "Latin", Icons.Rounded.Public),
                 SearchCategory("afro", getString(context, R.string.category_genre_afro), "Afrobeat", Icons.Rounded.Public),
                 SearchCategory("reggae", getString(context, R.string.category_genre_reggae), "Reggae", Icons.Rounded.Public),
@@ -99,7 +99,7 @@
                 SearchCategory("afrocuban", getString(context, R.string.category_genre_afrocuban), "Afro-Cuban", Icons.Rounded.Public),
                 SearchCategory("celtic", getString(context, R.string.category_genre_celtic), "Celtic", Icons.Rounded.Forest),
                 SearchCategory("flamenco", getString(context, R.string.category_genre_flamenco), "Flamenco", Icons.Rounded.LocalFireDepartment),
-    
+
                 SearchCategory("jazz", getString(context, R.string.category_genre_jazz), "Jazz", Icons.Rounded.Piano),
                 SearchCategory("blues", getString(context, R.string.category_genre_blues), "Blues", Icons.Rounded.MusicNote),
                 SearchCategory("classical", getString(context, R.string.category_genre_classical), "Classical", Icons.Rounded.AccountBalance),
@@ -112,5 +112,4 @@
             ).sortedBy { it.title }
         }
     }
-
 

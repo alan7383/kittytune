@@ -79,7 +79,7 @@ fun ListeningStatsScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -217,7 +217,6 @@ fun ListeningStatsScreen(
                     EmptyStatsCard()
                 }
             } else if (selectedPeriod == StatsPeriod.ALL_TIME) {
-                // ─── ALL TIME TIMELINE VIEW ──────────────────────────
                 item {
                     SectionTitle(stringResource(R.string.listening_stats_period_all))
                 }
@@ -244,8 +243,7 @@ fun ListeningStatsScreen(
                     }
                 }
             } else {
-                // ─── WEEK / MONTH VIEW ───────────────────────────────
-                
+
                 // Hero Stats Card
                 item {
                     HeroStatsCard(
@@ -312,8 +310,6 @@ fun ListeningStatsScreen(
     }
 }
 
-// ─── Period Selector ─────────────────────────────────────────────
-
 @Composable
 private fun PeriodSelector(
     selectedPeriod: StatsPeriod,
@@ -336,8 +332,6 @@ private fun PeriodSelector(
         }
     )
 }
-
-// ─── Empty State ──────────────────────────────────────────────────
 
 @Composable
 private fun EmptyStatsCard() {
@@ -378,8 +372,6 @@ private fun EmptyStatsCard() {
         }
     }
 }
-
-// ─── Hero Stats Card ──────────────────────────────────────────────
 
 @Composable
 private fun HeroStatsCard(
@@ -493,8 +485,6 @@ private fun MiniStatChip(
     }
 }
 
-// ─── Top Track Card ───────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopTrackCard(track: TopTrackResult, onClick: () -> Unit = {}) {
@@ -569,8 +559,6 @@ private fun TopTrackCard(track: TopTrackResult, onClick: () -> Unit = {}) {
     }
 }
 
-// ─── Top Artist Card ──────────────────────────────────────────────
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopArtistCard(artist: TopArtistResult, onClick: () -> Unit = {}) {
@@ -620,8 +608,6 @@ private fun TopArtistCard(artist: TopArtistResult, onClick: () -> Unit = {}) {
         }
     }
 }
-
-// ─── Listening Habits Grid ────────────────────────────────────────
 
 @Composable
 private fun HabitsGrid(stats: PeriodStats) {
@@ -758,8 +744,6 @@ private fun HabitCard(
     }
 }
 
-// ─── Insights Section ─────────────────────────────────────────────
-
 @Composable
 private fun InsightsSection(stats: PeriodStats) {
     Column(
@@ -843,8 +827,6 @@ private fun InsightCard(emoji: String, text: String) {
     }
 }
 
-// ─── Section Title ────────────────────────────────────────────────
-
 @Composable
 private fun SectionTitle(text: String) {
     Text(
@@ -855,8 +837,6 @@ private fun SectionTitle(text: String) {
         modifier = Modifier.padding(start = 16.dp, bottom = 12.dp, top = 8.dp)
     )
 }
-
-// ─── Formatting Helpers ───────────────────────────────────────────
 
 @Composable
 private fun formatDurationMs(ms: Long): String {
@@ -874,8 +854,6 @@ private fun formatDurationMs(ms: Long): String {
         else -> stringResource(R.string.listening_stats_duration_sec, seconds)
     }
 }
-
-// ─── Timeline Chunk Card ──────────────────────────────────────────
 
 @Composable
 private fun TimelineChunkCard(
@@ -941,8 +919,6 @@ private fun TimelineChunkCard(
         }
     }
 }
-
-// ─── Timeline Item Row ────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

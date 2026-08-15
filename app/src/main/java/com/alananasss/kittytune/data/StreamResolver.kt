@@ -156,7 +156,7 @@
 
                     resolveFromSoundCloudWithDrm(context, track, forDownload)
                 }
-                
+
                 resolved
             }
         }
@@ -466,5 +466,4 @@
 
         private fun isAuthFailure(code: Int): Boolean = code == 401 || code == 403
     }
-
 

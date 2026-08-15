@@ -76,10 +76,10 @@ class RecognitionViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 _state.value = RecognitionState.Recording
-                
+
                 val control = RecordControl()
                 var finalSuccess: RecognitionState.Success? = null
-                
+
                 val totalDurationMs = 9000L
                 val pcmData = audioRecorder.recordAudio(
                     durationMs = totalDurationMs,

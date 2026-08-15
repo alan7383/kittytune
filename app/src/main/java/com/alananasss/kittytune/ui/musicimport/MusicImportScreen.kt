@@ -162,8 +162,6 @@ fun MusicImportScreen(
                     )
                 }
 
-
-
                 item {
                     Text(
                         text = stringResource(R.string.music_import_footnote),

@@ -49,7 +49,7 @@ fun AudioSettingsScreen(
     var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
     var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
     var fadeDuration by remember { mutableStateOf(prefs.getSleepTimerFadeDuration()) }
-    
+
     var crossfadeEnabled by remember { mutableStateOf(prefs.getCrossfadeEnabled()) }
     var crossfadeDuration by remember { mutableStateOf(prefs.getCrossfadeDuration()) }
 
@@ -271,8 +271,6 @@ fun AudioSettingsScreen(
             contentPadding = PaddingValues(bottom = 180.dp)
         ) {
 
-
-
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
@@ -377,7 +375,7 @@ fun AudioSettingsScreen(
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.sleep_timer_title))
-                    
+
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val fadeBottomRadius by animateDpAsState(
                             targetValue = if (fadeEnabled) 4.dp else 24.dp,
@@ -425,7 +423,7 @@ fun AudioSettingsScreen(
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.pref_crossfade_title))
-                    
+
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val crossfadeBottomRadius by animateDpAsState(
                             targetValue = if (crossfadeEnabled) 4.dp else 24.dp,

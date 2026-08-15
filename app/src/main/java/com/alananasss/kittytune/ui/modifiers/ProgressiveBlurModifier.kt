@@ -32,34 +32,34 @@ private val PROGRESSIVE_BLUR_SKSL = """
         } else {
             progress = 1.0 - clamp((contentHeight - fragCoord.y) / height, 0.0, 1.0);
         }
-        
+
         // Easing curve for smoother transition (power curve)
         progress = pow(progress, 1.5);
-        
+
         float radius = progress * blurRadius;
-        
+
         if (radius <= 0.0) {
             return content.eval(fragCoord);
         }
 
         half4 accum = half4(0.0);
         float weightSum = 0.0;
-        
+
         // Random value for dithering based on pixel coordinates
         float dither = fract(sin(dot(fragCoord, float2(12.9898, 78.233))) * 43758.5453);
         float2 jitter = float2(dither - 0.5, fract(dither * 1.618) - 0.5);
-        
+
         const int SAMPLES = 4; 
         float offsetScale = radius / float(SAMPLES);
-        
+
         for (int x = -SAMPLES; x <= SAMPLES; x++) {
             for (int y = -SAMPLES; y <= SAMPLES; y++) {
                 // Apply jittered sampling with dither
                 float2 offset = (float2(float(x), float(y)) + jitter) * offsetScale;
-                
+
                 float distSq = dot(offset, offset);
                 float radiusSq = radius * radius;
-                
+
                 if (distSq <= radiusSq) {
                     float weight = exp(-3.0 * distSq / radiusSq);
                     accum += content.eval(fragCoord + offset) * weight;
@@ -67,7 +67,7 @@ private val PROGRESSIVE_BLUR_SKSL = """
                 }
             }
         }
-        
+
         return accum / weightSum;
     }
 """.trimIndent()
@@ -83,7 +83,7 @@ fun Modifier.progressiveBlur(
     showGradientOverlay: Boolean = true
 ): Modifier = composed {
     val overlayColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.65f)
-    
+
     val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && blurRadius > 0f) {
         Modifier.graphicsLayer {
             val shader = RuntimeShader(PROGRESSIVE_BLUR_SKSL)
@@ -91,7 +91,7 @@ fun Modifier.progressiveBlur(
             shader.setFloatUniform("height", height)
             shader.setFloatUniform("contentHeight", size.height)
             shader.setIntUniform("isTop", if (direction == BlurDirection.TOP) 1 else 0)
-            
+
             renderEffect = RenderEffect.createRuntimeShaderEffect(shader, "content")
                 .asComposeRenderEffect()
         }

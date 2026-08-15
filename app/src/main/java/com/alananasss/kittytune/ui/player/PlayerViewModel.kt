@@ -329,7 +329,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         @UnstableApi
         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
             Log.e("PlayerViewModel", "ExoPlayer error: ${error.errorCodeName}", error)
-            
+
             val cause = error.cause
             val isAuthError = cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
                     (cause.responseCode == 403 || cause.responseCode == 401)
@@ -379,7 +379,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
             if (mediaItem == null) return
-            
+
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) {
                 if (repeatMode == RepeatMode.ALL && MusicManager.player.mediaItemCount == 1) {
                     MusicManager.player.pause()
@@ -387,7 +387,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     return
                 }
             }
-            
+
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
                 val shiftCount = MusicManager.player.currentMediaItemIndex
                 if (shiftCount > 0) {
@@ -498,7 +498,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             if (foundInQueue != null) {
                 finalTrack = foundInQueue
             }
-            
+
             currentTrack = finalTrack
             MusicManager.currentTrack = finalTrack
 
@@ -569,11 +569,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         try {
             boundPlayer?.removeListener(playerListener)
         } catch (_: Exception) {}
-        
+
         val activePlayer = MusicManager.player
         activePlayer.addListener(playerListener)
         boundPlayer = activePlayer
-        
+
         try {
             isPlaying = activePlayer.isPlaying
             duration = activePlayer.duration.coerceAtLeast(0L)
@@ -585,7 +585,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleInlineLyrics() {
         showInlineLyrics = !showInlineLyrics
     }
-
 
     override fun onCleared() {
         super.onCleared()
@@ -1206,7 +1205,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         showMenuSheet = false
         showCommentsSheet = false
         isPlayerExpanded = false
-        
+
         if (artistId != null && artistId > 0) {
             navigateToPlaylistId = "profile:$artistId"
             return
@@ -1215,9 +1214,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val cleanName = username.replace("@", "")
             .replace(Regex("[\\p{C}\\p{Zl}\\p{Zp}]"), "")
             .trim()
-            
+
         if (cleanName.isBlank()) return
-        
+
         viewModelScope.launch {
             try {
                 val resolvedObject = api.resolveUrl("https://soundcloud.com/$cleanName")
@@ -1517,7 +1516,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (index < 0 || index >= _queue.size) { currentContext = null; return }
         currentQueueIndex = index
         val trackToPlay = _queue[index]
-        
+
         isLoading = true
         duration = trackToPlay.durationMs ?: 0L
         if (!isCrossfade) {
@@ -1526,7 +1525,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         currentSessionListenMs = 0L
         hasPushedRecentlyPlayed = false
-        
+
         currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
         val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
         startServiceSafe(context, intent)
@@ -1825,20 +1824,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         val trackToRemove = _queue[index]
 
-        // 1. Remove from _queue
         _queue.removeAt(index)
 
-        // 2. Remove from queueState
         if (index < queueState.size) {
             val mut = queueState.toMutableList()
             mut.removeAt(index)
             queueState = mut
         }
 
-        // 3. Remove from _originalQueue if present (matching by id)
         _originalQueue.removeAll { it.id == trackToRemove.id }
 
-        // 4. Update index if current track was moved
         if (currentTrack != null) {
             currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack?.id }.coerceAtLeast(0)
         }
@@ -1861,7 +1856,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         _queue.addAll(insertIndex, uniqueTracks)
         _originalQueue.addAll(insertIndex, uniqueTracks)
         updateQueueState()
-        
+
         if (MusicManager.player.mediaItemCount > 1) {
             try { MusicManager.player.removeMediaItem(1) } catch (_: Exception) {}
         }
@@ -1922,13 +1917,137 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleReverb() { effectsState = effectsState.copy(isReverbEnabled = !effectsState.isReverbEnabled); applyEffectsAndSave() }
     fun setReverbIntensity(v: Float) { effectsState = effectsState.copy(reverbIntensity = v); applyEffectsAndSave() }
     fun toggleEarrape() { val n = !effectsState.isEarrapeEnabled; effectsState = effectsState.copy(isEarrapeEnabled = n); applyEffectsAndSave(); if (n) AchievementManager.increment("bass_addict", 1) }
+    fun setEarrapeIntensity(v: Float) { effectsState = effectsState.copy(earrapeIntensity = v); applyEffectsAndSave() }
 
     fun toggleMono() { val n = !effectsState.isMonoEnabled; effectsState = effectsState.copy(isMonoEnabled = n); applyEffectsAndSave() }
     fun toggleNormalization() { val n = !effectsState.isNormalizationEnabled; effectsState = effectsState.copy(isNormalizationEnabled = n); applyEffectsAndSave() }
     fun setNormalizationLevel(level: com.alananasss.kittytune.ui.player.NormalizationLevel) { effectsState = effectsState.copy(normalizationLevel = level); applyEffectsAndSave() }
+    fun toggleVintageMp3() { val n = !effectsState.isVintageMp3Enabled; effectsState = effectsState.copy(isVintageMp3Enabled = n); applyEffectsAndSave() }
+    fun setVintageMp3Compression(v: Float) { effectsState = effectsState.copy(vintageMp3Compression = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun toggleVocalRemover() { val n = !effectsState.isVocalRemoverEnabled; effectsState = effectsState.copy(isVocalRemoverEnabled = n); applyEffectsAndSave() }
+    fun setVocalRemoverLevel(v: Float) { effectsState = effectsState.copy(vocalRemoverLevel = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun toggleVocalBoost() { val n = !effectsState.isVocalBoostEnabled; effectsState = effectsState.copy(isVocalBoostEnabled = n); applyEffectsAndSave() }
+    fun setVocalBoostIntensity(v: Float) { effectsState = effectsState.copy(vocalBoostIntensity = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun toggleFlanger() { val n = !effectsState.isFlangerEnabled; effectsState = effectsState.copy(isFlangerEnabled = n); applyEffectsAndSave() }
+    fun setFlangerIntensity(v: Float) { effectsState = effectsState.copy(flangerIntensity = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setFlangerSpeed(v: Float) { effectsState = effectsState.copy(flangerSpeed = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun togglePartyNextDoor() { val n = !effectsState.isPartyNextDoorEnabled; effectsState = effectsState.copy(isPartyNextDoorEnabled = n); applyEffectsAndSave() }
+    fun setPartyNextDoorIsolation(v: Float) { effectsState = effectsState.copy(partyNextDoorIsolation = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setPartyNextDoorReverb(v: Float) { effectsState = effectsState.copy(partyNextDoorReverb = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setPartyNextDoorBassRumble(v: Float) { effectsState = effectsState.copy(partyNextDoorBassRumble = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun toggleSuperWide() { val n = !effectsState.isSuperWideEnabled; effectsState = effectsState.copy(isSuperWideEnabled = n); applyEffectsAndSave() }
+    fun setSuperWideWidth(v: Float) { effectsState = effectsState.copy(superWideWidth = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setSuperWideDepth(v: Float) { effectsState = effectsState.copy(superWideDepth = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun toggleVinylLoFi() { val n = !effectsState.isVinylLoFiEnabled; effectsState = effectsState.copy(isVinylLoFiEnabled = n); applyEffectsAndSave() }
+    fun setVinylCrackles(v: Float) { effectsState = effectsState.copy(vinylCrackles = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setVinylFlutter(v: Float) { effectsState = effectsState.copy(vinylFlutter = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun togglePhaser() { val n = !effectsState.isPhaserEnabled; effectsState = effectsState.copy(isPhaserEnabled = n); applyEffectsAndSave() }
+    fun setPhaserSpeed(v: Float) { effectsState = effectsState.copy(phaserSpeed = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setPhaserFeedback(v: Float) { effectsState = effectsState.copy(phaserFeedback = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun toggleMegaphone() { val n = !effectsState.isMegaphoneEnabled; effectsState = effectsState.copy(isMegaphoneEnabled = n); applyEffectsAndSave() }
+    fun setMegaphoneTone(v: Float) { effectsState = effectsState.copy(megaphoneTone = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setMegaphoneDrive(v: Float) { effectsState = effectsState.copy(megaphoneDrive = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun toggleRobotVocoder() { val n = !effectsState.isRobotVocoderEnabled; effectsState = effectsState.copy(isRobotVocoderEnabled = n); applyEffectsAndSave() }
+    fun setRobotFrequency(v: Float) { effectsState = effectsState.copy(robotFrequency = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setRobotMix(v: Float) { effectsState = effectsState.copy(robotMix = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleChorus() { val n = !effectsState.isChorusEnabled; effectsState = effectsState.copy(isChorusEnabled = n); applyEffectsAndSave() }
+    fun setChorusRate(v: Float) { effectsState = effectsState.copy(chorusRate = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setChorusDepth(v: Float) { effectsState = effectsState.copy(chorusDepth = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleUnderwater() { val n = !effectsState.isUnderwaterEnabled; effectsState = effectsState.copy(isUnderwaterEnabled = n); applyEffectsAndSave() }
+    fun setUnderwaterDepth(v: Float) { effectsState = effectsState.copy(underwaterDepth = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setUnderwaterBubbles(v: Float) { effectsState = effectsState.copy(underwaterBubbles = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleTranceGate() { val n = !effectsState.isTranceGateEnabled; effectsState = effectsState.copy(isTranceGateEnabled = n); applyEffectsAndSave() }
+    fun setTranceGateSpeed(v: Float) { effectsState = effectsState.copy(tranceGateSpeed = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setTranceGatePattern(v: Float) { effectsState = effectsState.copy(tranceGatePattern = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setTranceGateMix(v: Float) { effectsState = effectsState.copy(tranceGateMix = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun togglePingPongDelay() { val n = !effectsState.isPingPongDelayEnabled; effectsState = effectsState.copy(isPingPongDelayEnabled = n); applyEffectsAndSave() }
+    fun setPingPongDelayTime(v: Float) { effectsState = effectsState.copy(pingPongDelayTime = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setPingPongFeedback(v: Float) { effectsState = effectsState.copy(pingPongFeedback = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleChiptune() { val n = !effectsState.isChiptuneEnabled; effectsState = effectsState.copy(isChiptuneEnabled = n); applyEffectsAndSave() }
+    fun setChiptuneBits(v: Float) { effectsState = effectsState.copy(chiptuneBits = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setChiptuneSampleRate(v: Float) { effectsState = effectsState.copy(chiptuneSampleRate = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleShimmerReverb() { val n = !effectsState.isShimmerReverbEnabled; effectsState = effectsState.copy(isShimmerReverbEnabled = n); applyEffectsAndSave() }
+    fun setShimmerSize(v: Float) { effectsState = effectsState.copy(shimmerSize = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setShimmerMix(v: Float) { effectsState = effectsState.copy(shimmerMix = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleRotarySpeaker() { val n = !effectsState.isRotarySpeakerEnabled; effectsState = effectsState.copy(isRotarySpeakerEnabled = n); applyEffectsAndSave() }
+    fun setRotarySpeed(v: Float) { effectsState = effectsState.copy(rotarySpeed = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setRotaryDepth(v: Float) { effectsState = effectsState.copy(rotaryDepth = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleTapeSaturation() { val n = !effectsState.isTapeSaturationEnabled; effectsState = effectsState.copy(isTapeSaturationEnabled = n); applyEffectsAndSave() }
+    fun setTapeWarmth(v: Float) { effectsState = effectsState.copy(tapeWarmth = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setTapeExciter(v: Float) { effectsState = effectsState.copy(tapeExciter = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleSubOctaver() { val n = !effectsState.isSubOctaverEnabled; effectsState = effectsState.copy(isSubOctaverEnabled = n); applyEffectsAndSave() }
+    fun setSubOctaverLevel(v: Float) { effectsState = effectsState.copy(subOctaverLevel = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setSubOctaverCutoff(v: Float) { effectsState = effectsState.copy(subOctaverCutoff = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleEmptyMall() { val n = !effectsState.isEmptyMallEnabled; effectsState = effectsState.copy(isEmptyMallEnabled = n); applyEffectsAndSave() }
+    fun setEmptyMallDistance(v: Float) { effectsState = effectsState.copy(emptyMallDistance = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setEmptyMallReverb(v: Float) { effectsState = effectsState.copy(emptyMallReverb = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleGramophone() { val n = !effectsState.isGramophoneEnabled; effectsState = effectsState.copy(isGramophoneEnabled = n); applyEffectsAndSave() }
+    fun setGramophoneAge(v: Float) { effectsState = effectsState.copy(gramophoneAge = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setGramophoneHorn(v: Float) { effectsState = effectsState.copy(gramophoneHorn = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleReverseEcho() { val n = !effectsState.isReverseEchoEnabled; effectsState = effectsState.copy(isReverseEchoEnabled = n); applyEffectsAndSave() }
+    fun setReverseEchoTime(v: Float) { effectsState = effectsState.copy(reverseEchoTime = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setReverseEchoFeedback(v: Float) { effectsState = effectsState.copy(reverseEchoFeedback = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleStadium() { val n = !effectsState.isStadiumEnabled; effectsState = effectsState.copy(isStadiumEnabled = n); applyEffectsAndSave() }
+    fun setStadiumSize(v: Float) { effectsState = effectsState.copy(stadiumSize = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setStadiumAtmosphere(v: Float) { effectsState = effectsState.copy(stadiumAtmosphere = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleWalkman() { val n = !effectsState.isWalkmanEnabled; effectsState = effectsState.copy(isWalkmanEnabled = n); applyEffectsAndSave() }
+    fun setWalkmanDrive(v: Float) { effectsState = effectsState.copy(walkmanDrive = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setWalkmanHiss(v: Float) { effectsState = effectsState.copy(walkmanHiss = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleAsmrVocal() { val n = !effectsState.isAsmrVocalEnabled; effectsState = effectsState.copy(isAsmrVocalEnabled = n); applyEffectsAndSave() }
+    fun setAsmrProximity(v: Float) { effectsState = effectsState.copy(asmrProximity = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setAsmrAir(v: Float) { effectsState = effectsState.copy(asmrAir = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun toggleNightDrive() { val n = !effectsState.isNightDriveEnabled; effectsState = effectsState.copy(isNightDriveEnabled = n); applyEffectsAndSave() }
+    fun setNightDriveCabin(v: Float) { effectsState = effectsState.copy(nightDriveCabin = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+    fun setNightDriveRoad(v: Float) { effectsState = effectsState.copy(nightDriveRoad = v.coerceIn(0f, 1f)); applyEffectsAndSave() }
+
+    fun setAmbientType(type: String) { effectsState = effectsState.copy(ambientType = type); applyEffectsAndSave() }
 
     fun hasSeenEarrapeWarning(): Boolean = playerPrefs.hasSeenEarrapeWarning()
     fun setHasSeenEarrapeWarning(seen: Boolean) { playerPrefs.setHasSeenEarrapeWarning(seen) }
+
+    var pinnedAudioFx by mutableStateOf(playerPrefs.getPinnedAudioFx())
+        private set
+
+    fun togglePinAudioFx(fxId: String): Boolean {
+        val current = pinnedAudioFx.toMutableList()
+        val isPinned = current.contains(fxId)
+        if (isPinned) {
+            current.remove(fxId)
+        } else {
+            current.add(fxId)
+        }
+        pinnedAudioFx = current
+        playerPrefs.setPinnedAudioFx(current)
+        return true
+    }
+
+    fun updatePinnedAudioFx(fxIds: List<String>) {
+        pinnedAudioFx = fxIds
+        playerPrefs.setPinnedAudioFx(fxIds)
+    }
+
+    fun resetPinnedAudioFx() {
+        pinnedAudioFx = PlayerPreferences.DEFAULT_PINNED_AUDIO_FX
+        playerPrefs.setPinnedAudioFx(PlayerPreferences.DEFAULT_PINNED_AUDIO_FX)
+    }
+
+    fun isAudioFxPinned(fxId: String): Boolean = pinnedAudioFx.contains(fxId)
 
     private fun applyEffectsAndSave() { MusicManager.applyEffects(effectsState); viewModelScope.launch(Dispatchers.IO) { playerPrefs.saveEffects(effectsState) } }
 
@@ -2040,7 +2159,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
                         val crossfadeMs = playerPrefs.getCrossfadeDuration() * 1000L
                         val dur = if (MusicManager.player.duration > 0) MusicManager.player.duration else duration
-                        
+
                         if (crossfadeEnabled && dur > 0 && currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
                             MusicManager.isCrossfadingOut = true
                             playNext(manual = false, isCrossfade = true)
@@ -2068,7 +2187,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             Log.d("PlayerViewModel", "Ignoring track because source is not soundcloud: ${track.source}")
             return
         }
-        
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val tokenManager = TokenManager(context)
@@ -2081,7 +2200,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                 // Sync individual track history
                 val trackUrn = "soundcloud:tracks:${track.id}"
-                
+
                 // 1) api-mobile endpoint (used by the Android app)
                 val trackEntry = com.alananasss.kittytune.data.network.ApiRecentlyPlayed(
                     playedAt = now,
@@ -2194,8 +2313,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         currentPosition = position
     }
 
-    // ─── Sleep Timer ────────────────────────────────────────────
-
     fun startSleepTimer(durationMs: Long) {
         cancelSleepTimer()
 
@@ -2301,7 +2418,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             )
         }
     }
-
 
     private fun restoreSession() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -2503,7 +2619,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             withContext(Dispatchers.Main) {
                 try {
                     queueChunkingJob?.cancel()
-                    
+
                     if (isCrossfade) {
                         val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
                         MusicManager.crossfadeToMediaItem(newMediaItem, startPosition, crossfadeDurationMs)
@@ -2604,12 +2720,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             // CENC tracks are always HLS — force HLS MIME type so DefaultMediaSourceFactory
             // creates an HlsMediaSource instead of ProgressiveMediaSource
             builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
-            
+
             val drmBuilder = MediaItem.DrmConfiguration.Builder(androidx.media3.common.C.WIDEVINE_UUID)
             if (offlineKeySetId != null) {
                 drmBuilder.setKeySetId(offlineKeySetId)
             }
-            
+
             builder.setDrmConfiguration(drmBuilder.build())
         }
 
