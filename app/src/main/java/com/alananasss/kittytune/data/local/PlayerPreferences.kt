@@ -69,6 +69,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_PRECISE_LYRICS_SEARCH = "precise_lyrics_search_enabled"
         private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
         private const val KEY_SAVE_POSITION = "save_position_enabled"
+        private const val KEY_SOUNDCLOUD_HISTORY_SYNC = "soundcloud_history_sync_enabled"
         private const val KEY_PINNED_AUDIO_FX = "pinned_audio_fx_list"
         val DEFAULT_PINNED_AUDIO_FX = listOf("bass_boost", "earrape", "eight_d", "muffled", "reverb", "rain")
 
@@ -539,5 +540,11 @@ class PlayerPreferences(context: Context) {
 
     fun setPinnedAudioFx(fxIds: List<String>) {
         prefs.edit { putString(KEY_PINNED_AUDIO_FX, gson.toJson(fxIds)) }
+    }
+
+    fun getSoundCloudHistorySyncEnabled(): Boolean = prefs.getBoolean(KEY_SOUNDCLOUD_HISTORY_SYNC, true)
+
+    fun setSoundCloudHistorySyncEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_SOUNDCLOUD_HISTORY_SYNC, enabled) }
     }
 }
