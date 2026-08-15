@@ -26,14 +26,52 @@
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.async
     import kotlinx.coroutines.coroutineScope
+    import kotlinx.coroutines.flow.MutableStateFlow
+    import kotlinx.coroutines.flow.asStateFlow
     import kotlinx.coroutines.flow.first
     import kotlinx.coroutines.launch
     import java.text.SimpleDateFormat
     import java.util.Locale
 
-    sealed class LibraryItem(open val timestamp: Long) {
-        data class PlaylistItem(val playlist: Playlist, override val timestamp: Long) : LibraryItem(timestamp)
-        data class ArtistItem(val artist: LocalArtist, override val timestamp: Long) : LibraryItem(timestamp)
+    import com.alananasss.kittytune.data.local.LibraryFolder
+    import com.alananasss.kittytune.data.local.LibraryItemMeta
+
+    sealed class LibraryItem(open val timestamp: Long, open val key: String, open val isPinned: Boolean = false) {
+        data class FolderItem(
+            val folder: LibraryFolder,
+            val playlistCount: Int,
+            val folderCount: Int,
+            override val timestamp: Long = folder.createdAt,
+            override val key: String = "folder_${folder.id}",
+            override val isPinned: Boolean = folder.isPinned
+        ) : LibraryItem(timestamp, key, isPinned)
+
+        data class PlaylistItem(
+            val playlist: Playlist,
+            override val timestamp: Long,
+            override val key: String = getPlaylistCanonicalKey(playlist),
+            override val isPinned: Boolean = false
+        ) : LibraryItem(timestamp, key, isPinned)
+
+        data class ArtistItem(
+            val artist: LocalArtist,
+            override val timestamp: Long,
+            override val key: String = "artist_${artist.id}",
+            override val isPinned: Boolean = false
+        ) : LibraryItem(timestamp, key, isPinned)
+
+        companion object {
+            fun getPlaylistCanonicalKey(playlist: Playlist): String {
+                val permalink = playlist.permalinkUrl
+                return if (permalink != null && permalink.startsWith("yt_radio:")) {
+                    "yt_radio:$permalink"
+                } else if (playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
+                    "system_playlist:${playlist.urn}"
+                } else {
+                    if (playlist.id < 0) "local_playlist:${playlist.id}" else "playlist_${playlist.id}"
+                }
+            }
+        }
     }
 
     class LibraryViewModel(application: Application) : AndroidViewModel(application) {
@@ -48,8 +86,45 @@
         private var onlineItemsCache = listOf<LibraryItem>()
         private var localItemsCache = listOf<LibraryItem>()
         private var savedArtistsCache = listOf<LibraryItem>()
+        private var allFoldersCache = listOf<LibraryFolder>()
+        private val _allItemMetas = MutableStateFlow<Map<String, LibraryItemMeta>>(emptyMap())
+        val allItemMetas = _allItemMetas.asStateFlow()
+        private var allItemMetasCache: Map<String, LibraryItemMeta>
+            get() = _allItemMetas.value
+            set(value) { _allItemMetas.value = value }
 
         private val _allItems = mutableStateListOf<LibraryItem>()
+
+        var currentFolderId by mutableStateOf<Long?>(null)
+
+        val currentFolder: LibraryFolder?
+            get() = currentFolderId?.let { id -> allFoldersCache.find { it.id == id } }
+
+        private val _folderStack = mutableStateListOf<Long>()
+        val folderStack: List<Long> get() = _folderStack
+
+        fun navigateToFolder(folder: LibraryFolder) {
+            _folderStack.add(folder.id)
+            currentFolderId = folder.id
+        }
+
+        fun navigateUp(): Boolean {
+            if (_folderStack.isNotEmpty()) {
+                _folderStack.removeAt(_folderStack.size - 1)
+                currentFolderId = _folderStack.lastOrNull()
+                return true
+            }
+            if (currentFolderId != null) {
+                currentFolderId = null
+                return true
+            }
+            return false
+        }
+
+        fun navigateToRoot() {
+            _folderStack.clear()
+            currentFolderId = null
+        }
 
         val displayedItems: List<LibraryItem>
             get() {
@@ -60,7 +135,17 @@
 
                 val items = _allItems.filter { item ->
                     when (item) {
+                        is LibraryItem.FolderItem -> {
+                            val matchesFolder = if (searchQuery.isNotBlank()) true else item.folder.parentFolderId == currentFolderId
+                            val matchesSearch = if (searchQuery.isBlank()) true else {
+                                item.folder.name.contains(searchQuery, ignoreCase = true)
+                            }
+                            val matchesType = selectedFilter == null || selectedFilter == playlistsLabel
+                            matchesFolder && matchesSearch && matchesType
+                        }
                         is LibraryItem.PlaylistItem -> {
+                            val meta = allItemMetasCache[item.key]
+                            val matchesFolder = if (searchQuery.isNotBlank()) true else meta?.folderId == currentFolderId
                             val matchesSearch = if (searchQuery.isBlank()) true else {
                                 item.playlist.title?.contains(searchQuery, ignoreCase = true) == true ||
                                         item.playlist.user?.username?.contains(searchQuery, ignoreCase = true) == true
@@ -74,7 +159,7 @@
                                 albumsLabel -> isAlbum && !isStation
                                 stationsLabel -> isStation
                                 null -> !isStation
-                                else -> false // if artist/station filter is selected, standard playlists don't match
+                                else -> false
                             }
                             val matchesOwnership = if (matchesType && !isStation) {
                                 when (ownershipFilter) {
@@ -83,18 +168,53 @@
                                     OwnershipFilter.LIKED -> LikeRepository.isPlaylistLiked(item.playlist.id)
                                 }
                             } else true
-                            matchesSearch && matchesType && matchesOwnership
+                            matchesFolder && matchesSearch && matchesType && matchesOwnership
                         }
                         is LibraryItem.ArtistItem -> {
+                            val matchesFolder = if (searchQuery.isNotBlank()) true else currentFolderId == null
                             val matchesSearch = if (searchQuery.isBlank()) true else {
                                 item.artist.username.contains(searchQuery, ignoreCase = true)
                             }
                             val matchesType = selectedFilter == artistsLabel || (selectedFilter == null && searchQuery.isNotBlank())
-                            matchesSearch && matchesType
+                            matchesFolder && matchesSearch && matchesType
                         }
                     }
                 }
-                return if (isSortDescending) items.sortedByDescending { it.timestamp } else items.sortedBy { it.timestamp }
+                val sorted = when (sortOption) {
+                    LibrarySortOption.RECENTS -> {
+                        items.sortedByDescending { it.timestamp }
+                    }
+                    LibrarySortOption.DATE_ADDED -> {
+                        if (isSortDescending) items.sortedByDescending { it.timestamp } else items.sortedBy { it.timestamp }
+                    }
+                    LibrarySortOption.ALPHABETICAL -> {
+                        items.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { item ->
+                            when (item) {
+                                is LibraryItem.FolderItem -> item.folder.name
+                                is LibraryItem.PlaylistItem -> item.playlist.title.orEmpty()
+                                is LibraryItem.ArtistItem -> item.artist.username
+                            }
+                        })
+                    }
+                    LibrarySortOption.CREATOR -> {
+                        items.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { item ->
+                            when (item) {
+                                is LibraryItem.FolderItem -> userProfile?.username.orEmpty()
+                                is LibraryItem.PlaylistItem -> item.playlist.user?.username.orEmpty()
+                                is LibraryItem.ArtistItem -> item.artist.username
+                            }
+                        })
+                    }
+                }
+
+                // When at root level, pinned items sort to top!
+                return if (currentFolderId == null) {
+                    val pinned = sorted.filter { it.isPinned }
+                    val unpinned = sorted.filter { !it.isPinned }
+                    pinned + unpinned
+                } else {
+                    sorted
+                }
             }
 
         var isLoading by mutableStateOf(true)
@@ -107,17 +227,31 @@
         var ownershipFilter by mutableStateOf(OwnershipFilter.ALL)
         var isGridLayout by mutableStateOf(prefs.getBoolean("is_grid_layout", true))
         var isSortDescending by mutableStateOf(true)
+        var sortOption by mutableStateOf(
+            try {
+                LibrarySortOption.valueOf(prefs.getString("library_sort_option", LibrarySortOption.RECENTS.name) ?: LibrarySortOption.RECENTS.name)
+            } catch (e: Exception) {
+                LibrarySortOption.RECENTS
+            }
+        )
 
         private var isHydratingLikes = false
         private val isoParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
 
         private val api = RetrofitClient.create(application)
         private val db = AppDatabase.getDatabase(application).downloadDao()
+        private val folderDao = AppDatabase.getDatabase(application).folderDao()
 
         init {
             viewModelScope.launch {
                 snapshotFlow { isGridLayout }.collect { isGrid ->
                     prefs.edit().putBoolean("is_grid_layout", isGrid).apply()
+                }
+            }
+
+            viewModelScope.launch {
+                snapshotFlow { sortOption }.collect { opt ->
+                    prefs.edit().putString("library_sort_option", opt.name).apply()
                 }
             }
 
@@ -151,6 +285,20 @@
             }
 
             viewModelScope.launch {
+                folderDao.getAllFolders().collect { folders ->
+                    allFoldersCache = folders
+                    rebuildAllItems()
+                }
+            }
+
+            viewModelScope.launch {
+                folderDao.getAllItemMetas().collect { metas ->
+                    allItemMetasCache = metas.associateBy { it.itemKey }
+                    rebuildAllItems()
+                }
+            }
+
+            viewModelScope.launch {
                 db.getAllPlaylists().collect { localPlaylists ->
                     localItemsCache = localPlaylists.map { local ->
                         val finalArtwork = if (!local.localCoverPath.isNullOrEmpty()) local.localCoverPath else local.artworkUrl
@@ -166,7 +314,10 @@
                             permalinkUrl = local.permalinkUrl
                         )
 
-                        LibraryItem.PlaylistItem(p, local.addedAt)
+                        val key = LibraryItem.getPlaylistCanonicalKey(p)
+                        val meta = allItemMetasCache[key]
+                        val isPinned = if (meta?.folderId == null) (meta?.isPinned == true) else false
+                        LibraryItem.PlaylistItem(p, local.addedAt, key, isPinned)
                     }
                     rebuildAllItems()
                 }
@@ -174,7 +325,9 @@
 
             viewModelScope.launch {
                 DownloadManager.getSavedArtists().collect { artists ->
-                    savedArtistsCache = artists.map { LibraryItem.ArtistItem(it, it.savedAt) }
+                    savedArtistsCache = artists.map {
+                        LibraryItem.ArtistItem(it, it.savedAt, "artist_${it.id}", false)
+                    }
                     rebuildAllItems()
                 }
             }
@@ -187,18 +340,209 @@
                 .map { it.playlist.id }
                 .toSet()
 
-            val filteredOnlineItems = onlineItemsCache.filter { item ->
+            val updatedOnlineItems = onlineItemsCache.map { item ->
+                if (item is LibraryItem.PlaylistItem) {
+                    val meta = allItemMetasCache[item.key]
+                    val isPinned = if (meta?.folderId == null) (meta?.isPinned == true) else false
+                    item.copy(isPinned = isPinned)
+                } else item
+            }
+
+            val updatedLocalItems = localItemsCache.map { item ->
+                if (item is LibraryItem.PlaylistItem) {
+                    val meta = allItemMetasCache[item.key]
+                    val isPinned = if (meta?.folderId == null) (meta?.isPinned == true) else false
+                    item.copy(isPinned = isPinned)
+                } else item
+            }
+
+            val filteredOnlineItems = updatedOnlineItems.filter { item ->
                 if (item is LibraryItem.PlaylistItem) !localIds.contains(item.playlist.id) && !deletedIds.contains(item.playlist.id) else true
             }
 
-            val filteredLocalItems = localItemsCache.filter { item ->
+            val filteredLocalItems = updatedLocalItems.filter { item ->
                 if (item is LibraryItem.PlaylistItem) !deletedIds.contains(item.playlist.id) else true
             }
 
+            // Build folder items with playlist and folder counts
+            val folderItems = allFoldersCache.map { folder ->
+                val childPlaylistsCount = (filteredOnlineItems + filteredLocalItems).count { item ->
+                    if (item is LibraryItem.PlaylistItem) {
+                        allItemMetasCache[item.key]?.folderId == folder.id
+                    } else false
+                }
+                val childFoldersCount = allFoldersCache.count { it.parentFolderId == folder.id }
+                val isPinned = if (folder.parentFolderId == null) folder.isPinned else false
+                LibraryItem.FolderItem(
+                    folder = folder,
+                    playlistCount = childPlaylistsCount,
+                    folderCount = childFoldersCount,
+                    timestamp = folder.createdAt,
+                    key = "folder_${folder.id}",
+                    isPinned = isPinned
+                )
+            }
+
             _allItems.clear()
+            _allItems.addAll(folderItems)
             _allItems.addAll(filteredOnlineItems)
             _allItems.addAll(filteredLocalItems)
             _allItems.addAll(savedArtistsCache)
+        }
+
+        fun createFolder(name: String, parentFolderId: Long? = currentFolderId, itemToMoveKey: String? = null, folderToMoveId: Long? = null) {
+            if (name.isBlank()) return
+            viewModelScope.launch {
+                val newFolder = LibraryFolder(
+                    name = name.trim(),
+                    parentFolderId = parentFolderId
+                )
+                val newFolderId = folderDao.insertFolder(newFolder)
+                if (itemToMoveKey != null) {
+                    moveItemToFolder(itemToMoveKey, newFolderId)
+                }
+                if (folderToMoveId != null) {
+                    moveFolderToFolder(folderToMoveId, newFolderId)
+                }
+            }
+        }
+
+        fun renameFolder(folderId: Long, newName: String) {
+            if (newName.isBlank()) return
+            viewModelScope.launch {
+                folderDao.renameFolder(folderId, newName.trim())
+            }
+        }
+
+        fun deleteFolder(folder: LibraryFolder) {
+            viewModelScope.launch {
+                folderDao.deleteFolderSafely(folder.id)
+                if (currentFolderId == folder.id) {
+                    navigateUp()
+                }
+            }
+        }
+
+        fun isItemPinned(itemKey: String, defaultPinned: Boolean = false): Boolean {
+            return allItemMetasCache[itemKey]?.isPinned ?: defaultPinned
+        }
+
+        fun togglePinItem(itemKey: String, defaultPinned: Boolean = false) {
+            viewModelScope.launch {
+                val currentMeta = allItemMetasCache[itemKey]
+                val currentPinned = currentMeta?.isPinned ?: defaultPinned
+                val newPinned = !currentPinned
+                folderDao.upsertItemMeta(
+                    LibraryItemMeta(
+                        itemKey = itemKey,
+                        folderId = currentMeta?.folderId,
+                        isPinned = newPinned
+                    )
+                )
+            }
+        }
+
+        fun togglePinFolder(folderId: Long) {
+            viewModelScope.launch {
+                val folder = allFoldersCache.find { it.id == folderId } ?: return@launch
+                val newPinned = !folder.isPinned
+                folderDao.setFolderPinned(folderId, newPinned)
+            }
+        }
+
+        fun moveItemToFolder(itemKey: String, targetFolderId: Long?) {
+            viewModelScope.launch {
+                folderDao.upsertItemMeta(
+                    LibraryItemMeta(
+                        itemKey = itemKey,
+                        folderId = targetFolderId,
+                        isPinned = false
+                    )
+                )
+            }
+        }
+
+        fun moveFolderToFolder(folderId: Long, targetFolderId: Long?) {
+            if (folderId == targetFolderId) return
+            viewModelScope.launch {
+                folderDao.moveFolder(folderId, targetFolderId)
+            }
+        }
+
+        fun getAvailableTargetFolders(movingFolderId: Long?): List<LibraryFolder> {
+            return allFoldersCache.filter { folder ->
+                folder.parentFolderId == currentFolderId && (movingFolderId == null || folder.id != movingFolderId)
+            }
+        }
+
+        fun getAllPlaylistsInFolder(folderId: Long, recursive: Boolean = false): List<Playlist> {
+            if (!recursive) {
+                return _allItems.filterIsInstance<LibraryItem.PlaylistItem>().filter { item ->
+                    allItemMetasCache[item.key]?.folderId == folderId
+                }.map { it.playlist }
+            }
+            val targetFolderIds = mutableSetOf(folderId)
+            val queue = ArrayDeque<Long>()
+            queue.add(folderId)
+            while (queue.isNotEmpty()) {
+                val parentId = queue.removeFirst()
+                val subFolders = allFoldersCache.filter { it.parentFolderId == parentId }
+                for (sub in subFolders) {
+                    if (targetFolderIds.add(sub.id)) {
+                        queue.add(sub.id)
+                    }
+                }
+            }
+            return _allItems.filterIsInstance<LibraryItem.PlaylistItem>().filter { item ->
+                val fId = allItemMetasCache[item.key]?.folderId
+                fId != null && targetFolderIds.contains(fId)
+            }.map { it.playlist }
+        }
+
+        fun playFolder(
+            folderId: Long,
+            playerViewModel: com.alananasss.kittytune.ui.player.PlayerViewModel,
+            shuffle: Boolean = false,
+            recursive: Boolean = false
+        ) {
+            viewModelScope.launch(Dispatchers.IO) {
+                val playlists = getAllPlaylistsInFolder(folderId, recursive = recursive)
+                val allTracks = mutableListOf<Track>()
+                playlists.forEach { playlist ->
+                    val tracks = playlist.tracks
+                    if (!tracks.isNullOrEmpty()) {
+                        allTracks.addAll(tracks)
+                    } else {
+                        val localTracks = db.getTracksForPlaylistSync(playlist.id)
+                        if (localTracks.isNotEmpty()) {
+                            allTracks.addAll(localTracks.map { local ->
+                                Track(
+                                    id = local.id,
+                                    title = local.title,
+                                    user = User(0, local.artist, null),
+                                    artworkUrl = local.artworkUrl,
+                                    durationMs = local.duration
+                                )
+                            })
+                        } else if (playlist.id > 0) {
+                            try {
+                                val online = RetrofitClient.create(getApplication()).getPlaylist(playlist.id)
+                                if (!online.tracks.isNullOrEmpty()) {
+                                    allTracks.addAll(online.tracks!!)
+                                }
+                            } catch (e: Exception) {
+                                Log.e("LibraryVM", "Failed to load online playlist ${playlist.id}", e)
+                            }
+                        }
+                    }
+                }
+                if (allTracks.isNotEmpty()) {
+                    kotlinx.coroutines.withContext(Dispatchers.Main) {
+                        val finalTracks = if (shuffle) allTracks.shuffled() else allTracks
+                        playerViewModel.playPlaylist(finalTracks, 0)
+                    }
+                }
+            }
         }
 
         fun loadData(forceRefresh: Boolean = false) {
@@ -389,4 +733,11 @@
     }
 
 enum class OwnershipFilter { ALL, CREATED, LIKED }
+
+enum class LibrarySortOption {
+    RECENTS,
+    DATE_ADDED,
+    ALPHABETICAL,
+    CREATOR
+}
 

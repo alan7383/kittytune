@@ -88,3 +88,21 @@
         val timestamp: Long = System.currentTimeMillis()
     )
 
+    @Entity(tableName = "library_folders")
+    data class LibraryFolder(
+        @PrimaryKey(autoGenerate = true) val id: Long = 0,
+        val name: String,
+        val parentFolderId: Long? = null,
+        val isPinned: Boolean = false,
+        val createdAt: Long = System.currentTimeMillis()
+    )
+
+    @Entity(tableName = "library_item_meta")
+    data class LibraryItemMeta(
+        @PrimaryKey val itemKey: String,
+        val folderId: Long? = null,
+        val isPinned: Boolean = false,
+        val addedAt: Long = System.currentTimeMillis()
+    )
+
+
