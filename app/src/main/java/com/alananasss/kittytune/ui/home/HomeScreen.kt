@@ -1353,11 +1353,15 @@ import kotlinx.coroutines.launch
         selectedSource: SearchSource,
         onSelect: (SearchSource) -> Unit
     ) {
+        val haptic = LocalHapticFeedback.current
         var isSourceMenuExpanded by remember { mutableStateOf(false) }
 
         Box {
             FilledTonalIconButton(
-                onClick = { isSourceMenuExpanded = true },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    isSourceMenuExpanded = true
+                },
                 shape = CircleShape,
                 modifier = Modifier.size(44.dp)
             ) {
@@ -1373,6 +1377,7 @@ import kotlinx.coroutines.launch
                     text = { Text(stringResource(R.string.search_source_soundcloud)) },
                     leadingIcon = { Icon(Icons.Default.CloudQueue, null) },
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onSelect(SearchSource.SOUNDCLOUD)
                         isSourceMenuExpanded = false
                     }
@@ -1381,6 +1386,7 @@ import kotlinx.coroutines.launch
                     text = { Text(stringResource(R.string.search_source_youtube)) },
                     leadingIcon = { Icon(Icons.Default.SmartDisplay, null) },
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         onSelect(SearchSource.YOUTUBE)
                         isSourceMenuExpanded = false
                     }
