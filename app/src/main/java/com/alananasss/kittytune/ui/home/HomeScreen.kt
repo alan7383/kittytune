@@ -33,8 +33,11 @@ import androidx.compose.animation.core.animateFloatAsState
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.filled.ArrowBack
     import androidx.compose.material.icons.automirrored.filled.ArrowForward
+    import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
     import androidx.compose.material.icons.automirrored.rounded.QueueMusic
     import androidx.compose.material.icons.filled.*
+    import androidx.compose.material.icons.outlined.FavoriteBorder
+    import androidx.compose.material.icons.outlined.Share
     import androidx.compose.material.icons.rounded.*
     import androidx.compose.material3.*
     import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -68,12 +71,15 @@ import kotlinx.coroutines.launch
     import coil.compose.AsyncImage
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.DownloadManager
+    import com.alananasss.kittytune.data.LikeRepository
     import com.alananasss.kittytune.data.SearchCategory
+    import kotlinx.coroutines.Dispatchers
     import com.alananasss.kittytune.data.local.HistoryItem
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.User
     import com.alananasss.kittytune.ui.common.ArtistCircleShimmer
+    import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
     import com.alananasss.kittytune.ui.common.ShimmerLine
     import com.alananasss.kittytune.ui.common.SquareCardShimmer
     import com.alananasss.kittytune.ui.library.DynamicPlaylistCard
@@ -194,34 +200,53 @@ import kotlinx.coroutines.launch
                     Column {
                         // Animated Offline Banner
                         AnimatedVisibility(
-                            visible = homeViewModel.isOfflineMode && homeViewModel.homeSections.isNotEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            visible = homeViewModel.isOfflineMode,
+                            enter = fadeIn(tween(300)) + expandVertically(tween(300)),
+                            exit = fadeOut(tween(300)) + shrinkVertically(tween(300))
                         ) {
                             Surface(
                                 color = MaterialTheme.colorScheme.errorContainer,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .clickable { onNavigate("downloads") },
                                 shape = RoundedCornerShape(16.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.CloudOff,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = stringResource(R.string.home_offline_banner),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.offline_banner_action_downloads),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.85f)
+                                            )
+                                        }
+                                    }
                                     Icon(
-                                        imageVector = Icons.Rounded.CloudOff,
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.onErrorContainer,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(Modifier.width(12.dp))
-                                    Text(
-                                        text = stringResource(R.string.home_offline_banner),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                        fontWeight = FontWeight.Bold
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
@@ -340,20 +365,24 @@ import kotlinx.coroutines.launch
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 16.dp)
-                                            .padding(top = 8.dp, bottom = 8.dp),
+                                            .padding(top = 4.dp, bottom = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         AnimatedVisibility(
                                             visible = homeViewModel.activeSearchSource == SearchSource.SOUNDCLOUD,
                                             enter = fadeIn(),
-                                            exit = fadeOut()
+                                            exit = fadeOut(),
+                                            modifier = Modifier.weight(1f)
                                         ) {
                                             SearchFilters(
                                                 activeFilter = homeViewModel.activeFilter,
                                                 onFilterSelected = homeViewModel::onFilterChanged
                                             )
                                         }
-                                        Spacer(Modifier.weight(1f))
+                                        if (homeViewModel.activeSearchSource != SearchSource.SOUNDCLOUD) {
+                                            Spacer(Modifier.weight(1f))
+                                        }
+                                        Spacer(Modifier.width(8.dp))
                                         SearchSourceSelector(
                                             selectedSource = homeViewModel.activeSearchSource,
                                             onSelect = homeViewModel::onSearchSourceChanged
@@ -532,13 +561,15 @@ import kotlinx.coroutines.launch
                 )
             }
 
-            if (history.isNotEmpty()) {
+            val cleanHistory = history.filter { it.id != "playlist:0" && !it.title.equals("history", ignoreCase = true) }
+            if (cleanHistory.isNotEmpty()) {
                 item {
                     StandardHorizontalSection(
                         title = stringResource(R.string.home_recently_played),
-                        subtitle = null
+                        subtitle = null,
+                        onTitleClick = { onNavigate("history") }
                     ) {
-                        items(history.take(8)) { historyItem ->
+                        items(cleanHistory.take(8)) { historyItem ->
                             HistoryCard(
                                 item = historyItem,
                                 onClick = {
@@ -884,6 +915,11 @@ import kotlinx.coroutines.launch
         history: List<HistoryItem>,
         onItemClick: (HistoryItem) -> Unit
     ) {
+        val cleanList = remember(history) {
+            history.filter { it.id != "playlist:0" && !it.title.equals("history", ignoreCase = true) }
+        }
+        if (cleanList.isEmpty()) return
+
         Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -907,7 +943,7 @@ import kotlinx.coroutines.launch
                 contentPadding = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(history) { item ->
+                items(cleanList) { item ->
                     QuickHistoryTile(item = item, onClick = { onItemClick(item) })
                 }
             }
@@ -998,16 +1034,32 @@ import kotlinx.coroutines.launch
     fun StandardHorizontalSection(
         title: String,
         subtitle: String?,
+        onTitleClick: (() -> Unit)? = null,
         content: LazyListScope.() -> Unit
     ) {
         Column {
-            Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Column(
+                modifier = Modifier
+                    .then(if (onTitleClick != null) Modifier.clickable { onTitleClick() } else Modifier)
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (onTitleClick != null) {
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
@@ -1468,98 +1520,34 @@ import kotlinx.coroutines.launch
 
     @Composable
     fun SearchFilters(activeFilter: SearchFilter, onFilterSelected: (SearchFilter) -> Unit) {
-        val haptic = LocalHapticFeedback.current
         val filters = SearchFilter.entries
-        var boundsMap by remember { mutableStateOf<Map<SearchFilter, Rect>>(emptyMap()) }
-        val interactionSources = remember { filters.associateWith { MutableInteractionSource() } }
-        val activeBounds = boundsMap[activeFilter] ?: Rect.Zero
-        val animLeft by animateFloatAsState(targetValue = activeBounds.left, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animLeft")
-        val animRight by animateFloatAsState(targetValue = activeBounds.right, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animRight")
-        val animTop by animateFloatAsState(targetValue = activeBounds.top, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animTop")
-        val animBottom by animateFloatAsState(targetValue = activeBounds.bottom, animationSpec = spring(dampingRatio = 0.8f, stiffness = 350f), label = "animBottom")
-        val activeInteractionSource = interactionSources[activeFilter]!!
-        val isActivePressed by activeInteractionSource.collectIsPressedAsState()
-        val indicatorCornerRadius by animateDpAsState(
-            targetValue = if (isActivePressed) 12.dp else 50.dp,
-            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-            label = "indicatorCornerRadius"
+        ExpressiveConnectedButtonGroup(
+            options = filters,
+            selectedOption = activeFilter,
+            onOptionSelected = onFilterSelected,
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+            labelProvider = { filter ->
+                Text(
+                    text = when (filter) {
+                        SearchFilter.ALL       -> stringResource(R.string.all_filters)
+                        SearchFilter.TRACKS    -> stringResource(R.string.profile_tracks)
+                        SearchFilter.ARTISTS   -> stringResource(R.string.lib_artists)
+                        SearchFilter.PLAYLISTS -> stringResource(R.string.lib_playlists)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         )
-        val cornerRadiusPx = with(LocalDensity.current) { indicatorCornerRadius.toPx() }
-        val indicatorColor = MaterialTheme.colorScheme.secondaryContainer
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.drawBehind {
-                if (activeBounds.width > 0f) {
-                    drawRoundRect(
-                        color = indicatorColor,
-                        topLeft = Offset(animLeft, animTop),
-                        size = Size(animRight - animLeft, animBottom - animTop),
-                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
-                    )
-                }
-            }
-        ) {
-            filters.forEach { filter ->
-                val label = when (filter) {
-                    SearchFilter.ALL       -> stringResource(R.string.all_filters)
-                    SearchFilter.TRACKS    -> stringResource(R.string.profile_tracks)
-                    SearchFilter.ARTISTS   -> stringResource(R.string.lib_artists)
-                    SearchFilter.PLAYLISTS -> stringResource(R.string.lib_playlists)
-                }
-
-                val isSelected = activeFilter == filter
-
-                val contentColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    animationSpec = tween(200),
-                    label = "ContentColor"
-                )
-
-                val isThisPressed by interactionSources[filter]!!.collectIsPressedAsState()
-                val thisCornerRadius by animateDpAsState(
-                    targetValue = if (isThisPressed) 12.dp else 50.dp,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "thisCornerRadius"
-                )
-
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .onPlaced { coordinates ->
-                            val rect = coordinates.boundsInParent()
-                            if (boundsMap[filter] != rect) {
-                                boundsMap = boundsMap + (filter to rect)
-                            }
-                        }
-                        .clip(RoundedCornerShape(thisCornerRadius))
-                        .clickable(
-                            interactionSource = interactionSources[filter]!!,
-                            indication = LocalIndication.current,
-                            onClick = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onFilterSelected(filter)
-                            }
-                        )
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = contentColor,
-                        maxLines = 1
-                    )
-                }
-            }
-        }
     }
 
     @Composable
     fun SearchResultsList(homeViewModel: HomeViewModel, playerViewModel: PlayerViewModel, onNavigate: (String) -> Unit,  activeFilter: SearchFilter = homeViewModel.activeFilter) {
         val downloadProgress by DownloadManager.downloadProgress.collectAsState()
+        val downloadedIds by DownloadManager.downloadedIds.collectAsState()
         val context = LocalContext.current
+        var selectedPlaylistForMenu by remember { mutableStateOf<Playlist?>(null) }
         when (homeViewModel.activeSearchSource) {
             SearchSource.YOUTUBE -> {
                 val listState = rememberLazyListState()
@@ -1568,7 +1556,8 @@ import kotlinx.coroutines.launch
                     val isScrolling = listState.isScrollInProgress
                     itemsIndexed(homeViewModel.searchResultsYoutube) { index, track ->
                         StaggeredItem(index, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
-                            TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = false, isDownloaded = false, downloadProgress = 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) })
+                            val isDownloaded = (track.id < 0 && track.source != "youtube") || downloadedIds.contains(track.id)
+                            TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = false, isDownloaded = isDownloaded, downloadProgress = 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) })
                         }
                     }
                 }
@@ -1597,18 +1586,192 @@ import kotlinx.coroutines.launch
                     if (homeViewModel.searchResultsTracks.isNotEmpty()) {
                         val isScrolling = listState.isScrollInProgress
                         if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { Text(stringResource(R.string.profile_tracks), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
-                        itemsIndexed(homeViewModel.searchResultsTracks) { index, track -> val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = downloadProgress[track.id] != null, isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists(), downloadProgress = downloadProgress[track.id] ?: 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) }) } }
+                        itemsIndexed(homeViewModel.searchResultsTracks) { index, track -> val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { TrackListItem(track = track, currentlyPlayingTrack = playerViewModel.currentTrack, index = index, isDownloading = downloadProgress[track.id] != null, isDownloaded = (track.id < 0 && track.source != "youtube") || downloadedIds.contains(track.id), downloadProgress = downloadProgress[track.id] ?: 0, onClick = { playerViewModel.playPlaylist(listOf(track), 0)  }, onOptionClick = { playerViewModel.showTrackOptions(track) }) } }
                     }
                     if (homeViewModel.searchResultsPlaylists.isNotEmpty()) {
                         val isScrolling = listState.isScrollInProgress
                         if (activeFilter == SearchFilter.ALL) item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { Text(stringResource(R.string.lib_playlists), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)) } }
-                        if (activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist -> val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { DynamicPlaylistCard(playlist, isGrid = false) { onNavigate(playlist.id.toString()) } } }
+                        if (activeFilter == SearchFilter.PLAYLISTS) items(homeViewModel.searchResultsPlaylists) { playlist ->
+                            val idx = globalIndex++
+                            StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                DynamicPlaylistCard(
+                                    playlist = playlist,
+                                    isGrid = false,
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    onOptionClick = { selectedPlaylistForMenu = playlist },
+                                    onClick = { onNavigate(playlist.id.toString()) }
+                                )
+                            }
+                        }
                         else item { val idx = globalIndex++; StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) { LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) { items(homeViewModel.searchResultsPlaylists) { playlist -> SquareCard(playlist) { onNavigate(playlist.id.toString()) } } } } }
                     }
                     if (homeViewModel.searchResultsTracks.isEmpty() && homeViewModel.searchResultsArtists.isEmpty() && homeViewModel.searchResultsPlaylists.isEmpty()) item { Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) } }
                     if (homeViewModel.isSearchLoadingMore) item { Box(modifier = Modifier
                         .fillMaxWidth()
                         .padding(32.dp), contentAlignment = Alignment.Center) { ContainedLoadingIndicator() } }
+                }
+            }
+        }
+
+        if (selectedPlaylistForMenu != null) {
+            val playlist = selectedPlaylistForMenu!!
+            val permalink = playlist.permalinkUrl ?: if (playlist.id > 0) "https://soundcloud.com/playlists/${playlist.id}" else ""
+            val likedPlaylistsRepo by LikeRepository.likedPlaylists.collectAsState()
+            val isPlaylistLiked = remember(playlist.id, likedPlaylistsRepo) {
+                LikeRepository.isPlaylistLiked(playlist.id)
+            }
+            val primaryColor = MaterialTheme.colorScheme.primary
+
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
+                onDismissRequest = { selectedPlaylistForMenu = null },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(bottom = 32.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 24.dp)
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        AsyncImage(
+                            model = playlist.fullResArtwork,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = playlist.title ?: stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "${stringResource(R.string.lib_playlists)} • ${playlist.user?.username ?: stringResource(R.string.me_artist)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    val coroutineScope = rememberCoroutineScope()
+                    fun playHelper(shuffle: Boolean = false, insertNext: Boolean = false, addToQueue: Boolean = false) {
+                        coroutineScope.launch(Dispatchers.IO) {
+                            val tracks: List<Track> = if (!playlist.tracks.isNullOrEmpty()) {
+                                playlist.tracks!!
+                            } else if (playlist.id > 0) {
+                                try {
+                                    val online = com.alananasss.kittytune.data.network.RetrofitClient.create(context).getPlaylist(playlist.id)
+                                    online.tracks ?: emptyList()
+                                } catch (e: Exception) {
+                                    emptyList()
+                                }
+                            } else emptyList()
+
+                            if (tracks.isNotEmpty()) {
+                                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                                    if (shuffle) {
+                                        playerViewModel.playPlaylist(tracks.shuffled(), 0)
+                                    } else if (insertNext) {
+                                        playerViewModel.insertNext(tracks)
+                                    } else if (addToQueue) {
+                                        playerViewModel.addToQueue(tracks)
+                                    } else {
+                                        playerViewModel.playPlaylist(tracks, 0)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    val playlistActionItems = remember(playlist, isPlaylistLiked, primaryColor) {
+                        listOf(
+                            Triple(Icons.Rounded.PlayArrow, context.getString(R.string.btn_play)) {
+                                playHelper(shuffle = false)
+                                selectedPlaylistForMenu = null
+                            },
+                            Triple(Icons.Default.Shuffle, context.getString(R.string.btn_shuffle)) {
+                                playHelper(shuffle = true)
+                                selectedPlaylistForMenu = null
+                            },
+                            Triple(Icons.AutoMirrored.Rounded.PlaylistPlay, context.getString(R.string.menu_play_next)) {
+                                playHelper(insertNext = true)
+                                selectedPlaylistForMenu = null
+                            },
+                            Triple(Icons.AutoMirrored.Rounded.QueueMusic, context.getString(R.string.menu_add_queue)) {
+                                playHelper(addToQueue = true)
+                                selectedPlaylistForMenu = null
+                            },
+                            Triple(
+                                if (isPlaylistLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
+                                if (isPlaylistLiked) context.getString(R.string.action_unlike) else context.getString(R.string.player_like_action)
+                            ) {
+                                LikeRepository.togglePlaylistLike(
+                                    playlist.id,
+                                    !isPlaylistLiked,
+                                    playlist.permalinkUrl ?: "",
+                                    playlist.urn ?: ""
+                                )
+                            },
+                            Triple(Icons.Outlined.Share, context.getString(R.string.btn_share)) {
+                                if (permalink.isNotEmpty()) {
+                                    val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(android.content.Intent.EXTRA_TEXT, permalink)
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(shareIntent, context.getString(R.string.btn_share)))
+                                }
+                                selectedPlaylistForMenu = null
+                            }
+                        )
+                    }
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(playlistActionItems) { (icon, text, action) ->
+                            val tint = if (text == context.getString(R.string.action_unlike)) primaryColor else MaterialTheme.colorScheme.onSurface
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { action() }
+                                    .padding(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = text,
+                                    modifier = Modifier.size(32.dp),
+                                    tint = tint
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = text,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = tint
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
