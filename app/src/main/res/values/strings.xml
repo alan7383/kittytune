@@ -120,6 +120,7 @@
     <string name="home_offline_btn_retry">Retry</string>
     <string name="home_offline_btn_downloads">Go to downloads</string>
     <string name="home_offline_banner">Offline mode active</string>
+    <string name="offline_banner_action_downloads">Want to go to your downloads? Tap here</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- EXPLORER & SEARCH                                                                -->
@@ -229,6 +230,11 @@
     <string name="lib_offline_mode">Offline Mode • Local access only</string>
     <string name="lib_guest_mode">Guest Mode • Log in to sync</string>
     <string name="sort_date_added">Date Added</string>
+    <string name="lib_sort_by_title">Sort by</string>
+    <string name="lib_sort_recents">Recents</string>
+    <string name="lib_sort_recently_added">Recently added</string>
+    <string name="lib_sort_alphabetical">Alphabetical</string>
+    <string name="lib_sort_creator">Creator</string>
 
     <string name="lib_playlists">Playlists</string>
     <string name="lib_artists">Artists</string>
@@ -255,6 +261,34 @@
     <string name="dialog_delete_playlist_title">Delete playlist?</string>
     <string name="dialog_delete_playlist_msg">This action cannot be undone</string>
     <string name="dialog_delete_playlist_from_lib_title">Remove from library?</string>
+
+    <string name="lib_create_folder_title">New folder</string>
+    <string name="lib_create_folder_hint">Folder name</string>
+    <string name="lib_folder">Folder</string>
+    <string name="lib_folders">Folders</string>
+    <string name="lib_folder_empty">Empty folder</string>
+    <string name="lib_folder_counts_playlist_singular">%1$d playlist</string>
+    <string name="lib_folder_counts_playlist_plural">%1$d playlists</string>
+    <string name="lib_folder_counts_folder_singular">%1$d folder</string>
+    <string name="lib_folder_counts_folder_plural">%1$d folders</string>
+    <string name="menu_pin_playlist">Pin playlist</string>
+    <string name="menu_unpin_playlist">Unpin playlist</string>
+    <string name="menu_pin_folder">Pin folder</string>
+    <string name="menu_unpin_folder">Unpin folder</string>
+    <string name="menu_move_to_folder">Move to folder</string>
+    <string name="menu_move_to_library">Move to library</string>
+    <string name="menu_rename_folder">Rename folder</string>
+    <string name="menu_delete_folder">Delete folder</string>
+    <string name="dialog_delete_folder_title">Delete folder?</string>
+    <string name="dialog_delete_folder_msg">All playlists and folders inside will be moved to your library.</string>
+    <string name="dialog_rename_folder_title">Rename folder</string>
+    <string name="dialog_rename_folder_hint">Folder name</string>
+    <string name="select_folder_title">Choose a folder</string>
+    <string name="folder_created_toast">Folder created</string>
+    <string name="lib_folder_play_ordered">Play in order</string>
+    <string name="lib_folder_play_shuffle">Shuffle play</string>
+    <string name="lib_folder_play_recursive_ordered">Play all (with subfolders)</string>
+    <string name="lib_folder_play_recursive_shuffle">Shuffle all (with subfolders)</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
@@ -1263,6 +1297,9 @@
     <string name="empty_user_playlist_title">It\'s quiet&#8230; too quiet</string>
     <string name="empty_user_playlist_subtitle">Add your first track!</string>
     <string name="empty_user_playlist_kaomoji">( ⓛ ‿ ⓛ )</string>
+    <string name="empty_folder_title">This folder is empty</string>
+    <string name="empty_folder_subtitle">Add playlists to this folder to organize your library</string>
+    <string name="empty_folder_kaomoji">( ˶• ᴗ •˶ )</string>
 
     <string name="history_untitled_track">Untitled</string>
     <string name="history_unknown_artist">Unknown</string>
@@ -1429,4 +1466,20 @@
     <string name="pref_norm_info_title">Understanding Volume Normalization</string>
     <string name="pref_norm_info_body_1">Different songs are often recorded at different loudness levels. Volume normalization automatically balances your tracks so that every song plays at a consistent, comfortable volume without you needing to adjust it constantly.</string>
     <string name="pref_norm_info_body_2">How it works:\n• KittyTune measures the true loudness of each song (in LUFS).\n• During playback, volume is dynamically adjusted to match your selected target level.\n• An integrated limiter prevents any distortion or clipping.\n\nLevels:\n• Quiet (-19 LUFS): Ideal for nighttime listening or headphones.\n• Normal (-14 LUFS): The standard used by Spotify &amp; YouTube.\n• Loud (-11 LUFS): Best for noisy environments or outdoor speakers.</string>
+    <string name="pref_sc_sync_title">SoundCloud History Sync</string>
+    <string name="pref_sc_sync_sub">Syncs listened tracks, playlists, stations, and view counts to your SoundCloud account. Turn off for incognito playback.</string>
+    <!-- SoundCloud History Screen -->
+    <string name="history_title">History</string>
+    <string name="history_tab_tracks">Listening History</string>
+    <string name="history_tab_contexts">Recently Played</string>
+    <string name="history_clear_tracks_title">Clear listening history?</string>
+    <string name="history_clear_tracks_desc">This will remove all listened tracks from your SoundCloud history.</string>
+    <string name="history_clear_contexts_title">Clear recently played?</string>
+    <string name="history_clear_contexts_desc">This will remove all playlists, stations, and profiles from your recently played on SoundCloud.</string>
+    <string name="history_empty_tracks">No tracks in your history</string>
+    <string name="history_empty_contexts">No recently played playlists or stations</string>
+    <string name="history_search_hint">Search in history&#8230;</string>
+    <string name="history_guest_desc">Log in to SoundCloud to sync and manage your listening history across all your devices.</string>
+    <string name="history_type_playlist">Playlist</string>
+    <string name="history_type_likes">Liked Tracks</string>
 </resources>

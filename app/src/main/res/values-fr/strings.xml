@@ -102,6 +102,7 @@
     <string name="home_offline_btn_retry">Réessayer</string>
     <string name="home_offline_btn_downloads">Aller aux téléchargements</string>
     <string name="home_offline_banner">Mode hors ligne actif</string>
+    <string name="offline_banner_action_downloads">Accéder à vos téléchargements ? Toucher ici</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- EXPLORER & SEARCH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -204,6 +205,11 @@
     <string name="lib_offline_mode">Mode Hors Ligne • Accès local uniquement</string>
     <string name="lib_guest_mode">Mode Invité • Connectez-vous pour synchroniser</string>
     <string name="sort_date_added">Date d\'ajout</string>
+    <string name="lib_sort_by_title">Trier par</string>
+    <string name="lib_sort_recents">Récents</string>
+    <string name="lib_sort_recently_added">Ajoutés récemment</string>
+    <string name="lib_sort_alphabetical">Alphabétique</string>
+    <string name="lib_sort_creator">Créateur</string>
     <string name="lib_playlists">Playlists</string>
     <string name="lib_artists">Artistes</string>
     <string name="lib_albums">Albums</string>
@@ -227,6 +233,34 @@
     <string name="dialog_delete_playlist_title">Supprimer la playlist ?</string>
     <string name="dialog_delete_playlist_msg">Cette action est irréversible</string>
     <string name="dialog_delete_playlist_from_lib_title">Retirer de la bibliothèque ?</string>
+
+    <string name="lib_create_folder_title">Nouveau dossier</string>
+    <string name="lib_create_folder_hint">Nom du dossier</string>
+    <string name="lib_folder">Dossier</string>
+    <string name="lib_folders">Dossiers</string>
+    <string name="lib_folder_empty">Dossier vide</string>
+    <string name="lib_folder_counts_playlist_singular">%1$d playlist</string>
+    <string name="lib_folder_counts_playlist_plural">%1$d playlists</string>
+    <string name="lib_folder_counts_folder_singular">%1$d dossier</string>
+    <string name="lib_folder_counts_folder_plural">%1$d dossiers</string>
+    <string name="menu_pin_playlist">Épingler la playlist</string>
+    <string name="menu_unpin_playlist">Désépingler la playlist</string>
+    <string name="menu_pin_folder">Épingler le dossier</string>
+    <string name="menu_unpin_folder">Désépingler le dossier</string>
+    <string name="menu_move_to_folder">Déplacer vers le dossier</string>
+    <string name="menu_move_to_library">Déplacer vers la bibliothèque</string>
+    <string name="menu_rename_folder">Renommer le dossier</string>
+    <string name="menu_delete_folder">Supprimer le dossier</string>
+    <string name="dialog_delete_folder_title">Supprimer le dossier ?</string>
+    <string name="dialog_delete_folder_msg">L\'ensemble des playlists et des dossiers qui s\'y trouvent se mettront dans la bibliothèque.</string>
+    <string name="dialog_rename_folder_title">Renommer le dossier</string>
+    <string name="dialog_rename_folder_hint">Nom du dossier</string>
+    <string name="select_folder_title">Choisir un dossier</string>
+    <string name="folder_created_toast">Dossier créé</string>
+    <string name="lib_folder_play_ordered">Lire dans l\'ordre</string>
+    <string name="lib_folder_play_shuffle">Lire en aléatoire</string>
+    <string name="lib_folder_play_recursive_ordered">Tout lire (+ sous-dossiers)</string>
+    <string name="lib_folder_play_recursive_shuffle">Tout mélanger (+ sous-dossiers)</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1174,6 +1208,9 @@
     <string name="empty_user_playlist_title">C\'est calme&#8230; trop calme</string>
     <string name="empty_user_playlist_subtitle">Ajoute tes premiers sons !</string>
     <string name="empty_user_playlist_kaomoji">( ⓛ ‿ ⓛ )</string>
+    <string name="empty_folder_title">Ce dossier est vide</string>
+    <string name="empty_folder_subtitle">Ajoutez des playlists à ce dossier pour organiser votre bibliothèque</string>
+    <string name="empty_folder_kaomoji">( ˶• ᴗ •˶ )</string>
     <string name="history_untitled_track">Titre inconnu</string>
     <string name="history_unknown_artist">Artiste inconnu</string>
     <string name="history_type_artist">Artiste</string>
@@ -1332,4 +1369,20 @@
     <string name="about_downloads_desc">Windows, Linux, macOS</string>
     <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
     <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
+    <string name="pref_sc_sync_title">Synchronisation de l\'historique SoundCloud</string>
+    <string name="pref_sc_sync_sub">Synchronise les titres écoutés, playlists, stations et le compteur de vues sur votre compte SoundCloud. Désactivez pour une écoute privée.</string>
+    <!-- SoundCloud History Screen -->
+    <string name="history_title">Historique</string>
+    <string name="history_tab_tracks">Historique des écoutes</string>
+    <string name="history_tab_contexts">Écoutés récemment</string>
+    <string name="history_clear_tracks_title">Effacer l\'historique des écoutes ?</string>
+    <string name="history_clear_tracks_desc">Cette action supprimera tous les morceaux écoutés de votre historique SoundCloud.</string>
+    <string name="history_clear_contexts_title">Effacer les écoutés récemment ?</string>
+    <string name="history_clear_contexts_desc">Cette action supprimera toutes les playlists, stations et profils de vos écoutes récentes sur SoundCloud.</string>
+    <string name="history_empty_tracks">Aucun morceau dans votre historique</string>
+    <string name="history_empty_contexts">Aucune playlist ou station écoutée récemment</string>
+    <string name="history_search_hint">Rechercher dans l\'historique&#8230;</string>
+    <string name="history_guest_desc">Connectez-vous à SoundCloud pour synchroniser et gérer votre historique d\'écoute sur tous vos appareils.</string>
+    <string name="history_type_playlist">Playlist</string>
+    <string name="history_type_likes">Titres likés</string>
 </resources>
