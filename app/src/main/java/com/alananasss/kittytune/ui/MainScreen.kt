@@ -689,32 +689,35 @@ fun MainScreen(
 
                     clippedComposable(Screen.Home.route) {
                         HomeScreen(playerViewModel, homeViewModel, onNavigate = { id ->
-                            if (id == "login_required" || id == "my_profile_menu") {
-                                showProfileMenu = true
-                            } else if (id == "charts") {
-                                navController.navigate("charts")
-                            } else if (id == "genres") {
-                                navController.navigate("genres")
-                            } else if (id == "new_releases") {
-                                navController.navigate("new_releases")
-                            } else if (id.startsWith("profile:")) {
-                                navController.navigate("profile/${id.removePrefix("profile:")}")
-                            } else if (id.startsWith("profile/")) {
-                                navController.navigate(id)
-                            } else if (id.startsWith("playlist_detail/")) {
-                                navController.navigate(id)
-                            } else if (id.startsWith("genre_playlists/")) {
-                                navController.navigate(id)
-                            } else if (id == "recognition") {
-                                navController.navigate("recognition")
-                            }
-                            else if (id.startsWith("yt_radio:")) {
-                                val rawUrl = id.removePrefix("yt_radio:")
-                                val encodedUrl = android.net.Uri.encode(rawUrl)
-                                navController.navigate("playlist_detail/yt_radio:$encodedUrl")
-                            }
-                            else {
-                                navController.navigate("playlist_detail/$id")
+                            when {
+                                id == "login_required" || id == "my_profile_menu" -> {
+                                    showProfileMenu = true
+                                }
+                                id == "charts" -> navController.navigate("charts")
+                                id == "genres" -> navController.navigate("genres")
+                                id == "new_releases" -> navController.navigate("new_releases")
+                                id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
+                                id == "recognition" -> navController.navigate("recognition")
+                                id == "recognition_history" -> navController.navigate("recognition_history")
+                                id == "likes" -> navController.navigate("playlist_detail/likes")
+                                id == "downloads" -> navController.navigate("playlist_detail/downloads")
+                                id.startsWith("profile:") -> {
+                                    navController.navigate("profile/${id.removePrefix("profile:")}")
+                                }
+                                id.startsWith("profile/") || id.startsWith("playlist_detail/") || id.startsWith("genre_playlists/") || id.startsWith("tag/") -> {
+                                    navController.navigate(id)
+                                }
+                                id.startsWith("yt_radio:") -> {
+                                    val rawUrl = id.removePrefix("yt_radio:")
+                                    val encodedUrl = android.net.Uri.encode(rawUrl)
+                                    navController.navigate("playlist_detail/yt_radio:$encodedUrl")
+                                }
+                                id.startsWith("station:") || id.startsWith("station_artist:") -> {
+                                    navController.navigate("playlist_detail/$id")
+                                }
+                                else -> {
+                                    navController.navigate("playlist_detail/$id")
+                                }
                             }
                         })
                     }
@@ -723,6 +726,8 @@ fun MainScreen(
                         LibraryScreen(
                             onLoginClick = { navController.navigate(Screen.Login.route) },
                             onProfileClick = { showProfileMenu = true },
+                            onHistoryClick = { navController.navigate(Screen.History.route) },
+                            onImportClick = { navController.navigate("music_import") },
                             onPlaylistClick = { id ->
                                 if (id.startsWith("profile:")) {
                                     val userId = id.removePrefix("profile:")
@@ -1016,6 +1021,31 @@ fun MainScreen(
                         com.alananasss.kittytune.ui.recognition.RecognitionHistoryScreen(
                             onBackClick = { navController.popBackStack() },
                             onNavigate = { dest -> navController.navigate(dest) },
+                            playerViewModel = playerViewModel
+                        )
+                    }
+                    clippedComposable(Screen.History.route) {
+                        com.alananasss.kittytune.ui.history.HistoryScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigate = { dest ->
+                                when {
+                                    dest == Screen.Home.route || dest == "home" -> navController.navigate(Screen.Home.route)
+                                    dest.startsWith("profile:") -> {
+                                        val userId = dest.removePrefix("profile:")
+                                        navController.navigate("profile/$userId")
+                                    }
+                                    dest.startsWith("playlist_detail/") || dest.startsWith("profile/") || dest.startsWith("tag/") || dest.startsWith("genre_playlists/") || dest.startsWith("track_detail/") -> {
+                                        navController.navigate(dest)
+                                    }
+                                    dest.startsWith("tag:") -> {
+                                        val tagName = dest.removePrefix("tag:")
+                                        navController.navigate("tag/$tagName")
+                                    }
+                                    else -> {
+                                        navController.navigate("playlist_detail/$dest")
+                                    }
+                                }
+                            },
                             playerViewModel = playerViewModel
                         )
                     }

@@ -17,4 +17,5 @@ sealed class Screen(val route: String, val titleResId: Int, val icon: ImageVecto
     data object Login : Screen("login", R.string.nav_login, null)
     data object Recognition : Screen("recognition", R.string.nav_search, null)
     data object RecognitionHistory : Screen("recognition_history", R.string.nav_search, null)
+    data object History : Screen("history", R.string.history_title, null)
 }

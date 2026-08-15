@@ -18,6 +18,11 @@
         fun init(context: Context) {
             appContext = context.applicationContext
             database = AppDatabase.getDatabase(context)
+            scope.launch {
+                database.downloadDao().deleteHistoryItem("playlist:0")
+                database.downloadDao().deleteHistoryItem("playlist:history")
+                database.downloadDao().deleteHistoryItem("history")
+            }
         }
 
         fun addToHistory(track: Track) {
@@ -40,6 +45,9 @@
         }
 
         fun addToHistory(playlist: Playlist, isStation: Boolean = false, isProfile: Boolean = false) {
+            if (playlist.id == 0L || playlist.title.equals("history", ignoreCase = true) || playlist.permalinkUrl == "history") {
+                return
+            }
             scope.launch {
                 val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
                 val (stringId, type) = when {
@@ -88,6 +96,28 @@
             }
         }
 
+        suspend fun insertHistoryList(items: List<HistoryItem>) {
+            database.downloadDao().insertHistoryList(items)
+        }
+
         fun getHistory() = database.downloadDao().getHistory()
+
+        fun clearAllHistory() {
+            scope.launch {
+                database.downloadDao().clearHistory()
+            }
+        }
+
+        fun clearTracksHistory() {
+            scope.launch {
+                database.downloadDao().clearTracksHistory()
+            }
+        }
+
+        fun clearContextsHistory() {
+            scope.launch {
+                database.downloadDao().clearContextsHistory()
+            }
+        }
     }
 
