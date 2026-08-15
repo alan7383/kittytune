@@ -27,6 +27,7 @@ fun <T> ExpressiveConnectedButtonGroup(
     labelProvider: @Composable (T) -> Unit,
     iconProvider: (@Composable (T) -> Unit)? = null
 ) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -36,7 +37,10 @@ fun <T> ExpressiveConnectedButtonGroup(
         options.forEachIndexed { index, option ->
             ToggleButton(
                 checked = selectedOption != null && selectedOption == option,
-                onCheckedChange = { onOptionSelected(option) },
+                onCheckedChange = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    onOptionSelected(option)
+                },
                 modifier = Modifier.weight(1f),
                 contentPadding = contentPadding,
                 shapes = when (index) {
