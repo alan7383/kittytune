@@ -113,6 +113,7 @@
 
         private val activeJobs = mutableMapOf<Long, Job>()
         private val activePlaylistJobs = mutableMapOf<Long, Job>()
+        private val batchTrackIds = mutableMapOf<Long, Set<Long>>()
 
         fun init(ctx: Context) {
             context = ctx.applicationContext
@@ -319,14 +320,14 @@
                 }
             }
         }
-        fun removeTrackFromPlaylist(playlistId: Long, trackId: Long) {
+        fun removeTrackFromPlaylist(playlistId: Long, trackId: Long, syncToCloud: Boolean = true) {
             scope.launch {
                 val dao = database.downloadDao()
                 dao.removeTrackFromPlaylist(playlistId, trackId)
                 val playlist = dao.getPlaylist(playlistId)
                 if (playlist != null) dao.updatePlaylist(playlist.copy(trackCount = (playlist.trackCount - 1).coerceAtLeast(0)))
 
-                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                if (syncToCloud && playlistId > 0 && !TokenManager(context).isGuestMode()) {
                     try {
                         val onlinePlaylist = api.getPlaylist(playlistId)
                         val trackIds = (onlinePlaylist.tracks ?: emptyList()).map { it.id }.toMutableList()
@@ -335,6 +336,8 @@
                         updateRemotePlaylist(playlistId, request)
                     } catch (e: Exception) { e.printStackTrace() }
                 }
+                _storageTrigger.update { it + 1 }
+                _libraryUpdated.tryEmit(Unit)
             }
         }
         fun swapTrackOrder(playlistId: Long, trackId1: Long, trackId2: Long) {
@@ -381,11 +384,12 @@
             newPermalink: String? = null,
             newGenre: String? = null,
             newSetType: String? = null,
-            newReleaseDate: String? = null
+            newReleaseDate: String? = null,
+            syncToCloud: Boolean = true
         ) { 
             scope.launch { 
                 database.downloadDao().updatePlaylistTitle(playlistId, newTitle) 
-                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                if (syncToCloud && playlistId > 0 && !TokenManager(context).isGuestMode()) {
                     try {
                         val onlinePlaylist = api.getPlaylist(playlistId)
                         val request = playlistUpdateRequest(
@@ -400,6 +404,7 @@
                         updateRemotePlaylist(playlistId, request)
                     } catch (e: Exception) { e.printStackTrace() }
                 }
+                _storageTrigger.update { it + 1 }
                 _libraryUpdated.tryEmit(Unit)
             } 
         }
@@ -544,52 +549,72 @@
                     }
                 }
             }
+            val playlistTracks = dao.getTracksForPlaylistSync(playlistId)
 
             dao.deletePlaylist(playlistId)
             dao.deletePlaylistRefs(playlistId)
-            HistoryRepository.removeFromHistory(playlistId)
-
-            val orphans = dao.getOrphanTracksList()
-            orphans.forEach { track ->
-                deleteFileByPath(track.localAudioPath)
-                deleteFileByPath(track.localArtworkPath)
-                dao.deleteTrack(track.id)
+            if (syncToCloud) {
+                HistoryRepository.removeFromHistory(playlistId)
+                _deletedPlaylistIds.update { it + playlistId }
             }
 
+            playlistTracks.forEach { track ->
+                val remainingRefCount = dao.getPlaylistRefCount(track.id)
+                if (remainingRefCount == 0) {
+                    val audioExists = when {
+                        track.localAudioPath.isEmpty() -> false
+                        track.localAudioPath.startsWith("exo_cache://") -> true
+                        track.localAudioPath.startsWith("content://") -> {
+                            try { DocumentFile.fromSingleUri(context, Uri.parse(track.localAudioPath))?.exists() == true } catch (e: Exception) { false }
+                        }
+                        else -> File(track.localAudioPath).exists()
+                    }
+                    if (!audioExists) {
+                        deleteFileByPath(track.localArtworkPath)
+                        dao.deleteTrack(track.id)
+                    }
+                }
+            }
+            dao.cleanUnreferencedEmptyTracks()
+
             _storageTrigger.update { it + 1 }
-            _deletedPlaylistIds.update { it + playlistId }
             _libraryUpdated.tryEmit(Unit)
 
         }
     }
 
+        fun clearDeletedPlaylistId(playlistId: Long) {
+            _deletedPlaylistIds.update { it - playlistId }
+            _libraryUpdated.tryEmit(Unit)
+        }
+
+        fun notifyLibraryUpdated() {
+            _libraryUpdated.tryEmit(Unit)
+        }
+
         fun removePlaylistDownloads(playlistId: Long) {
-            scope.launch {
-                val localTracks = database.downloadDao().getTracksForPlaylistSync(playlistId)
-                val domainTracks = localTracks.map { local ->
-                    Track(
-                        id = local.id,
-                        title = local.title,
-                        artworkUrl = local.artworkUrl,
-                        durationMs = local.duration,
-                        user = User(0, local.artist, null)
-                    )
-                }
-                removeDownloads(domainTracks)
-            }
+            deletePlaylist(playlistId = playlistId, syncToCloud = false)
         }
 
         fun removeDownloads(tracks: List<Track>) {
             scope.launch {
+                val dao = database.downloadDao()
                 tracks.forEach { track ->
-                    val local = database.downloadDao().getTrack(track.id)
+                    val local = dao.getTrack(track.id)
                     if (local != null) {
                         deleteFileByPath(local.localAudioPath)
                         deleteFileByPath(local.localArtworkPath)
-                        database.downloadDao().updateTrack(local.copy(localAudioPath = "", localArtworkPath = ""))
+                        val refCount = dao.getPlaylistRefCount(track.id)
+                        if (refCount > 0) {
+                            dao.updateTrack(local.copy(localAudioPath = "", localArtworkPath = ""))
+                        } else {
+                            dao.deleteTrack(track.id)
+                        }
                     }
                 }
+                dao.cleanUnreferencedEmptyTracks()
                 _storageTrigger.update { it + 1 }
+                _libraryUpdated.tryEmit(Unit)
             }
         }
 
@@ -705,6 +730,7 @@
 
             val batchJob = scope.launch {
                 val trackIdsToDownload = tracks.map { it.id }.toSet()
+                batchTrackIds[batchId] = trackIdsToDownload
                 try {
                     _playlistDownloadProgress.update { it + (batchId to 0f) }
 
@@ -1102,13 +1128,21 @@
 
         fun deleteTrack(trackId: Long) {
             scope.launch {
-                val track = database.downloadDao().getTrack(trackId)
+                val dao = database.downloadDao()
+                val track = dao.getTrack(trackId)
                 if (track != null) {
                     deleteFileByPath(track.localAudioPath)
                     deleteFileByPath(track.localArtworkPath)
-                    database.downloadDao().updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
+                    val refCount = dao.getPlaylistRefCount(trackId)
+                    if (refCount > 0) {
+                        dao.updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
+                    } else {
+                        dao.deleteTrack(trackId)
+                    }
                 }
+                dao.cleanUnreferencedEmptyTracks()
                 _storageTrigger.update { it + 1 }
+                _libraryUpdated.tryEmit(Unit)
             }
         }
 
@@ -1116,8 +1150,11 @@
             activeJobs[trackId]?.cancel()
             activeJobs.remove(trackId)
             _downloadProgress.update { it - trackId }
-            try { File(context.cacheDir, "temp_${trackId}.mp3").delete() } catch(e: Exception){}
+            try { 
+                context.cacheDir.listFiles { file -> file.name.contains("${trackId}") }?.forEach { it.delete() }
+            } catch(e: Exception){}
             _storageTrigger.update { it + 1 }
+            _libraryUpdated.tryEmit(Unit)
         }
 
         fun isPlaylistDownloading(playlistId: Long): Boolean = activePlaylistJobs.containsKey(playlistId)
@@ -1162,6 +1199,8 @@
                         updateRemotePlaylist(playlistId, request)
                     } catch (e: Exception) { e.printStackTrace() }
                 }
+                _storageTrigger.update { it + 1 }
+                _libraryUpdated.tryEmit(Unit)
             }
         }
         fun cancelBatch(batchId: Long) {
@@ -1170,8 +1209,13 @@
                 job.cancel()
                 activePlaylistJobs.remove(batchId)
                 _playlistDownloadProgress.update { it - batchId }
-                _storageTrigger.update { it + 1 }
             }
+            batchTrackIds[batchId]?.forEach { trackId ->
+                cancelDownload(trackId)
+            }
+            batchTrackIds.remove(batchId)
+            _storageTrigger.update { it + 1 }
+            _libraryUpdated.tryEmit(Unit)
         }
     }
 
