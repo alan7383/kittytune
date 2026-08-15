@@ -126,12 +126,22 @@
                     try {
                         val localTrack = DownloadManager.getLocalTrack(track.id)
                         if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
-                            val isContentUri = localTrack.localAudioPath.startsWith("content://")
-                            val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
+                            if (localTrack.localAudioPath.startsWith("exo_cache://")) {
+                                val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
+                                val cachedStreamUrl = parts.getOrNull(1)
+                                val token = parts.getOrNull(2)
+                                if (!cachedStreamUrl.isNullOrEmpty()) {
+                                    Log.d(TAG, "Offline mode: Playing from ExoCache -> $cachedStreamUrl")
+                                    return@run ResolvedStream(cachedStreamUrl, licenseAuthToken = token)
+                                }
+                            } else {
+                                val isContentUri = localTrack.localAudioPath.startsWith("content://")
+                                val fileExists = if (isContentUri) true else java.io.File(localTrack.localAudioPath).exists()
 
-                            if (fileExists) {
-                                Log.d(TAG, "Offline mode: Playing from local storage -> ${localTrack.localAudioPath}")
-                                return@run ResolvedStream(localTrack.localAudioPath)
+                                if (fileExists) {
+                                    Log.d(TAG, "Offline mode: Playing from local storage -> ${localTrack.localAudioPath}")
+                                    return@run ResolvedStream(localTrack.localAudioPath)
+                                }
                             }
                         }
                     } catch (e: Exception) {
