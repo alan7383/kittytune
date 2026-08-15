@@ -87,6 +87,12 @@
         @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != '' AND id NOT IN (SELECT trackId FROM playlist_track_cross_ref) ORDER BY downloadedAt DESC")
         suspend fun getOrphanTracksList(): List<LocalTrack>
 
+        @Query("DELETE FROM downloaded_tracks WHERE localAudioPath = '' AND id NOT IN (SELECT trackId FROM playlist_track_cross_ref)")
+        suspend fun cleanUnreferencedEmptyTracks()
+
+        @Query("SELECT COUNT(*) FROM playlist_track_cross_ref WHERE trackId = :trackId")
+        suspend fun getPlaylistRefCount(trackId: Long): Int
+
         // relationships
         @Transaction
         @Query("""
@@ -117,7 +123,10 @@
         @Insert(onConflict = OnConflictStrategy.REPLACE)
         suspend fun insertHistory(item: HistoryItem)
 
-        @Query("SELECT * FROM play_history ORDER BY timestamp DESC LIMIT 20")
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        suspend fun insertHistoryList(items: List<HistoryItem>)
+
+        @Query("SELECT * FROM play_history ORDER BY timestamp DESC LIMIT 1000")
         fun getHistory(): Flow<List<HistoryItem>>
 
         @Query("DELETE FROM play_history WHERE id = :itemId")
@@ -133,6 +142,12 @@
 
         @Query("DELETE FROM play_history")
         suspend fun clearHistory()
+
+        @Query("DELETE FROM play_history WHERE type = 'TRACK'")
+        suspend fun clearTracksHistory()
+
+        @Query("DELETE FROM play_history WHERE type != 'TRACK'")
+        suspend fun clearContextsHistory()
 
         // listening stats
         @Insert
@@ -187,6 +202,66 @@
         suspend fun deleteItem(itemId: Long)
     }
 
+    @Dao
+    interface FolderDao {
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        suspend fun insertFolder(folder: LibraryFolder): Long
+
+        @Update
+        suspend fun updateFolder(folder: LibraryFolder)
+
+        @Query("UPDATE library_folders SET name = :newName WHERE id = :folderId")
+        suspend fun renameFolder(folderId: Long, newName: String)
+
+        @Query("UPDATE library_folders SET isPinned = :isPinned WHERE id = :folderId")
+        suspend fun setFolderPinned(folderId: Long, isPinned: Boolean)
+
+        @Query("UPDATE library_folders SET parentFolderId = :newParentFolderId, isPinned = 0 WHERE id = :folderId")
+        suspend fun moveFolder(folderId: Long, newParentFolderId: Long?)
+
+        @Query("SELECT * FROM library_folders ORDER BY createdAt DESC")
+        fun getAllFolders(): Flow<List<LibraryFolder>>
+
+        @Query("SELECT * FROM library_folders WHERE id = :folderId")
+        suspend fun getFolder(folderId: Long): LibraryFolder?
+
+        @Query("DELETE FROM library_folders WHERE id = :folderId")
+        suspend fun deleteFolderDirect(folderId: Long)
+
+        @Query("UPDATE library_item_meta SET folderId = :newParentFolderId WHERE folderId = :deletedFolderId")
+        suspend fun reassignItemsFromDeletedFolder(deletedFolderId: Long, newParentFolderId: Long?)
+
+        @Query("UPDATE library_folders SET parentFolderId = :newParentFolderId WHERE parentFolderId = :deletedFolderId")
+        suspend fun reassignFoldersFromDeletedFolder(deletedFolderId: Long, newParentFolderId: Long?)
+
+        @Transaction
+        suspend fun deleteFolderSafely(folderId: Long) {
+            val folder = getFolder(folderId) ?: return
+            val parentId = folder.parentFolderId
+            reassignItemsFromDeletedFolder(folderId, parentId)
+            reassignFoldersFromDeletedFolder(folderId, parentId)
+            deleteFolderDirect(folderId)
+        }
+
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        suspend fun upsertItemMeta(meta: LibraryItemMeta)
+
+        @Query("SELECT * FROM library_item_meta")
+        fun getAllItemMetas(): Flow<List<LibraryItemMeta>>
+
+        @Query("SELECT * FROM library_item_meta WHERE itemKey = :itemKey")
+        suspend fun getItemMeta(itemKey: String): LibraryItemMeta?
+
+        @Query("UPDATE library_item_meta SET folderId = :folderId, isPinned = 0 WHERE itemKey = :itemKey")
+        suspend fun moveItemToFolder(itemKey: String, folderId: Long?)
+
+        @Query("UPDATE library_item_meta SET isPinned = :isPinned WHERE itemKey = :itemKey")
+        suspend fun setItemPinned(itemKey: String, isPinned: Boolean)
+
+        @Query("DELETE FROM library_item_meta WHERE itemKey = :itemKey")
+        suspend fun deleteItemMeta(itemKey: String)
+    }
+
     data class TopTrackResult(
         val trackId: Long,
         val trackTitle: String,
@@ -207,10 +282,25 @@
         val totalListenMs: Long
     )
 
-    @Database(entities = [LocalTrack::class, LocalPlaylist::class, PlaylistTrackCrossRef::class, HistoryItem::class, LocalArtist::class, ListeningStatsEvent::class, RecognitionHistoryItem::class], version = 15, exportSchema = false)
+    @Database(
+        entities = [
+            LocalTrack::class,
+            LocalPlaylist::class,
+            PlaylistTrackCrossRef::class,
+            HistoryItem::class,
+            LocalArtist::class,
+            ListeningStatsEvent::class,
+            RecognitionHistoryItem::class,
+            LibraryFolder::class,
+            LibraryItemMeta::class
+        ],
+        version = 16,
+        exportSchema = false
+    )
     abstract class AppDatabase : RoomDatabase() {
         abstract fun downloadDao(): DownloadDao
         abstract fun recognitionHistoryDao(): RecognitionHistoryDao
+        abstract fun folderDao(): FolderDao
 
         companion object {
             @Volatile private var INSTANCE: AppDatabase? = null
