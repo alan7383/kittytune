@@ -17,7 +17,7 @@ object ExoCacheManager {
             if (oldCacheDir.exists()) {
                 oldCacheDir.deleteRecursively()
             }
-            
+
             val cacheDir = File(context.cacheDir, "exo_offline_cache")
             val databaseProvider = StandaloneDatabaseProvider(context)
             simpleCache = SimpleCache(

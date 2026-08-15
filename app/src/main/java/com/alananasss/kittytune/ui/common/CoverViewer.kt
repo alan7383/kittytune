@@ -135,7 +135,7 @@ fun CoverViewerOverlay() {
                         .fillMaxSize()
                         .padding(vertical = 64.dp, horizontal = 32.dp)
                 ) {
-                    
+
                     Box(
                         modifier = Modifier
                             .weight(1f, fill = false)
@@ -151,9 +151,9 @@ fun CoverViewerOverlay() {
                             modifier = Modifier.fillMaxSize()
                         )
                     }
-                    
+
                     Spacer(modifier = Modifier.height(32.dp))
-                    
+
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         FilledTonalButton(shapes = ButtonDefaults.shapes(), 
                             onClick = {
@@ -169,7 +169,7 @@ fun CoverViewerOverlay() {
                             Spacer(Modifier.width(8.dp))
                             Text(context.getString(R.string.cover_copy_link))
                         }
-                        
+
                         Button(shapes = ButtonDefaults.shapes(), 
                             onClick = {
                                 url?.let {
@@ -184,7 +184,7 @@ fun CoverViewerOverlay() {
                     }
                 }
             }
-            
+
             IconButton(shapes = IconButtonDefaults.shapes(), 
                 onClick = { CoverViewerState.hide() },
                 modifier = Modifier

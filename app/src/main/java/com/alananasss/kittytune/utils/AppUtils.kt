@@ -1,11 +1,11 @@
     package com.alananasss.kittytune.utils
-    
+
     import android.content.Context
     import android.content.pm.PackageManager
-    
+
     object AppUtils {
         val gson = com.google.gson.Gson()
-        
+
         fun getAppVersion(context: Context): String {
             return try {
                 val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -15,5 +15,4 @@
             }
         }
     }
-
 

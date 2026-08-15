@@ -154,7 +154,7 @@
             viewModelScope.launch {
                 val chunks = withContext(Dispatchers.IO) {
                     val newChunks = mutableListOf<TimelineChunk>()
-                    
+
                     // Load 3 months per request
                     for (i in 0 until 3) {
                         val calEnd = Calendar.getInstance().apply {
@@ -179,7 +179,7 @@
                         }
 
                         currentTimelineOffsetMonths++
-                        
+
                         val totalBefore = ListeningStatsRepository.getTotalEvents(0)
                         val eventsAfterStart = ListeningStatsRepository.getTotalEvents(sinceMs)
                         if (eventsAfterStart >= totalBefore) {

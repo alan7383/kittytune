@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.LazyColumn
@@ -32,7 +32,7 @@
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import com.alananasss.kittytune.ui.common.SettingsGroupTitle
     import kotlin.math.roundToInt
-    
+
     @Composable
     fun LyricsSettingsScreen(
         onBackClick: () -> Unit,
@@ -40,13 +40,13 @@
     ) {
         val context = LocalContext.current
         val prefs = remember { PlayerPreferences(context) }
-    
+
         val fontSize = playerViewModel.lyricsFontSize
         val alignment = playerViewModel.lyricsAlignment
         var preferLocal by remember { mutableStateOf(prefs.getLyricsPreferLocal()) }
         var showLyricsButton by remember { mutableStateOf(prefs.getShowLyricsButtonEnabled()) }
         var inlineLyrics by remember { mutableStateOf(prefs.getInlineLyricsEnabled()) }
-    
+
         var showAlignmentDialog by remember { mutableStateOf(false) }
         var showFontSizeDialog by remember { mutableStateOf(false) }
 
@@ -56,9 +56,7 @@
 
     var showProviderDialog by remember { mutableStateOf(false) }
     var showLangDialog by remember { mutableStateOf(false) }
-    
-        // --- DIALOGS ---
-    
+
         if (showProviderDialog) {
             AlertDialog(
                 onDismissRequest = { showProviderDialog = false },
@@ -135,7 +133,7 @@
                 confirmButton = { TextButton(onClick = { showLangDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
             )
         }
-    
+
         if (showFontSizeDialog) {
             Dialog(onDismissRequest = { showFontSizeDialog = false }) {
                 Card(
@@ -171,7 +169,7 @@
                 }
             }
         }
-    
+
         if (showAlignmentDialog) {
             AlertDialog(
                 onDismissRequest = { showAlignmentDialog = false },
@@ -186,9 +184,7 @@
                 confirmButton = { TextButton(onClick = { showAlignmentDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
             )
         }
-    
-        // --- MAIN SCREEN ---
-    
+
         SettingsScaffold(
             title = stringResource(R.string.pref_lyrics_title),
             onBackClick = onBackClick
@@ -283,16 +279,16 @@
                         )
                     )
                 }
-    
+
                 // APPEARANCE REWORKED
                 item {
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         SettingsGroupTitle(stringResource(R.string.settings_cat_appearance))
-    
+
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-    
+
                             val totalVisibleItems = if (showLyricsButton) 5 else 4
-    
+
                             SettingsItem(
                                 shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, 0),
                                 title = stringResource(R.string.pref_lyrics_provider_title),
@@ -311,7 +307,7 @@
                                     prefs.setShowLyricsButtonEnabled(it)
                                 }
                             )
-    
+
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = showLyricsButton,
                                 enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
@@ -329,7 +325,7 @@
                                     }
                                 )
                             }
-    
+
                             val alignIndex = if (showLyricsButton) 3 else 2
                             SettingsItem(
                                 shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, alignIndex),
@@ -341,7 +337,7 @@
                                 },
                                 onClick = { showAlignmentDialog = true }
                             )
-    
+
                             val sizeIndex = if (showLyricsButton) 4 else 3
                             SettingsItem(
                                 shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, sizeIndex),
@@ -355,7 +351,7 @@
             }
         }
     }
-    
+
     @Composable
     fun AlignRadioButton(text: String, mode: LyricsAlignment, selected: LyricsAlignment, onSelect: (LyricsAlignment) -> Unit) {
         Row(Modifier.fillMaxWidth().clickable { onSelect(mode) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -364,5 +360,4 @@
             Text(text)
         }
     }
-
 

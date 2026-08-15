@@ -1,14 +1,14 @@
     package com.alananasss.kittytune.domain
-    
+
     import com.alananasss.kittytune.data.network.LongIdAdapter
     import com.google.gson.annotations.JsonAdapter
     import com.google.gson.annotations.SerializedName
-    
+
     // collections
     data class LikerCollection(val collection: List<User>, val next_href: String?)
     data class ReposterCollection(val collection: List<User>, val next_href: String?)
     data class InPlaylistCollection(val collection: List<Playlist>, val next_href: String?)
-    
+
     // home / stream
     data class ChartsResponse(val collection: List<ChartItem>, val next_href: String?)
     data class ChartItem(val track: Track?, val score: Double?)
@@ -20,24 +20,24 @@
         val user: User?,
         @SerializedName("created_at") val createdAt: String?
     )
-    
+
     // comments
     data class CommentCollection(val collection: List<Comment>, val next_href: String?)
-    
+
     data class Comment(
         val id: Long,
         val body: String,
         @SerializedName("created_at") val createdAt: String,
         @SerializedName("timestamp") val trackTimestamp: Long?,
         val user: User?,
-    
+
         val track: Track? = null,
-    
+
         // likes
         @SerializedName("likes_count", alternate = ["favoritings_count"]) val _likesCount: Int? = null,
         @SerializedName("reaction_stats") val reactionStats: ReactionStats? = null,
         @SerializedName("user_favorite") val isLiked: Boolean = false,
-    
+
         // nested replies (threaded=1)
         @SerializedName("replies") val replies: List<Comment>? = null
     ) {
@@ -46,7 +46,7 @@
                 if (_likesCount != null) return _likesCount
                 return reactionStats?.counts?.sumOf { it.count } ?: 0
             }
-    
+
         // modified copy for optimistic updates
         fun copy(
             isLiked: Boolean = this.isLiked,
@@ -67,13 +67,13 @@
             )
         }
     }
-    
+
     data class RepostCaptionRequest(
         val caption: String
     )
-    
+
     data class ActivitiesResponse(val collection: List<ActivityItem>, val next_href: String?)
-    
+
     data class ActivityItem(
         val type: String,
         @SerializedName("created_at") val createdAt: String,
@@ -82,8 +82,7 @@
         val playlist: Playlist?, // if linked to a playlist
         val comment: Comment? // if mention
     )
-    
-    // --- Private API Messaging Models ---
+
     // Based on SoundCloud official app (api-mobile.soundcloud.com)
 
     data class InboxCollection(
@@ -228,14 +227,14 @@
     }
 
     fun formatUserUrn(userId: Long): String = "soundcloud:users:$userId"
-    
+
     // interactions
     data class GraphQlRequest(
         @SerializedName("operationName") val operationName: String,
         @SerializedName("query") val query: String,
         @SerializedName("variables") val variables: Any
     )
-    
+
     data class GraphQlVariablesInteraction(
         @SerializedName("input") val input: InteractionInput
     )
@@ -243,42 +242,42 @@
     data class GraphQlVariablesMusicImport(
         @SerializedName("input") val input: Any
     )
-    
+
     data class GraphQlVariablesUserCheck(
         @SerializedName("parentUrn") val parentUrn: String,
         @SerializedName("interactionTypeUrn") val interactionTypeUrn: String = "sc:interactiontype:reaction",
         @SerializedName("targetUrns") val targetUrns: List<String>
     )
-    
+
     data class InteractionInput(
         @SerializedName("parentUrn") val parentUrn: String,
         @SerializedName("targetUrn") val targetUrn: String,
         @SerializedName("interactionTypeUrn") val interactionTypeUrn: String = "sc:interactiontype:reaction",
         @SerializedName("interactionTypeValueUrn") val interactionTypeValueUrn: String = "sc:interactiontypevalue:like"
     )
-    
+
     data class GraphQlResponseUserInteractions(
         @SerializedName("data") val data: UserInteractionsData?
     )
-    
+
     data class UserInteractionsData(
         @SerializedName("user") val user: List<UserInteractionNode>?
     )
-    
+
     data class UserInteractionNode(
         @SerializedName("targetUrn") val targetUrn: String,
         @SerializedName("userInteraction") val userInteraction: Any?,
         @SerializedName("interactionCounts") val interactionCounts: List<InteractionCountNode>?
     )
-    
+
     data class InteractionCountNode(
         @SerializedName("count") val count: Int,
         @SerializedName("interactionTypeValueUrn") val type: String
     )
-    
+
     data class ReactionStats(val counts: List<ReactionCount>?)
     data class ReactionCount(val count: Int, @SerializedName("interaction_type_urn") val urn: String?)
-    
+
     // GraphQL Follows Data Models
     data class GraphQlFollowsRequest(
         @SerializedName("operationName") val operationName: String,
@@ -333,7 +332,7 @@
     data class GraphQlUserProfileData(
         @SerializedName("user") val user: User?
     )
-    
+
     // track
     data class Track(
         val id: Long,
@@ -353,11 +352,11 @@
         @SerializedName("likes_count") val likesCount: Int = 0,
         @SerializedName("reposts_count") val repostsCount: Int = 0,
         @SerializedName("comment_count") val commentCount: Int = 0,
-    
+
         // fields to detect soundcloud go restrictions
         @SerializedName("policy") val policy: String? = null,
         @SerializedName("monetization_model") val monetizationModel: String? = null,
-    
+
         // fixed: source is now nullable to prevent gson crashes
         val source: String? = "soundcloud",
         val likedAt: Long? = null
@@ -369,7 +368,7 @@
                 return "https://picsum.photos/200"
             }
     }
-    
+
     // misc responses
     data class TrackLikesResponse(val collection: List<TrackLikeItem>, val next_href: String?)
     data class TrackLikeItem(
@@ -420,16 +419,16 @@
     }
     data class UpdateProfileRequest(val username: String?, val description: String?, val city: String?, @SerializedName("country_code") val countryCode: String?, @SerializedName("first_name") val firstName: String? = null, @SerializedName("last_name") val lastName: String? = null)
     data class AvatarUpdateRequest(@SerializedName("image_data") val imageData: String)
-    
+
     // banner upload body — mobile API: {"image_data": base64 JPEG}
     data class BannerUploadRequest(@SerializedName("image_data") val imageData: String)
-    
+
     // Mixed Selections
     data class MixedSelectionsResponse(
         val collection: List<SelectionItem>,
         val next_href: String? = null
     )
-    
+
     data class SelectionItem(
         val urn: String?,
         val id: String?,
@@ -467,11 +466,11 @@
         @SerializedName("public") val isPublic: Boolean = false,
         @SerializedName("tag_list") val tagList: String = ""
     )
-    
+
     data class SelectionItems(
         val collection: List<com.google.gson.JsonElement>?
     )
-    
+
     // playlist
     data class Playlist(
         @JsonAdapter(LongIdAdapter::class) val id: Long,
@@ -507,7 +506,7 @@
                 return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200"
             }
     }
-    
+
     // user
     data class User(
         val id: Long,
@@ -536,7 +535,7 @@
                 else -> 0
             }
         val bannerUrl: String? get() = visuals?.visuals?.firstOrNull()?.visualUrl
-        
+
         // Helper to get ID from URN if ID is 0
         val numericId: Long
             get() {
@@ -544,7 +543,7 @@
                 return urn?.split(":")?.lastOrNull()?.toLongOrNull() ?: 0L
             }
     }
-    
+
     data class Visuals(val visuals: List<VisualItem>?)
     data class VisualItem(@SerializedName("visual_url") val visualUrl: String)
     data class Media(val transcodings: List<Transcoding>?)
@@ -554,7 +553,7 @@
         val url: String?,
         @SerializedName("licenseAuthToken") val licenseAuthToken: String? = null
     )
-    
+
     class PlaylistTracksAdapter : com.google.gson.JsonDeserializer<List<Track>> {
         override fun deserialize(
             json: com.google.gson.JsonElement,
@@ -571,6 +570,4 @@
             return null
         }
     }
-    
-
 

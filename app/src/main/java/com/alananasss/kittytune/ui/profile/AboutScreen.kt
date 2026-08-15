@@ -130,7 +130,6 @@ fun AboutScreen(
             contentPadding = PaddingValues(bottom = 180.dp)
         ) {
 
-            // --- COOL HERO SECTION ---
             item {
                 Card(
                     modifier = Modifier

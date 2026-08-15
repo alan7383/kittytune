@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.widget
-    
+
     import android.content.Context
     import android.graphics.Bitmap
     import android.graphics.BitmapFactory
@@ -51,19 +51,19 @@
     import kotlinx.coroutines.MainScope
     import kotlinx.coroutines.launch
     import java.io.File
-    
+
     // simple data class to type speeds without error
     data class WidgetSpeedOption(val label: String, val value: Float)
-    
+
     class MusicWidget : GlanceAppWidget() {
-    
+
         companion object {
             val KEY_TITLE = stringPreferencesKey("title")
             val KEY_ARTIST = stringPreferencesKey("artist")
             val KEY_COVER_PATH = stringPreferencesKey("cover_path")
             val KEY_IS_PLAYING = booleanPreferencesKey("is_playing")
             val KEY_IS_LIKED = booleanPreferencesKey("is_liked")
-    
+
             // configuration keys
             val KEY_SHOW_BASS = booleanPreferencesKey("show_bass")
             val KEY_SHOW_8D = booleanPreferencesKey("show_8d")
@@ -71,7 +71,7 @@
             val KEY_SHOW_REVERB = booleanPreferencesKey("show_reverb")
             val KEY_SHOW_PITCH = booleanPreferencesKey("show_pitch")
             val KEY_CUSTOM_SPEEDS = stringPreferencesKey("custom_speeds_str")
-    
+
             // state keys
             val KEY_CURRENT_SPEED = stringPreferencesKey("curr_speed")
             val KEY_BASS_ACTIVE = booleanPreferencesKey("bass_active")
@@ -79,25 +79,25 @@
             val KEY_MUFFLED_ACTIVE = booleanPreferencesKey("muffled_active")
             val KEY_REVERB_ACTIVE = booleanPreferencesKey("reverb_active")
             val KEY_PITCH_ACTIVE = booleanPreferencesKey("pitch_active")
-    
+
             fun update(context: Context) {
                 MainScope().launch {
                     val track = MusicManager.currentTrack
                     val isPlaying = try { MusicManager.player.isPlaying } catch(e: Exception) { false }
                     val isLiked = if (track != null) LikeRepository.isTrackLiked(track.id) else false
-    
+
                     val prefsRepo = PlayerPreferences(context)
                     val effects = prefsRepo.getLastEffects()
-    
+
                     val manager = GlanceAppWidgetManager(context)
-    
+
                     // update main widgets
                     val mainWidget = MusicWidget()
                     val mainIds = manager.getGlanceIds(MusicWidget::class.java)
                     mainIds.forEach { glanceId ->
                         updateAppWidgetState(context, glanceId) { prefs ->
                             updateCommonState(context, prefs, track, isPlaying, isLiked)
-    
+
                             prefs[KEY_CURRENT_SPEED] = effects.speed.toString()
                             prefs[KEY_BASS_ACTIVE] = effects.isBassBoostEnabled
                             prefs[KEY_8D_ACTIVE] = effects.is8DEnabled
@@ -107,7 +107,7 @@
                         }
                         mainWidget.update(context, glanceId)
                     }
-    
+
                     // update mini widgets
                     val miniWidget = MiniMusicWidget()
                     val miniIds = manager.getGlanceIds(MiniMusicWidget::class.java)
@@ -119,13 +119,13 @@
                     }
                 }
             }
-    
+
             private fun getCachedArtworkPath(context: Context, trackId: Long): String? {
                 val artFile = File(context.filesDir, "art_${trackId}.jpg")
                 if (artFile.exists()) return artFile.absolutePath
                 return null
             }
-    
+
             private fun updateCommonState(
                 context: Context,
                 prefs: androidx.datastore.preferences.core.MutablePreferences,
@@ -147,7 +147,7 @@
                 prefs[KEY_IS_LIKED] = isLiked
             }
         }
-    
+
         override suspend fun provideGlance(context: Context, id: GlanceId) {
             provideContent {
                 GlanceTheme {
@@ -155,26 +155,26 @@
                 }
             }
         }
-    
+
         @Composable
         fun WidgetContent() {
             val context = LocalContext.current
             val prefs = currentState<Preferences>()
-    
+
             val title = prefs[KEY_TITLE] ?: context.getString(R.string.widget_default_title)
             val artist = prefs[KEY_ARTIST] ?: context.getString(R.string.widget_select_track)
             val coverPath = prefs[KEY_COVER_PATH] ?: ""
             val isPlaying = prefs[KEY_IS_PLAYING] ?: false
             val isLiked = prefs[KEY_IS_LIKED] ?: false
-    
+
             val showBass = prefs[KEY_SHOW_BASS] ?: false
             val show8D = prefs[KEY_SHOW_8D] ?: false
             val showMuffled = prefs[KEY_SHOW_MUFFLED] ?: false
             val showReverb = prefs[KEY_SHOW_REVERB] ?: false
             val showPitch = prefs[KEY_SHOW_PITCH] ?: false
-    
+
             val customSpeedsRaw = prefs[KEY_CUSTOM_SPEEDS] ?: ""
-    
+
             // transforming string data into typed objects
             val customSpeedsList: List<WidgetSpeedOption> = if (customSpeedsRaw.isNotEmpty()) {
                 customSpeedsRaw.split("|").mapNotNull {
@@ -186,14 +186,14 @@
                     } else null
                 }
             } else emptyList()
-    
+
             val currentSpeedVal = (prefs[KEY_CURRENT_SPEED] ?: "1.0").toFloatOrNull() ?: 1.0f
             val isBassActive = prefs[KEY_BASS_ACTIVE] ?: false
             val is8DActive = prefs[KEY_8D_ACTIVE] ?: false
             val isMuffledActive = prefs[KEY_MUFFLED_ACTIVE] ?: false
             val isReverbActive = prefs[KEY_REVERB_ACTIVE] ?: false
             val isPitchActive = prefs[KEY_PITCH_ACTIVE] ?: false
-    
+
             Box(
                 modifier = GlanceModifier
                     .fillMaxSize()
@@ -205,7 +205,6 @@
                     modifier = GlanceModifier.fillMaxSize().padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // --- album art (full height) ---
                     val bitmap = rememberBitmapFromPath(coverPath)
                     Box(
                         modifier = GlanceModifier
@@ -232,10 +231,9 @@
                             }
                         }
                     }
-    
+
                     Spacer(GlanceModifier.width(16.dp))
-    
-                    // --- info & controls ---
+
                     Column(
                         modifier = GlanceModifier.fillMaxHeight().defaultWeight(),
                         verticalAlignment = Alignment.CenterVertically
@@ -257,10 +255,10 @@
                                     maxLines = 1
                                 )
                             }
-    
+
                             val heartIcon = if (isLiked) R.drawable.ic_heart_filled else R.drawable.ic_heart_outline
                             val tintProvider = if (isLiked) ColorProvider(Color(0xFFFF4081)) else GlanceTheme.colors.onSurfaceVariant
-    
+
                             Image(
                                 provider = ImageProvider(heartIcon),
                                 contentDescription = context.getString(R.string.desc_like),
@@ -268,9 +266,9 @@
                                 modifier = GlanceModifier.size(24.dp).clickable(actionRunCallback<ToggleLikeAction>())
                             )
                         }
-    
+
                         Spacer(GlanceModifier.defaultWeight())
-    
+
                         // 2. playback controls
                         Row(
                             modifier = GlanceModifier.fillMaxWidth(),
@@ -290,11 +288,11 @@
                             Spacer(GlanceModifier.width(12.dp))
                             Image(provider = ImageProvider(R.drawable.ic_skip_next), contentDescription = context.getString(R.string.desc_next), colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurface), modifier = GlanceModifier.size(32.dp).clickable(actionRunCallback<SkipNextAction>()).padding(4.dp))
                         }
-    
+
                         // 3. custom buttons row (replacing lazyrow with row + foreach)
                         if (showBass || show8D || showMuffled || showReverb || showPitch || customSpeedsList.isNotEmpty()) {
                             Spacer(GlanceModifier.height(8.dp))
-    
+
                             Row(
                                 modifier = GlanceModifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.End
@@ -304,7 +302,7 @@
                                 if (showMuffled) { PillButton(context.getString(R.string.effect_muffled).take(4), isMuffledActive, "MUFFLED"); Spacer(GlanceModifier.width(4.dp)) }
                                 if (showReverb) { PillButton("Verb", isReverbActive, "REVERB"); Spacer(GlanceModifier.width(4.dp)) }
                                 if (showPitch) { PillButton("Ptch", isPitchActive, "PITCH"); Spacer(GlanceModifier.width(4.dp)) }
-    
+
                                 // standard loop on list, limited to 3 items to avoid overflow
                                 customSpeedsList.take(3).forEach { option ->
                                     val isActive = (option.value == currentSpeedVal)
@@ -317,12 +315,12 @@
                 }
             }
         }
-    
+
         @Composable
         fun PillButton(text: String, isActive: Boolean, effectKey: String) {
             val bgColor = if(isActive) GlanceTheme.colors.primary else GlanceTheme.colors.surfaceVariant
             val contentColor = if(isActive) GlanceTheme.colors.onPrimary else GlanceTheme.colors.onSurfaceVariant
-    
+
             Box(
                 modifier = GlanceModifier
                     .background(bgColor)
@@ -343,12 +341,12 @@
                 )
             }
         }
-    
+
         @Composable
         fun SpeedPillButton(text: String, isActive: Boolean, speedValue: Float) {
             val bgColor = if(isActive) GlanceTheme.colors.tertiary else GlanceTheme.colors.surfaceVariant
             val contentColor = if(isActive) GlanceTheme.colors.onTertiary else GlanceTheme.colors.onSurfaceVariant
-    
+
             Box(
                 modifier = GlanceModifier
                     .background(bgColor)
@@ -369,12 +367,11 @@
                 )
             }
         }
-    
+
         @Composable
         private fun rememberBitmapFromPath(path: String): Bitmap? {
             if (path.isEmpty()) return null
             return try { BitmapFactory.decodeFile(path) } catch (e: Exception) { null }
         }
     }
-
 

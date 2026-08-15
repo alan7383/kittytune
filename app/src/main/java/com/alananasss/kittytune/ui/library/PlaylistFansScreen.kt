@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.library
-    
+
     import androidx.compose.foundation.ExperimentalFoundationApi
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.pager.HorizontalPager
@@ -15,7 +15,7 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.ui.track.UserList // importing userlist from trackdetailscreen
     import kotlinx.coroutines.launch
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun PlaylistFansScreen(
@@ -31,11 +31,11 @@
             stringResource(R.string.detail_likers),
             stringResource(R.string.detail_reposters)
         )
-    
+
         LaunchedEffect(playlistId) {
             viewModel.loadPlaylistDetails(playlistId)
         }
-    
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -65,7 +65,7 @@
                         )
                     }
                 }
-    
+
                 HorizontalPager(state = pagerState) { page ->
                     when (page) {
                         0 -> UserList(
@@ -85,5 +85,4 @@
             }
         }
     }
-
 

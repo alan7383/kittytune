@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.library
-    
+
     import android.app.Application
     import android.content.Context
     import android.util.Log
@@ -30,34 +30,34 @@
     import kotlinx.coroutines.launch
     import java.text.SimpleDateFormat
     import java.util.Locale
-    
+
     sealed class LibraryItem(open val timestamp: Long) {
         data class PlaylistItem(val playlist: Playlist, override val timestamp: Long) : LibraryItem(timestamp)
         data class ArtistItem(val artist: LocalArtist, override val timestamp: Long) : LibraryItem(timestamp)
     }
-    
+
     class LibraryViewModel(application: Application) : AndroidViewModel(application) {
-    
+
         private val app = application
         private val prefs = application.getSharedPreferences("library_prefs", Context.MODE_PRIVATE)
         private val tokenManager = TokenManager(application)
-    
+
         var userProfile by mutableStateOf<User?>(null)
         val likedTracks = mutableStateListOf<Track>()
-    
+
         private var onlineItemsCache = listOf<LibraryItem>()
         private var localItemsCache = listOf<LibraryItem>()
         private var savedArtistsCache = listOf<LibraryItem>()
-    
+
         private val _allItems = mutableStateListOf<LibraryItem>()
-    
+
         val displayedItems: List<LibraryItem>
             get() {
                 val playlistsLabel = app.getString(R.string.lib_playlists)
                 val albumsLabel = app.getString(R.string.lib_albums)
                 val artistsLabel = app.getString(R.string.lib_artists)
                 val stationsLabel = app.getString(R.string.lib_stations)
-    
+
                 val items = _allItems.filter { item ->
                     when (item) {
                         is LibraryItem.PlaylistItem -> {
@@ -96,8 +96,7 @@
                 }
                 return if (isSortDescending) items.sortedByDescending { it.timestamp } else items.sortedBy { it.timestamp }
             }
-    
-        // --- state variables ---
+
         var isLoading by mutableStateOf(true)
         var isOfflineMode by mutableStateOf(false)
         var searchQuery by mutableStateOf("")
@@ -108,27 +107,27 @@
         var ownershipFilter by mutableStateOf(OwnershipFilter.ALL)
         var isGridLayout by mutableStateOf(prefs.getBoolean("is_grid_layout", true))
         var isSortDescending by mutableStateOf(true)
-    
+
         private var isHydratingLikes = false
         private val isoParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
-    
+
         private val api = RetrofitClient.create(application)
         private val db = AppDatabase.getDatabase(application).downloadDao()
-    
+
         init {
             viewModelScope.launch {
                 snapshotFlow { isGridLayout }.collect { isGrid ->
                     prefs.edit().putBoolean("is_grid_layout", isGrid).apply()
                 }
             }
-    
+
             viewModelScope.launch {
                 LikeRepository.likedTracks.collect { tracksFromRepo ->
                     likedTracks.clear()
                     likedTracks.addAll(tracksFromRepo)
                 }
             }
-    
+
             viewModelScope.launch {
                 SessionManager.isClientIdValid.collect { isReady ->
                     if (isReady) {
@@ -150,7 +149,7 @@
                     rebuildAllItems()
                 }
             }
-    
+
             viewModelScope.launch {
                 db.getAllPlaylists().collect { localPlaylists ->
                     localItemsCache = localPlaylists.map { local ->
@@ -166,13 +165,13 @@
                             isAlbum = local.isAlbum,
                             permalinkUrl = local.permalinkUrl
                         )
-    
+
                         LibraryItem.PlaylistItem(p, local.addedAt)
                     }
                     rebuildAllItems()
                 }
             }
-    
+
             viewModelScope.launch {
                 DownloadManager.getSavedArtists().collect { artists ->
                     savedArtistsCache = artists.map { LibraryItem.ArtistItem(it, it.savedAt) }
@@ -180,48 +179,48 @@
                 }
             }
         }
-    
+
         private fun rebuildAllItems() {
             val deletedIds = DownloadManager.deletedPlaylistIds.value
             val localIds = localItemsCache
                 .filterIsInstance<LibraryItem.PlaylistItem>()
                 .map { it.playlist.id }
                 .toSet()
-    
+
             val filteredOnlineItems = onlineItemsCache.filter { item ->
                 if (item is LibraryItem.PlaylistItem) !localIds.contains(item.playlist.id) && !deletedIds.contains(item.playlist.id) else true
             }
-            
+
             val filteredLocalItems = localItemsCache.filter { item ->
                 if (item is LibraryItem.PlaylistItem) !deletedIds.contains(item.playlist.id) else true
             }
-    
+
             _allItems.clear()
             _allItems.addAll(filteredOnlineItems)
             _allItems.addAll(filteredLocalItems)
             _allItems.addAll(savedArtistsCache)
         }
-    
+
         fun loadData(forceRefresh: Boolean = false) {
             if (isLoading && !forceRefresh && userProfile != null) return
-    
+
             val playerPrefs = PlayerPreferences(getApplication<Application>())
             showLocalMedia = playerPrefs.getLocalMediaEnabled()
-    
+
             isGuestUser = tokenManager.isGuestMode()
             val token = tokenManager.getAccessToken()
             if (!isGuestUser && token.isNullOrEmpty()) {
                 isLoading = false
                 return
             }
-    
+
             if (isGuestUser) {
                 userProfile = User(0, app.getString(R.string.guest_user), null)
                 isOfflineMode = false
                 isLoading = false
                 return
             }
-    
+
             viewModelScope.launch {
                 isLoading = true
                 if (NetworkUtils.isInternetAvailable(getApplication())) {
@@ -240,7 +239,7 @@
                 }
             }
         }
-    
+
         private fun loadOnlineData(user: User) {
             viewModelScope.launch {
                 try {
@@ -249,20 +248,20 @@
                         val createdPlaylistsDeferred = async { api.getUserCreatedPlaylists(user.id) }
                         val repostedPlaylistsDeferred = async { api.getMyPlaylistPosts() }
                         val libraryAllDeferred = async { try { api.getMyLibraryAll(limit = 200) } catch (e: Exception) { null } }
-    
+
                         val likedResponse = likedPlaylistsDeferred.await()
                         val createdResponse = createdPlaylistsDeferred.await()
                         val repostedResponse = repostedPlaylistsDeferred.await()
                         val libraryAllResponse = libraryAllDeferred.await()
-    
+
                         val newOnlineItems = mutableListOf<LibraryItem>()
                         val addedPlaylistIds = mutableSetOf<Long>()
                         val trulyLikedIds = mutableSetOf<Long>()
-    
+
                                                 likedResponse.collection.forEach { item ->
                             val pl = item.playlist
                             val sp = item.systemPlaylist
-                            
+
                             if (pl != null && addedPlaylistIds.add(pl.id)) {
                                 trulyLikedIds.add(pl.id)
                                 val date = try { item.likedAt?.let { isoParser.parse(it)?.time } ?: 0L } catch (e: Exception) { 0L }
@@ -288,7 +287,7 @@
                                 }
                             }
                         }
-    
+
                         createdResponse.collection.forEach { playlist ->
                             if (addedPlaylistIds.add(playlist.id)) {
                                 val date = try {
@@ -298,7 +297,7 @@
                                 newOnlineItems.add(LibraryItem.PlaylistItem(playlist, date))
                             }
                         }
-    
+
                         repostedResponse.collection.forEach { item ->
                             val playlist = item.playlist ?: return@forEach
                             if (addedPlaylistIds.add(playlist.id)) {
@@ -332,43 +331,43 @@
                                 newOnlineItems.add(LibraryItem.PlaylistItem(fakePlaylist, date))
                             }
                         }
-    
+
                         LikeRepository.setLikedPlaylists(trulyLikedIds)
-                        
+
                         onlineItemsCache = newOnlineItems
                         rebuildAllItems()
-    
+
                         if (!isHydratingLikes) {
                             isHydratingLikes = true
                             LikeRepository.setSyncing(true)
-    
+
                             launch(Dispatchers.IO) {
                                 try {
                                     val allCollectedLikes = mutableListOf<Track>()
                                     var nextUrl: String? = null
-    
+
                                     val firstPage = api.getUserTrackLikes(user.id, limit = 200)
-    
+
                                     allCollectedLikes.addAll(firstPage.collection.map { item ->
                                         val time = try { item.createdAt?.let { isoParser.parse(it)?.time } } catch (e: Exception) { 0L }
                                         item.track.copy(likedAt = time)
                                     })
-    
+
                                     nextUrl = firstPage.next_href
-    
+
                                     while (nextUrl != null) {
                                         val page = api.getTrackLikesNextPage(nextUrl!!)
-    
+
                                         allCollectedLikes.addAll(page.collection.map { item ->
                                             val time = try { item.createdAt?.let { isoParser.parse(it)?.time } } catch (e: Exception) { 0L }
                                             item.track.copy(likedAt = time)
                                         })
-    
+
                                         nextUrl = page.next_href
                                     }
-    
+
                                     LikeRepository.replaceAllLikes(allCollectedLikes)
-    
+
                                 } catch (e: Exception) {
                                     e.printStackTrace()
                                 } finally {
@@ -388,9 +387,6 @@
             }
         }
     }
-
-
-
 
 enum class OwnershipFilter { ALL, CREATED, LIKED }
 

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.navigation
-    
+
     import android.os.Build
     import android.view.RoundedCorner
     import androidx.compose.animation.AnimatedVisibilityScope
@@ -23,12 +23,12 @@
     import androidx.navigation.NavBackStackEntry
     import androidx.navigation.NavGraphBuilder
     import androidx.navigation.compose.composable
-    
+
     @Composable
     fun getScreenCornerRadius(): Dp {
         val context = LocalContext.current
         val density = LocalDensity.current
-    
+
         return remember {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val windowManager = context.getSystemService(android.content.Context.WINDOW_SERVICE)
@@ -45,13 +45,13 @@
             }
         }
     }
-    
+
     @Composable
     fun AnimatedVisibilityScope.ClippedScreen(
         content: @Composable () -> Unit
     ) {
         val deviceCornerRadius = getScreenCornerRadius()
-    
+
         val cornerRadius by transition.animateDp(
             transitionSpec = {
                 when {
@@ -77,7 +77,7 @@
                 EnterExitState.PostExit -> deviceCornerRadius
             }
         }
-    
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -86,7 +86,7 @@
             content()
         }
     }
-    
+
     fun NavGraphBuilder.clippedComposable(
         route: String,
         arguments: List<NamedNavArgument> = emptyList(),
@@ -98,5 +98,4 @@
             }
         }
     }
-
 

@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -18,15 +18,15 @@
     import kotlinx.coroutines.coroutineScope
     import kotlinx.coroutines.launch
     import java.util.Locale
-    
+
     class GenreDetailViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
         private val gson = com.alananasss.kittytune.utils.AppUtils.gson
-    
+
         // ui state
         var isLoading by mutableStateOf(true)
         var genreTitle by mutableStateOf("")
-    
+
         // data for each section
         val popularTracks = mutableStateListOf<Track>()
         val officialPlaylists = mutableStateListOf<Playlist>()
@@ -34,11 +34,11 @@
         val albums = mutableStateListOf<Playlist>()
         var selectedSourceIndex by mutableStateOf(0)
         private var currentGenreQuery by mutableStateOf("")
-    
+
         init {
             autodetectCountry()
         }
-    
+
         private fun autodetectCountry() {
             val deviceCountryCode = Locale.getDefault().country.lowercase(Locale.ROOT)
             val matchedIndex = OfficialPlaylistsData.sources.indexOfFirst {
@@ -49,7 +49,7 @@
                 selectedSourceIndex = matchedIndex
             }
         }
-    
+
         fun loadData(name: String, query: String) {
             genreTitle = name
             currentGenreQuery = query
@@ -59,33 +59,33 @@
                 officialPlaylists.clear()
                 communityPlaylists.clear()
                 albums.clear()
-    
+
                 try {
                     coroutineScope {
                         val popularDef = async { api.searchTracks(query = query, limit = 50).collection }
                         // Request more items to account for filtering
                         val communityDef = async { api.searchPlaylists(query = query, limit = 20).collection }
                         val albumsDef = async { api.searchAlbums(query = query, limit = 20).collection }
-    
+
                         popularTracks.addAll(popularDef.await())
-    
+
                         val rawPlaylists = communityDef.await()
                         val rawAlbums = albumsDef.await()
-    
+
                         // STRICT FILTERING:
                         // Playlists = NOT an album
                         val realPlaylists = rawPlaylists.filter { !it.isAlbum }
                             .distinctBy { it.id }
                             .take(10) // Limit display count after filtering
-    
+
                         // Albums = MUST be an album
                         val realAlbums = rawAlbums.filter { it.isAlbum }
                             .distinctBy { it.id }
                             .take(10)
-    
+
                         communityPlaylists.addAll(realPlaylists)
                         albums.addAll(realAlbums)
-    
+
                         loadOfficialPlaylists()
                     }
                 } catch (e: Exception) {
@@ -95,16 +95,16 @@
                 }
             }
         }
-    
+
         fun loadOfficialPlaylists() {
             if (currentGenreQuery.isBlank()) return
-    
+
             viewModelScope.launch {
                 if (officialPlaylists.isEmpty()) {
                     isLoading = true
                 }
                 officialPlaylists.clear()
-    
+
                 try {
                     val source = OfficialPlaylistsData.sources[selectedSourceIndex]
                     val userUrl = "https://soundcloud.com/${source.soundCloudUsername}"
@@ -115,10 +115,10 @@
                         val filteredPlaylists = userPlaylistsResponse.collection.filter { playlist ->
                             playlist.title?.contains(currentGenreQuery, ignoreCase = true) == true
                         }
-    
+
                         officialPlaylists.addAll(filteredPlaylists)
                     }
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
@@ -127,5 +127,4 @@
             }
         }
     }
-
 

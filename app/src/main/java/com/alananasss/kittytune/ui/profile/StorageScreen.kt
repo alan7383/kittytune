@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.net.Uri
     import android.text.format.Formatter
     import androidx.activity.compose.rememberLauncherForActivityResult
@@ -35,16 +35,16 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.ui.common.SettingsGroup
     import com.alananasss.kittytune.ui.common.SettingsScaffold
-    
+
     data class DeleteAction(val message: String, val action: () -> Unit)
-    
+
     @Composable
     fun StorageScreen(
         onBackClick: () -> Unit,
         viewModel: StorageViewModel = viewModel()
     ) {
         val context = LocalContext.current
-    
+
         val folderPicker = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocumentTree()
         ) { uri: Uri? ->
@@ -52,9 +52,9 @@
                 viewModel.onFolderSelected(uri)
             }
         }
-    
+
         var showDeleteDialog by remember { mutableStateOf<DeleteAction?>(null) }
-    
+
         if (showDeleteDialog != null) {
             val deleteAction = showDeleteDialog!!
             AlertDialog(
@@ -79,7 +79,7 @@
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         }
-    
+
         SettingsScaffold(
             title = stringResource(R.string.pref_storage_title),
             onBackClick = onBackClick
@@ -103,7 +103,7 @@
                         )
                     }
                 }
-    
+
                 // LOCATION
                 item {
                     SettingsGroup(
@@ -121,7 +121,7 @@
                         )
                     )
                 }
-    
+
                 // DETAILS & CLEANUP
                 item {
                     SettingsGroup(
@@ -197,7 +197,7 @@
             }
         }
     }
-    
+
     @Composable
     fun DetailedStorageGauge(
         audioBytes: Long,
@@ -211,9 +211,9 @@
         val animImage by animateFloatAsState(targetValue = imageBytes.toFloat(), animationSpec = tween(800, easing = FastOutSlowInEasing), label = "image")
         val animCache by animateFloatAsState(targetValue = cacheBytes.toFloat(), animationSpec = tween(800, easing = FastOutSlowInEasing), label = "cache")
         val animDb by animateFloatAsState(targetValue = dbBytes.toFloat(), animationSpec = tween(800, easing = FastOutSlowInEasing), label = "db")
-    
+
         val totalAnimated = (animAudio + animImage + animCache + animDb).coerceAtLeast(1f)
-    
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -237,7 +237,7 @@
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
-    
+
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         shape = RoundedCornerShape(12.dp),
@@ -259,9 +259,9 @@
                         }
                     }
                 }
-    
+
                 Spacer(modifier = Modifier.height(24.dp))
-    
+
                 Box(modifier = Modifier.clip(RoundedCornerShape(12.dp))) {
                     Row(
                         modifier = Modifier
@@ -288,9 +288,9 @@
                         }
                     }
                 }
-    
+
                 Spacer(modifier = Modifier.height(20.dp))
-    
+
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         LegendItem(
@@ -324,7 +324,7 @@
             }
         }
     }
-    
+
     @Composable
     fun LegendItem(color: Color, label: String, size: String, modifier: Modifier = Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
@@ -336,7 +336,7 @@
             }
         }
     }
-    
+
     @Composable
     fun LocationSelectorItem(
         shape: Shape,
@@ -359,12 +359,12 @@
             ) {
                 val icon = if (isExternal) Icons.Rounded.SdStorage else Icons.Rounded.Folder
                 val iconColor = if (isExternal) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
-    
+
                 // Icon container to match SettingsItem style
                 Icon(icon, null, tint = iconColor)
-    
+
                 Spacer(Modifier.width(20.dp))
-    
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = currentPath,
@@ -380,7 +380,7 @@
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-    
+
                 if (isExternal) {
                     IconButton(onClick = onResetClick) {
                         Icon(Icons.Outlined.Restore, stringResource(R.string.storage_reset), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -391,7 +391,7 @@
             }
         }
     }
-    
+
     @Composable
     fun StorageItemRow(
         shape: Shape,
@@ -405,7 +405,7 @@
         onClick: () -> Unit
     ) {
         val animSize by animateFloatAsState(targetValue = size.toFloat(), label = "listSize")
-    
+
         Card(
             onClick = onClick,
             enabled = isDeletable,
@@ -420,15 +420,15 @@
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(icon, null, tint = color)
-    
+
                 Spacer(Modifier.width(20.dp))
-    
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     else Text(formatSize(animSize.toLong()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-    
+
                 if (isDeletable) {
                     IconButton(onClick = onClick) {
                         Icon(
@@ -443,5 +443,4 @@
             }
         }
     }
-
 

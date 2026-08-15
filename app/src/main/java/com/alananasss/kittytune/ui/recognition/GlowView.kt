@@ -85,13 +85,13 @@ fun GlowView(
                 }
             }
         }
-        
+
         Canvas(modifier = modifier) {
             val shader = RuntimeShader(GLOW_SHADER)
             shader.setFloatUniform("iResolution", size.width, size.height)
             shader.setFloatUniform("iTime", time.value)
             shader.setColorUniform("iColor", color.toArgb())
-            
+
             drawRect(brush = ShaderBrush(shader))
         }
     } else {

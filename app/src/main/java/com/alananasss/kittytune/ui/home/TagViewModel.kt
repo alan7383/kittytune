@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableIntStateOf
@@ -11,28 +11,28 @@
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.Track
     import kotlinx.coroutines.launch
-    
+
     class TagViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-    
+
         var selectedTabIndex by mutableIntStateOf(0)
-    
+
         val popularTracks = mutableStateListOf<Track>()
         val recentTracks = mutableStateListOf<Track>()
-    
+
         var uiState by mutableStateOf("LOADING")
-    
+
         private var popularNextUrl: String? = null
         private var recentNextUrl: String? = null
         private var isLoadingMore = false
-    
+
         private var currentTagName: String = ""
-    
+
         fun loadTag(tagName: String) {
             currentTagName = tagName
             loadDataForTab(selectedTabIndex)
         }
-    
+
         fun onTabSelected(index: Int) {
             selectedTabIndex = index
             if (index == 0 && popularTracks.isEmpty()) {
@@ -43,13 +43,13 @@
                 uiState = "SUCCESS"
             }
         }
-    
+
         private fun loadDataForTab(tabIndex: Int) {
             if (currentTagName.isBlank()) return
-    
+
             uiState = "LOADING"
             val cleanTag = currentTagName.replace("#", "").trim()
-    
+
             viewModelScope.launch {
                 try {
                     if (tabIndex == 0) {
@@ -58,12 +58,12 @@
                             sort = "popular",
                             limit = 20
                         )
-    
+
                         popularNextUrl = result.next_href
                         popularTracks.clear()
                         popularTracks.addAll(result.collection)
                         uiState = if (popularTracks.isEmpty()) "EMPTY" else "SUCCESS"
-    
+
                     } else {
                         val result = api.getRecentTracksByTag(
                             tag = cleanTag,
@@ -80,18 +80,18 @@
                 }
             }
         }
-    
+
         fun loadMore() {
             val nextHref = if (selectedTabIndex == 0) popularNextUrl else recentNextUrl
-    
+
             if (isLoadingMore || nextHref == null) return
-    
+
             isLoadingMore = true
-    
+
             viewModelScope.launch {
                 try {
                     val result = api.getSearchTracksNextPage(nextHref)
-    
+
                     if (selectedTabIndex == 0) {
                         popularTracks.addAll(result.collection)
                         popularNextUrl = result.next_href
@@ -107,5 +107,4 @@
             }
         }
     }
-
 

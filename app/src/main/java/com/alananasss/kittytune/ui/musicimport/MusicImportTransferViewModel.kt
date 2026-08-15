@@ -94,7 +94,7 @@ class MusicImportTransferViewModel(application: Application) : AndroidViewModel(
         var playlistSuccess = false
         var likesSuccess = false
         var hasError = false
-        
+
         if (transfer.playlistIds.isNotEmpty()) {
             when (val result = repository.startPlaylistSync(transfer.userPlatformUuid, transfer.playlistIds)) {
                 is MusicImportResult.Success -> {
@@ -134,9 +134,9 @@ class MusicImportTransferViewModel(application: Application) : AndroidViewModel(
                 }
             }
         }
-        
+
         if (hasError) return
-        
+
         if (playlistSuccess || likesSuccess) {
             startPolling(transfer)
         } else {

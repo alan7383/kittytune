@@ -41,11 +41,10 @@ import com.zionhuang.innertube.YouTube
 import com.zionhuang.innertube.models.YouTubeLocale
 
     class MainActivity : ComponentActivity() {
-    
+
         override fun attachBaseContext(newBase: Context) {
             super.attachBaseContext(LocaleUtils.updateBaseContextLocale(newBase))
         }
-    
 
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
@@ -57,14 +56,14 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
         private lateinit var preferences: PlayerPreferences
         private lateinit var sharedPrefs: SharedPreferences
-    
+
         private var themeModeState by mutableStateOf(AppThemeMode.SYSTEM)
         private var dynamicColorState by mutableStateOf(true)
         private var pureBlackState by mutableStateOf(false)
         private var keyColorState by mutableIntStateOf(0)
         private var colorStyleState by mutableStateOf("Expressive")
         private var colorSpecState by mutableStateOf("SPEC_2025")
-    
+
         private val _shouldOpenSearch = MutableStateFlow(false)
         private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
         private var showPopups by mutableStateOf(false)
@@ -75,15 +74,15 @@ import com.zionhuang.innertube.models.YouTubeLocale
         private var fontRondState by mutableFloatStateOf(0f)
         private var fontGradState by mutableFloatStateOf(0f)
         private var fontOpszState by mutableFloatStateOf(14f)
-    
+
         override fun onCreate(savedInstanceState: Bundle?) {
             super.onCreate(savedInstanceState)
-    
+
             enableEdgeToEdge(
                 statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
                 navigationBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT)
             )
-    
+
             // Enforce edge-to-edge contrast policies for Q+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 @Suppress("DEPRECATION")
@@ -91,7 +90,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 @Suppress("DEPRECATION")
                 window.isNavigationBarContrastEnforced = false
             }
-    
+
             // Initialize Data Layer Singletons
             Config.init(applicationContext)
             LikeRepository.init(applicationContext)
@@ -102,22 +101,21 @@ import com.zionhuang.innertube.models.YouTubeLocale
             AchievementManager.init(applicationContext)
             RepostRepository.init(applicationContext)
             AchievementManager.resetSessionAchievements()
-    
+
             preferences = PlayerPreferences(applicationContext)
             sharedPrefs = applicationContext.getSharedPreferences("player_state", MODE_PRIVATE)
             sharedPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
-    
+
             val migrationKey = "lyrics_button_default_forced_v1"
             if (!sharedPrefs.getBoolean(migrationKey, false)) {
                 preferences.setShowLyricsButtonEnabled(true)
                 sharedPrefs.edit { putBoolean(migrationKey, true) }
             }
-    
+
             refreshThemeState()
-    
-    
+
             handleIntent(intent)
-    
+
             YouTube.locale = YouTubeLocale(
                 gl = "US",
                 hl = "en"
@@ -127,12 +125,12 @@ import com.zionhuang.innertube.models.YouTubeLocale
                     YouTube.visitorData = it
                 }
             }
-    
+
             setContent {
                 val openSearchState by shouldOpenSearch.collectAsState()
                 val scope = rememberCoroutineScope()
                 val lifecycleOwner = LocalLifecycleOwner.current
-    
+
                 // Global lifecycle observer to sync data when app comes to foreground
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
@@ -167,7 +165,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 )
 
                 val activeKeyColor = com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor ?: keyColorState
-    
+
                 SoundTuneTheme(
                     themeMode = themeModeState,
                     dynamicColor = dynamicColorState,
@@ -183,7 +181,6 @@ import com.zionhuang.innertube.models.YouTubeLocale
                         }
                     }
 
-    
                     // Main App Content
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         MainScreen(
@@ -195,13 +192,13 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 }
             }
         }
-    
+
         override fun onNewIntent(intent: Intent) {
             super.onNewIntent(intent)
             setIntent(intent)
             handleIntent(intent)
         }
-    
+
         private fun handleIntent(intent: Intent?) {
             val openSearch = intent?.getBooleanExtra("open_search", false) ?: false
             if (openSearch) {
@@ -227,7 +224,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 }
             }
         }
-    
+
         private fun refreshThemeState() {
             themeModeState = preferences.getThemeMode()
             dynamicColorState = preferences.getDynamicTheme()
@@ -243,11 +240,10 @@ import com.zionhuang.innertube.models.YouTubeLocale
             fontGradState = preferences.getFontGrad()
             fontOpszState = preferences.getFontOpsz()
         }
-    
+
         override fun onDestroy() {
             sharedPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
             super.onDestroy()
         }
     }
-
 

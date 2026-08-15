@@ -361,7 +361,7 @@ fun SplitSettingsItem(
                 )
                 Spacer(Modifier.width(8.dp))
             }
-            
+
             Box(
                 modifier = Modifier
                     .width(1.dp)

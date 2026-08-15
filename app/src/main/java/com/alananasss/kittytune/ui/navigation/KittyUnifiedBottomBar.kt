@@ -219,7 +219,7 @@ fun KittyUnifiedBottomBar(
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        
+
                         IconButton(onClick = { playerViewModel.playNext() }) {
                             Icon(
                                 imageVector = Icons.Rounded.SkipNext,

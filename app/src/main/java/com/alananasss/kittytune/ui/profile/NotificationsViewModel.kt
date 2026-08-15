@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -10,19 +10,19 @@
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.ActivityItem
     import kotlinx.coroutines.launch
-    
+
     class NotificationsViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-    
+
         val activities = mutableStateListOf<ActivityItem>()
         var isLoading by mutableStateOf(true)
         var nextHref: String? = null
         var isLoadingMore by mutableStateOf(false)
-    
+
         init {
             loadNotifications()
         }
-    
+
         fun loadNotifications() {
             viewModelScope.launch {
                 isLoading = true
@@ -38,7 +38,7 @@
                 }
             }
         }
-    
+
         fun loadMore() {
             if (isLoadingMore || nextHref == null) return
             viewModelScope.launch {
@@ -55,5 +55,4 @@
             }
         }
     }
-
 

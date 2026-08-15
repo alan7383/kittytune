@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.content.Intent
     import android.net.Uri
     import androidx.compose.animation.*
@@ -29,7 +29,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import com.alananasss.kittytune.R
     import com.mikepenz.aboutlibraries.Libs
     import com.mikepenz.aboutlibraries.util.withContext
-    
+
     data class OpenSourceLibrary(
         val id: String,
         val name: String,
@@ -38,7 +38,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
         val url: String,
         val version: String
     )
-    
+
     @Composable
     private fun getLicenseBadgeColors(license: String): Pair<Color, Color> {
         val scheme = MaterialTheme.colorScheme
@@ -49,18 +49,18 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             else -> scheme.secondaryContainer to scheme.onSecondaryContainer
         }
     }
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun LicensesScreen(onBackClick: () -> Unit) {
         val context = LocalContext.current
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         val unknownString = stringResource(R.string.unknown)
         val unknownLicenseString = stringResource(R.string.license_unknown)
-    
+
         val libs = remember { Libs.Builder().withContext(context).build() }
-    
+
         val allLibraries = remember(libs) {
             libs.libraries.map { lib ->
                 OpenSourceLibrary(
@@ -76,14 +76,14 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                 )
             }.sortedBy { it.name.lowercase() }
         }
-    
+
         var searchQuery by remember { mutableStateOf("") }
         var activeFilter by remember { mutableStateOf<String?>(null) }
-    
+
         val licenseTypes = remember(allLibraries) {
             allLibraries.map { it.license }.distinct().sorted()
         }
-    
+
         val filteredList = remember(allLibraries, searchQuery, activeFilter) {
             allLibraries.filter { lib ->
                 val matchSearch = searchQuery.isBlank() ||
@@ -93,7 +93,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                 matchSearch && matchFilter
             }
         }
-    
+
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
@@ -142,9 +142,9 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                             query = searchQuery,
                             onQueryChange = { searchQuery = it }
                         )
-    
+
                         Spacer(Modifier.height(16.dp))
-    
+
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -197,7 +197,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                         }
                     }
                 }
-    
+
                 item {
                     Row(
                         modifier = Modifier
@@ -216,7 +216,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                     )
                 }
-    
+
                 if (filteredList.isEmpty()) {
                     item {
                         Box(
@@ -254,7 +254,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
                         )
                     }
                 }
-    
+
                 item {
                     Box(
                         modifier = Modifier
@@ -272,7 +272,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             }
         }
     }
-    
+
     @Composable
     fun SearchBarCustom(
         query: String,
@@ -314,7 +314,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             singleLine = true
         )
     }
-    
+
     @Composable
     fun LibraryItemExpressive(
         library: OpenSourceLibrary,
@@ -322,7 +322,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     ) {
         val (badgeBg, badgeContent) = getLicenseBadgeColors(library.license)
         val initial = library.name.firstOrNull()?.uppercase() ?: "?"
-    
+
         ListItem(
             modifier = Modifier
                 .clickable(onClick = onClick)
@@ -401,5 +401,4 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
             colors = ListItemDefaults.colors(containerColor = Color.Transparent)
         )
     }
-
 

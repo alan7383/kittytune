@@ -117,7 +117,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch(Dispatchers.IO) {
             // we wait for the deletion to complete fully before refreshing
             DownloadManager.removeAllContent(includeAudio = true, includeImages = false)
-            
+
             // Cleanup orphaned audio files
             val uriStr = prefs.getDownloadLocation()
             if (uriStr == null) {
@@ -145,7 +145,7 @@ class StorageViewModel(application: Application) : AndroidViewModel(application)
     fun cleanImages() {
         viewModelScope.launch(Dispatchers.IO) {
             DownloadManager.removeAllContent(includeAudio = false, includeImages = true)
-            
+
             // Cleanup orphaned image files (like playlist covers)
             val uriStr = prefs.getDownloadLocation()
             if (uriStr == null) {

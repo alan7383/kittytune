@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.app.Application
     import android.content.Context
     import android.graphics.Bitmap
@@ -24,7 +24,7 @@
     import kotlinx.coroutines.coroutineScope
     import kotlinx.coroutines.launch
     import java.io.ByteArrayOutputStream
-    
+
     // Tab enum
     enum class ProfileTab {
         POPULAR,
@@ -34,15 +34,15 @@
         LIKES,
         REPOSTS
     }
-    
+
     class ProfileViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-    
+
         var user by mutableStateOf<User?>(null)
         var isCurrentUser by mutableStateOf(false)
         var isLoading by mutableStateOf(true)
         var selectedTab by mutableStateOf(ProfileTab.POPULAR)
-    
+
         // Content lists
         val popularTracks = mutableStateListOf<Track>()
         val allTracks = mutableStateListOf<Track>()
@@ -54,14 +54,13 @@
         val userComments = mutableStateListOf<Comment>()
         private var commentsNextUrl: String? = null
         var isCommentsLoadingMore by mutableStateOf(false)
-    
+
         var artistStationId: Long? = null
-    
+
         // Helper to get strings from resources
         private fun getString(@StringRes resId: Int): String = getApplication<Application>().getString(resId)
         private fun getString(@StringRes resId: Int, vararg formatArgs: Any): String = getApplication<Application>().getString(resId, *formatArgs)
-    
-    
+
         // Helper to paginate through all user tracks
         private suspend fun fetchAllUserTracks(userId: Long): List<Track> {
             val allUserTracks = mutableListOf<Track>()
@@ -82,7 +81,7 @@
             }
             return allUserTracks
         }
-    
+
         fun loadProfile(userId: Long) {
             viewModelScope.launch {
                 isLoading = true
@@ -95,7 +94,7 @@
                             isCurrentUser = true
                         }
                     } catch (e: Exception) { /* ignore */ }
-    
+
                     // Avoid flickering if reloading same user
                     if (user?.id != userId) {
                         user = fetchUser(userId)
@@ -103,10 +102,10 @@
                         val freshUser = fetchUser(userId)
                         user = freshUser
                     }
-    
+
                     // We rely on DownloadManager.refreshFollowings() in the background
                     // No need to fetch checkFollowState manually on each profile load.
-    
+
                     coroutineScope {
                         // Parallel fetching
                         val popDef = async { try { api.getUserTopTracks(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
@@ -118,7 +117,7 @@
                                     .mapNotNull { it.track }
                             } catch (_: Exception) { emptyList() }
                         }
-    
+
                         val commentsResponseDef = async {
                             try {
                                 api.getUserComments(userId, limit = 20)
@@ -126,11 +125,11 @@
                                 null
                             }
                         }
-    
+
                         // Retrieve collections for separation
                         val albumsDef = async { try { api.getUserAlbums(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
                         val playDef = async { try { api.getUserCreatedPlaylists(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
-    
+
                         val likesDef = async {
                             val allLikes = mutableListOf<Track>()
                             try {
@@ -159,23 +158,23 @@
                             } catch (_: Exception) { }
                             artists
                         }
-    
+
                         popularTracks.clear(); popularTracks.addAll(popDef.await())
                         allTracks.clear(); allTracks.addAll(tracksDef.await())
                         repostedTracks.clear(); repostedTracks.addAll(repostsDef.await())
-    
+
                         // STRICT SEPARATION LOGIC
                         val fetchedAlbums = albumsDef.await()
                         val fetchedPlaylists = playDef.await()
-    
+
                         // Albums list: Only items where isAlbum is true
                         albums.clear()
                         albums.addAll(fetchedAlbums.filter { it.isAlbum })
-    
+
                         // Playlists list: Exclude anything that is an album
                         playlists.clear()
                         playlists.addAll(fetchedPlaylists.filter { !it.isAlbum })
-    
+
                         likedTracks.clear(); likedTracks.addAll(likesDef.await())
                         similarArtists.clear(); similarArtists.addAll(simDef.await())
                         userComments.clear()
@@ -193,10 +192,10 @@
                 }
             }
         }
-    
+
         fun loadMoreUserComments() {
             if (isCommentsLoadingMore || commentsNextUrl == null) return
-    
+
             viewModelScope.launch {
                 isCommentsLoadingMore = true
                 try {
@@ -211,7 +210,7 @@
                 }
             }
         }
-    
+
         fun updateProfile(
             username: String,
             bio: String,
@@ -219,11 +218,11 @@
             country: String
         ) {
             val oldUser = user ?: return
-    
+
             viewModelScope.launch {
                 // Optimistic update
                 user = oldUser.copy(username = username, description = bio, city = city)
-    
+
                 try {
                     val request = UpdateProfileRequest(
                         username = username,
@@ -232,13 +231,13 @@
                         countryCode = null
                     )
                     val updatedUser = api.updateMe(request)
-    
+
                     if (!updatedUser.username.isNullOrBlank()) {
                         user = updatedUser
                     }
-    
+
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     // Rollback on error
@@ -247,7 +246,7 @@
                 }
             }
         }
-    
+
         fun updateAvatarFromBitmap(context: Context, bitmap: Bitmap) {
             viewModelScope.launch {
                 isLoading = true
@@ -255,20 +254,20 @@
                     val outputStream = ByteArrayOutputStream()
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                     val byteArray = outputStream.toByteArray()
-    
+
                     val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
                     val request = AvatarUpdateRequest(imageData = base64String)
                     val response = api.updateAvatar(request)
-    
+
                     if (!response.isSuccessful) {
                         val errorBody = response.errorBody()?.string()
                         throw Exception("Avatar upload failed: ${response.code()} - $errorBody")
                     }
-    
+
                     val updatedUser = api.getMe()
                     user = updatedUser
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     Toast.makeText(getApplication(), getString(R.string.profile_update_error, e.message ?: ""), Toast.LENGTH_LONG).show()
@@ -277,7 +276,7 @@
                 }
             }
         }
-    
+
         fun updateAvatar(context: Context, uri: Uri) {
             viewModelScope.launch {
                 isLoading = true
@@ -289,24 +288,24 @@
                         val source = ImageDecoder.createSource(context.contentResolver, uri)
                         ImageDecoder.decodeBitmap(source)
                     }
-    
+
                     val outputStream = ByteArrayOutputStream()
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                     val byteArray = outputStream.toByteArray()
-    
+
                     val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
                     val request = AvatarUpdateRequest(imageData = base64String)
                     val response = api.updateAvatar(request)
-    
+
                     if (!response.isSuccessful) {
                         val errorBody = response.errorBody()?.string()
                         throw Exception("Avatar upload failed: ${response.code()} - $errorBody")
                     }
-    
+
                     val updatedUser = api.getMe()
                     user = updatedUser
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     Toast.makeText(getApplication(), getString(R.string.profile_update_error, e.message ?: ""), Toast.LENGTH_LONG).show()
@@ -315,7 +314,7 @@
                 }
             }
         }
-    
+
         fun updateBanner(context: Context, uri: Uri) {
             viewModelScope.launch {
                 isLoading = true
@@ -327,25 +326,25 @@
                         val source = ImageDecoder.createSource(context.contentResolver, uri)
                         ImageDecoder.decodeBitmap(source)
                     }
-    
+
                     val outputStream = ByteArrayOutputStream()
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                     val byteArray = outputStream.toByteArray()
-    
+
                     val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
                     val request = BannerUploadRequest(imageData = base64String)
                     val response = api.updateBanner(request)
-    
+
                     if (!response.isSuccessful) {
                         val errorBody = response.errorBody()?.string()
                         throw Exception("Banner upload failed: ${response.code()} - $errorBody")
                     }
-    
+
                     val updatedUser = api.getMe()
                     user = updatedUser
-    
+
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     Toast.makeText(getApplication(), getString(R.string.profile_update_error, e.message ?: ""), Toast.LENGTH_LONG).show()
@@ -354,7 +353,7 @@
                 }
             }
         }
-    
+
         fun deleteAvatar(context: Context) {
             viewModelScope.launch {
                 isLoading = true
@@ -377,13 +376,13 @@
                 }
             }
         }
-    
+
         fun deleteBanner(context: Context) {
             viewModelScope.launch {
                 isLoading = true
                 try {
                     val response = api.deleteBanner()
-    
+
                     if (response.isSuccessful) {
                         // API returns 204 No Content, manual refresh needed
                         val updatedUser = api.getMe()
@@ -400,7 +399,7 @@
                 }
             }
         }
-    
+
         fun updateBannerFromBitmap(context: Context, bitmap: Bitmap) {
             viewModelScope.launch {
                 isLoading = true
@@ -408,21 +407,21 @@
                     val outputStream = ByteArrayOutputStream()
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                     val byteArray = outputStream.toByteArray()
-    
+
                     val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
                     val request = BannerUploadRequest(imageData = base64String)
                     val response = api.updateBanner(request)
-    
+
                     if (!response.isSuccessful) {
                         val errorBody = response.errorBody()?.string()
                         throw Exception("Banner upload failed: ${response.code()} - $errorBody")
                     }
-    
+
                     val updatedUser = api.getMe()
                     user = updatedUser
-    
+
                     Toast.makeText(getApplication(), getString(R.string.profile_update_success), Toast.LENGTH_SHORT).show()
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                     Toast.makeText(getApplication(), getString(R.string.profile_update_error, e.message ?: "Unknown"), Toast.LENGTH_LONG).show()
@@ -462,6 +461,6 @@
                 api.getUser(userId)
             }
         }
-    
+
         fun onTabSelected(tab: ProfileTab) { selectedTab = tab }
     }

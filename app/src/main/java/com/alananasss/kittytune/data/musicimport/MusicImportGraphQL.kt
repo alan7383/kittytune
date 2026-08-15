@@ -163,8 +163,6 @@ object MusicImportGraphQL {
         @SerializedName("userPlatformUuid") val userPlatformUuid: String
     )
 
-    // --- Responses ---
-
     data class ExternalPlaylistsResponse(
         @SerializedName("data") val data: ExternalPlaylistsData?
     )

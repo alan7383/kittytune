@@ -46,7 +46,6 @@ fun BottomBarSettingsScreen(
 
     var showStyleDialog by remember { mutableStateOf(false) }
 
-
     val availableTabs = listOf("home", "search", "genres", "library")
 
     val previewTabs = availableTabs.mapNotNull { key ->
@@ -64,7 +63,6 @@ fun BottomBarSettingsScreen(
             visible = items.contains(key)
         )
     }
-
 
     if (showStyleDialog) {
         AlertDialog(
@@ -100,8 +98,6 @@ fun BottomBarSettingsScreen(
         )
     }
 
-
-
     SettingsScaffold(
         title = stringResource(R.string.pref_bottom_menu_title),
         onBackClick = onBackClick
@@ -121,7 +117,7 @@ fun BottomBarSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_general))
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val totalItems = if (style == "modern") 3 else 1
-                        
+
                         SettingsItem(
                             shape = getSettingsShape(totalItems, 0),
                             title = stringResource(R.string.pref_bottom_menu_style),

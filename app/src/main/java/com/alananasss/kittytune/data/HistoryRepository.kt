@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.data
-    
+
     import android.content.Context
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.local.AppDatabase
@@ -9,12 +9,12 @@
     import kotlinx.coroutines.CoroutineScope
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.launch
-    
+
     object HistoryRepository {
         private lateinit var database: AppDatabase
         private lateinit var appContext: Context
         private val scope = CoroutineScope(Dispatchers.IO)
-    
+
         fun init(context: Context) {
             appContext = context.applicationContext
             database = AppDatabase.getDatabase(context)
@@ -60,14 +60,14 @@
                     playlist.id < 0 -> appContext.getString(R.string.history_type_local_playlist)
                     else -> playlist.user?.username ?: appContext.getString(R.string.history_source_soundcloud)
                 }
-    
+
                 // fix: ensure title is localized if it matches special categories
                 val finalTitle = when(playlist.id) {
                     -1L -> appContext.getString(R.string.history_title_likes)
                     -2L -> appContext.getString(R.string.history_title_downloads)
                     else -> playlist.title ?: appContext.getString(R.string.history_default_playlist_title)
                 }
-    
+
                 val item = HistoryItem(
                     id = stringId,
                     numericId = playlist.id,
@@ -80,15 +80,14 @@
                 database.downloadDao().insertHistory(item)
             }
         }
-    
+
         fun removeFromHistory(playlistId: Long) {
             scope.launch {
                 database.downloadDao().deleteHistoryItem("playlist:$playlistId")
                 database.downloadDao().deleteHistoryItem("station:$playlistId")
             }
         }
-    
+
         fun getHistory() = database.downloadDao().getHistory()
     }
-
 

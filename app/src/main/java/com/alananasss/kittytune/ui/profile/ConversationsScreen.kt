@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.LazyColumn
@@ -25,7 +25,7 @@
     import com.alananasss.kittytune.domain.InboxConversation
 import com.alananasss.kittytune.domain.parseUserIdFromUrn
     import com.alananasss.kittytune.ui.library.getRelativeTime
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun ConversationsScreen(
@@ -34,11 +34,11 @@ import com.alananasss.kittytune.domain.parseUserIdFromUrn
         viewModel: ConversationsViewModel = viewModel()
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         LaunchedEffect(Unit) {
             viewModel.loadConversations()
         }
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -109,7 +109,7 @@ import com.alananasss.kittytune.domain.parseUserIdFromUrn
             }
         }
     }
-    
+
     @Composable
     fun ConversationItemCard(
         conversation: InboxConversation,
@@ -121,7 +121,7 @@ import com.alananasss.kittytune.domain.parseUserIdFromUrn
         val otherAvatar = conversation.getOtherAvatar(myUrn)
         val lastMsg = conversation.lastMessage
         val context = androidx.compose.ui.platform.LocalContext.current
-    
+
         if (otherUser != null && otherUrn != null) {
             ListItem(
                 modifier = Modifier
@@ -170,5 +170,4 @@ import com.alananasss.kittytune.domain.parseUserIdFromUrn
             )
         }
     }
-
 

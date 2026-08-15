@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.track
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -13,25 +13,25 @@
     import kotlinx.coroutines.awaitAll
     import kotlinx.coroutines.coroutineScope
     import kotlinx.coroutines.launch
-    
+
     class TrackDetailViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-    
+
         var track by mutableStateOf<Track?>(null)
         var isLoading by mutableStateOf(true)
-    
+
         // data holders
         val likers = mutableStateListOf<User>()
         val reposters = mutableStateListOf<User>()
         val inPlaylists = mutableStateListOf<Playlist>()
         val relatedTracks = mutableStateListOf<Track>()
-    
+
         // pagination cursors (next_href)
         private var likersNextUrl: String? = null
         private var repostersNextUrl: String? = null
         private var playlistsNextUrl: String? = null
         private var relatedNextUrl: String? = null
-    
+
         // individual loading states for infinite scroll
         var isLikersLoadingMore by mutableStateOf(false)
         var isRepostersLoadingMore by mutableStateOf(false)
@@ -48,7 +48,7 @@
                 reposters.clear(); repostersNextUrl = null
                 inPlaylists.clear(); playlistsNextUrl = null
                 relatedTracks.clear(); relatedNextUrl = null
-    
+
                 var initialPlaylists: List<Playlist> = emptyList()
                 try {
                     coroutineScope {
@@ -84,9 +84,7 @@
                 }
             }
         }
-    
-        // --- load more functions ---
-    
+
         fun loadMoreLikers() {
             if (isLikersLoadingMore || likersNextUrl == null) return
             viewModelScope.launch {
@@ -99,7 +97,7 @@
                 finally { isLikersLoadingMore = false }
             }
         }
-    
+
         fun loadMoreReposters() {
             if (isRepostersLoadingMore || repostersNextUrl == null) return
             viewModelScope.launch {
@@ -112,7 +110,7 @@
                 finally { isRepostersLoadingMore = false }
             }
         }
-    
+
         fun loadMorePlaylists() {
             if (isPlaylistsLoadingMore || playlistsNextUrl == null) return
             viewModelScope.launch {
@@ -130,12 +128,12 @@
 
         fun toggleSortPlaylists() {
             if (track == null) return
-            
+
             // Cancel any ongoing fetch
             playlistsFetchJob?.cancel()
-            
+
             isPlaylistsSortedByLikes = !isPlaylistsSortedByLikes
-            
+
             playlistsFetchJob = viewModelScope.launch {
                 isPlaylistsLoadingMore = true
                 inPlaylists.clear()
@@ -144,18 +142,18 @@
                         var nextUrl: String? = playlistsNextUrl?.substringBefore("?") + "?limit=200"
                         if (playlistsNextUrl == null) nextUrl = "https://api-v2.soundcloud.com/tracks/${track!!.id}/playlists?limit=200"
                         else nextUrl = playlistsNextUrl?.replace("limit=50", "limit=200")
-                        
+
                         val allFetched = mutableListOf<Playlist>()
-                        
+
                         // We need to fetch from start, so let's just use the api directly
                         var currentNextUrl: String? = "https://api-v2.soundcloud.com/tracks/${track!!.id}/playlists?limit=200"
-                        
+
                         while (currentNextUrl != null) {
                             val res = api.getInPlaylistsNextPage(currentNextUrl)
                             allFetched.addAll(res.collection)
                             currentNextUrl = res.next_href?.replace("limit=50", "limit=200")
                         }
-                        
+
                         val sorted = allFetched.distinctBy { it.id }.sortedByDescending { it.likesCount ?: 0 }
                         inPlaylists.addAll(sorted)
                         playlistsNextUrl = null // No more loading when fully sorted
@@ -175,7 +173,7 @@
                 }
             }
         }
-    
+
         fun loadMoreRelated() {
             if (isRelatedLoadingMore || relatedNextUrl == null) return
             viewModelScope.launch {
@@ -189,5 +187,4 @@
             }
         }
     }
-
 

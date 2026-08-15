@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import android.content.Intent
     import androidx.compose.animation.animateColorAsState
     import androidx.compose.animation.core.tween
@@ -56,14 +56,14 @@
     fun rememberDominantColor(url: String?, defaultColor: Color = MaterialTheme.colorScheme.surface): State<Color> {
         val context = LocalContext.current
         val color = remember(url) { mutableStateOf(defaultColor) }
-    
+
         LaunchedEffect(url) {
             if (url != null) {
                 val request = ImageRequest.Builder(context)
                     .data(url)
                     .allowHardware(false)
                     .build()
-    
+
                 val result = context.imageLoader.execute(request).drawable
                 if (result != null) {
                     val bitmap = (result as android.graphics.drawable.BitmapDrawable).bitmap
@@ -76,7 +76,7 @@
         }
         return color
     }
-    
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun ChartsScreen(
@@ -88,11 +88,11 @@
     ) {
         var showCountrySelector by remember { mutableStateOf(false) }
         var showArtistMenu by remember { mutableStateOf<User?>(null) }
-    
+
         val currentCountry = ChartsData.charts[viewModel.selectedCountryIndex]
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         val context = LocalContext.current
-    
+
         // country selector sheet
         if (showCountrySelector) {
             com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
@@ -114,7 +114,7 @@
                             .padding(bottom = 16.dp)
                             .align(Alignment.CenterHorizontally)
                     )
-    
+
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         itemsIndexed(ChartsData.charts) { index, chartData ->
                             val isSelected = index == viewModel.selectedCountryIndex
@@ -132,7 +132,7 @@
                 }
             }
         }
-    
+
         // artist options menu with new design
         if (showArtistMenu != null) {
             val user = showArtistMenu!!
@@ -183,10 +183,10 @@
                             }
                         }
                     }
-    
+
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     Spacer(Modifier.height(8.dp))
-    
+
                     // options list
                     ArtistMenuOption(
                         icon = Icons.Default.Shuffle,
@@ -200,7 +200,7 @@
                             showArtistMenu = null
                         }
                     )
-    
+
                     ArtistMenuOption(
                         icon = Icons.Default.Radio,
                         text = stringResource(R.string.radio),
@@ -209,7 +209,7 @@
                             showArtistMenu = null
                         }
                     )
-    
+
                     ArtistMenuOption(
                         icon = Icons.Default.Person,
                         text = stringResource(R.string.menu_go_artist),
@@ -218,7 +218,7 @@
                             showArtistMenu = null
                         }
                     )
-    
+
                     ArtistMenuOption(
                         icon = Icons.Outlined.Share,
                         text = stringResource(R.string.btn_share),
@@ -236,7 +236,7 @@
                 }
             }
         }
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -310,7 +310,7 @@
                         }
                     }
                 }
-    
+
                 if (viewModel.isLoading) {
                     // loading skeleton
                     item {
@@ -341,8 +341,7 @@
                             }
                         }
                     }
-    
-                    // --- 2. TOP ARTISTS (horizontal swipe, columns of 4) ---
+
                     if (viewModel.topArtists.isNotEmpty()) {
                         item {
                             Text(
@@ -351,13 +350,13 @@
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
                             )
                         }
-    
+
                         item {
                             // split list into chunks of 4 for the vertical columns
                             val chunkedArtists = remember(viewModel.topArtists) {
                                 viewModel.topArtists.chunked(4)
                             }
-    
+
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -383,7 +382,7 @@
             }
         }
     }
-    
+
     @Composable
     fun ArtistRankRow(
         ranking: ArtistRanking,
@@ -415,9 +414,9 @@
                         .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f))
                 )
             }
-    
+
             Spacer(Modifier.width(12.dp))
-    
+
             // avatar
             ArtistAvatar(
                 avatarUrl = ranking.user.avatarUrl,
@@ -426,9 +425,9 @@
                     .size(56.dp)
                     .clip(CircleShape)
             )
-    
+
             Spacer(Modifier.width(16.dp))
-    
+
             // info
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -444,7 +443,7 @@
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-    
+
             // menu three dots
             IconButton(onClick = onMenuClick) {
                 Icon(
@@ -455,7 +454,7 @@
             }
         }
     }
-    
+
     @Composable
     fun ArtistMenuOption(icon: ImageVector, text: String, onClick: () -> Unit) {
         Row(
@@ -474,7 +473,7 @@
             )
         }
     }
-    
+
     @Composable
     private fun CountrySelectionCard(
         countryName: String,
@@ -494,7 +493,7 @@
             targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
             label = "borderColor"
         )
-    
+
         Surface(
             onClick = onClick,
             shape = RoundedCornerShape(20.dp),
@@ -517,7 +516,7 @@
                         color = contentColor
                     )
                 }
-    
+
                 if (isSelected) {
                     Icon(
                         imageVector = Icons.Rounded.Check,
@@ -528,20 +527,20 @@
             }
         }
     }
-    
+
     @Composable
     fun ChartPlaylistCard(
         playlist: com.alananasss.kittytune.domain.Playlist,
         onClick: () -> Unit
     ) {
         val dominantColor by rememberDominantColor(url = playlist.fullResArtwork)
-    
+
         val animatedColor by animateColorAsState(
             targetValue = dominantColor,
             animationSpec = tween(500),
             label = "dominantColor"
         )
-    
+
         // reduced width card for inline scrolling
         Card(
             onClick = onClick,
@@ -598,7 +597,7 @@
             }
         }
     }
-    
+
     // helper to format numbers nicely (1.2m, 14k)
     fun formatCompactNumber(count: Long): String {
         if (count < 1000) return count.toString()
@@ -610,5 +609,4 @@
             else -> count.toString()
         }
     }
-
 

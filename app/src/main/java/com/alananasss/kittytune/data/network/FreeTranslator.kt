@@ -14,7 +14,7 @@ object FreeTranslator {
         if (linesToTranslate.isEmpty()) return@withContext emptyMap()
 
         val resultMap = mutableMapOf<String, String>()
-        
+
         val combinedText = linesToTranslate.joinToString("\n")
 
         val requestBody = okhttp3.FormBody.Builder()
@@ -31,7 +31,7 @@ object FreeTranslator {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
                 val body = response.body?.string() ?: return@withContext emptyMap()
-                
+
                 val rootArray = com.google.gson.JsonParser.parseString(body).asJsonArray
                 val textBlocks = rootArray.get(0).asJsonArray
 
@@ -61,7 +61,7 @@ object FreeTranslator {
     ): Map<String, String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         if (linesToTranslate.isEmpty()) return@withContext emptyMap()
         val resultMap = java.util.concurrent.ConcurrentHashMap<String, String>()
-        
+
         val deferreds = linesToTranslate.map { originalLine ->
             async {
                 val trimmed = originalLine.trim()

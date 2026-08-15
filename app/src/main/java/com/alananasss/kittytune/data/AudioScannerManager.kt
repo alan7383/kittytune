@@ -197,7 +197,6 @@ object AudioScannerManager {
         }
     }
 
-    // --- JNI native methods ---
     private external fun nativeCreateAnalyzer(channels: Int, sampleRate: Int): Long
     private external fun nativeDestroyAnalyzer(handle: Long)
     private external fun nativeAddFramesFloat(handle: Long, samples: FloatArray, numFrames: Int)

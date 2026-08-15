@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.graphics.Bitmap
     import android.graphics.RectF
     import androidx.compose.foundation.Canvas
@@ -39,7 +39,7 @@
     import kotlinx.coroutines.withContext
     import kotlin.math.max
     import kotlin.math.min
-    
+
     @Composable
     fun AvatarCropDialog(
         bitmap: Bitmap?,
@@ -51,13 +51,13 @@
         var scale by remember { mutableFloatStateOf(1f) }
         var offsetX by remember { mutableFloatStateOf(0f) }
         var offsetY by remember { mutableFloatStateOf(0f) }
-    
+
         // canvas container size
         var containerSize by remember { mutableStateOf(Size.Zero) }
-    
+
         val scope = rememberCoroutineScope()
         var isSaving by remember { mutableStateOf(false) }
-    
+
         Dialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
@@ -95,9 +95,9 @@
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-    
+
                         Spacer(Modifier.height(24.dp))
-    
+
                         // crop area (canvas)
                         // boxwithconstraints ensures the canvas has a finite size
                         BoxWithConstraints(
@@ -114,20 +114,20 @@
                                             // update scale with limits
                                             val newScale = (scale * zoom).coerceIn(1f, 5f)
                                             scale = newScale
-    
+
                                             // logic to calculate image boundaries
                                             val imageWidth = bitmap.width.toFloat()
                                             val imageHeight = bitmap.height.toFloat()
                                             val canvasWidth = containerSize.width
                                             val canvasHeight = containerSize.height
-    
+
                                             val srcRatio = imageWidth / imageHeight
                                             val dstRatio = canvasWidth / canvasHeight
-    
+
                                             // calculate the base dimensions of the image as displayed (before zoom)
                                             val baseWidth: Float
                                             val baseHeight: Float
-    
+
                                             if (srcRatio > dstRatio) {
                                                 baseWidth = canvasWidth
                                                 baseHeight = canvasWidth / srcRatio
@@ -135,22 +135,22 @@
                                                 baseHeight = canvasHeight
                                                 baseWidth = canvasHeight * srcRatio
                                             }
-    
+
                                             // calculate the dimensions with the current zoom applied
                                             val scaledWidth = baseWidth * scale
                                             val scaledHeight = baseHeight * scale
-    
+
                                             // calculate the maximum allowed offset
                                             // this allows moving the image only as far as its edge hits the container edge
                                             // if the image is smaller than container, max offset is 0 (locks center)
                                             val maxOffsetX = (scaledWidth - canvasWidth) / 2f
                                             val maxOffsetY = (scaledHeight - canvasHeight) / 2f
-    
+
                                             // enforce limits using coerceIn.
                                             // max(0f, ...) ensures we don't get negative limits if image is smaller than box
                                             val limitX = max(0f, maxOffsetX)
                                             val limitY = max(0f, maxOffsetY)
-    
+
                                             offsetX = (offsetX + pan.x).coerceIn(-limitX, limitX)
                                             offsetY = (offsetY + pan.y).coerceIn(-limitY, limitY)
                                         }
@@ -159,18 +159,17 @@
                         ) {
                             if (bitmap != null) {
                                 val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
-    
+
                                 Canvas(modifier = Modifier.fillMaxSize()) {
                                     val canvasWidth = size.width
                                     val canvasHeight = size.height
                                     val circleRadius = min(canvasWidth, canvasHeight) / 2f - 20f // inner margin
-    
-                                    // 1. draw image (bottom layer)
+
                                     withTransform({
                                         // canvas center
                                         val px = canvasWidth / 2f
                                         val py = canvasHeight / 2f
-    
+
                                         // apply user transformations
                                         translate(left = offsetX, top = offsetY)
                                         scale(scale, scale, pivot = Offset(px, py))
@@ -178,13 +177,13 @@
                                         // calculate "fit" scaling to center image initially
                                         val imageWidth = imageBitmap.width.toFloat()
                                         val imageHeight = imageBitmap.height.toFloat()
-    
+
                                         val srcRatio = imageWidth / imageHeight
                                         val dstRatio = canvasWidth / canvasHeight
-    
+
                                         val drawWidth: Float
                                         val drawHeight: Float
-    
+
                                         if (srcRatio > dstRatio) {
                                             drawWidth = canvasWidth
                                             drawHeight = canvasWidth / srcRatio
@@ -192,25 +191,24 @@
                                             drawHeight = canvasHeight
                                             drawWidth = canvasHeight * srcRatio
                                         }
-    
+
                                         // center the image
                                         val left = (canvasWidth - drawWidth) / 2f
                                         val top = (canvasHeight - drawHeight) / 2f
-    
+
                                         drawImage(
                                             image = imageBitmap,
                                             dstOffset = androidx.compose.ui.unit.IntOffset(left.toInt(), top.toInt()),
                                             dstSize = androidx.compose.ui.unit.IntSize(drawWidth.toInt(), drawHeight.toInt())
                                         )
                                     }
-    
-                                    // 2. draw mask (top layer)
+
                                     // create a path: rectangle minus the central circle
                                     val overlayPath = Path().apply {
                                         // full rectangle
                                         addRect(Rect(0f, 0f, canvasWidth, canvasHeight))
                                     }
-    
+
                                     val circlePath = Path().apply {
                                         addOval(
                                             Rect(
@@ -219,20 +217,20 @@
                                             )
                                         )
                                     }
-    
+
                                     // boolean op: overlay - circle
                                     val finalPath = Path.combine(
                                         operation = PathOperation.Difference,
                                         path1 = overlayPath,
                                         path2 = circlePath
                                     )
-    
+
                                     // draw semi-transparent scrim
                                     drawPath(
                                         path = finalPath,
                                         color = Color.Black.copy(alpha = 0.6f)
                                     )
-    
+
                                     // draw white circle outline
                                     drawPath(
                                         path = circlePath,
@@ -242,9 +240,9 @@
                                 }
                             }
                         }
-    
+
                         Spacer(Modifier.height(24.dp))
-    
+
                         // zoom slider
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -253,7 +251,7 @@
                             IconButton(onClick = { scale = (scale - 0.1f).coerceAtLeast(1f) }) {
                                 Icon(Icons.Rounded.Remove, null, tint = MaterialTheme.colorScheme.primary)
                             }
-    
+
                             Slider(
                                 value = scale,
                                 onValueChange = {
@@ -271,14 +269,14 @@
                                     inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
-    
+
                             IconButton(onClick = { scale = (scale + 0.1f).coerceAtMost(5f) }) {
                                 Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary)
                             }
                         }
-    
+
                         Spacer(Modifier.height(24.dp))
-    
+
                         // action buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -293,9 +291,9 @@
                             ) {
                                 Text(stringResource(R.string.btn_cancel))
                             }
-    
+
                             Spacer(Modifier.width(8.dp))
-    
+
                             Button(
                                 onClick = {
                                     if (!isSaving && bitmap != null) {
@@ -304,16 +302,16 @@
                                             val size = containerSize
                                             // replicate display logic for final crop
                                             val radius = min(size.width, size.height) / 2f - 20f
-    
+
                                             val cropRect = RectF(
                                                 size.width / 2f - radius,
                                                 size.height / 2f - radius,
                                                 size.width / 2f + radius,
                                                 size.height / 2f + radius
                                             )
-    
+
                                             val state = ImageState(scale, offsetX, offsetY)
-    
+
                                             val result = BitmapUtils.cropBitmap(
                                                 source = bitmap,
                                                 cropRect = cropRect,
@@ -323,7 +321,7 @@
                                                 targetWidth = 2048,
                                                 targetHeight = 2048
                                             )
-    
+
                                             withContext(Dispatchers.Main) {
                                                 onSave(result)
                                             }
@@ -352,5 +350,4 @@
             }
         }
     }
-
 

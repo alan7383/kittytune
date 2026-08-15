@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.data
-    
+
     import android.content.Context
     import android.content.SharedPreferences
     import androidx.annotation.StringRes
@@ -15,7 +15,7 @@
     import kotlinx.coroutines.launch
     import java.util.Calendar
     import java.util.concurrent.TimeUnit
-    
+
     data class Achievement(
         val id: String,
         val category: AchievementCategory,
@@ -26,7 +26,7 @@
         val isSecret: Boolean = false,
         val xpReward: Int = 10
     )
-    
+
     enum class AchievementCategory(@StringRes val titleResId: Int) {
         TIME(R.string.ach_cat_time),
         VOLUME(R.string.ach_cat_volume),
@@ -36,20 +36,20 @@
         HARDCORE(R.string.ach_cat_hardcore),
         SECRET(R.string.ach_cat_secret)
     }
-    
+
     data class AchievementProgress(
         val id: String,
         val currentValue: Int,
         val isUnlocked: Boolean,
         val unlockedAt: Long = 0
     )
-    
+
     object AchievementManager {
         private const val PREFS_NAME = "achievements_prefs"
         private lateinit var prefs: SharedPreferences
         private lateinit var context: Context
         private val scope = CoroutineScope(Dispatchers.Main)
-    
+
         val definitions = listOf(
             Achievement("time_1h", AchievementCategory.TIME, R.string.ach_time_1h_title, R.string.ach_time_1h_desc, "🎧", 3600, xpReward = 10),
             Achievement("time_24h", AchievementCategory.TIME, R.string.ach_time_24h_title, R.string.ach_time_24h_desc, "🌙", 86400, xpReward = 100),
@@ -99,13 +99,13 @@
             Achievement("lucky7", AchievementCategory.SECRET, R.string.ach_lucky7_title, R.string.ach_secret_desc, "🎰", 7, isSecret = true, xpReward = 7777),
             Achievement("glitch", AchievementCategory.SECRET, R.string.ach_glitch_title, R.string.ach_secret_desc, "👾", 1, isSecret = true, xpReward = 1337)
         )
-    
+
         private val _isAllUnlocked = MutableStateFlow(false)
         val isAllUnlocked = _isAllUnlocked.asStateFlow()
-    
+
         private val _progressFlow = MutableStateFlow<Map<String, AchievementProgress>>(emptyMap())
         val progressFlow = _progressFlow.asStateFlow()
-    
+
         fun init(context: Context) {
             this.context = context.applicationContext
             prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -144,7 +144,7 @@
             _isAllUnlocked.value = false
             loadProgress()
         }
-    
+
         fun increment(id: String, amount: Int = 1) {
             val def = definitions.find { it.id == id } ?: return
             val currentProgress = _progressFlow.value[id] ?: AchievementProgress(id, 0, false)
@@ -157,11 +157,11 @@
                 updateFlow(id, currentProgress.copy(currentValue = newValue))
             }
         }
-    
+
         fun addPlayTime(seconds: Int, isGuest: Boolean, speed: Float) {
             definitions.filter { it.category == AchievementCategory.TIME }.forEach { increment(it.id, seconds) }
             if (isGuest) increment("ghost", seconds)
-    
+
             val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
             if (hour >= 22 || hour < 6) {
                 increment("night_shift_pro", seconds)
@@ -171,34 +171,34 @@
                     updateFlow("night_shift_pro", AchievementProgress("night_shift_pro", 0, false))
                 }
             }
-    
+
             increment("marathon", seconds)
             if (speed >= 1.2f) increment("speed_demon", seconds)
         }
-    
+
         fun checkDailyStreak() {
             val now = Calendar.getInstance()
             val currentDayOfYear = now.get(Calendar.DAY_OF_YEAR)
             val currentYear = now.get(Calendar.YEAR)
-    
+
             val lastDayOfYear = prefs.getInt("last_streak_day_of_year", -1)
             val lastYear = prefs.getInt("last_streak_year", -1)
-    
+
             var currentStreak = prefs.getInt("current_streak_count", 0)
             val isNewDay = currentYear != lastYear || currentDayOfYear != lastDayOfYear
-    
+
             if (isNewDay) {
                 val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
                 val isConsecutive = (lastYear == yesterday.get(Calendar.YEAR) && lastDayOfYear == yesterday.get(Calendar.DAY_OF_YEAR))
-    
+
                 currentStreak = if (isConsecutive) currentStreak + 1 else 1
-    
+
                 prefs.edit()
                     .putInt("last_streak_day_of_year", currentDayOfYear)
                     .putInt("last_streak_year", currentYear)
                     .putInt("current_streak_count", currentStreak)
                     .apply()
-    
+
                 scope.launch {
                     val popupPrefs = PlayerPreferences(context)
                     if (popupPrefs.getAchievementPopupsEnabled()) {
@@ -212,13 +212,13 @@
                         )
                     }
                 }
-    
+
                 val dayOfWeek = now.get(Calendar.DAY_OF_WEEK)
                 if (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY) {
                     increment("weekend_warrior")
                 }
             }
-    
+
             val streakDefs = definitions.filter { it.category == AchievementCategory.LOYALTY && it.id.startsWith("streak_") }
             streakDefs.forEach { def ->
                 if (_progressFlow.value[def.id]?.isUnlocked == false) {
@@ -230,17 +230,17 @@
                 }
             }
         }
-    
+
         fun checkTrackNameSecret(title: String) {
             if (title.contains("777") || title.contains("Lucky", ignoreCase = true)) increment("lucky7", 1)
             if (title.contains("Error") || title.contains("Glitch", ignoreCase = true)) increment("glitch", 1)
         }
-    
+
         fun trackSkipped() {
             prefs.edit().putInt("curr_no_skip_50", 0).apply()
             updateFlow("no_skip_50", AchievementProgress("no_skip_50", 0, false))
         }
-    
+
         fun resetSessionAchievements() {
             // Only achievements that MUST be done in a single session are listed here.
             // Vampire is no longer part of it because its reset logic is based on time.
@@ -252,12 +252,12 @@
                 }
             }
         }
-    
+
         private fun unlock(id: String) {
             if (_progressFlow.value[id]?.isUnlocked == true) return
             val now = System.currentTimeMillis()
             val def = definitions.find { it.id == id } ?: return
-    
+
             scope.launch {
                 val playerPrefs = PlayerPreferences(context)
                 if (playerPrefs.getAchievementPopupsEnabled()) {
@@ -271,22 +271,22 @@
                     )
                 }
             }
-    
+
             prefs.edit()
                 .putInt("curr_$id", def.targetValue)
                 .putBoolean("unlocked_$id", true)
                 .putLong("time_$id", now)
                 .apply()
-    
+
             val newProgress = AchievementProgress(id, def.targetValue, true, now)
             updateFlow(id, newProgress)
             checkCompletion()
         }
-    
+
         private fun updateFlow(id: String, progress: AchievementProgress) {
             _progressFlow.update { it.toMutableMap().apply { put(id, progress) } }
         }
-    
+
         private fun checkCompletion() {
             val unlockedCount = _progressFlow.value.values.count { it.isUnlocked }
             val totalCount = definitions.size
@@ -294,7 +294,7 @@
                 _isAllUnlocked.value = true
             }
         }
-    
+
         fun getLevelInfo(): Triple<Int, Int, Int> {
             val totalXp = _progressFlow.value.values.filter { it.isUnlocked }.sumOf { prog ->
                 definitions.find { it.id == prog.id }?.xpReward ?: 0
@@ -310,5 +310,4 @@
             return Triple(level, totalXp - xpAccumulated, xpForNext)
         }
     }
-
 

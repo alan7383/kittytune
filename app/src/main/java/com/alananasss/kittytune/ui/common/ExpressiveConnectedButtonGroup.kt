@@ -1,12 +1,14 @@
 package com.alananasss.kittytune.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
@@ -21,6 +23,7 @@ fun <T> ExpressiveConnectedButtonGroup(
     selectedOption: T?,
     onOptionSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     labelProvider: @Composable (T) -> Unit,
     iconProvider: (@Composable (T) -> Unit)? = null
 ) {
@@ -35,6 +38,7 @@ fun <T> ExpressiveConnectedButtonGroup(
                 checked = selectedOption != null && selectedOption == option,
                 onCheckedChange = { onOptionSelected(option) },
                 modifier = Modifier.weight(1f),
+                contentPadding = contentPadding,
                 shapes = when (index) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                     options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()

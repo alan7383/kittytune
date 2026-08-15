@@ -168,7 +168,7 @@ object LikeRepository {
         _likedPlaylists.value = current
         scope.launch {
             saveToPrefs()
-            
+
             val tokenManager = com.alananasss.kittytune.data.TokenManager(appContext)
             if (tokenManager.isGuestMode()) return@launch
             val token = tokenManager.getAccessToken()
@@ -183,9 +183,9 @@ object LikeRepository {
                     val payload = com.alananasss.kittytune.data.network.PlaylistLikeRequest(
                         likes = listOf(com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn))
                     )
-                    
+
                     val response = if (isLiked) api.likePlaylist(payload) else api.unlikePlaylist(payload)
-                    
+
                     if (response.code() == 401) {
                         com.alananasss.kittytune.data.SessionManager.requestSessionRefresh(appContext, force = true)
                     }
@@ -254,7 +254,7 @@ object LikeRepository {
                 _likedTracks.value = emptyList()
             }
         }
-        
+
         val savedPlaylistIds = prefs.getStringSet(KEY_LIKED_PLAYLISTS, emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet() ?: emptySet()
         _likedPlaylists.value = savedPlaylistIds
     }

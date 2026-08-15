@@ -124,13 +124,13 @@ interface MusixmatchApiService {
 object MusixmatchClient {
     private const val BASE_URL = "https://apic.musixmatch.com/ws/1.1/"
     private const val MXM_APP_ID = "android-player-v1.0"
-    
+
     private val MXM_SECRET = "mNdca@6W7TeEcFn6*3.s97sJ*yPMd".toByteArray(Charsets.UTF_8)
     private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
     private val authInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
-        
+
         val urlBuilder = originalRequest.url.newBuilder()
             .addQueryParameter("app_id", MXM_APP_ID)
             .addQueryParameter("format", "json")
@@ -146,7 +146,7 @@ object MusixmatchClient {
         val mac = Mac.getInstance("HmacSHA1")
         mac.init(SecretKeySpec(MXM_SECRET, "HmacSHA1"))
         val signatureBytes = mac.doFinal(dataToSign.toByteArray(Charsets.UTF_8))
-        
+
         val signatureBase64 = android.util.Base64.encodeToString(signatureBytes, android.util.Base64.NO_WRAP)
 
         val finalUrl = urlBuilder
@@ -197,7 +197,7 @@ object MusixmatchClient {
     suspend fun getValidToken(context: Context): String {
         val prefs = getPrefs(context)
         var token = prefs.getString("mxm_user_token", null)
-        
+
         if (token == null || token == "invalid_token") {
             try {
                 val response = api.getToken(
@@ -205,7 +205,7 @@ object MusixmatchClient {
                     guid = generateGuid(),
                     timestamp = getRfc3339Timestamp()
                 )
-                
+
                 token = response.message.body?.userToken
                 if (!token.isNullOrEmpty()) {
                     prefs.edit().putString("mxm_user_token", token).apply()
@@ -324,18 +324,17 @@ object MusixmatchClient {
         val prefs = getPrefs(context)
         return try {
             var response = api.searchTrack(query = query, token = token)
-            
+
             if (response.message.header.statusCode == 401 && response.message.header.hint == "renew") {
                 prefs.edit().remove("mxm_user_token").apply()
                 token = getValidToken(context)
                 response = api.searchTrack(query = query, token = token)
             }
-            
+
             response.message.body?.trackList?.map { it.track } ?: emptyList()
         } catch (e: Exception) {
             emptyList()
         }
     }
 }
-
 

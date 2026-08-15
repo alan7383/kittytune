@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.graphics.Bitmap
     import android.graphics.RectF
     import androidx.compose.foundation.Canvas
@@ -39,7 +39,7 @@
     import kotlinx.coroutines.withContext
     import kotlin.math.max
     import kotlin.math.min
-    
+
     @Composable
     fun BannerCropDialog(
         bitmap: Bitmap?,
@@ -50,17 +50,17 @@
         var scale by remember { mutableFloatStateOf(1f) }
         var offsetX by remember { mutableFloatStateOf(0f) }
         var offsetY by remember { mutableFloatStateOf(0f) }
-    
+
         // size of the display area
         var containerSize by remember { mutableStateOf(Size.Zero) }
-    
+
         val scope = rememberCoroutineScope()
         var isSaving by remember { mutableStateOf(false) }
         val density = LocalDensity.current
-    
+
         // soundcloud banner ratio: 2480 / 520 ≈ 4.77
         val targetRatio = 1240f / 260f
-    
+
         Dialog(
             onDismissRequest = onDismiss,
             properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
@@ -97,9 +97,9 @@
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-    
+
                         Spacer(Modifier.height(24.dp))
-    
+
                         // CROP AREA (CANVAS)
                         BoxWithConstraints(
                             modifier = Modifier
@@ -115,32 +115,30 @@
                                         if (bitmap != null && containerSize.width > 0 && containerSize.height > 0) {
                                             // Update scale
                                             scale = (scale * zoom).coerceIn(1f, 5f)
-    
-                                            // --- 1. Calculate Crop Box Size ---
+
                                             // We duplicate the logic used in Canvas to know the strict limits
                                             val canvasW = containerSize.width
                                             val canvasH = containerSize.height
                                             val margin = 20f * density.density
                                             val maxRectWidth = canvasW - (margin * 2)
                                             val maxRectHeight = canvasH - (margin * 2)
-    
+
                                             var cropW = maxRectWidth
                                             var cropH = maxRectWidth / targetRatio
-    
+
                                             if (cropH > maxRectHeight) {
                                                 cropH = maxRectHeight
                                                 cropW = cropH * targetRatio
                                             }
-    
-                                            // --- 2. Calculate Image Size ---
+
                                             val imageWidth = bitmap.width.toFloat()
                                             val imageHeight = bitmap.height.toFloat()
                                             val srcRatio = imageWidth / imageHeight
                                             val dstRatio = canvasW / canvasH
-    
+
                                             val baseWidth: Float
                                             val baseHeight: Float
-    
+
                                             // Initial "fit" logic
                                             if (srcRatio > dstRatio) {
                                                 baseWidth = canvasW
@@ -149,21 +147,19 @@
                                                 baseHeight = canvasH
                                                 baseWidth = canvasH * srcRatio
                                             }
-    
+
                                             val scaledWidth = baseWidth * scale
                                             val scaledHeight = baseHeight * scale
-    
-                                            // --- 3. Calculate Limits relative to the CROP BOX ---
+
                                             // The image edge should not go inside the crop box edge
                                             // Limit = (ImageDimension - CropDimension) / 2
                                             // If image is smaller than crop box, limit is 0 (locked to center)
                                             val maxOffsetX = (scaledWidth - cropW) / 2f
                                             val maxOffsetY = (scaledHeight - cropH) / 2f
-    
+
                                             val limitX = max(0f, maxOffsetX)
                                             val limitY = max(0f, maxOffsetY)
-    
-                                            // --- 4. Apply ---
+
                                             offsetX = (offsetX + pan.x).coerceIn(-limitX, limitX)
                                             offsetY = (offsetY + pan.y).coerceIn(-limitY, limitY)
                                         }
@@ -172,28 +168,27 @@
                         ) {
                             if (bitmap != null) {
                                 val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
-    
+
                                 Canvas(modifier = Modifier.fillMaxSize()) {
                                     val canvasWidth = size.width
                                     val canvasHeight = size.height
-    
+
                                     // Calculate crop rectangle size
                                     val margin = 20.dp.toPx()
                                     val maxRectWidth = canvasWidth - (margin * 2)
                                     val maxRectHeight = canvasHeight - (margin * 2)
-    
+
                                     var drawRectWidth = maxRectWidth
                                     var drawRectHeight = maxRectWidth / targetRatio
-    
+
                                     if (drawRectHeight > maxRectHeight) {
                                         drawRectHeight = maxRectHeight
                                         drawRectWidth = drawRectHeight * targetRatio
                                     }
-    
+
                                     val rectLeft = (canvasWidth - drawRectWidth) / 2f
                                     val rectTop = (canvasHeight - drawRectHeight) / 2f
-    
-                                    // --- 1. DRAW IMAGE ---
+
                                     withTransform({
                                         val px = canvasWidth / 2f
                                         val py = canvasHeight / 2f
@@ -204,10 +199,10 @@
                                         val imageHeight = imageBitmap.height.toFloat()
                                         val srcRatio = imageWidth / imageHeight
                                         val dstRatio = canvasWidth / canvasHeight
-    
+
                                         val imgDrawWidth: Float
                                         val imgDrawHeight: Float
-    
+
                                         if (srcRatio > dstRatio) {
                                             imgDrawWidth = canvasWidth
                                             imgDrawHeight = canvasWidth / srcRatio
@@ -215,31 +210,30 @@
                                             imgDrawHeight = canvasHeight
                                             imgDrawWidth = canvasHeight * srcRatio
                                         }
-    
+
                                         val left = (canvasWidth - imgDrawWidth) / 2f
                                         val top = (canvasHeight - imgDrawHeight) / 2f
-    
+
                                         drawImage(
                                             image = imageBitmap,
                                             dstOffset = androidx.compose.ui.unit.IntOffset(left.toInt(), top.toInt()),
                                             dstSize = androidx.compose.ui.unit.IntSize(imgDrawWidth.toInt(), imgDrawHeight.toInt())
                                         )
                                     }
-    
-                                    // --- 2. DRAW OVERLAY ---
+
                                     val overlayPath = Path().apply {
                                         addRect(Rect(0f, 0f, canvasWidth, canvasHeight))
                                     }
                                     val cropPath = Path().apply {
                                         addRect(Rect(rectLeft, rectTop, rectLeft + drawRectWidth, rectTop + drawRectHeight))
                                     }
-    
+
                                     val finalPath = Path.combine(
                                         operation = PathOperation.Difference,
                                         path1 = overlayPath,
                                         path2 = cropPath
                                     )
-    
+
                                     // Dark scrim for outside area
                                     drawPath(path = finalPath, color = Color.Black.copy(alpha = 0.6f))
                                     // White frame for crop area
@@ -247,9 +241,9 @@
                                 }
                             }
                         }
-    
+
                         Spacer(Modifier.height(24.dp))
-    
+
                         // Zoom Slider
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -273,9 +267,9 @@
                                 Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary)
                             }
                         }
-    
+
                         Spacer(Modifier.height(16.dp))
-    
+
                         // Buttons
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                             TextButton(
@@ -292,34 +286,34 @@
                                         isSaving = true
                                         scope.launch(Dispatchers.Default) {
                                             val size = containerSize
-    
+
                                             // Re-calculate the exact rect for cropping
                                             val canvasW = size.width
                                             val canvasH = size.height
                                             val margin = 20f * density.density
                                             val maxRectWidth = canvasW - (margin * 2)
                                             val maxRectHeight = canvasH - (margin * 2)
-    
+
                                             var rectW = maxRectWidth
                                             var rectH = maxRectWidth / targetRatio
-    
+
                                             if (rectH > maxRectHeight) {
                                                 rectH = maxRectHeight
                                                 rectW = rectH * targetRatio
                                             }
-    
+
                                             val cx = canvasW / 2f
                                             val cy = canvasH / 2f
-    
+
                                             val cropRect = RectF(
                                                 cx - rectW / 2f,
                                                 cy - rectH / 2f,
                                                 cx + rectW / 2f,
                                                 cy + rectH / 2f
                                             )
-    
+
                                             val state = ImageState(scale, offsetX, offsetY)
-    
+
                                             val result = BitmapUtils.cropBitmap(
                                                 source = bitmap,
                                                 cropRect = cropRect,
@@ -329,7 +323,7 @@
                                                 targetWidth = 1240,
                                                 targetHeight = 260
                                             )
-    
+
                                             withContext(Dispatchers.Main) {
                                                 onSave(result)
                                             }
@@ -358,5 +352,4 @@
             }
         }
     }
-
 

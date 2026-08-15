@@ -568,7 +568,6 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        // 7. Description
         track.description?.let { desc ->
             if (desc.isNotBlank()) {
                 item {

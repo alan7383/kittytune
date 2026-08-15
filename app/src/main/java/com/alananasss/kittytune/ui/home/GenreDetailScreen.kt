@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import android.net.Uri
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
@@ -37,7 +37,7 @@ import androidx.compose.material.icons.rounded.Check
     import com.alananasss.kittytune.ui.profile.SquareCard
     import com.alananasss.kittytune.ui.profile.SectionTitle
     import java.util.Locale
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun GenreDetailScreen(
@@ -50,11 +50,11 @@ import androidx.compose.material.icons.rounded.Check
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
         var showCountrySelector by remember { mutableStateOf(false) }
-    
+
         LaunchedEffect(genreName, genreQuery) {
             viewModel.loadData(genreName, genreQuery)
         }
-    
+
         if (showCountrySelector) {
             com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { showCountrySelector = false },
@@ -81,7 +81,7 @@ import androidx.compose.material.icons.rounded.Check
                 }
             }
         }
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -148,7 +148,7 @@ import androidx.compose.material.icons.rounded.Check
                             }
                         }
                     }
-    
+
                     // section 2: official playlists - conditional
                     if (viewModel.officialPlaylists.isNotEmpty()) {
                         item {
@@ -183,7 +183,7 @@ import androidx.compose.material.icons.rounded.Check
                             }
                         }
                     }
-    
+
                     // section 3: community playlists
                     if (viewModel.communityPlaylists.isNotEmpty()) {
                         item {
@@ -208,7 +208,7 @@ import androidx.compose.material.icons.rounded.Check
                             }
                         }
                     }
-    
+
                     // section 4: albums
                     if (viewModel.albums.isNotEmpty()) {
                         item { SectionTitle(stringResource(R.string.profile_tab_albums)) }
@@ -227,7 +227,7 @@ import androidx.compose.material.icons.rounded.Check
             }
         }
     }
-    
+
     @Composable
     fun PopularTrackListItem(
         track: Track,
@@ -237,7 +237,7 @@ import androidx.compose.material.icons.rounded.Check
     ) {
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-    
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -256,7 +256,7 @@ import androidx.compose.material.icons.rounded.Check
                         .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
                 )
-    
+
                 if (isCurrent) {
                     Box(
                         modifier = Modifier
@@ -274,7 +274,7 @@ import androidx.compose.material.icons.rounded.Check
                     }
                 }
             }
-    
+
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -293,7 +293,7 @@ import androidx.compose.material.icons.rounded.Check
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-    
+
             // options icon
             IconButton(onClick = onOptionClick) {
                 Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.btn_options))
@@ -310,7 +310,6 @@ import androidx.compose.material.icons.rounded.Check
             else -> count.toString()
         }
     }
-
 
 @Composable
 private fun CountrySelectionCard(

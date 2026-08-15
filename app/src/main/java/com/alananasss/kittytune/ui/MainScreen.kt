@@ -462,7 +462,7 @@ fun MainScreen(
         ) { _ ->
             val allTabKeys = listOf("home", "search", "genres", "library")
             val bottomNavItemsKeys = prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems()).value
-            
+
             val tabs = allTabKeys.mapNotNull { key ->
                 val screen = when (key) {
                     "home" -> Screen.Home
@@ -471,7 +471,7 @@ fun MainScreen(
                     "library" -> Screen.Library
                     else -> null
                 } ?: return@mapNotNull null
-                
+
                 KittyTab(
                     title = stringResource(screen.titleResId),
                     icon = screen.icon ?: Icons.Rounded.Home,
@@ -957,7 +957,7 @@ fun MainScreen(
                             }
                         )
                     }
-    
+
                     clippedComposable(
                         route = "chat/{conversationId}/{otherUserId}/{username}",
                         arguments = listOf(
@@ -1148,7 +1148,6 @@ fun MainScreen(
                         )
                     }
 
-
                 }
 
                 androidx.compose.animation.AnimatedVisibility(
@@ -1233,7 +1232,6 @@ fun MainScreen(
         }
     }
 
-
         AnimatedVisibility(
             visible = playerViewModel.isPlayerExpanded,
             enter = slideInVertically(
@@ -1251,7 +1249,6 @@ fun MainScreen(
                 onClose = { playerViewModel.isPlayerExpanded = false }
             )
         }
-
 
         AnimatedVisibility(
             visible = playerViewModel.showLyricsSheet,

@@ -20,6 +20,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.*
 import androidx.compose.foundation.text.*
 import androidx.compose.material.icons.Icons
@@ -49,6 +51,7 @@ import com.alananasss.kittytune.ui.common.WindowSizeInfo
 import com.alananasss.kittytune.ui.common.WindowHeightSizeClass
 import com.alananasss.kittytune.ui.common.viewableCover
 import com.alananasss.kittytune.ui.common.rememberWindowSizeInfo
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.local.LyricsAlignment
@@ -67,6 +70,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
 import kotlinx.coroutines.*
+import kotlin.math.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import android.view.ViewConfiguration
@@ -850,7 +854,6 @@ fun NewPlayerScreen(
                                     }
                                 }
                             } else {
-                                // Stylized container (Card) only for the artwork
                                 Box(
                                     modifier = Modifier
                                         .padding(24.dp)
@@ -1475,7 +1478,6 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     }
 }
 
-
 @Composable
 fun AddToPlaylistContent(viewModel: PlayerViewModel) {
     val singleTrack = viewModel.trackForMenu ?: viewModel.currentTrack
@@ -1609,7 +1611,6 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Active timer banner
                 if (viewModel.isSleepTimerActive) {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -1663,7 +1664,6 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
                     Spacer(Modifier.height(16.dp))
                 }
 
-                // Duration display
                 Text(
                     text = stringResource(R.string.sleep_timer_slider_minutes, selectedMinutes),
                     style = MaterialTheme.typography.headlineMedium,
@@ -1715,7 +1715,6 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
 
                 Spacer(Modifier.height(16.dp))
 
-                // Quick pick chips
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1734,7 +1733,6 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
-                    // End of track chip
                     FilterChip(
                         selected = viewModel.sleepTimerEndOfTrack,
                         onClick = { viewModel.startSleepTimerEndOfTrack() },
@@ -1748,7 +1746,6 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    // Custom chip
                     FilterChip(
                         selected = showCustomInput,
                         onClick = { showCustomInput = !showCustomInput },
@@ -1763,7 +1760,6 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
                     )
                 }
 
-                // Custom input
                 AnimatedVisibility(
                     visible = showCustomInput,
                     enter = fadeIn(),
@@ -2078,7 +2074,6 @@ fun PlayerControls(
     val sideButtonContentColor = contentColorOverride
 
     Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        // Main playback controls row (full width, Metrolist style)
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
@@ -2116,7 +2111,6 @@ fun PlayerControls(
                 label = "nextButtonWeight"
             )
 
-            // Previous button
             Box(
                 modifier = Modifier
                     .height(68.dp)
@@ -2134,7 +2128,6 @@ fun PlayerControls(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Play/Pause button
             Box(
                 modifier = Modifier
                     .height(68.dp)
@@ -2193,7 +2186,6 @@ fun PlayerControls(
 
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Next button
             Box(
                 modifier = Modifier
                     .height(68.dp)
@@ -2210,13 +2202,11 @@ fun PlayerControls(
             }
         }
 
-        // Secondary controls row (effects + queue) — M3 Expressive pill pair
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left pill pair: effects + shuffle
             val leftStartShape = RoundedCornerShape(
                 topStart = 50.dp, bottomStart = 50.dp,
                 topEnd = 3.dp, bottomEnd = 3.dp
@@ -2261,7 +2251,6 @@ fun PlayerControls(
                 }
             }
 
-            // Right pill pair: repeat + queue
             val rightStartShape = RoundedCornerShape(
                 topStart = 50.dp, bottomStart = 50.dp,
                 topEnd = 3.dp, bottomEnd = 3.dp
@@ -2314,7 +2303,6 @@ fun PlayerControls(
     }
 }
 
-
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AudioControlDock(viewModel: PlayerViewModel) {
@@ -2322,9 +2310,85 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     val isPrecise = viewModel.isPreciseSpeedEnabled
     var showRainVolumeDialog by remember { mutableStateOf(false) }
     var showBassBoostDialog by remember { mutableStateOf(false) }
+    var showEarrapeDialog by remember { mutableStateOf(false) }
+    var showEarrapeWarning by remember { mutableStateOf(false) }
     var showEightDDialog by remember { mutableStateOf(false) }
     var showMuffledDialog by remember { mutableStateOf(false) }
     var showReverbDialog by remember { mutableStateOf(false) }
+    var showNormalizationDialog by remember { mutableStateOf(false) }
+    var showVintageMp3Dialog by remember { mutableStateOf(false) }
+    var showVocalRemoverDialog by remember { mutableStateOf(false) }
+    var showVocalBoostDialog by remember { mutableStateOf(false) }
+    var showFlangerDialog by remember { mutableStateOf(false) }
+    var showPartyNextDoorDialog by remember { mutableStateOf(false) }
+    var showSuperWideDialog by remember { mutableStateOf(false) }
+    var showVinylLoFiDialog by remember { mutableStateOf(false) }
+    var showPhaserDialog by remember { mutableStateOf(false) }
+    var showMegaphoneDialog by remember { mutableStateOf(false) }
+    var showRobotVocoderDialog by remember { mutableStateOf(false) }
+    var showChorusDialog by remember { mutableStateOf(false) }
+    var showUnderwaterDialog by remember { mutableStateOf(false) }
+    var showTranceGateDialog by remember { mutableStateOf(false) }
+    var showPingPongDelayDialog by remember { mutableStateOf(false) }
+    var showChiptuneDialog by remember { mutableStateOf(false) }
+    var showShimmerReverbDialog by remember { mutableStateOf(false) }
+    var showRotarySpeakerDialog by remember { mutableStateOf(false) }
+    var showTapeSaturationDialog by remember { mutableStateOf(false) }
+    var showSubOctaverDialog by remember { mutableStateOf(false) }
+    var showEmptyMallDialog by remember { mutableStateOf(false) }
+    var showGramophoneDialog by remember { mutableStateOf(false) }
+    var showReverseEchoDialog by remember { mutableStateOf(false) }
+    var showStadiumDialog by remember { mutableStateOf(false) }
+    var showWalkmanDialog by remember { mutableStateOf(false) }
+    var showAsmrVocalDialog by remember { mutableStateOf(false) }
+    var showNightDriveDialog by remember { mutableStateOf(false) }
+    var showStudioEditSheet by remember { mutableStateOf(false) }
+
+    val allEffects = getAudioFxDefinitions(
+        onOpenBassBoostDialog = { showBassBoostDialog = true },
+        onOpenEarrapeDialog = { showEarrapeDialog = true },
+        onOpenEightDDialog = { showEightDDialog = true },
+        onOpenMuffledDialog = { showMuffledDialog = true },
+        onOpenReverbDialog = { showReverbDialog = true },
+        onOpenRainDialog = { showRainVolumeDialog = true },
+        onOpenNormalizationDialog = { showNormalizationDialog = true },
+        onOpenVintageMp3Dialog = { showVintageMp3Dialog = true },
+        onOpenVocalRemoverDialog = { showVocalRemoverDialog = true },
+        onOpenVocalBoostDialog = { showVocalBoostDialog = true },
+        onOpenFlangerDialog = { showFlangerDialog = true },
+        onOpenPartyNextDoorDialog = { showPartyNextDoorDialog = true },
+        onOpenSuperWideDialog = { showSuperWideDialog = true },
+        onOpenVinylLoFiDialog = { showVinylLoFiDialog = true },
+        onOpenPhaserDialog = { showPhaserDialog = true },
+        onOpenMegaphoneDialog = { showMegaphoneDialog = true },
+        onOpenRobotVocoderDialog = { showRobotVocoderDialog = true },
+        onOpenChorusDialog = { showChorusDialog = true },
+        onOpenUnderwaterDialog = { showUnderwaterDialog = true },
+        onOpenTranceGateDialog = { showTranceGateDialog = true },
+        onOpenPingPongDelayDialog = { showPingPongDelayDialog = true },
+        onOpenChiptuneDialog = { showChiptuneDialog = true },
+        onOpenShimmerReverbDialog = { showShimmerReverbDialog = true },
+        onOpenRotarySpeakerDialog = { showRotarySpeakerDialog = true },
+        onOpenTapeSaturationDialog = { showTapeSaturationDialog = true },
+        onOpenSubOctaverDialog = { showSubOctaverDialog = true },
+        onOpenEmptyMallDialog = { showEmptyMallDialog = true },
+        onOpenGramophoneDialog = { showGramophoneDialog = true },
+        onOpenReverseEchoDialog = { showReverseEchoDialog = true },
+        onOpenStadiumDialog = { showStadiumDialog = true },
+        onOpenWalkmanDialog = { showWalkmanDialog = true },
+        onOpenAsmrVocalDialog = { showAsmrVocalDialog = true },
+        onOpenNightDriveDialog = { showNightDriveDialog = true },
+        onShowEarrapeWarning = { showEarrapeWarning = true }
+    )
+
+    val pinnedTiles = remember(viewModel.pinnedAudioFx, allEffects) {
+        viewModel.pinnedAudioFx.mapNotNull { id -> allEffects.find { it.id == id } }
+    }
+    val pages = remember(pinnedTiles) {
+        if (pinnedTiles.isEmpty()) emptyList() else pinnedTiles.chunked(6)
+    }
+    val pagerState = rememberPagerState(pageCount = { max(1, pages.size) })
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -2408,104 +2472,270 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
             modifier = Modifier.fillMaxWidth()
         )
         }
-        Spacer(Modifier.height(32.dp)); Text(
-        stringResource(R.string.player_special_effects),
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 16.dp, start = 4.dp)
-    )
-        FlowRow(
-            maxItemsInEachRow = 2,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
+        Spacer(Modifier.height(28.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 14.dp, start = 4.dp, end = 4.dp)
         ) {
-            val itemModifier = Modifier.weight(1f).fillMaxWidth()
-            FxTile(
-                stringResource(R.string.effect_bass_boost),
-                Icons.Rounded.Bolt,
-                viewModel.effectsState.isBassBoostEnabled,
-                { viewModel.toggleBassBoost() },
-                { showBassBoostDialog = true },
-                itemModifier
+            Text(
+                stringResource(R.string.player_special_effects),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            FxTile(
-                stringResource(R.string.effect_8d),
-                Icons.Rounded.SurroundSound,
-                viewModel.effectsState.is8DEnabled,
-                { viewModel.toggle8D() },
-                { showEightDDialog = true },
-                itemModifier,
-                MaterialTheme.colorScheme.tertiary,
-                MaterialTheme.colorScheme.onTertiary
-            )
-            FxTile(
-                stringResource(R.string.effect_muffled),
-                Icons.Rounded.BlurOn,
-                viewModel.effectsState.isMuffledEnabled,
-                { viewModel.toggleMuffled() },
-                { showMuffledDialog = true },
-                itemModifier,
-                MaterialTheme.colorScheme.secondary,
-                MaterialTheme.colorScheme.onSecondary
-            )
-            FxTile(
-                stringResource(R.string.effect_reverb),
-                Icons.Rounded.GraphicEq,
-                viewModel.effectsState.isReverbEnabled,
-                { viewModel.toggleReverb() },
-                { showReverbDialog = true },
-                itemModifier
-            )
-            FxTile(
-                stringResource(R.string.effect_rain),
-                Icons.Rounded.WaterDrop,
-                viewModel.effectsState.isRainEnabled,
-                { viewModel.toggleRain() },
-                { showRainVolumeDialog = true },
-                itemModifier,
-                Color(0xFF81D4FA),
-                Color(0xFF004BA0)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                stringResource(R.string.audio_fx_long_press_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
             )
         }
+        if (pages.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.edit_tiles_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            val rowHeightDp = 84.dp
+            val rowSpacingDp = 12.dp
+
+            val calculatePageHeight: (Int) -> Dp = { pageIdx ->
+                val itemsCount = pages.getOrNull(pageIdx)?.size ?: 0
+                if (itemsCount == 0) 0.dp else {
+                    val rows = (itemsCount + 1) / 2
+                    rowHeightDp * rows + rowSpacingDp * (rows - 1)
+                }
+            }
+
+            val currentPage = pagerState.currentPage
+            val offsetFraction = pagerState.currentPageOffsetFraction
+            val targetPage = if (offsetFraction > 0f) {
+                (currentPage + 1).coerceAtMost(pages.lastIndex)
+            } else if (offsetFraction < 0f) {
+                (currentPage - 1).coerceAtLeast(0)
+            } else {
+                currentPage
+            }
+
+            val currentHeight = calculatePageHeight(currentPage)
+            val targetHeight = calculatePageHeight(targetPage)
+            val fraction = abs(offsetFraction).coerceIn(0f, 1f)
+            val pagerHeight = currentHeight + (targetHeight - currentHeight) * fraction
+
+            HorizontalPager(
+                state = pagerState,
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(pagerHeight)
+            ) { pageIndex ->
+                val pageItems = pages.getOrElse(pageIndex) { emptyList() }
+                val pageOffset = abs((pagerState.currentPage - pageIndex) + pagerState.currentPageOffsetFraction)
+                val pageAlpha = (1f - pageOffset * 0.35f).coerceIn(0f, 1f)
+                val pageScale = (1f - pageOffset * 0.04f).coerceIn(0.95f, 1f)
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer {
+                            alpha = pageAlpha
+                            scaleX = pageScale
+                            scaleY = pageScale
+                        }
+                ) {
+                    pageItems.chunked(2).forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowItems.forEach { fx ->
+                                FxTile(
+                                    label = stringResource(fx.titleRes),
+                                    icon = fx.icon,
+                                    isActive = fx.isActive(viewModel.effectsState),
+                                    onClick = { fx.onToggle(viewModel) { showEarrapeWarning = true } },
+                                    onLongClick = fx.onOpenDialog,
+                                    modifier = if (rowItems.size == 1) Modifier.fillMaxWidth() else Modifier.weight(1f),
+                                    activeColor = fx.activeColor(),
+                                    activeContentColor = fx.activeContentColor()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (pages.size > 1) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(pages.size) { iteration ->
+                        val isSelected = pagerState.currentPage == iteration
+                        val indicatorWidth by animateDpAsState(
+                            targetValue = if (isSelected) 22.dp else 6.dp,
+                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+                            label = "indicatorWidth"
+                        )
+                        val indicatorColor by animateColorAsState(
+                            targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            animationSpec = tween(200),
+                            label = "indicatorColor"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 3.dp)
+                                .height(6.dp)
+                                .width(indicatorWidth)
+                                .clip(CircleShape)
+                                .background(indicatorColor)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+        OutlinedButton(
+            onClick = { showStudioEditSheet = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Rounded.DashboardCustomize,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = stringResource(R.string.btn_explore_all_effects),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(26.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "${pinnedTiles.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(32.dp))
         if (showRainVolumeDialog) {
             AlertDialog(
                 onDismissRequest = { showRainVolumeDialog = false },
                 icon = { Icon(Icons.Rounded.WaterDrop, null) },
-                title = { Text(stringResource(R.string.effect_rain)) },
+                title = { Text(stringResource(R.string.effect_ambient_sound)) },
                 text = {
                     Column {
+                        val currentType = viewModel.effectsState.ambientType
+                        val volume = viewModel.effectsState.rainVolume
+
+                        val rainLabel = stringResource(R.string.ambient_rain)
+                        val fireLabel = stringResource(R.string.ambient_fireplace)
+                        val oceanLabel = stringResource(R.string.ambient_ocean)
+                        val cafeLabel = stringResource(R.string.ambient_cafe)
+
+                        val ambientOptions = remember(rainLabel, fireLabel, oceanLabel, cafeLabel) {
+                            listOf(
+                                "rain" to rainLabel,
+                                "fireplace" to fireLabel,
+                                "ocean" to oceanLabel,
+                                "cafe" to cafeLabel
+                            )
+                        }
+                        val selectedOption = ambientOptions.firstOrNull { it.first == currentType } ?: ambientOptions.first()
+
+                        ExpressiveConnectedButtonGroup(
+                            options = ambientOptions,
+                            selectedOption = selectedOption,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (type, _) ->
+                                viewModel.setAmbientType(type)
+                                if (!viewModel.effectsState.isRainEnabled) viewModel.toggleRain()
+                            },
+                            labelProvider = { (_, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
                         Text(
-                            stringResource(
-                                R.string.label_volume,
-                                (viewModel.effectsState.rainVolume * 100).toInt()
-                            ),
+                            stringResource(R.string.label_ambient_volume, (volume * 100).toInt()),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
-                        ); Spacer(Modifier.height(16.dp)); Slider(
-                        value = viewModel.effectsState.rainVolume,
-                        onValueChange = { viewModel.setRainVolume(it); if (!viewModel.effectsState.isRainEnabled) viewModel.toggleRain() },
-                        valueRange = 0f..1f
-                    )
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = volume,
+                            onValueChange = {
+                                viewModel.setRainVolume(it)
+                                if (!viewModel.effectsState.isRainEnabled) viewModel.toggleRain()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_ambient_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        showRainVolumeDialog = false
-                    }) { Text(stringResource(R.string.btn_ok)) }
-                })
+                    TextButton(onClick = { showRainVolumeDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
         }
         if (showBassBoostDialog) {
-            var showEarrapeWarning by remember { mutableStateOf(false) }
             AlertDialog(
                 onDismissRequest = { showBassBoostDialog = false },
                 icon = { Icon(Icons.Rounded.Bolt, null) },
                 title = { Text(stringResource(R.string.effect_bass_boost)) },
                 text = {
                     Column {
-                        val isEarrape = viewModel.effectsState.isEarrapeEnabled
                         Text(
                             stringResource(
                                 R.string.label_intensity,
@@ -2517,56 +2747,44 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                         Spacer(Modifier.height(16.dp))
                         Slider(
                             value = viewModel.effectsState.bassBoostIntensity,
-                            onValueChange = { viewModel.setBassBoostIntensity(it); if (!viewModel.effectsState.isBassBoostEnabled) viewModel.toggleBassBoost() },
-                            valueRange = 0f..1f
-                        )
-                        Spacer(Modifier.height(24.dp))
-
-                        val iconScale by animateFloatAsState(
-                            targetValue = if (isEarrape) 1.25f else 1f,
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioHighBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ), label = "earrapeIconScale"
-                        )
-
-                        FilledTonalButton(
-                            onClick = {
-                                if (!viewModel.hasSeenEarrapeWarning()) {
-                                    showEarrapeWarning = true
-                                } else {
-                                    viewModel.toggleEarrape()
-                                }
+                            onValueChange = {
+                                viewModel.setBassBoostIntensity(it)
+                                if (!viewModel.effectsState.isBassBoostEnabled) viewModel.toggleBassBoost()
                             },
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .height(48.dp)
-                                .padding(horizontal = 8.dp),
-                            shapes = ButtonDefaults.shapes(),
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = if (isEarrape) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.errorContainer.copy(
-                                    alpha = 0.5f
-                                ),
-                                contentColor = if (isEarrape) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(
-                                imageVector = if (isEarrape) Icons.Rounded.VolumeUp else Icons.Rounded.VolumeOff,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .graphicsLayer {
-                                        scaleX = iconScale
-                                        scaleY = iconScale
-                                    }
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.btn_earrape),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.ExtraBold
+                            valueRange = 0f..5.0f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val presets = remember {
+                            listOf(
+                                0.5f to "50%",
+                                1.0f to "100%",
+                                2.0f to "200%",
+                                5.0f to "500%"
                             )
                         }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - viewModel.effectsState.bassBoostIntensity) < 0.05f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (value, _) ->
+                                viewModel.setBassBoostIntensity(value)
+                                if (!viewModel.effectsState.isBassBoostEnabled) viewModel.toggleBassBoost()
+                            },
+                            labelProvider = { (_, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 },
                 confirmButton = {
@@ -2575,41 +2793,118 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                     }) { Text(stringResource(R.string.btn_ok)) }
                 }
             )
-            if (showEarrapeWarning) {
-                var countdown by remember { mutableStateOf(5) }
-                LaunchedEffect(Unit) {
-                    while (countdown > 0) {
-                        delay(1000)
-                        countdown--
-                    }
-                }
-                AlertDialog(
-                    onDismissRequest = { showEarrapeWarning = false },
-                    title = { Text(stringResource(R.string.warning_title)) },
-                    text = { Text(stringResource(R.string.earrape_warning)) },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.setHasSeenEarrapeWarning(true)
-                                viewModel.toggleEarrape()
-                                showEarrapeWarning = false
+        }
+        if (showEarrapeDialog) {
+            AlertDialog(
+                onDismissRequest = { showEarrapeDialog = false },
+                icon = { Icon(Icons.AutoMirrored.Rounded.VolumeUp, null) },
+                title = { Text(stringResource(R.string.btn_earrape)) },
+                text = {
+                    Column {
+                        Text(
+                            stringResource(
+                                R.string.label_intensity,
+                                (viewModel.effectsState.earrapeIntensity * 100).toInt()
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Slider(
+                            value = viewModel.effectsState.earrapeIntensity,
+                            onValueChange = {
+                                viewModel.setEarrapeIntensity(it)
+                                if (!viewModel.effectsState.isEarrapeEnabled) {
+                                    if (!viewModel.hasSeenEarrapeWarning()) {
+                                        showEarrapeWarning = true
+                                    } else {
+                                        viewModel.toggleEarrape()
+                                    }
+                                }
                             },
-                            enabled = countdown == 0
-                        ) {
-                            Text(
-                                if (countdown > 0) "${stringResource(R.string.btn_ok)} (${countdown}s)" else stringResource(
-                                    R.string.btn_ok
-                                )
+                            valueRange = 0f..5.0f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val presets = remember {
+                            listOf(
+                                0.5f to "50%",
+                                1.0f to "100%",
+                                2.0f to "200%",
+                                5.0f to "500%"
                             )
                         }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            showEarrapeWarning = false
-                        }) { Text(stringResource(R.string.btn_cancel)) }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - viewModel.effectsState.earrapeIntensity) < 0.05f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (value, _) ->
+                                viewModel.setEarrapeIntensity(value)
+                                if (!viewModel.effectsState.isEarrapeEnabled) {
+                                    if (!viewModel.hasSeenEarrapeWarning()) {
+                                        showEarrapeWarning = true
+                                    } else {
+                                        viewModel.toggleEarrape()
+                                    }
+                                }
+                            },
+                            labelProvider = { (_, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
-                )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showEarrapeDialog = false
+                    }) { Text(stringResource(R.string.btn_ok)) }
+                }
+            )
+        }
+        if (showEarrapeWarning) {
+            var countdown by remember { mutableStateOf(5) }
+            LaunchedEffect(Unit) {
+                while (countdown > 0) {
+                    delay(1000)
+                    countdown--
+                }
             }
+            AlertDialog(
+                onDismissRequest = { showEarrapeWarning = false },
+                title = { Text(stringResource(R.string.warning_title)) },
+                text = { Text(stringResource(R.string.earrape_warning)) },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.setHasSeenEarrapeWarning(true)
+                            viewModel.toggleEarrape()
+                            showEarrapeWarning = false
+                        },
+                        enabled = countdown == 0
+                    ) {
+                        Text(
+                            if (countdown > 0) "${stringResource(R.string.btn_ok)} (${countdown}s)" else stringResource(
+                                R.string.btn_ok
+                            )
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showEarrapeWarning = false
+                    }) { Text(stringResource(R.string.btn_cancel)) }
+                }
+            )
         }
         if (showEightDDialog) {
             AlertDialog(
@@ -2691,6 +2986,2523 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                         showReverbDialog = false
                     }) { Text(stringResource(R.string.btn_ok)) }
                 })
+        }
+        if (showNormalizationDialog) {
+            AlertDialog(
+                onDismissRequest = { showNormalizationDialog = false },
+                icon = { Icon(Icons.Rounded.VolumeDown, null) },
+                title = { Text(stringResource(R.string.pref_norm_title)) },
+                text = {
+                    Column {
+                        Text(
+                            stringResource(R.string.pref_norm_sub),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val normOptions = remember {
+                            listOf(
+                                NormalizationLevel.QUIET to R.string.pref_norm_level_quiet,
+                                NormalizationLevel.NORMAL to R.string.pref_norm_level_normal,
+                                NormalizationLevel.LOUD to R.string.pref_norm_level_loud
+                            )
+                        }
+                        val selectedNormOption = normOptions.firstOrNull { it.first == viewModel.effectsState.normalizationLevel }
+                        ExpressiveConnectedButtonGroup(
+                            options = normOptions,
+                            selectedOption = selectedNormOption,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (level, _) ->
+                                viewModel.setNormalizationLevel(level)
+                                if (!viewModel.effectsState.isNormalizationEnabled) {
+                                    viewModel.toggleNormalization()
+                                }
+                            },
+                            labelProvider = { (_, labelRes) ->
+                                Text(
+                                    text = stringResource(labelRes),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showNormalizationDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showVintageMp3Dialog) {
+            AlertDialog(
+                onDismissRequest = { showVintageMp3Dialog = false },
+                icon = { Icon(Icons.Rounded.Radio, null) },
+                title = { Text(stringResource(R.string.effect_vintage_mp3)) },
+                text = {
+                    Column {
+                        val compression = viewModel.effectsState.vintageMp3Compression
+                        val percent = (compression * 100).toInt()
+                        val bitrateDesc = when {
+                            compression < 0.15f -> "128 kbps"
+                            compression < 0.40f -> "64 kbps"
+                            compression < 0.65f -> "32 kbps"
+                            compression < 0.90f -> "16 kbps"
+                            else -> "8 kbps"
+                        }
+                        Text(
+                            stringResource(R.string.label_vintage_mp3_compression, percent, bitrateDesc),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Slider(
+                            value = compression,
+                            onValueChange = {
+                                viewModel.setVintageMp3Compression(it)
+                                if (!viewModel.effectsState.isVintageMp3Enabled) {
+                                    viewModel.toggleVintageMp3()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val presets = remember {
+                            listOf(
+                                0.25f to "64k",
+                                0.50f to "32k",
+                                0.75f to "16k",
+                                1.00f to "8k"
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - compression) < 0.12f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (value, _) ->
+                                viewModel.setVintageMp3Compression(value)
+                                if (!viewModel.effectsState.isVintageMp3Enabled) {
+                                    viewModel.toggleVintageMp3()
+                                }
+                            },
+                            labelProvider = { (_, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.fx_vintage_mp3_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showVintageMp3Dialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showVocalRemoverDialog) {
+            AlertDialog(
+                onDismissRequest = { showVocalRemoverDialog = false },
+                icon = { Icon(Icons.Rounded.MicOff, null) },
+                title = { Text(stringResource(R.string.effect_vocal_remover)) },
+                text = {
+                    Column {
+                        val level = viewModel.effectsState.vocalRemoverLevel
+                        val percent = (level * 100).toInt()
+                        Text(
+                            stringResource(R.string.label_vocal_remover_level, percent),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Slider(
+                            value = level,
+                            onValueChange = {
+                                viewModel.setVocalRemoverLevel(it)
+                                if (!viewModel.effectsState.isVocalRemoverEnabled) {
+                                    viewModel.toggleVocalRemover()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val presets = remember {
+                            listOf(
+                                0.50f to "50%",
+                                0.80f to "80%",
+                                1.00f to "100%"
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - level) < 0.05f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (value, _) ->
+                                viewModel.setVocalRemoverLevel(value)
+                                if (!viewModel.effectsState.isVocalRemoverEnabled) {
+                                    viewModel.toggleVocalRemover()
+                                }
+                            },
+                            labelProvider = { (_, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.fx_vocal_remover_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showVocalRemoverDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showVocalBoostDialog) {
+            AlertDialog(
+                onDismissRequest = { showVocalBoostDialog = false },
+                icon = { Icon(Icons.Rounded.RecordVoiceOver, null) },
+                title = { Text(stringResource(R.string.effect_vocal_boost)) },
+                text = {
+                    Column {
+                        val level = viewModel.effectsState.vocalBoostIntensity
+                        val percent = (level * 100).toInt()
+                        Text(
+                            stringResource(R.string.label_vocal_boost_level, percent),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Slider(
+                            value = level,
+                            onValueChange = {
+                                viewModel.setVocalBoostIntensity(it)
+                                if (!viewModel.effectsState.isVocalBoostEnabled) {
+                                    viewModel.toggleVocalBoost()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val presets = remember {
+                            listOf(
+                                0.50f to "50%",
+                                0.75f to "75%",
+                                1.00f to "100%"
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - level) < 0.05f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (value, _) ->
+                                viewModel.setVocalBoostIntensity(value)
+                                if (!viewModel.effectsState.isVocalBoostEnabled) {
+                                    viewModel.toggleVocalBoost()
+                                }
+                            },
+                            labelProvider = { (_, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.fx_vocal_boost_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showVocalBoostDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showFlangerDialog) {
+            AlertDialog(
+                onDismissRequest = { showFlangerDialog = false },
+                icon = { Icon(Icons.Rounded.Air, null) },
+                title = { Text(stringResource(R.string.effect_flanger)) },
+                text = {
+                    Column {
+                        val intensity = viewModel.effectsState.flangerIntensity
+                        val speed = viewModel.effectsState.flangerSpeed
+
+                        Text(
+                            stringResource(R.string.label_flanger_intensity, (intensity * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = intensity,
+                            onValueChange = {
+                                viewModel.setFlangerIntensity(it)
+                                if (!viewModel.effectsState.isFlangerEnabled) {
+                                    viewModel.toggleFlanger()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            stringResource(R.string.label_flanger_speed, (speed * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = speed,
+                            onValueChange = {
+                                viewModel.setFlangerSpeed(it)
+                                if (!viewModel.effectsState.isFlangerEnabled) {
+                                    viewModel.toggleFlanger()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        val slowLabel = stringResource(R.string.preset_flanger_slow)
+                        val classicLabel = stringResource(R.string.preset_flanger_classic)
+                        val turbineLabel = stringResource(R.string.preset_flanger_turbine)
+                        val presets = remember(slowLabel, classicLabel, turbineLabel) {
+                            listOf(
+                                Triple(0.60f, 0.25f, slowLabel),
+                                Triple(0.75f, 0.50f, classicLabel),
+                                Triple(0.95f, 0.85f, turbineLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - intensity) < 0.1f && kotlin.math.abs(it.second - speed) < 0.1f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (presetIntensity, presetSpeed, _) ->
+                                viewModel.setFlangerIntensity(presetIntensity)
+                                viewModel.setFlangerSpeed(presetSpeed)
+                                if (!viewModel.effectsState.isFlangerEnabled) {
+                                    viewModel.toggleFlanger()
+                                }
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.fx_flanger_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showFlangerDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showPartyNextDoorDialog) {
+            AlertDialog(
+                onDismissRequest = { showPartyNextDoorDialog = false },
+                icon = { Icon(Icons.Rounded.MeetingRoom, null) },
+                title = { Text(stringResource(R.string.effect_party_next_door)) },
+                text = {
+                    Column {
+                        val isolation = viewModel.effectsState.partyNextDoorIsolation
+                        val reverb = viewModel.effectsState.partyNextDoorReverb
+                        val rumble = viewModel.effectsState.partyNextDoorBassRumble
+
+                        // 1. Wall Isolation Slider
+                        Text(
+                            stringResource(R.string.label_pnd_isolation, (isolation * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = isolation,
+                            onValueChange = {
+                                viewModel.setPartyNextDoorIsolation(it)
+                                if (!viewModel.effectsState.isPartyNextDoorEnabled) {
+                                    viewModel.togglePartyNextDoor()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        // 2. Room Reverb Slider
+                        Text(
+                            stringResource(R.string.label_pnd_reverb, (reverb * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = reverb,
+                            onValueChange = {
+                                viewModel.setPartyNextDoorReverb(it)
+                                if (!viewModel.effectsState.isPartyNextDoorEnabled) {
+                                    viewModel.togglePartyNextDoor()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        // 3. Bass Rumble Slider
+                        Text(
+                            stringResource(R.string.label_pnd_rumble, (rumble * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = rumble,
+                            onValueChange = {
+                                viewModel.setPartyNextDoorBassRumble(it)
+                                if (!viewModel.effectsState.isPartyNextDoorEnabled) {
+                                    viewModel.togglePartyNextDoor()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val bathroomLabel = stringResource(R.string.preset_pnd_bathroom)
+                        val hallwayLabel = stringResource(R.string.preset_pnd_hallway)
+                        val nextDoorLabel = stringResource(R.string.preset_pnd_next_door)
+                        val presets = remember(bathroomLabel, hallwayLabel, nextDoorLabel) {
+                            listOf(
+                                Triple(0.60f, 0.70f, bathroomLabel),
+                                Triple(0.30f, 0.35f, hallwayLabel),
+                                Triple(0.90f, 0.45f, nextDoorLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - isolation) < 0.1f && kotlin.math.abs(it.second - reverb) < 0.1f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (presetIso, presetRev, _) ->
+                                val targetRumble = when {
+                                    presetIso > 0.8f -> 0.90f
+                                    presetIso < 0.4f -> 0.50f
+                                    else -> 0.70f
+                                }
+                                viewModel.setPartyNextDoorIsolation(presetIso)
+                                viewModel.setPartyNextDoorReverb(presetRev)
+                                viewModel.setPartyNextDoorBassRumble(targetRumble)
+                                if (!viewModel.effectsState.isPartyNextDoorEnabled) {
+                                    viewModel.togglePartyNextDoor()
+                                }
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_party_next_door_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showPartyNextDoorDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showSuperWideDialog) {
+            AlertDialog(
+                onDismissRequest = { showSuperWideDialog = false },
+                icon = { Icon(Icons.Rounded.SurroundSound, null) },
+                title = { Text(stringResource(R.string.effect_super_wide)) },
+                text = {
+                    Column {
+                        val width = viewModel.effectsState.superWideWidth
+                        val depth = viewModel.effectsState.superWideDepth
+
+                        // 1. Stereo Width Slider
+                        Text(
+                            stringResource(R.string.label_sw_width, (width * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = width,
+                            onValueChange = {
+                                viewModel.setSuperWideWidth(it)
+                                if (!viewModel.effectsState.isSuperWideEnabled) {
+                                    viewModel.toggleSuperWide()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        // 2. Spatial Depth Slider
+                        Text(
+                            stringResource(R.string.label_sw_depth, (depth * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = depth,
+                            onValueChange = {
+                                viewModel.setSuperWideDepth(it)
+                                if (!viewModel.effectsState.isSuperWideEnabled) {
+                                    viewModel.toggleSuperWide()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val naturalLabel = stringResource(R.string.preset_sw_natural)
+                        val cinematicLabel = stringResource(R.string.preset_sw_cinematic)
+                        val holographicLabel = stringResource(R.string.preset_sw_holographic)
+                        val presets = remember(naturalLabel, cinematicLabel, holographicLabel) {
+                            listOf(
+                                Triple(0.45f, 0.35f, naturalLabel),
+                                Triple(0.70f, 0.60f, cinematicLabel),
+                                Triple(1.00f, 0.85f, holographicLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - width) < 0.08f && kotlin.math.abs(it.second - depth) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (presetWidth, presetDepth, _) ->
+                                viewModel.setSuperWideWidth(presetWidth)
+                                viewModel.setSuperWideDepth(presetDepth)
+                                if (!viewModel.effectsState.isSuperWideEnabled) {
+                                    viewModel.toggleSuperWide()
+                                }
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_super_wide_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showSuperWideDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showVinylLoFiDialog) {
+            AlertDialog(
+                onDismissRequest = { showVinylLoFiDialog = false },
+                icon = { Icon(Icons.Rounded.Album, null) },
+                title = { Text(stringResource(R.string.effect_vinyl_lofi)) },
+                text = {
+                    Column {
+                        val crackles = viewModel.effectsState.vinylCrackles
+                        val flutter = viewModel.effectsState.vinylFlutter
+
+                        // 1. Crackles & Dust Slider
+                        Text(
+                            stringResource(R.string.label_vinyl_crackles, (crackles * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = crackles,
+                            onValueChange = {
+                                viewModel.setVinylCrackles(it)
+                                if (!viewModel.effectsState.isVinylLoFiEnabled) {
+                                    viewModel.toggleVinylLoFi()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        // 2. Tape Flutter Slider
+                        Text(
+                            stringResource(R.string.label_vinyl_flutter, (flutter * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = flutter,
+                            onValueChange = {
+                                viewModel.setVinylFlutter(it)
+                                if (!viewModel.effectsState.isVinylLoFiEnabled) {
+                                    viewModel.toggleVinylLoFi()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val chillLabel = stringResource(R.string.preset_vinyl_chill)
+                        val vintageLabel = stringResource(R.string.preset_vinyl_vintage)
+                        val cassetteLabel = stringResource(R.string.preset_vinyl_cassette)
+                        val presets = remember(chillLabel, vintageLabel, cassetteLabel) {
+                            listOf(
+                                Triple(0.40f, 0.35f, chillLabel),
+                                Triple(0.75f, 0.45f, vintageLabel),
+                                Triple(0.35f, 0.80f, cassetteLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - crackles) < 0.08f && kotlin.math.abs(it.second - flutter) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (presetCrackles, presetFlutter, _) ->
+                                viewModel.setVinylCrackles(presetCrackles)
+                                viewModel.setVinylFlutter(presetFlutter)
+                                if (!viewModel.effectsState.isVinylLoFiEnabled) {
+                                    viewModel.toggleVinylLoFi()
+                                }
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_vinyl_lofi_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showVinylLoFiDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showPhaserDialog) {
+            AlertDialog(
+                onDismissRequest = { showPhaserDialog = false },
+                icon = { Icon(Icons.Rounded.Waves, null) },
+                title = { Text(stringResource(R.string.effect_phaser)) },
+                text = {
+                    Column {
+                        val speed = viewModel.effectsState.phaserSpeed
+                        val feedback = viewModel.effectsState.phaserFeedback
+
+                        Text(
+                            stringResource(R.string.label_phaser_speed, (speed * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = speed,
+                            onValueChange = {
+                                viewModel.setPhaserSpeed(it)
+                                if (!viewModel.effectsState.isPhaserEnabled) {
+                                    viewModel.togglePhaser()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        // 2. Liquid Resonance Feedback Slider
+                        Text(
+                            stringResource(R.string.label_phaser_feedback, (feedback * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = feedback,
+                            onValueChange = {
+                                viewModel.setPhaserFeedback(it)
+                                if (!viewModel.effectsState.isPhaserEnabled) {
+                                    viewModel.togglePhaser()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val cosmicLabel = stringResource(R.string.preset_phaser_cosmic)
+                        val liquidLabel = stringResource(R.string.preset_phaser_liquid)
+                        val daftLabel = stringResource(R.string.preset_phaser_daft)
+                        val presets = remember(cosmicLabel, liquidLabel, daftLabel) {
+                            listOf(
+                                Triple(0.25f, 0.60f, cosmicLabel),
+                                Triple(0.50f, 0.75f, liquidLabel),
+                                Triple(0.80f, 0.85f, daftLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - speed) < 0.08f && kotlin.math.abs(it.second - feedback) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (presetSpeed, presetFeedback, _) ->
+                                viewModel.setPhaserSpeed(presetSpeed)
+                                viewModel.setPhaserFeedback(presetFeedback)
+                                if (!viewModel.effectsState.isPhaserEnabled) {
+                                    viewModel.togglePhaser()
+                                }
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_phaser_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showPhaserDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showMegaphoneDialog) {
+            AlertDialog(
+                onDismissRequest = { showMegaphoneDialog = false },
+                icon = { Icon(Icons.Rounded.Campaign, null) },
+                title = { Text(stringResource(R.string.effect_megaphone)) },
+                text = {
+                    Column {
+                        val tone = viewModel.effectsState.megaphoneTone
+                        val drive = viewModel.effectsState.megaphoneDrive
+
+                        // 1. Tone / Horn Resonance Slider
+                        Text(
+                            stringResource(R.string.label_megaphone_tone, (tone * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = tone,
+                            onValueChange = {
+                                viewModel.setMegaphoneTone(it)
+                                if (!viewModel.effectsState.isMegaphoneEnabled) {
+                                    viewModel.toggleMegaphone()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        // 2. Speaker Overdrive Slider
+                        Text(
+                            stringResource(R.string.label_megaphone_drive, (drive * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = drive,
+                            onValueChange = {
+                                viewModel.setMegaphoneDrive(it)
+                                if (!viewModel.effectsState.isMegaphoneEnabled) {
+                                    viewModel.toggleMegaphone()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val hornLabel = stringResource(R.string.preset_megaphone_horn)
+                        val radioLabel = stringResource(R.string.preset_megaphone_radio)
+                        val walkieLabel = stringResource(R.string.preset_megaphone_walkie)
+                        val presets = remember(hornLabel, radioLabel, walkieLabel) {
+                            listOf(
+                                Triple(1.00f, 0.85f, hornLabel),
+                                Triple(0.05f, 0.20f, radioLabel),
+                                Triple(0.60f, 0.60f, walkieLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - tone) < 0.08f && kotlin.math.abs(it.second - drive) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (presetTone, presetDrive, _) ->
+                                viewModel.setMegaphoneTone(presetTone)
+                                viewModel.setMegaphoneDrive(presetDrive)
+                                if (!viewModel.effectsState.isMegaphoneEnabled) {
+                                    viewModel.toggleMegaphone()
+                                }
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_megaphone_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showMegaphoneDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showRobotVocoderDialog) {
+            AlertDialog(
+                onDismissRequest = { showRobotVocoderDialog = false },
+                icon = { Icon(Icons.Rounded.SmartToy, null) },
+                title = { Text(stringResource(R.string.effect_robot_vocoder)) },
+                text = {
+                    Column {
+                        val frequency = viewModel.effectsState.robotFrequency
+                        val mix = viewModel.effectsState.robotMix
+
+                        // 1. Carrier Frequency Slider
+                        Text(
+                            stringResource(R.string.label_robot_frequency, (frequency * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = frequency,
+                            onValueChange = {
+                                viewModel.setRobotFrequency(it)
+                                if (!viewModel.effectsState.isRobotVocoderEnabled) {
+                                    viewModel.toggleRobotVocoder()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        // 2. Robot Mix Intensity Slider
+                        Text(
+                            stringResource(R.string.label_robot_mix, (mix * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = mix,
+                            onValueChange = {
+                                viewModel.setRobotMix(it)
+                                if (!viewModel.effectsState.isRobotVocoderEnabled) {
+                                    viewModel.toggleRobotVocoder()
+                                }
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val cyborgLabel = stringResource(R.string.preset_robot_cyborg)
+                        val daftLabel = stringResource(R.string.preset_robot_daft)
+                        val alienLabel = stringResource(R.string.preset_robot_alien)
+                        val presets = remember(cyborgLabel, daftLabel, alienLabel) {
+                            listOf(
+                                Triple(0.15f, 0.80f, cyborgLabel),
+                                Triple(0.38f, 0.75f, daftLabel),
+                                Triple(0.82f, 0.90f, alienLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - frequency) < 0.08f && kotlin.math.abs(it.second - mix) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (presetFreq, presetMix, _) ->
+                                viewModel.setRobotFrequency(presetFreq)
+                                viewModel.setRobotMix(presetMix)
+                                if (!viewModel.effectsState.isRobotVocoderEnabled) {
+                                    viewModel.toggleRobotVocoder()
+                                }
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_robot_vocoder_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showRobotVocoderDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showChorusDialog) {
+            AlertDialog(
+                onDismissRequest = { showChorusDialog = false },
+                icon = { Icon(Icons.Rounded.Grain, null) },
+                title = { Text(stringResource(R.string.effect_chorus)) },
+                text = {
+                    Column {
+                        val rate = viewModel.effectsState.chorusRate
+                        val depth = viewModel.effectsState.chorusDepth
+
+                        Text(
+                            stringResource(R.string.label_chorus_rate, (rate * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = rate,
+                            onValueChange = {
+                                viewModel.setChorusRate(it)
+                                if (!viewModel.effectsState.isChorusEnabled) viewModel.toggleChorus()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_chorus_depth, (depth * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = depth,
+                            onValueChange = {
+                                viewModel.setChorusDepth(it)
+                                if (!viewModel.effectsState.isChorusEnabled) viewModel.toggleChorus()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val junoLabel = stringResource(R.string.preset_chorus_juno)
+                        val dreamLabel = stringResource(R.string.preset_chorus_dream)
+                        val shimmerLabel = stringResource(R.string.preset_chorus_shimmer)
+                        val presets = remember(junoLabel, dreamLabel, shimmerLabel) {
+                            listOf(
+                                Triple(0.30f, 0.70f, junoLabel),
+                                Triple(0.15f, 0.90f, dreamLabel),
+                                Triple(0.75f, 0.45f, shimmerLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - rate) < 0.08f && kotlin.math.abs(it.second - depth) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pRate, pDepth, _) ->
+                                viewModel.setChorusRate(pRate)
+                                viewModel.setChorusDepth(pDepth)
+                                if (!viewModel.effectsState.isChorusEnabled) viewModel.toggleChorus()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_chorus_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showChorusDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showUnderwaterDialog) {
+            AlertDialog(
+                onDismissRequest = { showUnderwaterDialog = false },
+                icon = { Icon(Icons.Rounded.Waves, null) },
+                title = { Text(stringResource(R.string.effect_underwater)) },
+                text = {
+                    Column {
+                        val depth = viewModel.effectsState.underwaterDepth
+                        val bubbles = viewModel.effectsState.underwaterBubbles
+
+                        Text(
+                            stringResource(R.string.label_underwater_depth, (depth * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = depth,
+                            onValueChange = {
+                                viewModel.setUnderwaterDepth(it)
+                                if (!viewModel.effectsState.isUnderwaterEnabled) viewModel.toggleUnderwater()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_underwater_bubbles, (bubbles * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = bubbles,
+                            onValueChange = {
+                                viewModel.setUnderwaterBubbles(it)
+                                if (!viewModel.effectsState.isUnderwaterEnabled) viewModel.toggleUnderwater()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val submergedLabel = stringResource(R.string.preset_underwater_submerged)
+                        val abyssLabel = stringResource(R.string.preset_underwater_abyss)
+                        val scubaLabel = stringResource(R.string.preset_underwater_scuba)
+                        val presets = remember(submergedLabel, abyssLabel, scubaLabel) {
+                            listOf(
+                                Triple(0.45f, 0.30f, submergedLabel),
+                                Triple(0.85f, 0.60f, abyssLabel),
+                                Triple(0.50f, 0.90f, scubaLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - depth) < 0.08f && kotlin.math.abs(it.second - bubbles) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pDepth, pBubbles, _) ->
+                                viewModel.setUnderwaterDepth(pDepth)
+                                viewModel.setUnderwaterBubbles(pBubbles)
+                                if (!viewModel.effectsState.isUnderwaterEnabled) viewModel.toggleUnderwater()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_underwater_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showUnderwaterDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showTranceGateDialog) {
+            AlertDialog(
+                onDismissRequest = { showTranceGateDialog = false },
+                icon = { Icon(Icons.Rounded.ElectricBolt, null) },
+                title = { Text(stringResource(R.string.effect_trance_gate)) },
+                text = {
+                    Column {
+                        val speed = viewModel.effectsState.tranceGateSpeed
+                        val pattern = viewModel.effectsState.tranceGatePattern
+                        val mix = viewModel.effectsState.tranceGateMix
+
+                        Text(
+                            stringResource(R.string.label_trance_gate_speed, (speed * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = speed,
+                            onValueChange = {
+                                viewModel.setTranceGateSpeed(it)
+                                if (!viewModel.effectsState.isTranceGateEnabled) viewModel.toggleTranceGate()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            stringResource(R.string.label_trance_gate_pattern, (pattern * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = pattern,
+                            onValueChange = {
+                                viewModel.setTranceGatePattern(it)
+                                if (!viewModel.effectsState.isTranceGateEnabled) viewModel.toggleTranceGate()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            stringResource(R.string.label_trance_gate_mix, (mix * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = mix,
+                            onValueChange = {
+                                viewModel.setTranceGateMix(it)
+                                if (!viewModel.effectsState.isTranceGateEnabled) viewModel.toggleTranceGate()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val t16Label = stringResource(R.string.preset_trance_gate_16)
+                        val dropLabel = stringResource(R.string.preset_trance_gate_drop)
+                        val tremoloLabel = stringResource(R.string.preset_trance_gate_tremolo)
+                        val presets = remember(t16Label, dropLabel, tremoloLabel) {
+                            listOf(
+                                Triple(0.65f, 0.90f, t16Label),
+                                Triple(0.40f, 1.00f, dropLabel),
+                                Triple(0.30f, 0.05f, tremoloLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - speed) < 0.08f && kotlin.math.abs(it.second - pattern) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pSpeed, pPattern, _) ->
+                                viewModel.setTranceGateSpeed(pSpeed)
+                                viewModel.setTranceGatePattern(pPattern)
+                                viewModel.setTranceGateMix(0.90f)
+                                if (!viewModel.effectsState.isTranceGateEnabled) viewModel.toggleTranceGate()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_trance_gate_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showTranceGateDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showPingPongDelayDialog) {
+            AlertDialog(
+                onDismissRequest = { showPingPongDelayDialog = false },
+                icon = { Icon(Icons.Rounded.SyncAlt, null) },
+                title = { Text(stringResource(R.string.effect_ping_pong)) },
+                text = {
+                    Column {
+                        val delayTime = viewModel.effectsState.pingPongDelayTime
+                        val feedback = viewModel.effectsState.pingPongFeedback
+
+                        Text(
+                            stringResource(R.string.label_ping_pong_time, (delayTime * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = delayTime,
+                            onValueChange = {
+                                viewModel.setPingPongDelayTime(it)
+                                if (!viewModel.effectsState.isPingPongDelayEnabled) viewModel.togglePingPongDelay()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_ping_pong_feedback, (feedback * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = feedback,
+                            onValueChange = {
+                                viewModel.setPingPongFeedback(it)
+                                if (!viewModel.effectsState.isPingPongDelayEnabled) viewModel.togglePingPongDelay()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val dubLabel = stringResource(R.string.preset_ping_pong_dub)
+                        val bounceLabel = stringResource(R.string.preset_ping_pong_bounce)
+                        val slapLabel = stringResource(R.string.preset_ping_pong_slap)
+                        val presets = remember(dubLabel, bounceLabel, slapLabel) {
+                            listOf(
+                                Triple(0.45f, 0.65f, dubLabel),
+                                Triple(0.70f, 0.72f, bounceLabel),
+                                Triple(0.10f, 0.35f, slapLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - delayTime) < 0.08f && kotlin.math.abs(it.second - feedback) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pTime, pFb, _) ->
+                                viewModel.setPingPongDelayTime(pTime)
+                                viewModel.setPingPongFeedback(pFb)
+                                if (!viewModel.effectsState.isPingPongDelayEnabled) viewModel.togglePingPongDelay()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_ping_pong_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showPingPongDelayDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showChiptuneDialog) {
+            AlertDialog(
+                onDismissRequest = { showChiptuneDialog = false },
+                icon = { Icon(Icons.Rounded.Gamepad, null) },
+                title = { Text(stringResource(R.string.effect_chiptune)) },
+                text = {
+                    Column {
+                        val bits = viewModel.effectsState.chiptuneBits
+                        val sr = viewModel.effectsState.chiptuneSampleRate
+
+                        Text(
+                            stringResource(R.string.label_chiptune_bits, (bits * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = bits,
+                            onValueChange = {
+                                viewModel.setChiptuneBits(it)
+                                if (!viewModel.effectsState.isChiptuneEnabled) viewModel.toggleChiptune()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_chiptune_sr, (sr * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = sr,
+                            onValueChange = {
+                                viewModel.setChiptuneSampleRate(it)
+                                if (!viewModel.effectsState.isChiptuneEnabled) viewModel.toggleChiptune()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val gameboyLabel = stringResource(R.string.preset_chiptune_gameboy)
+                        val nesLabel = stringResource(R.string.preset_chiptune_nes)
+                        val arcadeLabel = stringResource(R.string.preset_chiptune_arcade)
+                        val presets = remember(gameboyLabel, nesLabel, arcadeLabel) {
+                            listOf(
+                                Triple(0.45f, 0.40f, gameboyLabel),
+                                Triple(0.70f, 0.65f, nesLabel),
+                                Triple(0.90f, 0.85f, arcadeLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - bits) < 0.08f && kotlin.math.abs(it.second - sr) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pBits, pSr, _) ->
+                                viewModel.setChiptuneBits(pBits)
+                                viewModel.setChiptuneSampleRate(pSr)
+                                if (!viewModel.effectsState.isChiptuneEnabled) viewModel.toggleChiptune()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_chiptune_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showChiptuneDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showShimmerReverbDialog) {
+            AlertDialog(
+                onDismissRequest = { showShimmerReverbDialog = false },
+                icon = { Icon(Icons.Rounded.Flare, null) },
+                title = { Text(stringResource(R.string.effect_shimmer_reverb)) },
+                text = {
+                    Column {
+                        val size = viewModel.effectsState.shimmerSize
+                        val mix = viewModel.effectsState.shimmerMix
+
+                        Text(
+                            stringResource(R.string.label_shimmer_size, (size * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = size,
+                            onValueChange = {
+                                viewModel.setShimmerSize(it)
+                                if (!viewModel.effectsState.isShimmerReverbEnabled) viewModel.toggleShimmerReverb()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_shimmer_mix, (mix * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = mix,
+                            onValueChange = {
+                                viewModel.setShimmerMix(it)
+                                if (!viewModel.effectsState.isShimmerReverbEnabled) viewModel.toggleShimmerReverb()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val cloudLabel = stringResource(R.string.preset_shimmer_cloud)
+                        val angelLabel = stringResource(R.string.preset_shimmer_angel)
+                        val hallLabel = stringResource(R.string.preset_shimmer_hall)
+                        val presets = remember(cloudLabel, angelLabel, hallLabel) {
+                            listOf(
+                                Triple(0.65f, 0.60f, cloudLabel),
+                                Triple(0.85f, 0.85f, angelLabel),
+                                Triple(0.50f, 0.25f, hallLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - size) < 0.08f && kotlin.math.abs(it.second - mix) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pSize, pMix, _) ->
+                                viewModel.setShimmerSize(pSize)
+                                viewModel.setShimmerMix(pMix)
+                                if (!viewModel.effectsState.isShimmerReverbEnabled) viewModel.toggleShimmerReverb()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_shimmer_reverb_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showShimmerReverbDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showRotarySpeakerDialog) {
+            AlertDialog(
+                onDismissRequest = { showRotarySpeakerDialog = false },
+                icon = { Icon(Icons.Rounded.RotateRight, null) },
+                title = { Text(stringResource(R.string.effect_rotary_speaker)) },
+                text = {
+                    Column {
+                        val speed = viewModel.effectsState.rotarySpeed
+                        val depth = viewModel.effectsState.rotaryDepth
+
+                        Text(
+                            stringResource(R.string.label_rotary_speed, (speed * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = speed,
+                            onValueChange = {
+                                viewModel.setRotarySpeed(it)
+                                if (!viewModel.effectsState.isRotarySpeakerEnabled) viewModel.toggleRotarySpeaker()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_rotary_depth, (depth * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = depth,
+                            onValueChange = {
+                                viewModel.setRotaryDepth(it)
+                                if (!viewModel.effectsState.isRotarySpeakerEnabled) viewModel.toggleRotarySpeaker()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val choraleLabel = stringResource(R.string.preset_rotary_chorale)
+                        val tremoloLabel = stringResource(R.string.preset_rotary_tremolo)
+                        val psychLabel = stringResource(R.string.preset_rotary_psychedelic)
+                        val presets = remember(choraleLabel, tremoloLabel, psychLabel) {
+                            listOf(
+                                Triple(0.15f, 0.65f, choraleLabel),
+                                Triple(0.75f, 0.80f, tremoloLabel),
+                                Triple(0.50f, 0.95f, psychLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - speed) < 0.08f && kotlin.math.abs(it.second - depth) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pSpeed, pDepth, _) ->
+                                viewModel.setRotarySpeed(pSpeed)
+                                viewModel.setRotaryDepth(pDepth)
+                                if (!viewModel.effectsState.isRotarySpeakerEnabled) viewModel.toggleRotarySpeaker()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_rotary_speaker_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showRotarySpeakerDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showTapeSaturationDialog) {
+            AlertDialog(
+                onDismissRequest = { showTapeSaturationDialog = false },
+                icon = { Icon(Icons.Rounded.Whatshot, null) },
+                title = { Text(stringResource(R.string.effect_tape_saturation)) },
+                text = {
+                    Column {
+                        val warmth = viewModel.effectsState.tapeWarmth
+                        val exciter = viewModel.effectsState.tapeExciter
+
+                        Text(
+                            stringResource(R.string.label_tape_warmth, (warmth * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = warmth,
+                            onValueChange = {
+                                viewModel.setTapeWarmth(it)
+                                if (!viewModel.effectsState.isTapeSaturationEnabled) viewModel.toggleTapeSaturation()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_tape_exciter, (exciter * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = exciter,
+                            onValueChange = {
+                                viewModel.setTapeExciter(it)
+                                if (!viewModel.effectsState.isTapeSaturationEnabled) viewModel.toggleTapeSaturation()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val warmLabel = stringResource(R.string.preset_tape_warm)
+                        val studerLabel = stringResource(R.string.preset_tape_studer)
+                        val exciterLabel = stringResource(R.string.preset_tape_exciter)
+                        val presets = remember(warmLabel, studerLabel, exciterLabel) {
+                            listOf(
+                                Triple(0.60f, 0.40f, warmLabel),
+                                Triple(0.80f, 0.65f, studerLabel),
+                                Triple(0.40f, 0.90f, exciterLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - warmth) < 0.08f && kotlin.math.abs(it.second - exciter) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pWarmth, pExciter, _) ->
+                                viewModel.setTapeWarmth(pWarmth)
+                                viewModel.setTapeExciter(pExciter)
+                                if (!viewModel.effectsState.isTapeSaturationEnabled) viewModel.toggleTapeSaturation()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_tape_saturation_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showTapeSaturationDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showSubOctaverDialog) {
+            AlertDialog(
+                onDismissRequest = { showSubOctaverDialog = false },
+                icon = { Icon(Icons.Rounded.Speaker, null) },
+                title = { Text(stringResource(R.string.effect_sub_octaver)) },
+                text = {
+                    Column {
+                        val level = viewModel.effectsState.subOctaverLevel
+                        val cutoff = viewModel.effectsState.subOctaverCutoff
+
+                        Text(
+                            stringResource(R.string.label_sub_level, (level * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = level,
+                            onValueChange = {
+                                viewModel.setSubOctaverLevel(it)
+                                if (!viewModel.effectsState.isSubOctaverEnabled) viewModel.toggleSubOctaver()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_sub_cutoff, (cutoff * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = cutoff,
+                            onValueChange = {
+                                viewModel.setSubOctaverCutoff(it)
+                                if (!viewModel.effectsState.isSubOctaverEnabled) viewModel.toggleSubOctaver()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val b808Label = stringResource(R.string.preset_sub_808)
+                        val deepLabel = stringResource(R.string.preset_sub_deep)
+                        val punchLabel = stringResource(R.string.preset_sub_punch)
+                        val presets = remember(b808Label, deepLabel, punchLabel) {
+                            listOf(
+                                Triple(0.80f, 0.65f, b808Label),
+                                Triple(0.65f, 0.20f, deepLabel),
+                                Triple(0.90f, 0.85f, punchLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - level) < 0.08f && kotlin.math.abs(it.second - cutoff) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pLevel, pCutoff, _) ->
+                                viewModel.setSubOctaverLevel(pLevel)
+                                viewModel.setSubOctaverCutoff(pCutoff)
+                                if (!viewModel.effectsState.isSubOctaverEnabled) viewModel.toggleSubOctaver()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_sub_octaver_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showSubOctaverDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showEmptyMallDialog) {
+            AlertDialog(
+                onDismissRequest = { showEmptyMallDialog = false },
+                icon = { Icon(Icons.Rounded.Storefront, null) },
+                title = { Text(stringResource(R.string.effect_empty_mall)) },
+                text = {
+                    Column {
+                        val distance = viewModel.effectsState.emptyMallDistance
+                        val reverb = viewModel.effectsState.emptyMallReverb
+
+                        Text(
+                            stringResource(R.string.label_empty_mall_distance, (distance * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = distance,
+                            onValueChange = {
+                                viewModel.setEmptyMallDistance(it)
+                                if (!viewModel.effectsState.isEmptyMallEnabled) viewModel.toggleEmptyMall()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_empty_mall_reverb, (reverb * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = reverb,
+                            onValueChange = {
+                                viewModel.setEmptyMallReverb(it)
+                                if (!viewModel.effectsState.isEmptyMallEnabled) viewModel.toggleEmptyMall()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val m1995Label = stringResource(R.string.preset_mall_1995)
+                        val distantLabel = stringResource(R.string.preset_mall_distant)
+                        val liminalLabel = stringResource(R.string.preset_mall_liminal)
+                        val presets = remember(m1995Label, distantLabel, liminalLabel) {
+                            listOf(
+                                Triple(0.65f, 0.60f, m1995Label),
+                                Triple(0.90f, 0.75f, distantLabel),
+                                Triple(0.45f, 0.85f, liminalLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - distance) < 0.08f && kotlin.math.abs(it.second - reverb) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pDist, pRev, _) ->
+                                viewModel.setEmptyMallDistance(pDist)
+                                viewModel.setEmptyMallReverb(pRev)
+                                if (!viewModel.effectsState.isEmptyMallEnabled) viewModel.toggleEmptyMall()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_empty_mall_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showEmptyMallDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showGramophoneDialog) {
+            AlertDialog(
+                onDismissRequest = { showGramophoneDialog = false },
+                icon = { Icon(Icons.Rounded.History, null) },
+                title = { Text(stringResource(R.string.effect_gramophone)) },
+                text = {
+                    Column {
+                        val age = viewModel.effectsState.gramophoneAge
+                        val horn = viewModel.effectsState.gramophoneHorn
+
+                        Text(
+                            stringResource(R.string.label_gramophone_age, (age * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = age,
+                            onValueChange = {
+                                viewModel.setGramophoneAge(it)
+                                if (!viewModel.effectsState.isGramophoneEnabled) viewModel.toggleGramophone()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_gramophone_horn, (horn * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = horn,
+                            onValueChange = {
+                                viewModel.setGramophoneHorn(it)
+                                if (!viewModel.effectsState.isGramophoneEnabled) viewModel.toggleGramophone()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val shellacLabel = stringResource(R.string.preset_gramo_shellac)
+                        val cylLabel = stringResource(R.string.preset_gramo_cylinder)
+                        val falloutLabel = stringResource(R.string.preset_gramo_fallout)
+                        val presets = remember(shellacLabel, cylLabel, falloutLabel) {
+                            listOf(
+                                Triple(0.60f, 0.65f, shellacLabel),
+                                Triple(0.85f, 0.90f, cylLabel),
+                                Triple(0.40f, 0.40f, falloutLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - age) < 0.08f && kotlin.math.abs(it.second - horn) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pAge, pHorn, _) ->
+                                viewModel.setGramophoneAge(pAge)
+                                viewModel.setGramophoneHorn(pHorn)
+                                if (!viewModel.effectsState.isGramophoneEnabled) viewModel.toggleGramophone()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_gramophone_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showGramophoneDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showReverseEchoDialog) {
+            AlertDialog(
+                onDismissRequest = { showReverseEchoDialog = false },
+                icon = { Icon(Icons.Rounded.CompareArrows, null) },
+                title = { Text(stringResource(R.string.effect_reverse_echo)) },
+                text = {
+                    Column {
+                        val time = viewModel.effectsState.reverseEchoTime
+                        val fb = viewModel.effectsState.reverseEchoFeedback
+
+                        Text(
+                            stringResource(R.string.label_reverse_time, (time * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = time,
+                            onValueChange = {
+                                viewModel.setReverseEchoTime(it)
+                                if (!viewModel.effectsState.isReverseEchoEnabled) viewModel.toggleReverseEcho()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_reverse_feedback, (fb * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = fb,
+                            onValueChange = {
+                                viewModel.setReverseEchoFeedback(it)
+                                if (!viewModel.effectsState.isReverseEchoEnabled) viewModel.toggleReverseEcho()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val psychLabel = stringResource(R.string.preset_reverse_psych)
+                        val ghostLabel = stringResource(R.string.preset_reverse_ghost)
+                        val tameLabel = stringResource(R.string.preset_reverse_tame)
+                        val presets = remember(psychLabel, ghostLabel, tameLabel) {
+                            listOf(
+                                Triple(0.55f, 0.60f, psychLabel),
+                                Triple(0.85f, 0.75f, ghostLabel),
+                                Triple(0.35f, 0.45f, tameLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - time) < 0.08f && kotlin.math.abs(it.second - fb) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pTime, pFb, _) ->
+                                viewModel.setReverseEchoTime(pTime)
+                                viewModel.setReverseEchoFeedback(pFb)
+                                if (!viewModel.effectsState.isReverseEchoEnabled) viewModel.toggleReverseEcho()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_reverse_echo_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showReverseEchoDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showStadiumDialog) {
+            AlertDialog(
+                onDismissRequest = { showStadiumDialog = false },
+                icon = { Icon(Icons.Rounded.SurroundSound, null) },
+                title = { Text(stringResource(R.string.effect_stadium)) },
+                text = {
+                    Column {
+                        val size = viewModel.effectsState.stadiumSize
+                        val atmosphere = viewModel.effectsState.stadiumAtmosphere
+
+                        Text(
+                            stringResource(R.string.label_stadium_size, (size * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = size,
+                            onValueChange = {
+                                viewModel.setStadiumSize(it)
+                                if (!viewModel.effectsState.isStadiumEnabled) viewModel.toggleStadium()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_stadium_atmosphere, (atmosphere * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = atmosphere,
+                            onValueChange = {
+                                viewModel.setStadiumAtmosphere(it)
+                                if (!viewModel.effectsState.isStadiumEnabled) viewModel.toggleStadium()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val s50kLabel = stringResource(R.string.preset_stadium_50k)
+                        val arenaLabel = stringResource(R.string.preset_stadium_arena)
+                        val festivalLabel = stringResource(R.string.preset_stadium_festival)
+                        val presets = remember(s50kLabel, arenaLabel, festivalLabel) {
+                            listOf(
+                                Triple(0.75f, 0.70f, s50kLabel),
+                                Triple(0.55f, 0.50f, arenaLabel),
+                                Triple(0.90f, 0.85f, festivalLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - size) < 0.08f && kotlin.math.abs(it.second - atmosphere) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pSize, pAtm, _) ->
+                                viewModel.setStadiumSize(pSize)
+                                viewModel.setStadiumAtmosphere(pAtm)
+                                if (!viewModel.effectsState.isStadiumEnabled) viewModel.toggleStadium()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_stadium_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showStadiumDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showWalkmanDialog) {
+            AlertDialog(
+                onDismissRequest = { showWalkmanDialog = false },
+                icon = { Icon(Icons.Rounded.Radio, null) },
+                title = { Text(stringResource(R.string.effect_cassette_walkman)) },
+                text = {
+                    Column {
+                        val drive = viewModel.effectsState.walkmanDrive
+                        val hiss = viewModel.effectsState.walkmanHiss
+
+                        Text(
+                            stringResource(R.string.label_walkman_drive, (drive * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = drive,
+                            onValueChange = {
+                                viewModel.setWalkmanDrive(it)
+                                if (!viewModel.effectsState.isWalkmanEnabled) viewModel.toggleWalkman()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_walkman_hiss, (hiss * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = hiss,
+                            onValueChange = {
+                                viewModel.setWalkmanHiss(it)
+                                if (!viewModel.effectsState.isWalkmanEnabled) viewModel.toggleWalkman()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val w1984Label = stringResource(R.string.preset_walkman_1984)
+                        val chromeLabel = stringResource(R.string.preset_walkman_chrome)
+                        val lofiLabel = stringResource(R.string.preset_walkman_lofi)
+                        val presets = remember(w1984Label, chromeLabel, lofiLabel) {
+                            listOf(
+                                Triple(0.65f, 0.40f, w1984Label),
+                                Triple(0.45f, 0.20f, chromeLabel),
+                                Triple(0.85f, 0.75f, lofiLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - drive) < 0.08f && kotlin.math.abs(it.second - hiss) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pDrive, pHiss, _) ->
+                                viewModel.setWalkmanDrive(pDrive)
+                                viewModel.setWalkmanHiss(pHiss)
+                                if (!viewModel.effectsState.isWalkmanEnabled) viewModel.toggleWalkman()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_walkman_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showWalkmanDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showAsmrVocalDialog) {
+            AlertDialog(
+                onDismissRequest = { showAsmrVocalDialog = false },
+                icon = { Icon(Icons.Rounded.RecordVoiceOver, null) },
+                title = { Text(stringResource(R.string.effect_asmr_vocal)) },
+                text = {
+                    Column {
+                        val proximity = viewModel.effectsState.asmrProximity
+                        val air = viewModel.effectsState.asmrAir
+
+                        Text(
+                            stringResource(R.string.label_asmr_proximity, (proximity * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = proximity,
+                            onValueChange = {
+                                viewModel.setAsmrProximity(it)
+                                if (!viewModel.effectsState.isAsmrVocalEnabled) viewModel.toggleAsmrVocal()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_asmr_air, (air * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = air,
+                            onValueChange = {
+                                viewModel.setAsmrAir(it)
+                                if (!viewModel.effectsState.isAsmrVocalEnabled) viewModel.toggleAsmrVocal()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val whisperLabel = stringResource(R.string.preset_asmr_whisper)
+                        val studioLabel = stringResource(R.string.preset_asmr_studio)
+                        val sheenLabel = stringResource(R.string.preset_asmr_sheen)
+                        val presets = remember(whisperLabel, studioLabel, sheenLabel) {
+                            listOf(
+                                Triple(0.85f, 0.60f, whisperLabel),
+                                Triple(0.50f, 0.45f, studioLabel),
+                                Triple(0.70f, 0.90f, sheenLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - proximity) < 0.08f && kotlin.math.abs(it.second - air) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pProx, pAir, _) ->
+                                viewModel.setAsmrProximity(pProx)
+                                viewModel.setAsmrAir(pAir)
+                                if (!viewModel.effectsState.isAsmrVocalEnabled) viewModel.toggleAsmrVocal()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_asmr_vocal_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showAsmrVocalDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showNightDriveDialog) {
+            AlertDialog(
+                onDismissRequest = { showNightDriveDialog = false },
+                icon = { Icon(Icons.Rounded.DirectionsCar, null) },
+                title = { Text(stringResource(R.string.effect_night_drive)) },
+                text = {
+                    Column {
+                        val cabin = viewModel.effectsState.nightDriveCabin
+                        val road = viewModel.effectsState.nightDriveRoad
+
+                        Text(
+                            stringResource(R.string.label_night_drive_cabin, (cabin * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = cabin,
+                            onValueChange = {
+                                viewModel.setNightDriveCabin(it)
+                                if (!viewModel.effectsState.isNightDriveEnabled) viewModel.toggleNightDrive()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(14.dp))
+
+                        Text(
+                            stringResource(R.string.label_night_drive_road, (road * 100).toInt()),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Slider(
+                            value = road,
+                            onValueChange = {
+                                viewModel.setNightDriveRoad(it)
+                                if (!viewModel.effectsState.isNightDriveEnabled) viewModel.toggleNightDrive()
+                            },
+                            valueRange = 0f..1f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(16.dp))
+
+                        val sedanLabel = stringResource(R.string.preset_night_sedan)
+                        val hwyLabel = stringResource(R.string.preset_night_highway)
+                        val coupeLabel = stringResource(R.string.preset_night_coupe)
+                        val presets = remember(sedanLabel, hwyLabel, coupeLabel) {
+                            listOf(
+                                Triple(0.60f, 0.45f, sedanLabel),
+                                Triple(0.80f, 0.70f, hwyLabel),
+                                Triple(0.45f, 0.35f, coupeLabel)
+                            )
+                        }
+                        val selectedPreset = presets.firstOrNull {
+                            kotlin.math.abs(it.first - cabin) < 0.08f && kotlin.math.abs(it.second - road) < 0.08f
+                        }
+                        ExpressiveConnectedButtonGroup(
+                            options = presets,
+                            selectedOption = selectedPreset,
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 8.dp),
+                            onOptionSelected = { (pCab, pRoad, _) ->
+                                viewModel.setNightDriveCabin(pCab)
+                                viewModel.setNightDriveRoad(pRoad)
+                                if (!viewModel.effectsState.isNightDriveEnabled) viewModel.toggleNightDrive()
+                            },
+                            labelProvider = { (_, _, label) ->
+                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(12.dp))
+
+                        Text(
+                            text = stringResource(R.string.fx_night_drive_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showNightDriveDialog = false }) {
+                        Text(stringResource(R.string.btn_ok))
+                    }
+                }
+            )
+        }
+
+        if (showStudioEditSheet) {
+            com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
+                onDismissRequest = { showStudioEditSheet = false },
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            ) {
+                AudioFxStudioSheet(
+                    viewModel = viewModel,
+                    allEffects = allEffects,
+                    onOpenBassBoostDialog = { showBassBoostDialog = true },
+                    onOpenEarrapeDialog = { showEarrapeDialog = true },
+                    onOpenEightDDialog = { showEightDDialog = true },
+                    onOpenMuffledDialog = { showMuffledDialog = true },
+                    onOpenReverbDialog = { showReverbDialog = true },
+                    onOpenRainDialog = { showRainVolumeDialog = true },
+                    onOpenNormalizationDialog = { showNormalizationDialog = true },
+                    onOpenVintageMp3Dialog = { showVintageMp3Dialog = true },
+                    onOpenVocalRemoverDialog = { showVocalRemoverDialog = true },
+                    onOpenVocalBoostDialog = { showVocalBoostDialog = true },
+                    onOpenFlangerDialog = { showFlangerDialog = true },
+                    onOpenPartyNextDoorDialog = { showPartyNextDoorDialog = true },
+                    onOpenSuperWideDialog = { showSuperWideDialog = true },
+                    onOpenVinylLoFiDialog = { showVinylLoFiDialog = true },
+                    onOpenPhaserDialog = { showPhaserDialog = true },
+                    onOpenMegaphoneDialog = { showMegaphoneDialog = true },
+                    onOpenRobotVocoderDialog = { showRobotVocoderDialog = true },
+                    onOpenChorusDialog = { showChorusDialog = true },
+                    onOpenUnderwaterDialog = { showUnderwaterDialog = true },
+                    onOpenTranceGateDialog = { showTranceGateDialog = true },
+                    onOpenPingPongDelayDialog = { showPingPongDelayDialog = true },
+                    onOpenChiptuneDialog = { showChiptuneDialog = true },
+                    onOpenShimmerReverbDialog = { showShimmerReverbDialog = true },
+                    onOpenRotarySpeakerDialog = { showRotarySpeakerDialog = true },
+                    onOpenTapeSaturationDialog = { showTapeSaturationDialog = true },
+                    onOpenSubOctaverDialog = { showSubOctaverDialog = true },
+                    onOpenEmptyMallDialog = { showEmptyMallDialog = true },
+                    onOpenGramophoneDialog = { showGramophoneDialog = true },
+                    onOpenReverseEchoDialog = { showReverseEchoDialog = true },
+                    onOpenStadiumDialog = { showStadiumDialog = true },
+                    onOpenWalkmanDialog = { showWalkmanDialog = true },
+                    onOpenAsmrVocalDialog = { showAsmrVocalDialog = true },
+                    onOpenNightDriveDialog = { showNightDriveDialog = true },
+                    onShowEarrapeWarning = { showEarrapeWarning = true },
+                    onDismiss = { showStudioEditSheet = false }
+                )
+                Spacer(Modifier.height(32.dp))
+            }
         }
     }
 }
@@ -2789,6 +5601,990 @@ fun FxTile(
     }
 }
 
+data class AudioFxDefinition(
+    val id: String,
+    val titleRes: Int,
+    val icon: ImageVector,
+    val categoryRes: Int,
+    val isActive: (AudioEffectsState) -> Boolean,
+    val onToggle: (PlayerViewModel, onEarrapeWarning: () -> Unit) -> Unit,
+    val onOpenDialog: (() -> Unit)? = null,
+    val activeColor: @Composable () -> Color = { MaterialTheme.colorScheme.primary },
+    val activeContentColor: @Composable () -> Color = { MaterialTheme.colorScheme.onPrimary }
+)
+
+@Composable
+fun getAudioFxDefinitions(
+    onOpenBassBoostDialog: () -> Unit,
+    onOpenEarrapeDialog: () -> Unit,
+    onOpenEightDDialog: () -> Unit,
+    onOpenMuffledDialog: () -> Unit,
+    onOpenReverbDialog: () -> Unit,
+    onOpenRainDialog: () -> Unit,
+    onOpenNormalizationDialog: () -> Unit,
+    onOpenVintageMp3Dialog: () -> Unit,
+    onOpenVocalRemoverDialog: () -> Unit,
+    onOpenVocalBoostDialog: () -> Unit,
+    onOpenFlangerDialog: () -> Unit,
+    onOpenPartyNextDoorDialog: () -> Unit,
+    onOpenSuperWideDialog: () -> Unit,
+    onOpenVinylLoFiDialog: () -> Unit,
+    onOpenPhaserDialog: () -> Unit,
+    onOpenMegaphoneDialog: () -> Unit,
+    onOpenRobotVocoderDialog: () -> Unit,
+    onOpenChorusDialog: () -> Unit,
+    onOpenUnderwaterDialog: () -> Unit,
+    onOpenTranceGateDialog: () -> Unit,
+    onOpenPingPongDelayDialog: () -> Unit,
+    onOpenChiptuneDialog: () -> Unit,
+    onOpenShimmerReverbDialog: () -> Unit,
+    onOpenRotarySpeakerDialog: () -> Unit,
+    onOpenTapeSaturationDialog: () -> Unit,
+    onOpenSubOctaverDialog: () -> Unit,
+    onOpenEmptyMallDialog: () -> Unit,
+    onOpenGramophoneDialog: () -> Unit,
+    onOpenReverseEchoDialog: () -> Unit,
+    onOpenStadiumDialog: () -> Unit,
+    onOpenWalkmanDialog: () -> Unit,
+    onOpenAsmrVocalDialog: () -> Unit,
+    onOpenNightDriveDialog: () -> Unit,
+    onShowEarrapeWarning: () -> Unit
+): List<AudioFxDefinition> = listOf(
+    AudioFxDefinition(
+        id = "bass_boost",
+        titleRes = R.string.effect_bass_boost,
+        icon = Icons.Rounded.Bolt,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isBassBoostEnabled },
+        onToggle = { vm, _ -> vm.toggleBassBoost() },
+        onOpenDialog = onOpenBassBoostDialog,
+        activeColor = { MaterialTheme.colorScheme.primary },
+        activeContentColor = { MaterialTheme.colorScheme.onPrimary }
+    ),
+    AudioFxDefinition(
+        id = "sub_octaver",
+        titleRes = R.string.effect_sub_octaver,
+        icon = Icons.Rounded.Speaker,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isSubOctaverEnabled },
+        onToggle = { vm, _ -> vm.toggleSubOctaver() },
+        onOpenDialog = onOpenSubOctaverDialog,
+        activeColor = { Color(0xFFD500F9) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "tape_saturation",
+        titleRes = R.string.effect_tape_saturation,
+        icon = Icons.Rounded.Whatshot,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isTapeSaturationEnabled },
+        onToggle = { vm, _ -> vm.toggleTapeSaturation() },
+        onOpenDialog = onOpenTapeSaturationDialog,
+        activeColor = { Color(0xFFFF6E40) },
+        activeContentColor = { Color(0xFF3E1200) }
+    ),
+    AudioFxDefinition(
+        id = "vocal_boost",
+        titleRes = R.string.effect_vocal_boost,
+        icon = Icons.Rounded.RecordVoiceOver,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isVocalBoostEnabled },
+        onToggle = { vm, _ -> vm.toggleVocalBoost() },
+        onOpenDialog = onOpenVocalBoostDialog,
+        activeColor = { Color(0xFF00B0FF) },
+        activeContentColor = { Color(0xFF002244) }
+    ),
+    AudioFxDefinition(
+        id = "vocal_remover",
+        titleRes = R.string.effect_vocal_remover,
+        icon = Icons.Rounded.MicOff,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isVocalRemoverEnabled },
+        onToggle = { vm, _ -> vm.toggleVocalRemover() },
+        onOpenDialog = onOpenVocalRemoverDialog,
+        activeColor = { Color(0xFFE91E63) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "normalization",
+        titleRes = R.string.pref_norm_title,
+        icon = Icons.Rounded.VolumeDown,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isNormalizationEnabled },
+        onToggle = { vm, _ -> vm.toggleNormalization() },
+        onOpenDialog = onOpenNormalizationDialog,
+        activeColor = { MaterialTheme.colorScheme.primary },
+        activeContentColor = { MaterialTheme.colorScheme.onPrimary }
+    ),
+    AudioFxDefinition(
+        id = "earrape",
+        titleRes = R.string.btn_earrape,
+        icon = Icons.AutoMirrored.Rounded.VolumeUp,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isEarrapeEnabled },
+        onToggle = { vm, showWarn ->
+            if (!vm.hasSeenEarrapeWarning()) showWarn() else vm.toggleEarrape()
+        },
+        onOpenDialog = onOpenEarrapeDialog,
+        activeColor = { MaterialTheme.colorScheme.error },
+        activeContentColor = { MaterialTheme.colorScheme.onError }
+    ),
+
+    AudioFxDefinition(
+        id = "eight_d",
+        titleRes = R.string.effect_8d,
+        icon = Icons.Rounded.SurroundSound,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.is8DEnabled },
+        onToggle = { vm, _ -> vm.toggle8D() },
+        onOpenDialog = onOpenEightDDialog,
+        activeColor = { MaterialTheme.colorScheme.tertiary },
+        activeContentColor = { MaterialTheme.colorScheme.onTertiary }
+    ),
+    AudioFxDefinition(
+        id = "super_wide",
+        titleRes = R.string.effect_super_wide,
+        icon = Icons.Rounded.SurroundSound,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isSuperWideEnabled },
+        onToggle = { vm, _ -> vm.toggleSuperWide() },
+        onOpenDialog = onOpenSuperWideDialog,
+        activeColor = { Color(0xFF26C6DA) },
+        activeContentColor = { Color(0xFF00363A) }
+    ),
+    AudioFxDefinition(
+        id = "chorus",
+        titleRes = R.string.effect_chorus,
+        icon = Icons.Rounded.Grain,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isChorusEnabled },
+        onToggle = { vm, _ -> vm.toggleChorus() },
+        onOpenDialog = onOpenChorusDialog,
+        activeColor = { Color(0xFF5C6BC0) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "flanger",
+        titleRes = R.string.effect_flanger,
+        icon = Icons.Rounded.Air,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isFlangerEnabled },
+        onToggle = { vm, _ -> vm.toggleFlanger() },
+        onOpenDialog = onOpenFlangerDialog,
+        activeColor = { Color(0xFF00E5FF) },
+        activeContentColor = { Color(0xFF003840) }
+    ),
+    AudioFxDefinition(
+        id = "phaser",
+        titleRes = R.string.effect_phaser,
+        icon = Icons.Rounded.Waves,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isPhaserEnabled },
+        onToggle = { vm, _ -> vm.togglePhaser() },
+        onOpenDialog = onOpenPhaserDialog,
+        activeColor = { Color(0xFF7C4DFF) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "ping_pong",
+        titleRes = R.string.effect_ping_pong,
+        icon = Icons.Rounded.SyncAlt,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isPingPongDelayEnabled },
+        onToggle = { vm, _ -> vm.togglePingPongDelay() },
+        onOpenDialog = onOpenPingPongDelayDialog,
+        activeColor = { Color(0xFF64DD17) },
+        activeContentColor = { Color(0xFF1B3B00) }
+    ),
+    AudioFxDefinition(
+        id = "reverse_echo",
+        titleRes = R.string.effect_reverse_echo,
+        icon = Icons.Rounded.CompareArrows,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isReverseEchoEnabled },
+        onToggle = { vm, _ -> vm.toggleReverseEcho() },
+        onOpenDialog = onOpenReverseEchoDialog,
+        activeColor = { Color(0xFF00E5FF) },
+        activeContentColor = { Color(0xFF003B46) }
+    ),
+    AudioFxDefinition(
+        id = "reverb",
+        titleRes = R.string.effect_reverb,
+        icon = Icons.Rounded.GraphicEq,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isReverbEnabled },
+        onToggle = { vm, _ -> vm.toggleReverb() },
+        onOpenDialog = onOpenReverbDialog,
+        activeColor = { MaterialTheme.colorScheme.primary },
+        activeContentColor = { MaterialTheme.colorScheme.onPrimary }
+    ),
+    AudioFxDefinition(
+        id = "shimmer_reverb",
+        titleRes = R.string.effect_shimmer_reverb,
+        icon = Icons.Rounded.Flare,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isShimmerReverbEnabled },
+        onToggle = { vm, _ -> vm.toggleShimmerReverb() },
+        onOpenDialog = onOpenShimmerReverbDialog,
+        activeColor = { Color(0xFFFF4081) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "stadium",
+        titleRes = R.string.effect_stadium,
+        icon = Icons.Rounded.SurroundSound,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isStadiumEnabled },
+        onToggle = { vm, _ -> vm.toggleStadium() },
+        onOpenDialog = onOpenStadiumDialog,
+        activeColor = { Color(0xFF00E676) },
+        activeContentColor = { Color(0xFF003815) }
+    ),
+    AudioFxDefinition(
+        id = "rotary_speaker",
+        titleRes = R.string.effect_rotary_speaker,
+        icon = Icons.Rounded.RotateRight,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isRotarySpeakerEnabled },
+        onToggle = { vm, _ -> vm.toggleRotarySpeaker() },
+        onOpenDialog = onOpenRotarySpeakerDialog,
+        activeColor = { Color(0xFFFF6D00) },
+        activeContentColor = { Color(0xFF3E1200) }
+    ),
+    AudioFxDefinition(
+        id = "asmr_vocal",
+        titleRes = R.string.effect_asmr_vocal,
+        icon = Icons.Rounded.RecordVoiceOver,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isAsmrVocalEnabled },
+        onToggle = { vm, _ -> vm.toggleAsmrVocal() },
+        onOpenDialog = onOpenAsmrVocalDialog,
+        activeColor = { Color(0xFFFF4081) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "mono",
+        titleRes = R.string.pref_audio_mono,
+        icon = Icons.Rounded.Headphones,
+        categoryRes = R.string.category_spatial,
+        isActive = { it.isMonoEnabled },
+        onToggle = { vm, _ -> vm.toggleMono() },
+        onOpenDialog = null,
+        activeColor = { MaterialTheme.colorScheme.secondary },
+        activeContentColor = { MaterialTheme.colorScheme.onSecondary }
+    ),
+
+    AudioFxDefinition(
+        id = "rain",
+        titleRes = R.string.effect_ambient_sound,
+        icon = Icons.Rounded.WaterDrop,
+        categoryRes = R.string.category_ambience_filters,
+        isActive = { it.isRainEnabled },
+        onToggle = { vm, _ -> vm.toggleRain() },
+        onOpenDialog = onOpenRainDialog,
+        activeColor = { Color(0xFF81D4FA) },
+        activeContentColor = { Color(0xFF004BA0) }
+    ),
+    AudioFxDefinition(
+        id = "underwater",
+        titleRes = R.string.effect_underwater,
+        icon = Icons.Rounded.Waves,
+        categoryRes = R.string.category_ambience_filters,
+        isActive = { it.isUnderwaterEnabled },
+        onToggle = { vm, _ -> vm.toggleUnderwater() },
+        onOpenDialog = onOpenUnderwaterDialog,
+        activeColor = { Color(0xFF00838F) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "empty_mall",
+        titleRes = R.string.effect_empty_mall,
+        icon = Icons.Rounded.Storefront,
+        categoryRes = R.string.category_ambience_filters,
+        isActive = { it.isEmptyMallEnabled },
+        onToggle = { vm, _ -> vm.toggleEmptyMall() },
+        onOpenDialog = onOpenEmptyMallDialog,
+        activeColor = { Color(0xFF00BFA5) },
+        activeContentColor = { Color(0xFF003730) }
+    ),
+    AudioFxDefinition(
+        id = "party_next_door",
+        titleRes = R.string.effect_party_next_door,
+        icon = Icons.Rounded.MeetingRoom,
+        categoryRes = R.string.category_ambience_filters,
+        isActive = { it.isPartyNextDoorEnabled },
+        onToggle = { vm, _ -> vm.togglePartyNextDoor() },
+        onOpenDialog = onOpenPartyNextDoorDialog,
+        activeColor = { Color(0xFFAB47BC) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "night_drive",
+        titleRes = R.string.effect_night_drive,
+        icon = Icons.Rounded.DirectionsCar,
+        categoryRes = R.string.category_ambience_filters,
+        isActive = { it.isNightDriveEnabled },
+        onToggle = { vm, _ -> vm.toggleNightDrive() },
+        onOpenDialog = onOpenNightDriveDialog,
+        activeColor = { Color(0xFF2979FF) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "muffled",
+        titleRes = R.string.effect_muffled,
+        icon = Icons.Rounded.BlurOn,
+        categoryRes = R.string.category_ambience_filters,
+        isActive = { it.isMuffledEnabled },
+        onToggle = { vm, _ -> vm.toggleMuffled() },
+        onOpenDialog = onOpenMuffledDialog,
+        activeColor = { MaterialTheme.colorScheme.secondary },
+        activeContentColor = { MaterialTheme.colorScheme.onSecondary }
+    ),
+
+    AudioFxDefinition(
+        id = "cassette_walkman",
+        titleRes = R.string.effect_cassette_walkman,
+        icon = Icons.Rounded.Radio,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isWalkmanEnabled },
+        onToggle = { vm, _ -> vm.toggleWalkman() },
+        onOpenDialog = onOpenWalkmanDialog,
+        activeColor = { Color(0xFFFFAB00) },
+        activeContentColor = { Color(0xFF3E2700) }
+    ),
+    AudioFxDefinition(
+        id = "vinyl_lofi",
+        titleRes = R.string.effect_vinyl_lofi,
+        icon = Icons.Rounded.Album,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isVinylLoFiEnabled },
+        onToggle = { vm, _ -> vm.toggleVinylLoFi() },
+        onOpenDialog = onOpenVinylLoFiDialog,
+        activeColor = { Color(0xFFFFB300) },
+        activeContentColor = { Color(0xFF3E2723) }
+    ),
+    AudioFxDefinition(
+        id = "gramophone",
+        titleRes = R.string.effect_gramophone,
+        icon = Icons.Rounded.History,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isGramophoneEnabled },
+        onToggle = { vm, _ -> vm.toggleGramophone() },
+        onOpenDialog = onOpenGramophoneDialog,
+        activeColor = { Color(0xFF8D6E63) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "vintage_mp3",
+        titleRes = R.string.effect_vintage_mp3,
+        icon = Icons.Rounded.Radio,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isVintageMp3Enabled },
+        onToggle = { vm, _ -> vm.toggleVintageMp3() },
+        onOpenDialog = onOpenVintageMp3Dialog,
+        activeColor = { Color(0xFFFFB74D) },
+        activeContentColor = { Color(0xFF5D2B00) }
+    ),
+    AudioFxDefinition(
+        id = "chiptune",
+        titleRes = R.string.effect_chiptune,
+        icon = Icons.Rounded.Gamepad,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isChiptuneEnabled },
+        onToggle = { vm, _ -> vm.toggleChiptune() },
+        onOpenDialog = onOpenChiptuneDialog,
+        activeColor = { Color(0xFFE040FB) },
+        activeContentColor = { Color.White }
+    ),
+    AudioFxDefinition(
+        id = "megaphone",
+        titleRes = R.string.effect_megaphone,
+        icon = Icons.Rounded.Campaign,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isMegaphoneEnabled },
+        onToggle = { vm, _ -> vm.toggleMegaphone() },
+        onOpenDialog = onOpenMegaphoneDialog,
+        activeColor = { Color(0xFFFF7043) },
+        activeContentColor = { Color(0xFF3E1200) }
+    ),
+    AudioFxDefinition(
+        id = "robot_vocoder",
+        titleRes = R.string.effect_robot_vocoder,
+        icon = Icons.Rounded.SmartToy,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isRobotVocoderEnabled },
+        onToggle = { vm, _ -> vm.toggleRobotVocoder() },
+        onOpenDialog = onOpenRobotVocoderDialog,
+        activeColor = { Color(0xFF00E676) },
+        activeContentColor = { Color(0xFF003314) }
+    ),
+    AudioFxDefinition(
+        id = "trance_gate",
+        titleRes = R.string.effect_trance_gate,
+        icon = Icons.Rounded.ElectricBolt,
+        categoryRes = R.string.category_retro_vintage,
+        isActive = { it.isTranceGateEnabled },
+        onToggle = { vm, _ -> vm.toggleTranceGate() },
+        onOpenDialog = onOpenTranceGateDialog,
+        activeColor = { Color(0xFFFF9100) },
+        activeContentColor = { Color(0xFF3E1A00) }
+    )
+)
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun AudioFxStudioSheet(
+    viewModel: PlayerViewModel,
+    allEffects: List<AudioFxDefinition>,
+    onOpenBassBoostDialog: () -> Unit,
+    onOpenEarrapeDialog: () -> Unit,
+    onOpenEightDDialog: () -> Unit,
+    onOpenMuffledDialog: () -> Unit,
+    onOpenReverbDialog: () -> Unit,
+    onOpenRainDialog: () -> Unit,
+    onOpenNormalizationDialog: () -> Unit,
+    onOpenVintageMp3Dialog: () -> Unit,
+    onOpenVocalRemoverDialog: () -> Unit,
+    onOpenVocalBoostDialog: () -> Unit,
+    onOpenFlangerDialog: () -> Unit,
+    onOpenPartyNextDoorDialog: () -> Unit,
+    onOpenSuperWideDialog: () -> Unit,
+    onOpenVinylLoFiDialog: () -> Unit,
+    onOpenPhaserDialog: () -> Unit,
+    onOpenMegaphoneDialog: () -> Unit,
+    onOpenRobotVocoderDialog: () -> Unit,
+    onOpenChorusDialog: () -> Unit,
+    onOpenUnderwaterDialog: () -> Unit,
+    onOpenTranceGateDialog: () -> Unit,
+    onOpenPingPongDelayDialog: () -> Unit,
+    onOpenChiptuneDialog: () -> Unit,
+    onOpenShimmerReverbDialog: () -> Unit,
+    onOpenRotarySpeakerDialog: () -> Unit,
+    onOpenTapeSaturationDialog: () -> Unit,
+    onOpenSubOctaverDialog: () -> Unit,
+    onOpenEmptyMallDialog: () -> Unit,
+    onOpenGramophoneDialog: () -> Unit,
+    onOpenReverseEchoDialog: () -> Unit,
+    onOpenStadiumDialog: () -> Unit,
+    onOpenWalkmanDialog: () -> Unit,
+    onOpenAsmrVocalDialog: () -> Unit,
+    onOpenNightDriveDialog: () -> Unit,
+    onShowEarrapeWarning: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
+
+    var isDraggingTile by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+
+    val categories = remember(allEffects) {
+        listOf(
+            Triple(R.string.category_power_eq, Icons.Rounded.Bolt, allEffects.filter { it.categoryRes == R.string.category_power_eq }),
+            Triple(R.string.category_spatial, Icons.Rounded.SurroundSound, allEffects.filter { it.categoryRes == R.string.category_spatial }),
+            Triple(R.string.category_ambience_filters, Icons.Rounded.WaterDrop, allEffects.filter { it.categoryRes == R.string.category_ambience_filters }),
+            Triple(R.string.category_retro_vintage, Icons.Rounded.Radio, allEffects.filter { it.categoryRes == R.string.category_retro_vintage })
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(scrollState, enabled = !isDraggingTile)
+            .padding(horizontal = 24.dp)
+            .padding(top = 8.dp, bottom = 36.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            Surface(
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    viewModel.resetPinnedAudioFx()
+                },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.RestartAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.btn_reset),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = stringResource(R.string.edit_tiles_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = stringResource(R.string.edit_tiles_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = stringResource(R.string.audio_fx_long_press_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        Surface(
+            shape = RoundedCornerShape(32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+            border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp)
+            ) {
+                DraggablePinnedTilesGrid(
+                    pinnedList = viewModel.pinnedAudioFx,
+                    allEffects = allEffects,
+                    viewModel = viewModel,
+                    onDragStateChanged = { isDraggingTile = it },
+                    onRemoveFx = { fxId ->
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        viewModel.togglePinAudioFx(fxId)
+                    }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+
+        categories.forEach { (catTitleRes, catIcon, fxList) ->
+            if (fxList.isNotEmpty()) {
+                AvailableCategorySection(
+                    categoryTitleRes = catTitleRes,
+                    categoryIcon = catIcon,
+                    effects = fxList,
+                    viewModel = viewModel,
+                    onToggleFx = { fxId ->
+                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        viewModel.togglePinAudioFx(fxId)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DraggablePinnedTilesGrid(
+    pinnedList: List<String>,
+    allEffects: List<AudioFxDefinition>,
+    viewModel: PlayerViewModel,
+    onDragStateChanged: (Boolean) -> Unit,
+    onRemoveFx: (String) -> Unit
+) {
+    val view = LocalView.current
+    val density = LocalDensity.current
+
+    var currentOrder by remember(pinnedList) { mutableStateOf(pinnedList) }
+    var draggedId by remember { mutableStateOf<String?>(null) }
+    var dragTouchOffsetInItem by remember { mutableStateOf(Offset.Zero) }
+    var currentFingerPos by remember { mutableStateOf(Offset.Zero) }
+
+    LaunchedEffect(draggedId) {
+        onDragStateChanged(draggedId != null)
+    }
+
+    val pinnedDefs = remember(currentOrder, allEffects) {
+        currentOrder.mapNotNull { id -> allEffects.find { it.id == id } }
+    }
+
+    if (pinnedDefs.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(R.string.edit_tiles_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        return
+    }
+
+    val spacingDp = 10.dp
+    val itemHeightDp = 76.dp
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val totalWidthPx = constraints.maxWidth.toFloat()
+        val spacingPx = with(density) { spacingDp.toPx() }
+        val itemHeightPx = with(density) { itemHeightDp.toPx() }
+        val itemWidthPx = (totalWidthPx - spacingPx) / 2f
+        val itemWidthDp = with(density) { itemWidthPx.toDp() }
+
+        val totalRows = (currentOrder.size + 1) / 2
+        val totalHeightDp = if (totalRows == 0) 0.dp else (itemHeightDp * totalRows + spacingDp * (totalRows - 1))
+
+        Box(modifier = Modifier.fillMaxWidth().height(totalHeightDp)) {
+            pinnedDefs.forEach { fx ->
+                val index = currentOrder.indexOf(fx.id)
+                if (index == -1) return@forEach
+
+                val isDragging = draggedId == fx.id
+
+                val slotCol = index % 2
+                val slotRow = index / 2
+                val slotXPx = slotCol * (itemWidthPx + spacingPx)
+                val slotYPx = slotRow * (itemHeightPx + spacingPx)
+
+                val targetXPx = if (isDragging) (currentFingerPos.x - dragTouchOffsetInItem.x) else slotXPx
+                val targetYPx = if (isDragging) (currentFingerPos.y - dragTouchOffsetInItem.y) else slotYPx
+
+                val animatedXPx by animateFloatAsState(
+                    targetValue = targetXPx,
+                    animationSpec = if (isDragging) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                    label = "itemX_${fx.id}"
+                )
+                val animatedYPx by animateFloatAsState(
+                    targetValue = targetYPx,
+                    animationSpec = if (isDragging) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                    label = "itemY_${fx.id}"
+                )
+
+                val scale by animateFloatAsState(
+                    targetValue = if (isDragging) 1.08f else 1f,
+                    animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy),
+                    label = "itemScale_${fx.id}"
+                )
+                val zIndex = if (isDragging) 100f else 1f
+
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(animatedXPx.roundToInt(), animatedYPx.roundToInt()) }
+                        .width(itemWidthDp)
+                        .height(itemHeightDp)
+                        .zIndex(zIndex)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            shadowElevation = if (isDragging) 16.dp.toPx() else 0f
+                            shape = RoundedCornerShape(22.dp)
+                            clip = false
+                        }
+                        .pointerInput(Unit) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { offsetInItem ->
+                                    val curIdx = currentOrder.indexOf(fx.id)
+                                    if (curIdx != -1) {
+                                        val col = curIdx % 2
+                                        val row = curIdx / 2
+                                        val itemOriginX = col * (itemWidthPx + spacingPx)
+                                        val itemOriginY = row * (itemHeightPx + spacingPx)
+
+                                        draggedId = fx.id
+                                        dragTouchOffsetInItem = offsetInItem
+                                        currentFingerPos = Offset(itemOriginX + offsetInItem.x, itemOriginY + offsetInItem.y)
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    }
+                                },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    if (draggedId == fx.id) {
+                                        currentFingerPos += dragAmount
+
+                                        val hoveredCol = if (currentFingerPos.x > totalWidthPx / 2f) 1 else 0
+                                        val maxRow = (currentOrder.size - 1) / 2
+                                        val hoveredRow = (currentFingerPos.y / (itemHeightPx + spacingPx)).toInt().coerceIn(0, maxRow)
+                                        val targetIdx = (hoveredRow * 2 + hoveredCol).coerceIn(0, currentOrder.lastIndex)
+
+                                        val curIdx = currentOrder.indexOf(fx.id)
+                                        if (curIdx != -1 && targetIdx != curIdx) {
+                                            val updated = currentOrder.toMutableList().apply {
+                                                removeAt(curIdx)
+                                                add(targetIdx, fx.id)
+                                            }
+                                            currentOrder = updated
+                                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        }
+                                    }
+                                },
+                                onDragEnd = {
+                                    if (draggedId == fx.id) {
+                                        viewModel.updatePinnedAudioFx(currentOrder)
+                                        draggedId = null
+                                    }
+                                },
+                                onDragCancel = {
+                                    if (draggedId == fx.id) {
+                                        viewModel.updatePinnedAudioFx(currentOrder)
+                                        draggedId = null
+                                    }
+                                }
+                            )
+                        }
+                ) {
+                    ActiveQSTile(
+                        fx = fx,
+                        isActive = fx.isActive(viewModel.effectsState),
+                        onRemove = { onRemoveFx(fx.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActiveQSTile(
+    fx: AudioFxDefinition,
+    isActive: Boolean,
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val activeColor = fx.activeColor()
+    val activeContentColor = fx.activeContentColor()
+
+    val containerColor by animateColorAsState(
+        targetValue = if (isActive) activeColor else MaterialTheme.colorScheme.surfaceContainerHighest,
+        animationSpec = tween(250),
+        label = "activeContainerColor"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isActive) activeContentColor else MaterialTheme.colorScheme.onSurface,
+        animationSpec = tween(250),
+        label = "activeContentColor"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        border = if (isActive) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        modifier = modifier.fillMaxSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = if (isActive) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = fx.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = if (isActive) activeContentColor else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = stringResource(fx.titleRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier.size(30.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.85f),
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(22.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Remove,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AvailableCategorySection(
+    categoryTitleRes: Int,
+    categoryIcon: ImageVector,
+    effects: List<AudioFxDefinition>,
+    viewModel: PlayerViewModel,
+    onToggleFx: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)
+        ) {
+            Icon(
+                imageVector = categoryIcon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = stringResource(categoryTitleRes),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            effects.chunked(2).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    rowItems.forEach { fx ->
+                        val isPinned = viewModel.isAudioFxPinned(fx.id)
+                        AvailableTile(
+                            fx = fx,
+                            isPinned = isPinned,
+                            onClick = { onToggleFx(fx.id) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (rowItems.size == 1) {
+                        Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AvailableTile(
+    fx: AudioFxDefinition,
+    isPinned: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val containerColor by animateColorAsState(
+        targetValue = if (isPinned) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceContainerHighest,
+        animationSpec = tween(250),
+        label = "availContainerColor"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isPinned) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
+        animationSpec = tween(250),
+        label = "availContentColor"
+    )
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(22.dp),
+        color = containerColor,
+        contentColor = contentColor,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isPinned) 0.2f else 0.4f)),
+        modifier = modifier.height(72.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 12.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = if (isPinned) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = fx.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = if (isPinned) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = stringResource(fx.titleRes),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Surface(
+                shape = CircleShape,
+                color = if (isPinned) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
+                contentColor = if (isPinned) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(24.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = if (isPinned) Icons.Rounded.Check else Icons.Rounded.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun DockButton(
@@ -2859,7 +6655,6 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
     val commentSort = viewModel.commentSort
     val tabs = remember { CommentSort.values() }
     var isSortMenuExpanded by remember { mutableStateOf(false) }
-
 
     LaunchedEffect(replyingTo) {
         if (replyingTo != null) {
@@ -3972,7 +7767,6 @@ fun OldPlayerScreen(
                                 }
                             }
                         } else {
-                            // Stylized container (Card) only for the artwork
                             Box(
                                 modifier = Modifier
                                     .padding(24.dp)

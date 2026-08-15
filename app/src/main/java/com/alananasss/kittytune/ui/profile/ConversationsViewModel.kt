@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -10,14 +10,14 @@
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.InboxConversation
     import kotlinx.coroutines.launch
-    
+
     class ConversationsViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
-    
+
         val conversations = mutableStateListOf<InboxConversation>()
         var isLoading by mutableStateOf(true)
         var currentUserUrn by mutableStateOf("")
-    
+
         fun loadConversations() {
             viewModelScope.launch {
                 isLoading = true
@@ -40,5 +40,4 @@
             }
         }
     }
-
 

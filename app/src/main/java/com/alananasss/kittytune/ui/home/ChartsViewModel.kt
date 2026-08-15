@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import android.app.Application
     import androidx.compose.runtime.getValue
     import androidx.compose.runtime.mutableStateListOf
@@ -17,36 +17,36 @@
     import kotlinx.coroutines.awaitAll
     import kotlinx.coroutines.coroutineScope
     import kotlinx.coroutines.launch
-    
+
     data class ArtistRanking(
         val user: User,
         val score: Long, // Keep the score for sorting, but we will display the followers
         val rank: Int
     )
-    
+
     class ChartsViewModel(application: Application) : AndroidViewModel(application) {
         private val api = RetrofitClient.create(application)
         private val gson = com.alananasss.kittytune.utils.AppUtils.gson
-    
+
         var selectedCountryIndex by mutableStateOf(0)
         val chartPlaylists = mutableStateListOf<Playlist>()
         val topArtists = mutableStateListOf<ArtistRanking>()
-    
+
         var isLoading by mutableStateOf(false)
-    
+
         init {
             loadCountryCharts(0)
         }
-    
+
         fun loadCountryCharts(index: Int) {
             selectedCountryIndex = index
             val countryData = ChartsData.charts[index]
-    
+
             viewModelScope.launch {
                 isLoading = true
                 chartPlaylists.clear()
                 topArtists.clear()
-    
+
                 try {
                     // Parallel playlist retrieval
                     val playlists = coroutineScope {
@@ -67,10 +67,10 @@
                             }
                         }.awaitAll().filterNotNull()
                     }
-    
+
                     chartPlaylists.addAll(playlists)
                     calculateTopArtists(playlists)
-    
+
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
@@ -78,11 +78,11 @@
                 }
             }
         }
-    
+
         private fun calculateTopArtists(playlists: List<Playlist>) {
             val userMap = mutableMapOf<Long, User>()
             val playCounts = mutableMapOf<Long, Long>()
-    
+
             playlists.forEach { playlist ->
                 playlist.tracks?.forEach { track ->
                     val user = track.user
@@ -97,7 +97,7 @@
                     }
                 }
             }
-    
+
             val sorted = playCounts.entries
                 .sortedByDescending { it.value }
                 .take(40)
@@ -109,10 +109,10 @@
                         rank = index + 1
                     )
                 }
-    
+
             topArtists.addAll(sorted)
         }
-    
+
         fun fetchArtistTopTracks(userId: Long, onResult: (List<Track>) -> Unit) {
             viewModelScope.launch {
                 try {
@@ -125,5 +125,4 @@
             }
         }
     }
-
 

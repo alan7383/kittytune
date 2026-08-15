@@ -67,7 +67,7 @@ fun rememberWindowSizeInfo(
     val configuration = LocalConfiguration.current
     val screenWidthDp = maxWidth ?: configuration.screenWidthDp.dp
     val screenHeightDp = maxHeight ?: configuration.screenHeightDp.dp
-    
+
     // An orientation is landscape IF AND ONLY IF the width is strictly greater than the height.
     val isLandscape = screenWidthDp > screenHeightDp
 

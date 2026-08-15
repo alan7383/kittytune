@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
@@ -35,7 +35,7 @@
     import com.alananasss.kittytune.ui.common.TrackListItemShimmer
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import java.util.Locale
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun NewReleasesScreen(
@@ -45,7 +45,7 @@
         viewModel: NewReleasesViewModel = viewModel()
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -147,7 +147,7 @@
                             }
                         }
                     }
-    
+
                     // popular tracks section with horizontal swiping by groups of 5
                     if (viewModel.popularTracks.isNotEmpty()) {
                         item {
@@ -158,7 +158,7 @@
                                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
                             )
                         }
-    
+
                         // split the list into pages of 5 tracks
                         val pages = viewModel.popularTracks.chunked(5)
                         item {
@@ -191,7 +191,7 @@
             }
         }
     }
-    
+
     // this is the track row with rank and play count
     @Composable
     fun PopularTrackRow(
@@ -203,7 +203,7 @@
     ) {
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-    
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -220,7 +220,7 @@
                 modifier = Modifier.width(32.dp),
                 textAlign = TextAlign.Center
             )
-    
+
             // artwork + playing indicator overlay
             Box(contentAlignment = Alignment.Center) {
                 AsyncImage(
@@ -231,7 +231,7 @@
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
-    
+
                 if (isCurrent) {
                     Box(
                         modifier = Modifier
@@ -249,9 +249,9 @@
                     }
                 }
             }
-    
+
             Spacer(Modifier.width(16.dp))
-    
+
             // track details
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -271,15 +271,14 @@
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-    
+
             // kebab menu
             IconButton(onClick = onOptionClick) {
                 Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options))
             }
         }
     }
-    
-    
+
     @Composable
     fun NewReleasePlaylistCard(
         playlist: Playlist,
@@ -322,7 +321,7 @@
             }
         }
     }
-    
+
     // helper to format big numbers (1k, 1m...)
     private fun formatNumber(count: Int): String {
         if (count < 1000) return count.toString()
@@ -334,5 +333,4 @@
             else -> count.toString()
         }
     }
-
 

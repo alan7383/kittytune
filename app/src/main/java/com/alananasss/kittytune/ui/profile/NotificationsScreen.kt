@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.layout.*
@@ -28,7 +28,7 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.domain.ActivityItem
     import com.alananasss.kittytune.ui.library.getRelativeTime
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun NotificationsScreen(
@@ -37,7 +37,7 @@
         viewModel: NotificationsViewModel = viewModel()
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
             topBar = {
@@ -69,7 +69,7 @@
             },
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
-    
+
             if (viewModel.isLoading && viewModel.activities.isEmpty()) {
                 Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                     ContainedLoadingIndicator()
@@ -104,7 +104,7 @@
                         if (index >= viewModel.activities.size - 5) {
                             LaunchedEffect(Unit) { viewModel.loadMore() }
                         }
-    
+
                         NotificationItemCard(item, onNavigate)
                     }
 
@@ -119,11 +119,11 @@
             }
         }
     }
-    
+
     @Composable
     fun NotificationItemCard(item: ActivityItem, onNavigate: (String) -> Unit) {
         val user = item.user ?: return
-    
+
         // 1. Determine resource ID, Icon and Color
         val (textResId, icon, iconColor) = when (item.type) {
             "affiliation" -> Triple(
@@ -167,21 +167,21 @@
                 MaterialTheme.colorScheme.onSurface
             )
         }
-    
+
         // 2. Prepare arguments
         val username = user.username ?: ""
         val targetName = item.track?.title ?: item.playlist?.title ?: ""
-    
+
         // 3. Call stringResource with correct arguments based on type
         val formattedText = when (item.type) {
             "affiliation", "mention" -> stringResource(textResId, username)
             "track-like", "playlist-like", "track-repost", "playlist-repost", "comment" -> stringResource(textResId, username, targetName)
             else -> stringResource(textResId) // Default case (no args)
         }
-    
+
         val targetImage = item.track?.fullResArtwork ?: item.playlist?.fullResArtwork
         val timeString = getRelativeTime(item.createdAt, androidx.compose.ui.platform.LocalContext.current)
-    
+
         val onClick = {
             when {
                 item.track != null -> onNavigate("track_detail/${item.track.id}")
@@ -189,7 +189,7 @@
                 else -> onNavigate("profile:${user.numericId}")
             }
         }
-    
+
         Card(
             onClick = onClick,
             shape = RoundedCornerShape(20.dp),
@@ -215,7 +215,7 @@
                             .clip(CircleShape)
                             .align(Alignment.Center)
                     )
-    
+
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -240,9 +240,9 @@
                         }
                     }
                 }
-    
+
                 Spacer(Modifier.width(16.dp))
-    
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = formattedText,
@@ -259,7 +259,7 @@
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-    
+
                 if (targetImage != null) {
                     Spacer(Modifier.width(12.dp))
                     Card(
@@ -279,5 +279,4 @@
             }
         }
     }
-
 

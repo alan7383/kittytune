@@ -49,7 +49,7 @@ class AudioRecorder {
                 audioRecord.startRecording()
                 val startTime = System.currentTimeMillis()
                 var lastCheckTime = startTime
-                
+
                 while (coroutineContext.isActive && (System.currentTimeMillis() - startTime) < durationMs) {
                     if (control?.shouldStop == true) {
                         break

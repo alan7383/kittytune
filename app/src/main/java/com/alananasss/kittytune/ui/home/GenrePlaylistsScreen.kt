@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.home
-    
+
     import androidx.compose.foundation.background
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.grid.GridCells
@@ -35,7 +35,7 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.ui.common.SquareCardShimmer
-    
+
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
     fun GenrePlaylistsScreen(
@@ -46,11 +46,11 @@
         viewModel: GenrePlaylistsViewModel = viewModel()
     ) {
         val listState = rememberLazyGridState()
-    
+
         LaunchedEffect(query) {
             viewModel.loadGenre(genreTitle, query)
         }
-    
+
         val shouldLoadMore by remember {
             derivedStateOf {
                 val layoutInfo = listState.layoutInfo
@@ -59,13 +59,13 @@
                 totalItems > 0 && lastVisibleItemIndex >= totalItems - 10
             }
         }
-    
+
         LaunchedEffect(shouldLoadMore) {
             if (shouldLoadMore && !viewModel.isLoadingMore) {
                 viewModel.loadMore()
             }
         }
-    
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -141,7 +141,7 @@
             }
         }
     }
-    
+
     @Composable
     fun CinematicPlaylistCard(
         playlist: Playlist,
@@ -163,7 +163,7 @@
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-    
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -178,7 +178,7 @@
                             )
                         )
                 )
-    
+
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -193,9 +193,9 @@
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-    
+
                     Spacer(modifier = Modifier.height(4.dp))
-    
+
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (playlist.user?.avatarUrl != null) {
                             AsyncImage(
@@ -207,7 +207,7 @@
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
-    
+
                         Text(
                             text = playlist.user?.username ?: stringResource(R.string.unknown_artist),
                             style = MaterialTheme.typography.labelSmall,
@@ -216,9 +216,9 @@
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-    
+
                     Spacer(modifier = Modifier.height(4.dp))
-    
+
                     Surface(
                         color = Color.White.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(4.dp)
@@ -234,5 +234,4 @@
             }
         }
     }
-
 

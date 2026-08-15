@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.net.Uri
     import android.widget.Toast
     import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,26 +31,26 @@
     import com.alananasss.kittytune.ui.common.SettingsItem
     import com.alananasss.kittytune.ui.common.SettingsScaffold
     import kotlinx.coroutines.launch
-    
+
     @Composable
     fun BackupRestoreScreen(
         onBackClick: () -> Unit,
         viewModel: BackupViewModel = viewModel()
     ) {
         val context = LocalContext.current
-    
+
         val createDocumentLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.CreateDocument("application/octet-stream")
         ) { uri ->
             uri?.let { viewModel.backup(it) }
         }
-    
+
         val openDocumentLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument()
         ) { uri ->
             uri?.let { viewModel.restore(it) }
         }
-    
+
         SettingsScaffold(
             title = stringResource(R.string.pref_backup_title),
             onBackClick = onBackClick
@@ -85,7 +85,7 @@
                             )
                         )
                     }
-    
+
                     // INFO SECTION
                     item {
                         Column(
@@ -98,7 +98,7 @@
                             InfoCard(text = stringResource(R.string.backup_info_guest))
                         }
                     }
-    
+
                     // STATUS MESSAGE
                     if (viewModel.statusMessage != null) {
                         item {
@@ -114,7 +114,7 @@
                         }
                     }
                 }
-    
+
                 // LOADING OVERLAY
                 if (viewModel.isLoading) {
                     Box(
@@ -139,7 +139,7 @@
             }
         }
     }
-    
+
     @Composable
     fun InfoCard(text: String) {
         Row(
@@ -161,5 +161,4 @@
             )
         }
     }
-
 

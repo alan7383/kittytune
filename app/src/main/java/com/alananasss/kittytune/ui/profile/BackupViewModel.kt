@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.profile
-    
+
     import android.app.Application
     import android.net.Uri
     import android.widget.Toast
@@ -11,12 +11,12 @@
     import com.alananasss.kittytune.R
     import com.alananasss.kittytune.data.BackupManager
     import kotlinx.coroutines.launch
-    
+
     class BackupViewModel(application: Application) : AndroidViewModel(application) {
-    
+
         var isLoading by mutableStateOf(false)
         var statusMessage by mutableStateOf<String?>(null)
-    
+
         fun backup(uri: Uri) {
             viewModelScope.launch {
                 isLoading = true
@@ -33,7 +33,7 @@
                 }
             }
         }
-    
+
         fun restore(uri: Uri) {
             viewModelScope.launch {
                 isLoading = true
@@ -51,5 +51,4 @@
             }
         }
     }
-
 

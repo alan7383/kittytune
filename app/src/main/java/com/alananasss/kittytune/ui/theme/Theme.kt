@@ -60,7 +60,7 @@ internal fun rememberSoundTuneColorScheme(
     colorSpec: String,
 ): ColorScheme {
     val context = LocalContext.current
-    
+
     // Use the native system generated scheme if "System" style is selected with Auto color
     if (colorStyle.equals("System", ignoreCase = true) && dynamicColor && keyColor == 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val platformScheme = if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -153,7 +153,7 @@ fun SoundTuneTheme(
             window.statusBarColor = Color.Transparent.toArgb()
             @Suppress("DEPRECATION")
             window.navigationBarColor = Color.Transparent.toArgb()
-            
+
             val insetsController = WindowCompat.getInsetsController(window, view)
             insetsController.isAppearanceLightStatusBars = !useDarkTheme
             insetsController.isAppearanceLightNavigationBars = !useDarkTheme

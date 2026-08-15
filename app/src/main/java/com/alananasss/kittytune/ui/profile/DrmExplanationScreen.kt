@@ -39,7 +39,7 @@ fun DrmExplanationScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsItem(
                         shape = getSettingsShape(1, 0),

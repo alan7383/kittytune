@@ -1,8 +1,8 @@
     package com.alananasss.kittytune.data.local
-    
+
     import androidx.room.Entity
     import androidx.room.PrimaryKey
-    
+
     @Entity(tableName = "downloaded_tracks")
     data class LocalTrack(
         @PrimaryKey val id: Long,
@@ -16,7 +16,7 @@
         val lufs: Float? = null,
         val truePeak: Float? = null
     )
-    
+
     @Entity(tableName = "downloaded_playlists")
     data class LocalPlaylist(
         @PrimaryKey val id: Long,
@@ -30,14 +30,14 @@
         val isAlbum: Boolean = false,
         val addedAt: Long = System.currentTimeMillis()
     )
-    
+
     @Entity(tableName = "playlist_track_cross_ref", primaryKeys = ["playlistId", "trackId"])
     data class PlaylistTrackCrossRef(
         val playlistId: Long,
         val trackId: Long,
         val addedAt: Long = System.currentTimeMillis()
     )
-    
+
     @Entity(tableName = "saved_artists")
     data class LocalArtist(
         @PrimaryKey val id: Long,
@@ -46,7 +46,7 @@
         val trackCount: Int,
         val savedAt: Long = System.currentTimeMillis()
     )
-    
+
     @Entity(tableName = "play_history")
     data class HistoryItem(
         @PrimaryKey val id: String,
@@ -87,5 +87,4 @@
         val trackDurationMs: Long = 0,
         val timestamp: Long = System.currentTimeMillis()
     )
-
 

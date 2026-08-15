@@ -1,5 +1,5 @@
     package com.alananasss.kittytune.ui.widget
-    
+
     import android.content.Context
     import androidx.compose.runtime.Composable
     import androidx.compose.ui.graphics.Color
@@ -30,9 +30,9 @@
     import androidx.glance.text.Text
     import androidx.glance.text.TextStyle
     import com.alananasss.kittytune.R
-    
+
     class SearchWidget : GlanceAppWidget() {
-    
+
         override suspend fun provideGlance(context: Context, id: GlanceId) {
             provideContent {
                 GlanceTheme {
@@ -40,11 +40,11 @@
                 }
             }
         }
-    
+
         @Composable
         private fun SearchContent() {
             val context = LocalContext.current
-    
+
             // the outer container uses the main surface color, consistent with other widgets
             Row(
                 modifier = GlanceModifier
@@ -81,9 +81,9 @@
                         maxLines = 1
                     )
                 }
-    
+
                 Spacer(GlanceModifier.width(8.dp))
-    
+
                 // the circular button now handles the simple 'open app' action
                 Box(
                     modifier = GlanceModifier
@@ -103,5 +103,4 @@
             }
         }
     }
-
 
