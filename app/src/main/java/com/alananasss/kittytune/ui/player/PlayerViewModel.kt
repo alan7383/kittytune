@@ -40,6 +40,7 @@ import com.alananasss.kittytune.data.ListeningStatsRepository
 import com.alananasss.kittytune.data.network.LrcLibResponse
 import com.alananasss.kittytune.data.network.MusixmatchClient
 import com.alananasss.kittytune.data.network.RetrofitClient
+import com.alananasss.kittytune.data.network.SoundCloudTelemetryTracker
 import com.alananasss.kittytune.domain.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricLine
 import com.alananasss.kittytune.ui.player.lyrics.LyricsUtils
@@ -267,7 +268,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         override fun onIsPlayingChanged(isPlayingState: Boolean) {
             isPlaying = isPlayingState
             saveStateAsync(saveQueue = false)
-            if (isPlayingState) startProgressUpdate()
+            if (isPlayingState) {
+                startProgressUpdate()
+                SoundCloudTelemetryTracker.onTrackResumed(currentPosition)
+            } else {
+                SoundCloudTelemetryTracker.onTrackPaused(currentPosition)
+            }
         }
 
         override fun onTimelineChanged(timeline: Timeline, reason: Int) {
@@ -286,6 +292,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             if (state == Player.STATE_BUFFERING) isLoading = true
 
             if (state == Player.STATE_ENDED) {
+                SoundCloudTelemetryTracker.onTrackCompleted()
                 AchievementManager.increment("no_skip_50")
                 incrementPlayCount()
 
@@ -441,6 +448,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val filter = IntentFilter("com.alananasss.kittytune.ACTION_FORCE_UPDATE")
         ContextCompat.registerReceiver(context, syncReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
 
+        SoundCloudTelemetryTracker.init(context)
         MusicManager.init(context)
         bindToActivePlayer()
         MusicManager.applyEffects(effectsState)
@@ -1117,48 +1125,34 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val target = targetTrack ?: selectedTrackForSheet ?: trackForMenu ?: currentTrack ?: return
         selectedTrackForSheet = target
 
-        if (target.id < 0) {
+        if (target.id < 0 || target.source == "local") {
             activateLocalDetailsMode(target)
             return
         }
 
         viewModelScope.launch {
-            val localTrack = DownloadManager.getLocalTrack(target.id)
-            val isDownloaded = localTrack != null && localTrack.localAudioPath.isNotEmpty()
+            val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(getApplication())
+            val navId = currentContext?.navigationId
+            val isContextLocal = (menuContextPlaylistId != null && (menuContextPlaylistId == -2L || menuContextPlaylistId!! < 0))
+                || (navId == "downloads" || navId?.startsWith("local_playlist:") == true)
 
-            if (isDownloaded) {
+            if (isOffline && isContextLocal) {
                 activateLocalDetailsMode(target)
             } else {
-                var isContextLocal = false
-                if (menuContextPlaylistId != null) {
-                    if (menuContextPlaylistId == -2L || menuContextPlaylistId!! < 0) {
-                        isContextLocal = true
-                    }
-                } else if (target.id == currentTrack?.id) {
-                    val navId = currentContext?.navigationId
-                    if (navId == "downloads" || navId?.startsWith("local_playlist:") == true) {
-                        isContextLocal = true
-                    }
-                }
+                isLocalDetailsMode = false
+                localFilePathForDetails = null
+                showMenuSheet = false
+                showDetailsSheet = true
 
-                if (isContextLocal) {
-                    activateLocalDetailsMode(target)
-                } else {
-                    isLocalDetailsMode = false
-                    localFilePathForDetails = null
-                    showMenuSheet = false
-                    showDetailsSheet = true
-
-                    if (target.source == "soundcloud" && target.id > 0 && (target.user?.id == 0L || target.playbackCount == 0)) {
-                        try {
-                            val fullTracks = api.getTracksByIds(target.id.toString())
-                            val fullTrack = fullTracks.firstOrNull()
-                            if (fullTrack != null) {
-                                selectedTrackForSheet = fullTrack
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
+                if (target.source == "soundcloud" && target.id > 0 && (target.user?.id == 0L || target.playbackCount == 0)) {
+                    try {
+                        val fullTracks = api.getTracksByIds(target.id.toString())
+                        val fullTrack = fullTracks.firstOrNull()
+                        if (fullTrack != null) {
+                            selectedTrackForSheet = fullTrack
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
                 }
             }
@@ -1433,6 +1427,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val me = api.getMe()
                 currentUserId = me.id
                 currentUser = me
+                SoundCloudTelemetryTracker.updateCurrentUserId(me.id)
             } catch (_: Exception) {}
         }
     }
@@ -1454,6 +1449,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (!maintainPlayerState) {
             isPlayerExpanded = false
         }
+        SoundCloudTelemetryTracker.onQueueReset()
         _originalQueue.clear(); _originalQueue.addAll(tracks)
         _queue.clear()
         this.currentContext = context
@@ -1461,21 +1457,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         val effectiveStartIndex = if (startIndex in tracks.indices) startIndex else 0
 
+        val isHistoryContext = context?.navigationId == "history" || context?.navigationId?.startsWith("history") == true
+
         if (shuffleEnabled) {
             val clickedTrack = tracks[effectiveStartIndex]
             val rest =
                 tracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
             _queue.add(clickedTrack)
             _queue.addAll(rest)
-            playTrackAtIndex(0, addToHistory = (context == null))
+            playTrackAtIndex(0, addToHistory = (context == null || isHistoryContext))
         } else {
             _queue.addAll(tracks)
-            playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null))
+            playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null || isHistoryContext))
         }
 
         updateQueueState(); saveStateAsync(saveQueue = true)
 
-        if (context != null) {
+        if (context != null && !isHistoryContext) {
             val isStation =
                 context.navigationId.contains("station") || context.navigationId.contains("yt_radio")
             val isProfile = context.navigationId.contains("profile")
@@ -1545,6 +1543,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             loadLyrics(finalTrack)
             AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")
             saveStateAsync(saveQueue = false)
+
+            SoundCloudTelemetryTracker.onTrackStarted(
+                track = finalTrack,
+                context = currentContext,
+                isManual = true,
+                startPositionMs = if (isCrossfade) currentPosition else 0L
+            )
 
             playRobustly(index, autoPlay = true, isCrossfade = isCrossfade)
 
@@ -1887,6 +1892,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         isScrubbing = false
         player.seekTo(position)
         currentPosition = position
+        SoundCloudTelemetryTracker.onTrackSeeked(position)
         saveStateAsync(saveQueue = false)
     }
     fun toggleLike() {
@@ -1900,6 +1906,22 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             AchievementManager.increment("liker_5000")
         } else {
             LikeRepository.removeLike(t.id)
+        }
+    }
+
+    fun toggleTrackLike(track: Track) {
+        if (track.id == currentTrack?.id) {
+            toggleLike()
+        } else {
+            val isCurrentlyLiked = LikeRepository.isTrackLiked(track.id)
+            if (isCurrentlyLiked) {
+                LikeRepository.removeLike(track.id)
+            } else {
+                LikeRepository.addLike(track)
+                AchievementManager.increment("liker_50")
+                AchievementManager.increment("liker_1000")
+                AchievementManager.increment("liker_5000")
+            }
         }
     }
 
@@ -2085,7 +2107,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             } 
         } 
     }
-    fun removeFromContextPlaylist(playlistId: Long, track: Track) { DownloadManager.removeTrackFromPlaylist(playlistId, track.id); showMenuSheet = false; emitUiEvent(getString(R.string.success_generic)) }
+    fun removeFromContextPlaylist(playlistId: Long, track: Track) {
+        if (playlistId == -2L) {
+            DownloadManager.deleteTrack(track.id)
+        } else {
+            val syncToCloud = playlistId > 0 && currentContext?.navigationId?.startsWith("downloaded_section:") != true && currentContext?.navigationId != "downloads"
+            DownloadManager.removeTrackFromPlaylist(playlistId, track.id, syncToCloud = syncToCloud)
+        }
+        showMenuSheet = false
+        emitUiEvent(getString(R.string.success_generic))
+    }
     fun addToQueue(tracks: List<Track>) {
         if (tracks.isEmpty()) return
 
@@ -2150,6 +2181,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                         currentSessionListenMs += 1000L
 
+                        // Dispatch progress to SoundCloud Telemetry Tracker (handles 5s threshold and 30s checkpoints)
+                        SoundCloudTelemetryTracker.onProgressUpdate(currentPosition)
+
                         val now = System.currentTimeMillis()
                         if (now - lastSaveTime > 5000L) {
                             lastSaveTime = now
@@ -2164,11 +2198,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             MusicManager.isCrossfadingOut = true
                             playNext(manual = false, isCrossfade = true)
                         }
-
-                        if (currentSessionListenMs >= 30_000L && !hasPushedRecentlyPlayed) {
-                            hasPushedRecentlyPlayed = true
-                            pushRecentlyPlayedToSoundCloud(currentTrack)
-                        }
                     }
                     AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
                     if (effectsState.isBassBoostEnabled || effectsState.isEarrapeEnabled) AchievementManager.increment("bass_addict", 1)
@@ -2176,134 +2205,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 } catch (_: Exception) {
                 }
                 delay(1000.milliseconds)
-            }
-        }
-    }
-
-    private fun pushRecentlyPlayedToSoundCloud(track: Track?) {
-        Log.d("PlayerViewModel", "pushRecentlyPlayedToSoundCloud called for track ${track?.id}, source: ${track?.source}")
-        track ?: return
-        if (track.source != null && track.source != "soundcloud") {
-            Log.d("PlayerViewModel", "Ignoring track because source is not soundcloud: ${track.source}")
-            return
-        }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val tokenManager = TokenManager(context)
-                if (tokenManager.isGuestMode()) {
-                    Log.d("PlayerViewModel", "Skipping history sync for track ${track.id} (Guest Mode)")
-                    return@launch
-                }
-
-                val now = System.currentTimeMillis()
-
-                // Sync individual track history
-                val trackUrn = "soundcloud:tracks:${track.id}"
-
-                // 1) api-mobile endpoint (used by the Android app)
-                val trackEntry = com.alananasss.kittytune.data.network.ApiRecentlyPlayed(
-                    playedAt = now,
-                    urn = trackUrn
-                )
-                val trackCollection = com.alananasss.kittytune.data.network.ApiCollection(
-                    collection = listOf(trackEntry)
-                )
-                val trackResponse = api.pushPlayHistory(trackCollection)
-                if (trackResponse.isSuccessful) {
-                    Log.d("PlayerViewModel", "Synced track ${track.id} to mobile history")
-                } else {
-                    Log.w("PlayerViewModel", "Failed to sync mobile history: ${trackResponse.code()}")
-                }
-
-                // 2) api-v2 endpoint (used by the Web app)
-                val bodyV2 = com.google.gson.JsonObject().apply { addProperty("track_urn", trackUrn) }
-                val respV2 = api.pushPlayHistoryV2Me(bodyV2)
-                if (respV2.isSuccessful) {
-                    Log.d("PlayerViewModel", "Synced track ${track.id} to web history")
-                } else {
-                    Log.w("PlayerViewModel", "Failed to sync web history: ${respV2.code()}")
-                }
-
-                // 3) Sync context history (updates recently played carousel on SoundCloud home)
-                val contextUrn = currentContext?.let { ctx ->
-                    val navId = ctx.navigationId
-                    when {
-                        navId == "likes" -> {
-                            if (currentUserId == 0L) {
-                                try {
-                                    val me = api.getMe()
-                                    currentUserId = me.id
-                                    currentUser = me
-                                } catch (_: Exception) {
-                                    Log.e("PlayerViewModel", "Failed to fetch user ID for recently-played context")
-                                }
-                            }
-                            if (currentUserId != 0L) {
-                                "soundcloud:liked-tracks:$currentUserId"
-                            } else {
-                                null
-                            }
-                        }
-                        navId.startsWith("station:") -> {
-                            val id = navId.removePrefix("station:")
-                            if (id.toLongOrNull() != null) {
-                                "soundcloud:system-playlists:track-stations:$id"
-                            } else {
-                                null
-                            }
-                        }
-                        navId.startsWith("station_artist:") -> {
-                            val id = navId.removePrefix("station_artist:")
-                            if (id.toLongOrNull() != null) {
-                                "soundcloud:system-playlists:artist-stations:$id"
-                            } else {
-                                null
-                            }
-                        }
-                        navId.startsWith("profile:") -> {
-                            val id = navId.removePrefix("profile:")
-                            if (id.toLongOrNull() != null) {
-                                "soundcloud:users:$id"
-                            } else {
-                                null
-                            }
-                        }
-                        navId == "downloads" || navId.startsWith("local_playlist:") || navId.startsWith("yt_radio:") -> {
-                            null
-                        }
-                        else -> {
-                            // Assume it's a playlist or album if it parses to a valid positive long
-                            val playlistId = navId.toLongOrNull()
-                            if (playlistId != null && playlistId > 0L) {
-                                "soundcloud:playlists:$playlistId"
-                            } else {
-                                null
-                            }
-                        }
-                    }
-                }
-
-                if (contextUrn != null) {
-                    val contextEntry = com.alananasss.kittytune.data.network.ApiRecentlyPlayed(
-                        playedAt = now,
-                        urn = contextUrn
-                    )
-                    val contextCollection = com.alananasss.kittytune.data.network.ApiCollection(
-                        collection = listOf(contextEntry)
-                    )
-                    val contextResponse = api.pushRecentlyPlayed(contextCollection)
-                    if (contextResponse.isSuccessful) {
-                        Log.d("PlayerViewModel", "Synced context $contextUrn to recently played")
-                    } else {
-                        Log.w("PlayerViewModel", "Failed to sync context $contextUrn: ${contextResponse.code()}")
-                    }
-                } else {
-                    Log.d("PlayerViewModel", "No valid SoundCloud context URN to sync")
-                }
-
-            } catch (e: Exception) {
-                Log.e("PlayerViewModel", "Error syncing history", e)
             }
         }
     }
@@ -2692,7 +2593,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun isColorDark(color: Int): Boolean { val darkness = 1 - (0.299 * android.graphics.Color.red(color) + 0.587 * android.graphics.Color.green(color) + 0.114 * android.graphics.Color.blue(color)) / 255; return darkness >= 0.5 }
 
     private fun buildMediaItem(track: Track, bitmap: Bitmap?, urlOverride: String? = null, offlineKeySetId: ByteArray? = null): MediaItem {
-        val uri = urlOverride?.toUri() ?: "soundtune://track/${track.id}".toUri()
+        val uri = when {
+            urlOverride == null -> "soundtune://track/${track.id}".toUri()
+            urlOverride.startsWith("http") || urlOverride.startsWith("content://") || urlOverride.startsWith("file://") -> urlOverride.toUri()
+            else -> Uri.fromFile(File(urlOverride))
+        }
 
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(track.title ?: getString(R.string.untitled_track))

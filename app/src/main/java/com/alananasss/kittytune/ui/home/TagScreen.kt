@@ -48,6 +48,7 @@ fun TagScreen(
 ) {
     val context = LocalContext.current
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
+    val downloadedIds by DownloadManager.downloadedIds.collectAsState()
     val listState = rememberLazyListState()
 
     LaunchedEffect(tagName) {
@@ -145,7 +146,9 @@ fun TagScreen(
                                 }
 
                                 val progress = downloadProgress[track.id]
-                                val isDownloaded = File(context.filesDir, "track_${track.id}.mp3").exists()
+                                val isDownloaded = remember(track.id, downloadedIds) {
+                                    (track.id < 0 && track.source != "youtube") || downloadedIds.contains(track.id)
+                                }
 
                                 TagStaggeredItem(
                                     index = index,

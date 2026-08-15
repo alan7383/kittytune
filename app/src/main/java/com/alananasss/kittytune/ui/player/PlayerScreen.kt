@@ -1189,6 +1189,8 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val context = LocalContext.current
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
     val storageTrigger by DownloadManager.storageTrigger.collectAsState()
+    val likedTracks by com.alananasss.kittytune.data.LikeRepository.likedTracks.collectAsState()
+    val isTrackLiked = remember(track.id, likedTracks) { com.alananasss.kittytune.data.LikeRepository.isTrackLiked(track.id) }
     val isLocalFile = track.id < 0 && track.source != "youtube"
 
     val isReposted = viewModel.isTrackReposted(track.id)
@@ -1249,7 +1251,25 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         )
     }
 
+    val isDownloadedContext = viewModel.currentContext?.navigationId == "downloads"
+        || viewModel.currentContext?.navigationId?.startsWith("downloaded_section:") == true
+        || viewModel.currentContext?.navigationId == "local_files"
+        || (viewModel.menuContextPlaylistId != null && (viewModel.menuContextPlaylistId == -2L || viewModel.menuContextPlaylistId!! < 0))
+
+    val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
+    val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
+
     val gridItems = mutableListOf<DockOptionItem>().apply {
+        if (!isLocalFile && !viewModel.isMenuContextFromPlayer) {
+            add(
+                DockOptionItem(
+                    if (isTrackLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
+                    if (isTrackLiked) stringResource(R.string.action_unlike) else stringResource(R.string.player_like_action)
+                ) {
+                    viewModel.toggleTrackLike(track)
+                }
+            )
+        }
         if (viewModel.isMenuContextFromPlayer) {
             add(
                 DockOptionItem(
@@ -1274,14 +1294,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     stringResource(R.string.menu_add_queue)
                 ) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
         }
-        if (track.source != "youtube" && !isLocalFile) {
+        if (!isOfflineMode && track.source != "youtube") {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.Comment,
                     stringResource(R.string.menu_comments)
                 ) { viewModel.openComments(track) })
         }
-        if (track.source != "youtube" && !isLocalFile) {
+        if (!isOfflineMode && track.source != "youtube") {
             if (isReposted) {
                 add(
                     DockOptionItem(
@@ -1294,7 +1314,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 })
             }
         }
-        if (track.source != "youtube") {
+        if (!isOfflineMode && track.source != "youtube") {
             add(DockOptionItem(Icons.Rounded.Info, stringResource(R.string.menu_details)) {
                 viewModel.openTrackDetails(
                     track
@@ -1310,14 +1330,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         add(DockOptionItem(Icons.Default.Add, stringResource(R.string.menu_add_playlist)) {
             viewModel.showMenuSheet = false; viewModel.showAddToPlaylistSheet = true
         })
-        if (track.source != "youtube" && !isLocalFile) {
+        if (!isOfflineMode && track.source != "youtube") {
             add(
                 DockOptionItem(
                     Icons.Default.Person,
                     stringResource(R.string.menu_go_artist)
                 ) { track.user?.id?.let { viewModel.navigateToArtist(it) } })
         }
-        if (!isLocalFile) {
+        if (!isOfflineMode) {
             add(DockOptionItem(Icons.Rounded.Radio, stringResource(R.string.menu_track_radio)) {
                 if (track.source == "youtube") {
                     viewModel.startYoutubeRadio(track)
@@ -1326,14 +1346,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 }
             })
         }
-        if (!isLocalFile) {
+        if (!isOfflineMode) {
             add(
                 DockOptionItem(
                     Icons.Outlined.Share,
                     stringResource(R.string.btn_share)
                 ) { viewModel.shareTrack(track) })
         }
-        if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId!! < 0) {
+        if (viewModel.menuContextPlaylistId != null && (viewModel.menuContextPlaylistId!! < 0 || viewModel.menuContextPlaylistId == -2L)) {
             add(
                 DockOptionItem(
                     Icons.Outlined.Delete,
@@ -1404,6 +1424,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             var tint = inactiveColor
             var text = item.text
 
+            if (item.text == stringResource(R.string.action_unlike)) tint = activeColor
             if (item.text == stringResource(R.string.menu_shuffle) && viewModel.shuffleEnabled) tint = activeColor
             if (item.text == stringResource(R.string.menu_reposted)) tint = activeColor
             if (item.text == stringResource(R.string.menu_repeat)) {
