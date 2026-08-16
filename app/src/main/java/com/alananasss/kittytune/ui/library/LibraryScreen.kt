@@ -81,6 +81,7 @@ import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.common.ShimmerBox
 import com.alananasss.kittytune.ui.common.ShimmerLine
@@ -111,7 +112,7 @@ fun LibraryScreen(
     val isGuest = TokenManager(context).isGuestMode()
 
     val listState = rememberLazyGridState()
-    
+
     var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     BackHandler(enabled = isFabMenuExpanded) { isFabMenuExpanded = false }
@@ -127,20 +128,37 @@ fun LibraryScreen(
                     libraryViewModel.loadData(forceRefresh = true)
                 }
             }
+
             override fun onLost(network: Network) {
                 libraryViewModel.isOfflineMode = true
             }
         }
         val request = NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
-        try { connectivityManager.registerNetworkCallback(request, networkCallback) } catch (e: Exception) { e.printStackTrace() }
-        onDispose { try { connectivityManager.unregisterNetworkCallback(networkCallback) } catch (e: Exception) {} }
+        try {
+            connectivityManager.registerNetworkCallback(request, networkCallback)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        onDispose {
+            try {
+                connectivityManager.unregisterNetworkCallback(networkCallback)
+            } catch (e: Exception) {
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
         libraryViewModel.loadData()
     }
 
-    LaunchedEffect(libraryViewModel.selectedFilter, libraryViewModel.currentFolderId) {
+    LaunchedEffect(
+        libraryViewModel.selectedFilter,
+        libraryViewModel.currentFolderId,
+        libraryViewModel.isSortDescending,
+        libraryViewModel.ownershipFilter,
+        libraryViewModel.stationFilter,
+        libraryViewModel.sortOption
+    ) {
         listState.scrollToItem(0)
     }
 
@@ -308,21 +326,21 @@ fun LibraryScreen(
                     }
                 }
             },
-            dismissButton = { 
+            dismissButton = {
                 TextButton(
                     onClick = { showCreateDialog = false },
                     shapes = ButtonDefaults.shapes(),
                     enabled = !isCreatingPlaylist
-                ) { 
-                    Text(stringResource(R.string.btn_cancel)) 
-                } 
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
             }
         )
     }
 
     if (showCreateFolderDialog) {
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showCreateFolderDialog = false
                 newFolderName = ""
             },
@@ -359,7 +377,7 @@ fun LibraryScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { 
+                    onClick = {
                         showCreateFolderDialog = false
                         newFolderName = ""
                     },
@@ -445,7 +463,8 @@ fun LibraryScreen(
         val canonicalKey = LibraryItem.getPlaylistCanonicalKey(playlist)
         val isItemPinned = libraryViewModel.displayedItems.find { it.key == canonicalKey }?.isPinned ?: false
         val isInsideFolder = libraryViewModel.currentFolderId != null
-        val permalink = playlist.permalinkUrl ?: if (playlist.id > 0) "https://soundcloud.com/playlists/${playlist.id}" else ""
+        val permalink =
+            playlist.permalinkUrl ?: if (playlist.id > 0) "https://soundcloud.com/playlists/${playlist.id}" else ""
         val likedPlaylistsRepo by com.alananasss.kittytune.data.LikeRepository.likedPlaylists.collectAsState()
         val isPlaylistLiked = remember(playlist.id, likedPlaylistsRepo) {
             com.alananasss.kittytune.data.LikeRepository.isPlaylistLiked(playlist.id)
@@ -462,14 +481,22 @@ fun LibraryScreen(
                     playPlaylistHelper(playlist, shuffle = true)
                     selectedPlaylistForMenu = null
                 })
-                add(PlaylistActionItem(Icons.AutoMirrored.Rounded.PlaylistPlay, context.getString(R.string.menu_play_next)) {
-                    playPlaylistHelper(playlist, insertNext = true)
-                    selectedPlaylistForMenu = null
-                })
-                add(PlaylistActionItem(Icons.AutoMirrored.Rounded.QueueMusic, context.getString(R.string.menu_add_queue)) {
-                    playPlaylistHelper(playlist, addToQueue = true)
-                    selectedPlaylistForMenu = null
-                })
+                add(
+                    PlaylistActionItem(
+                        Icons.AutoMirrored.Rounded.PlaylistPlay,
+                        context.getString(R.string.menu_play_next)
+                    ) {
+                        playPlaylistHelper(playlist, insertNext = true)
+                        selectedPlaylistForMenu = null
+                    })
+                add(
+                    PlaylistActionItem(
+                        Icons.AutoMirrored.Rounded.QueueMusic,
+                        context.getString(R.string.menu_add_queue)
+                    ) {
+                        playPlaylistHelper(playlist, addToQueue = true)
+                        selectedPlaylistForMenu = null
+                    })
                 add(PlaylistActionItem(Icons.Default.Add, context.getString(R.string.menu_add_playlist)) {
                     playPlaylistHelper(playlist, prepareBulkAdd = true)
                     selectedPlaylistForMenu = null
@@ -478,7 +505,9 @@ fun LibraryScreen(
                     add(
                         PlaylistActionItem(
                             icon = if (isPlaylistLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
-                            text = if (isPlaylistLiked) context.getString(R.string.action_unlike) else context.getString(R.string.player_like_action),
+                            text = if (isPlaylistLiked) context.getString(R.string.action_unlike) else context.getString(
+                                R.string.player_like_action
+                            ),
                             tint = if (isPlaylistLiked) primaryColor else null
                         ) {
                             com.alananasss.kittytune.data.LikeRepository.togglePlaylistLike(
@@ -497,14 +526,17 @@ fun LibraryScreen(
                     })
                 }
                 if (!isInsideFolder) {
-                    add(PlaylistActionItem(
-                        icon = Icons.Rounded.PushPin,
-                        text = if (isItemPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(R.string.menu_pin_playlist),
-                        tint = primaryColor
-                    ) {
-                        libraryViewModel.togglePinItem(canonicalKey)
-                        selectedPlaylistForMenu = null
-                    })
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.PushPin,
+                            text = if (isItemPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(
+                                R.string.menu_pin_playlist
+                            ),
+                            tint = primaryColor
+                        ) {
+                            libraryViewModel.togglePinItem(canonicalKey)
+                            selectedPlaylistForMenu = null
+                        })
                 }
                 add(PlaylistActionItem(Icons.Rounded.Folder, context.getString(R.string.menu_move_to_folder)) {
                     movingItemKey = canonicalKey
@@ -513,10 +545,14 @@ fun LibraryScreen(
                     showMoveTargetSheet = true
                 })
                 if (isInsideFolder) {
-                    add(PlaylistActionItem(Icons.AutoMirrored.Rounded.DriveFileMove, context.getString(R.string.menu_move_to_library)) {
-                        libraryViewModel.moveItemToFolder(canonicalKey, null)
-                        selectedPlaylistForMenu = null
-                    })
+                    add(
+                        PlaylistActionItem(
+                            Icons.AutoMirrored.Rounded.DriveFileMove,
+                            context.getString(R.string.menu_move_to_library)
+                        ) {
+                            libraryViewModel.moveItemToFolder(canonicalKey, null)
+                            selectedPlaylistForMenu = null
+                        })
                 }
                 if (permalink.isNotEmpty()) {
                     add(PlaylistActionItem(Icons.Outlined.Share, context.getString(R.string.btn_share)) {
@@ -567,7 +603,11 @@ fun LibraryScreen(
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = "${stringResource(R.string.lib_playlists)} • ${playlist.user?.username ?: stringResource(R.string.me_artist)}",
+                            text = "${stringResource(R.string.lib_playlists)} • ${
+                                playlist.user?.username ?: stringResource(
+                                    R.string.me_artist
+                                )
+                            }",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -682,37 +722,44 @@ fun LibraryScreen(
 
     if (showLikedTracksMenu) {
         val primaryColor = MaterialTheme.colorScheme.primary
-        val likedActionItems = remember(isLikedPinned, isLikesFullyDownloaded, isLikesDownloading, likedTracks, primaryColor) {
-            mutableListOf<PlaylistActionItem>().apply {
-                add(PlaylistActionItem(
-                    icon = Icons.Rounded.PushPin,
-                    text = if (isLikedPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(R.string.menu_pin_playlist),
-                    tint = primaryColor
-                ) {
-                    libraryViewModel.togglePinItem("liked_tracks", defaultPinned = !isGuest)
-                    showLikedTracksMenu = false
-                })
+        val likedActionItems =
+            remember(isLikedPinned, isLikesFullyDownloaded, isLikesDownloading, likedTracks, primaryColor) {
+                mutableListOf<PlaylistActionItem>().apply {
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.PushPin,
+                            text = if (isLikedPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(
+                                R.string.menu_pin_playlist
+                            ),
+                            tint = primaryColor
+                        ) {
+                            libraryViewModel.togglePinItem("liked_tracks", defaultPinned = !isGuest)
+                            showLikedTracksMenu = false
+                        })
 
-                val dlIcon = if (isLikesFullyDownloaded) Icons.Rounded.Delete else if (isLikesDownloading) Icons.Rounded.Downloading else Icons.Rounded.Download
-                val dlText = if (isLikesFullyDownloaded) context.getString(R.string.btn_delete) else context.getString(R.string.btn_download)
-                val dlTint = if (isLikesFullyDownloaded) Color(0xFFE53935) else null
+                    val dlIcon =
+                        if (isLikesFullyDownloaded) Icons.Rounded.Delete else if (isLikesDownloading) Icons.Rounded.Downloading else Icons.Rounded.Download
+                    val dlText =
+                        if (isLikesFullyDownloaded) context.getString(R.string.btn_delete) else context.getString(R.string.btn_download)
+                    val dlTint = if (isLikesFullyDownloaded) Color(0xFFE53935) else null
 
-                add(PlaylistActionItem(
-                    icon = dlIcon,
-                    text = dlText,
-                    tint = dlTint
-                ) {
-                    showLikedTracksMenu = false
-                    if (isLikesFullyDownloaded) {
-                        showDeleteLikedTracksDialog = true
-                    } else if (isLikesDownloading) {
-                        DownloadManager.cancelBatch(DownloadManager.LIKES_BATCH_ID)
-                    } else {
-                        DownloadManager.downloadBatch(likedTracks, DownloadManager.LIKES_BATCH_ID)
-                    }
-                })
+                    add(
+                        PlaylistActionItem(
+                            icon = dlIcon,
+                            text = dlText,
+                            tint = dlTint
+                        ) {
+                            showLikedTracksMenu = false
+                            if (isLikesFullyDownloaded) {
+                                showDeleteLikedTracksDialog = true
+                            } else if (isLikesDownloading) {
+                                DownloadManager.cancelBatch(DownloadManager.LIKES_BATCH_ID)
+                            } else {
+                                DownloadManager.downloadBatch(likedTracks, DownloadManager.LIKES_BATCH_ID)
+                            }
+                        })
+                }
             }
-        }
 
         KittyModalBottomSheet(
             onDismissRequest = { showLikedTracksMenu = false },
@@ -754,7 +801,8 @@ fun LibraryScreen(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        val likedUser = libraryViewModel.userProfile?.username ?: if (isGuest) stringResource(R.string.lib_guest_mode) else "User"
+                        val likedUser = libraryViewModel.userProfile?.username
+                            ?: if (isGuest) stringResource(R.string.lib_guest_mode) else "User"
                         Text(
                             text = "${stringResource(R.string.lib_playlists)} • $likedUser",
                             style = MaterialTheme.typography.bodyMedium,
@@ -807,7 +855,9 @@ fun LibraryScreen(
             listOf(
                 PlaylistActionItem(
                     icon = Icons.Rounded.PushPin,
-                    text = if (isDownloadsPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(R.string.menu_pin_playlist),
+                    text = if (isDownloadsPinned) context.getString(R.string.menu_unpin_playlist) else context.getString(
+                        R.string.menu_pin_playlist
+                    ),
                     tint = primaryColor
                 ) {
                     libraryViewModel.togglePinItem("downloads", defaultPinned = false)
@@ -906,12 +956,21 @@ fun LibraryScreen(
         val folder = selectedFolderForMenu!!
         val isFolderPinned = folder.isPinned
         val isInsideFolder = libraryViewModel.currentFolderId != null
-        val matchingFolderItem = libraryViewModel.displayedItems.filterIsInstance<LibraryItem.FolderItem>().find { it.folder.id == folder.id }
+        val matchingFolderItem = libraryViewModel.displayedItems.filterIsInstance<LibraryItem.FolderItem>()
+            .find { it.folder.id == folder.id }
         val plCount = matchingFolderItem?.playlistCount ?: 0
         val fCount = matchingFolderItem?.folderCount ?: 0
-        val plText = if (plCount <= 1) stringResource(R.string.lib_folder_counts_playlist_singular, plCount) else stringResource(R.string.lib_folder_counts_playlist_plural, plCount)
-        val fText = if (fCount <= 1) stringResource(R.string.lib_folder_counts_folder_singular, fCount) else stringResource(R.string.lib_folder_counts_folder_plural, fCount)
-        val subtitle = if (plCount == 0 && fCount == 0) stringResource(R.string.lib_folder_empty) else if (fCount > 0) "$plText, $fText" else plText
+        val plText =
+            if (plCount <= 1) stringResource(R.string.lib_folder_counts_playlist_singular, plCount) else stringResource(
+                R.string.lib_folder_counts_playlist_plural,
+                plCount
+            )
+        val fText = if (fCount <= 1) stringResource(
+            R.string.lib_folder_counts_folder_singular,
+            fCount
+        ) else stringResource(R.string.lib_folder_counts_folder_plural, fCount)
+        val subtitle =
+            if (plCount == 0 && fCount == 0) stringResource(R.string.lib_folder_empty) else if (fCount > 0) "$plText, $fText" else plText
 
         ModalBottomSheet(
             onDismissRequest = { selectedFolderForMenu = null }
@@ -1061,7 +1120,12 @@ fun LibraryScreen(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
                 ListItem(
-                    headlineContent = { Text(stringResource(R.string.lib_create_folder_title), fontWeight = FontWeight.SemiBold) },
+                    headlineContent = {
+                        Text(
+                            stringResource(R.string.lib_create_folder_title),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
                     leadingContent = {
                         Box(
                             modifier = Modifier
@@ -1121,7 +1185,11 @@ fun LibraryScreen(
                                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Rounded.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(
+                                    Icons.Rounded.Folder,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         },
                         modifier = Modifier.clickable {
@@ -1140,7 +1208,8 @@ fun LibraryScreen(
         }
     }
 
-    val showLogin = libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode && !isGuest
+    val showLogin =
+        libraryViewModel.userProfile == null && !libraryViewModel.isLoading && !libraryViewModel.isOfflineMode && !isGuest
     val isInsideFolder = libraryViewModel.currentFolder != null
 
     Scaffold(
@@ -1168,7 +1237,12 @@ fun LibraryScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Rounded.WifiOff, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(22.dp))
+                            Icon(
+                                Icons.Rounded.WifiOff,
+                                null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(22.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
@@ -1205,9 +1279,18 @@ fun LibraryScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.Rounded.Person, null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Rounded.Person,
+                            null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.lib_guest_mode), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Text(
+                            stringResource(R.string.lib_guest_mode),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                 }
 
@@ -1215,11 +1298,33 @@ fun LibraryScreen(
                     targetState = libraryViewModel.currentFolder,
                     transitionSpec = {
                         if (targetState != null) {
-                            (slideInHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing)) { width -> (width * 0.15f).toInt() } + fadeIn(animationSpec = tween(280)))
-                                .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> (-width * 0.15f).toInt() } + fadeOut(animationSpec = tween(180)))
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    280,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (width * 0.15f).toInt() } + fadeIn(animationSpec = tween(280)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            220,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (-width * 0.15f).toInt() } + fadeOut(animationSpec = tween(180)))
                         } else {
-                            (slideInHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing)) { width -> (-width * 0.15f).toInt() } + fadeIn(animationSpec = tween(280)))
-                                .togetherWith(slideOutHorizontally(animationSpec = tween(220, easing = FastOutSlowInEasing)) { width -> (width * 0.15f).toInt() } + fadeOut(animationSpec = tween(180)))
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    280,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (-width * 0.15f).toInt() } + fadeIn(animationSpec = tween(280)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            220,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (width * 0.15f).toInt() } + fadeOut(animationSpec = tween(180)))
                         }
                     },
                     label = "FolderTopBarTransition"
@@ -1450,7 +1555,9 @@ fun LibraryScreen(
                             }
                             Icon(
                                 imageVector = imageVector,
-                                contentDescription = if (isFabMenuExpanded) stringResource(R.string.btn_cancel) else stringResource(R.string.lib_create_playlist_title),
+                                contentDescription = if (isFabMenuExpanded) stringResource(R.string.btn_cancel) else stringResource(
+                                    R.string.lib_create_playlist_title
+                                ),
                                 tint = iconColor,
                                 modifier = Modifier.rotate(checkedProgress * 135f)
                             )
@@ -1499,7 +1606,10 @@ fun LibraryScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = onLoginClick, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.login_soundcloud)) }
+                        Button(
+                            onClick = onLoginClick,
+                            shapes = ButtonDefaults.shapes()
+                        ) { Text(stringResource(R.string.login_soundcloud)) }
                     }
                 }
             } else {
@@ -1507,11 +1617,33 @@ fun LibraryScreen(
                     targetState = libraryViewModel.currentFolderId,
                     transitionSpec = {
                         if (targetState != null) {
-                            (slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { width -> (width * 0.25f).toInt() } + fadeIn(animationSpec = tween(300)))
-                                .togetherWith(slideOutHorizontally(animationSpec = tween(240, easing = FastOutSlowInEasing)) { width -> (-width * 0.25f).toInt() } + fadeOut(animationSpec = tween(200)))
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    300,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (width * 0.25f).toInt() } + fadeIn(animationSpec = tween(300)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            240,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (-width * 0.25f).toInt() } + fadeOut(animationSpec = tween(200)))
                         } else {
-                            (slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { width -> (-width * 0.25f).toInt() } + fadeIn(animationSpec = tween(300)))
-                                .togetherWith(slideOutHorizontally(animationSpec = tween(240, easing = FastOutSlowInEasing)) { width -> (width * 0.25f).toInt() } + fadeOut(animationSpec = tween(200)))
+                            (slideInHorizontally(
+                                animationSpec = tween(
+                                    300,
+                                    easing = FastOutSlowInEasing
+                                )
+                            ) { width -> (-width * 0.25f).toInt() } + fadeIn(animationSpec = tween(300)))
+                                .togetherWith(
+                                    slideOutHorizontally(
+                                        animationSpec = tween(
+                                            240,
+                                            easing = FastOutSlowInEasing
+                                        )
+                                    ) { width -> (width * 0.25f).toInt() } + fadeOut(animationSpec = tween(200)))
                         }
                     },
                     label = "FolderContentTransition",
@@ -1588,8 +1720,8 @@ fun LibraryContentGrid(
     val columns = if (viewModel.isGridLayout) GridCells.Fixed(3) else GridCells.Fixed(1)
     val isSyncing by viewModel.isSyncing.collectAsState()
 
-    val playlistsFilter = stringResource(R.string.lib_playlists)
-    val shouldShowPlaylists = (viewModel.selectedFilter == null || viewModel.selectedFilter == playlistsFilter) && viewModel.currentFolderId == null
+    val shouldShowPlaylists =
+        (viewModel.selectedFilter == null || viewModel.selectedFilter == LibraryFilter.PLAYLISTS) && viewModel.currentFolderId == null
 
     LazyVerticalGrid(
         state = listState,
@@ -1601,7 +1733,8 @@ fun LibraryContentGrid(
         if (shouldShowPlaylists) {
             item(span = { GridItemSpan(1) }, key = "liked_tracks") {
                 Box(modifier = Modifier.animateItem()) {
-                    val likedUser = viewModel.userProfile?.username ?: if (isGuest) stringResource(R.string.lib_guest_mode) else "User"
+                    val likedUser = viewModel.userProfile?.username
+                        ?: if (isGuest) stringResource(R.string.lib_guest_mode) else "User"
                     val subtitle = if (isGuest) stringResource(R.string.lib_liked_subtitle_local)
                     else if (isSyncing) stringResource(R.string.lib_liked_subtitle_syncing)
                     else "${stringResource(R.string.lib_playlists)} • $likedUser"
@@ -1665,6 +1798,7 @@ fun LibraryContentGrid(
                             onLongClick = { onFolderLongClick(item.folder) }
                         )
                     }
+
                     is LibraryItem.PlaylistItem -> {
                         val permalink = item.playlist.permalinkUrl
                         val isYoutubeShortcut = permalink != null && permalink.startsWith("yt_radio:")
@@ -1686,6 +1820,7 @@ fun LibraryContentGrid(
                             onLongClick = { onPlaylistLongClick(item.playlist) }
                         )
                     }
+
                     is LibraryItem.ArtistItem -> {
                         ArtistLibraryCard(
                             artist = item.artist,
@@ -1804,52 +1939,38 @@ fun SearchBarHeader(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FilterChipsRow(viewModel: LibraryViewModel) {
-    val playlistsLabel = stringResource(R.string.lib_playlists)
-    val albumsLabel = stringResource(R.string.lib_albums)
-    val artistsLabel = stringResource(R.string.lib_artists)
-    val stationsLabel = stringResource(R.string.lib_stations)
-
-    val filters = remember(playlistsLabel, albumsLabel, artistsLabel, stationsLabel) {
-        listOf(playlistsLabel, albumsLabel, artistsLabel, stationsLabel)
+    val filters = remember {
+        listOf(
+            LibraryFilter.PLAYLISTS,
+            LibraryFilter.ALBUMS,
+            LibraryFilter.ARTISTS,
+            LibraryFilter.STATIONS
+        )
     }
 
-    val view = androidx.compose.ui.platform.LocalView.current
-    LazyRow(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
     ) {
-        items(filters) { label ->
-            val isSelected = viewModel.selectedFilter == label
-
-            val containerColor by androidx.compose.animation.animateColorAsState(
-                targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
-                label = "chip_container_color"
-            )
-            val contentColor by androidx.compose.animation.animateColorAsState(
-                targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                label = "chip_content_color"
-            )
-
-            Button(
-                onClick = { 
-                    view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-                    viewModel.selectedFilter = if (isSelected) null else label 
-                },
-                shapes = ButtonDefaults.shapes(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = containerColor,
-                    contentColor = contentColor
+        ExpressiveConnectedButtonGroup(
+            options = filters,
+            selectedOption = viewModel.selectedFilter,
+            onOptionSelected = { filter ->
+                viewModel.selectedFilter = if (viewModel.selectedFilter == filter) null else filter
+            },
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+            labelProvider = { filter ->
+                Text(
+                    text = stringResource(filter.stringRes),
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-            ) {
-                Text(label, maxLines = 1)
             }
-        }
+        )
     }
 }
 
@@ -1858,81 +1979,116 @@ fun SortAndLayoutControls(
     viewModel: LibraryViewModel,
     onHistoryClick: () -> Unit = {}
 ) {
-    var showSortBottomSheet by remember { mutableStateOf(false) }
-
-    if (showSortBottomSheet) {
-        LibrarySortBottomSheet(
-            currentSortOption = viewModel.sortOption,
-            onSortSelected = { viewModel.sortOption = it },
-            onDismiss = { showSortBottomSheet = false }
-        )
-    }
-
-    val playlistsLabel = stringResource(R.string.lib_playlists)
-    val albumsLabel = stringResource(R.string.lib_albums)
-    val shouldShowOwnershipFilter = (viewModel.selectedFilter == null || viewModel.selectedFilter == playlistsLabel || viewModel.selectedFilter == albumsLabel) && viewModel.currentFolderId == null
+    val isRoot = viewModel.currentFolderId == null
+    val view = androidx.compose.ui.platform.LocalView.current
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (shouldShowOwnershipFilter) {
+        if (isRoot && viewModel.selectedFilter == LibraryFilter.STATIONS) {
+            val filterText = when (viewModel.stationFilter) {
+                StationFilter.ALL -> stringResource(R.string.filter_all)
+                StationFilter.TRACKS -> stringResource(R.string.profile_tab_tracks)
+                StationFilter.ARTISTS -> stringResource(R.string.lib_artists)
+            }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.stationFilter = when (viewModel.stationFilter) {
+                            StationFilter.ALL -> StationFilter.TRACKS
+                            StationFilter.TRACKS -> StationFilter.ARTISTS
+                            StationFilter.ARTISTS -> StationFilter.ALL
+                        }
+                    }
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = filterText,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Rounded.FilterList,
+                    contentDescription = filterText,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else if (isRoot && (viewModel.selectedFilter == null || viewModel.selectedFilter == LibraryFilter.PLAYLISTS || viewModel.selectedFilter == LibraryFilter.ALBUMS)) {
             val filterText = when (viewModel.ownershipFilter) {
                 OwnershipFilter.ALL -> stringResource(R.string.filter_all)
                 OwnershipFilter.CREATED -> stringResource(R.string.filter_created)
                 OwnershipFilter.LIKED -> stringResource(R.string.filter_liked)
             }
             Row(
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable {
-                    viewModel.ownershipFilter = when (viewModel.ownershipFilter) {
-                        OwnershipFilter.ALL -> OwnershipFilter.CREATED
-                        OwnershipFilter.CREATED -> OwnershipFilter.LIKED
-                        OwnershipFilter.LIKED -> OwnershipFilter.ALL
-                    }
-                }.padding(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = filterText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Rounded.FilterList,
-                    contentDescription = filterText, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        } else {
-            val sortLabel = when (viewModel.sortOption) {
-                LibrarySortOption.RECENTS -> stringResource(R.string.lib_sort_recents)
-                LibrarySortOption.DATE_ADDED -> stringResource(R.string.lib_sort_recently_added)
-                LibrarySortOption.ALPHABETICAL -> stringResource(R.string.lib_sort_alphabetical)
-                LibrarySortOption.CREATOR -> stringResource(R.string.lib_sort_creator)
-            }
-            Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { showSortBottomSheet = true }
+                    .clickable {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.ownershipFilter = when (viewModel.ownershipFilter) {
+                            OwnershipFilter.ALL -> OwnershipFilter.CREATED
+                            OwnershipFilter.CREATED -> OwnershipFilter.LIKED
+                            OwnershipFilter.LIKED -> OwnershipFilter.ALL
+                        }
+                    }
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.Sort,
-                    contentDescription = stringResource(R.string.lib_sort_by_title),
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = sortLabel,
+                    text = filterText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Rounded.FilterList,
+                    contentDescription = filterText,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        viewModel.isSortDescending = !viewModel.isSortDescending
+                    }
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.lib_sort_recently_added),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = if (viewModel.isSortDescending) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
+                    contentDescription = stringResource(R.string.lib_sort_recently_added),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (viewModel.currentFolderId == null) {
                 IconButton(
-                    onClick = onHistoryClick,
+                    onClick = {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        onHistoryClick()
+                    },
                     shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
@@ -1943,7 +2099,10 @@ fun SortAndLayoutControls(
                 }
             }
             IconButton(
-                onClick = { viewModel.isGridLayout = !viewModel.isGridLayout },
+                onClick = {
+                    view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                    viewModel.isGridLayout = !viewModel.isGridLayout
+                },
                 shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(
@@ -1987,79 +2146,6 @@ fun EmptyFolderView() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LibrarySortBottomSheet(
-    currentSortOption: LibrarySortOption,
-    onSortSelected: (LibrarySortOption) -> Unit,
-    onDismiss: () -> Unit
-) {
-    KittyModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .padding(bottom = 32.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.lib_sort_by_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp, horizontal = 8.dp),
-                textAlign = TextAlign.Center
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(bottom = 8.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            )
-
-            val options = listOf(
-                LibrarySortOption.RECENTS to stringResource(R.string.lib_sort_recents),
-                LibrarySortOption.DATE_ADDED to stringResource(R.string.lib_sort_recently_added),
-                LibrarySortOption.ALPHABETICAL to stringResource(R.string.lib_sort_alphabetical),
-                LibrarySortOption.CREATOR to stringResource(R.string.lib_sort_creator)
-            )
-
-            options.forEach { (option, label) ->
-                val isSelected = option == currentSortOption
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            onSortSelected(option)
-                            onDismiss()
-                        }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                    )
-                    if (isSelected) {
-                        Icon(
-                            imageVector = Icons.Rounded.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -2224,9 +2310,16 @@ fun FolderLibraryCard(
 ) {
     val plCount = folderItem.playlistCount
     val fCount = folderItem.folderCount
-    val plText = if (plCount <= 1) stringResource(R.string.lib_folder_counts_playlist_singular, plCount) else stringResource(R.string.lib_folder_counts_playlist_plural, plCount)
-    val fText = if (fCount <= 1) stringResource(R.string.lib_folder_counts_folder_singular, fCount) else stringResource(R.string.lib_folder_counts_folder_plural, fCount)
-    val finalSubtitle = if (plCount == 0 && fCount == 0) stringResource(R.string.lib_folder_empty) else if (fCount > 0) "$plText, $fText" else plText
+    val plText = if (plCount <= 1) stringResource(
+        R.string.lib_folder_counts_playlist_singular,
+        plCount
+    ) else stringResource(R.string.lib_folder_counts_playlist_plural, plCount)
+    val fText = if (fCount <= 1) stringResource(
+        R.string.lib_folder_counts_folder_singular,
+        fCount
+    ) else stringResource(R.string.lib_folder_counts_folder_plural, fCount)
+    val finalSubtitle =
+        if (plCount == 0 && fCount == 0) stringResource(R.string.lib_folder_empty) else if (fCount > 0) "$plText, $fText" else plText
     val showPin = folderItem.isPinned && !isInsideFolder
 
     if (isGrid) {
