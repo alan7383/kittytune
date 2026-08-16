@@ -25,7 +25,6 @@
     import kotlinx.coroutines.launch
     import java.io.ByteArrayOutputStream
 
-    // Tab enum
     enum class ProfileTab {
         POPULAR,
         TRACKS,
@@ -43,7 +42,6 @@
         var isLoading by mutableStateOf(true)
         var selectedTab by mutableStateOf(ProfileTab.POPULAR)
 
-        // Content lists
         val popularTracks = mutableStateListOf<Track>()
         val allTracks = mutableStateListOf<Track>()
         val repostedTracks = mutableStateListOf<Track>()
@@ -57,11 +55,9 @@
 
         var artistStationId: Long? = null
 
-        // Helper to get strings from resources
         private fun getString(@StringRes resId: Int): String = getApplication<Application>().getString(resId)
         private fun getString(@StringRes resId: Int, vararg formatArgs: Any): String = getApplication<Application>().getString(resId, *formatArgs)
 
-        // Helper to paginate through all user tracks
         private suspend fun fetchAllUserTracks(userId: Long): List<Track> {
             val allUserTracks = mutableListOf<Track>()
             try {
@@ -69,7 +65,6 @@
                 allUserTracks.addAll(firstPage.collection.filterNotNull())
                 var nextUrl = firstPage.next_href
                 var pageCount = 0
-                // Safety limit to avoid infinite loops
                 while (nextUrl != null && pageCount < 20) {
                     val nextPage = api.getUserTracksNextPage(nextUrl)
                     allUserTracks.addAll(nextPage.collection.filterNotNull())
@@ -82,32 +77,42 @@
             return allUserTracks
         }
 
-        fun loadProfile(userId: Long) {
+        fun loadProfile(userId: Long, forceRefresh: Boolean = false) {
+            if (user?.id == userId && !forceRefresh && user != null) {
+                return
+            }
+
             viewModelScope.launch {
-                isLoading = true
-                isCurrentUser = false
+                val isDifferentUser = user?.id != userId
+                if (isDifferentUser) {
+                    isLoading = true
+                    user = null
+                    isCurrentUser = false
+                    popularTracks.clear()
+                    allTracks.clear()
+                    repostedTracks.clear()
+                    albums.clear()
+                    playlists.clear()
+                    likedTracks.clear()
+                    similarArtists.clear()
+                    userComments.clear()
+                    commentsNextUrl = null
+                } else if (forceRefresh) {
+                    isLoading = true
+                }
+
                 try {
-                    // Check if current user
                     try {
                         val me = api.getMe()
-                        if (me.id == userId) {
-                            isCurrentUser = true
-                        }
-                    } catch (e: Exception) { /* ignore */ }
+                        isCurrentUser = (me.id == userId)
+                    } catch (e: Exception) {}
 
-                    // Avoid flickering if reloading same user
-                    if (user?.id != userId) {
-                        user = fetchUser(userId)
-                    } else {
-                        val freshUser = fetchUser(userId)
+                    val freshUser = fetchUser(userId)
+                    if (freshUser != null) {
                         user = freshUser
                     }
 
-                    // We rely on DownloadManager.refreshFollowings() in the background
-                    // No need to fetch checkFollowState manually on each profile load.
-
                     coroutineScope {
-                        // Parallel fetching
                         val popDef = async { try { api.getUserTopTracks(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
                         val tracksDef = async { fetchAllUserTracks(userId) }
                         val repostsDef = async {
@@ -125,8 +130,6 @@
                                 null
                             }
                         }
-
-                        // Retrieve collections for separation
                         val albumsDef = async { try { api.getUserAlbums(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
                         val playDef = async { try { api.getUserCreatedPlaylists(userId).collection.filterNotNull() } catch (_: Exception) { emptyList() } }
 
@@ -152,35 +155,40 @@
                             try {
                                 val station = try { api.getArtistStation(userId) } catch (e: Exception) { null }
                                 if (station != null) artistStationId = station.id
-                                // Find related artists via tracks
                                 val related = api.getRelatedTracks(station?.tracks?.firstOrNull()?.id ?: 0, limit = 20)
                                 artists = related.collection.mapNotNull { it.user }.filter { it.id != userId }.distinctBy { it.id }.shuffled().take(10)
                             } catch (_: Exception) { }
                             artists
                         }
 
-                        popularTracks.clear(); popularTracks.addAll(popDef.await())
-                        allTracks.clear(); allTracks.addAll(tracksDef.await())
-                        repostedTracks.clear(); repostedTracks.addAll(repostsDef.await())
+                        val fetchedPop = popDef.await()
+                        popularTracks.clear(); popularTracks.addAll(fetchedPop)
 
-                        // STRICT SEPARATION LOGIC
+                        val fetchedTracks = tracksDef.await()
+                        allTracks.clear(); allTracks.addAll(fetchedTracks)
+
+                        val fetchedReposts = repostsDef.await()
+                        repostedTracks.clear(); repostedTracks.addAll(fetchedReposts)
+
                         val fetchedAlbums = albumsDef.await()
                         val fetchedPlaylists = playDef.await()
 
-                        // Albums list: Only items where isAlbum is true
                         albums.clear()
-                        albums.addAll(fetchedAlbums.filter { it.isAlbum })
+                        albums.addAll(fetchedAlbums.filter { it.isRealAlbum })
 
-                        // Playlists list: Exclude anything that is an album
                         playlists.clear()
-                        playlists.addAll(fetchedPlaylists.filter { !it.isAlbum })
+                        playlists.addAll(fetchedPlaylists.filter { !it.isRealAlbum })
 
-                        likedTracks.clear(); likedTracks.addAll(likesDef.await())
-                        similarArtists.clear(); similarArtists.addAll(simDef.await())
-                        userComments.clear()
+                        val fetchedLikes = likesDef.await()
+                        likedTracks.clear(); likedTracks.addAll(fetchedLikes)
+
+                        val fetchedArtists = simDef.await()
+                        similarArtists.clear(); similarArtists.addAll(fetchedArtists)
+
                         val commentsRes = commentsResponseDef.await()
                         if (commentsRes != null) {
                             val validComments = commentsRes.collection.filter { it.track != null }
+                            userComments.clear()
                             userComments.addAll(validComments)
                             commentsNextUrl = commentsRes.next_href
                         }
@@ -220,7 +228,6 @@
             val oldUser = user ?: return
 
             viewModelScope.launch {
-                // Optimistic update
                 user = oldUser.copy(username = username, description = bio, city = city)
 
                 try {
@@ -240,7 +247,6 @@
 
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    // Rollback on error
                     user = oldUser
                     Toast.makeText(getApplication(), getString(R.string.profile_update_error, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
@@ -384,7 +390,6 @@
                     val response = api.deleteBanner()
 
                     if (response.isSuccessful) {
-                        // API returns 204 No Content, manual refresh needed
                         val updatedUser = api.getMe()
                         user = updatedUser
                         Toast.makeText(getApplication(), getString(R.string.profile_banner_deleted), Toast.LENGTH_SHORT).show()
