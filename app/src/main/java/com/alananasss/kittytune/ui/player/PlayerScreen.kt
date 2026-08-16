@@ -59,6 +59,7 @@ import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Comment
 import com.alananasss.kittytune.domain.Track
+import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
 import com.alananasss.kittytune.ui.player.lyrics.LyricLine
 import com.alananasss.kittytune.ui.player.lyrics.LyricWord
@@ -1184,13 +1185,211 @@ fun RepostDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
 }
 
 @Composable
+fun SocialProofBanner(
+    likers: List<User>,
+    onUserClick: (User) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (likers.isEmpty()) return
+
+    val displayLikers = remember(likers) { likers.take(3) }
+    val isHungarian = remember { Locale.getDefault().language == "hu" }
+
+    val likedByStr = stringResource(R.string.social_proof_liked_by)
+    val andStr = stringResource(R.string.social_proof_and)
+    val othersStr = stringResource(R.string.social_proof_others)
+
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val borderColor = MaterialTheme.colorScheme.surfaceContainer
+
+    val normalSpan = remember(onSurfaceVariant) {
+        SpanStyle(
+            color = onSurfaceVariant,
+            fontWeight = FontWeight.Normal
+        )
+    }
+    val boldSpan = remember(onSurface) {
+        SpanStyle(
+            color = onSurface,
+            fontWeight = FontWeight.Bold
+        )
+    }
+
+    val annotatedString = remember(likers, likedByStr, andStr, othersStr, isHungarian, onSurface, onSurfaceVariant) {
+        buildAnnotatedString {
+            if (!isHungarian) {
+                withStyle(normalSpan) {
+                    append(likedByStr)
+                    append(" ")
+                }
+            }
+
+            when (likers.size) {
+                1 -> {
+                    val u = likers[0]
+                    val uName = u.username ?: "User"
+                    val start = length
+                    withStyle(boldSpan) { append(uName) }
+                    addLink(LinkAnnotation.Clickable("user_0") { onUserClick(u) }, start, length)
+                }
+
+                2 -> {
+                    val u1 = likers[0]
+                    val u2 = likers[1]
+                    val u1Name = u1.username ?: "User"
+                    val u2Name = u2.username ?: "User"
+
+                    val start1 = length
+                    withStyle(boldSpan) { append(u1Name) }
+                    addLink(LinkAnnotation.Clickable("user_0") { onUserClick(u1) }, start1, length)
+
+                    withStyle(normalSpan) {
+                        append(" ")
+                        append(andStr)
+                        append(" ")
+                    }
+
+                    val start2 = length
+                    withStyle(boldSpan) { append(u2Name) }
+                    addLink(LinkAnnotation.Clickable("user_1") { onUserClick(u2) }, start2, length)
+                }
+
+                3 -> {
+                    val u1 = likers[0]
+                    val u2 = likers[1]
+                    val u3 = likers[2]
+                    val u1Name = u1.username ?: "User"
+                    val u2Name = u2.username ?: "User"
+                    val u3Name = u3.username ?: "User"
+
+                    val start1 = length
+                    withStyle(boldSpan) { append(u1Name) }
+                    addLink(LinkAnnotation.Clickable("user_0") { onUserClick(u1) }, start1, length)
+
+                    withStyle(normalSpan) { append(", ") }
+
+                    val start2 = length
+                    withStyle(boldSpan) { append(u2Name) }
+                    addLink(LinkAnnotation.Clickable("user_1") { onUserClick(u2) }, start2, length)
+
+                    withStyle(normalSpan) {
+                        append(" ")
+                        append(andStr)
+                        append(" ")
+                    }
+
+                    val start3 = length
+                    withStyle(boldSpan) { append(u3Name) }
+                    addLink(LinkAnnotation.Clickable("user_2") { onUserClick(u3) }, start3, length)
+                }
+
+                else -> {
+                    val u1 = likers[0]
+                    val u2 = likers[1]
+                    val u1Name = u1.username ?: "User"
+                    val u2Name = u2.username ?: "User"
+                    val othersCount = likers.size - 2
+
+                    val start1 = length
+                    withStyle(boldSpan) { append(u1Name) }
+                    addLink(LinkAnnotation.Clickable("user_0") { onUserClick(u1) }, start1, length)
+
+                    withStyle(normalSpan) { append(", ") }
+
+                    val start2 = length
+                    withStyle(boldSpan) { append(u2Name) }
+                    addLink(LinkAnnotation.Clickable("user_1") { onUserClick(u2) }, start2, length)
+
+                    withStyle(normalSpan) {
+                        append(" ")
+                        append(andStr)
+                        append(" ")
+                    }
+
+                    val startOthers = length
+                    withStyle(boldSpan) {
+                        append("$othersCount $othersStr")
+                    }
+                    addLink(LinkAnnotation.Clickable("others") { onUserClick(u1) }, startOthers, length)
+                }
+            }
+
+            if (isHungarian) {
+                withStyle(normalSpan) {
+                    append(" ")
+                    append(likedByStr)
+                }
+            }
+        }
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy((-8).dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            displayLikers.forEachIndexed { index, user ->
+                val fallbackTeal = Color(0xFF00897B)
+                val avatarUrl = user.avatarUrl?.replace("large", "t500x500")
+
+                Box(
+                    modifier = Modifier
+                        .zIndex((displayLikers.size - index).toFloat())
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .background(fallbackTeal)
+                        .border(1.5.dp, borderColor, CircleShape)
+                        .clickable { onUserClick(user) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (!avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = user.username,
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = user.username?.firstOrNull()?.uppercase() ?: "T",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.width(10.dp))
+
+        Text(
+            text = annotatedString,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
 fun MenuSheetContent(viewModel: PlayerViewModel) {
     val track = viewModel.trackForMenu ?: viewModel.currentTrack ?: return
     val context = LocalContext.current
+
+    LaunchedEffect(track.id) {
+        viewModel.loadSocialProof(track)
+    }
+
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
     val storageTrigger by DownloadManager.storageTrigger.collectAsState()
     val likedTracks by com.alananasss.kittytune.data.LikeRepository.likedTracks.collectAsState()
-    val isTrackLiked = remember(track.id, likedTracks) { com.alananasss.kittytune.data.LikeRepository.isTrackLiked(track.id) }
+    val isTrackLiked =
+        remember(track.id, likedTracks) { com.alananasss.kittytune.data.LikeRepository.isTrackLiked(track.id) }
     val isLocalFile = track.id < 0 && track.source != "youtube"
 
     val isReposted = viewModel.isTrackReposted(track.id)
@@ -1252,9 +1451,9 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     }
 
     val isDownloadedContext = viewModel.currentContext?.navigationId == "downloads"
-        || viewModel.currentContext?.navigationId?.startsWith("downloaded_section:") == true
-        || viewModel.currentContext?.navigationId == "local_files"
-        || (viewModel.menuContextPlaylistId != null && (viewModel.menuContextPlaylistId == -2L || viewModel.menuContextPlaylistId!! < 0))
+            || viewModel.currentContext?.navigationId?.startsWith("downloaded_section:") == true
+            || viewModel.currentContext?.navigationId == "local_files"
+            || (viewModel.menuContextPlaylistId != null && (viewModel.menuContextPlaylistId == -2L || viewModel.menuContextPlaylistId!! < 0))
 
     val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
     val isOfflineMode = isLocalFile || isDownloadedContext || isOffline
@@ -1379,7 +1578,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             Column {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 24.dp).padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 ) {
                     AsyncImage(
                         model = track.fullResArtwork,
@@ -1415,7 +1614,18 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                         }
                     }
                 }
-                Spacer(Modifier.height(24.dp))
+                if (viewModel.socialLikers.isNotEmpty()) {
+                    Spacer(Modifier.height(14.dp))
+                    SocialProofBanner(
+                        likers = viewModel.socialLikers,
+                        onUserClick = { u ->
+                            viewModel.showMenuSheet = false
+                            viewModel.navigateToArtist(u.id)
+                        },
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                    Spacer(Modifier.height(2.dp))
+                }
             }
         }
         items(gridItems) { item ->
@@ -2701,7 +2911,8 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 "cafe" to cafeLabel
                             )
                         }
-                        val selectedOption = ambientOptions.firstOrNull { it.first == currentType } ?: ambientOptions.first()
+                        val selectedOption =
+                            ambientOptions.firstOrNull { it.first == currentType } ?: ambientOptions.first()
 
                         ExpressiveConnectedButtonGroup(
                             options = ambientOptions,
@@ -2712,7 +2923,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isRainEnabled) viewModel.toggleRain()
                             },
                             labelProvider = { (_, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -3027,7 +3244,8 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 NormalizationLevel.LOUD to R.string.pref_norm_level_loud
                             )
                         }
-                        val selectedNormOption = normOptions.firstOrNull { it.first == viewModel.effectsState.normalizationLevel }
+                        val selectedNormOption =
+                            normOptions.firstOrNull { it.first == viewModel.effectsState.normalizationLevel }
                         ExpressiveConnectedButtonGroup(
                             options = normOptions,
                             selectedOption = selectedNormOption,
@@ -4101,7 +4319,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isChorusEnabled) viewModel.toggleChorus()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4190,7 +4414,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isUnderwaterEnabled) viewModel.toggleUnderwater()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4298,7 +4528,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isTranceGateEnabled) viewModel.toggleTranceGate()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4387,7 +4623,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isPingPongDelayEnabled) viewModel.togglePingPongDelay()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4476,7 +4718,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isChiptuneEnabled) viewModel.toggleChiptune()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4565,7 +4813,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isShimmerReverbEnabled) viewModel.toggleShimmerReverb()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4654,7 +4908,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isRotarySpeakerEnabled) viewModel.toggleRotarySpeaker()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4743,7 +5003,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isTapeSaturationEnabled) viewModel.toggleTapeSaturation()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4832,7 +5098,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isSubOctaverEnabled) viewModel.toggleSubOctaver()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -4921,7 +5193,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isEmptyMallEnabled) viewModel.toggleEmptyMall()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -5010,7 +5288,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isGramophoneEnabled) viewModel.toggleGramophone()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -5099,7 +5383,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isReverseEchoEnabled) viewModel.toggleReverseEcho()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -5188,7 +5478,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isStadiumEnabled) viewModel.toggleStadium()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -5277,7 +5573,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isWalkmanEnabled) viewModel.toggleWalkman()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -5366,7 +5668,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isAsmrVocalEnabled) viewModel.toggleAsmrVocal()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -5455,7 +5763,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                                 if (!viewModel.effectsState.isNightDriveEnabled) viewModel.toggleNightDrive()
                             },
                             labelProvider = { (_, _, label) ->
-                                Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                                Text(
+                                    label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
                             },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -6101,10 +6415,22 @@ fun AudioFxStudioSheet(
 
     val categories = remember(allEffects) {
         listOf(
-            Triple(R.string.category_power_eq, Icons.Rounded.Bolt, allEffects.filter { it.categoryRes == R.string.category_power_eq }),
-            Triple(R.string.category_spatial, Icons.Rounded.SurroundSound, allEffects.filter { it.categoryRes == R.string.category_spatial }),
-            Triple(R.string.category_ambience_filters, Icons.Rounded.WaterDrop, allEffects.filter { it.categoryRes == R.string.category_ambience_filters }),
-            Triple(R.string.category_retro_vintage, Icons.Rounded.Radio, allEffects.filter { it.categoryRes == R.string.category_retro_vintage })
+            Triple(
+                R.string.category_power_eq,
+                Icons.Rounded.Bolt,
+                allEffects.filter { it.categoryRes == R.string.category_power_eq }),
+            Triple(
+                R.string.category_spatial,
+                Icons.Rounded.SurroundSound,
+                allEffects.filter { it.categoryRes == R.string.category_spatial }),
+            Triple(
+                R.string.category_ambience_filters,
+                Icons.Rounded.WaterDrop,
+                allEffects.filter { it.categoryRes == R.string.category_ambience_filters }),
+            Triple(
+                R.string.category_retro_vintage,
+                Icons.Rounded.Radio,
+                allEffects.filter { it.categoryRes == R.string.category_retro_vintage })
         )
     }
 
@@ -6294,12 +6620,18 @@ fun DraggablePinnedTilesGrid(
 
                 val animatedXPx by animateFloatAsState(
                     targetValue = targetXPx,
-                    animationSpec = if (isDragging) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                    animationSpec = if (isDragging) snap() else spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
                     label = "itemX_${fx.id}"
                 )
                 val animatedYPx by animateFloatAsState(
                     targetValue = targetYPx,
-                    animationSpec = if (isDragging) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                    animationSpec = if (isDragging) snap() else spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
                     label = "itemY_${fx.id}"
                 )
 
@@ -6335,7 +6667,8 @@ fun DraggablePinnedTilesGrid(
 
                                         draggedId = fx.id
                                         dragTouchOffsetInItem = offsetInItem
-                                        currentFingerPos = Offset(itemOriginX + offsetInItem.x, itemOriginY + offsetInItem.y)
+                                        currentFingerPos =
+                                            Offset(itemOriginX + offsetInItem.x, itemOriginY + offsetInItem.y)
                                         view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                     }
                                 },
@@ -6346,8 +6679,10 @@ fun DraggablePinnedTilesGrid(
 
                                         val hoveredCol = if (currentFingerPos.x > totalWidthPx / 2f) 1 else 0
                                         val maxRow = (currentOrder.size - 1) / 2
-                                        val hoveredRow = (currentFingerPos.y / (itemHeightPx + spacingPx)).toInt().coerceIn(0, maxRow)
-                                        val targetIdx = (hoveredRow * 2 + hoveredCol).coerceIn(0, currentOrder.lastIndex)
+                                        val hoveredRow = (currentFingerPos.y / (itemHeightPx + spacingPx)).toInt()
+                                            .coerceIn(0, maxRow)
+                                        val targetIdx =
+                                            (hoveredRow * 2 + hoveredCol).coerceIn(0, currentOrder.lastIndex)
 
                                         val curIdx = currentOrder.indexOf(fx.id)
                                         if (curIdx != -1 && targetIdx != curIdx) {
@@ -6411,7 +6746,10 @@ fun ActiveQSTile(
         shape = RoundedCornerShape(22.dp),
         color = containerColor,
         contentColor = contentColor,
-        border = if (isActive) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        border = if (isActive) null else BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        ),
         modifier = modifier.fillMaxSize()
     ) {
         Row(
@@ -6550,7 +6888,10 @@ fun AvailableTile(
         shape = RoundedCornerShape(22.dp),
         color = containerColor,
         contentColor = contentColor,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isPinned) 0.2f else 0.4f)),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = if (isPinned) 0.2f else 0.4f)
+        ),
         modifier = modifier.height(72.dp)
     ) {
         Row(
@@ -8596,7 +8937,14 @@ fun PhoneLandscapePlayerView(
                         )
                     }
                 }
-                IconButton(onClick = { viewModel.currentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } }) {
+                IconButton(onClick = {
+                    viewModel.currentTrack?.let {
+                        viewModel.showTrackOptions(
+                            it,
+                            fromPlayer = true
+                        )
+                    }
+                }) {
                     Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options), tint = mainContentColor)
                 }
             }

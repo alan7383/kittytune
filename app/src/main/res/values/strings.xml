@@ -546,6 +546,24 @@
     <string name="menu_remove">Remove</string>
     <string name="menu_repost">Repost</string>
     <string name="menu_reposted">Reposted</string>
+    <string name="social_proof_liked_by">liked by</string>
+    <string name="social_proof_and">and</string>
+    <string name="social_proof_others">others</string>
+    <string name="social_proof_single">%1$s liked this track</string>
+    <string name="social_proof_two">%1$s and %2$s liked this track</string>
+    <string name="social_proof_three">%1$s, %2$s and %3$s liked this track</string>
+    <string name="social_proof_multiple">%1$s, %2$s and %3$s others liked this track</string>
+
+    <string name="vibe_hiphop">Hip-Hop</string>
+    <string name="vibe_electronic">Electronic</string>
+    <string name="vibe_pop">Pop</string>
+    <string name="vibe_rnb">R&amp;B</string>
+    <string name="vibe_rock">Rock</string>
+    <string name="vibe_chill">Chill</string>
+    <string name="vibe_dancy">Dance</string>
+    <string name="vibe_euphoric">Euphoric</string>
+    <string name="vibe_happy">Happy</string>
+    <string name="vibe_majestic">Majestic</string>
 
     <string name="menu_remove_local_q">Hide file?</string>
     <string name="menu_remove_local_body">This file will be hidden from the app but not deleted from your device</string>

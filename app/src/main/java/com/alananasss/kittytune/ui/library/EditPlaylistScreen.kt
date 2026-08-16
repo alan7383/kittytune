@@ -191,7 +191,7 @@ fun EditPlaylistScreen(
                         onExpandedChange = { showSetTypeDropdown = it }
                     ) {
                         OutlinedTextField(
-                            value = when(setType) {
+                            value = when (setType) {
                                 "" -> "Playlist"
                                 "album" -> "Album"
                                 "ep" -> "EP"
@@ -202,7 +202,7 @@ fun EditPlaylistScreen(
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showSetTypeDropdown) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                         )
                         ExposedDropdownMenu(
                             expanded = showSetTypeDropdown,
@@ -253,7 +253,7 @@ fun EditPlaylistScreen(
                             onValueChange = {},
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showGenreDropdown) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                         )
                         ExposedDropdownMenu(
                             expanded = showGenreDropdown,

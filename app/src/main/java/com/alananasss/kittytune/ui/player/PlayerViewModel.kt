@@ -134,6 +134,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var menuContextPlaylistId by mutableStateOf<Long?>(null)
     var isMenuContextFromPlayer by mutableStateOf(false)
 
+    var socialLikers by mutableStateOf<List<User>>(emptyList())
+    var isSocialLikersLoading by mutableStateOf(false)
+    private var socialProofTrackId: Long? = null
+
     var selectedTrackForSheet by mutableStateOf<Track?>(null)
     var isLocalDetailsMode by mutableStateOf(false)
     var localFilePathForDetails by mutableStateOf<String?>(null)
@@ -2073,7 +2077,110 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun applyEffectsAndSave() { MusicManager.applyEffects(effectsState); viewModelScope.launch(Dispatchers.IO) { playerPrefs.saveEffects(effectsState) } }
 
-    fun showTrackOptions(track: Track, playlistContextId: Long? = null, fromPlayer: Boolean = false) { trackForMenu = track; menuContextPlaylistId = playlistContextId; isMenuContextFromPlayer = fromPlayer; showMenuSheet = true }
+    fun loadSocialProof(specificTrack: Track? = null) {
+        val t = specificTrack ?: trackForMenu ?: selectedTrackForSheet ?: currentTrack ?: return
+        val trackId = t.id
+        if (trackId <= 0 || t.source == "youtube") {
+            socialLikers = emptyList()
+            return
+        }
+        val cached = com.alananasss.kittytune.data.SocialProofRepository.getLikersForTrack(trackId)
+        if (cached != null) {
+            socialProofTrackId = trackId
+            socialLikers = cached
+            isSocialLikersLoading = false
+            return
+        }
+        if (socialProofTrackId == trackId && socialLikers.isNotEmpty()) return
+        socialProofTrackId = trackId
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                isSocialLikersLoading = true
+                val trackUrn = "soundcloud:tracks:$trackId"
+                val query = """
+                    query RelatedLikersForTracks(${'$'}input: AllTracksInput!) {
+                        allTracks(allTracksInput: ${'$'}input) {
+                           urn
+                           relatedLikers {
+                             users {
+                               urn
+                               permalink
+                               username
+                               avatarUrl
+                               firstName
+                               lastName
+                               city
+                               country
+                               countryCode
+                               tracksCount
+                               playlistCount
+                               followersCount
+                               followingsCount
+                               verified
+                               isPro
+                               description
+                               userAvatarUrlTemplate
+                               visualUrlTemplate
+                               stationUrns
+                               createdAt
+                               badges
+                             }
+                           }
+                        }
+                    }
+                """.trimIndent()
+                val request = RelatedLikersRequest(
+                    query = query,
+                    variables = RelatedLikersVariables(
+                        input = RelatedLikersInput(
+                            trackKeys = listOf(RelatedLikersTrackKey(urn = trackUrn))
+                        )
+                    )
+                )
+                val response = api.getRelatedLikersGraphQL(request)
+                val myId = try { api.getMe().id } catch (e: Exception) { 0L }
+                val myUrn = if (myId > 0) "soundcloud:users:$myId" else ""
+                val apiUsers = response.data?.allTracks
+                    ?.flatMap { it.relatedLikers?.users.orEmpty() }
+                    ?.filter { !it.urn.isNullOrEmpty() && it.urn != myUrn }
+                    .orEmpty()
+
+                val mapped = apiUsers.mapNotNull { u ->
+                    val userId = u.urn?.substringAfterLast(':')?.toLongOrNull() ?: 0L
+                    if (userId > 0 && !u.username.isNullOrEmpty()) {
+                        User(
+                            id = userId,
+                            username = u.username,
+                            avatarUrl = u.avatarUrl,
+                            verified = u.verified ?: false,
+                            urn = u.urn
+                        )
+                    } else null
+                }
+                com.alananasss.kittytune.data.SocialProofRepository.putLikersForTrack(trackId, mapped)
+                withContext(Dispatchers.Main) {
+                    socialLikers = mapped
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    socialLikers = emptyList()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    isSocialLikersLoading = false
+                }
+            }
+        }
+    }
+
+    fun showTrackOptions(track: Track, playlistContextId: Long? = null, fromPlayer: Boolean = false) {
+        trackForMenu = track
+        menuContextPlaylistId = playlistContextId
+        isMenuContextFromPlayer = fromPlayer
+        loadSocialProof(track)
+        showMenuSheet = true
+    }
     fun prepareBulkAdd(tracks: List<Track>) { tracksToAddInBulk = tracks; trackForMenu = null; showAddToPlaylistSheet = true }
     fun addToPlaylist(playlistId: Long, track: Track) { DownloadManager.addTrackToPlaylist(playlistId, track); showAddToPlaylistSheet = false; emitUiEvent(getString(R.string.success_generic)) }
     fun addTracksToPlaylist(playlistId: Long, tracks: List<Track>) {

@@ -15,12 +15,14 @@
     import androidx.compose.material.icons.filled.MoreVert
     import androidx.compose.material.icons.rounded.GraphicEq
     import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Check
+    import androidx.compose.material.icons.rounded.Check
+    import androidx.compose.material.icons.rounded.Favorite
     import androidx.compose.material3.*
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.draw.clip
+    import androidx.compose.ui.graphics.Color
     import androidx.compose.ui.input.nestedscroll.nestedScroll
     import androidx.compose.ui.layout.ContentScale
     import androidx.compose.ui.res.stringResource
@@ -238,6 +240,18 @@ import androidx.compose.material.icons.rounded.Check
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 
+        val likedTracks by com.alananasss.kittytune.data.LikeRepository.likedTracks.collectAsState()
+        val isTrackLiked = remember(track.id, likedTracks) { com.alananasss.kittytune.data.LikeRepository.isTrackLiked(track.id) }
+
+        val socialLikersMap by com.alananasss.kittytune.data.SocialProofRepository.socialLikersMap.collectAsState()
+        val socialLikers = socialLikersMap[track.id]
+
+        LaunchedEffect(track.id) {
+            if (track.id > 0 && track.source != "youtube") {
+                com.alananasss.kittytune.data.SocialProofRepository.requestSocialProof(track.id)
+            }
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -285,13 +299,33 @@ import androidx.compose.material.icons.rounded.Check
                     fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                     color = titleColor
                 )
-                Text(
-                    text = "${track.user?.username ?: stringResource(R.string.unknown_artist)} • ${formatNumber(track.playbackCount)} ${stringResource(R.string.playback_count_formatted)}",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${track.user?.username ?: stringResource(R.string.unknown_artist)} • ${formatNumber(track.playbackCount)} ${stringResource(R.string.playback_count_formatted)}",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isTrackLiked) {
+                        Spacer(Modifier.width(4.dp))
+                        Text(text = "·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.Favorite,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                    if (!socialLikers.isNullOrEmpty()) {
+                        Spacer(Modifier.width(4.dp))
+                        Text(text = "·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(4.dp))
+                        com.alananasss.kittytune.ui.common.MiniSocialProofAvatars(likers = socialLikers)
+                    }
+                }
             }
 
             // options icon
