@@ -46,14 +46,13 @@ fun FabSettingsScreen(
     val libraryViewModel: LibraryViewModel = viewModel()
     val haptic = LocalHapticFeedback.current
 
-    // Make sure data is loaded
     LaunchedEffect(Unit) {
         libraryViewModel.loadData()
     }
 
-    val playlists = libraryViewModel.displayedItems.filterIsInstance<LibraryItem.PlaylistItem>().map { it.playlist }.filter { !it.isAlbum }
+    val playlists = libraryViewModel.displayedItems.filterIsInstance<LibraryItem.PlaylistItem>().map { it.playlist }
+        .filter { !it.isRealAlbum }
 
-    // Default system actions
     val systemOptions = mutableListOf(
         "profile" to stringResource(R.string.pref_bottom_menu_fab_profile),
         "settings" to stringResource(R.string.pref_bottom_menu_fab_settings),
@@ -83,16 +82,16 @@ fun FabSettingsScreen(
         ) {
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.pref_bottom_menu_fab)) // Actions
+                    SettingsGroupTitle(stringResource(R.string.pref_bottom_menu_fab))
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         systemOptions.forEachIndexed { index, (key, title) ->
                             SettingsItem(
                                 shape = getSettingsShape(systemOptions.size, index),
                                 title = title,
                                 subtitle = null,
-                                onClick = { 
+                                onClick = {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    prefs.setBottomMenuFab(key) 
+                                    prefs.setBottomMenuFab(key)
                                 },
                                 icon = if (fab == key) Icons.Rounded.Check else null
                             )
@@ -104,7 +103,7 @@ fun FabSettingsScreen(
             item {
                 Spacer(modifier = Modifier.height(24.dp))
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.pref_bottom_menu_fab_playlist)) // Custom playlists
+                    SettingsGroupTitle(stringResource(R.string.pref_bottom_menu_fab_playlist))
                 }
             }
 
@@ -133,9 +132,9 @@ fun FabSettingsScreen(
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainer)
-                            .clickable { 
+                            .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                prefs.setBottomMenuFab(navKey) 
+                                prefs.setBottomMenuFab(navKey)
                             }
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -160,7 +159,8 @@ fun FabSettingsScreen(
                                 color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                             )
                             val authorText = playlist.user?.username ?: ""
-                            val finalSubtitle = if (isRadioShortcut) stringResource(R.string.fab_settings_radio) else stringResource(R.string.lib_playlists) + " • $authorText"
+                            val finalSubtitle =
+                                if (isRadioShortcut) stringResource(R.string.fab_settings_radio) else stringResource(R.string.lib_playlists) + " • $authorText"
                             Text(
                                 text = finalSubtitle,
                                 style = MaterialTheme.typography.bodyMedium,

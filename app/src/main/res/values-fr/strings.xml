@@ -511,6 +511,24 @@
     <string name="menu_remove">Retirer</string>
     <string name="menu_repost">Republier</string>
     <string name="menu_reposted">Republié</string>
+    <string name="social_proof_liked_by">aimé par</string>
+    <string name="social_proof_and">et</string>
+    <string name="social_proof_others">autres</string>
+    <string name="social_proof_single">aimé par %1$s</string>
+    <string name="social_proof_two">aimé par %1$s et %2$s</string>
+    <string name="social_proof_three">aimé par %1$s, %2$s et %3$s</string>
+    <string name="social_proof_multiple">aimé par %1$s, %2$s et %3$s autres</string>
+
+    <string name="vibe_hiphop">Hip-Hop</string>
+    <string name="vibe_electronic">Électro</string>
+    <string name="vibe_pop">Pop</string>
+    <string name="vibe_rnb">R&amp;B</string>
+    <string name="vibe_rock">Rock</string>
+    <string name="vibe_chill">Détente</string>
+    <string name="vibe_dancy">Dance</string>
+    <string name="vibe_euphoric">Euphorique</string>
+    <string name="vibe_happy">Heureux</string>
+    <string name="vibe_majestic">Majestueux</string>
     <string name="menu_remove_local_q">Masquer le fichier ?</string>
     <string name="menu_remove_local_body">Ce fichier ne sera plus affiché dans l\'app, mais ne sera pas supprimé du téléphone</string>
     <string name="menu_remove_download_q">Supprimer le téléchargement ?</string>

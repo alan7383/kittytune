@@ -52,6 +52,7 @@
     import androidx.compose.ui.text.style.TextAlign
     import androidx.compose.ui.text.style.TextOverflow
     import androidx.compose.ui.unit.dp
+    import androidx.compose.ui.unit.sp
     import androidx.compose.ui.zIndex
     import androidx.lifecycle.viewmodel.compose.viewModel
     import coil.compose.AsyncImage
@@ -68,6 +69,8 @@
     import com.alananasss.kittytune.domain.User
     import com.alananasss.kittytune.domain.PlaylistUpdateRequest
     import com.alananasss.kittytune.ui.common.TrackListItemShimmer
+    import com.alananasss.kittytune.ui.common.MiniSocialProofAvatars
+    import com.alananasss.kittytune.data.SocialProofRepository
     import com.alananasss.kittytune.ui.player.PlaybackContext
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import kotlinx.coroutines.delay
@@ -78,7 +81,7 @@
     import sh.calvin.reorderable.rememberReorderableLazyListState
 
 enum class TrackSortBy {
-    FIRST_ADDED, RECENTLY_ADDED, TITLE_AZ, ARTIST_AZ
+    RECENTLY_ADDED, FIRST_ADDED, TITLE_AZ, ARTIST_AZ
 }
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -252,19 +255,51 @@ enum class TrackSortBy {
 
         var playlistSearchQuery by remember { mutableStateOf("") }
         var isSearchExpanded by remember { mutableStateOf(false) }
-        var playlistSortBy by remember { mutableStateOf(TrackSortBy.FIRST_ADDED) }
+        var playlistSortBy by remember { mutableStateOf(TrackSortBy.RECENTLY_ADDED) }
+
+        val vibes by com.alananasss.kittytune.data.VibesRepository.vibes.collectAsState()
+        var selectedVibeId by remember { mutableStateOf<String?>(null) }
+
+        LaunchedEffect(playlistId, likedTracksRepo.size) {
+            if (playlistId == "likes") {
+                com.alananasss.kittytune.data.VibesRepository.loadVibes(likedTracksRepo)
+            }
+        }
 
         val rawTracks = if (playlistId == "likes") likedTracksRepo else tracks
-        val tracksToDisplay = if (playlistSearchQuery.isEmpty() && playlistSortBy == TrackSortBy.FIRST_ADDED) {
-            rawTracks
+
+        val tracksFilteredByVibe = remember(rawTracks, selectedVibeId, vibes, playlistId) {
+            if (selectedVibeId == null || playlistId != "likes") {
+                rawTracks
+            } else {
+                val selectedVibe = vibes.find { it.id == selectedVibeId }
+                if (selectedVibe != null && selectedVibe.trackIds.isNotEmpty()) {
+                    rawTracks.filter { selectedVibe.trackIds.contains(it.id) }
+                } else if (selectedVibe != null) {
+                    val idLower = selectedVibe.id.lowercase()
+                    val nameLower = selectedVibe.displayName.lowercase()
+                    rawTracks.filter { t ->
+                        val genre = t.genre.orEmpty().lowercase()
+                        val tagList = t.tagList.orEmpty().lowercase()
+                        val title = t.title.orEmpty().lowercase()
+                        genre.contains(idLower) || genre.contains(nameLower) || tagList.contains(idLower) || tagList.contains(nameLower) || title.contains(idLower) || title.contains(nameLower)
+                    }
+                } else {
+                    rawTracks
+                }
+            }
+        }
+
+        val tracksToDisplay = if (playlistSearchQuery.isEmpty() && playlistSortBy == TrackSortBy.RECENTLY_ADDED) {
+            tracksFilteredByVibe
         } else {
-            val filtered = rawTracks.filter { 
+            val filtered = tracksFilteredByVibe.filter { 
                 it.title?.contains(playlistSearchQuery, ignoreCase = true) == true || 
                 it.user?.username?.contains(playlistSearchQuery, ignoreCase = true) == true
             }
             when (playlistSortBy) {
-                TrackSortBy.FIRST_ADDED -> filtered
-                TrackSortBy.RECENTLY_ADDED -> filtered.reversed()
+                TrackSortBy.RECENTLY_ADDED -> filtered
+                TrackSortBy.FIRST_ADDED -> filtered.reversed()
                 TrackSortBy.TITLE_AZ -> filtered.sortedBy { it.title?.lowercase() ?: "" }
                 TrackSortBy.ARTIST_AZ -> filtered.sortedBy { it.user?.username?.lowercase() ?: "" }
             }
@@ -448,7 +483,7 @@ enum class TrackSortBy {
                                     isTrackStation -> api.getTrackStation(currentIdLong)
                                     else -> api.getPlaylist(currentIdLong)
                                 }
-                                isAlbum = playlistObj.isAlbum
+                                isAlbum = playlistObj.isRealAlbum
 
                                 playlistTitle = playlistObj.title.takeIf { !it.isNullOrBlank() } ?: playlistTitle
                                 playlistCover = playlistObj.fullResArtwork ?: playlistCover
@@ -651,8 +686,8 @@ enum class TrackSortBy {
             ) {
                 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
                     val options = listOf(
-                        TrackSortBy.FIRST_ADDED to stringResource(R.string.sort_first_added),
                         TrackSortBy.RECENTLY_ADDED to stringResource(R.string.sort_recently_added),
+                        TrackSortBy.FIRST_ADDED to stringResource(R.string.sort_first_added),
                         TrackSortBy.TITLE_AZ to stringResource(R.string.sort_title_az),
                         TrackSortBy.ARTIST_AZ to stringResource(R.string.sort_artist_az)
                     )
@@ -663,6 +698,7 @@ enum class TrackSortBy {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { 
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                     playlistSortBy = sortType
                                     showPlaylistSortSheet = false 
                                 }
@@ -1044,7 +1080,46 @@ enum class TrackSortBy {
                                             }
                                             Spacer(Modifier.height(16.dp))
                                         }
-                                        if (tracksToDisplay.isEmpty() && playlistSearchQuery.isNotEmpty()) {
+
+                                        if (playlistId == "likes" && vibes.isNotEmpty()) {
+                                            item(key = "likes_vibes_row") {
+                                                androidx.compose.foundation.lazy.LazyRow(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(bottom = 16.dp),
+                                                    contentPadding = PaddingValues(horizontal = 24.dp),
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    items(vibes.size, key = { vibes[it].id }) { vibeIndex ->
+                                                        val vibe = vibes[vibeIndex]
+                                                        val isSelected = selectedVibeId == vibe.id
+
+                                                        Button(
+                                                            onClick = {
+                                                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                                                selectedVibeId = if (isSelected) null else vibe.id
+                                                            },
+                                                            shapes = ButtonDefaults.shapes(),
+                                                            colors = ButtonDefaults.buttonColors(
+                                                                containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                                            ),
+                                                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                                                            modifier = Modifier.height(40.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = vibe.displayName.uppercase(java.util.Locale.getDefault()),
+                                                                style = MaterialTheme.typography.labelLarge,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (tracksToDisplay.isEmpty() && (playlistSearchQuery.isNotEmpty() || selectedVibeId != null)) {
                                             item {
                                                 EmptyPlaylistView(
                                                     playlistId = playlistId,
@@ -1118,6 +1193,7 @@ enum class TrackSortBy {
                                                             isDownloaded = isDownloaded,
                                                             downloadProgress = progress ?: 0,
                                                             showVerifiedBadge = false,
+                                                            showLikeIndicator = playlistId != "likes",
                                                             modifier = Modifier
                                                                 .fillMaxWidth()
                                                                 .background(backgroundColor)
@@ -1165,6 +1241,7 @@ enum class TrackSortBy {
                                                 isDownloaded = isDownloaded,
                                                 downloadProgress = progress ?: 0,
                                                 showVerifiedBadge = false,
+                                                showLikeIndicator = playlistId != "likes",
                                                 modifier = Modifier.animateItem(),
                                                 onClick = { playerViewModel.playPlaylist(tracksToDisplay.toList(), index, playbackContext) },
                                                 onOptionClick = {
@@ -1555,6 +1632,7 @@ enum class TrackSortBy {
         downloadProgress: Int,
         modifier: Modifier = Modifier,
         showVerifiedBadge: Boolean = true,
+        showLikeIndicator: Boolean = true,
         dragModifier: Modifier = Modifier,
         onClick: () -> Unit,
         onOptionClick: () -> Unit
@@ -1562,6 +1640,18 @@ enum class TrackSortBy {
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         val titleWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold
+
+        val likedTracks by LikeRepository.likedTracks.collectAsState()
+        val isTrackLiked = remember(track.id, likedTracks) { LikeRepository.isTrackLiked(track.id) }
+
+        val socialLikersMap by SocialProofRepository.socialLikersMap.collectAsState()
+        val socialLikers = socialLikersMap[track.id]
+
+        LaunchedEffect(track.id) {
+            if (track.id > 0 && track.source != "youtube") {
+                SocialProofRepository.requestSocialProof(track.id)
+            }
+        }
 
         Surface(
             onClick = onClick,
@@ -1590,7 +1680,7 @@ enum class TrackSortBy {
 
                     if (isCurrent && !isDownloading) {
                         Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
-                            Icon(imageVector = Icons.Rounded.GraphicEq, contentDescription = stringResource(R.string.player_playing_now), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
+                             Icon(imageVector = Icons.Rounded.GraphicEq, contentDescription = stringResource(R.string.player_playing_now), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(24.dp))
                         }
                     }
                 }
@@ -1598,11 +1688,38 @@ enum class TrackSortBy {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = track.title ?: stringResource(R.string.untitled_track), maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = titleWeight, color = titleColor)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (isDownloaded && !isDownloading) { Icon(Icons.Rounded.DownloadDone, stringResource(R.string.btn_downloaded), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(4.dp)) }
-                        Text(text = track.user?.username ?: stringResource(R.string.unknown_artist), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (isDownloaded && !isDownloading) {
+                            Icon(Icons.Rounded.DownloadDone, stringResource(R.string.btn_downloaded), modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(4.dp))
+                        }
+                        Text(
+                            text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
                         if (showVerifiedBadge && track.user?.verified == true) {
                             Spacer(Modifier.width(4.dp))
                             Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                        }
+                        if (showLikeIndicator && isTrackLiked) {
+                            Spacer(Modifier.width(4.dp))
+                            Text(text = "·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Favorite,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                        if (!socialLikers.isNullOrEmpty()) {
+                            Spacer(Modifier.width(4.dp))
+                            Text(text = "·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(Modifier.width(4.dp))
+                            MiniSocialProofAvatars(likers = socialLikers)
                         }
                     }
                 }

@@ -94,6 +94,8 @@ import com.zionhuang.innertube.models.YouTubeLocale
             // Initialize Data Layer Singletons
             Config.init(applicationContext)
             LikeRepository.init(applicationContext)
+            com.alananasss.kittytune.data.SocialProofRepository.init(applicationContext)
+            com.alananasss.kittytune.data.VibesRepository.init(applicationContext)
             DownloadManager.init(applicationContext)
             HistoryRepository.init(applicationContext)
             com.alananasss.kittytune.data.RecognitionHistoryRepository.init(applicationContext)

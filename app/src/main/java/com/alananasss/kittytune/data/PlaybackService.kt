@@ -56,6 +56,7 @@ class PlaybackService : MediaLibraryService() {
         prefs = PlayerPreferences(this)
         MusicManager.init(this)
         LikeRepository.init(this)
+        SocialProofRepository.init(this)
         HistoryRepository.init(this)
         com.alananasss.kittytune.data.RecognitionHistoryRepository.init(this)
         RepostRepository.init(this)

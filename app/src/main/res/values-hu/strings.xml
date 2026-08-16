@@ -353,6 +353,24 @@
     <string name="menu_remove">Eltávolítás</string>
     <string name="menu_repost">Újraközlés</string>
     <string name="menu_reposted">Megosztva</string>
+    <string name="social_proof_liked_by">kedvelte</string>
+    <string name="social_proof_and">és</string>
+    <string name="social_proof_others">más</string>
+    <string name="social_proof_single">%1$s kedvelte ezt a számot</string>
+    <string name="social_proof_two">%1$s és %2$s kedvelte ezt a számot</string>
+    <string name="social_proof_three">%1$s, %2$s és %3$s kedvelte ezt a számot</string>
+    <string name="social_proof_multiple">%1$s, %2$s és %3$s más kedvelte ezt a számot</string>
+
+    <string name="vibe_hiphop">Hip-Hop</string>
+    <string name="vibe_electronic">Elektronikus</string>
+    <string name="vibe_pop">Pop</string>
+    <string name="vibe_rnb">R&amp;B</string>
+    <string name="vibe_rock">Rock</string>
+    <string name="vibe_chill">Nyugalom</string>
+    <string name="vibe_dancy">Tánc</string>
+    <string name="vibe_euphoric">Eufórikus</string>
+    <string name="vibe_happy">Boldog</string>
+    <string name="vibe_majestic">Fenséges</string>
     <string name="menu_remove_local_q">Fájl elrejtése?</string>
     <string name="menu_remove_local_body">Nem jelenik meg többet az appban, de nem törlődik a telefonról</string>
     <string name="menu_remove_download_q">Letöltés törlése?</string>

@@ -359,6 +359,24 @@
     <string name="menu_remove">Удалить</string>
     <string name="menu_repost">Репост</string>
     <string name="menu_reposted">В репостах</string>
+    <string name="social_proof_liked_by">понравилось</string>
+    <string name="social_proof_and">и</string>
+    <string name="social_proof_others">еще</string>
+    <string name="social_proof_single">понравилось %1$s</string>
+    <string name="social_proof_two">понравилось %1$s и %2$s</string>
+    <string name="social_proof_three">понравилось %1$s, %2$s и %3$s</string>
+    <string name="social_proof_multiple">понравилось %1$s, %2$s и еще %3$s</string>
+
+    <string name="vibe_hiphop">Хип-хоп</string>
+    <string name="vibe_electronic">Электроника</string>
+    <string name="vibe_pop">Поп</string>
+    <string name="vibe_rnb">R&amp;B</string>
+    <string name="vibe_rock">Рок</string>
+    <string name="vibe_chill">Чилл</string>
+    <string name="vibe_dancy">Танцевальная</string>
+    <string name="vibe_euphoric">Эйфория</string>
+    <string name="vibe_happy">Счастливая</string>
+    <string name="vibe_majestic">Величественная</string>
     <string name="menu_remove_local_q">Скрыть файл?</string>
     <string name="menu_remove_local_body">Этот файл будет скрыт из приложения, но не удалён с вашего устройства</string>
     <string name="menu_remove_download_q">Удалить загрузки?</string>
