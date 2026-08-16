@@ -52,7 +52,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             if (searchQuery.isBlank()) return tracksHistory
             return tracksHistory.filter { item ->
                 (item.track.title?.contains(searchQuery, ignoreCase = true) == true) ||
-                (item.track.user?.username?.contains(searchQuery, ignoreCase = true) == true)
+                        (item.track.user?.username?.contains(searchQuery, ignoreCase = true) == true)
             }
         }
 
@@ -61,7 +61,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             if (searchQuery.isBlank()) return contextsHistory
             return contextsHistory.filter { item ->
                 item.title.contains(searchQuery, ignoreCase = true) ||
-                item.subtitle.contains(searchQuery, ignoreCase = true)
+                        item.subtitle.contains(searchQuery, ignoreCase = true)
             }
         }
 
@@ -89,7 +89,6 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         tracksNextUrl = null
         canLoadMoreTracks = true
         try {
-            // 1. Instantly load from local Room Database (like official SoundCloud app)
             val localItems = try {
                 HistoryRepository.getHistory().first().filter { it.type == "TRACK" }
             } catch (e: Exception) {
@@ -116,7 +115,6 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
 
-            // 2. If logged into SoundCloud, sync latest tracks from server
             if (!isGuest) {
                 val api = RetrofitClient.create(app)
                 val response = api.getPlayHistory(limit = 100)
@@ -171,14 +169,12 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                             )
                         }
 
-                        // Cache server items in local Room DB for instant display on next launch
                         try {
                             HistoryRepository.insertHistoryList(dbItemsToCache)
                         } catch (e: Exception) {
                             Log.e("HistoryViewModel", "Failed to cache history in DB", e)
                         }
 
-                        // Combine server + local tracks, preserving latest playedAt timestamp, artwork, and verified status
                         val serverMap = serverList.associateBy { it.track.id }
                         val localMap = localMapped.associateBy { it.track.id }
                         val allTrackIds = (serverList.map { it.track.id } + localMapped.map { it.track.id }).distinct()
@@ -188,11 +184,15 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                             val localItem = localMap[id]
                             if (serverItem != null && localItem != null) {
                                 val latestPlayedAt = maxOf(serverItem.playedAt, localItem.playedAt)
-                                val isVerified = serverItem.track.user?.verified == true || localItem.track.user?.verified == true
-                                val bestUser = (serverItem.track.user ?: localItem.track.user)?.copy(verified = isVerified)
-                                    ?: User(0L, localItem.track.user?.username ?: "", null, verified = isVerified)
-                                val bestArtwork = if (!serverItem.track.artworkUrl.isNullOrBlank()) serverItem.track.artworkUrl else localItem.track.artworkUrl
-                                val baseTrack = if (!serverItem.track.artworkUrl.isNullOrBlank()) serverItem.track else localItem.track
+                                val isVerified =
+                                    serverItem.track.user?.verified == true || localItem.track.user?.verified == true
+                                val bestUser =
+                                    (serverItem.track.user ?: localItem.track.user)?.copy(verified = isVerified)
+                                        ?: User(0L, localItem.track.user?.username ?: "", null, verified = isVerified)
+                                val bestArtwork =
+                                    if (!serverItem.track.artworkUrl.isNullOrBlank()) serverItem.track.artworkUrl else localItem.track.artworkUrl
+                                val baseTrack =
+                                    if (!serverItem.track.artworkUrl.isNullOrBlank()) serverItem.track else localItem.track
                                 val bestTrack = baseTrack.copy(user = bestUser, artworkUrl = bestArtwork)
                                 HistoryTrackItem(track = bestTrack, playedAt = latestPlayedAt)
                             } else {
@@ -286,10 +286,12 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
 
                         try {
                             HistoryRepository.insertHistoryList(dbItemsToCache)
-                        } catch (_: Exception) {}
+                        } catch (_: Exception) {
+                        }
 
                         val existingTrackIds = tracksHistory.map { it.track.id }.toSet()
-                        val newUnique = resultList.distinctBy { it.track.id }.filter { it.track.id !in existingTrackIds }
+                        val newUnique =
+                            resultList.distinctBy { it.track.id }.filter { it.track.id !in existingTrackIds }
 
                         if (newUnique.isEmpty()) {
                             canLoadMoreTracks = false
@@ -319,9 +321,8 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         contextsNextUrl = null
         canLoadMoreContexts = true
         try {
-            // 1. Instantly load local contexts
             val localItems = try {
-                HistoryRepository.getHistory().first().filter { 
+                HistoryRepository.getHistory().first().filter {
                     it.type != "TRACK" && it.id != "playlist:0" && !it.title.equals("history", ignoreCase = true)
                 }
             } catch (e: Exception) {
@@ -361,7 +362,6 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
 
-            // 2. If logged into SoundCloud, sync latest contexts from server
             if (!isGuest) {
                 val api = RetrofitClient.create(app)
                 val response = api.getRecentlyPlayedContexts(limit = 100)
@@ -378,7 +378,6 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                     }
                     val resolved = deferredList.awaitAll().filterNotNull()
 
-                    // Cache in local Room DB
                     val dbContextsToCache = resolved.map { ctx ->
                         HistoryItem(
                             id = ctx.id,
@@ -397,7 +396,8 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                     }
                     try {
                         HistoryRepository.insertHistoryList(dbContextsToCache)
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
 
                     val combined = (resolved + localMapped)
                         .distinctBy { it.id }
@@ -490,7 +490,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                         title = playlist?.title ?: app.getString(R.string.history_type_playlist),
                         subtitle = playlist?.user?.username ?: app.getString(R.string.history_source_soundcloud),
                         imageUrl = playlist?.fullResArtwork,
-                        type = if (playlist?.isAlbum == true) HistoryContextType.ALBUM else HistoryContextType.PLAYLIST,
+                        type = if (playlist?.isRealAlbum == true) HistoryContextType.ALBUM else HistoryContextType.PLAYLIST,
                         playedAt = playedAt,
                         targetNavId = id.toString(),
                         isVerified = playlist?.user?.verified == true
