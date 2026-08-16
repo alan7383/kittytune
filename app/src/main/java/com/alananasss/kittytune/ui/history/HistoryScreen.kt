@@ -483,6 +483,18 @@ fun HistoryTrackRow(
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(millis))
     }
 
+    val likedTracks by com.alananasss.kittytune.data.LikeRepository.likedTracks.collectAsState()
+    val isTrackLiked = remember(track.id, likedTracks) { com.alananasss.kittytune.data.LikeRepository.isTrackLiked(track.id) }
+
+    val socialLikersMap by com.alananasss.kittytune.data.SocialProofRepository.socialLikersMap.collectAsState()
+    val socialLikers = socialLikersMap[track.id]
+
+    LaunchedEffect(track.id) {
+        if (track.id > 0 && track.source != "youtube") {
+            com.alananasss.kittytune.data.SocialProofRepository.requestSocialProof(track.id)
+        }
+    }
+
     Surface(
         onClick = onClick,
         color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent,
@@ -576,6 +588,21 @@ fun HistoryTrackRow(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
+
+                    if (isTrackLiked) {
+                        Text(text = "·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            imageVector = Icons.Rounded.Favorite,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+
+                    if (!socialLikers.isNullOrEmpty()) {
+                        Text(text = "·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        com.alananasss.kittytune.ui.common.MiniSocialProofAvatars(likers = socialLikers)
+                    }
                 }
             }
 

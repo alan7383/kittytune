@@ -863,10 +863,19 @@ fun MainScreen(
                             { navController.popBackStack() },
                             playerViewModel,
                             onNavigate = { id ->
-                                if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
-                                else if (id.startsWith("followers:")) navController.navigate("followers/${id.removePrefix("followers:")}")
-                                else if (id.startsWith("followings:")) navController.navigate("followings/${id.removePrefix("followings:")}")
-                                else navController.navigate("playlist_detail/$id")
+                                when {
+                                    id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
+                                    id == "recognition_history" -> navController.navigate("recognition_history")
+                                    id == "likes" -> navController.navigate("playlist_detail/likes")
+                                    id == "downloads" -> navController.navigate("playlist_detail/downloads")
+                                    id.startsWith("profile:") -> navController.navigate("profile/${id.removePrefix("profile:")}")
+                                    id.startsWith("followers:") -> navController.navigate("followers/${id.removePrefix("followers:")}")
+                                    id.startsWith("followings:") -> navController.navigate("followings/${id.removePrefix("followings:")}")
+                                    id.startsWith("station:") || id.startsWith("station_artist:") -> navController.navigate("playlist_detail/$id")
+                                    id.startsWith("tag:") -> navController.navigate("tag/${id.removePrefix("tag:")}")
+                                    id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
+                                    else -> navController.navigate("playlist_detail/$id")
+                                }
                             }
                         )
                     }
