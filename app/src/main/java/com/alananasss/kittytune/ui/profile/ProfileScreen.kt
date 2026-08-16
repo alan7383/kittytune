@@ -72,6 +72,10 @@
     import com.alananasss.kittytune.ui.library.TrackListItem
     import com.alananasss.kittytune.ui.player.PlaybackContext
     import com.alananasss.kittytune.ui.player.PlayerViewModel
+    import androidx.compose.foundation.Image
+    import androidx.compose.ui.res.painterResource
+    import com.alananasss.kittytune.domain.isDefaultAvatar
+    import com.alananasss.kittytune.domain.getHighResAvatarUrl
     import com.alananasss.kittytune.domain.Comment
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.launch
@@ -463,24 +467,28 @@
 
     @Composable
     fun ArtistAvatar(modifier: Modifier = Modifier, avatarUrl: String?, enableViewer: Boolean = false) {
+        val isDefault = remember(avatarUrl) { avatarUrl.isDefaultAvatar() }
+
         Box(
             modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            if (!avatarUrl.isNullOrEmpty()) {
-                val fullUrl = avatarUrl.replace("large", "t500x500")
+            if (!isDefault && !avatarUrl.isNullOrEmpty()) {
+                val fullUrl = avatarUrl.getHighResAvatarUrl() ?: avatarUrl
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = stringResource(R.string.profile_avatar),
                     contentScale = ContentScale.Crop,
+                    error = painterResource(R.drawable.ic_default_user_artwork_placeholder_round),
+                    fallback = painterResource(R.drawable.ic_default_user_artwork_placeholder_round),
                     modifier = Modifier.fillMaxSize().let { if (enableViewer) it.viewableCover(fullUrl) else it }
                 )
             } else {
-                Icon(
-                    Icons.Default.Person,
+                Image(
+                    painter = painterResource(R.drawable.ic_default_user_artwork_placeholder_round),
                     contentDescription = stringResource(R.string.profile_avatar),
-                    modifier = Modifier.fillMaxSize(0.6f),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
@@ -885,7 +893,7 @@
                             }
                         }
 
-                        val hasCustomAvatar = user.avatarUrl != null && !user.avatarUrl.contains("default_avatar")
+                        val hasCustomAvatar = !user.avatarUrl.isDefaultAvatar()
 
                         if (hasCustomAvatar) {
                             Surface(
