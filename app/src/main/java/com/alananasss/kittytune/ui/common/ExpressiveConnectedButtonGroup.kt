@@ -1,5 +1,8 @@
 package com.alananasss.kittytune.ui.common
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,8 +13,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -35,14 +41,32 @@ fun <T> ExpressiveConnectedButtonGroup(
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         options.forEachIndexed { index, option ->
+            val isChecked = selectedOption != null && selectedOption == option
+            val containerColor by animateColorAsState(
+                targetValue = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                label = "toggle_container_color"
+            )
+            val contentColor by animateColorAsState(
+                targetValue = if (isChecked) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+                label = "toggle_content_color"
+            )
+
             ToggleButton(
-                checked = selectedOption != null && selectedOption == option,
+                checked = isChecked,
                 onCheckedChange = {
                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                     onOptionSelected(option)
                 },
                 modifier = Modifier.weight(1f),
                 contentPadding = contentPadding,
+                colors = ToggleButtonDefaults.toggleButtonColors(
+                    containerColor = containerColor,
+                    contentColor = contentColor,
+                    checkedContainerColor = containerColor,
+                    checkedContentColor = contentColor
+                ),
                 shapes = when (index) {
                     0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
                     options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
