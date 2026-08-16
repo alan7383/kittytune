@@ -147,12 +147,13 @@
         @GET("users/{userId}/playlist_likes")
         suspend fun getUserPlaylistLikes(
             @Path("userId") userId: Long,
-            @Query("limit") limit: Int = 50
+            @Query("limit") limit: Int = 200,
+            @Query("linked_partitioning") linkedPartitioning: Int = 1
         ): PlaylistLikesResponse
 
         @GET("me/library/all")
         suspend fun getMyLibraryAll(
-            @Query("limit") limit: Int = 100,
+            @Query("limit") limit: Int = 200,
             @Query("linked_partitioning") linkedPartitioning: Int = 1
         ): StationLibraryResponse
 
@@ -276,15 +277,29 @@
         @GET
         suspend fun getCommentsNextPage(@Url url: String): CommentCollection
 
+        @GET
+        suspend fun getPlaylistLikesNextPage(@Url url: String): PlaylistLikesResponse
+
+        @GET("users/{userId}/followings")
+        suspend fun getUserFollowings(
+            @Path("userId") userId: Long,
+            @Query("limit") limit: Int = 50,
+            @Query("linked_partitioning") linkedPartitioning: Int = 1
+        ): UserCollection
+
+        @GET
+        suspend fun getUserCollectionNextPage(@Url url: String): UserCollection
+
         @GET("users/{userId}/playlists")
         suspend fun getUserCreatedPlaylists(
             @Path("userId") userId: Long,
-            @Query("limit") limit: Int = 50
+            @Query("limit") limit: Int = 200,
+            @Query("linked_partitioning") linkedPartitioning: Int = 1
         ): UserPlaylistsResponse
 
         @GET("https://api-mobile.soundcloud.com/you/posts_and_reposts/playlists")
         suspend fun getMyPlaylistPosts(
-            @Query("limit") limit: Int = 50
+            @Query("limit") limit: Int = 200
         ): RepostCollection
 
         @GET("https://api-v2.soundcloud.com/playlists/{playlistId}")
@@ -456,6 +471,16 @@
 
         @POST("https://graph.soundcloud.com/graphql")
         suspend fun postMusicImportGraphQl(@Body request: GraphQlRequest): JsonObject
+
+        @POST("https://graph.soundcloud.com/graphql")
+        suspend fun getRelatedLikersGraphQL(
+            @Body request: RelatedLikersRequest
+        ): RelatedLikersResponse
+
+        @POST("https://graph.soundcloud.com/graphql")
+        suspend fun getMyLikesCollectionsGraphQL(
+            @Body request: GraphQlLikesCollectionsRequest = GraphQlLikesCollectionsRequest()
+        ): GraphQlLikesCollectionsResponse
     }
 
 data class ApiRecentlyPlayed(
