@@ -107,6 +107,9 @@
         @Insert(onConflict = OnConflictStrategy.REPLACE)
         suspend fun insertArtist(artist: LocalArtist)
 
+        @Insert(onConflict = OnConflictStrategy.REPLACE)
+        suspend fun insertArtists(artists: List<LocalArtist>)
+
         @Query("DELETE FROM saved_artists WHERE id = :artistId")
         suspend fun deleteArtist(artistId: Long)
 
