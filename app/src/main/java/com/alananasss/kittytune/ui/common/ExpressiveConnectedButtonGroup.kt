@@ -79,7 +79,7 @@ fun <T> ExpressiveConnectedButtonGroup(
                 ) {
                     if (iconProvider != null) {
                         iconProvider(option)
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(4.dp))
                     }
                     labelProvider(option)
                 }

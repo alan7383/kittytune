@@ -106,6 +106,15 @@
             if (id != null) profileViewModel.loadProfile(id)
         }
 
+        LaunchedEffect(userId) {
+            ProfileViewModel.refreshTrigger.collect { targetUserId ->
+                val id = userId.toLongOrNull()
+                if (id != null && (targetUserId == 0L || targetUserId == id)) {
+                    profileViewModel.loadProfile(id, forceRefresh = true)
+                }
+            }
+        }
+
         val user = profileViewModel.user
 
         // handle back press if section expanded
@@ -326,6 +335,16 @@
                                 IconButton(onClick = { showEditSheet = true }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(Icons.Outlined.Edit, stringResource(R.string.profile_edit), tint = contentColor)
                                 }
+                            }
+                            IconButton(
+                                onClick = { onNavigate("upload") },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(alpha = 0.3f),
+                                    contentColor = contentColor
+                                )
+                            ) {
+                                Icon(Icons.Filled.CloudUpload, stringResource(R.string.nav_upload))
                             }
                         } else {
                             IconButton(
