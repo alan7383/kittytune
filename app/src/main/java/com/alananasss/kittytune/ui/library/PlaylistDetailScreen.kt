@@ -81,8 +81,10 @@ import com.alananasss.kittytune.data.SocialProofRepository
 import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.io.File
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -108,6 +110,8 @@ fun PlaylistDetailScreen(
     val storageTrigger by DownloadManager.storageTrigger.collectAsState()
     val isYoutubeRadio = playlistId.startsWith("yt_radio:")
     val isGuest = remember { TokenManager(context).isGuestMode() }
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val debouncedStorageTrigger by DownloadManager.debouncedStorageTrigger.collectAsState(0)
 
     val tracks = remember { mutableStateListOf<Track>() }
     val downloadedPlaylists = remember { mutableStateListOf<Playlist>() }
@@ -401,7 +405,7 @@ fun PlaylistDetailScreen(
         else (playlistInDb != null && playlistInDb?.isDownloaded == true && downloadedCount == tracksToDisplay.size && !isPlaylistDownloading)
     }
     val refreshTrigger =
-        if (playlistId == "downloads" || playlistId == "local_files" || currentIdLong < 0L || isDownloadedView) storageTrigger else 0
+        if (playlistId == "downloads" || playlistId == "local_files" || currentIdLong < 0L || isDownloadedView) debouncedStorageTrigger else 0
 
     LaunchedEffect(playlistId, refreshTrigger) {
         if (playlistId.startsWith("yt_radio:")) {
@@ -442,9 +446,10 @@ fun PlaylistDetailScreen(
                     defaultIcon = Icons.Rounded.Folder
                     isLocalPlaylist = false
                     val localPlaylists = db.getDownloadedPlaylists().first()
-                    newDownloadedPlaylists.addAll(localPlaylists.map { local ->
+                    newDownloadedPlaylists.addAll(localPlaylists.mapNotNull { local ->
                         val tracksInPlaylist = db.getTracksForPlaylistSync(local.id)
                         val realDownloadedCount = tracksInPlaylist.count { it.localAudioPath.isNotEmpty() }
+                        if (realDownloadedCount == 0) return@mapNotNull null
                         val firstTrackArt =
                             tracksInPlaylist.firstOrNull { it.localArtworkPath.isNotEmpty() || it.artworkUrl.isNotEmpty() }
                                 ?.let {
@@ -457,7 +462,7 @@ fun PlaylistDetailScreen(
                             title = local.title,
                             artworkUrl = finalArt,
                             calculatedArtworkUrl = local.localCoverPath,
-                            trackCount = if (realDownloadedCount > 0) realDownloadedCount else local.trackCount,
+                            trackCount = realDownloadedCount,
                             user = User(0, local.artist, null),
                             tracks = null
                         )
@@ -1033,8 +1038,7 @@ fun PlaylistDetailScreen(
                                         playlistId.startsWith("yt_radio:") -> stringResource(R.string.radio) + " • YouTube"
                                         isLoading && playlistId != "likes" -> "..."
                                         else -> {
-                                            val count =
-                                                tracksToDisplay.size + downloadedPlaylists.sumOf { it.trackCount ?: 0 }
+                                            val count = tracksToDisplay.size
                                             if (count == 0 && playlistSearchQuery.isNotEmpty()) {
                                                 stringResource(R.string.no_tracks_found_filter)
                                             } else {
@@ -1586,7 +1590,7 @@ fun PlaylistDetailScreen(
                                                             },
                                                             onOptionClick = {
                                                                 val contextId =
-                                                                    if (playlistId == "downloads") -2L else if (isUserCreated || isDownloadedView) stableId else null
+                                                                    if (isUserCreated || isDownloadedView) stableId else null
                                                                 playerViewModel.showTrackOptions(track, contextId)
                                                             }
                                                         )
@@ -1625,7 +1629,7 @@ fun PlaylistDetailScreen(
                                                 },
                                                 onOptionClick = {
                                                     val contextId =
-                                                        if (playlistId == "downloads") -2L else if (isUserCreated || isDownloadedView) stableId else null
+                                                        if (isUserCreated || isDownloadedView) stableId else null
                                                     playerViewModel.showTrackOptions(track, contextId)
                                                 }
                                             )

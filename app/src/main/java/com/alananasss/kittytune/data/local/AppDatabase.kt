@@ -72,7 +72,13 @@
         @Query("UPDATE downloaded_playlists SET isDownloaded = :isDownloaded WHERE id = :playlistId")
         suspend fun setPlaylistDownloaded(playlistId: Long, isDownloaded: Boolean)
 
-        @Query("SELECT * FROM downloaded_playlists WHERE isDownloaded = 1 ORDER BY addedAt DESC")
+        @Query("""
+            SELECT DISTINCT P.* FROM downloaded_playlists P
+            LEFT JOIN playlist_track_cross_ref R ON R.playlistId = P.id
+            LEFT JOIN downloaded_tracks T ON T.id = R.trackId AND T.localAudioPath != ''
+            WHERE P.isDownloaded = 1 OR T.id IS NOT NULL
+            ORDER BY P.addedAt DESC
+        """)
         fun getDownloadedPlaylists(): Flow<List<LocalPlaylist>>
 
         @Query("""
@@ -105,6 +111,19 @@
 
         @Query("SELECT COUNT(*) FROM playlist_track_cross_ref WHERE trackId = :trackId")
         suspend fun getPlaylistRefCount(trackId: Long): Int
+
+        @Query("""
+            UPDATE downloaded_playlists
+            SET isDownloaded = 0
+            WHERE isDownloaded = 1
+              AND id NOT IN (
+                SELECT DISTINCT R.playlistId
+                FROM playlist_track_cross_ref R
+                INNER JOIN downloaded_tracks T ON T.id = R.trackId
+                WHERE T.localAudioPath != ''
+              )
+        """)
+        suspend fun cleanEmptyDownloadedPlaylists()
 
         // relationships
         @Transaction
