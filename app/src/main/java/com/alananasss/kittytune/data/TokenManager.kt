@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.webkit.CookieManager
 
-class TokenManager(context: Context) {
+class TokenManager(private val context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -130,6 +130,13 @@ class TokenManager(context: Context) {
             .remove(KEY_LAST_VALIDATED_AT)
             .putBoolean(KEY_IS_GUEST_MODE, false)
             .apply()
+
+        LikeRepository.clear()
+        RepostRepository.clear()
+        SocialProofRepository.clear()
+        VibesRepository.clear()
+        context.getSharedPreferences("home_cache", Context.MODE_PRIVATE).edit().clear().apply()
+        context.getSharedPreferences("library_prefs", Context.MODE_PRIVATE).edit().clear().apply()
     }
 
     private fun resolveExpiresAt(now: Long, expiresInSeconds: Long?, scope: String?): Long {
