@@ -10,6 +10,8 @@
     import androidx.room.RoomDatabase
     import androidx.room.Transaction
     import androidx.room.Update
+    import androidx.room.migration.Migration
+    import androidx.sqlite.db.SupportSQLiteDatabase
     import kotlinx.coroutines.flow.Flow
 
     @Dao
@@ -35,6 +37,9 @@
 
         @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != '' AND lufs IS NULL")
         suspend fun getTracksWithNullLufs(): List<LocalTrack>
+
+        @Query("SELECT * FROM downloaded_tracks")
+        suspend fun getAllStoredTracksList(): List<LocalTrack>
 
         // playlists
         @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -64,16 +69,24 @@
         @Query("SELECT * FROM downloaded_playlists")
         fun getAllPlaylists(): Flow<List<LocalPlaylist>>
 
-        @Query("""
-                SELECT DISTINCT P.* FROM downloaded_playlists P
-                INNER JOIN playlist_track_cross_ref R ON P.id = R.playlistId
-                INNER JOIN downloaded_tracks T ON R.trackId = T.id
-                WHERE T.localAudioPath != ''
-            """)
+        @Query("UPDATE downloaded_playlists SET isDownloaded = :isDownloaded WHERE id = :playlistId")
+        suspend fun setPlaylistDownloaded(playlistId: Long, isDownloaded: Boolean)
+
+        @Query("SELECT * FROM downloaded_playlists WHERE isDownloaded = 1 ORDER BY addedAt DESC")
         fun getDownloadedPlaylists(): Flow<List<LocalPlaylist>>
 
-        @Query("SELECT * FROM downloaded_playlists WHERE isUserCreated = 1")
+        @Query("""
+            SELECT COUNT(*) FROM playlist_track_cross_ref R
+            INNER JOIN downloaded_playlists P ON R.playlistId = P.id
+            WHERE R.trackId = :trackId AND P.id != :excludePlaylistId AND P.isDownloaded = 1
+        """)
+        suspend fun getDownloadedPlaylistRefCount(trackId: Long, excludePlaylistId: Long): Int
+
+        @Query("SELECT * FROM downloaded_playlists WHERE isUserCreated = 1 OR id < 0")
         fun getUserPlaylists(): Flow<List<LocalPlaylist>>
+
+        @Query("UPDATE downloaded_playlists SET isUserCreated = 1 WHERE id < 0")
+        suspend fun fixNegativeIdPlaylistsUserCreated()
 
         @Query("SELECT * FROM downloaded_playlists WHERE id = :playlistId")
         suspend fun getPlaylist(playlistId: Long): LocalPlaylist?
@@ -134,6 +147,9 @@
 
         @Query("DELETE FROM play_history WHERE id = :itemId")
         suspend fun deleteHistoryItem(itemId: String)
+
+        @Query("UPDATE play_history SET imageUrl = :newImageUrl WHERE id = :itemId")
+        suspend fun updateHistoryItemImageUrl(itemId: String, newImageUrl: String)
 
         @Query("""
                 SELECT downloaded_tracks.* FROM downloaded_tracks 
@@ -297,7 +313,7 @@
             LibraryFolder::class,
             LibraryItemMeta::class
         ],
-        version = 16,
+        version = 17,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
@@ -306,6 +322,12 @@
         abstract fun folderDao(): FolderDao
 
         companion object {
+            val MIGRATION_16_17 = object : Migration(16, 17) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE downloaded_playlists ADD COLUMN isDownloaded INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -314,6 +336,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
+                        .addMigrations(MIGRATION_16_17)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

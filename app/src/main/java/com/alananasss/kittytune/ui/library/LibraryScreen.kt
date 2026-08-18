@@ -104,6 +104,7 @@ fun LibraryScreen(
     onProfileClick: () -> Unit,
     onHistoryClick: () -> Unit = {},
     onImportClick: () -> Unit = {},
+    onUploadClick: () -> Unit = {},
     playerViewModel: PlayerViewModel,
     libraryViewModel: LibraryViewModel = viewModel()
 ) {
@@ -183,6 +184,7 @@ fun LibraryScreen(
     var renameFolderName by remember { mutableStateOf("") }
 
     var folderToDelete by remember { mutableStateOf<LibraryFolder?>(null) }
+    var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
 
     var selectedPlaylistForMenu by remember { mutableStateOf<Playlist?>(null) }
     var selectedFolderForMenu by remember { mutableStateOf<LibraryFolder?>(null) }
@@ -198,17 +200,19 @@ fun LibraryScreen(
     var showLikedTracksMenu by remember { mutableStateOf(false) }
     var showDownloadsMenu by remember { mutableStateOf(false) }
     var showDeleteLikedTracksDialog by remember { mutableStateOf(false) }
+    var showUploadsFilterSheet by remember { mutableStateOf(false) }
 
     val likedTracks by LikeRepository.likedTracks.collectAsState()
     val downloadedIds by DownloadManager.downloadedIds.collectAsState()
+    val userDbPlaylists by DownloadManager.getUserPlaylistsFlow().collectAsState(initial = emptyList())
 
     val isLikesDownloading = DownloadManager.isPlaylistDownloading(DownloadManager.LIKES_BATCH_ID)
     val downloadedLikesCount = remember(likedTracks, downloadedIds) {
-        likedTracks.count { it.id < 0 || downloadedIds.contains(it.id) }
+        likedTracks.count { downloadedIds.contains(it.id) }
     }
     val isLikesFullyDownloaded = remember(likedTracks.size, downloadedLikesCount, isLikesDownloading) {
         if (likedTracks.isEmpty()) false
-        else downloadedLikesCount == likedTracks.size || (downloadedLikesCount.toFloat() / likedTracks.size.toFloat() > 0.9f && !isLikesDownloading)
+        else downloadedLikesCount == likedTracks.size && !isLikesDownloading
     }
     val itemMetas by libraryViewModel.allItemMetas.collectAsState()
     val isLikedPinned = itemMetas["liked_tracks"]?.isPinned ?: (!isGuest)
@@ -458,6 +462,39 @@ fun LibraryScreen(
         )
     }
 
+    if (playlistToDelete != null) {
+        val targetPlaylist = playlistToDelete!!
+        AlertDialog(
+            onDismissRequest = { playlistToDelete = null },
+            title = { Text(stringResource(R.string.dialog_delete_playlist_title)) },
+            text = { Text(stringResource(R.string.dialog_delete_playlist_msg)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val pl = targetPlaylist
+                        playlistToDelete = null
+                        if (pl.id != 0L) {
+                            DownloadManager.deletePlaylist(
+                                playlistId = pl.id,
+                                forceUserCreated = true,
+                                forcePermalink = pl.permalinkUrl
+                            )
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.btn_confirm), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { playlistToDelete = null }
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
     if (selectedPlaylistForMenu != null) {
         val playlist = selectedPlaylistForMenu!!
         val canonicalKey = LibraryItem.getPlaylistCanonicalKey(playlist)
@@ -471,7 +508,17 @@ fun LibraryScreen(
         }
 
         val primaryColor = MaterialTheme.colorScheme.primary
-        val actionItems = remember(playlist, isItemPinned, isInsideFolder, primaryColor, isPlaylistLiked) {
+        val errorColor = MaterialTheme.colorScheme.error
+
+        val currentUserId = libraryViewModel.userProfile?.id ?: 0L
+        val currentUsername = libraryViewModel.userProfile?.username
+        val isSoundCloudUserCreated = (currentUserId != 0L && playlist.user?.id == currentUserId) ||
+                (!currentUsername.isNullOrEmpty() && playlist.user?.username == currentUsername)
+        val isLocalMe = playlist.user?.username == stringResource(R.string.me_artist)
+        val isDbUserCreated = userDbPlaylists.any { it.id == playlist.id && (it.isUserCreated || it.id < 0) }
+        val isUserOwned = playlist.id < 0 || isSoundCloudUserCreated || isLocalMe || isDbUserCreated
+
+        val actionItems = remember(playlist, isItemPinned, isInsideFolder, primaryColor, errorColor, isPlaylistLiked, isUserOwned) {
             mutableListOf<PlaylistActionItem>().apply {
                 add(PlaylistActionItem(Icons.Rounded.PlayArrow, context.getString(R.string.btn_play)) {
                     playPlaylistHelper(playlist, shuffle = false)
@@ -510,12 +557,20 @@ fun LibraryScreen(
                             ),
                             tint = if (isPlaylistLiked) primaryColor else null
                         ) {
-                            com.alananasss.kittytune.data.LikeRepository.togglePlaylistLike(
-                                playlist.id,
-                                !isPlaylistLiked,
-                                playlist.permalinkUrl ?: "",
-                                playlist.urn ?: ""
-                            )
+                            if (!isPlaylistLiked) {
+                                com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
+                                    playlist = playlist,
+                                    tracks = playlist.tracks ?: emptyList(),
+                                    syncToCloud = true
+                                )
+                            } else {
+                                com.alananasss.kittytune.data.LikeRepository.togglePlaylistLike(
+                                    playlist.id,
+                                    false,
+                                    playlist.permalinkUrl ?: "",
+                                    playlist.urn ?: ""
+                                )
+                            }
                         }
                     )
                     add(PlaylistActionItem(Icons.Rounded.Info, context.getString(R.string.menu_playlist_details)) {
@@ -563,6 +618,19 @@ fun LibraryScreen(
                         context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.btn_share)))
                         selectedPlaylistForMenu = null
                     })
+                }
+                if (isUserOwned) {
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.Delete,
+                            text = context.getString(R.string.menu_delete_playlist),
+                            tint = errorColor
+                        ) {
+                            val target = playlist
+                            selectedPlaylistForMenu = null
+                            playlistToDelete = target
+                        }
+                    )
                 }
             }
         }
@@ -950,6 +1018,18 @@ fun LibraryScreen(
                 }
             }
         }
+    }
+
+    if (showUploadsFilterSheet) {
+        UploadsFilterBottomSheet(
+            currentSort = libraryViewModel.uploadsSortOption,
+            currentPrivacy = libraryViewModel.uploadsPrivacyFilter,
+            onApply = { newSort, newPrivacy ->
+                libraryViewModel.uploadsSortOption = newSort
+                libraryViewModel.uploadsPrivacyFilter = newPrivacy
+            },
+            onDismiss = { showUploadsFilterSheet = false }
+        )
     }
 
     if (selectedFolderForMenu != null) {
@@ -1512,7 +1592,9 @@ fun LibraryScreen(
                                 onQueryChange = { libraryViewModel.searchQuery = it },
                                 avatarUrl = libraryViewModel.userProfile?.avatarUrl,
                                 onProfileClick = onProfileClick,
-                                isGuest = isGuest
+                                isGuest = isGuest,
+                                isUploads = libraryViewModel.selectedFilter == LibraryFilter.UPLOADS,
+                                onUploadsFilterClick = { showUploadsFilterSheet = true }
                             )
 
                             FilterChipsRow(libraryViewModel)
@@ -1565,6 +1647,14 @@ fun LibraryScreen(
                     },
                     modifier = Modifier.padding(bottom = totalBottomPadding)
                 ) {
+                    FloatingActionButtonMenuItem(
+                        onClick = {
+                            isFabMenuExpanded = false
+                            onUploadClick()
+                        },
+                        text = { Text(stringResource(R.string.nav_upload)) },
+                        icon = { Icon(Icons.Rounded.CloudUpload, contentDescription = null) }
+                    )
                     FloatingActionButtonMenuItem(
                         onClick = {
                             isFabMenuExpanded = false
@@ -1652,7 +1742,8 @@ fun LibraryScreen(
                     Column(modifier = Modifier.fillMaxSize()) {
                         SortAndLayoutControls(
                             viewModel = libraryViewModel,
-                            onHistoryClick = onHistoryClick
+                            onHistoryClick = onHistoryClick,
+                            onUploadsFilterClick = { showUploadsFilterSheet = true }
                         )
 
                         if (libraryViewModel.isLoading && libraryViewModel.displayedItems.isEmpty() && folderId == null) {
@@ -1663,6 +1754,7 @@ fun LibraryScreen(
                             LibraryContentGrid(
                                 listState = listState,
                                 viewModel = libraryViewModel,
+                                playerViewModel = playerViewModel,
                                 isLikedPinned = isLikedPinned,
                                 isDownloadsPinned = isDownloadsPinned,
                                 onLikedTracksClick = onLikedTracksClick,
@@ -1673,6 +1765,7 @@ fun LibraryScreen(
                                 onArtistClick = { artistId -> onPlaylistClick("profile:$artistId") },
                                 onPlaylistLongClick = { playlist -> selectedPlaylistForMenu = playlist },
                                 onFolderLongClick = { folder -> selectedFolderForMenu = folder },
+                                onUploadClick = onUploadClick,
                                 isGuest = isGuest
                             )
                         }
@@ -1705,6 +1798,7 @@ fun LibraryScreen(
 fun LibraryContentGrid(
     listState: LazyGridState,
     viewModel: LibraryViewModel,
+    playerViewModel: PlayerViewModel,
     isLikedPinned: Boolean,
     isDownloadsPinned: Boolean,
     onLikedTracksClick: () -> Unit,
@@ -1715,10 +1809,13 @@ fun LibraryContentGrid(
     onArtistClick: (Long) -> Unit,
     onPlaylistLongClick: (Playlist) -> Unit,
     onFolderLongClick: (LibraryFolder) -> Unit,
+    onUploadClick: () -> Unit = {},
     isGuest: Boolean
 ) {
     val columns = if (viewModel.isGridLayout) GridCells.Fixed(3) else GridCells.Fixed(1)
     val isSyncing by viewModel.isSyncing.collectAsState()
+    val downloadedIds by DownloadManager.downloadedIds.collectAsState()
+    val downloadProgress by DownloadManager.downloadProgress.collectAsState()
 
     val shouldShowPlaylists =
         (viewModel.selectedFilter == null || viewModel.selectedFilter == LibraryFilter.PLAYLISTS) && viewModel.currentFolderId == null
@@ -1730,6 +1827,86 @@ fun LibraryContentGrid(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(if (viewModel.isGridLayout) 16.dp else 8.dp)
     ) {
+        if (viewModel.selectedFilter == LibraryFilter.UPLOADS) {
+            val searched = if (viewModel.searchQuery.isBlank()) {
+                viewModel.uploadedTracks
+            } else {
+                viewModel.uploadedTracks.filter {
+                    it.title?.contains(viewModel.searchQuery, ignoreCase = true) == true ||
+                    it.user?.username?.contains(viewModel.searchQuery, ignoreCase = true) == true
+                }
+            }
+
+            val privacyFiltered = when (viewModel.uploadsPrivacyFilter) {
+                UploadsPrivacyFilter.ALL -> searched
+                UploadsPrivacyFilter.PUBLIC -> searched.filter {
+                    it.sharing?.equals("private", ignoreCase = true) != true
+                }
+                UploadsPrivacyFilter.PRIVATE -> searched.filter {
+                    it.sharing?.equals("private", ignoreCase = true) == true
+                }
+            }
+
+            val sortedTracks = when (viewModel.uploadsSortOption) {
+                UploadsSortOption.RECENTLY_ADDED -> privacyFiltered
+                UploadsSortOption.FIRST_ADDED -> privacyFiltered.reversed()
+                UploadsSortOption.TITLE -> privacyFiltered.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title.orEmpty() })
+                UploadsSortOption.ARTIST -> privacyFiltered.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.user?.username.orEmpty() })
+            }
+
+            if (sortedTracks.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }, key = "empty_uploads") {
+                    EmptyUploadsView(onUploadClick = onUploadClick)
+                }
+            } else {
+                if (viewModel.isGridLayout) {
+                    items(
+                        items = sortedTracks,
+                        key = { track -> "upload_track_${track.id}" }
+                    ) { track ->
+                        val index = sortedTracks.indexOf(track)
+                        Box(modifier = Modifier.animateItem()) {
+                            UploadTrackGridCard(
+                                track = track,
+                                onClick = {
+                                    playerViewModel.playPlaylist(sortedTracks, if (index >= 0) index else 0)
+                                },
+                                onLongClick = {
+                                    playerViewModel.showTrackOptions(track)
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    items(
+                        items = sortedTracks,
+                        key = { track -> "upload_track_${track.id}" }
+                    ) { track ->
+                        val index = sortedTracks.indexOf(track)
+                        val trackIndex = if (index >= 0) index else 0
+                        val trackProgress = downloadProgress[track.id]
+                        Box(modifier = Modifier.animateItem()) {
+                            TrackListItem(
+                                track = track,
+                                currentlyPlayingTrack = playerViewModel.currentTrack,
+                                index = trackIndex,
+                                isDownloading = trackProgress != null,
+                                isDownloaded = downloadedIds.contains(track.id),
+                                downloadProgress = trackProgress ?: 0,
+                                onClick = {
+                                    playerViewModel.playPlaylist(sortedTracks, trackIndex)
+                                },
+                                onOptionClick = {
+                                    playerViewModel.showTrackOptions(track)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            return@LazyVerticalGrid
+        }
+
         if (shouldShowPlaylists) {
             item(span = { GridItemSpan(1) }, key = "liked_tracks") {
                 Box(modifier = Modifier.animateItem()) {
@@ -1807,6 +1984,12 @@ fun LibraryContentGrid(
                             android.net.Uri.encode(permalink!!)
                         } else if (item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
                             "system_playlist:${item.playlist.urn}"
+                        } else if (permalink?.contains("artist-stations:") == true) {
+                            val stationId = permalink.substringAfter("artist-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
+                            "station_artist:$stationId"
+                        } else if (permalink?.contains("track-stations:") == true) {
+                            val stationId = permalink.substringAfter("track-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
+                            "station:$stationId"
                         } else {
                             if (item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
                         }
@@ -1889,7 +2072,9 @@ fun SearchBarHeader(
     onQueryChange: (String) -> Unit,
     avatarUrl: String?,
     onProfileClick: () -> Unit,
-    isGuest: Boolean
+    isGuest: Boolean,
+    isUploads: Boolean = false,
+    onUploadsFilterClick: () -> Unit = {}
 ) {
     TextField(
         value = query,
@@ -1897,15 +2082,29 @@ fun SearchBarHeader(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        placeholder = { Text(stringResource(R.string.search_library_hint)) },
+        placeholder = {
+            Text(stringResource(if (isUploads) R.string.search_uploads_hint else R.string.search_library_hint))
+        },
         leadingIcon = {
-            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.search_library_hint))
+            Icon(Icons.Default.Search, contentDescription = stringResource(if (isUploads) R.string.search_uploads_hint else R.string.search_library_hint))
         },
         trailingIcon = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 6.dp)
             ) {
+                if (isUploads) {
+                    IconButton(
+                        onClick = onUploadsFilterClick,
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Tune,
+                            contentDescription = stringResource(R.string.uploads_filter_dialog_title),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
                 if (query.isNotEmpty()) {
                     IconButton(
                         onClick = { onQueryChange("") },
@@ -1941,13 +2140,23 @@ fun SearchBarHeader(
 
 @Composable
 fun FilterChipsRow(viewModel: LibraryViewModel) {
-    val filters = remember {
-        listOf(
-            LibraryFilter.PLAYLISTS,
-            LibraryFilter.ALBUMS,
-            LibraryFilter.ARTISTS,
-            LibraryFilter.STATIONS
-        )
+    val filters = remember(viewModel.uploadedTracks.size) {
+        if (viewModel.uploadedTracks.isNotEmpty()) {
+            listOf(
+                LibraryFilter.PLAYLISTS,
+                LibraryFilter.ALBUMS,
+                LibraryFilter.ARTISTS,
+                LibraryFilter.STATIONS,
+                LibraryFilter.UPLOADS
+            )
+        } else {
+            listOf(
+                LibraryFilter.PLAYLISTS,
+                LibraryFilter.ALBUMS,
+                LibraryFilter.ARTISTS,
+                LibraryFilter.STATIONS
+            )
+        }
     }
 
     Box(
@@ -1977,7 +2186,8 @@ fun FilterChipsRow(viewModel: LibraryViewModel) {
 @Composable
 fun SortAndLayoutControls(
     viewModel: LibraryViewModel,
-    onHistoryClick: () -> Unit = {}
+    onHistoryClick: () -> Unit = {},
+    onUploadsFilterClick: () -> Unit = {}
 ) {
     val isRoot = viewModel.currentFolderId == null
     val view = androidx.compose.ui.platform.LocalView.current
@@ -1987,7 +2197,36 @@ fun SortAndLayoutControls(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (isRoot && viewModel.selectedFilter == LibraryFilter.STATIONS) {
+        if (isRoot && viewModel.selectedFilter == LibraryFilter.UPLOADS) {
+            val sortText = stringResource(viewModel.uploadsSortOption.stringRes)
+            val filterText = if (viewModel.uploadsPrivacyFilter != UploadsPrivacyFilter.ALL) {
+                " • ${stringResource(viewModel.uploadsPrivacyFilter.stringRes)}"
+            } else ""
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        onUploadsFilterClick()
+                    }
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$sortText$filterText",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.Rounded.Tune,
+                    contentDescription = stringResource(R.string.uploads_filter_dialog_title),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else if (isRoot && viewModel.selectedFilter == LibraryFilter.STATIONS) {
             val filterText = when (viewModel.stationFilter) {
                 StationFilter.ALL -> stringResource(R.string.filter_all)
                 StationFilter.TRACKS -> stringResource(R.string.profile_tab_tracks)
@@ -2145,6 +2384,103 @@ fun EmptyFolderView() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun EmptyUploadsView(onUploadClick: () -> Unit = {}) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 64.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = stringResource(R.string.empty_uploads_kaomoji),
+            style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Text(
+            text = stringResource(R.string.empty_uploads_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.empty_uploads_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Button(
+            onClick = onUploadClick,
+            shapes = ButtonDefaults.shapes()
+        ) {
+            Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.nav_upload), fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun UploadTrackGridCard(
+    track: Track,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+            .fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = track.fullResArtwork,
+                contentDescription = track.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
+
+        Text(
+            text = track.title ?: stringResource(R.string.untitled_track),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Text(
+            text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -2657,6 +2993,163 @@ fun ArtistLibraryCard(artist: LocalArtist, isGrid: Boolean, onClick: () -> Unit)
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun UploadsFilterBottomSheet(
+    currentSort: UploadsSortOption,
+    currentPrivacy: UploadsPrivacyFilter,
+    onApply: (UploadsSortOption, UploadsPrivacyFilter) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedSort by remember { mutableStateOf(currentSort) }
+    var selectedPrivacy by remember { mutableStateOf(currentPrivacy) }
+
+    KittyModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding()
+        ) {
+            // Header Row: Title & Close Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.uploads_filter_dialog_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                IconButton(
+                    onClick = onDismiss,
+                    shapes = IconButtonDefaults.shapes()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Close,
+                        contentDescription = stringResource(R.string.btn_close),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Section 1: Trier par
+            Text(
+                text = stringResource(R.string.uploads_sort_section_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
+            )
+
+            UploadsSortOption.entries.forEach { option ->
+                val isSelected = selectedSort == option
+                Surface(
+                    onClick = { selectedSort = option },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(option.stringRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // Section 2: Filtrer par
+            Text(
+                text = stringResource(R.string.uploads_filter_section_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
+            )
+
+            UploadsPrivacyFilter.entries.forEach { filter ->
+                val isSelected = selectedPrivacy == filter
+                Surface(
+                    onClick = { selectedPrivacy = filter },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(filter.stringRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                        )
+                        RadioButton(
+                            selected = isSelected,
+                            onClick = null,
+                            colors = RadioButtonDefaults.colors(
+                                selectedColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // Save Button
+            Button(
+                onClick = {
+                    onApply(selectedSort, selectedPrivacy)
+                    onDismiss()
+                },
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.uploads_filter_save_btn),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
         }

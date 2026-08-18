@@ -11,23 +11,38 @@ object ExoCacheManager {
 
     @Synchronized
     fun getCache(context: Context): SimpleCache {
-        if (simpleCache == null) {
-            // Clean up old cache from User Data if it exists
-            val oldCacheDir = File(context.filesDir, "exo_offline_cache")
-            if (oldCacheDir.exists()) {
-                oldCacheDir.deleteRecursively()
+        val existing = simpleCache
+        if (existing != null) {
+            return try {
+                existing.keys
+                existing
+            } catch (e: IllegalStateException) {
+                simpleCache = null
+                createCache(context)
             }
-
-            val cacheDir = File(context.cacheDir, "exo_offline_cache")
-            val databaseProvider = StandaloneDatabaseProvider(context)
-            simpleCache = SimpleCache(
-                cacheDir,
-                LeastRecentlyUsedCacheEvictor(200 * 1024 * 1024), // 200 MB limit
-                databaseProvider
-            )
         }
-        return simpleCache!!
+        return createCache(context)
     }
+
+    private fun createCache(context: Context): SimpleCache {
+        val oldCacheDir = File(context.filesDir, "exo_offline_cache")
+        if (oldCacheDir.exists()) {
+            oldCacheDir.deleteRecursively()
+        }
+
+        val cacheDir = File(context.cacheDir, "exo_offline_cache")
+        val databaseProvider = StandaloneDatabaseProvider(context)
+        val cache = SimpleCache(
+            cacheDir,
+            LeastRecentlyUsedCacheEvictor(200 * 1024 * 1024),
+            databaseProvider
+        )
+        simpleCache = cache
+        return cache
+    }
+
+    @Synchronized
+    fun isCacheActive(): Boolean = simpleCache != null
 
     @Synchronized
     fun releaseCache() {

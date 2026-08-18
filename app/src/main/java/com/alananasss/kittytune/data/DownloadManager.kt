@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.data
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
 import androidx.documentfile.provider.DocumentFile
@@ -19,6 +20,9 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import kotlinx.coroutines.asExecutor
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -29,6 +33,7 @@ object DownloadManager {
 
     private const val CONCURRENT_DOWNLOAD_LIMIT = 4
     private val downloadSemaphore = Semaphore(CONCURRENT_DOWNLOAD_LIMIT)
+    private val activeHlsDownloaders = ConcurrentHashMap<Long, androidx.media3.exoplayer.hls.offline.HlsDownloader>()
 
     private lateinit var context: Context
     private lateinit var database: AppDatabase
@@ -36,7 +41,12 @@ object DownloadManager {
 
     private val api: SoundCloudApi by lazy { RetrofitClient.create(context) }
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .callTimeout(5, TimeUnit.MINUTES)
+        .build()
 
     private fun playlistUrn(playlistId: Long): String = "soundcloud:playlists:$playlistId"
 
@@ -111,9 +121,9 @@ object DownloadManager {
 
     lateinit var downloadedIds: StateFlow<Set<Long>>
 
-    private val activeJobs = mutableMapOf<Long, Job>()
-    private val activePlaylistJobs = mutableMapOf<Long, Job>()
-    private val batchTrackIds = mutableMapOf<Long, Set<Long>>()
+    private val activeJobs = ConcurrentHashMap<Long, Job>()
+    private val activePlaylistJobs = ConcurrentHashMap<Long, Job>()
+    private val batchTrackIds = ConcurrentHashMap<Long, Set<Long>>()
 
     fun init(ctx: Context) {
         context = ctx.applicationContext
@@ -127,6 +137,34 @@ object DownloadManager {
         scope.launch {
             try {
                 val dao = database.downloadDao()
+                dao.fixNegativeIdPlaylistsUserCreated()
+
+                val storedTracks = dao.getAllStoredTracksList()
+                val brokenTracks = storedTracks.filter { track ->
+                    track.id > 0 && !track.artworkUrl.startsWith("http") &&
+                    (track.localArtworkPath.isEmpty() || !File(track.localArtworkPath).exists() || File(track.localArtworkPath).length() == 0L)
+                }
+
+                if (brokenTracks.isNotEmpty()) {
+                    val chunks = brokenTracks.chunked(50)
+                    chunks.forEach { chunk ->
+                        try {
+                            val idsStr = chunk.map { it.id }.joinToString(",")
+                            val onlineTracks = api.getTracksByIds(idsStr)
+                            val onlineMap = onlineTracks.associateBy { it.id }
+                            chunk.forEach { localTrack ->
+                                val online = onlineMap[localTrack.id]
+                                if (online != null && online.fullResArtwork.startsWith("http")) {
+                                    dao.updateTrack(localTrack.copy(artworkUrl = online.fullResArtwork))
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DownloadManager", "Failed to repair track artworks", e)
+                        }
+                    }
+                    _libraryUpdated.tryEmit(Unit)
+                }
+
                 val allPlaylists = dao.getAllPlaylists().first()
                 allPlaylists.forEach { localPlaylist ->
                     if (!localPlaylist.isUserCreated && localPlaylist.id > 0) {
@@ -138,8 +176,33 @@ object DownloadManager {
                         }
                     }
                 }
+
+                val allDownloadedTracks = dao.getAllTracksList()
+                var cleanedAny = false
+                allDownloadedTracks.forEach { track ->
+                    if (track.id > 0 && track.localAudioPath.isNotEmpty() && !track.localAudioPath.startsWith("content://") && !track.localAudioPath.startsWith(
+                            "exo_cache://"
+                        )
+                    ) {
+                        if (!File(track.localAudioPath).exists()) {
+                            val refCount = dao.getPlaylistRefCount(track.id)
+                            if (refCount > 0) {
+                                dao.updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
+                            } else {
+                                dao.deleteTrack(track.id)
+                            }
+                            cleanedAny = true
+                        }
+                    }
+                }
+                if (cleanedAny) {
+                    dao.cleanUnreferencedEmptyTracks()
+                    _storageTrigger.update { it + 1 }
+                }
+
+                AudioScannerManager.scanDownloadedTracks(context)
             } catch (e: Exception) {
-                Log.e("DownloadManager", "Failed to cleanup legacy cached playlists", e)
+                Log.e("DownloadManager", "Failed to cleanup legacy cached playlists or verify integrity", e)
             }
         }
     }
@@ -226,19 +289,21 @@ object DownloadManager {
         withContext(Dispatchers.IO) {
             val allTracks = database.downloadDao().getAllTracks().first()
             allTracks.forEach { track ->
-                var updatedTrack = track
-                var changed = false
-                if (includeAudio && track.localAudioPath.isNotEmpty()) {
-                    deleteFileByPath(track.localAudioPath)
-                    updatedTrack = updatedTrack.copy(localAudioPath = "")
-                    changed = true
+                if (track.id > 0) {
+                    var updatedTrack = track
+                    var changed = false
+                    if (includeAudio && track.localAudioPath.isNotEmpty()) {
+                        deleteFileByPath(track.localAudioPath)
+                        updatedTrack = updatedTrack.copy(localAudioPath = "")
+                        changed = true
+                    }
+                    if (includeImages && track.localArtworkPath.isNotEmpty()) {
+                        deleteFileByPath(track.localArtworkPath)
+                        updatedTrack = updatedTrack.copy(localArtworkPath = "")
+                        changed = true
+                    }
+                    if (changed) database.downloadDao().updateTrack(updatedTrack)
                 }
-                if (includeImages && track.localArtworkPath.isNotEmpty()) {
-                    deleteFileByPath(track.localArtworkPath)
-                    updatedTrack = updatedTrack.copy(localArtworkPath = "")
-                    changed = true
-                }
-                if (changed) database.downloadDao().updateTrack(updatedTrack)
             }
             _storageTrigger.update { it + 1 }
         }
@@ -273,8 +338,6 @@ object DownloadManager {
 
                     if (extractedId > 0L) {
                         serverId = extractedId
-                        _libraryUpdated.emit(Unit)
-                        return extractedId
                     }
                 } else {
                     Log.e(
@@ -318,9 +381,21 @@ object DownloadManager {
                 )
                 dao.insertTrack(localTrack)
             }
+            var playlist = dao.getPlaylist(playlistId)
+            if (playlist == null) {
+                playlist = LocalPlaylist(
+                    id = playlistId,
+                    title = context.getString(R.string.untitled_track),
+                    artist = context.getString(R.string.me_artist),
+                    artworkUrl = "",
+                    trackCount = 0,
+                    isUserCreated = true
+                )
+                dao.insertPlaylist(playlist)
+            }
             dao.insertPlaylistTrackRef(PlaylistTrackCrossRef(playlistId, track.id))
-            val playlist = dao.getPlaylist(playlistId)
-            if (playlist != null) dao.updatePlaylist(playlist.copy(trackCount = playlist.trackCount + 1))
+            val updatedCount = dao.getTracksForPlaylistSync(playlistId).size
+            dao.updatePlaylist(playlist.copy(trackCount = updatedCount))
 
             if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
                 try {
@@ -335,6 +410,8 @@ object DownloadManager {
                     e.printStackTrace()
                 }
             }
+            _storageTrigger.update { it + 1 }
+            _libraryUpdated.tryEmit(Unit)
         }
     }
 
@@ -412,16 +489,38 @@ object DownloadManager {
     }
 
     fun updatePlaylistCover(playlistId: Long, uri: Uri) {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             try {
-                val inputStream = context.contentResolver.openInputStream(uri);
-                val file = File(
-                    context.filesDir,
-                    "playlist_cover_${playlistId}.jpg"
-                ); inputStream?.use { input -> FileOutputStream(file).use { output -> input.copyTo(output) } };
-                val playlist =
-                    database.downloadDao().getPlaylist(playlistId); if (playlist != null) database.downloadDao()
-                    .updatePlaylist(playlist.copy(localCoverPath = file.absolutePath))
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val file = File(context.filesDir, "playlist_cover_${playlistId}.jpg")
+                inputStream?.use { input -> FileOutputStream(file).use { output -> input.copyTo(output) } }
+                val playlist = database.downloadDao().getPlaylist(playlistId)
+                if (playlist != null) {
+                    database.downloadDao().updatePlaylist(playlist.copy(localCoverPath = file.absolutePath))
+                }
+                database.downloadDao().updateHistoryItemImageUrl("playlist:$playlistId", file.absolutePath)
+                _storageTrigger.update { it + 1 }
+                _libraryUpdated.tryEmit(Unit)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun updatePlaylistCover(playlistId: Long, bitmap: Bitmap) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val file = File(context.filesDir, "playlist_cover_${playlistId}.jpg")
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+                }
+                val playlist = database.downloadDao().getPlaylist(playlistId)
+                if (playlist != null) {
+                    database.downloadDao().updatePlaylist(playlist.copy(localCoverPath = file.absolutePath))
+                }
+                database.downloadDao().updateHistoryItemImageUrl("playlist:$playlistId", file.absolutePath)
+                _storageTrigger.update { it + 1 }
+                _libraryUpdated.tryEmit(Unit)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -468,37 +567,27 @@ object DownloadManager {
     fun getUserPlaylistsFlow() = database.downloadDao().getUserPlaylists()
     fun isPlaylistInLibraryFlow(playlistId: Long) = database.downloadDao().getPlaylistFlow(playlistId)
 
-    fun importPlaylistToLibrary(playlist: Playlist, tracks: List<Track>, syncToCloud: Boolean = true) {
+    fun importPlaylistToLibrary(
+        playlist: Playlist,
+        tracks: List<Track>,
+        syncToCloud: Boolean = true,
+        isDownloaded: Boolean? = null
+    ) {
         scope.launch {
-            val tokenManager = TokenManager(context)
-            if (syncToCloud && playlist.id > 0 && !tokenManager.isGuestMode()) {
-                val token = tokenManager.getAccessToken()
-                if (!token.isNullOrEmpty()) {
-                    try {
-                        val permalink = playlist.permalinkUrl ?: ""
-                        val targetUrn = playlist.urn ?: when {
-                            permalink.contains("artist-stations") -> "soundcloud:system-playlists:artist-stations:${playlist.id}"
-                            permalink.contains("track-stations") -> "soundcloud:system-playlists:track-stations:${playlist.id}"
-                            else -> "soundcloud:playlists:${playlist.id}"
-                        }
-                        val payload = com.alananasss.kittytune.data.network.PlaylistLikeRequest(
-                            likes = listOf(com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn))
-                        )
-                        val response = api.likePlaylist(payload)
-                        if (response.code() == 401) {
-                            SessionManager.requestSessionRefresh(context, force = true)
-                        }
-                        Log.d(
-                            "DownloadManager",
-                            "Direct playlist like success status: ${response.code()} for $targetUrn"
-                        )
-                    } catch (e: Exception) {
-                        Log.e("DownloadManager", "Direct playlist like failed", e)
-                    }
-                }
+            if (syncToCloud && playlist.id != 0L) {
+                LikeRepository.togglePlaylistLike(
+                    playlistId = playlist.id,
+                    isLiked = true,
+                    permalink = playlist.permalinkUrl,
+                    urn = playlist.urn
+                )
             }
 
             val dao = database.downloadDao()
+            val existing = dao.getPlaylist(playlist.id)
+            val isUserCreatedFinal = playlist.id < 0 || (existing?.isUserCreated == true)
+            val localCover = existing?.localCoverPath ?: (if (playlist.id < 0) playlist.calculatedArtworkUrl ?: playlist.artworkUrl else null)
+            val isDownloadedFinal = isDownloaded ?: (existing?.isDownloaded ?: false)
             val baseTime = System.currentTimeMillis()
 
             val localPlaylist = LocalPlaylist(
@@ -506,10 +595,12 @@ object DownloadManager {
                 title = playlist.title ?: context.getString(R.string.untitled_track),
                 artist = playlist.user?.username ?: context.getString(R.string.unknown_artist),
                 artworkUrl = playlist.fullResArtwork,
+                localCoverPath = localCover,
                 trackCount = tracks.size,
-                isUserCreated = false,
+                isUserCreated = isUserCreatedFinal,
                 permalinkUrl = playlist.permalinkUrl,
-                isAlbum = playlist.isRealAlbum
+                isAlbum = playlist.isRealAlbum,
+                isDownloaded = isDownloadedFinal
             )
             dao.insertPlaylist(localPlaylist)
 
@@ -635,23 +726,17 @@ object DownloadManager {
 
             playlistTracks.forEach { track ->
                 val remainingRefCount = dao.getPlaylistRefCount(track.id)
-                if (remainingRefCount == 0) {
-                    val audioExists = when {
-                        track.localAudioPath.isEmpty() -> false
-                        track.localAudioPath.startsWith("exo_cache://") -> true
-                        track.localAudioPath.startsWith("content://") -> {
-                            try {
-                                DocumentFile.fromSingleUri(context, Uri.parse(track.localAudioPath))?.exists() == true
-                            } catch (e: Exception) {
-                                false
-                            }
-                        }
-
-                        else -> File(track.localAudioPath).exists()
-                    }
-                    if (!audioExists) {
-                        deleteFileByPath(track.localArtworkPath)
-                        dao.deleteTrack(track.id)
+                val remainingDownloadedRefCount = dao.getDownloadedPlaylistRefCount(track.id, excludePlaylistId = playlistId)
+                if (remainingRefCount == 0 && track.id != 0L) {
+                    deleteFileByPath(track.localAudioPath)
+                    deleteFileByPath(track.localArtworkPath)
+                    dao.deleteTrack(track.id)
+                    MusicManager.notifyTrackDeleted(track.id)
+                } else if (remainingDownloadedRefCount == 0 && track.id != 0L) {
+                    val local = dao.getTrack(track.id)
+                    if (local != null) {
+                        deleteFileByPath(local.localAudioPath)
+                        dao.updateTrack(local.copy(localAudioPath = ""))
                     }
                 }
             }
@@ -659,6 +744,7 @@ object DownloadManager {
 
             _storageTrigger.update { it + 1 }
             _libraryUpdated.tryEmit(Unit)
+            MusicManager.notifyPlaylistDeleted(playlistId)
 
         }
     }
@@ -668,27 +754,115 @@ object DownloadManager {
         _libraryUpdated.tryEmit(Unit)
     }
 
+    fun clearDeletedPlaylistIds(ids: Set<Long>) {
+        _deletedPlaylistIds.update { it - ids }
+        _libraryUpdated.tryEmit(Unit)
+    }
+
     fun notifyLibraryUpdated() {
         _libraryUpdated.tryEmit(Unit)
     }
 
-    fun removePlaylistDownloads(playlistId: Long) {
-        deletePlaylist(playlistId = playlistId, syncToCloud = false)
+    fun removePlaylistDownloads(playlistId: Long, tracks: List<Track>? = null) {
+        scope.launch {
+            val dao = database.downloadDao()
+            val playlist = dao.getPlaylist(playlistId)
+            if (playlist != null) {
+                val folderName = sanitizeFilename(playlist.title)
+                val customUriStr = prefs.getDownloadLocation()
+
+                if (customUriStr != null) {
+                    try {
+                        val treeUri = Uri.parse(customUriStr)
+                        val rootDoc = DocumentFile.fromTreeUri(context, treeUri)
+                        val playlistDir = rootDoc?.findFile(folderName)
+                        if (playlistDir != null && playlistDir.isDirectory) {
+                            playlistDir.delete()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(
+                            "DownloadManager",
+                            "Failed to delete playlist folder from external storage: $folderName",
+                            e
+                        )
+                    }
+                } else {
+                    try {
+                        val playlistDir = File(context.filesDir, folderName)
+                        if (playlistDir.exists() && playlistDir.isDirectory) {
+                            playlistDir.deleteRecursively()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(
+                            "DownloadManager",
+                            "Failed to delete playlist folder from internal storage: $folderName",
+                            e
+                        )
+                    }
+                }
+                dao.setPlaylistDownloaded(playlistId, false)
+            }
+
+            val dbTracks = dao.getTracksForPlaylistSync(playlistId)
+            val allTrackIds = (dbTracks.map { it.id } + (tracks?.map { it.id } ?: emptyList())).toSet()
+            val isUserOrLiked = playlist?.isUserCreated == true || playlistId < 0L || LikeRepository.isPlaylistLiked(playlistId)
+
+            if (!isUserOrLiked) {
+                dao.deletePlaylistRefs(playlistId)
+            }
+
+            allTrackIds.forEach { trackId ->
+                if (trackId != 0L) {
+                    val otherDownloadedRefs = dao.getDownloadedPlaylistRefCount(trackId, excludePlaylistId = playlistId)
+                    if (otherDownloadedRefs == 0) {
+                        val local = dao.getTrack(trackId)
+                        if (local != null) {
+                            deleteFileByPath(local.localAudioPath)
+                            val refCount = dao.getPlaylistRefCount(trackId)
+                            if (refCount > 0 || isUserOrLiked) {
+                                dao.updateTrack(local.copy(localAudioPath = ""))
+                            } else {
+                                deleteFileByPath(local.localArtworkPath)
+                                dao.deleteTrack(trackId)
+                            }
+                            MusicManager.notifyTrackDeleted(trackId)
+                        }
+                    }
+                }
+            }
+
+            if (!isUserOrLiked) {
+                if (playlist != null) {
+                    dao.deletePlaylist(playlistId)
+                }
+                MusicManager.notifyPlaylistDeleted(playlistId)
+            }
+
+            dao.cleanUnreferencedEmptyTracks()
+            _storageTrigger.update { it + 1 }
+            _libraryUpdated.tryEmit(Unit)
+        }
     }
 
     fun removeDownloads(tracks: List<Track>) {
         scope.launch {
             val dao = database.downloadDao()
             tracks.forEach { track ->
-                val local = dao.getTrack(track.id)
-                if (local != null) {
-                    deleteFileByPath(local.localAudioPath)
-                    deleteFileByPath(local.localArtworkPath)
-                    val refCount = dao.getPlaylistRefCount(track.id)
-                    if (refCount > 0) {
-                        dao.updateTrack(local.copy(localAudioPath = "", localArtworkPath = ""))
-                    } else {
-                        dao.deleteTrack(track.id)
+                if (track.id != 0L) {
+                    val downloadedRefs = dao.getDownloadedPlaylistRefCount(track.id, excludePlaylistId = -1L)
+                    if (downloadedRefs == 0) {
+                        val local = dao.getTrack(track.id)
+                        if (local != null) {
+                            deleteFileByPath(local.localAudioPath)
+                            val refCount = dao.getPlaylistRefCount(track.id)
+                            if (refCount > 0) {
+                                dao.updateTrack(local.copy(localAudioPath = ""))
+                            } else {
+                                deleteFileByPath(local.localArtworkPath)
+                                dao.deleteTrack(track.id)
+                            }
+                            MusicManager.notifyTrackDeleted(track.id)
+                        }
                     }
                 }
             }
@@ -821,7 +995,7 @@ object DownloadManager {
     }
 
     fun downloadPlaylist(playlist: Playlist, tracks: List<Track>) {
-        importPlaylistToLibrary(playlist, tracks)
+        importPlaylistToLibrary(playlist, tracks, isDownloaded = true)
         val folderName = sanitizeFilename(playlist.title ?: "Playlist_${playlist.id}")
         downloadBatch(tracks, playlist.id, folderName)
     }
@@ -842,7 +1016,7 @@ object DownloadManager {
                             downloadSemaphore.withPermit {
                                 val existing = database.downloadDao().getTrack(track.id)
                                 if (existing == null || existing.localAudioPath.isEmpty()) {
-                                    startDownloadJob(track, subFolderName).join()
+                                    startDownloadJob(track, subFolderName, this).join()
                                 }
                             }
                         }
@@ -870,6 +1044,10 @@ object DownloadManager {
                     progressJob.cancel()
                 }
 
+                if (batchId > 0 || (batchId < 0 && batchId != LIKES_BATCH_ID)) {
+                    database.downloadDao().setPlaylistDownloaded(batchId, true)
+                }
+
                 _playlistDownloadProgress.update { it + (batchId to 1f) }
                 delay(500)
                 _storageTrigger.update { it + 1 }
@@ -885,6 +1063,15 @@ object DownloadManager {
         activePlaylistJobs[batchId] = batchJob
     }
 
+    fun hasEnoughFreeStorage(minBytes: Long = 25L * 1024 * 1024): Boolean {
+        return try {
+            val freeSpace = context.cacheDir.usableSpace
+            freeSpace > minBytes
+        } catch (e: Exception) {
+            true
+        }
+    }
+
     fun downloadTrack(track: Track) {
         if (activeJobs.containsKey(track.id)) return
         scope.launch {
@@ -892,12 +1079,29 @@ object DownloadManager {
             if (existing != null && existing.localAudioPath.isNotEmpty()) {
                 return@launch
             }
-            startDownloadJob(track, null)
+            startDownloadJob(track, null, null)
         }
     }
 
-    private fun startDownloadJob(track: Track, subFolderName: String? = null): Job {
-        val job = scope.launch {
+    private fun startDownloadJob(
+        track: Track,
+        subFolderName: String? = null,
+        parentScope: CoroutineScope? = null
+    ): Job {
+        val launchScope = parentScope ?: scope
+        val job = launchScope.launch {
+            if (!hasEnoughFreeStorage()) {
+                Log.e("DownloadManager", "Not enough storage space to download track: ${track.title}")
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        context,
+                        context.getString(R.string.error_not_enough_space),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return@launch
+            }
+
             var tempAudioFile: File? = null
             var tempImageFile: File? = null
             var taggedAudioFile: File? = null
@@ -919,10 +1123,7 @@ object DownloadManager {
                 if (isHlsStream) {
                     val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
                     tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
-                    downloadFileToStream(track.fullResArtwork, FileOutputStream(tempImageFile)) { _ -> }
-                    if (tempImageFile.exists()) {
-                        tempImageFile.copyTo(internalArtFile, overwrite = true)
-                    }
+                    val resolvedArtUrl = saveArtworkForTrack(track, tempImageFile, internalArtFile)
 
                     val cache = ExoCacheManager.getCache(context)
                     val upstreamFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
@@ -937,13 +1138,18 @@ object DownloadManager {
                     val downloader = androidx.media3.exoplayer.hls.offline.HlsDownloader(
                         androidx.media3.common.MediaItem.fromUri(streamUrl),
                         cacheDataSourceFactory,
-                        java.util.concurrent.Executors.newSingleThreadExecutor()
+                        Dispatchers.IO.asExecutor()
                     )
+                    activeHlsDownloaders[track.id] = downloader
 
-                    downloader.download { contentLength, bytesDownloaded, percentDownloaded ->
-                        if (isActive) {
-                            _downloadProgress.update { c -> c + (track.id to percentDownloaded.toInt()) }
+                    try {
+                        downloader.download { contentLength, bytesDownloaded, percentDownloaded ->
+                            if (isActive) {
+                                _downloadProgress.update { c -> c + (track.id to percentDownloaded.toInt()) }
+                            }
                         }
+                    } finally {
+                        activeHlsDownloaders.remove(track.id)
                     }
 
                     val existingTrack = database.downloadDao().getTrack(track.id)
@@ -962,17 +1168,18 @@ object DownloadManager {
 
                             val dataSource = upstreamFactory.createDataSource()
                             val dataSpec = androidx.media3.datasource.DataSpec(android.net.Uri.parse(streamUrl))
-                            val inputStream = androidx.media3.datasource.DataSourceInputStream(dataSource, dataSpec)
                             val parser = androidx.media3.exoplayer.hls.playlist.HlsPlaylistParser()
+                            val playlist = androidx.media3.datasource.DataSourceInputStream(dataSource, dataSpec)
+                                .use { inputStream ->
+                                    parser.parse(dataSpec.uri, inputStream)
+                                }
 
-                            val playlist = parser.parse(dataSpec.uri, inputStream)
                             if (playlist is androidx.media3.exoplayer.hls.playlist.HlsMediaPlaylist) {
                                 val firstSegment = playlist.segments.firstOrNull()
                                 if (firstSegment != null && firstSegment.drmInitData != null) {
                                     formatBuilder.setDrmInitData(firstSegment.drmInitData)
                                 }
                             }
-                            inputStream.close()
 
                             val format = formatBuilder.build()
 
@@ -1010,15 +1217,17 @@ object DownloadManager {
                     }
 
                     val exoPath = "exo_cache://${track.id}::${streamUrl}::${persistableToken ?: ""}"
+                    val finalLocalArtworkPath = if (internalArtFile.exists() && internalArtFile.length() > 0) internalArtFile.absolutePath else ""
+                    val finalArtworkUrl = if (resolvedArtUrl.startsWith("http")) resolvedArtUrl else (existingTrack?.artworkUrl?.takeIf { it.startsWith("http") } ?: track.artworkUrl ?: "")
 
                     val localTrack = LocalTrack(
                         id = track.id,
                         title = track.title ?: context.getString(R.string.untitled_track),
                         artist = track.user?.username ?: context.getString(R.string.unknown_artist),
-                        artworkUrl = track.fullResArtwork,
+                        artworkUrl = finalArtworkUrl,
                         duration = track.durationMs ?: 0L,
                         localAudioPath = exoPath,
-                        localArtworkPath = internalArtFile.absolutePath,
+                        localArtworkPath = finalLocalArtworkPath,
                         downloadedAt = creationTimestamp
                     )
 
@@ -1030,6 +1239,7 @@ object DownloadManager {
                     }
 
                     _storageTrigger.update { it + 1 }
+                    AudioScannerManager.scanDownloadedTracks(context)
                     withContext(Dispatchers.Main) {
                         AchievementManager.increment("download_100")
                         AchievementManager.increment("download_1000")
@@ -1054,16 +1264,14 @@ object DownloadManager {
                 taggedAudioFile = File(context.cacheDir, "tagged_${track.id}.$ext")
                 val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
 
-                downloadFileToStream(streamUrl, FileOutputStream(tempAudioFile)) { p ->
-                    if (isActive) {
-                        _downloadProgress.update { c -> c + (track.id to p) }
+                FileOutputStream(tempAudioFile).use { fos ->
+                    downloadFileToStream(streamUrl, fos) { p ->
+                        if (isActive) {
+                            _downloadProgress.update { c -> c + (track.id to p) }
+                        }
                     }
                 }
-                downloadFileToStream(track.fullResArtwork, FileOutputStream(tempImageFile)) { _ -> }
-
-                if (tempImageFile.exists()) {
-                    tempImageFile.copyTo(internalArtFile, overwrite = true)
-                }
+                val resolvedArtUrl = saveArtworkForTrack(track, tempImageFile, internalArtFile)
 
                 if (ext == "mp3") {
                     try {
@@ -1075,8 +1283,10 @@ object DownloadManager {
                         id3v2Tag.album =
                             if (subFolderName != null) subFolderName else context.getString(R.string.app_name)
                         id3v2Tag.comment = context.getString(R.string.download_comment)
-                        val imageBytes = tempImageFile.readBytes()
-                        id3v2Tag.setAlbumImage(imageBytes, "image/jpeg")
+                        if (tempImageFile.exists() && tempImageFile.length() > 0) {
+                            val imageBytes = tempImageFile.readBytes()
+                            id3v2Tag.setAlbumImage(imageBytes, "image/jpeg")
+                        }
                         mp3file.save(taggedAudioFile.absolutePath)
                     } catch (e: Exception) {
                         tempAudioFile.copyTo(taggedAudioFile, overwrite = true)
@@ -1097,15 +1307,17 @@ object DownloadManager {
 
                 val existingTrack = database.downloadDao().getTrack(track.id)
                 val creationTimestamp = existingTrack?.downloadedAt ?: System.currentTimeMillis()
+                val finalLocalArtworkPath = if (internalArtFile.exists() && internalArtFile.length() > 0) internalArtFile.absolutePath else ""
+                val finalArtworkUrl = if (resolvedArtUrl.startsWith("http")) resolvedArtUrl else (existingTrack?.artworkUrl?.takeIf { it.startsWith("http") } ?: track.artworkUrl ?: "")
 
                 val localTrack = LocalTrack(
                     id = track.id,
                     title = track.title ?: context.getString(R.string.untitled_track),
                     artist = track.user?.username ?: context.getString(R.string.unknown_artist),
-                    artworkUrl = track.fullResArtwork,
+                    artworkUrl = finalArtworkUrl,
                     duration = track.durationMs ?: 0L,
                     localAudioPath = audioPath,
-                    localArtworkPath = internalArtFile.absolutePath,
+                    localArtworkPath = finalLocalArtworkPath,
                     downloadedAt = creationTimestamp
                 )
 
@@ -1117,6 +1329,7 @@ object DownloadManager {
                 }
 
                 _storageTrigger.update { it + 1 }
+                AudioScannerManager.scanDownloadedTracks(context)
 
                 withContext(Dispatchers.Main) {
                     AchievementManager.increment("download_100")
@@ -1139,6 +1352,56 @@ object DownloadManager {
         }
         activeJobs[track.id] = job
         return job
+    }
+
+    private suspend fun saveArtworkForTrack(track: Track, tempImageFile: File, internalArtFile: File): String {
+        var url = track.fullResArtwork.ifBlank { track.artworkUrl ?: "" }
+        if (url.startsWith("/") || url.startsWith("file://")) {
+            val localFile = File(url.removePrefix("file://"))
+            if (!localFile.exists() || localFile.length() == 0L) {
+                url = ""
+            }
+        }
+        if (url.contains("picsum.photos")) {
+            url = ""
+        }
+
+        if (url.isEmpty() && track.id > 0) {
+            try {
+                val onlineList = api.getTracksByIds(track.id.toString())
+                val online = onlineList.firstOrNull()
+                if (online != null) {
+                    url = online.fullResArtwork
+                }
+            } catch (e: Exception) {
+                Log.e("DownloadManager", "Failed to fetch online artwork for ${track.id}", e)
+            }
+        }
+
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            try {
+                FileOutputStream(tempImageFile).use { fos ->
+                    downloadFileToStream(url, fos) { _ -> }
+                }
+                if (tempImageFile.exists() && tempImageFile.length() > 0) {
+                    tempImageFile.copyTo(internalArtFile, overwrite = true)
+                }
+            } catch (e: Exception) {
+                Log.e("DownloadManager", "Failed to download artwork from $url", e)
+            }
+        } else if (url.isNotEmpty()) {
+            try {
+                val cleanPath = url.removePrefix("file://")
+                val srcFile = File(cleanPath)
+                if (srcFile.exists() && srcFile.length() > 0) {
+                    srcFile.copyTo(tempImageFile, overwrite = true)
+                    srcFile.copyTo(internalArtFile, overwrite = true)
+                }
+            } catch (e: Exception) {
+                Log.e("DownloadManager", "Failed to copy local artwork from $url", e)
+            }
+        }
+        return url
     }
 
     private suspend fun downloadFileToStream(url: String, outputStream: OutputStream, onProgress: (Int) -> Unit) {
@@ -1194,67 +1457,82 @@ object DownloadManager {
         val chunkSize = contentLength / numThreads
         val tempFiles = Array(numThreads) { File(context.cacheDir, "chunk_${System.currentTimeMillis()}_$it.tmp") }
         var totalCopied = 0L
+        val progressLock = Any()
 
-        coroutineScope {
-            val jobs = (0 until numThreads).map { i ->
-                async(Dispatchers.IO) {
-                    val startByte = i * chunkSize
-                    val endByte = if (i == numThreads - 1) contentLength - 1 else (startByte + chunkSize - 1)
+        try {
+            coroutineScope {
+                val jobs = (0 until numThreads).map { i ->
+                    async(Dispatchers.IO) {
+                        val startByte = i * chunkSize
+                        val endByte = if (i == numThreads - 1) contentLength - 1 else (startByte + chunkSize - 1)
 
-                    val chunkRequest = Request.Builder()
-                        .url(url)
-                        .header("User-Agent", com.alananasss.kittytune.utils.Config.USER_AGENT)
-                        .header("Range", "bytes=$startByte-$endByte")
-                        .build()
+                        val chunkRequest = Request.Builder()
+                            .url(url)
+                            .header("User-Agent", com.alananasss.kittytune.utils.Config.USER_AGENT)
+                            .header("Range", "bytes=$startByte-$endByte")
+                            .build()
 
-                    client.newCall(chunkRequest).execute().use { response ->
-                        if (!response.isSuccessful) throw Exception("HTTP Error ${response.code}")
-                        val body = response.body ?: throw Exception("Empty body in chunk $i")
+                        client.newCall(chunkRequest).execute().use { response ->
+                            if (!response.isSuccessful) throw Exception("HTTP Error ${response.code}")
+                            val body = response.body ?: throw Exception("Empty body in chunk $i")
 
-                        tempFiles[i].outputStream().use { fileOut ->
-                            val buffer = ByteArray(32 * 1024)
-                            var read: Int
-                            val input = body.byteStream()
+                            tempFiles[i].outputStream().use { fileOut ->
+                                val buffer = ByteArray(32 * 1024)
+                                var read: Int
+                                val input = body.byteStream()
 
-                            while (input.read(buffer).also { read = it } >= 0) {
-                                fileOut.write(buffer, 0, read)
+                                while (input.read(buffer).also { read = it } >= 0) {
+                                    fileOut.write(buffer, 0, read)
 
-                                synchronized(this@DownloadManager) {
-                                    totalCopied += read
-                                    onProgress(((totalCopied * 100) / contentLength).toInt())
+                                    synchronized(progressLock) {
+                                        totalCopied += read
+                                        onProgress(((totalCopied * 100) / contentLength).toInt())
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                jobs.awaitAll()
             }
-            jobs.awaitAll()
-        }
 
-        for (tempFile in tempFiles) {
-            if (tempFile.exists()) {
-                tempFile.inputStream().use { input ->
-                    input.copyTo(outputStream, 64 * 1024)
+            for (tempFile in tempFiles) {
+                if (tempFile.exists()) {
+                    tempFile.inputStream().use { input ->
+                        input.copyTo(outputStream, 64 * 1024)
+                    }
                 }
-                tempFile.delete()
+            }
+            outputStream.flush()
+        } finally {
+            for (tempFile in tempFiles) {
+                try {
+                    if (tempFile.exists()) tempFile.delete()
+                } catch (e: Exception) {
+                }
             }
         }
-        outputStream.flush()
     }
 
     fun deleteTrack(trackId: Long) {
         scope.launch {
+            if (trackId == 0L) return@launch
             val dao = database.downloadDao()
             val track = dao.getTrack(trackId)
             if (track != null) {
-                deleteFileByPath(track.localAudioPath)
-                deleteFileByPath(track.localArtworkPath)
+                val downloadedRefs = dao.getDownloadedPlaylistRefCount(trackId, excludePlaylistId = -1L)
                 val refCount = dao.getPlaylistRefCount(trackId)
                 if (refCount > 0) {
-                    dao.updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
+                    if (downloadedRefs == 0) {
+                        deleteFileByPath(track.localAudioPath)
+                        dao.updateTrack(track.copy(localAudioPath = "", localArtworkPath = ""))
+                    }
                 } else {
+                    deleteFileByPath(track.localAudioPath)
+                    deleteFileByPath(track.localArtworkPath)
                     dao.deleteTrack(trackId)
                 }
+                MusicManager.notifyTrackDeleted(trackId)
             }
             dao.cleanUnreferencedEmptyTracks()
             _storageTrigger.update { it + 1 }
@@ -1265,6 +1543,7 @@ object DownloadManager {
     fun cancelDownload(trackId: Long) {
         activeJobs[trackId]?.cancel()
         activeJobs.remove(trackId)
+        activeHlsDownloaders.remove(trackId)?.cancel()
         _downloadProgress.update { it - trackId }
         try {
             context.cacheDir.listFiles { file -> file.name.contains("${trackId}") }?.forEach { it.delete() }
@@ -1299,10 +1578,20 @@ object DownloadManager {
                 dao.insertPlaylistTrackRef(PlaylistTrackCrossRef(playlistId, track.id))
             }
 
-            val playlist = dao.getPlaylist(playlistId)
+            var playlist = dao.getPlaylist(playlistId)
+            val finalTrackCount = dao.getTracksForPlaylistSync(playlistId).size
             if (playlist != null) {
-                val finalTrackCount = dao.getTracksForPlaylistSync(playlistId).size
                 dao.updatePlaylist(playlist.copy(trackCount = finalTrackCount))
+            } else {
+                playlist = LocalPlaylist(
+                    id = playlistId,
+                    title = context.getString(R.string.untitled_track),
+                    artist = context.getString(R.string.me_artist),
+                    artworkUrl = "",
+                    trackCount = finalTrackCount,
+                    isUserCreated = true
+                )
+                dao.insertPlaylist(playlist)
             }
 
             if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
