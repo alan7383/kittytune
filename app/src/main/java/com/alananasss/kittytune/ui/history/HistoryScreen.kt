@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -264,50 +265,6 @@ fun HistoryScreen(
                 }
             )
 
-            if (historyViewModel.isGuest) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.CloudOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(R.string.lib_guest_mode),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = stringResource(R.string.history_guest_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Button(
-                            onClick = { onNavigate(Screen.Login.route) },
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            Text(
-                                stringResource(R.string.login_soundcloud),
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
-                    }
-                }
-            }
-
             val miniPlayerPadding = if (playerViewModel.currentTrack != null) 180.dp else 100.dp
 
             AnimatedContent(
@@ -331,17 +288,27 @@ fun HistoryScreen(
                                 CircularProgressIndicator()
                             }
                         } else if (displayedTracks.isEmpty()) {
-                            EmptyHistoryView(
-                                title = stringResource(R.string.history_empty_tracks),
-                                subtitle = if (historyViewModel.searchQuery.isNotBlank()) stringResource(R.string.no_results) else "",
-                                onExploreClick = { onNavigate(Screen.Home.route) }
-                            )
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                if (historyViewModel.isGuest) {
+                                    GuestHistoryBanner(onNavigate)
+                                }
+                                EmptyHistoryView(
+                                    title = stringResource(R.string.history_empty_tracks),
+                                    subtitle = if (historyViewModel.searchQuery.isNotBlank()) stringResource(R.string.no_results) else "",
+                                    onExploreClick = { onNavigate(Screen.Home.route) }
+                                )
+                            }
                         } else {
                             LazyColumn(
                                 state = tracksListState,
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = miniPlayerPadding, top = 8.dp)
                             ) {
+                                if (historyViewModel.isGuest) {
+                                    item(key = "guest_banner") {
+                                        GuestHistoryBanner(onNavigate)
+                                    }
+                                }
                                 groupedTracks.forEach { (dateHeader, items) ->
                                     item(key = "header_$dateHeader") {
                                         Text(
@@ -410,17 +377,27 @@ fun HistoryScreen(
                                 CircularProgressIndicator()
                             }
                         } else if (displayedContexts.isEmpty()) {
-                            EmptyHistoryView(
-                                title = stringResource(R.string.history_empty_contexts),
-                                subtitle = if (historyViewModel.searchQuery.isNotBlank()) stringResource(R.string.no_results) else "",
-                                onExploreClick = { onNavigate(Screen.Home.route) }
-                            )
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                if (historyViewModel.isGuest) {
+                                    GuestHistoryBanner(onNavigate)
+                                }
+                                EmptyHistoryView(
+                                    title = stringResource(R.string.history_empty_contexts),
+                                    subtitle = if (historyViewModel.searchQuery.isNotBlank()) stringResource(R.string.no_results) else "",
+                                    onExploreClick = { onNavigate(Screen.Home.route) }
+                                )
+                            }
                         } else {
                             LazyColumn(
                                 state = contextsListState,
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = miniPlayerPadding, top = 8.dp)
                             ) {
+                                if (historyViewModel.isGuest) {
+                                    item(key = "guest_banner_ctx") {
+                                        GuestHistoryBanner(onNavigate)
+                                    }
+                                }
                                 groupedContexts.forEach { (dateHeader, items) ->
                                     item(key = "header_ctx_$dateHeader") {
                                         Text(
@@ -815,5 +792,70 @@ private fun formatDateHeader(timestamp: Long, context: android.content.Context):
         }
     } else {
         SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(Date(millis))
+    }
+}
+
+@Composable
+private fun GuestHistoryBanner(onNavigate: (String) -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CloudOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Text(
+                    text = stringResource(R.string.lib_guest_mode),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = stringResource(R.string.history_guest_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = { onNavigate(Screen.Login.route) },
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.Login,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.login_soundcloud),
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
     }
 }

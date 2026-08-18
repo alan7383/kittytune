@@ -122,7 +122,7 @@
                         velocity = 25.dp
                     )
                     PremiumMarqueeText(
-                        text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                        text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         edgeGradientWidth = 8.dp,

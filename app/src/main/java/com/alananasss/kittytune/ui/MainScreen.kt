@@ -74,6 +74,7 @@ import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.ui.profile.*
 import com.alananasss.kittytune.ui.musicimport.*
 import com.alananasss.kittytune.ui.recognition.RecognitionScreen
+import com.alananasss.kittytune.ui.upload.UploadScreen
 import com.alananasss.kittytune.ui.track.TrackDetailScreen
 import com.alananasss.kittytune.ui.common.rememberWindowSizeInfo
 import com.alananasss.kittytune.ui.navigation.KittyUnifiedBottomBar
@@ -236,7 +237,7 @@ fun MainScreen(
             val route = navController.currentBackStackEntry?.destination?.route
             val recoveredLogin = !tm.isGuestMode() && !tm.getAccessToken().isNullOrEmpty()
 
-            if (recoveredLogin && (route == Screen.Welcome.route || route == Screen.Login.route)) {
+            if (recoveredLogin && route == Screen.Welcome.route) {
                 navigateToAuthenticatedStart()
             }
         }
@@ -376,6 +377,7 @@ fun MainScreen(
                 destinationId.startsWith("profile:") -> navController.navigate("profile/${destinationId.removePrefix("profile:")}")
                 destinationId.startsWith("tag:") -> navController.navigate("tag/${destinationId.removePrefix("tag:")}")
                 destinationId.startsWith("track_detail:") -> navController.navigate("track_detail/${destinationId.removePrefix("track_detail:")}")
+                destinationId.startsWith("edit_track:") -> navController.navigate(Screen.Upload.route)
                 else -> navController.navigate("playlist_detail/$destinationId")
             }
             playerViewModel.onNavigationHandled()
@@ -728,6 +730,7 @@ fun MainScreen(
                             onProfileClick = { showProfileMenu = true },
                             onHistoryClick = { navController.navigate(Screen.History.route) },
                             onImportClick = { navController.navigate("music_import") },
+                            onUploadClick = { navController.navigate("upload") },
                             onPlaylistClick = { id ->
                                 if (id.startsWith("profile:")) {
                                     val userId = id.removePrefix("profile:")
@@ -864,6 +867,7 @@ fun MainScreen(
                             playerViewModel,
                             onNavigate = { id ->
                                 when {
+                                    id == Screen.Upload.route || id == "upload" -> navController.navigate(Screen.Upload.route)
                                     id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
                                     id == "recognition_history" -> navController.navigate("recognition_history")
                                     id == "likes" -> navController.navigate("playlist_detail/likes")
@@ -1061,6 +1065,17 @@ fun MainScreen(
 
                     clippedComposable("settings") {
                         SettingsScreen(navController, { navController.popBackStack() }, playerViewModel)
+                    }
+
+                    clippedComposable(Screen.Upload.route) {
+                        UploadScreen(
+                            onBackClick = {
+                                playerViewModel.trackToEdit = null
+                                navController.popBackStack()
+                            },
+                            onLoginClick = { navController.navigate(Screen.Login.route) },
+                            trackToEdit = playerViewModel.trackToEdit
+                        )
                     }
 
                     clippedComposable("music_import") {

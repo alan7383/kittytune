@@ -299,7 +299,7 @@
                     result?.items?.mapNotNull { item ->
                         if (item is SongItem) {
                             Track(
-                                id = item.id.hashCode().toLong(),
+                                id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
                                 user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
                                 artworkUrl = item.thumbnail,
@@ -318,7 +318,7 @@
                                 } ?: return@mapNotNull null
 
                                 Track(
-                                    id = id.hashCode().toLong(),
+                                    id = kotlin.math.abs(id.hashCode().toLong()),
                                     title = title,
                                     user = User(0L, "YouTube", null),
                                     artworkUrl = null,
@@ -346,7 +346,7 @@
                     val mappedTracks = result?.items?.mapNotNull { item ->
                         if (item is SongItem) {
                             Track(
-                                id = item.id.hashCode().toLong(),
+                                id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
                                 user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
                                 artworkUrl = item.thumbnail,
@@ -365,7 +365,7 @@
                                 } ?: return@mapNotNull null
 
                                 Track(
-                                    id = id.hashCode().toLong(),
+                                    id = kotlin.math.abs(id.hashCode().toLong()),
                                     title = title,
                                     user = User(0L, "YouTube", null),
                                     artworkUrl = null,
@@ -508,7 +508,7 @@
                         val art = item?.thumbnail ?: "https://img.youtube.com/vi/$videoId/maxresdefault.jpg"
 
                         val track = Track(
-                            id = videoId.hashCode().toLong(),
+                            id = kotlin.math.abs(videoId.hashCode().toLong()),
                             title = title,
                             user = User(0L, author, null),
                             artworkUrl = art,

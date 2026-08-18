@@ -65,6 +65,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.delay
@@ -120,6 +122,43 @@ object MusicManager {
 
     fun updateContext(context: PlaybackContext?) {
         _contextFlow.value = context
+    }
+
+    private val _trackUpdatedFlow = MutableSharedFlow<Track>(extraBufferCapacity = 1)
+    val trackUpdatedFlow = _trackUpdatedFlow.asSharedFlow()
+
+    private val _trackDeletedFlow = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+    val trackDeletedFlow = _trackDeletedFlow.asSharedFlow()
+
+    private val _playlistDeletedFlow = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+    val playlistDeletedFlow = _playlistDeletedFlow.asSharedFlow()
+
+    fun updateTrackMetadata(updatedTrack: Track) {
+        if (currentTrack?.id == updatedTrack.id) {
+            currentTrack = updatedTrack
+            val mediaMetadata = androidx.media3.common.MediaMetadata.Builder()
+                .setTitle(updatedTrack.title ?: "Unknown")
+                .setArtist(updatedTrack.user?.username ?: "Unknown")
+                .setArtworkUri(if (updatedTrack.artworkUrl != null) android.net.Uri.parse(updatedTrack.artworkUrl) else null)
+                .build()
+            try {
+                player.currentMediaItem?.let { currentMediaItem ->
+                    val updatedMediaItem = currentMediaItem.buildUpon()
+                        .setMediaMetadata(mediaMetadata)
+                        .build()
+                    player.replaceMediaItem(player.currentMediaItemIndex, updatedMediaItem)
+                }
+            } catch (_: Exception) {}
+        }
+        _trackUpdatedFlow.tryEmit(updatedTrack)
+    }
+
+    fun notifyTrackDeleted(trackId: Long) {
+        _trackDeletedFlow.tryEmit(trackId)
+    }
+
+    fun notifyPlaylistDeleted(playlistId: Long) {
+        _playlistDeletedFlow.tryEmit(playlistId)
     }
 
     var onTrackChange: ((Track) -> Unit)? = null

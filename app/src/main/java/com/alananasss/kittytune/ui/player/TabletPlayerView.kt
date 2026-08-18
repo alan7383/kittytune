@@ -408,7 +408,7 @@ fun DesktopTrackInfoTabContent(
                     }
                 ) {
                     Text(
-                        text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                        text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
@@ -1322,7 +1322,7 @@ fun TabletFullScreenPlayerView(
                             }
                         ) {
                             Text(
-                                text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                                 color = subContentColor,
                                 maxLines = 1,

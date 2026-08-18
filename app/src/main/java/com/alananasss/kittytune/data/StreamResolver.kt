@@ -118,9 +118,13 @@
             return resolveStreamWithDrm(context, track, forDownload)?.url
         }
 
+        suspend fun resolveSoundCloudDirect(context: Context, track: Track): ResolvedStream? {
+            return withContext(Dispatchers.IO) {
+                resolveFromSoundCloudWithDrm(context, track, forDownload = false)
+            }
+        }
+
         suspend fun resolveStreamWithDrm(context: Context, track: Track, forDownload: Boolean = false): ResolvedStream? {
-            // Note: We deliberately do NOT cache stream URLs because CDN links and YouTube streams
-            // expire after a short period, leading to 403 Forbidden errors if reused.
             return withContext(Dispatchers.IO) {
                 val resolved: ResolvedStream? = run {
                     try {
@@ -200,7 +204,6 @@
                     Log.w(TAG, "[NewPipe] Could not get video name/length: ${e.message}")
                 }
 
-                // 1) Try dedicated audio streams first (DASH - requires JS deobfuscation)
                 val audioStreams = try {
                     extractor.audioStreams
                 } catch (e: Exception) {
@@ -223,8 +226,6 @@
                     return bestAudioStream.url
                 }
 
-                // 2) No audio-only streams → fallback to muxed video+audio stream
-                //    ExoPlayer will extract the audio track from the MP4 container automatically
                 Log.d(TAG, "[NewPipe] No audio-only streams, trying muxed video streams...")
                 val videoStreams = try {
                     extractor.videoStreams
@@ -236,7 +237,6 @@
                 val bestVideoStream = videoStreams
                     .filter { it.url != null }
                     .minByOrNull { 
-                        // Prefer lowest resolution to minimize bandwidth (we only need audio)
                         it.getResolution()?.replace("p", "")?.toIntOrNull() ?: Int.MAX_VALUE
                     }
 
@@ -267,7 +267,6 @@
                         .maxByOrNull { it.averageBitrate }
                 if (best != null) return best.url
 
-                // Fallback to muxed video+audio stream (ExoPlayer extracts audio automatically)
                 val muxed = extractor.videoStreams
                     .filter { it.url != null }
                     .minByOrNull { it.getResolution()?.replace("p", "")?.toIntOrNull() ?: Int.MAX_VALUE }
@@ -299,15 +298,12 @@
             val transcodings = trackToUse.media?.transcodings ?: return null
             val qualityPref = prefs.getAudioQuality()
 
-            // Log all available transcodings for debugging
             Log.d(TAG, "Track ${track.id} — ${transcodings.size} transcodings available:")
             transcodings.forEachIndexed { i, t ->
                 Log.d(TAG, "  [$i] preset=${t.preset}, protocol=${t.format?.protocol}, mime=${t.format?.mimeType}, url=${t.url}")
             }
             Log.d(TAG, "Track ${track.id} — policy=${trackToUse.policy}, monetization=${trackToUse.monetizationModel}")
 
-            // Build an ordered list of candidate transcodings to try
-            // Priority: progressive > hls > cbc-encrypted-hls > ctr-encrypted-hls
             val allowDrm = !forDownload || prefs.getDownloadDrmStreamsEnabled()
             val candidates = buildTranscodingCandidates(transcodings, qualityPref, forDownload, allowDrm)
 
@@ -328,7 +324,6 @@
                 force = tokenManager.shouldRefreshAccessToken()
             ) ?: tokenManager.getAccessToken()
 
-            // Try each candidate transcoding until one works
             for (candidate in candidates) {
                 val protocol = candidate.format?.protocol ?: continue
                 val apiUrl = candidate.url ?: continue
@@ -356,34 +351,31 @@
                             response.close()
                             token = null
                             response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                        } else {
+                            response.close()
+                            continue
                         }
                     }
 
                     if (!response.isSuccessful) {
                         Log.w(TAG, "Track ${track.id} — transcoding ${candidate.preset}/$protocol failed: code=${response.code}")
                         response.close()
-                        continue // Try next candidate
+                        continue
                     }
 
                     val body = response.body?.string() ?: continue
                     Log.d(TAG, "Track ${track.id} — stream API response: ${body.take(500)}")
                     val json = JSONObject(body)
                     val streamInfoUrl = json.getString("url")
-
-                    // Extract DRM license token if present (CENC-encrypted tracks)
                     val licenseAuthToken = json.optString("licenseAuthToken", null)
                     if (!licenseAuthToken.isNullOrEmpty()) {
                         Log.d(TAG, "Track ${track.id} — CENC DRM detected! licenseAuthToken=${licenseAuthToken.take(50)}...")
                     }
-
-                    // HLS or encrypted-HLS — return directly
                     val isHlsLike = protocol == "hls" || protocol.contains("encrypted-hls")
                     if (isHlsLike) {
                         Log.d(TAG, "Track ${track.id} — HLS resolved: $streamInfoUrl (drm=${!licenseAuthToken.isNullOrEmpty()}, protocol=$protocol)")
                         return ResolvedStream(streamInfoUrl, licenseAuthToken)
                     }
-
-                    // Progressive — follow redirect to get CDN URL
                     Log.d(TAG, "Resolving progressive stream URL: $streamInfoUrl")
                     val finalRequest = okhttp3.Request.Builder().url(streamInfoUrl).build()
                     val finalResponse = client.newCall(finalRequest).execute()
@@ -391,7 +383,7 @@
 
                     if (!finalResponse.isSuccessful) {
                         Log.e(TAG, "Final resolution of progressive URL failed: ${finalResponse.code}")
-                        continue // Try next candidate
+                        continue
                     }
 
                     val finalUrl = finalResponse.request.url.toString()
@@ -400,7 +392,7 @@
 
                 } catch (e: Exception) {
                     Log.e(TAG, "Track ${track.id} — exception trying ${candidate.preset}/$protocol", e)
-                    continue // Try next candidate
+                    continue
                 }
             }
 
@@ -412,12 +404,6 @@
             }
             return null
         }
-
-        /**
-         * Builds an ordered list of transcoding candidates to try.
-         * For downloads, only progressive is useful (no DRM).
-         * For playback, we prefer: progressive > hls > CENC-encrypted HLS.
-         */
         private fun buildTranscodingCandidates(
             transcodings: List<com.alananasss.kittytune.domain.Transcoding>,
             qualityPref: String,
@@ -425,11 +411,7 @@
             allowDrm: Boolean
         ): List<com.alananasss.kittytune.domain.Transcoding> {
             val candidates = mutableListOf<com.alananasss.kittytune.domain.Transcoding>()
-
-            // 1. Progressive (best for downloads, good for playback)
             transcodings.find { it.format?.protocol == "progressive" }?.let { candidates.add(it) }
-
-            // 2. Standard HLS (non-encrypted)
             if (qualityPref != "HIGH") {
                 transcodings.find { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }?.let { candidates.add(it) }
             }
@@ -438,14 +420,11 @@
             }
 
             if (allowDrm) {
-                // 3. CENC encrypted HLS — CTR mode preferred (standard Widevine CENC on Android), then CBC
-                // Prefer higher quality presets (aac_160k > aac_96k > abr_sq)
                 val cencPresets = listOf("aac_160k", "aac_96k", "abr_sq")
                 for (preset in cencPresets) {
                     transcodings.find { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }?.let { candidates.add(it) }
                     transcodings.find { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }?.let { candidates.add(it) }
                 }
-                // Add any remaining encrypted transcodings not yet in the list
                 transcodings.filter { it.format?.protocol?.contains("encrypted") == true }.forEach {
                     if (!candidates.contains(it)) candidates.add(it)
                 }

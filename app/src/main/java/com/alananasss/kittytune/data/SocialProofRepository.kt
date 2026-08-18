@@ -16,8 +16,6 @@ object SocialProofRepository {
     private const val TAG = "SocialProofRepo"
     private var api: SoundCloudApi? = null
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    // Cache of trackId -> List<User>
     private val _socialLikersMap = MutableStateFlow<Map<Long, List<User>>>(emptyMap())
     val socialLikersMap: StateFlow<Map<Long, List<User>>> = _socialLikersMap.asStateFlow()
 
@@ -45,6 +43,14 @@ object SocialProofRepository {
         if (api == null) {
             api = RetrofitClient.create(context.applicationContext)
         }
+    }
+
+    fun clear() {
+        myUrn = null
+        _socialLikersMap.value = emptyMap()
+        requestedTrackIds.clear()
+        pendingBatchIds.clear()
+        batchJob?.cancel()
     }
 
     fun getLikersForTrack(trackId: Long): List<User>? {
@@ -81,7 +87,7 @@ object SocialProofRepository {
         synchronized(this) {
             batchJob?.cancel()
             batchJob = scope.launch {
-                delay(60) // Quick debounce to group visible items
+                delay(60)
                 processBatch()
             }
         }
