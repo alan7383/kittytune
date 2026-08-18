@@ -44,7 +44,12 @@ object RetrofitClient {
 
             val authInterceptor = Interceptor { chain ->
                 val originalRequest = chain.request()
-                var token = SessionManager.harvestStoredSession(appContext) ?: tokenManager.getAccessToken()
+                val isGraphQl = originalRequest.url.host == "graph.soundcloud.com"
+                var token = if (isGraphQl) {
+                    tokenManager.getAccessToken() ?: SessionManager.harvestStoredSession(appContext)
+                } else {
+                    SessionManager.harvestStoredSession(appContext) ?: tokenManager.getAccessToken()
+                }
 
                 if (!token.isNullOrEmpty() && !tokenManager.isGuestMode() && tokenManager.shouldRefreshAccessToken()) {
                     token = SessionManager.refreshSessionBlocking(
@@ -134,7 +139,7 @@ object RetrofitClient {
                 .addInterceptor(cookieInterceptor)
                 .addInterceptor(authInterceptor)
                 .addInterceptor(sessionRecoveryInterceptor)
-                .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BASIC })
+                .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)

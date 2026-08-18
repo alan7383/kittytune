@@ -919,8 +919,9 @@ fun NewPlayerScreen(
                                     }
                                 ) {
                                     PremiumMarqueeText(
-                                        text = track.user?.username
-                                            ?: stringResource(R.string.unknown_artist),
+                                        text = track.displayArtist.ifBlank {
+                                            stringResource(R.string.unknown_artist)
+                                        },
                                         style = MaterialTheme.typography.titleMedium,
                                         color = subContentColor,
                                         edgeGradientWidth = 16.dp,
@@ -1520,6 +1521,21 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 )
             })
         }
+        val currentUserId = viewModel.currentUserId
+        val isOwnTrack = !isLocalFile && track.source != "youtube" && currentUserId > 0L && (
+            track.user?.id == currentUserId ||
+            track.user?.urn?.endsWith(":$currentUserId") == true
+        )
+        if (isOwnTrack && !isOfflineMode) {
+            add(
+                DockOptionItem(
+                    Icons.Rounded.Edit,
+                    stringResource(R.string.menu_edit_track)
+                ) {
+                    viewModel.navigateToEditTrack(track)
+                }
+            )
+        }
         add(DockOptionItem(Icons.Rounded.Description, stringResource(R.string.player_lyrics)) {
             viewModel.openLyrics(
                 track,
@@ -1598,7 +1614,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

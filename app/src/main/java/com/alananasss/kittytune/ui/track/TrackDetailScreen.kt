@@ -381,7 +381,7 @@
                     val progress = downloadProgress[track.id]
                     val isDownloading = progress != null
                     val isDownloaded = remember(track.id, downloadedIds) {
-                        (track.id < 0 && track.source != "youtube") || downloadedIds.contains(track.id)
+                        downloadedIds.contains(track.id)
                     }
 
                     TrackListItem(

@@ -166,7 +166,7 @@ fun KittyNavigationRail(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = track.user?.username ?: "",
+                        text = track.displayArtist,
                         style = if (isPhoneLandscape) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

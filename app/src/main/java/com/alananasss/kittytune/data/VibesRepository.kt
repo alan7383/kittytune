@@ -44,7 +44,21 @@ object VibesRepository {
         }
     }
 
+    fun clear() {
+        _vibes.value = emptyList()
+        lastFetchTime = 0L
+    }
+
     fun loadVibes(likedTracks: List<Track> = emptyList()) {
+        val context = try { KittyTuneApp.instance.applicationContext } catch (e: Exception) { null }
+        if (context != null) {
+            val tokenManager = TokenManager(context)
+            if (tokenManager.isGuestMode() || tokenManager.getAccessToken().isNullOrEmpty()) {
+                _vibes.value = emptyList()
+                return
+            }
+        }
+
         val now = System.currentTimeMillis()
         if (now - lastFetchTime < 15_000L && _vibes.value.isNotEmpty()) {
             return

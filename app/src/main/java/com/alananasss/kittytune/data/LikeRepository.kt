@@ -14,6 +14,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileWriter
+import java.io.FileReader
+import java.io.BufferedWriter
+import java.io.BufferedReader
 import java.lang.reflect.Type
 
 object LikeRepository {
@@ -21,6 +26,8 @@ object LikeRepository {
     private const val KEY_LIKED_TRACKS = "liked_tracks_full"
     private const val KEY_LIKED_PLAYLISTS = "liked_playlists_ids"
     private const val KEY_LOCALLY_UNLIKED_IDS = "locally_unliked_ids"
+    private const val LIKED_TRACKS_FILE = "liked_tracks_v1.json"
+    private val fileLock = Any()
 
     private lateinit var prefs: SharedPreferences
     private lateinit var api: com.alananasss.kittytune.data.network.SoundCloudApi
@@ -52,7 +59,8 @@ object LikeRepository {
     }
 
     private fun getBlacklist(): Set<Long> {
-        return prefs.getStringSet(KEY_LOCALLY_UNLIKED_IDS, emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet() ?: emptySet()
+        return prefs.getStringSet(KEY_LOCALLY_UNLIKED_IDS, emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet()
+            ?: emptySet()
     }
 
     private lateinit var playerPrefs: com.alananasss.kittytune.data.local.PlayerPreferences
@@ -62,7 +70,7 @@ object LikeRepository {
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         api = RetrofitClient.create(context)
         playerPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(context)
-        loadFromPrefs()
+        loadFromStorage()
     }
 
     private suspend fun getUserId(): Long? {
@@ -80,7 +88,7 @@ object LikeRepository {
         removeFromBlacklist(track.id)
 
         _likedTracks.update { current ->
-            val safeSource = (track.source as? String) ?: "soundcloud"
+            val safeSource = track.source ?: "soundcloud"
             if (current.any { it.id == track.id }) {
                 current
             } else {
@@ -93,9 +101,9 @@ object LikeRepository {
             }
         }
 
-        scope.launch {
-            saveToPrefs()
+        saveLikedTracks()
 
+        scope.launch {
             if (!playerPrefs.getSyncLikesEnabled()) return@launch
             val tokenManager = TokenManager(appContext)
             if (tokenManager.isGuestMode()) return@launch
@@ -122,8 +130,9 @@ object LikeRepository {
 
         _likedTracks.update { it.filterNot { t -> t.id == trackId } }
 
+        saveLikedTracks()
+
         scope.launch {
-            saveToPrefs()
             if (!playerPrefs.getSyncLikesEnabled()) return@launch
             val tokenManager = TokenManager(appContext)
             if (tokenManager.isGuestMode()) return@launch
@@ -155,7 +164,7 @@ object LikeRepository {
 
     fun setLikedPlaylists(ids: Set<Long>) {
         _likedPlaylists.value = ids
-        scope.launch { saveToPrefs() }
+        saveLikedPlaylists()
     }
 
     fun togglePlaylistLike(playlistId: Long, isLiked: Boolean, permalink: String? = null, urn: String? = null) {
@@ -169,9 +178,9 @@ object LikeRepository {
         }
         _likedPlaylists.value = current
         DownloadManager.notifyLibraryUpdated()
-        scope.launch {
-            saveToPrefs()
+        saveLikedPlaylists()
 
+        scope.launch {
             val tokenManager = com.alananasss.kittytune.data.TokenManager(appContext)
             if (tokenManager.isGuestMode()) return@launch
             val token = tokenManager.getAccessToken()
@@ -199,7 +208,16 @@ object LikeRepository {
         }
     }
 
-    fun replaceAllLikes(serverTracks: List<Track>) {
+    fun replaceAllLikes(serverTracks: List<Track>, currentUserId: Long? = null) {
+        if (currentUserId != null) {
+            val lastUserId = prefs.getLong("last_synced_user_id", -1L)
+            if (lastUserId != -1L && lastUserId != currentUserId) {
+                prefs.edit().remove(KEY_LOCALLY_UNLIKED_IDS).apply()
+            }
+            prefs.edit().putLong("last_synced_user_id", currentUserId).apply()
+            cachedUserId = currentUserId
+        }
+
         _likedTracks.update { currentLocalList ->
             val blacklist = getBlacklist()
 
@@ -207,7 +225,11 @@ object LikeRepository {
                 .filter { !blacklist.contains(it.id) }
                 .map { it.copy(isLiked = true) }
 
-            val combined = currentLocalList + serverList
+            val localNonSoundcloud = currentLocalList.filter {
+                (it.source != "soundcloud" || it.id <= 0L) && !blacklist.contains(it.id)
+            }
+
+            val combined = localNonSoundcloud + serverList
 
             val mergedAndDeduplicated = combined
                 .groupBy { it.id }
@@ -216,49 +238,116 @@ object LikeRepository {
             mergedAndDeduplicated.sortedByDescending { it.likedAt ?: System.currentTimeMillis() }
         }
 
-        scope.launch {
-            saveToPrefs()
-        }
+        saveLikedTracks()
         _isSyncing.value = false
+    }
+
+    fun clear() {
+        cachedUserId = null
+        _likedTracks.value = emptyList()
+        _likedPlaylists.value = emptySet()
+        _isSyncing.value = false
+        prefs.edit()
+            .remove(KEY_LIKED_TRACKS)
+            .remove(KEY_LIKED_PLAYLISTS)
+            .remove(KEY_LOCALLY_UNLIKED_IDS)
+            .remove("last_synced_user_id")
+            .apply()
+        scope.launch(Dispatchers.IO) {
+            synchronized(fileLock) {
+                try {
+                    val file = File(appContext.filesDir, LIKED_TRACKS_FILE)
+                    if (file.exists()) file.delete()
+                    val tmpFile = File(appContext.filesDir, "$LIKED_TRACKS_FILE.tmp")
+                    if (tmpFile.exists()) tmpFile.delete()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
     fun setSyncing(isSync: Boolean) {
         _isSyncing.value = isSync
     }
 
-    private fun saveToPrefs() {
-        val json = gson.toJson(_likedTracks.value)
+    private fun saveLikedTracks() {
+        val tracks = _likedTracks.value
+        scope.launch(Dispatchers.IO) {
+            synchronized(fileLock) {
+                try {
+                    val file = File(appContext.filesDir, LIKED_TRACKS_FILE)
+                    val tmpFile = File(appContext.filesDir, "$LIKED_TRACKS_FILE.tmp")
+                    FileWriter(tmpFile).use { fileWriter ->
+                        BufferedWriter(fileWriter).use { bufferedWriter ->
+                            val type: Type = object : TypeToken<List<Track>>() {}.type
+                            gson.toJson(tracks, type, bufferedWriter)
+                        }
+                    }
+                    if (tmpFile.exists()) {
+                        if (file.exists()) {
+                            file.delete()
+                        }
+                        tmpFile.renameTo(file)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    private fun saveLikedPlaylists() {
         prefs.edit()
-            .putString(KEY_LIKED_TRACKS, json)
             .putStringSet(KEY_LIKED_PLAYLISTS, _likedPlaylists.value.map { it.toString() }.toSet())
             .apply()
     }
 
-    private fun loadFromPrefs() {
-        val json = prefs.getString(KEY_LIKED_TRACKS, null)
-        if (json != null) {
+    private fun loadFromStorage() {
+        var loadedList: List<Track>? = null
+        val file = File(appContext.filesDir, LIKED_TRACKS_FILE)
+        if (file.exists()) {
             try {
-                val type: Type = object : TypeToken<List<Track>>() {}.type
-                val loadedList: List<Track> = gson.fromJson(json, type) ?: emptyList()
-
-                val now = System.currentTimeMillis()
-                val migratedList = loadedList.mapIndexed { index, track ->
-                    if (track.likedAt == null || track.likedAt == 0L) {
-                        track.copy(likedAt = now - (index * 1000))
-                    } else {
-                        track
+                FileReader(file).use { fileReader ->
+                    BufferedReader(fileReader).use { bufferedReader ->
+                        val type: Type = object : TypeToken<List<Track>>() {}.type
+                        loadedList = gson.fromJson(bufferedReader, type)
                     }
                 }
-
-                val blacklist = getBlacklist()
-                _likedTracks.value = migratedList.filter { !blacklist.contains(it.id) }
-
             } catch (e: Exception) {
-                _likedTracks.value = emptyList()
+                e.printStackTrace()
             }
         }
 
-        val savedPlaylistIds = prefs.getStringSet(KEY_LIKED_PLAYLISTS, emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet() ?: emptySet()
+        if (loadedList == null) {
+            val json = prefs.getString(KEY_LIKED_TRACKS, null)
+            if (json != null) {
+                try {
+                    val type: Type = object : TypeToken<List<Track>>() {}.type
+                    loadedList = gson.fromJson(json, type)
+                    prefs.edit().remove(KEY_LIKED_TRACKS).apply()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        if (loadedList != null) {
+            val now = System.currentTimeMillis()
+            val migratedList = loadedList.mapIndexed { index, track ->
+                if (track.likedAt == null || track.likedAt == 0L) {
+                    track.copy(likedAt = now - (index * 1000))
+                } else {
+                    track
+                }
+            }
+            val blacklist = getBlacklist()
+            _likedTracks.value = migratedList.filter { !blacklist.contains(it.id) }
+            saveLikedTracks()
+        }
+
+        val savedPlaylistIds =
+            prefs.getStringSet(KEY_LIKED_PLAYLISTS, emptySet())?.mapNotNull { it.toLongOrNull() }?.toSet() ?: emptySet()
         _likedPlaylists.value = savedPlaylistIds
     }
 }

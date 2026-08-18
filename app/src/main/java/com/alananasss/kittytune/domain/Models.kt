@@ -403,6 +403,21 @@ data class GraphQlUserProfileData(
     @SerializedName("user") val user: User?
 )
 
+data class TrackPublisherMetadata(
+    @SerializedName("artist") val artist: String? = null,
+    @SerializedName("album_title") val albumTitle: String? = null,
+    @SerializedName("contains_music") val containsMusic: Boolean? = true,
+    @SerializedName("publisher") val publisher: String? = null,
+    @SerializedName("isrc") val isrc: String? = null,
+    @SerializedName("iswc") val iswc: String? = null,
+    @SerializedName("upc_or_ean") val upcOrEan: String? = null,
+    @SerializedName("explicit") val explicit: Boolean? = false,
+    @SerializedName("c_line") val cLine: String? = null,
+    @SerializedName("p_line") val pLine: String? = null,
+    @SerializedName("writer_composer") val composer: String? = null,
+    @SerializedName("release_title") val releaseTitle: String? = null
+)
+
 data class Track(
     val id: Long,
     val title: String?,
@@ -412,9 +427,17 @@ data class Track(
     val media: Media? = null,
     @SerializedName("user_favorite") val isLiked: Boolean = false,
     @SerializedName("genre") val genre: String? = null,
+    @SerializedName("publisher_metadata") val publisherMetadata: TrackPublisherMetadata? = null,
     @SerializedName("permalink_url") val permalinkUrl: String? = null,
+    @SerializedName("permalink") val permalink: String? = null,
+    @SerializedName("secret_token") val secretToken: String? = null,
     @SerializedName("description") val description: String? = null,
+    @SerializedName("caption") val caption: String? = null,
     @SerializedName("tag_list") val tagList: String? = null,
+    @SerializedName("label_name") val labelName: String? = null,
+    @SerializedName("license") val license: String? = null,
+    @SerializedName("purchase_title") val purchaseTitle: String? = null,
+    @SerializedName("purchase_url") val purchaseUrl: String? = null,
     @SerializedName("created_at") val createdAt: String? = null,
     @SerializedName("release_date") val releaseDate: String? = null,
     @SerializedName("playback_count") val playbackCount: Int = 0,
@@ -424,10 +447,25 @@ data class Track(
 
     @SerializedName("policy") val policy: String? = null,
     @SerializedName("monetization_model") val monetizationModel: String? = null,
+    @SerializedName("sharing") val sharing: String? = null,
+    @SerializedName("downloadable") val downloadable: Boolean? = null,
+    @SerializedName("feedable") val feedable: Boolean? = null,
+    @SerializedName("embeddable") val embeddable: Boolean? = null,
+    @SerializedName("streamable") val streamable: Boolean? = null,
+    @SerializedName("commentable") val commentable: Boolean? = null,
+    @SerializedName("reveal_comments") val revealComments: Boolean? = null,
+    @SerializedName("display_stats") val displayStats: Boolean? = null,
 
+    @SerializedName("waveform_url") val waveformUrl: String? = null,
+    @SerializedName("full_duration") val fullDuration: Long? = null,
     val source: String? = "soundcloud",
     val likedAt: Long? = null
 ) {
+    val displayArtist: String
+        get() = publisherMetadata?.artist?.takeIf { it.isNotBlank() }
+            ?: user?.username?.takeIf { it.isNotBlank() }
+            ?: ""
+
     val fullResArtwork: String
         get() {
             if (artworkUrl != null) return artworkUrl.replace("large", "t500x500")

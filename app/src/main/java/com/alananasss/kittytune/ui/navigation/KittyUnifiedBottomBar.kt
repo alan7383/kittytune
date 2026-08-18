@@ -97,7 +97,7 @@ fun KittyUnifiedBottomBar(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -204,7 +204,7 @@ fun KittyUnifiedBottomBar(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
