@@ -32,8 +32,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +45,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.AuthFlowManager
+import com.alananasss.kittytune.data.GuestDataTransferManager
+import kotlinx.coroutines.launch
 import com.alananasss.kittytune.data.PkceHelper
 import com.alananasss.kittytune.data.SessionManager
 import com.alananasss.kittytune.data.TokenManager
@@ -108,6 +112,11 @@ fun LoginScreen(
     val authCodeFromIntent by AuthFlowManager.authCode.collectAsState()
 
     var hasLaunchedBrowser by rememberSaveable { mutableStateOf(false) }
+    var showTransferDialog by remember { mutableStateOf(false) }
+    var isTransferring by remember { mutableStateOf(false) }
+    var transferProgress by remember { mutableFloatStateOf(0f) }
+    var guestSummary by remember { mutableStateOf<com.alananasss.kittytune.data.GuestDataSummary?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(authUrl) {
         if (!hasLaunchedBrowser) {
@@ -138,11 +147,50 @@ fun LoginScreen(
             if (success) {
                 SessionManager.harvestStoredSession(context)
                 SessionManager.requestSessionRefresh(context, force = true)
-                onLoginSuccess()
+
+                val summary = GuestDataTransferManager.getGuestDataSummary(context)
+                if (summary.hasData) {
+                    guestSummary = summary
+                    showTransferDialog = true
+                } else {
+                    onLoginSuccess()
+                }
             } else {
                 Log.w(TAG, "Token exchange failed after OAuth callback")
             }
         }
+    }
+
+    if (showTransferDialog && guestSummary != null) {
+        TransferGuestDataDialog(
+            summary = guestSummary!!,
+            isTransferring = isTransferring,
+            progress = transferProgress,
+            onTransfer = { transferLikes, transferUserPlaylists, transferLikedPlaylists ->
+                isTransferring = true
+                coroutineScope.launch {
+                    val ok = GuestDataTransferManager.transferData(
+                        context = context,
+                        transferLikes = transferLikes,
+                        transferUserPlaylists = transferUserPlaylists,
+                        transferLikedPlaylists = transferLikedPlaylists,
+                        onProgress = { transferProgress = it }
+                    )
+                    isTransferring = false
+                    showTransferDialog = false
+                    val msgRes = if (ok) R.string.transfer_guest_success else R.string.transfer_guest_error
+                    android.widget.Toast.makeText(context, context.getString(msgRes), android.widget.Toast.LENGTH_LONG).show()
+                    onLoginSuccess()
+                }
+            },
+            onDismiss = {
+                showTransferDialog = false
+                coroutineScope.launch {
+                    GuestDataTransferManager.clearGuestData(context)
+                    onLoginSuccess()
+                }
+            }
+        )
     }
 
     Scaffold(
