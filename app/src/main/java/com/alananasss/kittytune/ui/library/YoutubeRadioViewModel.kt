@@ -43,7 +43,7 @@
 
                         val newTracks = items.filterIsInstance<SongItem>().map { item ->
                             Track(
-                                id = item.id.hashCode().toLong(),
+                                id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
                                 user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
                                 artworkUrl = item.thumbnail,
@@ -82,7 +82,7 @@
 
                         val newTracks = result?.items?.filterIsInstance<SongItem>()?.map { item ->
                             Track(
-                                id = item.id.hashCode().toLong(),
+                                id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
                                 user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
                                 artworkUrl = item.thumbnail,

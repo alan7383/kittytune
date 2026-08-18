@@ -28,7 +28,8 @@
         val localCoverPath: String? = null,
         val permalinkUrl: String? = null,
         val isAlbum: Boolean = false,
-        val addedAt: Long = System.currentTimeMillis()
+        val addedAt: Long = System.currentTimeMillis(),
+        val isDownloaded: Boolean = false
     )
 
     @Entity(tableName = "playlist_track_cross_ref", primaryKeys = ["playlistId", "trackId"])

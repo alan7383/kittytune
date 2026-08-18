@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.LikeRepository
+import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.LocalArtist
@@ -33,6 +34,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -84,9 +86,11 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private val app = application
     private val prefs = application.getSharedPreferences("library_prefs", Context.MODE_PRIVATE)
     private val tokenManager = TokenManager(application)
+    private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 
     var userProfile by mutableStateOf<User?>(null)
     val likedTracks = mutableStateListOf<Track>()
+    val uploadedTracks = mutableStateListOf<Track>()
 
     private var onlineItemsCache = listOf<LibraryItem>()
     private var localItemsCache = listOf<LibraryItem>()
@@ -164,7 +168,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                             LibraryFilter.PLAYLISTS -> !isAlbum && !isStation
                             LibraryFilter.ALBUMS -> isAlbum && !isStation
                             LibraryFilter.STATIONS -> isStation
-                            LibraryFilter.ARTISTS -> false
+                            LibraryFilter.ARTISTS, LibraryFilter.UPLOADS -> false
                             null -> !isStation
                         }
                         val matchesOwnership = if (matchesType && !isStation) {
@@ -261,6 +265,24 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             LibrarySortOption.RECENTS
         }
     )
+    var uploadsSortOption by mutableStateOf(
+        try {
+            UploadsSortOption.valueOf(
+                prefs.getString("uploads_sort_option", UploadsSortOption.RECENTLY_ADDED.name) ?: UploadsSortOption.RECENTLY_ADDED.name
+            )
+        } catch (e: Exception) {
+            UploadsSortOption.RECENTLY_ADDED
+        }
+    )
+    var uploadsPrivacyFilter by mutableStateOf(
+        try {
+            UploadsPrivacyFilter.valueOf(
+                prefs.getString("uploads_privacy_filter", UploadsPrivacyFilter.ALL.name) ?: UploadsPrivacyFilter.ALL.name
+            )
+        } catch (e: Exception) {
+            UploadsPrivacyFilter.ALL
+        }
+    )
 
     private var isHydratingLikes = false
     private val isoParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
@@ -270,6 +292,20 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private val folderDao = AppDatabase.getDatabase(application).folderDao()
 
     init {
+        val cachedUploadsJson = prefs.getString("cached_user_uploads", null)
+        if (!cachedUploadsJson.isNullOrEmpty()) {
+            try {
+                val listType = object : com.google.gson.reflect.TypeToken<List<Track>>() {}.type
+                val cached: List<Track> = gson.fromJson(cachedUploadsJson, listType)
+                if (!cached.isNullOrEmpty()) {
+                    uploadedTracks.clear()
+                    uploadedTracks.addAll(cached)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
         viewModelScope.launch {
             snapshotFlow { isGridLayout }.collect { isGrid ->
                 prefs.edit().putBoolean("is_grid_layout", isGrid).apply()
@@ -279,6 +315,18 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             snapshotFlow { sortOption }.collect { opt ->
                 prefs.edit().putString("library_sort_option", opt.name).apply()
+            }
+        }
+
+        viewModelScope.launch {
+            snapshotFlow { uploadsSortOption }.collect { opt ->
+                prefs.edit().putString("uploads_sort_option", opt.name).apply()
+            }
+        }
+
+        viewModelScope.launch {
+            snapshotFlow { uploadsPrivacyFilter }.collect { filter ->
+                prefs.edit().putString("uploads_privacy_filter", filter.name).apply()
             }
         }
 
@@ -306,6 +354,34 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch {
+            com.alananasss.kittytune.ui.profile.ProfileViewModel.refreshTrigger.collect {
+                if (SessionManager.isClientIdValid.value) {
+                    loadData(forceRefresh = true)
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            MusicManager.trackUpdatedFlow.collect { updatedTrack ->
+                val idx = uploadedTracks.indexOfFirst { it.id == updatedTrack.id }
+                if (idx != -1) {
+                    uploadedTracks[idx] = updatedTrack
+                    prefs.edit().putString("cached_user_uploads", gson.toJson(uploadedTracks.toList())).apply()
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            MusicManager.trackDeletedFlow.collect { deletedTrackId ->
+                val idx = uploadedTracks.indexOfFirst { it.id == deletedTrackId }
+                if (idx != -1) {
+                    uploadedTracks.removeAt(idx)
+                    prefs.edit().putString("cached_user_uploads", gson.toJson(uploadedTracks.toList())).apply()
+                }
+            }
+        }
+
+        viewModelScope.launch {
             DownloadManager.deletedPlaylistIds.collect {
                 rebuildAllItems()
             }
@@ -326,7 +402,17 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch {
-            db.getAllPlaylists().collect { localPlaylists ->
+            combine(
+                db.getAllPlaylists(),
+                LikeRepository.likedPlaylists,
+                DownloadManager.deletedPlaylistIds
+            ) { allLocalPlaylists, likedIds, deletedIds ->
+                allLocalPlaylists.filter { local ->
+                    !deletedIds.contains(local.id) && (local.isUserCreated || local.id < 0 || local.isDownloaded || likedIds.contains(local.id))
+                }
+            }.collect { localPlaylists ->
+                val localIds = localPlaylists.map { it.id }.toSet()
+                DownloadManager.clearDeletedPlaylistIds(localIds)
                 localItemsCache = localPlaylists.map { local ->
                     val finalArtwork =
                         if (!local.localCoverPath.isNullOrEmpty()) local.localCoverPath else local.artworkUrl
@@ -388,9 +474,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             if (item is LibraryItem.PlaylistItem) !localIds.contains(item.playlist.id) && !deletedIds.contains(item.playlist.id) else true
         }
 
-        val filteredLocalItems = updatedLocalItems.filter { item ->
-            if (item is LibraryItem.PlaylistItem) !deletedIds.contains(item.playlist.id) else true
-        }
+        val filteredLocalItems = updatedLocalItems
 
         val folderItems = allFoldersCache.map { folder ->
             val childPlaylistsCount = (filteredOnlineItems + filteredLocalItems).count { item ->
@@ -592,6 +676,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
         if (isGuestUser) {
             userProfile = User(0, app.getString(R.string.guest_user), null)
+            uploadedTracks.clear()
+            prefs.edit().remove("cached_user_uploads").apply()
             isOfflineMode = false
             isLoading = false
             return
@@ -649,6 +735,24 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                         allCreated
                     }
                     val repostedPlaylistsDeferred = async { api.getMyPlaylistPosts() }
+                    val uploadedTracksDeferred = async {
+                        val tracks = mutableListOf<Track>()
+                        try {
+                            val firstPage = api.getUserTracks(user.id, limit = 50)
+                            tracks.addAll(firstPage.collection.filterNotNull())
+                            var nextUrl = firstPage.next_href
+                            var pageCount = 0
+                            while (nextUrl != null && pageCount < 5) {
+                                val nextPage = api.getUserTracksNextPage(nextUrl)
+                                tracks.addAll(nextPage.collection.filterNotNull())
+                                nextUrl = nextPage.next_href
+                                pageCount++
+                            }
+                        } catch (e: Exception) {
+                            Log.e("LibraryVM", "Failed to fetch uploaded tracks", e)
+                        }
+                        tracks
+                    }
                     val libraryAllDeferred = async {
                         try {
                             api.getMyLibraryAll(limit = 200)
@@ -709,7 +813,11 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                     val repostedResponse = repostedPlaylistsDeferred.await()
                     val libraryAllResponse = libraryAllDeferred.await()
                     val followingsResponse = followedArtistsDeferred.await()
-                    Log.d("LibraryVM", "Followings fetched count: ${followingsResponse.size}")
+                    val uploadedResponse = uploadedTracksDeferred.await()
+                    uploadedTracks.clear()
+                    uploadedTracks.addAll(uploadedResponse)
+                    prefs.edit().putString("cached_user_uploads", gson.toJson(uploadedResponse)).apply()
+                    Log.d("LibraryVM", "Followings fetched count: ${followingsResponse.size}, Uploaded tracks count: ${uploadedResponse.size}")
 
                     if (followingsResponse.isNotEmpty()) {
                         try {
@@ -750,7 +858,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                             }
                             newOnlineItems.add(LibraryItem.PlaylistItem(pl, date))
                         } else if (sp != null) {
-                            val numId = sp.urn?.hashCode()?.toLong() ?: sp.numericId
+                            val numId = sp.urn?.let { kotlin.math.abs(it.hashCode().toLong()) } ?: sp.numericId
                             if (numId != 0L && addedPlaylistIds.add(numId)) {
                                 trulyLikedIds.add(numId)
                                 val stationPermalink = sp.permalinkUrl
@@ -803,7 +911,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
                     libraryAllResponse?.collection?.forEach { item ->
                         val sp = item.systemPlaylist ?: return@forEach
-                        val numId = sp.urn?.hashCode()?.toLong() ?: sp.numericId
+                        val numId = sp.urn?.let { kotlin.math.abs(it.hashCode().toLong()) } ?: sp.numericId
                         if (numId != 0L && addedPlaylistIds.add(numId)) {
                             trulyLikedIds.add(numId)
                             val stationPermalink = sp.permalinkUrl
@@ -870,7 +978,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                                     nextUrl = page.next_href
                                 }
 
-                                LikeRepository.replaceAllLikes(allCollectedLikes)
+                                LikeRepository.replaceAllLikes(allCollectedLikes, currentUserId = user.id)
 
                             } catch (e: Exception) {
                                 e.printStackTrace()
@@ -896,7 +1004,8 @@ enum class LibraryFilter(val stringRes: Int) {
     PLAYLISTS(R.string.lib_playlists),
     ALBUMS(R.string.lib_albums),
     ARTISTS(R.string.lib_artists),
-    STATIONS(R.string.lib_stations)
+    STATIONS(R.string.lib_stations),
+    UPLOADS(R.string.lib_your_uploads)
 }
 
 enum class OwnershipFilter { ALL, CREATED, LIKED }
@@ -912,5 +1021,18 @@ enum class LibrarySortOption {
     DATE_ADDED,
     ALPHABETICAL,
     CREATOR
+}
+
+enum class UploadsSortOption(val stringRes: Int) {
+    RECENTLY_ADDED(R.string.uploads_sort_recently_added),
+    FIRST_ADDED(R.string.uploads_sort_first_added),
+    TITLE(R.string.uploads_sort_title),
+    ARTIST(R.string.uploads_sort_artist)
+}
+
+enum class UploadsPrivacyFilter(val stringRes: Int) {
+    ALL(R.string.uploads_filter_all),
+    PUBLIC(R.string.uploads_filter_public),
+    PRIVATE(R.string.uploads_filter_private)
 }
 
