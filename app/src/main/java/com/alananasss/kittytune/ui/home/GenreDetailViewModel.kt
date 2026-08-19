@@ -38,10 +38,15 @@ class GenreDetailViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     private fun autodetectCountry() {
-        val deviceCountryCode = Locale.getDefault().country.lowercase(Locale.ROOT)
+        val appLang = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication()).getAppLanguage()
+        val langCountryCode = when (appLang) {
+            com.alananasss.kittytune.data.local.AppLanguage.FRENCH -> "fr"
+            com.alananasss.kittytune.data.local.AppLanguage.ENGLISH -> "us"
+            else -> Locale.getDefault().country.lowercase(Locale.ROOT)
+        }
         val matchedIndex = OfficialPlaylistsData.sources.indexOfFirst {
             val sourceCode = it.soundCloudUsername.substringAfter("sc-playlists-").lowercase(Locale.ROOT)
-            sourceCode == deviceCountryCode || (deviceCountryCode == "gb" && sourceCode == "uk")
+            sourceCode == langCountryCode || (langCountryCode == "gb" && sourceCode == "uk")
         }
         if (matchedIndex != -1) {
             selectedSourceIndex = matchedIndex

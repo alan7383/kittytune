@@ -93,8 +93,8 @@
         private val _playTrack = MutableSharedFlow<Track>()
         val playTrack = _playTrack.asSharedFlow()
 
-        private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
-        private fun getString(resId: Int, vararg args: Any): String = getApplication<Application>().getString(resId, *args)
+        private fun getString(resId: Int): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId)
+        private fun getString(resId: Int, vararg args: Any): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId, *args)
 
         var userProfile by mutableStateOf<User?>(null)
 
@@ -124,8 +124,8 @@
         private var searchJob: Job? = null
         val personalizedCategories = mutableStateListOf<SearchCategory>()
 
-        val moodCategories = GenreData.getMoods(application)
-        val genreCategories = GenreData.getGenres(application)
+        val moodCategories get() = GenreData.getMoods(com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()))
+        val genreCategories get() = GenreData.getGenres(com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()))
 
         init {
             loadFromCache()
@@ -440,9 +440,14 @@
             }
         }
 
+        private fun getHomeCacheKey(): String {
+            val langCode = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication()).getAppLanguage().code
+            return "cached_home_data_$langCode"
+        }
+
         private fun loadFromCache() {
             try {
-                val json = prefs.getString("cached_home_data", null)
+                val json = prefs.getString(getHomeCacheKey(), null)
                 if (json != null) {
                     val data: HomeCacheData = gson.fromJson(json, object : TypeToken<HomeCacheData>() {}.type)
                     userProfile = data.user
@@ -468,7 +473,7 @@
                 try {
                     val sectionsCache = homeSections.map { section -> HomeSectionCache(section.title, section.subtitle, section.type, section.content.filterIsInstance<Track>(), section.content.filterIsInstance<Playlist>(), section.content.filterIsInstance<User>()) }
                     val data = HomeCacheData(userProfile, sectionsCache)
-                    prefs.edit().putString("cached_home_data", gson.toJson(data)).apply()
+                    prefs.edit().putString(getHomeCacheKey(), gson.toJson(data)).apply()
                 } catch (e: Exception) { e.printStackTrace() }
             }
         }

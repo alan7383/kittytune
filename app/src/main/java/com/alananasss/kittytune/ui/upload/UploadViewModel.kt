@@ -978,9 +978,9 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                         errorMsg.contains("UnknownError", ignoreCase = true)
                     ) {
                         storefrontErrorMessage =
-                            getApplication<Application>().getString(R.string.upload_error_storefront_next_pro)
+                            com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(R.string.upload_error_storefront_next_pro)
                     } else {
-                        storefrontErrorMessage = err.message ?: getApplication<Application>().getString(R.string.upload_error_storefront_save)
+                        storefrontErrorMessage = err.message ?: com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(R.string.upload_error_storefront_save)
                     }
                 }
             } catch (e: Exception) {
@@ -993,9 +993,9 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                     errorMsg.contains("UnknownError", ignoreCase = true)
                 ) {
                     storefrontErrorMessage =
-                        getApplication<Application>().getString(R.string.upload_error_storefront_next_pro)
+                        com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(R.string.upload_error_storefront_next_pro)
                 } else {
-                    storefrontErrorMessage = e.message ?: getApplication<Application>().getString(R.string.upload_error_storefront_save)
+                    storefrontErrorMessage = e.message ?: com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(R.string.upload_error_storefront_save)
                 }
             }
         }
@@ -1026,11 +1026,11 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                     onSuccess?.invoke()
                 }.onFailure { err ->
                     isDeletingStorefront = false
-                    storefrontErrorMessage = err.message ?: getApplication<Application>().getString(R.string.upload_error_storefront_delete)
+                    storefrontErrorMessage = err.message ?: com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(R.string.upload_error_storefront_delete)
                 }
             } catch (e: Exception) {
                 isDeletingStorefront = false
-                storefrontErrorMessage = e.message ?: getApplication<Application>().getString(R.string.upload_error_storefront_delete)
+                storefrontErrorMessage = e.message ?: com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(R.string.upload_error_storefront_delete)
             }
         }
     }

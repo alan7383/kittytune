@@ -1,26 +1,32 @@
 package com.alananasss.kittytune
 
 import android.app.Application
+import android.content.Context
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.map.Mapper
-import coil.request.Options
 import com.alananasss.kittytune.utils.Config
+import com.alananasss.kittytune.utils.LocaleUtils
 import com.zionhuang.innertube.YouTube
 import com.zionhuang.innertube.models.YouTubeLocale
 import java.io.File
-import java.util.Locale
 
 class KittyTuneApp : Application(), ImageLoaderFactory {
+
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(LocaleUtils.updateBaseContextLocale(base))
+    }
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        LocaleUtils.applyAppLanguage(this)
         Config.init(applicationContext)
 
+        val activeLocale = LocaleUtils.getLocale(this)
         YouTube.locale = YouTubeLocale(
-            gl = Locale.getDefault().country,
-            hl = Locale.getDefault().language
+            gl = activeLocale.country.ifBlank { "US" },
+            hl = activeLocale.language.ifBlank { "en" }
         )
     }
 

@@ -401,7 +401,7 @@ object SessionManager {
                 _showCaptchaFlow.value = true
                 webView.loadUrl(
                     captchaUrl,
-                    mapOf("Accept-Language" to Locale.getDefault().toLanguageTag())
+                    mapOf("Accept-Language" to com.alananasss.kittytune.utils.LocaleUtils.getAcceptLanguage(safeContext))
                 )
             }
 
