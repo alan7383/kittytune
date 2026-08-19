@@ -251,6 +251,7 @@ object GuestDataTransferManager {
                 dao.deletePlaylist(playlist.id)
                 dao.deletePlaylistRefs(playlist.id)
             }
+            dao.deleteNonDownloadedOnlinePlaylists()
             dao.cleanUnreferencedEmptyTracks()
             LikeRepository.clear()
             DownloadManager.notifyLibraryUpdated()

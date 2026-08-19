@@ -174,13 +174,28 @@ object LikeRepository {
             DownloadManager.clearDeletedPlaylistId(playlistId)
         } else {
             current.remove(playlistId)
-            DownloadManager.clearDeletedPlaylistId(playlistId)
+            DownloadManager.addDeletedPlaylistId(playlistId)
         }
         _likedPlaylists.value = current
         DownloadManager.notifyLibraryUpdated()
         saveLikedPlaylists()
 
         scope.launch {
+            if (!isLiked && playlistId > 0) {
+                try {
+                    val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(appContext)
+                    val dao = db.downloadDao()
+                    val p = dao.getPlaylist(playlistId)
+                    if (p != null && !p.isDownloaded && !p.isUserCreated) {
+                        dao.deletePlaylist(playlistId)
+                        dao.deletePlaylistRefs(playlistId)
+                        dao.cleanUnreferencedEmptyTracks()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             val tokenManager = com.alananasss.kittytune.data.TokenManager(appContext)
             if (tokenManager.isGuestMode()) return@launch
             val token = tokenManager.getAccessToken()

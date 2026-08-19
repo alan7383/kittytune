@@ -3,6 +3,9 @@ package com.alananasss.kittytune.data
 import android.content.Context
 import android.content.SharedPreferences
 import android.webkit.CookieManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class TokenManager(private val context: Context) {
     private val prefs: SharedPreferences =
@@ -137,6 +140,18 @@ class TokenManager(private val context: Context) {
         VibesRepository.clear()
         context.getSharedPreferences("home_cache", Context.MODE_PRIVATE).edit().clear().apply()
         context.getSharedPreferences("library_prefs", Context.MODE_PRIVATE).edit().clear().apply()
+
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context)
+                val dao = db.downloadDao()
+                dao.deleteNonDownloadedOnlinePlaylists()
+                dao.cleanUnreferencedEmptyTracks()
+                DownloadManager.notifyLibraryUpdated()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun resolveExpiresAt(now: Long, expiresInSeconds: Long?, scope: String?): Long {
