@@ -1,45 +1,72 @@
-# Contributing to KittyTune ( ◡‿◡ *)
+# contributing to kittytune (=^･ω･^=)
 
-Thanks for taking the time to help out. KittyTune is a community-driven project, and whether you're fixing a bug, suggesting a feature, or translating the app, I appreciate it.
-
-### Getting Started
-To get the project running on your machine:
-1. **Clone the repo**: `git clone https://github.com/alan7383/kittytune.git`
-2. **Setup Environment**: You'll need **JDK 21** and a recent version of Android Studio. 
-3. **Build**: Run `./gradlew assembleDebug` or simply open the project in Android Studio and let Gradle sync.
-
-### Submitting a Change
-1. **Branching**: Create a new branch for your change (e.g., `feature/new-effect` or `fix/crash-on-search`).
-2. **Commit Messages**: We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification (e.g., `feat:`, `fix:`, `perf:`, `refactor:`, `chore:`). These are used by `git-cliff` to automatically generate release changelogs.
-3. **Pull Requests**: Open a PR with a brief summary of what you've adjusted and why. If it's a UI change, a screenshot or recording in the PR description helps immensely.
-
-### Code Guidelines
-- **UI Architecture**: Everything is built with **Jetpack Compose**. Avoid adding legacy XML views.
-- **Pattern**: We follow a standard **MVVM** pattern. Keep your business logic in ViewModels and out of UI composables.
-- **Responsive Layouts**: Ensure UI components adapt gracefully to both phones (portrait & landscape) and tablets using `rememberWindowSizeInfo()`.
-- **Aesthetic**: Try to match the existing "Material 3 Expressive" vibe. Think fluid transitions, organic spring animations, and dynamic colors.
-- **Privacy**: Never add tracking, analytics, or required logins. KittyTune is designed to stay anonymous and private.
-
-### Translations ♬
-Translating the app is the best way to help out. We use **Crowdin** to manage translations, so you don't need to touch any code.
-
-1. **Visit our project**: [KittyTune on Crowdin](https://crowdin.com/project/kittytune)
-2. **Translate**: Pick your language and start typing. 
-3. **Sync**: Once translations are approved, they are automatically merged into the app via GitHub.
-
-*If your language isn't listed, just ask in the GitHub Discussions to have it added.*
-
-**Current languages & maintainers:**
-- **English & French**: [alananasss](https://github.com/alan7383)
-- **Hungarian**: [mattdotcat](https://t.me/b37246)
-- **Russian**: [Егор Белоусов (kivoyoso)](https://crowdin.com/profile/kivoyoso)
-
-### Reporting Issues
-If you find a bug, please open an issue with:
-- A clear description of the problem.
-- Steps to reproduce it.
-- Your device model and Android version.
-- Logcat output if you have it.
+Thanks for checking out KittyTune! Whether you want to fix a bug, add a feature, tweak audio processing, or translate the app, contributions are always welcome.
 
 ---
-*Happy coding! ♬ ( ˘ ɜ˘)*
+
+### > setup
+
+1. Clone the repo:
+   ```bash
+   git clone https://github.com/alan7383/kittytune.git
+   cd kittytune
+   ```
+2. What you need:
+   - JDK 21
+   - Android Studio (Ladybug / Meerkat or newer)
+   - Android NDK & CMake (via SDK Manager in Android Studio)
+3. Build:
+   ```bash
+   ./gradlew assembleDebug
+   ```
+   or run it directly from Android Studio.
+
+---
+
+### * project structure
+
+KittyTune is organized into a few modules:
+
+- `:app`: Jetpack Compose UI, ViewModels, Room DB, ExoPlayer / Media3, and C++ audio DSP (`app/src/main/cpp`)
+- `:innertube`: YouTube search and stream fallback
+- `:shazamkit`: song recognition via Shazam
+- `:lrclib` & `:kugou`: synchronized and plain lyrics
+- `:kizzy`: Discord Rich Presence
+
+---
+
+### $ code & pull requests
+
+A few simple guidelines:
+
+- Everything in UI is Jetpack Compose + Material 3 (no XML views)
+- MVVM pattern: keep logic in ViewModels and UI in composables
+- Make sure layouts look good on both phones and tablets with `rememberWindowSizeInfo()`
+- Zero telemetry or analytics, keep it private
+- Follow [conventional commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, etc.) for git-cliff changelogs
+
+When opening a PR, just add a short summary of what you did. If you touched the UI, adding a screenshot or recording in the PR description helps a lot!
+
+---
+
+### ♬ translations
+
+Translations are managed via **Crowdin**, so no code changes needed:
+
+1. Go to [KittyTune on Crowdin](https://crowdin.com/project/kittytune)
+2. Pick your language (or ask in discussions to add one)
+3. Translate at your own pace, approved strings get synced automatically
+
+---
+
+### ! issues & bugs
+
+If you run into a bug or crash:
+- Check if it hasn't been reported already
+- Open an issue with your device model, Android version, steps to reproduce, and logcat if possible
+
+---
+
+<p align="center">
+  thanks for contributing! (=｀ω´=)
+</p>
