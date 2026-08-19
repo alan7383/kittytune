@@ -130,6 +130,7 @@ fun LoginScreen(
         if (code != null && code != lastHandledCode) {
             lastHandledCode = code
             isLoading = true
+            val wasGuestMode = tokenManager.isGuestMode()
 
             val success = withContext(Dispatchers.IO) {
                 exchangeCodeForTokens(
@@ -148,10 +149,14 @@ fun LoginScreen(
                 SessionManager.harvestStoredSession(context)
                 SessionManager.requestSessionRefresh(context, force = true)
 
-                val summary = GuestDataTransferManager.getGuestDataSummary(context)
-                if (summary.hasData) {
-                    guestSummary = summary
-                    showTransferDialog = true
+                if (wasGuestMode) {
+                    val summary = GuestDataTransferManager.getGuestDataSummary(context)
+                    if (summary.hasData) {
+                        guestSummary = summary
+                        showTransferDialog = true
+                    } else {
+                        onLoginSuccess()
+                    }
                 } else {
                     onLoginSuccess()
                 }

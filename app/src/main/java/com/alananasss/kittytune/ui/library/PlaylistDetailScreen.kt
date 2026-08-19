@@ -244,10 +244,12 @@ fun PlaylistDetailScreen(
         }
     }
 
-    LaunchedEffect(playlistInDb, currentIdLong) {
+    LaunchedEffect(playlistInDb, currentIdLong, playlistUser, playerViewModel.currentUserId) {
         if (playlistInDb != null) {
-            val isLocalUser = currentIdLong < 0 || playlistInDb!!.isUserCreated
-            isLocalPlaylist = isDownloadedView || isLocalUser
+            val isOwnedByCurrentAccount = (playlistUser?.id != null && playlistUser?.id != 0L && playlistUser?.id == playerViewModel.currentUserId) ||
+                (playerViewModel.currentUser != null && (playlistInDb!!.artist == playerViewModel.currentUser?.username || playlistUser?.username == playerViewModel.currentUser?.username))
+            val isLocalUser = currentIdLong < 0 || (playlistInDb!!.isUserCreated && isOwnedByCurrentAccount)
+            isLocalPlaylist = isDownloadedView || currentIdLong < 0
             isUserCreated = isLocalUser
             playlistTitle = playlistInDb!!.title
             val dbCover = playlistInDb!!.localCoverPath ?: playlistInDb!!.artworkUrl
@@ -260,7 +262,9 @@ fun PlaylistDetailScreen(
             isUserCreated = true
         } else {
             isLocalPlaylist = isDownloadedView
-            isUserCreated = false
+            val isOwnedByCurrentAccount = (playlistUser?.id != null && playlistUser?.id != 0L && playlistUser?.id == playerViewModel.currentUserId) ||
+                (playerViewModel.currentUser != null && playlistUser?.username == playerViewModel.currentUser?.username)
+            isUserCreated = isOwnedByCurrentAccount
         }
     }
 
@@ -1811,6 +1815,10 @@ fun PlaylistDetailScreen(
                     onDetailsClick = {
                         showPlaylistOptionsSheet = false
                         showPlaylistDetailsSheet = true
+                    },
+                    onDeleteClick = {
+                        showPlaylistOptionsSheet = false
+                        showDeleteDialog = true
                     }
                 )
             }
@@ -1887,7 +1895,8 @@ fun PlaylistOptionsSheet(
     playlistSharing: String? = null,
     isUserOwned: Boolean = false,
     onSharingToggle: (String) -> Unit = {},
-    onDetailsClick: () -> Unit = {}
+    onDetailsClick: () -> Unit = {},
+    onDeleteClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     var showRemoveDownloadDialog by remember { mutableStateOf(false) }
@@ -1959,7 +1968,7 @@ fun PlaylistOptionsSheet(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing) {
+        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick) {
             mutableListOf(
                 DockOptionItem(
                     Icons.Rounded.PlayArrow,
@@ -2016,6 +2025,18 @@ fun PlaylistOptionsSheet(
                             onDismiss()
                         }
                     ))
+                }
+                if (onDeleteClick != null && playlistId != 0L && !isYoutubeRadio && playlistId != DownloadManager.LIKES_BATCH_ID) {
+                    add(
+                        DockOptionItem(
+                            icon = Icons.Rounded.Delete,
+                            text = context.getString(if (isUserOwned) R.string.menu_delete_playlist else R.string.dialog_delete_playlist_from_lib_title),
+                            onClick = {
+                                onDeleteClick()
+                                onDismiss()
+                            }
+                        )
+                    )
                 }
             }
         }

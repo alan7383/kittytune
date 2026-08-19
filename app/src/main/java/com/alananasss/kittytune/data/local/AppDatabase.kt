@@ -109,6 +109,9 @@
         @Query("DELETE FROM downloaded_tracks WHERE localAudioPath = '' AND id NOT IN (SELECT trackId FROM playlist_track_cross_ref)")
         suspend fun cleanUnreferencedEmptyTracks()
 
+        @Query("DELETE FROM downloaded_playlists WHERE id > 0 AND isDownloaded = 0")
+        suspend fun deleteNonDownloadedOnlinePlaylists()
+
         @Query("SELECT COUNT(*) FROM playlist_track_cross_ref WHERE trackId = :trackId")
         suspend fun getPlaylistRefCount(trackId: Long): Int
 

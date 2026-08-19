@@ -408,7 +408,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 DownloadManager.deletedPlaylistIds
             ) { allLocalPlaylists, likedIds, deletedIds ->
                 allLocalPlaylists.filter { local ->
-                    !deletedIds.contains(local.id) && (local.isUserCreated || local.id < 0 || local.isDownloaded || likedIds.contains(local.id))
+                    !deletedIds.contains(local.id) && (local.id < 0 || local.isDownloaded || likedIds.contains(local.id))
                 }
             }.collect { localPlaylists ->
                 val localIds = localPlaylists.map { it.id }.toSet()

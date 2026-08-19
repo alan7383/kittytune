@@ -753,6 +753,11 @@ object DownloadManager {
         }
     }
 
+    fun addDeletedPlaylistId(playlistId: Long) {
+        _deletedPlaylistIds.update { it + playlistId }
+        _libraryUpdated.tryEmit(Unit)
+    }
+
     fun clearDeletedPlaylistId(playlistId: Long) {
         _deletedPlaylistIds.update { it - playlistId }
         _libraryUpdated.tryEmit(Unit)
