@@ -14,11 +14,30 @@ import java.io.FileReader
 import java.io.FileWriter
 import kotlinx.coroutines.channels.awaitClose
 
+import androidx.annotation.StringRes
+import com.alananasss.kittytune.R
+
 enum class AppThemeMode { SYSTEM, LIGHT, DARK }
 enum class PlayerBackgroundStyle { THEME, GRADIENT, BLUR }
 enum class StartDestination { HOME, LIBRARY }
 enum class LyricsAlignment { LEFT, CENTER, RIGHT }
 enum class DiscordStatusDisplay { ACTIVITY, SOUNDCLOUD, ARTIST, SONG }
+
+enum class PlayerProgressMode { SOUNDCLOUD, HYBRID_WAVEFORM, CLASSIC_BAR }
+
+enum class PlayerActionButtonSlot(@StringRes val titleRes: Int) {
+    LIKE(R.string.slot_like),
+    COMMENTS(R.string.slot_comments),
+    SHARE(R.string.slot_share),
+    QUEUE(R.string.slot_queue),
+    AUDIO_FX(R.string.slot_audio_fx),
+    SHUFFLE(R.string.slot_shuffle),
+    REPEAT(R.string.slot_repeat),
+    LYRICS(R.string.slot_lyrics),
+    SLEEP_TIMER(R.string.slot_sleep_timer),
+    MORE(R.string.slot_more),
+    NONE(R.string.slot_none)
+}
 
 enum class AppLanguage(val code: String) {
     SYSTEM("system"),
@@ -34,6 +53,12 @@ class PlayerPreferences(context: Context) {
     private val queueFile = File(context.filesDir, "queue_cache.json")
 
     companion object {
+        const val KEY_PLAYER_PROGRESS_MODE = "player_progress_mode"
+        const val KEY_WAVEFORM_COMMENTS_POPUP = "waveform_comments_popup_enabled"
+        const val KEY_SOUNDCLOUD_REACTIONS_BAR = "soundcloud_reactions_bar_enabled"
+        const val KEY_SOUNDCLOUD_PARALLAX = "soundcloud_parallax_enabled"
+        const val KEY_SOUNDCLOUD_SLOT_PREFIX = "soundcloud_slot_"
+        const val KEY_CLASSIC_SLOT_PREFIX = "classic_slot_"
         const val KEY_LISTENING_STATS_ENABLED = "listening_stats_enabled"
         private const val KEY_TRACK_JSON = "last_track_json"
         private const val KEY_POSITION = "last_position"
@@ -109,6 +134,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
         private const val KEY_STOP_ON_TASK_CLEAR = "stop_on_task_clear"
         private const val KEY_NEW_PLAYER_DESIGN = "new_player_design_enabled"
+        private const val KEY_WAVEFORM_COMMENTS = "waveform_comments_enabled"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -258,6 +284,8 @@ class PlayerPreferences(context: Context) {
     fun getLyricsTranslationLang(): String {
         val code = prefs.getString(KEY_LYRICS_TRANSLATION_LANG, null)
         if (code != null) return code
+        val appLang = getAppLanguage()
+        if (appLang != AppLanguage.SYSTEM) return appLang.code
         return java.util.Locale.getDefault().language.take(2).lowercase()
     }
 
@@ -400,6 +428,102 @@ class PlayerPreferences(context: Context) {
     fun setStopOnTaskClear(enabled: Boolean) = prefs.edit { putBoolean(KEY_STOP_ON_TASK_CLEAR, enabled) }
     fun getNewPlayerDesignEnabled(): Boolean = prefs.getBoolean(KEY_NEW_PLAYER_DESIGN, true)
     fun setNewPlayerDesignEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_NEW_PLAYER_DESIGN, enabled) }
+
+    fun getWaveformCommentsEnabled(): Boolean = prefs.getBoolean(KEY_WAVEFORM_COMMENTS, false)
+    fun setWaveformCommentsEnabled(enabled: Boolean) {
+        prefs.edit {
+            putBoolean(KEY_WAVEFORM_COMMENTS, enabled)
+            putString(KEY_PLAYER_PROGRESS_MODE, if (enabled) PlayerProgressMode.SOUNDCLOUD.name else PlayerProgressMode.CLASSIC_BAR.name)
+        }
+    }
+
+    fun getPlayerProgressMode(): PlayerProgressMode {
+        val raw = prefs.getString(KEY_PLAYER_PROGRESS_MODE, null)
+        return if (raw != null) {
+            try { PlayerProgressMode.valueOf(raw) } catch (e: Exception) { PlayerProgressMode.CLASSIC_BAR }
+        } else {
+            PlayerProgressMode.CLASSIC_BAR
+        }
+    }
+
+    fun setPlayerProgressMode(mode: PlayerProgressMode) {
+        prefs.edit {
+            putString(KEY_PLAYER_PROGRESS_MODE, mode.name)
+            putBoolean(KEY_WAVEFORM_COMMENTS, mode != PlayerProgressMode.CLASSIC_BAR)
+        }
+    }
+
+    fun getWaveformCommentsPopupEnabled(): Boolean = prefs.getBoolean(KEY_WAVEFORM_COMMENTS_POPUP, true)
+    fun setWaveformCommentsPopupEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_WAVEFORM_COMMENTS_POPUP, enabled) }
+
+    fun getSoundCloudReactionsBarEnabled(): Boolean = prefs.getBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, true)
+    fun setSoundCloudReactionsBarEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, enabled) }
+
+    fun getSoundCloudParallaxEnabled(): Boolean = prefs.getBoolean(KEY_SOUNDCLOUD_PARALLAX, true)
+    fun setSoundCloudParallaxEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SOUNDCLOUD_PARALLAX, enabled) }
+
+    fun getSoundCloudSlot(index: Int): PlayerActionButtonSlot {
+        val defaultSlot = when(index) {
+            0 -> PlayerActionButtonSlot.LIKE
+            1 -> PlayerActionButtonSlot.COMMENTS
+            2 -> PlayerActionButtonSlot.SHARE
+            3 -> PlayerActionButtonSlot.QUEUE
+            4 -> PlayerActionButtonSlot.MORE
+            else -> PlayerActionButtonSlot.NONE
+        }
+        val raw = prefs.getString("${KEY_SOUNDCLOUD_SLOT_PREFIX}$index", null) ?: return defaultSlot
+        return try { PlayerActionButtonSlot.valueOf(raw) } catch (e: Exception) { defaultSlot }
+    }
+
+    fun setSoundCloudSlot(index: Int, slot: PlayerActionButtonSlot) {
+        prefs.edit { putString("${KEY_SOUNDCLOUD_SLOT_PREFIX}$index", slot.name) }
+    }
+
+    fun getClassicSlot(index: Int): PlayerActionButtonSlot {
+        val defaultSlot = when(index) {
+            0 -> PlayerActionButtonSlot.AUDIO_FX
+            1 -> PlayerActionButtonSlot.SHUFFLE
+            2 -> PlayerActionButtonSlot.REPEAT
+            3 -> PlayerActionButtonSlot.QUEUE
+            else -> PlayerActionButtonSlot.NONE
+        }
+        val raw = prefs.getString("${KEY_CLASSIC_SLOT_PREFIX}$index", null) ?: return defaultSlot
+        return try { PlayerActionButtonSlot.valueOf(raw) } catch (e: Exception) { defaultSlot }
+    }
+
+    fun setClassicSlot(index: Int, slot: PlayerActionButtonSlot) {
+        prefs.edit { putString("${KEY_CLASSIC_SLOT_PREFIX}$index", slot.name) }
+    }
+
+    fun getSlot(mode: PlayerProgressMode, index: Int): PlayerActionButtonSlot {
+        return if (mode == PlayerProgressMode.SOUNDCLOUD) {
+            getSoundCloudSlot(index)
+        } else {
+            getClassicSlot(index)
+        }
+    }
+
+    fun setSlot(mode: PlayerProgressMode, index: Int, slot: PlayerActionButtonSlot) {
+        if (mode == PlayerProgressMode.SOUNDCLOUD) {
+            setSoundCloudSlot(index, slot)
+        } else {
+            setClassicSlot(index, slot)
+        }
+    }
+
+    fun resetSoundCloudCustomization() {
+        prefs.edit {
+            remove(KEY_WAVEFORM_COMMENTS_POPUP)
+            remove(KEY_SOUNDCLOUD_REACTIONS_BAR)
+            remove(KEY_SOUNDCLOUD_PARALLAX)
+            for (i in 0..4) {
+                remove("${KEY_SOUNDCLOUD_SLOT_PREFIX}$i")
+            }
+            for (i in 0..3) {
+                remove("${KEY_CLASSIC_SLOT_PREFIX}$i")
+            }
+        }
+    }
     fun bottomMenuBlurFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_BOTTOM_MENU_BLUR) trySend(getBottomMenuBlurEnabled())
