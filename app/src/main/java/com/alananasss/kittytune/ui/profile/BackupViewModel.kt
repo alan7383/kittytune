@@ -17,17 +17,20 @@
         var isLoading by mutableStateOf(false)
         var statusMessage by mutableStateOf<String?>(null)
 
+        private fun getString(resId: Int): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId)
+        private fun getString(resId: Int, vararg args: Any): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId, *args)
+
         fun backup(uri: Uri) {
             viewModelScope.launch {
                 isLoading = true
                 try {
                     BackupManager.createBackup(getApplication(), uri)
-                    statusMessage = getApplication<Application>().getString(R.string.backup_success)
-                    Toast.makeText(getApplication(), getApplication<Application>().getString(R.string.backup_toast_success), Toast.LENGTH_SHORT).show()
+                    statusMessage = getString(R.string.backup_success)
+                    Toast.makeText(getApplication(), getString(R.string.backup_toast_success), Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    statusMessage = getApplication<Application>().getString(R.string.backup_error, e.message ?: "")
-                    Toast.makeText(getApplication(), getApplication<Application>().getString(R.string.backup_toast_error), Toast.LENGTH_LONG).show()
+                    statusMessage = getString(R.string.backup_error, e.message ?: "")
+                    Toast.makeText(getApplication(), getString(R.string.backup_toast_error), Toast.LENGTH_LONG).show()
                 } finally {
                     isLoading = false
                 }
@@ -39,12 +42,12 @@
                 isLoading = true
                 try {
                     BackupManager.restoreBackup(getApplication(), uri)
-                    statusMessage = getApplication<Application>().getString(R.string.restore_success)
-                    Toast.makeText(getApplication(), getApplication<Application>().getString(R.string.restore_toast_success), Toast.LENGTH_LONG).show()
+                    statusMessage = getString(R.string.restore_success)
+                    Toast.makeText(getApplication(), getString(R.string.restore_toast_success), Toast.LENGTH_LONG).show()
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    statusMessage = getApplication<Application>().getString(R.string.backup_error, e.message ?: "")
-                    Toast.makeText(getApplication(), getApplication<Application>().getString(R.string.restore_toast_error), Toast.LENGTH_LONG).show()
+                    statusMessage = getString(R.string.backup_error, e.message ?: "")
+                    Toast.makeText(getApplication(), getString(R.string.restore_toast_error), Toast.LENGTH_LONG).show()
                 } finally {
                     isLoading = false
                 }

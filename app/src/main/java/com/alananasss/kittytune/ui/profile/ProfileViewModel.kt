@@ -103,8 +103,8 @@
             }
         }
 
-        private fun getString(@StringRes resId: Int): String = getApplication<Application>().getString(resId)
-        private fun getString(@StringRes resId: Int, vararg formatArgs: Any): String = getApplication<Application>().getString(resId, *formatArgs)
+        private fun getString(@StringRes resId: Int): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId)
+        private fun getString(@StringRes resId: Int, vararg formatArgs: Any): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId, *formatArgs)
 
         private suspend fun fetchAllUserTracks(userId: Long): List<Track> {
             val allUserTracks = mutableListOf<Track>()

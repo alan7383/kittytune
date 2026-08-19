@@ -948,7 +948,7 @@ fun HomeFilterRow(
                 modifier = Modifier.height(40.dp)
             ) {
                 Text(
-                    text = category.title,
+                    text = if (category.titleRes != 0) stringResource(category.titleRes) else category.title,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium
                 )
@@ -1549,7 +1549,7 @@ fun SearchCategoryCard(
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = category.title,
+                    text = if (category.titleRes != 0) stringResource(category.titleRes) else category.title,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 0.5.sp

@@ -17,6 +17,10 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
     private var okHttpClient: OkHttpClient? = null
 
+    fun resetClient() {
+        okHttpClient = null
+    }
+
     fun create(context: Context): SoundCloudApi {
         return Retrofit.Builder()
             .baseUrl(Config.BASE_URL)
@@ -76,11 +80,13 @@ object RetrofitClient {
                 val androidRelease = android.os.Build.VERSION.RELEASE ?: "10"
                 val deviceModel = android.os.Build.MODEL ?: "Android"
                 val customUserAgent = "SoundCloud/$buildVersion (Android $androidRelease; $deviceModel)"
+                val acceptLanguage = com.alananasss.kittytune.utils.LocaleUtils.getAcceptLanguage(appContext)
 
                 val requestBuilder = originalRequest.newBuilder()
                     .url(newUrl)
                     .header("User-Agent", customUserAgent)
                     .header("Accept", "application/json")
+                    .header("Accept-Language", acceptLanguage)
                     .header("App-Version", "330120")
                     .header("UDID", deviceId)
 
