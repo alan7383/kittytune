@@ -78,10 +78,26 @@ data class UnifiedLyricResult(
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val gson = com.alananasss.kittytune.utils.AppUtils.gson
-    private val api = RetrofitClient.create(application)
+    val api = RetrofitClient.create(application)
     private val context get() = getApplication<Application>().applicationContext
     private val playerPrefs = PlayerPreferences(context)
     private val tokenManager = TokenManager(context)
+
+    suspend fun getWaveformForTrack(track: Track): FloatArray? {
+        return com.alananasss.kittytune.data.WaveformRepository.getWaveform(context, track, api)
+    }
+
+    fun prefetchWaveformsForQueue(centerIndex: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val start = (centerIndex - 2).coerceAtLeast(0)
+            val end = (centerIndex + 5).coerceAtMost(_queue.size - 1)
+            for (i in start..end) {
+                _queue.getOrNull(i)?.let { t ->
+                    com.alananasss.kittytune.data.WaveformRepository.prefetchWaveform(context, t, api)
+                }
+            }
+        }
+    }
 
     private val _uiEvent = MutableSharedFlow<String>()
     val uiEvent = _uiEvent.asSharedFlow()
@@ -90,6 +106,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var currentUser by mutableStateOf<User?>(null)
     var currentTrack by mutableStateOf<Track?>(null)
     var isPlaying by mutableStateOf(false)
+    var playWhenReady by mutableStateOf(false)
     var isLoading by mutableStateOf(false)
     var duration by mutableLongStateOf(0L)
     var currentPosition by mutableLongStateOf(0L)
@@ -101,6 +118,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var backgroundColor by mutableStateOf(Color(0xFF1E1E1E))
     val hasLyrics by derivedStateOf { lyricsLines.isNotEmpty() || !rawPlainLyrics.isNullOrBlank() }
     var commentSort by mutableStateOf(CommentSort.NEWEST)
+
+    data class WaveformReactionParticle(
+        val id: String = java.util.UUID.randomUUID().toString(),
+        val emoji: String,
+        val avatarUrl: String?,
+        val timestamp: Long
+    )
+
+    var activeWaveformReaction by mutableStateOf<WaveformReactionParticle?>(null)
+    var trackReactionCounts by mutableStateOf<Map<String, Int>>(emptyMap())
+    var trackReactionUsers by mutableStateOf<Map<String, List<TrackReactionUserItem>>>(emptyMap())
+    var isReactionsLoading by mutableStateOf(false)
 
     var currentContext by mutableStateOf<PlaybackContext?>(null)
 
@@ -259,8 +288,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun getString(resId: Int): String = getApplication<Application>().getString(resId)
-    private fun getString(resId: Int, vararg args: Any): String = getApplication<Application>().getString(resId, *args)
+    private fun getString(resId: Int): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId)
+    private fun getString(resId: Int, vararg args: Any): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId, *args)
 
     private fun parseIdFromMediaId(mediaId: String): Long {
         var cleanId = mediaId
@@ -274,15 +303,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private val playerListener = object : Player.Listener {
+        override fun onPlayWhenReadyChanged(playWhenReadyState: Boolean, reason: Int) {
+            playWhenReady = playWhenReadyState
+        }
+
         override fun onIsPlayingChanged(isPlayingState: Boolean) {
             isPlaying = isPlayingState
-            saveStateAsync(saveQueue = false)
             if (isPlayingState) {
+                playWhenReady = true
                 startProgressUpdate()
                 SoundCloudTelemetryTracker.onTrackResumed(currentPosition)
             } else {
                 SoundCloudTelemetryTracker.onTrackPaused(currentPosition)
             }
+            saveStateAsync(saveQueue = false)
         }
 
         override fun onTimelineChanged(timeline: Timeline, reason: Int) {
@@ -1308,7 +1342,29 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun navigateToTrackDetails(trackId: Long, initialTab: Int = 0) {
-        showMenuSheet = false; showDetailsSheet = false; navigateToPlaylistId = "track_detail:$trackId?tab=$initialTab"
+        showMenuSheet = false
+        showDetailsSheet = false
+        showCommentsSheet = false
+        isPlayerExpanded = false
+        navigateToPlaylistId = "track_detail:$trackId?tab=$initialTab"
+    }
+
+    fun toggleFollowArtist(user: User?) {
+        if (user == null || user.id <= 0) return
+        viewModelScope.launch {
+            try {
+                com.alananasss.kittytune.data.DownloadManager.toggleSaveArtist(user)
+                val isSaved = com.alananasss.kittytune.data.DownloadManager.isArtistSaved(user.id)
+                val artistName = user.username ?: getString(R.string.the_artist)
+                if (isSaved) {
+                    emitUiEvent(getString(R.string.toast_subscribed_to, artistName))
+                } else {
+                    emitUiEvent(getString(R.string.toast_unsubscribed_from, artistName))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun navigateToEditTrack(track: Track) {
@@ -1472,6 +1528,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val t = specificTrack ?: selectedTrackForSheet ?: trackForMenu ?: currentTrack ?: return
         if (refresh) {
             commentsList.clear(); commentNextHref = null
+            loadTrackReactions(t.id)
         }
         if (!refresh && commentNextHref == null && commentsList.isNotEmpty()) return
 
@@ -1546,6 +1603,147 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun emojiToCodepoint(emoji: String): String {
+        val trimmed = emoji.trim()
+        return when (trimmed) {
+            "🔥" -> "1f525"
+            "👏" -> "1f44f"
+            "🥹" -> "1f979"
+            "❤️" -> "2764"
+            "😍" -> "1f60d"
+            else -> {
+                try {
+                    trimmed.codePoints()
+                        .filter { it != 0xFE0F }
+                        .mapToObj { Integer.toHexString(it) }
+                        .toArray()
+                        .joinToString("-")
+                } catch (e: Exception) {
+                    trimmed
+                }
+            }
+        }
+    }
+
+    fun codepointToEmoji(codepoint: String): String {
+        val clean = codepoint.removePrefix("sc:interactiontypevalue:").trim().lowercase()
+        return when (clean) {
+            "1f525" -> "🔥"
+            "1f44f" -> "👏"
+            "1f979" -> "🥹"
+            "2764", "2764-fe0f" -> "❤️"
+            "1f60d" -> "😍"
+            else -> {
+                try {
+                    val cps = clean.split("-").map { it.toInt(16) }
+                    String(cps.toIntArray(), 0, cps.size)
+                } catch (e: Exception) {
+                    clean
+                }
+            }
+        }
+    }
+
+    private fun parseTimestampFromUrn(urn: String?): Long {
+        if (urn == null) return 0L
+        val clean = urn.removePrefix("ts:").trim()
+        if (clean.contains("#")) {
+            val fragment = clean.substringAfter("#")
+            if (fragment.contains("=")) {
+                val value = fragment.substringAfter("=").toLongOrNull() ?: 0L
+                return if (fragment.contains("seconds", ignoreCase = true)) value * 1000L else value
+            }
+            val raw = fragment.toLongOrNull() ?: 0L
+            return if (raw in 1..9999L) raw * 1000L else raw
+        }
+        val raw = clean.toLongOrNull() ?: 0L
+        return if (raw in 1..9999L) raw * 1000L else raw
+    }
+
+    fun loadTrackReactions(trackId: Long) {
+        viewModelScope.launch {
+            try {
+                val parentUrn = "soundcloud:tracks:$trackId"
+                val query =
+                    "query InteractionCountsByParent(" + '$' + "parentUrn: String!, " + '$' + "interactionTypeUrn: String!) { interactionCountsByParent(parentUrn: " + '$' + "parentUrn, interactionTypeUrn: " + '$' + "interactionTypeUrn) { interactionCounts { count, interactionTypeValueUrn } } }"
+                val variables = GraphQlVariablesReactionCounts(parentUrn = parentUrn)
+                val request = GraphQlRequest("InteractionCountsByParent", query, variables)
+                val responseJson = api.postGraphQl("https://graph.soundcloud.com/graphql", request)
+                val countsMap = mutableMapOf<String, Int>()
+                val parentObj = responseJson.getAsJsonObject("data")?.getAsJsonObject("interactionCountsByParent")
+                val countsArray = parentObj?.getAsJsonArray("interactionCounts")
+                countsArray?.forEach { el ->
+                    val obj = el.asJsonObject
+                    val urn = obj.get("interactionTypeValueUrn")?.asString ?: ""
+                    val count = obj.get("count")?.asInt ?: 0
+                    val rawCodepoint = urn.substringAfter("sc:interactiontypevalue:", "")
+                    val emoji = codepointToEmoji(rawCodepoint)
+                    if (emoji.isNotEmpty() && count > 0) {
+                        countsMap[emoji] = count
+                    }
+                }
+                if (countsMap.isNotEmpty()) {
+                    trackReactionCounts = countsMap
+                    countsMap.keys.forEach { emoji ->
+                        loadReactionUsersForEmoji(trackId, emoji)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun loadReactionUsersForEmoji(trackId: Long, emoji: String) {
+        viewModelScope.launch {
+            try {
+                isReactionsLoading = true
+                val parentUrn = "soundcloud:tracks:$trackId"
+                val codepoint = emojiToCodepoint(emoji)
+                val interactionTypeValueUrn = "sc:interactiontypevalue:$codepoint"
+                val query =
+                    "query PaginatedReactionUsers(" + '$' + "interactionTypeValueUrn: String!, " + '$' + "parentUrn: String!, " + '$' + "interactionTypeUrn: String!, " + '$' + "cursor: String!, " + '$' + "limit: Int!) { parentInteractions(interactionTypeValueUrn: " + '$' + "interactionTypeValueUrn, parentUrn: " + '$' + "parentUrn, interactionTypeUrn: " + '$' + "interactionTypeUrn, limit: " + '$' + "limit, cursor: " + '$' + "cursor) { pageInfo { endCursor, hasNextPage } interactions { targetUrn, user { urn, username, userAvatarUrlTemplate } } } }"
+                val variables = GraphQlVariablesReactionUsers(
+                    parentUrn = parentUrn,
+                    interactionTypeValueUrn = interactionTypeValueUrn,
+                    limit = 50
+                )
+                val request = GraphQlRequest("PaginatedReactionUsers", query, variables)
+                val responseJson = api.postGraphQl("https://graph.soundcloud.com/graphql", request)
+                val parentObj = responseJson.getAsJsonObject("data")?.getAsJsonObject("parentInteractions")
+                val interactionsArray = parentObj?.getAsJsonArray("interactions")
+                val users = mutableListOf<TrackReactionUserItem>()
+                interactionsArray?.forEachIndexed { index, el ->
+                    val obj = el.asJsonObject
+                    val targetUrn = obj.get("targetUrn")?.asString ?: ""
+                    val userObj = obj.getAsJsonObject("user")
+                    val username = userObj?.get("username")?.asString ?: "Utilisateur"
+                    val avatarTemplate = userObj?.get("userAvatarUrlTemplate")?.asString
+                    val avatarUrl = if (!avatarTemplate.isNullOrBlank()) {
+                        avatarTemplate.replace("{size}", "t50x50")
+                    } else null
+                    val urn = userObj?.get("urn")?.asString ?: "user_$index"
+                    val timestampMs = parseTimestampFromUrn(targetUrn)
+                    users.add(
+                        TrackReactionUserItem(
+                            id = "${urn}_${targetUrn}_$index",
+                            username = username,
+                            avatarUrl = avatarUrl,
+                            timestampSeconds = timestampMs
+                        )
+                    )
+                }
+                val updated = trackReactionUsers.toMutableMap()
+                updated[emoji] = users
+                trackReactionUsers = updated
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isReactionsLoading = false
+            }
+        }
+    }
+
     fun startReplying(comment: Comment) {
         replyingToComment = comment
     }
@@ -1586,6 +1784,110 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 } else emitUiEvent(getString(R.string.error_generic))
             } finally {
                 isPostingComment = false
+            }
+        }
+    }
+
+    var userReactedItems by mutableStateOf<Set<String>>(emptySet())
+
+    fun isUserReacted(emoji: String, trackId: Long, second: Long): Boolean {
+        val key = "${trackId}_${emoji}_$second"
+        if (userReactedItems.contains(key)) return true
+        val users = trackReactionUsers[emoji]
+        if (currentUserId > 0L && users != null) {
+            return users.any { it.timestampSeconds / 1000L == second && it.id.contains(currentUserId.toString()) }
+        }
+        return false
+    }
+
+    fun toggleQuickReaction(emoji: String, targetTrack: Track? = null) {
+        val t = targetTrack ?: selectedTrackForSheet ?: trackForMenu ?: currentTrack ?: return
+        val pos = currentPosition
+        val seconds = (pos / 1000L).coerceAtLeast(0L)
+        if (isUserReacted(emoji, t.id, seconds)) {
+            removeQuickReaction(emoji, t, seconds)
+        } else {
+            sendQuickReaction(emoji, t)
+        }
+    }
+
+    fun sendQuickReaction(emoji: String, targetTrack: Track? = null) {
+        val t = targetTrack ?: selectedTrackForSheet ?: trackForMenu ?: currentTrack ?: return
+        val pos = currentPosition
+        val seconds = (pos / 1000L).coerceAtLeast(0L)
+        val userAvatar = currentUser?.avatarUrl
+
+        activeWaveformReaction = WaveformReactionParticle(
+            emoji = emoji,
+            avatarUrl = userAvatar,
+            timestamp = pos
+        )
+
+        val key = "${t.id}_${emoji}_$seconds"
+        userReactedItems = userReactedItems + key
+
+        viewModelScope.launch {
+            try {
+                val parentUrn = "soundcloud:tracks:${t.id}"
+                val targetUrn = "$parentUrn#secondsTimestamp=$seconds"
+                val codepoint = emojiToCodepoint(emoji)
+                val interactionTypeValueUrn = "sc:interactiontypevalue:$codepoint"
+                val mutation = """
+                    mutation UpsertInteraction(${'$'}input: InteractionInput!) {
+                        upsertInteraction(input: ${'$'}input) {
+                            targetUrn
+                        }
+                    }
+                """.trimIndent()
+                val variables = GraphQlVariablesInteraction(
+                    input = InteractionInput(
+                        parentUrn = parentUrn,
+                        targetUrn = targetUrn,
+                        interactionTypeUrn = "sc:interactiontype:trackreaction",
+                        interactionTypeValueUrn = interactionTypeValueUrn
+                    )
+                )
+                val request = GraphQlRequest("UpsertInteraction", mutation, variables)
+                api.postGraphQl("https://graph.soundcloud.com/graphql", request)
+                loadTrackReactions(t.id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun removeQuickReaction(emoji: String, targetTrack: Track? = null, timestampSeconds: Long? = null) {
+        val t = targetTrack ?: selectedTrackForSheet ?: trackForMenu ?: currentTrack ?: return
+        val pos = currentPosition
+        val seconds = timestampSeconds ?: (pos / 1000L).coerceAtLeast(0L)
+
+        val key = "${t.id}_${emoji}_$seconds"
+        userReactedItems = userReactedItems - key
+
+        viewModelScope.launch {
+            try {
+                val parentUrn = "soundcloud:tracks:${t.id}"
+                val targetUrn = "$parentUrn#secondsTimestamp=$seconds"
+                val codepoint = emojiToCodepoint(emoji)
+                val interactionTypeValueUrn = "sc:interactiontypevalue:$codepoint"
+                val mutation = """
+                    mutation RemoveInteraction(${'$'}input: InteractionInput!) {
+                        removeInteraction(input: ${'$'}input)
+                    }
+                """.trimIndent()
+                val variables = GraphQlVariablesInteraction(
+                    input = InteractionInput(
+                        parentUrn = parentUrn,
+                        targetUrn = targetUrn,
+                        interactionTypeUrn = "sc:interactiontype:trackreaction",
+                        interactionTypeValueUrn = interactionTypeValueUrn
+                    )
+                )
+                val request = GraphQlRequest("RemoveInteraction", mutation, variables)
+                api.postGraphQl("https://graph.soundcloud.com/graphql", request)
+                loadTrackReactions(t.id)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -1724,6 +2026,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         updateQueueState(); saveStateAsync(saveQueue = true)
+        prefetchWaveformsForQueue(effectiveStartIndex)
 
         if (context != null && !isHistoryContext) {
             val isStation =
@@ -1764,22 +2067,29 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             true
     }
 
-    fun skipToQueueItem(index: Int) {
+    fun skipToQueueItem(index: Int, autoPlay: Boolean = isPlaying) {
         playTrackAtIndex(
             index,
-            addToHistory = false
+            addToHistory = false,
+            autoPlay = autoPlay
         ); AchievementManager.trackSkipped(); AchievementManager.increment("skipper_100"); AchievementManager.increment(
             "skipper_1000"
         )
     }
 
-    private fun playTrackAtIndex(index: Int, addToHistory: Boolean = true, isCrossfade: Boolean = false) {
+    private fun playTrackAtIndex(
+        index: Int,
+        addToHistory: Boolean = true,
+        isCrossfade: Boolean = false,
+        autoPlay: Boolean = isPlaying
+    ) {
         if (index < 0 || index >= _queue.size) {
             currentContext = null; return
         }
         currentQueueIndex = index
         val trackToPlay = _queue[index]
 
+        playWhenReady = autoPlay
         isLoading = true
         duration = trackToPlay.durationMs ?: 0L
         if (!isCrossfade) {
@@ -1820,7 +2130,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 startPositionMs = if (isCrossfade) currentPosition else 0L
             )
 
-            playRobustly(index, autoPlay = true, isCrossfade = isCrossfade)
+            playRobustly(index, autoPlay = autoPlay, isCrossfade = isCrossfade)
+
+            prefetchWaveformsForQueue(index)
 
             if (addToHistory && currentContext?.navigationId?.startsWith("station:") != true && currentContext?.navigationId?.startsWith(
                     "yt_radio:"
@@ -1833,6 +2145,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun playNext(manual: Boolean = true, isCrossfade: Boolean = false, ignoreRepeatOne: Boolean = false) {
         if (isAutoplayRadioLoading) return
+
+        val shouldAutoPlay = if (manual) isPlaying else true
 
         if (manual && player.currentPosition > 2000) {
             incrementPlayCount()
@@ -1854,7 +2168,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             currentSessionListenMs = 0L
-            playTrackAtIndex(currentQueueIndex, addToHistory = false, isCrossfade = isCrossfade)
+            playTrackAtIndex(
+                currentQueueIndex,
+                addToHistory = false,
+                isCrossfade = isCrossfade,
+                autoPlay = shouldAutoPlay
+            )
             return
         }
 
@@ -1867,10 +2186,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         if (nextIndex < _queue.size) {
-            playTrackAtIndex(nextIndex, addToHistory = false, isCrossfade = isCrossfade)
+            playTrackAtIndex(nextIndex, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
         } else {
             if (repeatMode == RepeatMode.ALL) {
-                playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade)
+                playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
             } else {
                 val autoPlayEnabled = playerPrefs.getAutoplayEnabled()
                 val isYoutube = currentTrack?.source == "youtube"
@@ -1887,7 +2206,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                         val newNextIndex = currentQueueIndex + 1
                         if (newNextIndex < _queue.size) {
-                            playTrackAtIndex(newNextIndex, addToHistory = false, isCrossfade = isCrossfade)
+                            playTrackAtIndex(
+                                newNextIndex,
+                                addToHistory = false,
+                                isCrossfade = isCrossfade,
+                                autoPlay = shouldAutoPlay
+                            )
                         } else {
                             MusicManager.player.pause()
                             MusicManager.player.seekTo(0)
@@ -1991,6 +2315,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun playPrevious(manual: Boolean = true, isCrossfade: Boolean = false) {
+        val shouldAutoPlay = if (manual) isPlaying else true
         if (manual) {
             currentTrack?.let { track ->
                 if (playerPrefs.getListeningStatsEnabled() && currentSessionListenMs > 0) {
@@ -2001,9 +2326,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         val prevIndex = currentQueueIndex - 1
         if (prevIndex >= 0) {
-            playTrackAtIndex(prevIndex, addToHistory = false, isCrossfade = isCrossfade)
+            playTrackAtIndex(prevIndex, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
         } else {
-            playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade)
+            playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
         }
     }
 
@@ -2167,10 +2492,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun togglePlayPause() {
-        if (player.isPlaying) {
+        if (player.isPlaying || playWhenReady) {
+            playWhenReady = false
             player.pause()
             saveStateAsync(savePositionOnly = true)
         } else {
+            playWhenReady = true
             if (player.currentMediaItem == null && currentTrack != null) {
                 pendingSeekPosition = currentPosition
                 playPlaylist(
@@ -2192,6 +2519,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         SoundCloudTelemetryTracker.onTrackSeeked(position)
         saveStateAsync(saveQueue = false)
     }
+
+    /** Fetches the waveform_url for a track using the single-track endpoint (includes waveform_url). */
+    suspend fun fetchWaveformUrl(trackId: Long): String? {
+        return try {
+            api.getTrackById(trackId).waveformUrl
+        } catch (e: Exception) {
+            android.util.Log.w("WaveformPlayer", "fetchWaveformUrl failed for $trackId: ${e.message}")
+            null
+        }
+    }
+
 
     fun toggleLike() {
         val t = currentTrack ?: return

@@ -237,6 +237,27 @@ data class GraphQlVariablesUserCheck(
     @SerializedName("targetUrns") val targetUrns: List<String>
 )
 
+data class GraphQlVariablesReactionCounts(
+    @SerializedName("parentUrn") val parentUrn: String,
+    @SerializedName("interactionTypeUrn") val interactionTypeUrn: String = "sc:interactiontype:trackreaction"
+)
+
+data class GraphQlVariablesReactionUsers(
+    @SerializedName("parentUrn") val parentUrn: String,
+    @SerializedName("interactionTypeValueUrn") val interactionTypeValueUrn: String,
+    @SerializedName("interactionTypeUrn") val interactionTypeUrn: String = "sc:interactiontype:trackreaction",
+    @SerializedName("limit") val limit: Int = 50,
+    @SerializedName("cursor") val cursor: String = ""
+)
+
+data class TrackReactionUserItem(
+    val id: String,
+    val username: String,
+    val avatarUrl: String?,
+    val timestampSeconds: Long,
+    val userUrn: String? = null
+)
+
 data class InteractionInput(
     @SerializedName("parentUrn") val parentUrn: String,
     @SerializedName("targetUrn") val targetUrn: String,

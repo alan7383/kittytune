@@ -147,7 +147,7 @@ fun TabletSidePlayerPanel(
     modifier: Modifier = Modifier
 ) {
     val track = viewModel.currentTrack ?: return
-    var selectedTab by remember { mutableIntStateOf(0) } // 0: Track, 1: Queue, 2: Lyrics, 3: Effects
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Surface(
         modifier = modifier.fillMaxHeight(),
@@ -163,7 +163,6 @@ fun TabletSidePlayerPanel(
                 .navigationBarsPadding()
                 .statusBarsPadding()
         ) {
-            // Header: [ ◧ ] Expand, [ ⌄ ] Minimize, Context Title, [ ⋮ ] Options
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,7 +171,11 @@ fun TabletSidePlayerPanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onExpandFullScreen, shapes = IconButtonDefaults.shapes(), modifier = Modifier.size(36.dp)) {
+                    IconButton(
+                        onClick = onExpandFullScreen,
+                        shapes = IconButtonDefaults.shapes(),
+                        modifier = Modifier.size(36.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Rounded.OpenInFull,
                             contentDescription = "Full screen",
@@ -180,7 +183,11 @@ fun TabletSidePlayerPanel(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                    IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes(), modifier = Modifier.size(36.dp)) {
+                    IconButton(
+                        onClick = onClose,
+                        shapes = IconButtonDefaults.shapes(),
+                        modifier = Modifier.size(36.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.KeyboardArrowDown,
                             contentDescription = stringResource(R.string.btn_close),
@@ -215,7 +222,6 @@ fun TabletSidePlayerPanel(
                 }
             }
 
-            // 4 Tabs (Desktop Parity: Track, Queue, Lyrics, Effects)
             val tabs = listOf(
                 Triple(0, stringResource(R.string.detail_track_title), Icons.Rounded.MusicNote),
                 Triple(1, stringResource(R.string.player_queue), Icons.AutoMirrored.Rounded.QueueMusic),
@@ -256,11 +262,13 @@ fun TabletSidePlayerPanel(
                         onNavigateToArtist = onNavigateToArtist,
                         onSelectTab = { selectedTab = it }
                     )
+
                     1 -> TabletQueueList(
                         viewModel = viewModel,
                         onNavigateToArtist = onNavigateToArtist,
                         onOpenExpandedQueue = { viewModel.navigateToExpandedQueue() }
                     )
+
                     2 -> {
                         if (viewModel.lyricsLines.isNotEmpty()) {
                             SyncedLyricsView(viewModel = viewModel, showControls = true)
@@ -268,6 +276,7 @@ fun TabletSidePlayerPanel(
                             PlainLyricsView(viewModel = viewModel, showControls = true)
                         }
                     }
+
                     3 -> {
                         Box(
                             modifier = Modifier
@@ -322,7 +331,6 @@ fun DesktopTrackInfoTabContent(
         }
     }
 
-    // Organize comments into threaded hierarchy (matching Desktop & mobile)
     val organizedComments = remember(viewModel.commentsList.toList()) {
         val list = mutableListOf<Comment>()
         for (comment in viewModel.commentsList) {
@@ -339,7 +347,6 @@ fun DesktopTrackInfoTabContent(
         list
     }
 
-    // Delete confirmation dialog
     if (commentToDelete != null) {
         AlertDialog(
             onDismissRequest = { commentToDelete = null },
@@ -376,7 +383,6 @@ fun DesktopTrackInfoTabContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp)
     ) {
-        // 1. Artwork
         item {
             AsyncImage(
                 model = track.fullResArtwork,
@@ -392,7 +398,6 @@ fun DesktopTrackInfoTabContent(
             )
         }
 
-        // 2. Title & Artist Row
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 PremiumMarqueeText(
@@ -427,7 +432,6 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        // 3. Stats Row (Plays, Likes, Reposts, Comments, Details)
         item {
             Row(
                 modifier = Modifier
@@ -436,30 +440,25 @@ fun DesktopTrackInfoTabContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Plays
                 StatItem(
                     icon = Icons.Rounded.PlayArrow,
                     count = track.playbackCount
                 )
-                // Likes
                 StatItem(
                     icon = Icons.Rounded.Favorite,
                     count = track.likesCount,
                     tint = if (viewModel.isLiked) animatedColor else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { viewModel.navigateToTrackDetails(track.id, 0) }
                 )
-                // Reposts
                 StatItem(
                     icon = Icons.Rounded.Repeat,
                     count = track.repostsCount,
                     onClick = { viewModel.navigateToTrackDetails(track.id, 1) }
                 )
-                // Comments
                 StatItem(
                     icon = Icons.AutoMirrored.Rounded.Comment,
                     count = track.commentCount
                 )
-                // Details button
                 IconButton(
                     onClick = { viewModel.navigateToTrackDetails(track.id, 0) },
                     shapes = IconButtonDefaults.shapes(),
@@ -475,7 +474,6 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        // 4. Progress Scrubber & Controls (Exact same controls as phone view)
         item {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -497,7 +495,6 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        // 5. Release Date & Genre
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 track.releaseDate?.let { dateStr ->
@@ -544,7 +541,6 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        // 6. Tags Horizontal Scroll
         track.tagList?.let { tagStr ->
             if (tagStr.isNotBlank()) {
                 val tags = tagStr.split(" ", ",").filter { it.isNotBlank() }
@@ -587,7 +583,6 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        // 8. Comments Section Header & Actions
         item {
             Column(
                 modifier = Modifier
@@ -595,7 +590,6 @@ fun DesktopTrackInfoTabContent(
                     .padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Header with Count & Sort Menu
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -614,7 +608,11 @@ fun DesktopTrackInfoTabContent(
                             shapes = ButtonDefaults.shapes(),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
-                            Icon(Icons.AutoMirrored.Rounded.Sort, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.AutoMirrored.Rounded.Sort,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(4.dp))
                             Text(
                                 text = stringResource(viewModel.commentSort.labelResId),
@@ -639,8 +637,6 @@ fun DesktopTrackInfoTabContent(
                         }
                     }
                 }
-
-                // Replying Banner
                 AnimatedVisibility(visible = replyingTo != null && !isGuest) {
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -653,7 +649,10 @@ fun DesktopTrackInfoTabContent(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Replying to @${replyingTo?.user?.username}",
+                                text = stringResource(
+                                    R.string.comment_replying_to,
+                                    "@${replyingTo?.user?.username ?: ""}"
+                                ),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
@@ -662,13 +661,16 @@ fun DesktopTrackInfoTabContent(
                                 shapes = IconButtonDefaults.shapes(),
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
                     }
                 }
-
-                // Add Comment Input (Guest Mode vs Logged In Mode)
                 if (isGuest) {
                     Surface(
                         shape = RoundedCornerShape(20.dp),
@@ -722,7 +724,11 @@ fun DesktopTrackInfoTabContent(
                             if (viewModel.isPostingComment) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                             } else {
-                                Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send", modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.Send,
+                                    contentDescription = "Send",
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                     }
@@ -730,7 +736,6 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        // Comments List with Threading
         if (viewModel.isCommentsLoading && organizedComments.isEmpty()) {
             item {
                 Box(
@@ -753,7 +758,6 @@ fun DesktopTrackInfoTabContent(
             }
         } else {
             itemsIndexed(organizedComments, key = { _, comment -> comment.id }) { index, comment ->
-                // Infinite pagination
                 if (index >= organizedComments.size - 2 && !viewModel.isCommentsLoading && viewModel.commentNextHref != null) {
                     LaunchedEffect(index) {
                         viewModel.loadComments(refresh = false)
@@ -773,7 +777,6 @@ fun DesktopTrackInfoTabContent(
                         onDelete = { commentToDelete = comment }
                     )
 
-                    // Threaded nested replies
                     comment.replies?.forEach { reply ->
                         DesktopCommentRow(
                             comment = reply,
@@ -869,7 +872,6 @@ private fun DesktopCommentRow(
         )
 
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            // Header row: Username + Timestamp pill + relative time
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -889,7 +891,6 @@ private fun DesktopCommentRow(
                     )
                 }
 
-                // Clickable seek timestamp pill
                 comment.trackTimestamp?.let { ts ->
                     if (ts > 0) {
                         Surface(
@@ -925,7 +926,6 @@ private fun DesktopCommentRow(
                 )
             }
 
-            // Body text with clickable @mentions and clickable links
             val displayBody = if (showTranslation && !translatedText.isNullOrEmpty()) translatedText!! else comment.body
             CommentBodyText(
                 body = displayBody,
@@ -934,7 +934,6 @@ private fun DesktopCommentRow(
                 }
             )
 
-            // Translation toggle
             if (translatedText == null && !isTranslating && !isTargetLanguage) {
                 Text(
                     text = stringResource(R.string.comment_translate, langName),
@@ -972,7 +971,10 @@ private fun DesktopCommentRow(
                 )
             } else if (!translatedText.isNullOrEmpty()) {
                 Text(
-                    text = if (showTranslation) stringResource(R.string.comment_see_original) else stringResource(R.string.comment_translate, langName),
+                    text = if (showTranslation) stringResource(R.string.comment_see_original) else stringResource(
+                        R.string.comment_translate,
+                        langName
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
@@ -983,14 +985,12 @@ private fun DesktopCommentRow(
                 )
             }
 
-            // Actions row: Delete / Reply / Like
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Delete if mine
                 if (isMine) {
                     IconButton(
                         onClick = onDelete,
@@ -1007,7 +1007,6 @@ private fun DesktopCommentRow(
                     Spacer(Modifier.width(4.dp))
                 }
 
-                // Reply button
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -1037,7 +1036,6 @@ private fun DesktopCommentRow(
 
                 Spacer(Modifier.weight(1f))
 
-                // Like button with counter
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -1089,7 +1087,12 @@ private fun CommentBodyText(body: String, onMentionClick: (String) -> Unit) {
                 addLink(
                     LinkAnnotation.Clickable(
                         tag = "MENTION",
-                        styles = TextLinkStyles(style = SpanStyle(color = tertiaryColor, fontWeight = FontWeight.SemiBold)),
+                        styles = TextLinkStyles(
+                            style = SpanStyle(
+                                color = tertiaryColor,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        ),
                         linkInteractionListener = { onMentionClick(username) }
                     ),
                     match.range.first, match.range.last + 1
@@ -1099,7 +1102,12 @@ private fun CommentBodyText(body: String, onMentionClick: (String) -> Unit) {
                 addLink(
                     LinkAnnotation.Url(
                         url = match.value,
-                        styles = TextLinkStyles(style = SpanStyle(color = primaryColor, textDecoration = TextDecoration.Underline))
+                        styles = TextLinkStyles(
+                            style = SpanStyle(
+                                color = primaryColor,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        )
                     ),
                     match.range.first, match.range.last + 1
                 )
@@ -1172,7 +1180,6 @@ fun TabletFullScreenPlayerView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1230,7 +1237,6 @@ fun TabletFullScreenPlayerView(
             }
         }
 
-        // Centered Compact Player Area (Max width 440dp, auto-scaling artwork / inline lyrics)
         Column(
             modifier = Modifier
                 .widthIn(max = 440.dp)
@@ -1240,7 +1246,6 @@ fun TabletFullScreenPlayerView(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Artwork or Inline Lyrics Switcher (Takes available remaining height, maintains 1:1 ratio)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -1295,12 +1300,10 @@ fun TabletFullScreenPlayerView(
                 }
             }
 
-            // Bottom Player Section (Title, Scrubber, Controls, Distinct Actions)
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Title & Artist + Lyrics & Like Buttons Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1340,7 +1343,6 @@ fun TabletFullScreenPlayerView(
                         }
                     }
 
-                    // Lyrics toggle + Like Button Row
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         AnimatedVisibility(
                             visible = viewModel.hasLyrics,
@@ -1374,12 +1376,10 @@ fun TabletFullScreenPlayerView(
                     }
                 }
 
-                // Progress Scrubber
                 Box(modifier = Modifier.fillMaxWidth()) {
                     PlayerProgress(viewModel, mainContentColor)
                 }
 
-                // Player Controls (Play, Pause, Skip, Prev, Shuffle, Repeat + Effects & Queue triggers)
                 Box(modifier = Modifier.fillMaxWidth()) {
                     PlayerControls(
                         viewModel = viewModel,
@@ -1390,7 +1390,6 @@ fun TabletFullScreenPlayerView(
                     )
                 }
 
-                // Bottom Quick Action Bar (Sleep Timer, Add to Playlist, Share, Split View)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1398,7 +1397,6 @@ fun TabletFullScreenPlayerView(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Sleep Timer
                     IconButton(
                         onClick = { viewModel.showSleepTimerDialog = true },
                         shapes = IconButtonDefaults.shapes()
@@ -1412,7 +1410,6 @@ fun TabletFullScreenPlayerView(
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Add to Playlist
                         IconButton(
                             onClick = {
                                 viewModel.trackForMenu = track
@@ -1429,7 +1426,6 @@ fun TabletFullScreenPlayerView(
                             )
                         }
 
-                        // Share
                         IconButton(
                             onClick = { viewModel.shareTrack(track) },
                             shapes = IconButtonDefaults.shapes()
@@ -1442,7 +1438,6 @@ fun TabletFullScreenPlayerView(
                             )
                         }
 
-                        // Split View toggle
                         IconButton(
                             onClick = onToggleSplitMode,
                             shapes = IconButtonDefaults.shapes()
@@ -1523,7 +1518,6 @@ private fun TabletQueueList(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Queue Header with count, total duration, shuffle & expand buttons
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1553,7 +1547,6 @@ private fun TabletQueueList(
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Shuffle queue button
                 IconButton(
                     onClick = { viewModel.toggleShuffle() },
                     shapes = IconButtonDefaults.shapes(),
@@ -1569,7 +1562,6 @@ private fun TabletQueueList(
 
                 Spacer(Modifier.width(4.dp))
 
-                // Expand queue button
                 IconButton(
                     onClick = onOpenExpandedQueue,
                     shapes = IconButtonDefaults.shapes(),
@@ -1649,7 +1641,6 @@ private fun TabletQueueList(
                                     .padding(horizontal = 10.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Artwork with duration badge / playing sound wave
                                 Box(
                                     modifier = Modifier.size(48.dp),
                                     contentAlignment = Alignment.Center
@@ -1678,7 +1669,6 @@ private fun TabletQueueList(
 
                                 Spacer(Modifier.width(12.dp))
 
-                                // Title & Artist
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = trackItem.title ?: stringResource(R.string.untitled_track),
@@ -1715,7 +1705,6 @@ private fun TabletQueueList(
                                     }
                                 }
 
-                                // Track duration if available
                                 trackItem.durationMs?.let { durMs ->
                                     if (durMs > 0) {
                                         Text(
@@ -1727,7 +1716,6 @@ private fun TabletQueueList(
                                     }
                                 }
 
-                                // Track Options Menu
                                 IconButton(
                                     onClick = { viewModel.showTrackOptions(trackItem, fromPlayer = true) },
                                     shapes = IconButtonDefaults.shapes(),
@@ -1741,11 +1729,12 @@ private fun TabletQueueList(
                                     )
                                 }
 
-                                // Drag Handle for reordering
                                 Icon(
                                     imageVector = Icons.Rounded.DragHandle,
                                     contentDescription = stringResource(R.string.desc_move),
-                                    tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                    tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                                        alpha = 0.4f
+                                    ),
                                     modifier = Modifier
                                         .size(28.dp)
                                         .draggableHandle(
@@ -1769,9 +1758,15 @@ private fun TabletQueueList(
 private fun formatReleaseDate(raw: String?): String {
     if (raw.isNullOrBlank()) return ""
     val date = runCatching { java.time.Instant.parse(raw).let { java.util.Date.from(it) } }.getOrNull()
-        ?: runCatching { java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).parse(raw) }.getOrNull()
-        ?: runCatching { java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).parse(raw) }.getOrNull()
-        ?: runCatching { java.text.SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z", java.util.Locale.US).parse(raw) }.getOrNull()
+        ?: runCatching {
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).parse(raw)
+        }.getOrNull()
+        ?: runCatching {
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).parse(raw)
+        }.getOrNull()
+        ?: runCatching {
+            java.text.SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z", java.util.Locale.US).parse(raw)
+        }.getOrNull()
         ?: runCatching { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(raw) }.getOrNull()
         ?: return raw
 

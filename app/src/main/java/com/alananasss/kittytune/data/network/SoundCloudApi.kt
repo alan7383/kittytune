@@ -106,6 +106,10 @@ interface SoundCloudApi {
     @GET("tracks")
     suspend fun getTracksByIds(@Query("ids") ids: String): List<Track>
 
+    @GET("tracks/{trackId}")
+    suspend fun getTrackById(@Path("trackId") trackId: Long): Track
+
+
     @GET("resolve")
     suspend fun resolveUrl(@Query("url") url: String): JsonObject
 
