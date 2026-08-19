@@ -230,6 +230,7 @@
     <string name="dialog_delete_playlist_title">Playlist törlése?</string>
     <string name="dialog_delete_playlist_msg">Ez a művelet nem vonható vissza</string>
     <string name="dialog_delete_playlist_from_lib_title">Eltávolítja a könyvtárból?</string>
+    <string name="menu_delete_playlist">Lejátszási lista törlése</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -593,6 +594,8 @@
     <string name="pref_theme_pure_black_sub">Akkukímélő OLED kijelzőkhöz</string>
     <string name="settings_cat_player">Lejátszó</string>
     <string name="pref_new_player_design">Új lejátszó dizájn</string>
+    <string name="pref_waveform_comments">Waveform megjegyzésekkel</string>
+    <string name="pref_waveform_comments_desc">SoundCloud-stílusú waveform avatárokkal a megjegyzések helyzetén, a klasszikus csúszka helyett</string>
     <string name="pref_player_style">Lejátszó stílusa</string>
     <string name="pref_language">Nyelv</string>
     <string name="pref_language_sub">App nyelve</string>
@@ -856,6 +859,7 @@
     <string name="error_create_external_file">Fájl létrehozása sikertelen</string>
     <string name="error_open_external_stream">Stream hiba</string>
     <string name="error_empty_body">Üres válasz</string>
+    <string name="error_not_enough_space">Nincs elég tárhely</string>
     <!-- DISCORD -->
     <string name="pref_discord_title">Discord integráció</string>
     <string name="pref_discord_subtitle">Rich Presence</string>
@@ -1550,6 +1554,15 @@
     <string name="upload_tab_metadata">Metaadatok</string>
     <string name="upload_tab_permissions">Engedélyek</string>
     <string name="upload_tab_storefront">Kirakat</string>
+    <string name="upload_tab_advanced">Speciális</string>
+    <string name="upload_tab_advanced_badge">ÚJ</string>
+    <string name="upload_advanced_snippet_title">Előnézeti klip</string>
+    <string name="upload_advanced_snippet_desc">Válaszd ki a szám azon 20 másodpercét, amely a felfedezéskor lejátszásra kerül. Húzd el a kijelölő ablakot a kívánt előnézet beállításához.</string>
+    <string name="upload_advanced_snippet_current">Jelenlegi előnézet</string>
+    <string name="upload_advanced_snippet_play">Előnézet lejátszása</string>
+    <string name="upload_advanced_snippet_pause">Előnézet szüneteltetése</string>
+    <string name="upload_advanced_snippet_reset">Alaphelyzetbe állítás</string>
+    <string name="upload_advanced_snippet_no_audio">Nincs kiválasztva hangfájl. Tölts fel egy számot az előnézet kiválasztásához.</string>
     <string name="upload_field_contains_music">Zenét tartalmaz</string>
     <string name="upload_field_contains_music_desc">Adja meg, hogy ez a szám zenei mű vagy szöveges felvétel / podcast</string>
     <string name="upload_field_album_title">Album címe</string>
@@ -1718,4 +1731,52 @@
     <string name="upload_perm_geo_exclusive_explanation">Ez a szám csak a kiválasztott országokban lesz lejátszható.</string>
     <string name="upload_perm_geo_blocked_explanation">Ez a szám le lesz tiltva és elérhetetlen lesz a kiválasztott országokban.</string>
     <string name="upload_perm_geo_suggestions_label">Gyors javaslatok</string>
+
+    <string name="player_style_customization_title">Lejátszó stílusa és testreszabása</string>
+    <string name="player_style_soundcloud_desc">SoundCloud magával ragadó mód (1:1 kártya)</string>
+    <string name="player_style_hybrid_desc">Normál mód hullámformával</string>
+    <string name="player_style_classic_desc">Klasszikus normál mód (Lapos sáv)</string>
+    <string name="player_customization_title">Lejátszó testreszabása</string>
+    <string name="player_customization_subtitle">Stílusok, effektusok és műveletsáv</string>
+    <string name="player_style_group">LEJÁTSZÓ STÍLUSA</string>
+    <string name="player_mode_soundcloud">SoundCloud</string>
+    <string name="player_mode_hybrid">Hibrid</string>
+    <string name="player_mode_classic">Klasszikus</string>
+    <string name="player_visual_options_group">MEGJELENÍTÉS ÉS VIZUÁLIS EFFEKTUSOK</string>
+    <string name="player_opt_comment_bubbles_title">Kommentbuborékok</string>
+    <string name="player_opt_comment_bubbles_subtitle">Megjeleníti az avatárt és a szöveget a megfelelő időbélyegnél</string>
+    <string name="player_opt_reactions_bar_title">\'Hozzászólás&#8230;\' sáv és emojik</string>
+    <string name="player_opt_reactions_bar_subtitle">Gyors reakció kapszula a kártyán</string>
+    <string name="player_opt_parallax_title">Borító csúsztatása (Parallaxis)</string>
+    <string name="player_opt_parallax_subtitle">Dinamikus görgetés lejátszás közben</string>
+    <string name="player_action_bar_5_title">ALSÓ MŰVELETSÁV (5 GOMB)</string>
+    <string name="player_action_bar_4_title">ALSÓ MŰVELETSÁV (4 GOMB)</string>
+    <string name="player_action_bar_5_desc">5 testreszabható gomb a lejátszó alján</string>
+    <string name="player_action_bar_4_desc">4 testreszabható gomb a vezérlők alatt</string>
+    <string name="player_slot_n">%1$d. gomb</string>
+    <string name="player_slot_change">Módosítás</string>
+    <string name="player_slot_active">Aktív</string>
+    <string name="player_slot_edit">Szerkesztés</string>
+    <string name="slot_like">Tetszik</string>
+    <string name="slot_comments">Hozzászólások</string>
+    <string name="slot_share">Megosztás</string>
+    <string name="slot_queue">Lejátszási sor</string>
+    <string name="slot_audio_fx">Hangeffektusok</string>
+    <string name="slot_shuffle">Véletlenszerű</string>
+    <string name="slot_repeat">Ismétlés</string>
+    <string name="slot_lyrics">Dalszöveg</string>
+    <string name="slot_sleep_timer">Elalvási időzítő</string>
+    <string name="slot_more">További opciók</string>
+    <string name="slot_none">Rejtett</string>
+    <string name="player_comment_hint">Hozzászólás…</string>
+    <string name="player_reactions_title">Reakciók</string>
+    <string name="player_no_reactions_for_emoji">Nincs %1$s reakció ehhez a számhoz</string>
+    <string name="player_delete_my_reaction">Saját reakció törlése</string>
+    <string name="player_behind_this_track">A szám mögött</string>
+    <string name="track_sorted_by_popularity">Népszerűség szerint rendezve</string>
+    <string name="toast_subscribed_to">Feliratkozva: %1$s</string>
+    <string name="toast_unsubscribed_from">Leiratkozva: %1$s</string>
+    <string name="the_artist">az előadó</string>
+    <string name="comment_replying_to">Válasz: %1$s</string>
+    <string name="comments_count_label">%1$s hozzászólás</string>
 </resources>

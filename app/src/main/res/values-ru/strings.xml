@@ -236,6 +236,7 @@
     <string name="dialog_delete_playlist_title">Удалить плейлист?</string>
     <string name="dialog_delete_playlist_msg">Это действие нельзя будет отменить</string>
     <string name="dialog_delete_playlist_from_lib_title">Удалить из библиотеки?</string>
+    <string name="menu_delete_playlist">Удалить плейлист</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- PLAYER                                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -600,6 +601,8 @@
     <string name="pref_theme_pure_black_sub">Экономит заряд батареи на OLED-экранах</string>
     <string name="settings_cat_player">Плеер</string>
     <string name="pref_new_player_design">Новый дизайн плеера</string>
+    <string name="pref_waveform_comments">Waveform с комментариями</string>
+    <string name="pref_waveform_comments_desc">Показывать waveform SoundCloud с аватарами комментариев вместо классического слайдера</string>
     <string name="pref_player_style">Стиль плеера</string>
     <string name="pref_language">Язык</string>
     <string name="pref_language_sub">Язык приложения</string>
@@ -856,6 +859,7 @@
     <string name="error_create_external_file">Не удается создать файл</string>
     <string name="error_open_external_stream">Ошибка потока</string>
     <string name="error_empty_body">Пустой ответ</string>
+    <string name="error_not_enough_space">Недостаточно места на диске</string>
     <!-- DISCORD -->
     <string name="pref_discord_title">Интеграция с Discord</string>
     <string name="pref_discord_subtitle">Статус активности</string>
@@ -1541,6 +1545,15 @@
     <string name="upload_tab_metadata">Метаданные</string>
     <string name="upload_tab_permissions">Разрешения</string>
     <string name="upload_tab_storefront">Витрина</string>
+    <string name="upload_tab_advanced">Расширенные</string>
+    <string name="upload_tab_advanced_badge">НОВОЕ</string>
+    <string name="upload_advanced_snippet_title">Предпросмотр трека</string>
+    <string name="upload_advanced_snippet_desc">Выберите 20 секунд вашего трека, которые будут воспроизводиться при знакомстве с ним. Перетащите окно выбора, чтобы настроить желаемый фрагмент.</string>
+    <string name="upload_advanced_snippet_current">Текущий фрагмент</string>
+    <string name="upload_advanced_snippet_play">Воспроизвести фрагмент</string>
+    <string name="upload_advanced_snippet_pause">Приостановить фрагмент</string>
+    <string name="upload_advanced_snippet_reset">Сбросить по умолчанию</string>
+    <string name="upload_advanced_snippet_no_audio">Аудиофайл не выбран. Загрузите трек, чтобы использовать выбор фрагмента.</string>
     <string name="upload_field_contains_music">Содержит музыку</string>
     <string name="upload_field_contains_music_desc">Укажите, является ли трек музыкой или подкастом / речью</string>
     <string name="upload_field_album_title">Название альбома</string>
@@ -1709,4 +1722,52 @@
     <string name="upload_perm_geo_exclusive_explanation">Этот трек будет воспроизводиться только в выбранных странах.</string>
     <string name="upload_perm_geo_blocked_explanation">Этот трек будет заблокирован и недоступен в выбранных странах.</string>
     <string name="upload_perm_geo_suggestions_label">Быстрые варианты</string>
+
+    <string name="player_style_customization_title">Стиль и персонализация плеера</string>
+    <string name="player_style_soundcloud_desc">Иммерсивный режим SoundCloud (Карточка 1:1)</string>
+    <string name="player_style_hybrid_desc">Стандартный режим с волной</string>
+    <string name="player_style_classic_desc">Классический стандартный режим (Плоская полоса)</string>
+    <string name="player_customization_title">Персонализация плеера</string>
+    <string name="player_customization_subtitle">Стили, эффекты и панель действий</string>
+    <string name="player_style_group">СТИЛЬ ПЛЕЕРА</string>
+    <string name="player_mode_soundcloud">SoundCloud</string>
+    <string name="player_mode_hybrid">Гибридный</string>
+    <string name="player_mode_classic">Классический</string>
+    <string name="player_visual_options_group">ОТОБРАЖЕНИЕ И ВИЗУАЛЬНЫЕ ЭФФЕКТЫ</string>
+    <string name="player_opt_comment_bubbles_title">Всплывающие комментарии</string>
+    <string name="player_opt_comment_bubbles_subtitle">Отображает аватар и текст в нужный момент времени</string>
+    <string name="player_opt_reactions_bar_title">Строка \'Комментировать&#8230;\' и эмодзи</string>
+    <string name="player_opt_reactions_bar_subtitle">Панель быстрой реакции на карточке</string>
+    <string name="player_opt_parallax_title">Сдвиг обложки (Параллакс)</string>
+    <string name="player_opt_parallax_subtitle">Динамическая прокрутка во время воспроизведения</string>
+    <string name="player_action_bar_5_title">НИЖНЯЯ ПАНЕЛЬ ДЕЙСТВИЙ (5 КНОПОК)</string>
+    <string name="player_action_bar_4_title">НИЖНЯЯ ПАНЕЛЬ ДЕЙСТВИЙ (4 КНОПКИ)</string>
+    <string name="player_action_bar_5_desc">5 настраиваемых кнопок внизу плеера</string>
+    <string name="player_action_bar_4_desc">4 настраиваемые кнопки под элементами управления</string>
+    <string name="player_slot_n">Кнопка %1$d</string>
+    <string name="player_slot_change">Изменить</string>
+    <string name="player_slot_active">Активно</string>
+    <string name="player_slot_edit">Изменить</string>
+    <string name="slot_like">Нравится</string>
+    <string name="slot_comments">Комментарии</string>
+    <string name="slot_share">Поделиться</string>
+    <string name="slot_queue">Очередь</string>
+    <string name="slot_audio_fx">Аудиоэффекты</string>
+    <string name="slot_shuffle">Перемешать</string>
+    <string name="slot_repeat">Повтор</string>
+    <string name="slot_lyrics">Текст песни</string>
+    <string name="slot_sleep_timer">Таймер сна</string>
+    <string name="slot_more">Дополнительно</string>
+    <string name="slot_none">Скрыто</string>
+    <string name="player_comment_hint">Комментировать…</string>
+    <string name="player_reactions_title">Реакции</string>
+    <string name="player_no_reactions_for_emoji">Нет реакций %1$s для этого трека</string>
+    <string name="player_delete_my_reaction">Удалить мою реакцию</string>
+    <string name="player_behind_this_track">Об этом треке</string>
+    <string name="track_sorted_by_popularity">Сортировка по популярности</string>
+    <string name="toast_subscribed_to">Вы подписались на %1$s</string>
+    <string name="toast_unsubscribed_from">Вы отписались от %1$s</string>
+    <string name="the_artist">исполнителя</string>
+    <string name="comment_replying_to">В ответ на %1$s</string>
+    <string name="comments_count_label">%1$s комментариев</string>
 </resources>

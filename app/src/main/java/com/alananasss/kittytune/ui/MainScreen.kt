@@ -422,8 +422,8 @@ fun MainScreen(
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
-                currentRoute?.startsWith("chat/") == true ||
-                currentRoute?.startsWith("music_import/") == true ||
+                currentRoute.startsWith("chat/") ||
+                currentRoute.startsWith("music_import/") ||
                 currentRoute == "music_import_transfer" ||
                 currentRoute == Screen.Recognition.route
 

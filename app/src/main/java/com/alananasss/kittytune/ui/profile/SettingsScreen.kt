@@ -10,6 +10,7 @@
     import androidx.compose.material.icons.rounded.*
     import androidx.compose.ui.graphics.vector.ImageVector
     import androidx.compose.runtime.Composable
+    import androidx.compose.runtime.remember
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.res.stringResource
     import androidx.compose.ui.unit.dp
@@ -26,6 +27,9 @@
         onBackClick: () -> Unit,
         playerViewModel: PlayerViewModel
     ) {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val prefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
+
         SettingsScaffold(
             title = stringResource(R.string.settings_title),
             onBackClick = onBackClick
