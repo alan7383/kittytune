@@ -17,6 +17,7 @@
   <a href="https://ko-fi.com/alan7383">
     <img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
   </a>
+  <img src="https://img.shields.io/badge/status-beta-yellow?style=for-the-badge" alt="Status: Beta">
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android Badge">
   <a href="https://github.com/alan7383/KittyTuneDesktop">
     <img src="https://img.shields.io/badge/Desktop-Windows%20%7C%20Linux%20%7C%20macOS-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Desktop Version">
@@ -26,6 +27,9 @@
 <p align="center">
   <strong>A SoundCloud-first Android player with guest mode, YouTube fallback, local files, offline downloads, lyrics, widgets, and a lot of real extras.</strong>
 </p>
+
+> [!NOTE]
+> KittyTune is still in active development and far from finished, so please treat it as a beta. Some features might be broken or incomplete. If you run into any bugs or weird behavior, feel free to [open an issue](https://github.com/alan7383/kittytune/issues) to help track them down! Keep in mind I'm working on this alone during my free time, so I won't always be able to fix things right away.
 
 > [!TIP]
 > 💻 **Looking for KittyTune on Desktop?** KittyTune is also available for **Windows**, **Linux** (*Arch Linux*, *Debian / Ubuntu `.deb`*, *Fedora / openSUSE `.rpm`*, and *universal `.AppImage`*), and **macOS**! Check out [KittyTuneDesktop](https://github.com/alan7383/KittyTuneDesktop).
