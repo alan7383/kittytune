@@ -3423,7 +3423,7 @@ private fun AdvancedSnippetSection(
         waveformSamples = null
         withContext(Dispatchers.IO) {
             try {
-                val client = okhttp3.OkHttpClient()
+                val client = com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient()
                 val req = okhttp3.Request.Builder().url(waveformUrl).build()
                 val body = client.newCall(req).execute().use { resp ->
                     resp.body?.string()

@@ -217,18 +217,20 @@
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    if (playlist.trackCount != null && playlist.trackCount > 0) {
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                    Surface(
-                        color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        )
+                        Surface(
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.playlist_num_tracks, playlist.trackCount),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = Color.White,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
             }

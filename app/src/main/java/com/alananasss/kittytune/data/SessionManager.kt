@@ -75,11 +75,16 @@ object SessionManager {
     @Volatile private var dataDomeRequestUrl: String? = null
     @Volatile private var dataDomeCaptchaUrl: String? = null
 
-    private val authClient = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
-        .build()
+    private val baseAuthClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
+
+    private val authClient: OkHttpClient
+        get() = com.alananasss.kittytune.data.network.ProxyManager.configureOkHttpClient(baseAuthClient.newBuilder()).build()
 
     private val gson = com.alananasss.kittytune.utils.AppUtils.gson
 

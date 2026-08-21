@@ -311,8 +311,13 @@
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    val subtitle = when {
+                        !playlist.user?.username.isNullOrBlank() -> playlist.user.username
+                        playlist.trackCount != null && playlist.trackCount > 0 -> stringResource(R.string.playlist_num_tracks, playlist.trackCount)
+                        else -> stringResource(R.string.lib_playlists)
+                    }
                     Text(
-                        text = stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0),
+                        text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1

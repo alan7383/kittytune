@@ -28,10 +28,13 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
             gl = activeLocale.country.ifBlank { "US" },
             hl = activeLocale.language.ifBlank { "en" }
         )
+
+        com.alananasss.kittytune.data.network.ProxyManager.init(this)
     }
 
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
+            .okHttpClient { com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient(this) }
             .components {
                 add(Mapper<String, File> { data, _ ->
                     if (data.startsWith("/") && !data.startsWith("http")) File(data) else null
