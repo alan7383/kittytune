@@ -436,7 +436,8 @@ data class TrackPublisherMetadata(
     @SerializedName("c_line") val cLine: String? = null,
     @SerializedName("p_line") val pLine: String? = null,
     @SerializedName("writer_composer") val composer: String? = null,
-    @SerializedName("release_title") val releaseTitle: String? = null
+    @SerializedName("release_title") val releaseTitle: String? = null,
+    @SerializedName("album_id") val albumId: String? = null
 )
 
 data class Track(
@@ -480,7 +481,9 @@ data class Track(
     @SerializedName("waveform_url") val waveformUrl: String? = null,
     @SerializedName("full_duration") val fullDuration: Long? = null,
     val source: String? = "soundcloud",
-    val likedAt: Long? = null
+    val likedAt: Long? = null,
+    val playCount: Long? = null,
+    val artists: List<com.alananasss.kittytune.data.spotify.SpotifyArtistRef>? = null
 ) {
     val displayArtist: String
         get() = publisherMetadata?.artist?.takeIf { it.isNotBlank() }
@@ -667,20 +670,29 @@ data class User(
     val username: String?,
     @SerializedName("avatar_url", alternate = ["avatarUrl"]) val avatarUrl: String?,
     val city: String? = null,
+    val country: String? = null,
     @SerializedName("country_code", alternate = ["countryCode"]) val countryCode: String? = null,
+    @SerializedName("first_name", alternate = ["firstName"]) val firstName: String? = null,
+    @SerializedName("last_name", alternate = ["lastName"]) val lastName: String? = null,
     @SerializedName("followers_count", alternate = ["followersCount"]) val followersCount: Int = 0,
     @SerializedName("followings_count", alternate = ["followingsCount"]) val followingsCount: Int = 0,
-    @SerializedName("track_count", alternate = ["tracksCount"]) val trackCount: Int = 0,
+    @SerializedName("track_count", alternate = ["tracksCount", "trackCount"]) val trackCount: Int = 0,
+    @SerializedName("playlist_count", alternate = ["playlistCount", "public_playlists_count", "publicPlaylistsCount"]) val playlistCount: Int = 0,
     @SerializedName("description") val description: String? = null,
     @SerializedName("permalink_url", alternate = ["permalinkUrl"]) val permalinkUrl: String? = null,
     @SerializedName("permalink") val permalink: String? = null,
     val visuals: Visuals? = null,
     @SerializedName("verified") val verified: Boolean = false,
+    @SerializedName("is_pro", alternate = ["isPro"]) val isPro: Boolean = false,
+    @SerializedName("created_at", alternate = ["createdAt"]) val createdAt: String? = null,
     @SerializedName("public_favorites_count") private val _publicFavoritesCount: Int? = 0,
     @SerializedName("likes_count") private val _likesCount: Int? = 0,
     @SerializedName("favorites_count") private val _favoritesCount: Int? = 0,
     @SerializedName("urn") val urn: String? = null
 ) {
+    val isArtist: Boolean
+        get() = verified || trackCount > 0 || urn?.startsWith("spotify:artist:") == true
+
     val likesCount: Int
         get() = when {
             (_publicFavoritesCount ?: 0) > 0 -> _publicFavoritesCount!!
@@ -694,6 +706,17 @@ data class User(
         get() {
             if (id != 0L) return id
             return urn?.split(":")?.lastOrNull()?.toLongOrNull() ?: 0L
+        }
+
+    val profileNavId: String
+        get() = when {
+            urn?.startsWith("spotify:artist:") == true -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(urn)}"
+            urn?.contains("spotify") == true -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(urn)}"
+            permalinkUrl?.contains("spotify") == true -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(permalinkUrl)}"
+            !permalink.isNullOrBlank() && id == 0L -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(permalink)}"
+            id > 0L -> "profile:$id"
+            !permalink.isNullOrBlank() -> "profile:$permalink"
+            else -> "profile:$id"
         }
 }
 

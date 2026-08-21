@@ -42,12 +42,17 @@ object DownloadManager {
 
     private val api: SoundCloudApi by lazy { RetrofitClient.create(context) }
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
-        .callTimeout(5, TimeUnit.MINUTES)
-        .build()
+    private val baseClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(90, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(5, TimeUnit.MINUTES)
+            .build()
+    }
+
+    private val client: OkHttpClient
+        get() = com.alananasss.kittytune.data.network.ProxyManager.configureOkHttpClient(baseClient.newBuilder()).build()
 
     private fun playlistUrn(playlistId: Long): String = "soundcloud:playlists:$playlistId"
 
@@ -170,8 +175,11 @@ object DownloadManager {
                 }
 
                 val allPlaylists = dao.getAllPlaylists().first()
+                val currentLiked = LikeRepository.likedPlaylists.value
                 allPlaylists.forEach { localPlaylist ->
-                    if (!localPlaylist.isUserCreated && localPlaylist.id > 0) {
+                    val isSpotify = localPlaylist.permalinkUrl?.contains("spotify") == true
+                    val isLiked = currentLiked.contains(localPlaylist.id)
+                    if (!localPlaylist.isUserCreated && localPlaylist.id > 0 && !isSpotify && !isLiked) {
                         val tracks = dao.getTracksForPlaylistSync(localPlaylist.id)
                         val hasDownloadedTracks = tracks.any { it.localAudioPath.isNotEmpty() }
                         if (!hasDownloadedTracks) {
@@ -578,7 +586,7 @@ object DownloadManager {
         isDownloaded: Boolean? = null
     ) {
         scope.launch {
-            if (syncToCloud && playlist.id != 0L) {
+            if (playlist.id != 0L) {
                 LikeRepository.togglePlaylistLike(
                     playlistId = playlist.id,
                     isLiked = true,
@@ -885,6 +893,7 @@ object DownloadManager {
         scope.launch {
             val dao = database.downloadDao()
             val userId = user.numericId
+            val isSpotifyArtist = user.urn?.startsWith("spotify") == true || user.permalink?.length == 22
             val isSaved = dao.getArtist(userId) != null
             if (isSaved) {
                 dao.deleteArtist(userId)
@@ -899,6 +908,26 @@ object DownloadManager {
                 )
             }
 
+            if (isSpotifyArtist) {
+                val spotifyId = user.permalink ?: user.urn?.removePrefix("spotify:artist:") ?: ""
+                if (spotifyId.isNotBlank()) {
+                    val playerPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(context)
+                    if (isSaved) {
+                        playerPrefs.removeSpotifyArtistMapping(userId)
+                        if (playerPrefs.isSpotifyArtistLiked(spotifyId)) {
+                            playerPrefs.toggleLikeSpotifyArtist(spotifyId)
+                        }
+                    } else {
+                        playerPrefs.saveSpotifyArtistMapping(userId, spotifyId)
+                        if (!playerPrefs.isSpotifyArtistLiked(spotifyId)) {
+                            playerPrefs.toggleLikeSpotifyArtist(spotifyId)
+                        }
+                    }
+                }
+                _libraryUpdated.tryEmit(Unit)
+                return@launch
+            }
+
             val tokenManager = TokenManager(context)
             if (!tokenManager.isGuestMode()) {
                 try {
@@ -911,6 +940,7 @@ object DownloadManager {
                     e.printStackTrace()
                 }
             }
+            _libraryUpdated.tryEmit(Unit)
         }
     }
 

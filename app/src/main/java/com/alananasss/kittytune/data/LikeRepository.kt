@@ -104,6 +104,7 @@ object LikeRepository {
         saveLikedTracks()
 
         scope.launch {
+            if (track.source == "spotify" || track.user?.urn?.startsWith("spotify") == true || (track.permalinkUrl != null && track.permalinkUrl!!.contains("spotify"))) return@launch
             if (!playerPrefs.getSyncLikesEnabled()) return@launch
             val tokenManager = TokenManager(appContext)
             if (tokenManager.isGuestMode()) return@launch
@@ -126,11 +127,17 @@ object LikeRepository {
     }
 
     fun removeLike(trackId: Long) {
+        val targetTrack = _likedTracks.value.find { it.id == trackId }
+        val isSpotify = targetTrack?.source == "spotify" || targetTrack?.user?.urn?.startsWith("spotify") == true
+                || (targetTrack?.permalinkUrl != null && targetTrack.permalinkUrl!!.contains("spotify")) || trackId > 1000000000000000L
+
         addToBlacklist(trackId)
 
         _likedTracks.update { it.filterNot { t -> t.id == trackId } }
 
         saveLikedTracks()
+
+        if (isSpotify) return
 
         scope.launch {
             if (!playerPrefs.getSyncLikesEnabled()) return@launch
@@ -163,7 +170,18 @@ object LikeRepository {
     }
 
     fun setLikedPlaylists(ids: Set<Long>) {
-        _likedPlaylists.value = ids
+        val currentLiked = _likedPlaylists.value
+        val preservedLocalIds = try {
+            val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(appContext).downloadDao()
+            val allLocal = kotlinx.coroutines.runBlocking { db.getAllPlaylistsList() }
+            allLocal.filter { local ->
+                currentLiked.contains(local.id) && (local.permalinkUrl?.contains("spotify") == true || local.id < 0 || local.isDownloaded)
+            }.map { it.id }.toSet()
+        } catch (e: Exception) {
+            emptySet()
+        }
+
+        _likedPlaylists.value = ids + preservedLocalIds
         saveLikedPlaylists()
     }
 
@@ -196,12 +214,19 @@ object LikeRepository {
                 }
             }
 
+            val safePermalink = permalink ?: ""
+            val isSpotify = safePermalink.contains("spotify.com") || safePermalink.contains("spotify:")
+                    || urn?.startsWith("spotify:") == true || (urn != null && urn.contains("spotify"))
+                    || playlistId == 0L
+            if (isSpotify) {
+                return@launch
+            }
+
             val tokenManager = com.alananasss.kittytune.data.TokenManager(appContext)
             if (tokenManager.isGuestMode()) return@launch
             val token = tokenManager.getAccessToken()
             if (!token.isNullOrEmpty()) {
                 try {
-                    val safePermalink = permalink ?: ""
                     val targetUrn = urn ?: when {
                         safePermalink.contains("artist-stations") -> "soundcloud:system-playlists:artist-stations:$playlistId"
                         safePermalink.contains("track-stations") -> "soundcloud:system-playlists:track-stations:$playlistId"
