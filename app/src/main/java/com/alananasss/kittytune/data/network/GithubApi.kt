@@ -37,16 +37,20 @@ object GithubClient {
         chain.proceed(request)
     }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(authInterceptor)
-        .build()
+    private val baseOkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .build()
+    }
 
-    val api: GithubApiService by lazy {
-        Retrofit.Builder()
+    private val okHttpClient: OkHttpClient
+        get() = ProxyManager.configureOkHttpClient(baseOkHttpClient.newBuilder()).build()
+
+    val api: GithubApiService
+        get() = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(GithubApiService::class.java)
-    }
 }

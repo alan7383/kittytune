@@ -164,20 +164,24 @@ object MusixmatchClient {
         chain.proceed(newRequest)
     }
 
-    private val httpClient = OkHttpClient.Builder()
-        .addInterceptor(authInterceptor)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
-        .build()
+    private val baseHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .build()
+    }
 
-    val api: MusixmatchApiService by lazy {
-        Retrofit.Builder()
+    private val httpClient: OkHttpClient
+        get() = ProxyManager.configureOkHttpClient(baseHttpClient.newBuilder()).build()
+
+    val api: MusixmatchApiService
+        get() = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(httpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(MusixmatchApiService::class.java)
-    }
 
     private fun generateGuid(): String {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 16)

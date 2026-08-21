@@ -26,7 +26,7 @@
     import java.io.IOException
 
     private object ExtractorDownloader : Downloader() {
-        private val client = OkHttpClient.Builder()
+        private val baseClient = OkHttpClient.Builder()
             .cookieJar(object : CookieJar {
                 private val cookieStore = ConcurrentHashMap<String, MutableList<Cookie>>()
 
@@ -66,6 +66,9 @@
             }
             .build()
 
+        private val client: OkHttpClient
+            get() = com.alananasss.kittytune.data.network.ProxyManager.configureOkHttpClient(baseClient.newBuilder()).build()
+
         @Throws(IOException::class)
         override fun execute(request: Request): Response {
             val okHttpRequest = okhttp3.Request.Builder().url(request.url())
@@ -97,7 +100,8 @@
     object StreamResolver {
 
         private const val TAG = "StreamResolver"
-        private val client = OkHttpClient()
+        private val client: OkHttpClient
+            get() = com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient()
 
         init {
             try {
@@ -157,6 +161,26 @@
                         return@run url?.let { ResolvedStream(it) }
                     }
 
+                    if (track.source == "spotify") {
+                        Log.d(TAG, "Resolving Spotify track via YouTube / SoundCloud: ${track.title} by ${track.displayArtist}")
+                        val streamUrl = resolveViaNewPipe(track)
+                        if (streamUrl != null) {
+                            return@run ResolvedStream(streamUrl)
+                        }
+                        try {
+                            val query = "${track.displayArtist} ${track.title}".trim()
+                            val scResults = RetrofitClient.create(context).searchTracks(query, limit = 5)
+                            val bestScTrack = scResults.collection.firstOrNull()
+                            if (bestScTrack != null) {
+                                val scStream = resolveFromSoundCloudWithDrm(context, bestScTrack, forDownload)
+                                if (scStream != null) return@run scStream
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed SoundCloud fallback for Spotify track: ${e.message}")
+                        }
+                        return@run null
+                    }
+
                     val prefs = PlayerPreferences(context)
                     val allowYoutube = prefs.getYouTubeFallbackEnabled()
 
@@ -178,7 +202,7 @@
         private suspend fun resolveViaNewPipe(track: Track): String? {
             return try {
                 val cleanTitle = track.title?.replace(Regex("(?i)(\\[.*?\\]|\\(.*?\\))"), "")?.trim() ?: ""
-                val artistName = track.user?.username ?: ""
+                val artistName = track.displayArtist.ifBlank { track.user?.username ?: "" }
                 val query = "$cleanTitle $artistName audio"
 
                 Log.d(TAG, "[NewPipe] Searching for: $query")

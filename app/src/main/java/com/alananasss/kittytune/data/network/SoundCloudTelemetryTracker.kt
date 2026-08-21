@@ -76,11 +76,13 @@ object SoundCloudTelemetryTracker {
             appContext = context.applicationContext
             tokenManager = TokenManager(context.applicationContext)
             playerPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(context.applicationContext)
-            directHttpClient = OkHttpClient.Builder()
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
-                .build()
+            directHttpClient = ProxyManager.configureOkHttpClient(
+                OkHttpClient.Builder()
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .writeTimeout(15, TimeUnit.SECONDS),
+                context.applicationContext
+            ).build()
             Log.d(TAG, "SoundCloudTelemetryTracker initialized with sessionId=$sessionId")
         }
     }

@@ -36,7 +36,8 @@
             private val OCTET_STREAM = "application/octet-stream".toMediaType()
         }
 
-        private val client = OkHttpClient()
+        private val client: OkHttpClient
+            get() = com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient()
 
         override fun executeKeyRequest(
             uuid: UUID,

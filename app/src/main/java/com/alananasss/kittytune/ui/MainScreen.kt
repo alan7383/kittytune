@@ -374,7 +374,17 @@ fun MainScreen(
             playerViewModel.isPlayerExpanded = false
             when {
                 destinationId == "expanded_queue" -> navController.navigate("expanded_queue")
-                destinationId.startsWith("profile:") -> navController.navigate("profile/${destinationId.removePrefix("profile:")}")
+                destinationId.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${destinationId.removePrefix("spotify_artist:")}")
+                destinationId.startsWith("spotify_radio:") || destinationId.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$destinationId")
+                destinationId.startsWith("profile:") -> {
+                    val target = destinationId.removePrefix("profile:")
+                    if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                        navController.navigate("spotify_artist/$clean")
+                    } else {
+                        navController.navigate("profile/$target")
+                    }
+                }
                 destinationId.startsWith("tag:") -> navController.navigate("tag/${destinationId.removePrefix("tag:")}")
                 destinationId.startsWith("track_detail:") -> navController.navigate("track_detail/${destinationId.removePrefix("track_detail:")}")
                 destinationId.startsWith("edit_track:") -> navController.navigate(Screen.Upload.route)
@@ -425,7 +435,8 @@ fun MainScreen(
                 currentRoute.startsWith("chat/") ||
                 currentRoute.startsWith("music_import/") ||
                 currentRoute == "music_import_transfer" ||
-                currentRoute == Screen.Recognition.route
+                currentRoute == Screen.Recognition.route ||
+                currentRoute == "proxy_settings"
 
         val hideNavRail = currentRoute == Screen.Login.route ||
                 currentRoute == Screen.Welcome.route ||
@@ -703,8 +714,20 @@ fun MainScreen(
                                 id == "recognition_history" -> navController.navigate("recognition_history")
                                 id == "likes" -> navController.navigate("playlist_detail/likes")
                                 id == "downloads" -> navController.navigate("playlist_detail/downloads")
+                                id.startsWith("spotify_artist:") -> {
+                                    navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                }
+                                id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
+                                    navController.navigate("playlist_detail/$id")
+                                }
                                 id.startsWith("profile:") -> {
-                                    navController.navigate("profile/${id.removePrefix("profile:")}")
+                                    val target = id.removePrefix("profile:")
+                                    if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                        navController.navigate("spotify_artist/$clean")
+                                    } else {
+                                        navController.navigate("profile/$target")
+                                    }
                                 }
                                 id.startsWith("profile/") || id.startsWith("playlist_detail/") || id.startsWith("genre_playlists/") || id.startsWith("tag/") -> {
                                     navController.navigate(id)
@@ -732,11 +755,23 @@ fun MainScreen(
                             onImportClick = { navController.navigate("music_import") },
                             onUploadClick = { navController.navigate("upload") },
                             onPlaylistClick = { id ->
-                                if (id.startsWith("profile:")) {
-                                    val userId = id.removePrefix("profile:")
-                                    navController.navigate("profile/$userId")
-                                } else {
-                                    navController.navigate("playlist_detail/$id")
+                                when {
+                                    id.startsWith("spotify_artist:") -> {
+                                        navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                    }
+                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
+                                    id.startsWith("profile:") -> {
+                                        val target = id.removePrefix("profile:")
+                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                            navController.navigate("spotify_artist/$clean")
+                                        } else {
+                                            navController.navigate("profile/$target")
+                                        }
+                                    }
+                                    else -> navController.navigate("playlist_detail/$id")
                                 }
                             },
                             onLikedTracksClick = { navController.navigate("playlist_detail/likes") },
@@ -790,13 +825,28 @@ fun MainScreen(
                                 navController.navigate("playlist_detail/$playlistId")
                             },
                             onNavigate = { route ->
-                                if (route.startsWith("profile:")) {
-                                    val userId = route.removePrefix("profile:")
-                                    navController.navigate("profile/$userId")
-                                } else if (route.startsWith("station_artist:")) {
-                                    navController.navigate("playlist_detail/$route")
-                                } else {
-                                    navController.navigate(route)
+                                when {
+                                    route.startsWith("spotify_artist:") -> {
+                                        navController.navigate("spotify_artist/${route.removePrefix("spotify_artist:")}")
+                                    }
+                                    route.startsWith("spotify_radio:") || route.startsWith("station_spotify:") -> {
+                                        navController.navigate("playlist_detail/$route")
+                                    }
+                                    route.startsWith("profile:") -> {
+                                        val target = route.removePrefix("profile:")
+                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                            navController.navigate("spotify_artist/$clean")
+                                        } else {
+                                            navController.navigate("profile/$target")
+                                        }
+                                    }
+                                    route.startsWith("station_artist:") -> {
+                                        navController.navigate("playlist_detail/$route")
+                                    }
+                                    else -> {
+                                        navController.navigate(route)
+                                    }
                                 }
                             },
                             playerViewModel = playerViewModel
@@ -825,10 +875,22 @@ fun MainScreen(
                                     id.startsWith("tag:") -> {
                                         navController.navigate("tag/${id.removePrefix("tag:")}")
                                     }
-                                    id.startsWith("profile:") -> {
-                                        navController.navigate("profile/${id.removePrefix("profile:")}")
+                                    id.startsWith("spotify_artist:") -> {
+                                        navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
                                     }
-                                    id.startsWith("playlist_fans/") -> {
+                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
+                                    id.startsWith("profile:") -> {
+                                        val target = id.removePrefix("profile:")
+                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                            navController.navigate("spotify_artist/$clean")
+                                        } else {
+                                            navController.navigate("profile/$target")
+                                        }
+                                    }
+                                    id.startsWith("playlist_fans/") || id.startsWith("playlist_detail/") || id.startsWith("profile/") -> {
                                         navController.navigate(id)
                                     }
                                     else -> {
@@ -858,6 +920,34 @@ fun MainScreen(
                     }
 
                     clippedComposable(
+                        route = "spotify_artist/{artistId}",
+                        arguments = listOf(navArgument("artistId") { type = NavType.StringType })
+                    ) {
+                        ProfileScreen(
+                            userId = "spotify_artist:${it.arguments?.getString("artistId") ?: ""}",
+                            onBackClick = { navController.popBackStack() },
+                            playerViewModel = playerViewModel,
+                            onNavigate = { id ->
+                                when {
+                                    id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
+                                    id.startsWith("profile:") -> {
+                                        val target = id.removePrefix("profile:")
+                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                            navController.navigate("spotify_artist/$clean")
+                                        } else {
+                                            navController.navigate("profile/$target")
+                                        }
+                                    }
+                                    id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
+                                    else -> navController.navigate("playlist_detail/$id")
+                                }
+                            }
+                        )
+                    }
+
+                    clippedComposable(
                         route = "profile/{userId}",
                         arguments = listOf(navArgument("userId") { type = NavType.StringType })
                     ) {
@@ -872,7 +962,17 @@ fun MainScreen(
                                     id == "recognition_history" -> navController.navigate("recognition_history")
                                     id == "likes" -> navController.navigate("playlist_detail/likes")
                                     id == "downloads" -> navController.navigate("playlist_detail/downloads")
-                                    id.startsWith("profile:") -> navController.navigate("profile/${id.removePrefix("profile:")}")
+                                    id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
+                                    id.startsWith("profile:") -> {
+                                        val target = id.removePrefix("profile:")
+                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                            navController.navigate("spotify_artist/$clean")
+                                        } else {
+                                            navController.navigate("profile/$target")
+                                        }
+                                    }
                                     id.startsWith("followers:") -> navController.navigate("followers/${id.removePrefix("followers:")}")
                                     id.startsWith("followings:") -> navController.navigate("followings/${id.removePrefix("followings:")}")
                                     id.startsWith("station:") || id.startsWith("station_artist:") -> navController.navigate("playlist_detail/$id")
@@ -1043,9 +1143,20 @@ fun MainScreen(
                             onNavigate = { dest ->
                                 when {
                                     dest == Screen.Home.route || dest == "home" -> navController.navigate(Screen.Home.route)
+                                    dest.startsWith("spotify_artist:") -> {
+                                        navController.navigate("spotify_artist/${dest.removePrefix("spotify_artist:")}")
+                                    }
+                                    dest.startsWith("spotify_radio:") || dest.startsWith("station_spotify:") -> {
+                                        navController.navigate("playlist_detail/$dest")
+                                    }
                                     dest.startsWith("profile:") -> {
-                                        val userId = dest.removePrefix("profile:")
-                                        navController.navigate("profile/$userId")
+                                        val target = dest.removePrefix("profile:")
+                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                            navController.navigate("spotify_artist/$clean")
+                                        } else {
+                                            navController.navigate("profile/$target")
+                                        }
                                     }
                                     dest.startsWith("playlist_detail/") || dest.startsWith("profile/") || dest.startsWith("tag/") || dest.startsWith("genre_playlists/") || dest.startsWith("track_detail/") -> {
                                         navController.navigate(dest)
@@ -1199,6 +1310,12 @@ fun MainScreen(
                             onLoginSuccess = {
                                 navController.popBackStack()
                             }
+                        )
+                    }
+
+                    clippedComposable("proxy_settings") {
+                        ProxySettingsScreen(
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
 

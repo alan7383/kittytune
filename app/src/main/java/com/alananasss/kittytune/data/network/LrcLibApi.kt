@@ -35,25 +35,29 @@ interface LrcLibApiService {
 object LrcLibClient {
     private const val BASE_URL = "https://lrclib.net/api/"
 
-    private val httpClient = OkHttpClient.Builder()
-        .addInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .header("User-Agent", "KittyTune/1.0 (Android; https://github.com/alananasss/kittytune)")
-                .header("Accept", "application/json")
-                .build()
-            chain.proceed(request)
-        }
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+    private val baseHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("User-Agent", "KittyTune/1.0 (Android; https://github.com/alananasss/kittytune)")
+                    .header("Accept", "application/json")
+                    .build()
+                chain.proceed(request)
+            }
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
 
-    val api: LrcLibApiService by lazy {
-        Retrofit.Builder()
+    private val httpClient: OkHttpClient
+        get() = ProxyManager.configureOkHttpClient(baseHttpClient.newBuilder()).build()
+
+    val api: LrcLibApiService
+        get() = Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(httpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(LrcLibApiService::class.java)
-    }
 }
 
