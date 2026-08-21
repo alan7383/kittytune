@@ -377,7 +377,7 @@ fun HomeScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AnimatedVisibility(
-                                        visible = homeViewModel.activeSearchSource == SearchSource.SOUNDCLOUD,
+                                        visible = homeViewModel.activeSearchSource == SearchSource.SOUNDCLOUD || homeViewModel.activeSearchSource == SearchSource.SPOTIFY,
                                         enter = fadeIn(),
                                         exit = fadeOut(),
                                         modifier = Modifier.weight(1f)
@@ -387,7 +387,7 @@ fun HomeScreen(
                                             onFilterSelected = homeViewModel::onFilterChanged
                                         )
                                     }
-                                    if (homeViewModel.activeSearchSource != SearchSource.SOUNDCLOUD) {
+                                    if (homeViewModel.activeSearchSource == SearchSource.YOUTUBE) {
                                         Spacer(Modifier.weight(1f))
                                     }
                                     Spacer(Modifier.width(8.dp))
@@ -610,8 +610,28 @@ fun HomeContent(
                                     historyItem.id == "likes" -> onNavigate("likes")
                                     historyItem.id == "downloads" -> onNavigate("downloads")
                                     historyItem.id.startsWith("yt_radio:") -> onNavigate(historyItem.id)
+                                    historyItem.id.startsWith("spotify_artist:") -> onNavigate(historyItem.id)
+                                    historyItem.id.startsWith("spotify_radio:") -> onNavigate(historyItem.id)
+                                    historyItem.id.startsWith("spotify:") -> onNavigate(historyItem.id)
+                                    historyItem.type == "STATION" && historyItem.id.contains("spotify") -> {
+                                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(historyItem.id)
+                                        onNavigate("spotify_radio:$clean")
+                                    }
+                                    historyItem.type == "PROFILE" -> {
+                                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(historyItem.id)
+                                        if (clean.isNotBlank() && clean != "0" && (historyItem.id.contains("spotify") || clean.length == 22)) {
+                                            onNavigate("spotify_artist:$clean")
+                                        } else if (historyItem.id == "profile:0" || historyItem.numericId == 0L) {
+                                            if (historyItem.title.isNotBlank()) {
+                                                onNavigate("profile:${historyItem.title}")
+                                            } else {
+                                                onNavigate(historyItem.id)
+                                            }
+                                        } else {
+                                            onNavigate(historyItem.id)
+                                        }
+                                    }
                                     historyItem.type == "STATION" -> onNavigate(historyItem.id)
-                                    historyItem.type == "PROFILE" -> onNavigate(historyItem.id)
                                     historyItem.type == "PLAYLIST" -> onNavigate(
                                         historyItem.id.replace(
                                             "playlist:",
@@ -721,7 +741,7 @@ fun LazyListScope.RenderHomeSection(
                 ) {
                     val artists = section.content.filterIsInstance<User>()
                     items(artists) { artist ->
-                        ArtistCircle(artist) { onNavigate("profile:${artist.id}") }
+                        ArtistCircle(artist) { onNavigate(artist.profileNavId) }
                     }
                 }
             }
@@ -1415,12 +1435,19 @@ fun SearchSourceSelector(
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 isSourceMenuExpanded = true
             },
-            shape = CircleShape,
+            shapes = IconButtonDefaults.shapes(),
             modifier = Modifier.size(44.dp)
         ) {
-            val icon =
-                if (selectedSource == SearchSource.SOUNDCLOUD) Icons.Default.CloudQueue else Icons.Default.SmartDisplay
-            Icon(icon, contentDescription = "Change Search Source", modifier = Modifier.size(24.dp))
+            val iconRes = when (selectedSource) {
+                SearchSource.SOUNDCLOUD -> R.drawable.ic_soundcloud
+                SearchSource.YOUTUBE -> R.drawable.ic_logo_youtube
+                SearchSource.SPOTIFY -> R.drawable.ic_logo_spotify
+            }
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(iconRes),
+                contentDescription = "Change Search Source",
+                modifier = Modifier.size(22.dp)
+            )
         }
 
         DropdownMenu(
@@ -1429,7 +1456,13 @@ fun SearchSourceSelector(
         ) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.search_source_soundcloud)) },
-                leadingIcon = { Icon(Icons.Default.CloudQueue, null) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_soundcloud),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onSelect(SearchSource.SOUNDCLOUD)
@@ -1438,10 +1471,31 @@ fun SearchSourceSelector(
             )
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.search_source_youtube)) },
-                leadingIcon = { Icon(Icons.Default.SmartDisplay, null) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_youtube),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onSelect(SearchSource.YOUTUBE)
+                    isSourceMenuExpanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.search_source_spotify)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_spotify),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelect(SearchSource.SPOTIFY)
                     isSourceMenuExpanded = false
                 }
             )
@@ -1454,6 +1508,7 @@ fun getStationNavId(playlist: Playlist): String {
     val isArtistStation = playlist.permalinkUrl == "artist_station_marker"
     val isTrackStation = playlist.permalinkUrl == "track_station_marker"
     val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
+    val isSpotifyRadio = playlist.permalinkUrl?.startsWith("spotify_radio:") == true || playlist.permalinkUrl?.startsWith("spotify:") == true
     val isSystemPlaylist = playlist.urn?.startsWith("soundcloud:system-playlists:") == true
 
     return when {
@@ -1461,6 +1516,7 @@ fun getStationNavId(playlist: Playlist): String {
         isLikedBy -> "liked_by:${playlist.id}"
         isArtistStation -> "station_artist:${playlist.id}"
         isYoutubeRadio -> playlist.permalinkUrl!!
+        isSpotifyRadio -> playlist.permalinkUrl!!
         isTrackStation -> "station:${playlist.id}"
         else -> playlist.id.toString()
     }
@@ -1644,6 +1700,194 @@ fun SearchResultsList(
             }
         }
 
+        SearchSource.SPOTIFY -> {
+            val listState = rememberLazyListState()
+            val isScrolling = listState.isScrollInProgress
+            var globalIndex = 0
+
+            val hasTracks = homeViewModel.searchResultsSpotify.isNotEmpty()
+            val hasArtists = homeViewModel.searchResultsSpotifyArtists.isNotEmpty()
+            val hasPlaylistsOrAlbums = homeViewModel.searchResultsSpotifyPlaylists.isNotEmpty() || homeViewModel.searchResultsSpotifyAlbums.isNotEmpty()
+
+            if (!hasTracks && !hasArtists && !hasPlaylistsOrAlbums) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    contentPadding = PaddingValues(bottom = 180.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    // ARTISTS SECTION
+                    if (hasArtists && (activeFilter == SearchFilter.ALL || activeFilter == SearchFilter.ARTISTS)) {
+                        if (activeFilter == SearchFilter.ALL) {
+                            item {
+                                val idx = globalIndex++
+                                StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                    Text(
+                                        stringResource(R.string.lib_artists),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
+                            }
+                            item {
+                                val idx = globalIndex++
+                                StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        items(homeViewModel.searchResultsSpotifyArtists) { artist ->
+                                            ArtistCircle(artist.toUser()) {
+                                                onNavigate("spotify_artist:${artist.id}")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (activeFilter == SearchFilter.ARTISTS) {
+                            items(homeViewModel.searchResultsSpotifyArtists) { artist ->
+                                val idx = globalIndex++
+                                StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                onNavigate("spotify_artist:${artist.id}")
+                                            }
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        ArtistAvatar(
+                                            avatarUrl = artist.avatarUrl,
+                                            enableViewer = false,
+                                            modifier = Modifier
+                                                .size(56.dp)
+                                                .clip(CircleShape)
+                                        )
+                                        Spacer(Modifier.width(16.dp))
+                                        Column {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    artist.name,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                                if (artist.verified) {
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Icon(
+                                                        Icons.Rounded.Verified,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF1DB954),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+                                            if (artist.monthlyListeners != null && artist.monthlyListeners > 0) {
+                                                Text(
+                                                    text = "${artist.monthlyListeners} ${stringResource(R.string.profile_followers)}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // TRACKS SECTION
+                    if (hasTracks && (activeFilter == SearchFilter.ALL || activeFilter == SearchFilter.TRACKS)) {
+                        if (activeFilter == SearchFilter.ALL) {
+                            item {
+                                val idx = globalIndex++
+                                StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                    Text(
+                                        stringResource(R.string.profile_tracks),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                        itemsIndexed(homeViewModel.searchResultsSpotify) { index, track ->
+                            val idx = globalIndex++
+                            StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                val isDownloaded = downloadedIds.contains(track.id)
+                                TrackListItem(
+                                    track = track,
+                                    currentlyPlayingTrack = playerViewModel.currentTrack,
+                                    index = index,
+                                    isDownloading = false,
+                                    isDownloaded = isDownloaded,
+                                    downloadProgress = 0,
+                                    onClick = { playerViewModel.playPlaylist(listOf(track), 0) },
+                                    onOptionClick = { playerViewModel.showTrackOptions(track) }
+                                )
+                            }
+                        }
+                    }
+
+                    // PLAYLISTS & ALBUMS SECTION
+                    if (hasPlaylistsOrAlbums && (activeFilter == SearchFilter.ALL || activeFilter == SearchFilter.PLAYLISTS)) {
+                        val allPlaylists = homeViewModel.searchResultsSpotifyPlaylists.map { it.toPlaylist() } +
+                                homeViewModel.searchResultsSpotifyAlbums.map { it.toPlaylist() }
+
+                        if (activeFilter == SearchFilter.ALL) {
+                            item {
+                                val idx = globalIndex++
+                                StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                    Text(
+                                        stringResource(R.string.lib_playlists),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+                                    )
+                                }
+                            }
+                            item {
+                                val idx = globalIndex++
+                                StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                         items(allPlaylists) { playlist ->
+                                            SquareCard(playlist) {
+                                                val navId = playlist.urn ?: if (playlist.isAlbum) "spotify:album:${playlist.permalink ?: playlist.id}" else "spotify:playlist:${playlist.permalink ?: playlist.id}"
+                                                onNavigate(navId)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (activeFilter == SearchFilter.PLAYLISTS) {
+                            items(allPlaylists) { playlist ->
+                                val idx = globalIndex++
+                                StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                    DynamicPlaylistCard(
+                                        playlist = playlist,
+                                        isGrid = false,
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        onOptionClick = { selectedPlaylistForMenu = playlist },
+                                        onClick = {
+                                            val navId = playlist.urn ?: if (playlist.isAlbum) "spotify:album:${playlist.permalink ?: playlist.id}" else "spotify:playlist:${playlist.permalink ?: playlist.id}"
+                                            onNavigate(navId)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         SearchSource.SOUNDCLOUD -> {
             val listState = rememberLazyListState()
             val shouldLoadMore by remember {
@@ -1685,7 +1929,7 @@ fun SearchResultsList(
                         Row(
                             modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onNavigate("profile:${artist.id}") }
+                            .clickable { onNavigate(artist.profileNavId) }
                             .padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             ArtistAvatar(
                                 avatarUrl = artist.avatarUrl, enableViewer = false, modifier = Modifier
@@ -1723,7 +1967,7 @@ fun SearchResultsList(
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate("profile:${artist.id}") } } }
+                        ) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate(artist.profileNavId) } } }
                     }
                     }
                 }
@@ -1938,11 +2182,12 @@ fun SearchResultsList(
                             if (isPlaylistLiked) context.getString(R.string.action_unlike) else context.getString(R.string.player_like_action)
                         ) {
                             if (!isPlaylistLiked) {
-                                com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
-                                    playlist = playlist,
-                                    tracks = playlist.tracks ?: emptyList(),
-                                    syncToCloud = true
-                                )
+                                    val isSpotify = playlist.permalinkUrl?.contains("spotify") == true || playlist.urn?.startsWith("spotify:") == true
+                                    com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
+                                        playlist = playlist,
+                                        tracks = playlist.tracks ?: emptyList(),
+                                        syncToCloud = !isSpotify
+                                    )
                             } else {
                                 LikeRepository.togglePlaylistLike(
                                     playlist.id,
@@ -2096,10 +2341,11 @@ fun ArtistCircle(user: User, onClick: () -> Unit) {
                 modifier = Modifier.weight(1f, fill = false)
             )
             if (user.verified) {
-                Spacer(Modifier.width(4.dp)); Icon(
+                Spacer(Modifier.width(4.dp))
+                Icon(
                     Icons.Rounded.Verified,
                     null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (user.urn?.startsWith("spotify") == true) Color(0xFF1DB954) else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(14.dp)
                 )
             }
