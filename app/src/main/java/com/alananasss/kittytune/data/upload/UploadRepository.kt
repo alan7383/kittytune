@@ -29,12 +29,14 @@ class UploadRepository(context: Context) {
 
     private val appContext = context.applicationContext
     private val api = RetrofitClient.create(appContext)
-    private val s3HttpClient = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.MINUTES)
-        .writeTimeout(10, TimeUnit.MINUTES)
-        .retryOnConnectionFailure(true)
-        .build()
+    private val s3HttpClient = com.alananasss.kittytune.data.network.ProxyManager.configureOkHttpClient(
+        OkHttpClient.Builder()
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.MINUTES)
+            .writeTimeout(10, TimeUnit.MINUTES)
+            .retryOnConnectionFailure(true),
+        appContext
+    ).build()
 
     suspend fun checkEligibility(): Result<UploadEligibilityResponse> =
         withContext(Dispatchers.IO) {

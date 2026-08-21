@@ -141,7 +141,7 @@ object RetrofitClient {
                 }
             }
 
-            okHttpClient = OkHttpClient.Builder()
+            val builder = OkHttpClient.Builder()
                 .addInterceptor(cookieInterceptor)
                 .addInterceptor(authInterceptor)
                 .addInterceptor(sessionRecoveryInterceptor)
@@ -149,7 +149,8 @@ object RetrofitClient {
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
-                .build()
+
+            okHttpClient = ProxyManager.configureOkHttpClient(builder, appContext).build()
         }
         return okHttpClient!!
     }

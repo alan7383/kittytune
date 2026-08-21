@@ -39,7 +39,8 @@ object UpdateManager {
     private const val PREFS_NAME = "update_cache"
     private const val KEY_LAST_CHECK = "last_check_time"
 
-    private val client = OkHttpClient()
+    private val client: OkHttpClient
+        get() = com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient()
     private const val AUTO_CHECK_COOLDOWN_MS = 15 * 60 * 1000L
 
     suspend fun checkForUpdate(context: Context, isManual: Boolean = false) {

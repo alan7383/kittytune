@@ -136,6 +136,23 @@
                                 )
                             },
                             { shape ->
+                                val proxyEnabled = prefs.getProxyEnabled()
+                                val proxyType = prefs.getProxyType()
+                                val proxyHost = prefs.getProxyHost().ifBlank { "127.0.0.1" }
+                                val proxyPort = prefs.getProxyPort()
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_proxy_title),
+                                    subtitle = if (proxyEnabled) {
+                                        stringResource(R.string.proxy_status_enabled, proxyType, proxyHost, proxyPort)
+                                    } else {
+                                        stringResource(R.string.pref_proxy_subtitle)
+                                    },
+                                    icon = Icons.Rounded.Dns,
+                                    onClick = { navController.navigate("proxy_settings") }
+                                )
+                            },
+                            { shape ->
                                 SettingsItem(
                                     shape = shape,
                                     title = stringResource(R.string.pref_about_title),

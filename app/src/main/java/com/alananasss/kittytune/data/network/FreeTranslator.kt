@@ -5,7 +5,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 
 object FreeTranslator {
-    private val client = okhttp3.OkHttpClient()
+    private val client: okhttp3.OkHttpClient
+        get() = ProxyManager.getOkHttpClient()
 
     suspend fun translateMissing(
         linesToTranslate: List<String>,

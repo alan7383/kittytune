@@ -123,6 +123,16 @@ class PlayerPreferences(context: Context) {
         private const val KEY_SLEEP_TIMER_FADE_DURATION = "sleep_timer_fade_duration"
         private const val KEY_SLEEP_TIMER_FADE_ENABLED = "sleep_timer_fade_enabled"
 
+        const val KEY_PROXY_ENABLED = "proxy_enabled"
+        const val KEY_PROXY_TYPE = "proxy_type"
+        const val KEY_PROXY_HOST = "proxy_host"
+        const val KEY_PROXY_PORT = "proxy_port"
+        const val KEY_PROXY_AUTH_ENABLED = "proxy_auth_enabled"
+        const val KEY_PROXY_USERNAME = "proxy_username"
+        const val KEY_PROXY_PASSWORD = "proxy_password"
+        const val KEY_PROXY_PROFILES = "saved_proxy_profiles_json"
+        const val KEY_SELECTED_PROXY_PROFILE_ID = "selected_proxy_profile_id"
+
         const val SLEEP_TIMER_FADE_DURATION_MIN = 0
         const val SLEEP_TIMER_FADE_DURATION_MAX = 30
         const val SLEEP_TIMER_FADE_DURATION_DEFAULT = 30
@@ -433,14 +443,21 @@ class PlayerPreferences(context: Context) {
     fun setWaveformCommentsEnabled(enabled: Boolean) {
         prefs.edit {
             putBoolean(KEY_WAVEFORM_COMMENTS, enabled)
-            putString(KEY_PLAYER_PROGRESS_MODE, if (enabled) PlayerProgressMode.SOUNDCLOUD.name else PlayerProgressMode.CLASSIC_BAR.name)
+            putString(
+                KEY_PLAYER_PROGRESS_MODE,
+                if (enabled) PlayerProgressMode.SOUNDCLOUD.name else PlayerProgressMode.CLASSIC_BAR.name
+            )
         }
     }
 
     fun getPlayerProgressMode(): PlayerProgressMode {
         val raw = prefs.getString(KEY_PLAYER_PROGRESS_MODE, null)
         return if (raw != null) {
-            try { PlayerProgressMode.valueOf(raw) } catch (e: Exception) { PlayerProgressMode.CLASSIC_BAR }
+            try {
+                PlayerProgressMode.valueOf(raw)
+            } catch (e: Exception) {
+                PlayerProgressMode.CLASSIC_BAR
+            }
         } else {
             PlayerProgressMode.CLASSIC_BAR
         }
@@ -454,16 +471,18 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getWaveformCommentsPopupEnabled(): Boolean = prefs.getBoolean(KEY_WAVEFORM_COMMENTS_POPUP, true)
-    fun setWaveformCommentsPopupEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_WAVEFORM_COMMENTS_POPUP, enabled) }
+    fun setWaveformCommentsPopupEnabled(enabled: Boolean) =
+        prefs.edit { putBoolean(KEY_WAVEFORM_COMMENTS_POPUP, enabled) }
 
     fun getSoundCloudReactionsBarEnabled(): Boolean = prefs.getBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, true)
-    fun setSoundCloudReactionsBarEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, enabled) }
+    fun setSoundCloudReactionsBarEnabled(enabled: Boolean) =
+        prefs.edit { putBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, enabled) }
 
     fun getSoundCloudParallaxEnabled(): Boolean = prefs.getBoolean(KEY_SOUNDCLOUD_PARALLAX, true)
     fun setSoundCloudParallaxEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SOUNDCLOUD_PARALLAX, enabled) }
 
     fun getSoundCloudSlot(index: Int): PlayerActionButtonSlot {
-        val defaultSlot = when(index) {
+        val defaultSlot = when (index) {
             0 -> PlayerActionButtonSlot.LIKE
             1 -> PlayerActionButtonSlot.COMMENTS
             2 -> PlayerActionButtonSlot.SHARE
@@ -472,7 +491,11 @@ class PlayerPreferences(context: Context) {
             else -> PlayerActionButtonSlot.NONE
         }
         val raw = prefs.getString("${KEY_SOUNDCLOUD_SLOT_PREFIX}$index", null) ?: return defaultSlot
-        return try { PlayerActionButtonSlot.valueOf(raw) } catch (e: Exception) { defaultSlot }
+        return try {
+            PlayerActionButtonSlot.valueOf(raw)
+        } catch (e: Exception) {
+            defaultSlot
+        }
     }
 
     fun setSoundCloudSlot(index: Int, slot: PlayerActionButtonSlot) {
@@ -480,7 +503,7 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getClassicSlot(index: Int): PlayerActionButtonSlot {
-        val defaultSlot = when(index) {
+        val defaultSlot = when (index) {
             0 -> PlayerActionButtonSlot.AUDIO_FX
             1 -> PlayerActionButtonSlot.SHUFFLE
             2 -> PlayerActionButtonSlot.REPEAT
@@ -488,7 +511,11 @@ class PlayerPreferences(context: Context) {
             else -> PlayerActionButtonSlot.NONE
         }
         val raw = prefs.getString("${KEY_CLASSIC_SLOT_PREFIX}$index", null) ?: return defaultSlot
-        return try { PlayerActionButtonSlot.valueOf(raw) } catch (e: Exception) { defaultSlot }
+        return try {
+            PlayerActionButtonSlot.valueOf(raw)
+        } catch (e: Exception) {
+            defaultSlot
+        }
     }
 
     fun setClassicSlot(index: Int, slot: PlayerActionButtonSlot) {
@@ -524,6 +551,7 @@ class PlayerPreferences(context: Context) {
             }
         }
     }
+
     fun bottomMenuBlurFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_BOTTOM_MENU_BLUR) trySend(getBottomMenuBlurEnabled())
@@ -670,5 +698,123 @@ class PlayerPreferences(context: Context) {
 
     fun setSoundCloudHistorySyncEnabled(enabled: Boolean) {
         prefs.edit { putBoolean(KEY_SOUNDCLOUD_HISTORY_SYNC, enabled) }
+    }
+
+    fun getProxyEnabled(): Boolean = prefs.getBoolean(KEY_PROXY_ENABLED, false)
+
+    fun setProxyEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_PROXY_ENABLED, enabled) }
+    }
+
+    fun getProxyType(): String = prefs.getString(KEY_PROXY_TYPE, "HTTP") ?: "HTTP"
+
+    fun setProxyType(type: String) {
+        prefs.edit { putString(KEY_PROXY_TYPE, type) }
+    }
+
+    fun getProxyHost(): String = prefs.getString(KEY_PROXY_HOST, "") ?: ""
+
+    fun setProxyHost(host: String) {
+        prefs.edit { putString(KEY_PROXY_HOST, host.trim()) }
+    }
+
+    fun getProxyPort(): Int = prefs.getInt(KEY_PROXY_PORT, 8080)
+
+    fun setProxyPort(port: Int) {
+        prefs.edit { putInt(KEY_PROXY_PORT, port) }
+    }
+
+    fun getProxyAuthEnabled(): Boolean = prefs.getBoolean(KEY_PROXY_AUTH_ENABLED, false)
+
+    fun setProxyAuthEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_PROXY_AUTH_ENABLED, enabled) }
+    }
+
+    fun getProxyUsername(): String = prefs.getString(KEY_PROXY_USERNAME, "") ?: ""
+
+    fun setProxyUsername(username: String) {
+        prefs.edit { putString(KEY_PROXY_USERNAME, username.trim()) }
+    }
+
+    fun getProxyPassword(): String = prefs.getString(KEY_PROXY_PASSWORD, "") ?: ""
+
+    fun setProxyPassword(password: String) {
+        prefs.edit { putString(KEY_PROXY_PASSWORD, password) }
+    }
+
+    // Proxy Profiles (Multi-proxy list)
+    fun getSavedProxyProfiles(): List<com.alananasss.kittytune.data.network.ProxyProfile> {
+        val json = prefs.getString(KEY_PROXY_PROFILES, null) ?: return emptyList()
+        return try {
+            val type = object : TypeToken<List<com.alananasss.kittytune.data.network.ProxyProfile>>() {}.type
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun saveProxyProfiles(profiles: List<com.alananasss.kittytune.data.network.ProxyProfile>) {
+        prefs.edit { putString(KEY_PROXY_PROFILES, gson.toJson(profiles)) }
+    }
+
+    fun addOrUpdateProxyProfile(profile: com.alananasss.kittytune.data.network.ProxyProfile) {
+        val list = getSavedProxyProfiles().toMutableList()
+        val index = list.indexOfFirst { it.id == profile.id }
+        if (index >= 0) {
+            list[index] = profile
+        } else {
+            list.add(profile)
+        }
+        saveProxyProfiles(list)
+    }
+
+    fun deleteProxyProfile(profileId: String) {
+        val list = getSavedProxyProfiles().filterNot { it.id == profileId }
+        saveProxyProfiles(list)
+        if (getSelectedProxyProfileId() == profileId) {
+            setSelectedProxyProfileId(null)
+        }
+    }
+
+    fun getLikedSpotifyArtists(): Set<String> {
+        return prefs.getStringSet("liked_spotify_artists", emptySet()) ?: emptySet()
+    }
+
+    fun isSpotifyArtistLiked(artistId: String): Boolean {
+        return getLikedSpotifyArtists().contains(artistId)
+    }
+
+    fun toggleLikeSpotifyArtist(artistId: String): Boolean {
+        val current = getLikedSpotifyArtists().toMutableSet()
+        val isNowLiked = if (current.contains(artistId)) {
+            current.remove(artistId)
+            false
+        } else {
+            current.add(artistId)
+            true
+        }
+        prefs.edit { putStringSet("liked_spotify_artists", current) }
+        return isNowLiked
+    }
+
+    fun saveSpotifyArtistMapping(numericId: Long, spotifyId: String) {
+        prefs.edit { putString("spotify_artist_mapping_$numericId", spotifyId) }
+    }
+
+    fun getSpotifyArtistIdForStableId(numericId: Long): String? {
+        return prefs.getString("spotify_artist_mapping_$numericId", null)
+    }
+
+    fun removeSpotifyArtistMapping(numericId: Long) {
+        prefs.edit { remove("spotify_artist_mapping_$numericId") }
+    }
+
+    fun getSelectedProxyProfileId(): String? = prefs.getString(KEY_SELECTED_PROXY_PROFILE_ID, null)
+
+    fun setSelectedProxyProfileId(id: String?) {
+        prefs.edit {
+            if (id != null) putString(KEY_SELECTED_PROXY_PROFILE_ID, id)
+            else remove(KEY_SELECTED_PROXY_PROFILE_ID)
+        }
     }
 }
