@@ -288,8 +288,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private fun getString(resId: Int): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId)
-    private fun getString(resId: Int, vararg args: Any): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId, *args)
+    private fun getString(resId: Int): String =
+        com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId)
+
+    private fun getString(resId: Int, vararg args: Any): String =
+        com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId, *args)
 
     private fun parseIdFromMediaId(mediaId: String): Long {
         var cleanId = mediaId
@@ -329,6 +332,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         override fun onPlaybackStateChanged(state: Int) {
             if (state == Player.STATE_READY) {
                 isLoading = false
+                currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                 if (MusicManager.player.duration > 0) duration = MusicManager.player.duration
                 pendingSeekPosition?.let { MusicManager.player.seekTo(it); pendingSeekPosition = null }
             }
@@ -403,7 +407,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             isLoading = false
             isPlaying = false
-            playNext(manual = false, ignoreRepeatOne = true)
+            try {
+                MusicManager.player.pause()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         override fun onPositionDiscontinuity(
@@ -572,11 +580,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             playTrackAtIndex(0, addToHistory = false, isCrossfade = crossfadeEnabled)
                         } else {
                             val autoPlayEnabled = playerPrefs.getAutoplayEnabled()
-                            val isYoutube = currentTrack?.source == "youtube"
+                            val isSpotify = currentTrack?.let {
+                                it.source == "spotify" || it.user?.urn?.startsWith("spotify") == true || (it.permalinkUrl != null && it.permalinkUrl!!.contains("spotify"))
+                            } == true
+                            val isYoutube =
+                                currentTrack?.source == "youtube" || currentTrack?.permalinkUrl?.contains("youtube.com") == true || currentTrack?.permalinkUrl?.contains(
+                                    "youtu.be"
+                                ) == true
                             if (autoPlayEnabled || isYoutube) {
                                 viewModelScope.launch {
                                     val youtubeFallback = playerPrefs.getYouTubeFallbackEnabled()
-                                    if (isYoutube || (currentTrack?.source == "soundcloud" && youtubeFallback)) {
+                                    if (isSpotify) {
+                                        fetchAndQueueSpotifyRadio()
+                                    } else if (isYoutube || (currentTrack?.source == "soundcloud" && youtubeFallback)) {
                                         fetchAndPlayYoutubeRadio()
                                     } else {
                                         fetchAndQueueRadio()
@@ -1505,7 +1521,50 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         showMenuSheet = false
         showCommentsSheet = false
         isPlayerExpanded = false
+        val currentU = currentTrack?.user
+        if (currentU != null && (currentU.id == userId || currentU.numericId == userId) && currentU.urn?.startsWith("spotify:artist:") == true) {
+            navigateToPlaylistId = "profile:${currentU.urn}"
+            return
+        }
         navigateToPlaylistId = "profile:$userId"
+    }
+
+    fun navigateToUser(user: User?) {
+        if (user == null) return
+        showDetailsSheet = false
+        showMenuSheet = false
+        showCommentsSheet = false
+        isPlayerExpanded = false
+        val navId = user.profileNavId
+        if (navId.isNotBlank()) {
+            navigateToPlaylistId = navId
+            return
+        }
+        if (user.id in 1..999999999999L) {
+            navigateToPlaylistId = "profile:${user.id}"
+        } else if (!user.username.isNullOrBlank()) {
+            resolveAndNavigateToArtist(user.username)
+        }
+    }
+
+    fun navigateToSpotifyArtist(artistId: String) {
+        val cleanId = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(artistId)
+        if (cleanId.isBlank()) return
+        showDetailsSheet = false
+        showMenuSheet = false
+        showCommentsSheet = false
+        isPlayerExpanded = false
+        navigateToPlaylistId = "spotify_artist:$cleanId"
+    }
+
+    fun navigateToAlbum(albumId: String) {
+        val cleanId = albumId.removePrefix("spotify:album:").removePrefix("spotify_album:").removePrefix("spotify:")
+        if (cleanId.isBlank()) return
+        showDetailsSheet = false
+        showMenuSheet = false
+        showCommentsSheet = false
+        isPlayerExpanded = false
+        navigateToPlaylistId = "spotify:album:$cleanId"
     }
 
     fun navigateToContext() {
@@ -1982,7 +2041,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun startRadioFromTrack(track: Track) {
         showMenuSheet = false
-        navigateToPlaylistId = "station:${track.id}"
+        if (track.source == "spotify" || track.user?.urn?.startsWith("spotify") == true) {
+            val trackId = track.permalink ?: track.id.toString()
+            navigateToPlaylistId = "spotify_radio:$trackId"
+        } else {
+            navigateToPlaylistId = "station:${track.id}"
+        }
     }
 
     fun startYoutubeRadio(track: Track) {
@@ -2019,10 +2083,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 tracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
             _queue.add(clickedTrack)
             _queue.addAll(rest)
-            playTrackAtIndex(0, addToHistory = (context == null || isHistoryContext))
+            playTrackAtIndex(0, addToHistory = (context == null || isHistoryContext), autoPlay = true)
         } else {
             _queue.addAll(tracks)
-            playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null || isHistoryContext))
+            playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null || isHistoryContext), autoPlay = true)
         }
 
         updateQueueState(); saveStateAsync(saveQueue = true)
@@ -2030,8 +2094,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         if (context != null && !isHistoryContext) {
             val isStation =
-                context.navigationId.contains("station") || context.navigationId.contains("yt_radio")
-            val isProfile = context.navigationId.contains("profile")
+                context.navigationId.contains("station") || context.navigationId.contains("yt_radio") || context.navigationId.contains("spotify_radio")
+            val isProfile = context.navigationId.contains("profile") || context.navigationId.contains("spotify_artist")
             val idLong = when (context.navigationId) {
                 "likes" -> -1L
                 "downloads" -> -2L
@@ -2045,17 +2109,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 null,
                 verified = context.isVerified
             ) else null
-            val safePermalink =
-                if (context.navigationId.startsWith("yt_radio:")) context.navigationId else null
             val historyPlaylist = Playlist(
-                id = idLong,
+                id = if (idLong != 0L) idLong else kotlin.math.abs(context.navigationId.hashCode().toLong()),
                 title = cleanTitle,
                 artworkUrl = context.imageUrl,
                 calculatedArtworkUrl = null,
                 trackCount = tracks.size,
                 user = playlistCreator,
                 tracks = null,
-                permalinkUrl = safePermalink
+                permalinkUrl = context.navigationId,
+                urn = context.navigationId
             )
 
             HistoryRepository.addToHistory(historyPlaylist, isStation, isProfile)
@@ -2090,11 +2153,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val trackToPlay = _queue[index]
 
         playWhenReady = autoPlay
+        progressJob?.cancel()
         isLoading = true
         duration = trackToPlay.durationMs ?: 0L
         if (!isCrossfade) {
             currentPosition = 0L
             MusicManager.isCrossfadingOut = false
+            try {
+                MusicManager.player.stop()
+                MusicManager.player.clearMediaItems()
+            } catch (_: Exception) {}
         }
         currentSessionListenMs = 0L
         hasPushedRecentlyPlayed = false
@@ -2114,6 +2182,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
+                }
+            } else if ((finalTrack.source == "spotify" || finalTrack.user?.urn?.startsWith("spotify") == true) && finalTrack.user != null) {
+                val firstArtist = finalTrack.artists?.firstOrNull()
+                if (firstArtist != null && firstArtist.id.isNotBlank()) {
+                    val updatedUser = finalTrack.user!!.copy(
+                        verified = firstArtist.verified || finalTrack.user!!.verified,
+                        avatarUrl = firstArtist.avatarUrl ?: finalTrack.user!!.avatarUrl,
+                        urn = "spotify:artist:${firstArtist.id}",
+                        permalink = firstArtist.id
+                    )
+                    finalTrack = finalTrack.copy(user = updatedUser)
+                    if (index in _queue.indices) {
+                        _queue[index] = finalTrack
+                    }
                 }
             }
             currentTrack = finalTrack
@@ -2192,13 +2274,21 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
             } else {
                 val autoPlayEnabled = playerPrefs.getAutoplayEnabled()
-                val isYoutube = currentTrack?.source == "youtube"
+                val isSpotify = currentTrack?.let {
+                    it.source == "spotify" || it.user?.urn?.startsWith("spotify") == true || (it.permalinkUrl != null && it.permalinkUrl!!.contains("spotify"))
+                } == true
+                val isYoutube =
+                    currentTrack?.source == "youtube" || currentTrack?.permalinkUrl?.contains("youtube.com") == true || currentTrack?.permalinkUrl?.contains(
+                        "youtu.be"
+                    ) == true
 
                 if (autoPlayEnabled || isYoutube) {
                     viewModelScope.launch {
                         val youtubeFallback = playerPrefs.getYouTubeFallbackEnabled()
 
-                        if (isYoutube || (currentTrack?.source == "soundcloud" && youtubeFallback)) {
+                        if (isSpotify) {
+                            fetchAndQueueSpotifyRadio()
+                        } else if (isYoutube || (currentTrack?.source == "soundcloud" && youtubeFallback)) {
                             fetchAndPlayYoutubeRadio()
                         } else {
                             fetchAndQueueRadio()
@@ -2309,6 +2399,51 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
         } catch (_: Exception) {
+        } finally {
+            isAutoplayRadioLoading = false
+        }
+    }
+
+    private suspend fun fetchAndQueueSpotifyRadio() {
+        val lastTrack = currentTrack ?: return
+        isAutoplayRadioLoading = true
+        try {
+            val rawId = lastTrack.permalink?.takeIf { it.isNotBlank() && !it.contains("/") }
+                ?: lastTrack.permalinkUrl?.let { com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(it) }
+                ?: lastTrack.user?.urn?.let { com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(it) }
+                ?: return
+
+            val spotifyId = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(rawId)
+            if (spotifyId.isBlank()) return
+
+            val radioPlaylist =
+                com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(spotifyId, isArtist = false)
+            val rawTracks =
+                radioPlaylist?.tracks ?: com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadioTracks(
+                    spotifyId
+                )
+
+            val tracksToAdd =
+                rawTracks.drop(1).map { it.toTrack() }.filter { track -> _queue.none { it.id == track.id } }
+
+            if (tracksToAdd.isNotEmpty()) {
+                _queue.addAll(tracksToAdd)
+                _originalQueue.addAll(tracksToAdd)
+                updateQueueState()
+            }
+            if (currentContext == null) {
+                val ctx = PlaybackContext(
+                    displayText = getString(R.string.context_station, lastTrack.title ?: ""),
+                    navigationId = "spotify_radio:$spotifyId",
+                    imageUrl = lastTrack.fullResArtwork,
+                    artistName = lastTrack.user?.username,
+                    isVerified = lastTrack.user?.verified == true
+                )
+                currentContext = ctx
+                MusicManager.updateContext(ctx)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         } finally {
             isAutoplayRadioLoading = false
         }
@@ -3259,7 +3394,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             var lastSaveTime = System.currentTimeMillis()
             while (isActive && isPlaying) {
                 try {
-                    if (!isScrubbing) {
+                    if (!isScrubbing && !isLoading) {
                         currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                         currentSessionListenMs += 1000L
                         SoundCloudTelemetryTracker.onProgressUpdate(currentPosition)
@@ -3603,26 +3738,40 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
+            var retryAttempt = 0
+            while (resolvedUrl == null && retryAttempt < 2 && isActive) {
+                retryAttempt++
+                Log.d(
+                    "PlayerViewModel",
+                    "Retrying stream resolution for track ${trackToPlay.id} (attempt $retryAttempt/2)..."
+                )
+                kotlinx.coroutines.delay(1200L * retryAttempt)
+                try {
+                    val retryResolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
+                    resolvedUrl = retryResolved?.url
+                    if (retryResolved?.isDrmProtected == true && retryResolved.licenseAuthToken != null) {
+                        MusicManager.putDrmToken(trackToPlay.id, retryResolved.licenseAuthToken)
+                    }
+                } catch (e: Exception) {
+                    Log.w("PlayerViewModel", "Retry resolution attempt $retryAttempt failed: ${e.message}")
+                }
+            }
+
             if (resolvedUrl == null) {
                 withContext(Dispatchers.Main) {
                     isLoading = false
                     isPlaying = false
-                    if (!com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)) {
-                        if (_queue.isEmpty()) {
-                            resetPlaybackState(closePlayer = true)
-                        } else if (allowSkipOnFailure && index < _queue.size - 1) {
-                            playNext(manual = false, ignoreRepeatOne = true)
-                        } else {
-                            try {
-                                MusicManager.player.stop()
-                                MusicManager.player.clearMediaItems()
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
-                        }
-                    } else {
-                        if (allowSkipOnFailure) playNext(manual = false, ignoreRepeatOne = true)
+                    try {
+                        MusicManager.player.pause()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
+                    val msg = if (playerPrefs.getProxyEnabled()) {
+                        context.getString(R.string.proxy_playback_error)
+                    } else {
+                        context.getString(R.string.network_playback_error)
+                    }
+                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
                 }
                 return@launch
             }

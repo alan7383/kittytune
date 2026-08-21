@@ -8,6 +8,8 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.view.HapticFeedbackConstants
+import kotlinx.coroutines.flow.first
+import com.alananasss.kittytune.data.HistoryRepository
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -132,6 +134,8 @@ fun PlaylistDetailScreen(
     var playlistPermalink by remember { mutableStateOf<String?>(null) }
     var playlistUrn by remember { mutableStateOf<String?>(null) }
     var playlistUser by remember { mutableStateOf<User?>(null) }
+    var playlistArtists by remember { mutableStateOf<List<com.alananasss.kittytune.data.spotify.SpotifyArtistRef>>(emptyList()) }
+    var showAlbumArtistSelectDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     var defaultIcon by remember { mutableStateOf<ImageVector?>(null) }
 
@@ -148,6 +152,12 @@ fun PlaylistDetailScreen(
     val isDownloadedView = playlistId.startsWith("downloaded_section:")
 
     val cleanIdStr = playlistId.replace("station_artist:", "")
+        .replace("station_spotify:", "")
+        .replace("spotify_radio:", "")
+        .replace("spotify:album:", "")
+        .replace("spotify_album:", "")
+        .replace("spotify:playlist:", "")
+        .replace("spotify_playlist:", "")
         .replace("station:", "")
         .replace("liked_by:", "")
         .replace("local_playlist:", "")
@@ -176,10 +186,17 @@ fun PlaylistDetailScreen(
 
     var playlistPermalinkUrl by remember { mutableStateOf<String?>(null) }
 
+    val isLikesScreen = playlistId == "likes" || playlistId.startsWith("liked_by:")
+    val isSpotifyRadio = playlistId.startsWith("spotify_radio:") || playlistId.startsWith("station_spotify:")
+    val isSystemPlaylistRoute = playlistId.startsWith("system_playlist:")
+    val isSpecialSystemScreen = isLikesScreen || playlistId == "downloads" || playlistId == "local_files" || isSystemPlaylistRoute || isSpotifyRadio || playlistId.startsWith("yt_radio:") || playlistId.startsWith("station:") || playlistId.startsWith("station_artist:") || playlistId.startsWith("spotify:")
+    val isCanReorderGlobal = (isUserCreated || isDownloadedView) && !isSpecialSystemScreen
+
     val listState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = listState,
         onMove = { from, to ->
+            if (!isCanReorderGlobal) return@rememberReorderableLazyListState
             val fromId = from.key as? Long ?: return@rememberReorderableLazyListState
             val toId = to.key as? Long ?: return@rememberReorderableLazyListState
 
@@ -245,7 +262,10 @@ fun PlaylistDetailScreen(
     }
 
     LaunchedEffect(playlistInDb, currentIdLong, playlistUser, playerViewModel.currentUserId) {
-        if (playlistInDb != null) {
+        if (isSpecialSystemScreen) {
+            isLocalPlaylist = isDownloadedView
+            isUserCreated = false
+        } else if (playlistInDb != null) {
             val isOwnedByCurrentAccount = (playlistUser?.id != null && playlistUser?.id != 0L && playlistUser?.id == playerViewModel.currentUserId) ||
                 (playerViewModel.currentUser != null && (playlistInDb!!.artist == playerViewModel.currentUser?.username || playlistUser?.username == playerViewModel.currentUser?.username))
             val isLocalUser = currentIdLong < 0 || (playlistInDb!!.isUserCreated && isOwnedByCurrentAccount)
@@ -591,26 +611,228 @@ fun PlaylistDetailScreen(
                         }
                     } else {
                         val isSystemPlaylistRoute = playlistId.startsWith("system_playlist:")
-                        if (currentIdLong > 0L || isSystemPlaylistRoute) {
+                        val isSpotifyAlbum = playlistId.startsWith("spotify:album:") || playlistId.startsWith("spotify_album:")
+                        val isSpotifyPlaylist = playlistId.startsWith("spotify:playlist:") || playlistId.startsWith("spotify_playlist:")
+                        val isSpotifyRadio = playlistId.startsWith("spotify_radio:") || playlistId.startsWith("station_spotify:")
+
+                        if (isSpotifyAlbum) {
+                            val album = com.alananasss.kittytune.data.spotify.SpotifyRepository.getAlbum(cleanIdStr)
+                            if (album != null) {
+                                isAlbum = true
+                                playlistTitle = album.name
+                                playlistCover = album.artworkUrl
+                                playlistArtists = album.artists
+                                val firstArtist = album.artists.firstOrNull()
+                                playlistUser = User(
+                                    id = kotlin.math.abs(firstArtist?.id?.hashCode()?.toLong() ?: 0L),
+                                    username = album.artistName,
+                                    avatarUrl = firstArtist?.avatarUrl ?: album.artworkUrl,
+                                    urn = firstArtist?.id?.let { "spotify:artist:$it" },
+                                    permalink = firstArtist?.id,
+                                    verified = firstArtist?.verified ?: false
+                                )
+                                playlistReleaseDate = album.releaseDate
+                                playlistPermalinkUrl = "https://open.spotify.com/album/${album.id}"
+                                playlistUrn = "spotify:album:${album.id}"
+                                newTracks.addAll(album.tracks.map { it.toTrack() })
+                            }
+                        } else if (isSpotifyPlaylist) {
+                            val pl = com.alananasss.kittytune.data.spotify.SpotifyRepository.getPlaylist(cleanIdStr)
+                            if (pl != null) {
+                                isAlbum = false
+                                playlistTitle = pl.name
+                                playlistCover = pl.artworkUrl
+                                playlistDescription = pl.description
+                                playlistUser = User(
+                                    id = 0L,
+                                    username = pl.ownerName ?: "Spotify",
+                                    avatarUrl = pl.artworkUrl
+                                )
+                                playlistPermalinkUrl = "https://open.spotify.com/playlist/${pl.id}"
+                                playlistUrn = "spotify:playlist:${pl.id}"
+                                newTracks.addAll(pl.tracks.map { it.toTrack() })
+                            }
+                        } else if (isSpotifyRadio) {
+                            val isArtistStation = playlistId.startsWith("station_artist:") || playlistId.startsWith("spotify:artist:") || playlistId.startsWith("spotify_artist:")
+                            var radioPlaylist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(cleanIdStr, isArtist = isArtistStation)
+                            if (radioPlaylist == null) {
+                                radioPlaylist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(cleanIdStr, isArtist = !isArtistStation)
+                            }
+                            if (radioPlaylist != null) {
+                                isAlbum = false
+                                playlistTitle = radioPlaylist.name
+                                playlistCover = radioPlaylist.artworkUrl
+                                defaultIcon = Icons.Rounded.Radio
+                                playlistUser = User(
+                                    id = kotlin.math.abs("Spotify".hashCode().toLong()),
+                                    username = radioPlaylist.ownerName ?: "Spotify",
+                                    avatarUrl = radioPlaylist.artworkUrl
+                                )
+                                playlistPermalinkUrl = "https://open.spotify.com/playlist/${radioPlaylist.id}"
+                                playlistUrn = "spotify:playlist:${radioPlaylist.id}"
+                                newTracks.addAll(radioPlaylist.tracks.map { it.toTrack() })
+                            } else {
+                                val seedTrack = com.alananasss.kittytune.data.spotify.SpotifyRepository.getTrack(cleanIdStr)
+                                val radioTitle = if (seedTrack != null) context.getString(R.string.spotify_radio_title, seedTrack.name) else "Spotify Radio"
+                                playlistTitle = radioTitle
+                                playlistCover = seedTrack?.artworkUrl
+                                defaultIcon = Icons.Rounded.Radio
+                                isAlbum = false
+                                if (seedTrack != null) {
+                                    playlistUser = User(
+                                        id = kotlin.math.abs(seedTrack.artists.firstOrNull()?.id?.hashCode()?.toLong() ?: 0L),
+                                        username = seedTrack.artistName,
+                                        avatarUrl = seedTrack.artists.firstOrNull()?.avatarUrl ?: seedTrack.artworkUrl,
+                                        urn = seedTrack.artists.firstOrNull()?.id?.let { "spotify:artist:$it" }
+                                    )
+                                    playlistPermalinkUrl = seedTrack.shareUrl
+                                    val radioList = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadioTracks(cleanIdStr)
+                                    newTracks.addAll(radioList.map { it.toTrack() })
+                                } else {
+                                    val artist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getArtist(cleanIdStr)
+                                    if (artist != null) {
+                                        playlistTitle = "${artist.name} Radio"
+                                        playlistCover = artist.avatarUrl ?: artist.headerImageUrl
+                                        playlistUser = User(
+                                            id = kotlin.math.abs(artist.id.hashCode().toLong()),
+                                            username = artist.name,
+                                            avatarUrl = artist.avatarUrl,
+                                            urn = "spotify:artist:${artist.id}"
+                                        )
+                                        newTracks.addAll(artist.topTracks.map { it.toTrack() })
+                                    }
+                                }
+                            }
+                        } else if (isSystemPlaylistRoute || currentIdLong > 0L) {
                             val isArtistStation = playlistId.startsWith("station_artist:")
                             val isTrackStation = playlistId.startsWith("station:")
 
+                            val likedTrack = if (isTrackStation) {
+                                LikeRepository.likedTracks.value.find { it.id == currentIdLong }
+                            } else null
+                            val historyItem = if (isTrackStation && likedTrack == null) {
+                                try {
+                                    HistoryRepository.getHistory().first().find { it.numericId == currentIdLong }
+                                } catch (e: Exception) { null }
+                            } else null
+
+                            val isLocalSpotifyTrack = (likedTrack != null && (likedTrack.source == "spotify" || likedTrack.permalinkUrl?.contains("spotify") == true)) ||
+                                    (historyItem != null && (historyItem.source == "spotify" || historyItem.originalUrl?.contains("spotify") == true))
+
                             val localFallback = if (stableId != 0L) db.getPlaylist(stableId) else null
-                            if (localFallback != null) {
+                            val isLocalSpotify = localFallback?.permalinkUrl?.contains("spotify") == true
+
+                            if (isLocalSpotifyTrack) {
+                                val spotifyTrackId = likedTrack?.let {
+                                    it.permalinkUrl?.substringAfter("track/")?.substringBefore("?")?.substringBefore("/")
+                                        ?: it.permalink?.removePrefix("spotify:track:")
+                                        ?: it.user?.urn?.removePrefix("spotify:track:")
+                                } ?: historyItem?.let {
+                                    it.originalUrl?.substringAfter("track/")?.substringBefore("?")?.substringBefore("/")
+                                } ?: cleanIdStr
+
+                                var radioPlaylist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(spotifyTrackId, isArtist = false)
+                                if (radioPlaylist == null) {
+                                    radioPlaylist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(spotifyTrackId, isArtist = true)
+                                }
+                                if (radioPlaylist != null) {
+                                    isAlbum = false
+                                    playlistTitle = radioPlaylist.name
+                                    playlistCover = radioPlaylist.artworkUrl
+                                    defaultIcon = Icons.Rounded.Radio
+                                    playlistUser = User(
+                                        id = kotlin.math.abs("Spotify".hashCode().toLong()),
+                                        username = radioPlaylist.ownerName ?: "Spotify",
+                                        avatarUrl = radioPlaylist.artworkUrl
+                                    )
+                                    playlistPermalinkUrl = "https://open.spotify.com/playlist/${radioPlaylist.id}"
+                                    playlistUrn = "spotify:playlist:${radioPlaylist.id}"
+                                    newTracks.addAll(radioPlaylist.tracks.map { it.toTrack() })
+                                } else {
+                                    val seedTrack = com.alananasss.kittytune.data.spotify.SpotifyRepository.getTrack(spotifyTrackId)
+                                    val fallbackTitle = likedTrack?.title ?: historyItem?.title ?: "Spotify Radio"
+                                    val radioTitle = if (seedTrack != null) context.getString(R.string.spotify_radio_title, seedTrack.name) else context.getString(R.string.spotify_radio_title, fallbackTitle)
+                                    playlistTitle = radioTitle
+                                    playlistCover = seedTrack?.artworkUrl ?: likedTrack?.artworkUrl ?: historyItem?.imageUrl
+                                    defaultIcon = Icons.Rounded.Radio
+                                    isAlbum = false
+                                    if (seedTrack != null) {
+                                        playlistUser = User(
+                                            id = kotlin.math.abs(seedTrack.artists.firstOrNull()?.id?.hashCode()?.toLong() ?: 0L),
+                                            username = seedTrack.artistName,
+                                            avatarUrl = seedTrack.artists.firstOrNull()?.avatarUrl ?: seedTrack.artworkUrl,
+                                            urn = seedTrack.artists.firstOrNull()?.id?.let { "spotify:artist:$it" }
+                                        )
+                                        playlistPermalinkUrl = seedTrack.shareUrl
+                                        val radioList = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadioTracks(spotifyTrackId)
+                                        newTracks.addAll(radioList.map { it.toTrack() })
+                                    } else if (likedTrack != null) {
+                                        newTracks.add(likedTrack)
+                                    }
+                                }
+                            } else if (localFallback != null) {
                                 playlistTitle = localFallback.title
                                 playlistCover = localFallback.localCoverPath ?: localFallback.artworkUrl
                                 playlistUser = User(0, localFallback.artist, null)
                                 isUserCreated = localFallback.isUserCreated || localFallback.id < 0
+                                isAlbum = localFallback.isAlbum
+                                playlistPermalinkUrl = localFallback.permalinkUrl
                             }
                             isLocalPlaylist = isDownloadedView
 
-                            val playlistObj = when {
-                                isSystemPlaylistRoute -> api.getSystemPlaylist(cleanIdStr)
-                                isArtistStation -> api.getArtistStation(currentIdLong)
-                                isTrackStation -> api.getTrackStation(currentIdLong)
-                                else -> api.getPlaylist(currentIdLong)
-                            }
-                            isAlbum = playlistObj.isRealAlbum
+                            if (isLocalSpotify && localFallback != null) {
+                                val permalink = localFallback.permalinkUrl ?: ""
+                                val isAlbumType = localFallback.isAlbum || permalink.contains("/album/")
+                                val spotifyId = if (permalink.contains("/playlist/")) {
+                                    permalink.substringAfter("playlist/").substringBefore("?").substringBefore("/")
+                                } else if (permalink.contains("/album/")) {
+                                    permalink.substringAfter("album/").substringBefore("?").substringBefore("/")
+                                } else {
+                                    permalink.removePrefix("spotify:playlist:").removePrefix("spotify:album:")
+                                }
+
+                                if (isAlbumType) {
+                                    val album = com.alananasss.kittytune.data.spotify.SpotifyRepository.getAlbum(spotifyId)
+                                    if (album != null) {
+                                        isAlbum = true
+                                        playlistTitle = album.name
+                                        playlistCover = album.artworkUrl
+                                        playlistUser = User(
+                                            id = kotlin.math.abs(album.artists.firstOrNull()?.id?.hashCode()?.toLong() ?: 0L),
+                                            username = album.artistName,
+                                            avatarUrl = album.artists.firstOrNull()?.avatarUrl ?: album.artworkUrl,
+                                            urn = album.artists.firstOrNull()?.id?.let { "spotify:artist:$it" }
+                                        )
+                                        playlistReleaseDate = album.releaseDate
+                                        playlistPermalinkUrl = "https://open.spotify.com/album/${album.id}"
+                                        playlistUrn = "spotify:album:${album.id}"
+                                        newTracks.addAll(album.tracks.map { it.toTrack() })
+                                    }
+                                } else {
+                                    val pl = com.alananasss.kittytune.data.spotify.SpotifyRepository.getPlaylist(spotifyId)
+                                    if (pl != null) {
+                                        isAlbum = false
+                                        playlistTitle = pl.name
+                                        playlistCover = pl.artworkUrl
+                                        playlistDescription = pl.description
+                                        playlistUser = User(
+                                            id = 0L,
+                                            username = pl.ownerName ?: "Spotify",
+                                            avatarUrl = pl.artworkUrl
+                                        )
+                                        playlistPermalinkUrl = "https://open.spotify.com/playlist/${pl.id}"
+                                        playlistUrn = "spotify:playlist:${pl.id}"
+                                        newTracks.addAll(pl.tracks.map { it.toTrack() })
+                                    }
+                                }
+                            } else {
+                                val playlistObj = when {
+                                    isSystemPlaylistRoute -> api.getSystemPlaylist(cleanIdStr)
+                                    isArtistStation -> api.getArtistStation(currentIdLong)
+                                    isTrackStation -> api.getTrackStation(currentIdLong)
+                                    else -> api.getPlaylist(currentIdLong)
+                                }
+                                isAlbum = playlistObj.isRealAlbum
 
                             playlistTitle = playlistObj.title.takeIf { !it.isNullOrBlank() } ?: playlistTitle
                             playlistCover = playlistObj.fullResArtwork ?: playlistCover
@@ -657,6 +879,7 @@ fun PlaylistDetailScreen(
                     }
                 }
             }
+        }
 
             if (playlistId != "likes") {
                 tracks.clear()
@@ -1002,19 +1225,32 @@ fun PlaylistDetailScreen(
                                             )
                                         }
                                     }
-                                    if (playlistUser != null && playlistUser!!.id > 0) {
+                                    if (playlistUser != null && !playlistUser!!.username.isNullOrBlank()) {
+                                        val isArtist = playlistUser?.isArtist == true || isAlbum || playlistArtists.isNotEmpty()
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.clickable {
-                                                playerViewModel.navigateToArtist(playlistUser!!.id)
-                                            }) {
+                                            modifier = if (isArtist) {
+                                                Modifier.clickable {
+                                                    if (playlistArtists.size > 1) {
+                                                        showAlbumArtistSelectDialog = true
+                                                    } else if (playlistArtists.size == 1) {
+                                                        onNavigate("spotify_artist:${playlistArtists.first().id}")
+                                                    } else {
+                                                        val creator = playlistUser!!
+                                                        onNavigate(creator.profileNavId)
+                                                    }
+                                                }
+                                            } else {
+                                                Modifier
+                                            }
+                                        ) {
                                             Text(
                                                 text = stringResource(
                                                     R.string.playlist_by_user,
                                                     playlistUser!!.username ?: ""
                                                 ),
                                                 style = MaterialTheme.typography.titleMedium,
-                                                color = MaterialTheme.colorScheme.primary
+                                                color = if (isArtist) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             if (playlistUser?.verified == true) {
                                                 Spacer(Modifier.width(4.dp))
@@ -1026,15 +1262,6 @@ fun PlaylistDetailScreen(
                                                 )
                                             }
                                         }
-                                    } else if (playlistUser?.username != null) {
-                                        Text(
-                                            text = stringResource(
-                                                R.string.playlist_by_user,
-                                                playlistUser?.username ?: stringResource(R.string.me_artist)
-                                            ),
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                                        )
                                     }
                                     Spacer(Modifier.height(8.dp))
 
@@ -1111,7 +1338,7 @@ fun PlaylistDetailScreen(
                                                             DownloadManager.importPlaylistToLibrary(
                                                                 playlist = targetPlaylist,
                                                                 tracks = tracksToDisplay.toList(),
-                                                                syncToCloud = true
+                                                                syncToCloud = !(playlistId.startsWith("spotify") || playlistId.startsWith("station_spotify") || playlistUrn?.startsWith("spotify:") == true || playlistPermalinkUrl?.contains("spotify") == true)
                                                             )
                                                         } else {
                                                             LikeRepository.togglePlaylistLike(
@@ -1508,7 +1735,7 @@ fun PlaylistDetailScreen(
                                             downloadedIds.contains(track.id)
                                         }
 
-                                        val isCanReorder = isUserCreated || isDownloadedView
+                                        val isCanReorder = (isUserCreated || isDownloadedView) && !isSpecialSystemScreen
 
                                         if (isCanReorder) {
                                             ReorderableItem(
@@ -1830,7 +2057,11 @@ fun PlaylistDetailScreen(
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 PlaylistDetailsSheet(
-                    playlistId = if (playlistId.startsWith("system_playlist:")) playlistId else currentIdLong.toString(),
+                    playlistId = when {
+                        playlistId.startsWith("system_playlist:") || playlistId.startsWith("spotify:") || playlistId.startsWith("spotify_") -> playlistId
+                        currentIdLong > 0L -> currentIdLong.toString()
+                        else -> playlistId
+                    },
                     onDismiss = { showPlaylistDetailsSheet = false },
                     onViewAll = { tabIndex ->
                         showPlaylistDetailsSheet = false
@@ -1840,6 +2071,23 @@ fun PlaylistDetailScreen(
                     onMentionClick = { username ->
                         showPlaylistDetailsSheet = false
                         playerViewModel.resolveAndNavigateToArtist(username)
+                    }
+                )
+            }
+
+            if (showAlbumArtistSelectDialog && playlistArtists.isNotEmpty()) {
+                com.alananasss.kittytune.ui.player.SelectArtistDialog(
+                    track = Track(
+                        id = 0L,
+                        title = playlistTitle ?: "",
+                        artworkUrl = playlistCover,
+                        durationMs = 0L,
+                        user = playlistUser,
+                        artists = playlistArtists
+                    ),
+                    onDismiss = { showAlbumArtistSelectDialog = false },
+                    onSelectArtist = { artistId ->
+                        onNavigate("spotify_artist:$artistId")
                     }
                 )
             }
@@ -1868,8 +2116,13 @@ fun PlaylistSquareCard(playlist: Playlist, onClick: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
             fontWeight = FontWeight.SemiBold
         )
+        val subtitle = when {
+            playlist.trackCount != null && playlist.trackCount > 0 -> stringResource(R.string.playlist_num_tracks, playlist.trackCount)
+            !playlist.user?.username.isNullOrBlank() -> playlist.user.username
+            else -> stringResource(R.string.lib_playlists)
+        }
         Text(
-            text = stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0),
+            text = subtitle,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
