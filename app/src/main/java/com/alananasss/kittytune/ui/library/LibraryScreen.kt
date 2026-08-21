@@ -558,10 +558,11 @@ fun LibraryScreen(
                             tint = if (isPlaylistLiked) primaryColor else null
                         ) {
                             if (!isPlaylistLiked) {
+                                val isSpotify = playlist.permalinkUrl?.contains("spotify") == true || playlist.urn?.startsWith("spotify:") == true
                                 com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
                                     playlist = playlist,
                                     tracks = playlist.tracks ?: emptyList(),
-                                    syncToCloud = true
+                                    syncToCloud = !isSpotify
                                 )
                             } else {
                                 com.alananasss.kittytune.data.LikeRepository.togglePlaylistLike(
@@ -1762,7 +1763,15 @@ fun LibraryScreen(
                                 onDownloadsClick = { onPlaylistClick("downloads") },
                                 onDownloadsLongClick = { showDownloadsMenu = true },
                                 onPlaylistClick = onPlaylistClick,
-                                onArtistClick = { artistId -> onPlaylistClick("profile:$artistId") },
+                                onArtistClick = { artistId ->
+                                    val spotifyId = com.alananasss.kittytune.data.local.PlayerPreferences(context).getSpotifyArtistIdForStableId(artistId)
+                                    if (!spotifyId.isNullOrBlank()) {
+                                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(spotifyId)
+                                        onPlaylistClick("spotify_artist:$clean")
+                                    } else {
+                                        onPlaylistClick("profile:$artistId")
+                                    }
+                                },
                                 onPlaylistLongClick = { playlist -> selectedPlaylistForMenu = playlist },
                                 onFolderLongClick = { folder -> selectedFolderForMenu = folder },
                                 onUploadClick = onUploadClick,
@@ -1977,21 +1986,33 @@ fun LibraryContentGrid(
                     }
 
                     is LibraryItem.PlaylistItem -> {
-                        val permalink = item.playlist.permalinkUrl
+                        val permalink = item.playlist.permalinkUrl ?: item.playlist.permalink
                         val isYoutubeShortcut = permalink != null && permalink.startsWith("yt_radio:")
 
-                        val navId = if (isYoutubeShortcut) {
-                            android.net.Uri.encode(permalink!!)
-                        } else if (item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
-                            "system_playlist:${item.playlist.urn}"
-                        } else if (permalink?.contains("artist-stations:") == true) {
-                            val stationId = permalink.substringAfter("artist-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
-                            "station_artist:$stationId"
-                        } else if (permalink?.contains("track-stations:") == true) {
-                            val stationId = permalink.substringAfter("track-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
-                            "station:$stationId"
-                        } else {
-                            if (item.playlist.id < 0) "local_playlist:${item.playlist.id}" else item.playlist.id.toString()
+                        val navId = when {
+                            isYoutubeShortcut -> android.net.Uri.encode(permalink!!)
+                            item.playlist.urn?.startsWith("spotify:") == true -> item.playlist.urn!!
+                            permalink?.contains("spotify.com/playlist/") == true -> {
+                                val spotifyId = permalink.substringAfter("playlist/").substringBefore("?").substringBefore("/")
+                                "spotify:playlist:$spotifyId"
+                            }
+                            permalink?.contains("spotify.com/album/") == true -> {
+                                val spotifyId = permalink.substringAfter("album/").substringBefore("?").substringBefore("/")
+                                "spotify:album:$spotifyId"
+                            }
+                            permalink?.startsWith("spotify:playlist:") == true -> permalink
+                            permalink?.startsWith("spotify:album:") == true -> permalink
+                            item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true -> "system_playlist:${item.playlist.urn}"
+                            permalink?.contains("artist-stations:") == true -> {
+                                val stationId = permalink.substringAfter("artist-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
+                                "station_artist:$stationId"
+                            }
+                            permalink?.contains("track-stations:") == true -> {
+                                val stationId = permalink.substringAfter("track-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
+                                "station:$stationId"
+                            }
+                            item.playlist.id < 0 -> "local_playlist:${item.playlist.id}"
+                            else -> item.playlist.id.toString()
                         }
 
                         DynamicPlaylistCard(

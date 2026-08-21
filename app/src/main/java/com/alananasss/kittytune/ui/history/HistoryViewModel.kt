@@ -338,6 +338,15 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                     historyItem.id == "likes" -> "likes"
                     historyItem.id == "downloads" -> "downloads"
                     historyItem.id.startsWith("yt_radio:") -> historyItem.id
+                    historyItem.id.startsWith("spotify_artist:") -> historyItem.id
+                    historyItem.id.startsWith("spotify_radio:") -> historyItem.id
+                    historyItem.id.startsWith("spotify:artist:") -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(historyItem.id)}"
+                    historyItem.id.startsWith("spotify:") || historyItem.id.startsWith("spotify_") -> historyItem.id
+                    historyItem.type == "PROFILE" && (historyItem.id.contains("spotify") || historyItem.numericId == 0L) -> {
+                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(historyItem.id)
+                        if (clean.isNotBlank()) "spotify_artist:$clean" else "profile:${historyItem.numericId}"
+                    }
+                    historyItem.type == "STATION" && historyItem.id.contains("spotify") -> "spotify_radio:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(historyItem.id)}"
                     historyItem.type == "STATION" -> "station:${historyItem.numericId}"
                     historyItem.type == "PROFILE" -> "profile:${historyItem.numericId}"
                     else -> historyItem.numericId.toString()

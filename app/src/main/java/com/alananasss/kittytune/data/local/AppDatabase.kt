@@ -69,6 +69,9 @@
         @Query("SELECT * FROM downloaded_playlists")
         fun getAllPlaylists(): Flow<List<LocalPlaylist>>
 
+        @Query("SELECT * FROM downloaded_playlists")
+        suspend fun getAllPlaylistsList(): List<LocalPlaylist>
+
         @Query("UPDATE downloaded_playlists SET isDownloaded = :isDownloaded WHERE id = :playlistId")
         suspend fun setPlaylistDownloaded(playlistId: Long, isDownloaded: Boolean)
 
@@ -109,7 +112,7 @@
         @Query("DELETE FROM downloaded_tracks WHERE localAudioPath = '' AND id NOT IN (SELECT trackId FROM playlist_track_cross_ref)")
         suspend fun cleanUnreferencedEmptyTracks()
 
-        @Query("DELETE FROM downloaded_playlists WHERE id > 0 AND isDownloaded = 0")
+        @Query("DELETE FROM downloaded_playlists WHERE id > 0 AND isDownloaded = 0 AND (permalinkUrl IS NULL OR permalinkUrl NOT LIKE '%spotify%')")
         suspend fun deleteNonDownloadedOnlinePlaylists()
 
         @Query("SELECT COUNT(*) FROM playlist_track_cross_ref WHERE trackId = :trackId")
@@ -166,6 +169,9 @@
 
         @Query("SELECT * FROM play_history ORDER BY timestamp DESC LIMIT 1000")
         fun getHistory(): Flow<List<HistoryItem>>
+
+        @Query("SELECT * FROM play_history WHERE numericId = :numericId OR id = :id LIMIT 1")
+        suspend fun getHistoryItemById(numericId: Long, id: String): HistoryItem?
 
         @Query("DELETE FROM play_history WHERE id = :itemId")
         suspend fun deleteHistoryItem(itemId: String)

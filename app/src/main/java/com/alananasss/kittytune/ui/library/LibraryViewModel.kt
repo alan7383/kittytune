@@ -408,7 +408,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 DownloadManager.deletedPlaylistIds
             ) { allLocalPlaylists, likedIds, deletedIds ->
                 allLocalPlaylists.filter { local ->
-                    !deletedIds.contains(local.id) && (local.id < 0 || local.isDownloaded || likedIds.contains(local.id))
+                    !deletedIds.contains(local.id) && (local.id < 0 || local.isDownloaded || likedIds.contains(local.id) || local.permalinkUrl?.contains("spotify") == true)
                 }
             }.collect { localPlaylists ->
                 val localIds = localPlaylists.map { it.id }.toSet()
@@ -833,9 +833,6 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                                 )
                             }
                             db.insertArtists(localArtists)
-                            savedArtistsCache = localArtists.map {
-                                LibraryItem.ArtistItem(it, it.savedAt, "artist_${it.id}", false)
-                            }
                         } catch (e: Exception) {
                             Log.e("LibraryVM", "Failed to save artists to DB", e)
                         }

@@ -91,7 +91,6 @@ object GuestDataTransferManager {
         var completedOperations = 0
         var hasErrors = false
 
-        // 1. Transfer Track Likes
         if (transferLikes && summary.likes.isNotEmpty()) {
             val batches = summary.likes.chunked(25)
             for (batch in batches) {
@@ -112,9 +111,10 @@ object GuestDataTransferManager {
             }
         }
 
-        // 2. Transfer Liked Playlists, Stations, Albums
         if (transferLikedPlaylists && summary.likedPlaylists.isNotEmpty()) {
-            val batches = summary.likedPlaylists.chunked(25)
+            val scPlaylists =
+                summary.likedPlaylists.filter { !(it.permalinkUrl?.contains("spotify") == true || it.id > 1000000000000000L) }
+            val batches = scPlaylists.chunked(25)
             for (batch in batches) {
                 try {
                     val playlistLikeItems = batch.map { localPlaylist ->
@@ -126,7 +126,8 @@ object GuestDataTransferManager {
                         }
                         com.alananasss.kittytune.data.network.PlaylistLikeItem(targetUrn = targetUrn)
                     }
-                    val response = api.likePlaylist(com.alananasss.kittytune.data.network.PlaylistLikeRequest(likes = playlistLikeItems))
+                    val response =
+                        api.likePlaylist(com.alananasss.kittytune.data.network.PlaylistLikeRequest(likes = playlistLikeItems))
                     if (!response.isSuccessful) {
                         Log.w(TAG, "Batch playlist like failed: ${response.code()}")
                         hasErrors = true
@@ -141,7 +142,6 @@ object GuestDataTransferManager {
             }
         }
 
-        // 3. Transfer User-Created Playlists
         if (transferUserPlaylists && summary.userPlaylists.isNotEmpty()) {
             for (localPlaylist in summary.userPlaylists) {
                 try {

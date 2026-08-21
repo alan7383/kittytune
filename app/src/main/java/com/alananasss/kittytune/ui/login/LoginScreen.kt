@@ -80,11 +80,16 @@ private const val REDIRECT_URI = "sc://auth"
 
 private const val AUTH_API_BASE = "https://api-auth.soundcloud.com"
 
-private val authHttpClient = OkHttpClient.Builder()
-    .connectTimeout(15, TimeUnit.SECONDS)
-    .readTimeout(15, TimeUnit.SECONDS)
-    .writeTimeout(15, TimeUnit.SECONDS)
-    .build()
+private val baseAuthHttpClient by lazy {
+    OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
+        .build()
+}
+
+private val authHttpClient: OkHttpClient
+    get() = com.alananasss.kittytune.data.network.ProxyManager.configureOkHttpClient(baseAuthHttpClient.newBuilder()).build()
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
