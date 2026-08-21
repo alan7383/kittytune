@@ -679,6 +679,7 @@ fun NewPlayerScreen(
     val iconTint = if (isBlurMode) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     var showEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
+    var showPlayerArtistSelectDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val animatedColor by animateColorAsState(
@@ -920,10 +921,13 @@ fun NewPlayerScreen(
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.clickable {
-                                        track.user?.id?.let {
-                                            if (it > 0) viewModel.navigateToArtist(
-                                                it
-                                            )
+                                        val artists = track.artists
+                                        if (artists != null && artists.size > 1) {
+                                            showPlayerArtistSelectDialog = true
+                                        } else if (artists != null && artists.size == 1) {
+                                            viewModel.navigateToSpotifyArtist(artists.first().id)
+                                        } else {
+                                            viewModel.navigateToUser(track.user)
                                         }
                                     }
                                 ) {
@@ -937,7 +941,8 @@ fun NewPlayerScreen(
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
 
-                                    if (track.user?.verified == true) {
+                                    val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
+                                    if (isAnyVerified) {
                                         Spacer(Modifier.width(4.dp))
                                         Icon(
                                             imageVector = Icons.Rounded.Verified,
@@ -1083,6 +1088,17 @@ fun NewPlayerScreen(
         }
 
         SleepTimerDialog(viewModel)
+
+        if (showPlayerArtistSelectDialog) {
+            SelectArtistDialog(
+                track = track,
+                onDismiss = { showPlayerArtistSelectDialog = false },
+                onSelectArtist = { artistId ->
+                    showPlayerArtistSelectDialog = false
+                    viewModel.navigateToSpotifyArtist(artistId)
+                }
+            )
+        }
     }
 }
 
@@ -1161,6 +1177,82 @@ fun PlayerHeader(
 }
 
 data class DockOptionItem(val icon: ImageVector, val text: String, val onClick: () -> Unit)
+
+@Composable
+fun SelectArtistDialog(
+    track: Track,
+    onDismiss: () -> Unit,
+    onSelectArtist: (String) -> Unit
+) {
+    val artistsList = track.artists?.takeIf { it.isNotEmpty() } ?: listOfNotNull(track.user?.let { u ->
+        com.alananasss.kittytune.data.spotify.SpotifyArtistRef(
+            id = u.permalink ?: u.urn?.removePrefix("spotify:artist:") ?: "",
+            name = u.username ?: stringResource(R.string.unknown_artist),
+            avatarUrl = u.avatarUrl,
+            verified = u.verified
+        )
+    })
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.select_artist_title)) },
+        text = {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(artistsList) { artist ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                onDismiss()
+                                val cleanId = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(
+                                    artist.id.ifBlank { artist.uri ?: "" }
+                                )
+                                onSelectArtist(cleanId)
+                            }
+                            .padding(8.dp)
+                    ) {
+                        AsyncImage(
+                            model = artist.avatarUrl ?: R.drawable.ic_default_user_artwork_placeholder_round,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = artist.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (artist.verified) {
+                                Spacer(Modifier.width(4.dp))
+                                Icon(
+                                    Icons.Rounded.Verified,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(R.string.btn_cancel))
+            }
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1409,11 +1501,25 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
     val isReposted = viewModel.isTrackReposted(track.id)
     var showRepostDialog by remember { mutableStateOf(false) }
     var showDeleteRepostConfirm by remember { mutableStateOf(false) }
+    var showSelectArtistDialog by remember { mutableStateOf(false) }
+
+    val isSpotify = track.source == "spotify" || track.user?.urn?.startsWith("spotify") == true
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     val isDownloaded by produceState(initialValue = false, track.id, storageTrigger) {
         val localTrack = DownloadManager.getLocalTrack(track.id)
         value = localTrack?.localAudioPath?.isNotEmpty() == true
+    }
+
+    if (showSelectArtistDialog) {
+        SelectArtistDialog(
+            track = track,
+            onDismiss = { showSelectArtistDialog = false },
+            onSelectArtist = { artistId ->
+                viewModel.showMenuSheet = false
+                viewModel.navigateToSpotifyArtist(artistId)
+            }
+        )
     }
 
     if (showDeleteDialog) {
@@ -1507,14 +1613,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     stringResource(R.string.menu_add_queue)
                 ) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
         }
-        if (!isOfflineMode && track.source != "youtube") {
+        if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.Comment,
                     stringResource(R.string.menu_comments)
                 ) { viewModel.openComments(track) })
         }
-        if (!isOfflineMode && track.source != "youtube") {
+        if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
             if (isReposted) {
                 add(
                     DockOptionItem(
@@ -1558,12 +1664,46 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         add(DockOptionItem(Icons.Default.Add, stringResource(R.string.menu_add_playlist)) {
             viewModel.showMenuSheet = false; viewModel.showAddToPlaylistSheet = true
         })
+
+        val albumId = track.publisherMetadata?.albumId ?: track.publisherMetadata?.releaseTitle
+        if (!isOfflineMode && !albumId.isNullOrBlank() && (isSpotify || albumId.length == 22)) {
+            add(
+                DockOptionItem(
+                    Icons.Rounded.Album,
+                    stringResource(R.string.menu_go_album)
+                ) {
+                    viewModel.showMenuSheet = false
+                    viewModel.navigateToAlbum(albumId)
+                }
+            )
+        }
+
         if (!isOfflineMode && track.source != "youtube") {
             add(
                 DockOptionItem(
                     Icons.Default.Person,
                     stringResource(R.string.menu_go_artist)
-                ) { track.user?.id?.let { viewModel.navigateToArtist(it) } })
+                ) {
+                    if (isSpotify) {
+                        val trackArtists = track.artists ?: emptyList()
+                        if (trackArtists.size > 1) {
+                            showSelectArtistDialog = true
+                        } else if (trackArtists.size == 1) {
+                            viewModel.navigateToSpotifyArtist(trackArtists.first().id)
+                        } else {
+                            val artistId =
+                                track.user?.permalink ?: track.user?.urn?.removePrefix("spotify:artist:") ?: ""
+                            if (artistId.isNotBlank()) {
+                                viewModel.navigateToSpotifyArtist(artistId)
+                            } else {
+                                track.user?.id?.let { viewModel.navigateToArtist(it) }
+                            }
+                        }
+                    } else {
+                        track.user?.id?.let { viewModel.navigateToArtist(it) }
+                    }
+                }
+            )
         }
         if (!isOfflineMode) {
             add(DockOptionItem(Icons.Rounded.Radio, stringResource(R.string.menu_track_radio)) {
@@ -1636,7 +1776,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                                 Icon(
                                     Icons.Rounded.Verified,
                                     null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = if (isSpotify) Color(0xFF1DB954) else MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
@@ -2395,16 +2535,14 @@ fun WaveformPlayerProgress(
 
     val coroutineScope = rememberCoroutineScope()
 
-    val smoothPosition = remember(waveformTrackId) { Animatable(rawPosition) }
+    val smoothPosition = remember(waveformTrackId) { Animatable(0f) }
     var isDragging by remember(waveformTrackId) { mutableStateOf(false) }
-    var dragPosition by remember(waveformTrackId) { mutableFloatStateOf(rawPosition) }
-    var dragStartPos by remember(waveformTrackId) { mutableFloatStateOf(rawPosition) }
-    var cumulativeDragPx by remember(waveformTrackId) { mutableFloatStateOf(0f) }
+    var dragPosition by remember(waveformTrackId) { mutableFloatStateOf(0f) }
 
     LaunchedEffect(waveformTrackId) {
-        smoothPosition.snapTo(rawPosition)
-        dragPosition = rawPosition
-        dragStartPos = rawPosition
+        smoothPosition.snapTo(0f)
+        dragPosition = 0f
+        isDragging = false
     }
 
     LaunchedEffect(isPlaying) {
@@ -2414,10 +2552,10 @@ fun WaveformPlayerProgress(
         }
     }
 
-    LaunchedEffect(rawPosition, isPlaying, isDragging) {
+    LaunchedEffect(rawPosition, isPlaying, isDragging, waveformTrackId) {
         if (!isDragging) {
             val diff = rawPosition - smoothPosition.value
-            if (kotlin.math.abs(diff) > 2500f) {
+            if (kotlin.math.abs(diff) > 2500f || rawPosition < smoothPosition.value) {
                 smoothPosition.snapTo(rawPosition)
             } else if (isPlaying && diff >= 0f) {
                 smoothPosition.animateTo(
@@ -3116,7 +3254,20 @@ private fun PlayerSlotButton(
     onQueueClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isSlotActive = when (slot) {
+
+    val currentTrack = viewModel.currentTrack
+    val isSpotifyCurrent = currentTrack?.let {
+        it.source == "spotify" || it.user?.urn?.startsWith("spotify") == true || it.artists?.isNotEmpty() == true
+    } ?: false
+    val isYoutubeCurrent = currentTrack?.source == "youtube"
+
+    val effectiveSlot = if ((isSpotifyCurrent || isYoutubeCurrent) && slot == PlayerActionButtonSlot.COMMENTS) {
+        PlayerActionButtonSlot.AUDIO_FX
+    } else {
+        slot
+    }
+
+    val isSlotActive = when (effectiveSlot) {
         PlayerActionButtonSlot.LIKE -> viewModel.isLiked
         PlayerActionButtonSlot.SHUFFLE -> viewModel.shuffleEnabled
         PlayerActionButtonSlot.REPEAT -> viewModel.repeatMode != RepeatMode.NONE
@@ -3125,7 +3276,7 @@ private fun PlayerSlotButton(
         else -> false
     }
 
-    val iconVector = when (slot) {
+    val iconVector = when (effectiveSlot) {
         PlayerActionButtonSlot.LIKE -> if (viewModel.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
         PlayerActionButtonSlot.COMMENTS -> Icons.AutoMirrored.Rounded.Comment
         PlayerActionButtonSlot.SHARE -> Icons.Rounded.Share
@@ -3136,7 +3287,6 @@ private fun PlayerSlotButton(
             RepeatMode.ONE -> Icons.Rounded.RepeatOne
             else -> Icons.Rounded.Repeat
         }
-
         PlayerActionButtonSlot.LYRICS -> Icons.Rounded.Description
         PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
         PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
@@ -3149,17 +3299,15 @@ private fun PlayerSlotButton(
 
         FilledIconButton(
             onClick = {
-                when (slot) {
+                when (effectiveSlot) {
                     PlayerActionButtonSlot.LIKE -> viewModel.toggleLike()
                     PlayerActionButtonSlot.COMMENTS -> {
                         viewModel.selectedTrackForSheet = viewModel.currentTrack
                         viewModel.showCommentsSheet = true
                     }
-
                     PlayerActionButtonSlot.SHARE -> {
                         viewModel.currentTrack?.let { viewModel.shareTrack(it) }
                     }
-
                     PlayerActionButtonSlot.QUEUE -> onQueueClick()
                     PlayerActionButtonSlot.AUDIO_FX -> onEffectsClick()
                     PlayerActionButtonSlot.SHUFFLE -> viewModel.toggleShuffle()
@@ -3169,7 +3317,6 @@ private fun PlayerSlotButton(
                     PlayerActionButtonSlot.MORE -> {
                         viewModel.currentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) }
                     }
-
                     PlayerActionButtonSlot.NONE -> {}
                 }
             },
@@ -3182,7 +3329,7 @@ private fun PlayerSlotButton(
         ) {
             Icon(
                 imageVector = iconVector,
-                contentDescription = stringResource(slot.titleRes),
+                contentDescription = stringResource(effectiveSlot.titleRes),
                 modifier = Modifier.size(22.dp)
             )
         }
@@ -8464,14 +8611,26 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
     val localPath = viewModel.localFilePathForDetails
     val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
     val displayFormat = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
-    val releaseDateStr = remember(track) {
-        try {
-            val dateStr = track.releaseDate ?: track.createdAt; if (dateStr != null) {
-                val date = dateFormat.parse(dateStr); displayFormat.format(date ?: Date())
-            } else context.getString(R.string.detail_unknown)
-        } catch (e: Exception) {
-            context.getString(R.string.detail_unknown)
-        }
+    val releaseDateStr = remember(track.releaseDate, track.createdAt) {
+        val dateStr = track.releaseDate ?: track.createdAt
+        if (!dateStr.isNullOrBlank()) {
+            try {
+                if (dateStr.length == 4 && dateStr.all { it.isDigit() }) {
+                    dateStr
+                } else if (dateStr.length == 10 && dateStr.contains("-")) {
+                    val ymdFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                    val d = ymdFormat.parse(dateStr)
+                    displayFormat.format(d ?: Date())
+                } else if (dateStr.contains("T")) {
+                    val date = dateFormat.parse(dateStr)
+                    displayFormat.format(date ?: Date())
+                } else {
+                    dateStr
+                }
+            } catch (e: Exception) {
+                dateStr
+            }
+        } else context.getString(R.string.detail_unknown)
     }
     val tags = remember(track.tagList) { parseSoundCloudTags(track.tagList) }
     var fileSizeStr by remember { mutableStateOf("") };
@@ -8529,6 +8688,26 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
         }
     }
 
+    val isSpotify = track.source == "spotify" || track.user?.urn?.startsWith("spotify") == true
+    var spotifyCredits by remember { mutableStateOf<com.alananasss.kittytune.data.spotify.SpotifyCredits?>(null) }
+    var isLoadingCredits by remember { mutableStateOf(false) }
+
+    val mainArtistLabel = stringResource(R.string.spotify_credits_main_artist)
+    val featArtistLabel = stringResource(R.string.spotify_credits_featured_artist)
+    val composerLabel = stringResource(R.string.spotify_credits_composer)
+    val lyricistLabel = stringResource(R.string.spotify_credits_lyricist)
+
+    LaunchedEffect(track.id, isSpotify) {
+        if (isSpotify) {
+            isLoadingCredits = true
+            val cleanId = track.permalink?.takeIf { it.isNotBlank() }
+                ?: track.permalinkUrl?.substringAfterLast("/")?.takeIf { it.isNotBlank() && !it.contains("http") }
+                ?: track.id.toString()
+            spotifyCredits = com.alananasss.kittytune.data.spotify.SpotifyRepository.getCredits(cleanId)
+            isLoadingCredits = false
+        }
+    }
+
     LazyColumn(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding()) {
         item {
             Row(
@@ -8541,37 +8720,57 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                     modifier = Modifier.size(80.dp).clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant).viewableCover(track.fullResArtwork),
                     contentScale = ContentScale.Crop
-                ); Spacer(Modifier.width(16.dp)); Column {
-                Text(
-                    text = track.title ?: stringResource(R.string.untitled_track),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
                 )
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                    if (track.id > 0) {
-                        onClose(); track.user?.id?.let { if (it > 0) viewModel.navigateToArtist(it) }
-                    }
-                }) {
+                Spacer(Modifier.width(16.dp))
+                Column {
                     Text(
-                        text = track.user?.username ?: stringResource(R.string.unknown_artist),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary
+                        text = track.title ?: stringResource(R.string.untitled_track),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    if (track.user?.verified == true) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            Icons.Rounded.Verified,
-                            null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
+                        onClose()
+                        if (isSpotify) {
+                            val trackArtists = track.artists ?: emptyList()
+                            if (trackArtists.size > 1) {
+                                val firstArtist = trackArtists.first()
+                                viewModel.navigateToSpotifyArtist(firstArtist.id)
+                            } else if (trackArtists.size == 1) {
+                                viewModel.navigateToSpotifyArtist(trackArtists.first().id)
+                            } else {
+                                val artistId =
+                                    track.user?.permalink ?: track.user?.urn?.removePrefix("spotify:artist:") ?: ""
+                                if (artistId.isNotBlank()) {
+                                    viewModel.navigateToSpotifyArtist(artistId)
+                                } else {
+                                    track.user?.id?.let { if (it > 0) viewModel.navigateToArtist(it) }
+                                }
+                            }
+                        } else if (track.id > 0) {
+                            track.user?.id?.let { if (it > 0) viewModel.navigateToArtist(it) }
+                        }
+                    }) {
+                        Text(
+                            text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        if (track.user?.verified == true) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                Icons.Rounded.Verified,
+                                null,
+                                tint = if (isSpotify) Color(0xFF1DB954) else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant); Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(Modifier.height(16.dp))
         }
         if (isLocalMode) {
             item {
@@ -8580,22 +8779,22 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
-                ); Spacer(Modifier.height(16.dp))
+                )
+                Spacer(Modifier.height(16.dp))
                 val formatText = if (bitrateStr.isNotEmpty()) "$fileFormatStr • $bitrateStr" else fileFormatStr
                 DetailInfoRow(stringResource(R.string.detail_format), formatText)
                 if (fileSizeStr.isNotEmpty()) DetailInfoRow(stringResource(R.string.detail_size), fileSizeStr)
                 DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.durationMs ?: 0L))
-                Spacer(Modifier.height(16.dp)); HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(
-                    alpha = 0.5f
-                )
-            ); Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Spacer(Modifier.height(16.dp))
                 Text(
                     text = stringResource(R.string.detail_location),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
-                ); Spacer(Modifier.height(8.dp))
+                )
+                Spacer(Modifier.height(8.dp))
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                     modifier = Modifier.fillMaxWidth(),
@@ -8611,6 +8810,292 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                 }
                 Spacer(Modifier.height(32.dp))
             }
+        } else if (isSpotify) {
+            val streamCount = track.playCount ?: (if (track.playbackCount > 0) track.playbackCount.toLong() else null)
+            if (streamCount != null && streamCount > 0) {
+                item {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.PlayArrow,
+                                contentDescription = null,
+                                tint = Color(0xFF1DB954),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = java.text.NumberFormat.getInstance().format(streamCount),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = stringResource(R.string.spotify_streams_formatted),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            val performersRole = spotifyCredits?.roles?.find {
+                it.roleTitle.equals("Performers", ignoreCase = true) ||
+                        it.roleTitle.equals("Artists", ignoreCase = true) ||
+                        it.roleTitle.equals("Artist", ignoreCase = true) ||
+                        it.roleTitle.contains("Performer", ignoreCase = true) ||
+                        it.roleTitle.contains("Artist", ignoreCase = true)
+            }
+            val performerArtists = performersRole?.artists ?: emptyList()
+            if (performerArtists.isNotEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.spotify_credits_performers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                items(performerArtists) { artist ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                onClose()
+                                viewModel.navigateToSpotifyArtist(artist.id)
+                            }
+                            .padding(vertical = 8.dp)
+                    ) {
+                        AsyncImage(
+                            model = artist.imageUri ?: R.drawable.ic_default_user_artwork_placeholder_round,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = artist.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            val subrolesText = artist.subroles.joinToString(", ") { sub ->
+                                when (sub.lowercase()) {
+                                    "main artist" -> mainArtistLabel
+                                    "featured artist" -> featArtistLabel
+                                    else -> sub
+                                }
+                            }
+                            if (subrolesText.isNotEmpty()) {
+                                Text(
+                                    text = subrolesText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(12.dp)) }
+            } else if (!track.artists.isNullOrEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.spotify_credits_performers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                items(track.artists) { artist ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                onClose()
+                                viewModel.navigateToSpotifyArtist(artist.id)
+                            }
+                            .padding(vertical = 8.dp)
+                    ) {
+                        AsyncImage(
+                            model = artist.avatarUrl ?: R.drawable.ic_default_user_artwork_placeholder_round,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentScale = ContentScale.Crop
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = artist.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                if (artist.verified) {
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(
+                                        Icons.Rounded.Verified,
+                                        contentDescription = null,
+                                        tint = Color(0xFF1DB954),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(12.dp)) }
+            }
+
+            val writersRole = spotifyCredits?.roles?.find {
+                it.roleTitle.equals("Writers", ignoreCase = true) ||
+                        it.roleTitle.equals("Composition & Lyrics", ignoreCase = true) ||
+                        it.roleTitle.equals("Composers", ignoreCase = true) ||
+                        it.roleTitle.contains("Writer", ignoreCase = true) ||
+                        it.roleTitle.contains("Lyric", ignoreCase = true) ||
+                        it.roleTitle.contains("Composition", ignoreCase = true) ||
+                        it.roleTitle.contains("Composer", ignoreCase = true)
+            }
+            val writersArtists = writersRole?.artists ?: emptyList()
+            if (writersArtists.isNotEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.spotify_credits_writers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                items(writersArtists) { writer ->
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        Text(
+                            text = writer.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        val subrolesText = writer.subroles.joinToString(", ") { sub ->
+                            when (sub.lowercase()) {
+                                "composer" -> composerLabel
+                                "lyricist" -> lyricistLabel
+                                else -> sub
+                            }
+                        }
+                        if (subrolesText.isNotEmpty()) {
+                            Text(
+                                text = subrolesText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                item { Spacer(Modifier.height(12.dp)) }
+            } else if (!track.publisherMetadata?.composer.isNullOrBlank()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.spotify_credits_writers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = track.publisherMetadata!!.composer!!,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+            }
+
+            val producersRole = spotifyCredits?.roles?.find {
+                it.roleTitle.equals("Producers", ignoreCase = true) ||
+                        it.roleTitle.contains("Producer", ignoreCase = true) ||
+                        it.roleTitle.contains("Production", ignoreCase = true)
+            }
+            val producersArtists = producersRole?.artists ?: emptyList()
+            if (producersArtists.isNotEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.spotify_credits_producers),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+                items(producersArtists) { producer ->
+                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        Text(
+                            text = producer.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(12.dp)) }
+            }
+
+            val sources = spotifyCredits?.sourceNames?.takeIf { it.isNotEmpty() }
+                ?: listOfNotNull(track.publisherMetadata?.publisher?.takeIf { it.isNotBlank() })
+            if (sources.isNotEmpty()) {
+                item {
+                    Text(
+                        text = stringResource(R.string.spotify_credits_sources),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = sources.joinToString("\n"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+
+            item {
+                DetailInfoRow(stringResource(R.string.detail_release_date), releaseDateStr)
+                if (!track.publisherMetadata?.albumTitle.isNullOrBlank()) {
+                    DetailInfoRow(stringResource(R.string.profile_tab_albums), track.publisherMetadata!!.albumTitle!!)
+                }
+                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.durationMs ?: 0L))
+                Spacer(Modifier.height(32.dp))
+            }
         } else {
             item {
                 Row(
@@ -8621,15 +9106,19 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                         icon = Icons.Rounded.PlayArrow,
                         value = formatNumber(track.playbackCount),
                         label = stringResource(R.string.detail_stats_plays)
-                    ); DetailStatItem(
-                    icon = Icons.Rounded.Favorite,
-                    value = formatNumber(track.likesCount),
-                    label = stringResource(R.string.detail_stats_likes),
-                    onClick = { viewModel.navigateToTrackDetails(track.id, 0) }); DetailStatItem(
-                    icon = Icons.Rounded.Repeat,
-                    value = formatNumber(track.repostsCount),
-                    label = stringResource(R.string.detail_stats_reposts),
-                    onClick = { viewModel.navigateToTrackDetails(track.id, 1) })
+                    )
+                    DetailStatItem(
+                        icon = Icons.Rounded.Favorite,
+                        value = formatNumber(track.likesCount),
+                        label = stringResource(R.string.detail_stats_likes),
+                        onClick = { viewModel.navigateToTrackDetails(track.id, 0) }
+                    )
+                    DetailStatItem(
+                        icon = Icons.Rounded.Repeat,
+                        value = formatNumber(track.repostsCount),
+                        label = stringResource(R.string.detail_stats_reposts),
+                        onClick = { viewModel.navigateToTrackDetails(track.id, 1) }
+                    )
                 }
                 Spacer(Modifier.height(24.dp))
             }
@@ -8641,11 +9130,14 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
                 ) {
-                    Icon(Icons.Rounded.Hub, null, modifier = Modifier.size(20.dp)); Spacer(Modifier.width(12.dp)); Text(
-                    stringResource(R.string.detail_see_similar),
-                    fontWeight = FontWeight.SemiBold
-                )
-                }; Spacer(Modifier.height(16.dp))
+                    Icon(Icons.Rounded.Hub, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        stringResource(R.string.detail_see_similar),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
             }
             item {
                 Button(
@@ -8657,24 +9149,24 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.Comment,
-                        null
-                    ); Spacer(Modifier.width(12.dp)); Text(
-                    text = stringResource(
-                        R.string.detail_see_comments,
-                        formatNumber(track.commentCount)
-                    ), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-                }; Spacer(Modifier.height(24.dp))
+                    Icon(Icons.AutoMirrored.Rounded.Comment, null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = stringResource(
+                            R.string.detail_see_comments,
+                            formatNumber(track.commentCount)
+                        ),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
             }
             item {
-                DetailInfoRow(
-                    stringResource(R.string.detail_release_date),
-                    releaseDateStr
-                ); if (!track.genre.isNullOrBlank()) {
-                DetailInfoRow(stringResource(R.string.detail_genre), track.genre)
-            }; Spacer(Modifier.height(16.dp))
+                DetailInfoRow(stringResource(R.string.detail_release_date), releaseDateStr)
+                if (!track.genre.isNullOrBlank()) {
+                    DetailInfoRow(stringResource(R.string.detail_genre), track.genre)
+                }
+                Spacer(Modifier.height(16.dp))
             }
             if (!track.description.isNullOrBlank()) {
                 item {
@@ -8682,12 +9174,14 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                         stringResource(R.string.detail_description),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
-                    ); Spacer(Modifier.height(8.dp)); ExpandableDescription(
-                    text = track.description,
-                    onUrlClick = { url -> uriHandler.openUri(url) },
-                    onMentionClick = { username -> onClose(); viewModel.resolveAndNavigateToArtist(username) }); Spacer(
-                    Modifier.height(24.dp)
-                )
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    ExpandableDescription(
+                        text = track.description,
+                        onUrlClick = { url -> uriHandler.openUri(url) },
+                        onMentionClick = { username -> onClose(); viewModel.resolveAndNavigateToArtist(username) }
+                    )
+                    Spacer(Modifier.height(24.dp))
                 }
             }
             if (tags.isNotEmpty()) {
@@ -8696,7 +9190,8 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                         stringResource(R.string.detail_tags),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold
-                    ); Spacer(Modifier.height(8.dp))
+                    )
+                    Spacer(Modifier.height(8.dp))
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -8919,6 +9414,7 @@ fun OldPlayerScreen(
     val iconTint = if (isBlurMode) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     var showEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
+    var showPlayerArtistSelectDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     val animatedColor by animateColorAsState(
@@ -9108,23 +9604,28 @@ fun OldPlayerScreen(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.clickable {
-                                    track.user?.id?.let {
-                                        if (it > 0) viewModel.navigateToArtist(
-                                            it
-                                        )
+                                    val artists = track.artists
+                                    if (artists != null && artists.size > 1) {
+                                        showPlayerArtistSelectDialog = true
+                                    } else if (artists != null && artists.size == 1) {
+                                        viewModel.navigateToSpotifyArtist(artists.first().id)
+                                    } else {
+                                        viewModel.navigateToUser(track.user)
                                     }
                                 }
                             ) {
                                 PremiumMarqueeText(
-                                    text = track.user?.username
-                                        ?: stringResource(R.string.unknown_artist),
+                                    text = track.displayArtist.ifBlank {
+                                        stringResource(R.string.unknown_artist)
+                                    },
                                     style = MaterialTheme.typography.titleMedium,
                                     color = subContentColor,
                                     edgeGradientWidth = 16.dp,
                                     modifier = Modifier.weight(1f, fill = false)
                                 )
 
-                                if (track.user?.verified == true) {
+                                val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
+                                if (isAnyVerified) {
                                     Spacer(Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.Rounded.Verified,
@@ -9263,6 +9764,16 @@ fun OldPlayerScreen(
         }
 
         SleepTimerDialog(viewModel)
+
+        if (showPlayerArtistSelectDialog) {
+            SelectArtistDialog(
+                track = track,
+                onDismiss = { showPlayerArtistSelectDialog = false },
+                onSelectArtist = { artistId ->
+                    viewModel.navigateToSpotifyArtist(artistId)
+                }
+            )
+        }
     }
 }
 
@@ -10056,6 +10567,7 @@ fun SoundCloudPlayerView(
 
     var scrubbedMs by remember { mutableFloatStateOf(0f) }
     var isScrubbing by remember { mutableStateOf(false) }
+    var trackForArtistSelectDialog by remember { mutableStateOf<Track?>(null) }
 
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(
         initialPage = viewModel.currentQueueIndex.coerceAtLeast(0),
@@ -10080,14 +10592,17 @@ fun SoundCloudPlayerView(
         }
     }
 
+    var currentPlayingTrackId by remember { mutableStateOf(track.id) }
+
     val totalDuration = if (viewModel.duration > 1000) viewModel.duration.toFloat() else 180000f
     val currentPosition = if (isScrubbing) scrubbedMs else viewModel.currentPosition.toFloat()
     val progressFrac = (currentPosition / totalDuration.coerceAtLeast(1f)).coerceIn(0f, 1f)
 
-    var currentPlayingTrackId by remember { mutableStateOf(track.id) }
     val isNewTrack = track.id != currentPlayingTrackId
     if (isNewTrack) {
         currentPlayingTrackId = track.id
+        scrubbedMs = 0f
+        isScrubbing = false
     }
 
     val animatedPanProgress by animateFloatAsState(
@@ -10107,8 +10622,9 @@ fun SoundCloudPlayerView(
         key = { page -> viewModel.queueState.getOrNull(page)?.id ?: page }
     ) { page ->
         val pageTrack = viewModel.queueState.getOrNull(page) ?: track
+        val isSpotifyTrack = pageTrack.source == "spotify" || pageTrack.user?.urn?.startsWith("spotify") == true || pageTrack.artists?.isNotEmpty() == true
         val isCurrentPage = page == viewModel.currentQueueIndex
-        val isUserPaused = !viewModel.playWhenReady
+        val isUserPaused = !viewModel.playWhenReady && !viewModel.isLoading
         val isCoverBlurred = isUserPaused || (isCurrentPage && isScrubbing)
 
         val animatedBlurRadius by animateDpAsState(
@@ -10234,7 +10750,14 @@ fun SoundCloudPlayerView(
                         shape = RoundedCornerShape(3.dp),
                         color = Color(0xCC000000),
                         modifier = Modifier.clickable {
-                            pageTrack.user?.id?.let { if (it > 0) viewModel.navigateToArtist(it) }
+                            val artists = pageTrack.artists
+                            if (artists != null && artists.size > 1) {
+                                trackForArtistSelectDialog = pageTrack
+                            } else if (artists != null && artists.size == 1) {
+                                viewModel.navigateToSpotifyArtist(artists.first().id)
+                            } else {
+                                viewModel.navigateToUser(pageTrack.user)
+                            }
                         }
                     ) {
                         Row(
@@ -10260,30 +10783,32 @@ fun SoundCloudPlayerView(
                             }
                         }
                     }
-                    Surface(
-                        shape = RoundedCornerShape(3.dp),
-                        color = Color(0xCC000000),
-                        modifier = Modifier.clickable { viewModel.navigateToTrackDetails(pageTrack.id, 0) }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    if (!isSpotifyTrack && pageTrack.source != "youtube") {
+                        Surface(
+                            shape = RoundedCornerShape(3.dp),
+                            color = Color(0xCC000000),
+                            modifier = Modifier.clickable { viewModel.navigateToTrackDetails(pageTrack.id, 0) }
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.GraphicEq,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(12.dp)
-                            )
-                            Spacer(Modifier.width(5.dp))
-                            Text(
-                                text = stringResource(R.string.player_behind_this_track),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                color = Color.White
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.GraphicEq,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(Modifier.width(5.dp))
+                                Text(
+                                    text = stringResource(R.string.player_behind_this_track),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Normal
+                                    ),
+                                    color = Color.White
+                                )
+                            }
                         }
                     }
                 }
@@ -10319,7 +10844,7 @@ fun SoundCloudPlayerView(
                     }.collectAsState(initial = null)
                     val isArtistFollowed = (artistSavedEntity != null)
 
-                    if (pageTrack.user != null && pageTrack.user.id > 0) {
+                    if (!isSpotifyTrack && pageTrack.source != "youtube" && pageTrack.user != null && pageTrack.user.id > 0) {
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
@@ -10487,7 +11012,7 @@ fun SoundCloudPlayerView(
                         StaticWaveformPlaceholder(track = pageTrack, viewModel = viewModel)
                     }
 
-                    if (showReactionsBar) {
+                    if (showReactionsBar && !isSpotifyTrack && pageTrack.source != "youtube") {
                         Spacer(modifier = Modifier.height(8.dp))
                         Surface(
                             shape = RoundedCornerShape(28.dp),
@@ -10545,7 +11070,21 @@ fun SoundCloudPlayerView(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 slots.forEach { slot ->
-                    when (slot) {
+                    val effectiveSlot = if ((isSpotifyTrack || pageTrack.source == "youtube") && slot == PlayerActionButtonSlot.COMMENTS) {
+                        if (!slots.contains(PlayerActionButtonSlot.AUDIO_FX)) {
+                            PlayerActionButtonSlot.AUDIO_FX
+                        } else if (!slots.contains(PlayerActionButtonSlot.LYRICS)) {
+                            PlayerActionButtonSlot.LYRICS
+                        } else if (!slots.contains(PlayerActionButtonSlot.SHUFFLE)) {
+                            PlayerActionButtonSlot.SHUFFLE
+                        } else {
+                            PlayerActionButtonSlot.AUDIO_FX
+                        }
+                    } else {
+                        slot
+                    }
+
+                    when (effectiveSlot) {
                         PlayerActionButtonSlot.LIKE -> {
                             val isTrackLiked =
                                 if (isCurrentPage) viewModel.isLiked else com.alananasss.kittytune.data.LikeRepository.isTrackLiked(
@@ -10577,15 +11116,17 @@ fun SoundCloudPlayerView(
                                     tint = if (isTrackLiked) Color(0xFFFF5500) else Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
-                                Spacer(Modifier.width(5.dp))
-                                Text(
-                                    text = formatSoundCloudCount(displayLikes),
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp
-                                    ),
-                                    color = Color.White
-                                )
+                                if (!isSpotifyTrack && displayLikes > 0) {
+                                    Spacer(Modifier.width(5.dp))
+                                    Text(
+                                        text = formatSoundCloudCount(displayLikes),
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
 
@@ -10605,15 +11146,17 @@ fun SoundCloudPlayerView(
                                     tint = Color.White,
                                     modifier = Modifier.size(22.dp)
                                 )
-                                Spacer(Modifier.width(5.dp))
-                                Text(
-                                    text = formatSoundCloudCount(pageTrack.commentCount),
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp
-                                    ),
-                                    color = Color.White
-                                )
+                                if (pageTrack.commentCount > 0) {
+                                    Spacer(Modifier.width(5.dp))
+                                    Text(
+                                        text = formatSoundCloudCount(pageTrack.commentCount),
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 14.sp
+                                        ),
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
 
@@ -10748,6 +11291,16 @@ fun SoundCloudPlayerView(
                 }
             }
         }
+    }
+
+    if (trackForArtistSelectDialog != null) {
+        SelectArtistDialog(
+            track = trackForArtistSelectDialog!!,
+            onDismiss = { trackForArtistSelectDialog = null },
+            onSelectArtist = { artistId ->
+                viewModel.navigateToSpotifyArtist(artistId)
+            }
+        )
     }
 }
 
