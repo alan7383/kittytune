@@ -1479,35 +1479,13 @@ fun MainScreen(
                 .fillMaxSize()
                 .zIndex(10f)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                playerViewModel.currentTrack?.let { track ->
-                    AsyncImage(
-                        model = track.fullResArtwork,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .blur(80.dp)
-                            .alpha(0.4f)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(0.6f))
-                    )
+            LyricsScreen(
+                viewModel = playerViewModel,
+                onClose = {
+                    playerViewModel.showLyricsSheet = false
+                    playerViewModel.isSearchingLyrics = false
                 }
-                LyricsScreen(
-                    viewModel = playerViewModel,
-                    onClose = {
-                        playerViewModel.showLyricsSheet = false
-                        playerViewModel.isSearchingLyrics = false
-                    }
-                )
-            }
+            )
         }
 
         if (playerViewModel.showMenuSheet) {
