@@ -833,8 +833,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             snapshotFlow { currentTrack }
                 .distinctUntilChangedBy { it?.fullResArtwork }
                 .collect { track ->
-                    com.alananasss.kittytune.ui.theme.ThemeState.coverSeedColor =
-                        com.alananasss.kittytune.ui.theme.CoverSeed.extract(context, track?.fullResArtwork)
+                    val artworkColors =
+                        com.alananasss.kittytune.ui.theme.CoverSeed.extractColors(context, track?.fullResArtwork)
+                    com.alananasss.kittytune.ui.theme.ThemeState.coverSeedColor = artworkColors.seedColor
+                    com.alananasss.kittytune.ui.theme.ThemeState.coverMeshColors = artworkColors.meshColors
                 }
         }
     }
@@ -4246,6 +4248,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
+                }
+
+                val mesh = com.alananasss.kittytune.ui.theme.ArtworkPalette.meshPalette(bitmap)
+                withContext(Dispatchers.Main) {
+                    com.alananasss.kittytune.ui.theme.ThemeState.coverMeshColors = mesh
                 }
 
                 Palette.from(bitmap).generate { palette ->
