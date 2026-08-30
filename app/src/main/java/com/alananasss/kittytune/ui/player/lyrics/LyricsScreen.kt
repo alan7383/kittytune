@@ -697,13 +697,18 @@ fun SearchLyricsView(
         }
 
         ExpressiveConnectedButtonGroup(
-            options = listOf("MUSIXMATCH", "LRCLIB"),
+            options = listOf("MUSIXMATCH", "LRCLIB", "GENIUS"),
             selectedOption = viewModel.manualSearchProvider,
             onOptionSelected = { viewModel.searchLyricsManual(query, it) },
             modifier = Modifier.padding(horizontal = 16.dp),
             labelProvider = { provider ->
                 Text(
-                    text = if (provider == "MUSIXMATCH") "Musixmatch" else "LrcLib"
+                    text = when (provider) {
+                        "MUSIXMATCH" -> "Musixmatch"
+                        "LRCLIB" -> "LrcLib"
+                        "GENIUS" -> "Genius"
+                        else -> provider
+                    }
                 )
             }
         )
@@ -746,7 +751,12 @@ fun SearchLyricsView(
                                 Text(
                                     result.provider,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (result.provider == "MUSIXMATCH") Color(0xFFFF9800) else Color(0xFF4CAF50)
+                                    color = when (result.provider) {
+                                        "MUSIXMATCH" -> Color(0xFFFF9800)
+                                        "LRCLIB" -> Color(0xFF4CAF50)
+                                        "GENIUS" -> Color(0xFFFFEB3B)
+                                        else -> Color.White
+                                    }
                                 )
                             }
                         }
