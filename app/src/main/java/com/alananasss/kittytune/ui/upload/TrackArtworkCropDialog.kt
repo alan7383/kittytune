@@ -254,7 +254,7 @@ fun TrackArtworkCropDialog(
                                 offsetY = 0f
                             },
                             shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-                            colors = ToggleButtonDefaults.toggleButtonColors(
+                            colors = ToggleButtonDefaults.colors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 contentColor = MaterialTheme.colorScheme.onSurface,
                                 checkedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -295,7 +295,7 @@ fun TrackArtworkCropDialog(
                                 allowGestureRotation = it
                             },
                             shapes = ButtonGroupDefaults.connectedMiddleButtonShapes(),
-                            colors = ToggleButtonDefaults.toggleButtonColors(
+                            colors = ToggleButtonDefaults.colors(
                                 containerColor = freeRotateContainerColor,
                                 contentColor = freeRotateContentColor,
                                 checkedContainerColor = freeRotateContainerColor,
@@ -328,7 +328,7 @@ fun TrackArtworkCropDialog(
                                 rotation = 0f
                             },
                             shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-                            colors = ToggleButtonDefaults.toggleButtonColors(
+                            colors = ToggleButtonDefaults.colors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 contentColor = MaterialTheme.colorScheme.onSurface,
                                 checkedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

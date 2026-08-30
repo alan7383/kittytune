@@ -61,7 +61,7 @@ fun <T> ExpressiveConnectedButtonGroup(
                 },
                 modifier = Modifier.weight(1f),
                 contentPadding = contentPadding,
-                colors = ToggleButtonDefaults.toggleButtonColors(
+                colors = ToggleButtonDefaults.colors(
                     containerColor = containerColor,
                     contentColor = contentColor,
                     checkedContainerColor = containerColor,
