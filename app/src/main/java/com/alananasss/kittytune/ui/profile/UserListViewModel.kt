@@ -23,12 +23,14 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
     private var currentUserId: Long = 0
     private var currentType: String = ""
 
+    val hasMore: Boolean get() = nextCursor != null
+
     private val userSchema = "urn permalink username avatarUrl firstName lastName city country countryCode tracksCount playlistCount followersCount followingsCount verified isPro description userAvatarUrlTemplate visualUrlTemplate stationUrns createdAt badges"
     private val followersQuery = "query UserFollowersQuery(\$input: UserFollowsInput!) { userFollowers(input: \$input) { pageInfo { endCursor } items { user { $userSchema } } } }"
     private val followingsQuery = "query UserFollowingsQuery(\$input: UserFollowsInput!) { userFollowings(input: \$input) { pageInfo { endCursor } items { user { $userSchema } } } }"
 
     fun loadUsers(userId: Long, type: String) {
-        if (currentUserId == userId && currentType == type) return
+        if (currentUserId == userId && currentType == type && users.isNotEmpty()) return
 
         currentUserId = userId
         currentType = type
@@ -47,7 +49,7 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
                     variables = GraphQlFollowsVariables(
                         input = GraphQlFollowsInput(
                             urn = "soundcloud:users:$userId",
-                            first = 30,
+                            first = 50,
                             after = null
                         )
                     )
@@ -77,7 +79,7 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun loadMore() {
-        if (isLoadingMore || nextCursor == null) return
+        if (isLoadingMore || isLoading || nextCursor == null) return
 
         viewModelScope.launch {
             isLoadingMore = true
@@ -91,7 +93,7 @@ class UserListViewModel(application: Application) : AndroidViewModel(application
                     variables = GraphQlFollowsVariables(
                         input = GraphQlFollowsInput(
                             urn = "soundcloud:users:$currentUserId",
-                            first = 30,
+                            first = 50,
                             after = nextCursor
                         )
                     )

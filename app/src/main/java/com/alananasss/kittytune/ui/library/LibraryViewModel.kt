@@ -42,6 +42,11 @@ import java.util.Locale
 
 import com.alananasss.kittytune.data.local.LibraryFolder
 import com.alananasss.kittytune.data.local.LibraryItemMeta
+import com.alananasss.kittytune.data.local.toTrack
+
+enum class LibrarySource {
+    SOUNDCLOUD, VK
+}
 
 sealed class LibraryItem(open val timestamp: Long, open val key: String, open val isPinned: Boolean = false) {
     data class FolderItem(
@@ -70,7 +75,11 @@ sealed class LibraryItem(open val timestamp: Long, open val key: String, open va
     companion object {
         fun getPlaylistCanonicalKey(playlist: Playlist): String {
             val permalink = playlist.permalinkUrl
-            return if (permalink != null && permalink.startsWith("yt_radio:")) {
+            return if (permalink != null && permalink.startsWith("vk_playlist:")) {
+                permalink
+            } else if (permalink != null && permalink == "vk_likes") {
+                "vk_likes"
+            } else if (permalink != null && permalink.startsWith("yt_radio:")) {
                 "yt_radio:$permalink"
             } else if (playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
                 "system_playlist:${playlist.urn}"
@@ -87,6 +96,13 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     private val prefs = application.getSharedPreferences("library_prefs", Context.MODE_PRIVATE)
     private val tokenManager = TokenManager(application)
     private val gson = com.alananasss.kittytune.utils.AppUtils.gson
+
+    val vkTokenManager = com.alananasss.kittytune.data.vk.VkTokenManager(application)
+    private val vkRepository = com.alananasss.kittytune.data.vk.VkRepository.getInstance(application)
+    var activeLibrarySource by mutableStateOf(LibrarySource.SOUNDCLOUD)
+    val vkTracks = mutableStateListOf<Track>()
+    val vkPlaylists = mutableStateListOf<com.alananasss.kittytune.data.vk.VkPlaylist>()
+    var isVkLoading by mutableStateOf(false)
 
     var userProfile by mutableStateOf<User?>(null)
     val likedTracks = mutableStateListOf<Track>()
@@ -137,8 +153,86 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         currentFolderId = null
     }
 
+    fun onLibrarySourceChanged(source: LibrarySource) {
+        if (activeLibrarySource == source) return
+        activeLibrarySource = source
+        if (source == LibrarySource.VK) {
+            loadVkData()
+        }
+    }
+
+    fun loadVkData(forceRefresh: Boolean = false) {
+        if (!vkTokenManager.isLoggedIn()) {
+            vkTracks.clear()
+            vkPlaylists.clear()
+            return
+        }
+        viewModelScope.launch {
+            isVkLoading = true
+            try {
+                kotlinx.coroutines.withContext(Dispatchers.IO) {
+                    val userAudios = vkRepository.getUserAudios(offset = 0, count = 100)
+                    val playlists = vkRepository.getPlaylists()
+                    kotlinx.coroutines.withContext(Dispatchers.Main) {
+                        vkTracks.clear()
+                        vkTracks.addAll(userAudios.tracks)
+                        vkPlaylists.clear()
+                        vkPlaylists.addAll(playlists)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isVkLoading = false
+            }
+        }
+    }
+
     val displayedItems: List<LibraryItem>
         get() {
+            if (activeLibrarySource == LibrarySource.VK) {
+                if (!vkTokenManager.isLoggedIn()) return emptyList()
+                val vkItems = mutableListOf<LibraryItem>()
+                val vkUser = vkTokenManager.getUser()
+                val fullName = vkUser?.fullName ?: "VKontakte"
+
+                val vkSavedTracks = Playlist(
+                    id = -100L,
+                    title = app.getString(R.string.lib_vk_saved_tracks),
+                    artworkUrl = vkUser?.photoMax ?: "",
+                    calculatedArtworkUrl = null,
+                    trackCount = vkTracks.size,
+                    user = User(vkTokenManager.userId, fullName, null),
+                    tracks = vkTracks.toList(),
+                    permalinkUrl = "vk_likes"
+                )
+                vkItems.add(LibraryItem.PlaylistItem(vkSavedTracks, System.currentTimeMillis(), "vk_likes", false))
+
+                vkPlaylists.forEach { pl ->
+                    val p = Playlist(
+                        id = pl.id,
+                        title = pl.title,
+                        artworkUrl = pl.coverUrl,
+                        calculatedArtworkUrl = null,
+                        trackCount = pl.count,
+                        user = User(pl.ownerId, fullName, null),
+                        tracks = null,
+                        permalinkUrl = "vk_playlist:${pl.ownerId}_${pl.id}_${pl.accessHash ?: ""}"
+                    )
+                    vkItems.add(LibraryItem.PlaylistItem(p, System.currentTimeMillis(), "vk_playlist:${pl.id}", false))
+                }
+
+                return if (searchQuery.isBlank()) {
+                    vkItems
+                } else {
+                    vkItems.filter { item ->
+                        if (item is LibraryItem.PlaylistItem) {
+                            item.playlist.title?.contains(searchQuery, ignoreCase = true) == true
+                        } else true
+                    }
+                }
+            }
+
             val items = _allItems.filter { item ->
                 when (item) {
                     is LibraryItem.FolderItem -> {
@@ -631,15 +725,9 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 } else {
                     val localTracks = db.getTracksForPlaylistSync(playlist.id)
                     if (localTracks.isNotEmpty()) {
-                        allTracks.addAll(localTracks.map { local ->
-                            Track(
-                                id = local.id,
-                                title = local.title,
-                                user = User(0, local.artist, null),
-                                artworkUrl = local.artworkUrl,
-                                durationMs = local.duration
-                            )
-                        })
+                        allTracks.addAll(
+                            localTracks.map { local -> local.toTrack(artworkOverride = local.artworkUrl) }
+                        )
                     } else if (playlist.id > 0) {
                         try {
                             val online = RetrofitClient.create(getApplication()).getPlaylist(playlist.id)

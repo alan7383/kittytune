@@ -175,7 +175,8 @@
                     artworkUrl = artworkPath,
                     duration = duration,
                     localAudioPath = uri.toString(),
-                    localArtworkPath = artworkPath
+                    localArtworkPath = artworkPath,
+                    source = "local"
                 )
 
             } catch (e: Exception) {

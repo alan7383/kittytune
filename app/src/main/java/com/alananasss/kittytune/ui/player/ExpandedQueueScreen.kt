@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -122,6 +123,20 @@ fun ExpandedQueueScreen(
                             contentDescription = stringResource(R.string.queue_repeat),
                             tint = repeatColor
                         )
+                    }
+
+                    if (queueState.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                viewModel.prepareBulkAdd(queueState)
+                            },
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.menu_add_playlist)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(

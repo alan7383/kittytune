@@ -104,6 +104,18 @@ object LikeRepository {
         saveLikedTracks()
 
         scope.launch {
+            if (track.source == "vk") {
+                val vkTokenManager = com.alananasss.kittytune.data.vk.VkTokenManager(appContext)
+                if (vkTokenManager.isLoggedIn()) {
+                    try {
+                        val vkRepo = com.alananasss.kittytune.data.vk.VkRepository.getInstance(appContext)
+                        vkRepo.likeTrack(track)
+                    } catch (e: Exception) {
+                        android.util.Log.e("LikeRepository", "VK track like failed", e)
+                    }
+                }
+                return@launch
+            }
             if (track.source == "spotify" || track.user?.urn?.startsWith("spotify") == true || (track.permalinkUrl != null && track.permalinkUrl!!.contains("spotify"))) return@launch
             if (!playerPrefs.getSyncLikesEnabled()) return@launch
             val tokenManager = TokenManager(appContext)
@@ -128,6 +140,7 @@ object LikeRepository {
 
     fun removeLike(trackId: Long) {
         val targetTrack = _likedTracks.value.find { it.id == trackId }
+        val isVk = targetTrack?.source == "vk"
         val isSpotify = targetTrack?.source == "spotify" || targetTrack?.user?.urn?.startsWith("spotify") == true
                 || (targetTrack?.permalinkUrl != null && targetTrack.permalinkUrl!!.contains("spotify")) || trackId > 1000000000000000L
 
@@ -136,6 +149,21 @@ object LikeRepository {
         _likedTracks.update { it.filterNot { t -> t.id == trackId } }
 
         saveLikedTracks()
+
+        if (isVk) {
+            scope.launch {
+                val vkTokenManager = com.alananasss.kittytune.data.vk.VkTokenManager(appContext)
+                if (vkTokenManager.isLoggedIn() && targetTrack != null) {
+                    try {
+                        val vkRepo = com.alananasss.kittytune.data.vk.VkRepository.getInstance(appContext)
+                        vkRepo.unlikeTrack(targetTrack)
+                    } catch (e: Exception) {
+                        android.util.Log.e("LikeRepository", "VK track unlike failed", e)
+                    }
+                }
+            }
+            return
+        }
 
         if (isSpotify) return
 

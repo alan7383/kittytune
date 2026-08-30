@@ -436,11 +436,15 @@ fun MainScreen(
                 currentRoute.startsWith("music_import/") ||
                 currentRoute == "music_import_transfer" ||
                 currentRoute == Screen.Recognition.route ||
-                currentRoute == "proxy_settings"
+                currentRoute == "proxy_settings" ||
+                currentRoute == "discord_login" ||
+                currentRoute == "vk_login"
 
         val hideNavRail = currentRoute == Screen.Login.route ||
                 currentRoute == Screen.Welcome.route ||
-                currentRoute == "update"
+                currentRoute == "update" ||
+                currentRoute == "discord_login" ||
+                currentRoute == "vk_login"
 
         val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -1313,9 +1317,49 @@ fun MainScreen(
                         )
                     }
 
+                    clippedComposable("sync_settings") {
+                        SyncSettingsScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
                     clippedComposable("proxy_settings") {
                         ProxySettingsScreen(
                             onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("accounts_settings") {
+                        AccountsSettingsScreen(
+                            currentUser = homeViewModel.userProfile,
+                            onBackClick = { navController.popBackStack() },
+                            onNavigateToSoundCloud = { navController.navigate("soundcloud_account_settings") },
+                            onNavigateToVk = { navController.navigate("vk_account_settings") },
+                            onNavigateToDiscord = { navController.navigate("discord_settings") }
+                        )
+                    }
+
+                    clippedComposable("soundcloud_account_settings") {
+                        SoundCloudAccountSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                            onNavigateToProfile = { userId ->
+                                navController.navigate("profile/$userId")
+                            }
+                        )
+                    }
+
+                    clippedComposable("vk_account_settings") {
+                        VkAccountSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigateToWebViewLogin = { navController.navigate("vk_login") }
+                        )
+                    }
+
+                    clippedComposable("vk_login") {
+                        VkLoginScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onLoginSuccess = { navController.popBackStack() }
                         )
                     }
 

@@ -1,5 +1,6 @@
     package com.alananasss.kittytune.data.local
 
+    import androidx.room.Index
     import androidx.room.Entity
     import androidx.room.PrimaryKey
 
@@ -14,7 +15,19 @@
         val localArtworkPath: String,
         val downloadedAt: Long = System.currentTimeMillis(),
         val lufs: Float? = null,
-        val truePeak: Float? = null
+        val truePeak: Float? = null,
+        /**
+         * Which service the track came from. Without it a VK track rebuilt from the database looked
+         * like a SoundCloud track, so sharing produced a soundcloud.com link and playback tried to
+         * stream from SoundCloud and failed.
+         */
+        val source: String = "soundcloud",
+        /** Canonical web link, used for sharing. */
+        val permalinkUrl: String? = null,
+        /** VK owner id — required to refresh a VK stream URL. */
+        val ownerId: Long = 0L,
+        /** VK hash bundle (`add/edit/action/delete/replace/url`) needed by `reload_audios`. */
+        val secretToken: String? = null
     )
 
     @Entity(tableName = "downloaded_playlists")
@@ -72,7 +85,18 @@
         val timestamp: Long = System.currentTimeMillis()
     )
 
-    @Entity(tableName = "listening_stats")
+    @Entity(
+        tableName = "listening_stats",
+        indices = [
+            Index(value = ["timestamp"]),
+            Index(value = ["trackId"]),
+            Index(value = ["artistName"]),
+            // What makes applying a synced listen twice impossible rather than merely unlikely. SQLite
+            // treats NULLs as distinct, so the rows from before sync existed — all of which have no id —
+            // do not collide with each other (issue #33).
+            Index(value = ["syncEventId"], unique = true),
+        ],
+    )
     data class ListeningStatsEvent(
         @PrimaryKey(autoGenerate = true) val id: Long = 0,
         val trackId: Long,
@@ -86,7 +110,41 @@
         val eventType: String,          // PLAY_COMPLETE, SKIP_NEXT, SKIP_PREVIOUS, MANUAL_REPLAY, REPEAT_ONE_LOOP
         val listenDurationMs: Long = 0,
         val trackDurationMs: Long = 0,
-        val timestamp: Long = System.currentTimeMillis()
+        val timestamp: Long = System.currentTimeMillis(),
+        /**
+         * How far playback actually got in the track (issue #33).
+         *
+         * Separate from [listenDurationMs] because they answer different questions: someone who skips
+         * the first minute and listens to the rest heard less than the track lasts but did reach the
+         * end, and someone who loops the same chorus ten times heard a great deal without ever getting
+         * near it. Completion is judged on this; how much was heard is judged on the other. Zero on rows
+         * written before it was recorded, which is what
+         * [com.alananasss.kittytune.data.stats.StatsSql.IS_COMPLETE] falls back on the ending label for.
+         */
+        val furthestPositionMs: Long = 0,
+        /**
+         * The sync event this row came from, `deviceId#seq`, or null for rows older than sync.
+         *
+         * Unique, so applying the same event twice cannot produce two rows however the sync bookkeeping
+         * is disturbed — a restored backup, cleared preferences, a peer re-sending a batch it already
+         * sent. Rows this device recorded carry their own id too, so its own log is equally safe to
+         * replay.
+         */
+        val syncEventId: String? = null
+    )
+
+    /**
+     * A track's trim as it is stored: the mode by name, the spans as JSON (issue #33).
+     *
+     * Deliberately dumb. Parsing belongs in the repository, so a row whose JSON has been corrupted costs that
+     * one track's trim rather than failing the query.
+     */
+    @Entity(tableName = "track_trim")
+    data class TrackTrimRow(
+        @PrimaryKey val trackId: Long,
+        val mode: String,
+        val segments: String,
+        val updatedAt: Long = System.currentTimeMillis()
     )
 
     @Entity(tableName = "library_folders")

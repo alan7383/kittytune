@@ -170,6 +170,21 @@ fun HistoryScreen(
                         historyViewModel.contextsHistory.isNotEmpty()
                     }
 
+                    if (currentTab == HistoryTab.TRACKS && historyViewModel.tracksHistory.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                val tracks = historyViewModel.tracksHistory.map { it.track }
+                                playerViewModel.prepareBulkAdd(tracks)
+                            },
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.menu_add_playlist)
+                            )
+                        }
+                    }
+
                     if (hasItems) {
                         IconButton(
                             onClick = { showClearDialog = true },

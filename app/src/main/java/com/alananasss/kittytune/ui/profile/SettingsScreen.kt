@@ -8,7 +8,7 @@
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.filled.SdStorage
     import androidx.compose.material.icons.rounded.*
-    import androidx.compose.ui.graphics.vector.ImageVector
+    import androidx.compose.material3.MaterialTheme
     import androidx.compose.runtime.Composable
     import androidx.compose.runtime.remember
     import androidx.compose.ui.Modifier
@@ -88,17 +88,25 @@
 
                 item {
                     SettingsGroup(
-                        title = stringResource(R.string.settings_cat_general),
+                        title = stringResource(R.string.settings_cat_accounts),
                         items = listOf(
                             { shape ->
                                 SettingsItem(
                                     shape = shape,
-                                    title = stringResource(R.string.pref_discord_title),
-                                    subtitle = stringResource(R.string.pref_discord_subtitle),
-                                    icon = ImageVector.vectorResource(id = R.drawable.ic_discord),
-                                    onClick = { navController.navigate("discord_settings") }
+                                    title = stringResource(R.string.pref_accounts_title),
+                                    subtitle = stringResource(R.string.pref_accounts_subtitle),
+                                    icon = Icons.Rounded.ManageAccounts,
+                                    onClick = { navController.navigate("accounts_settings") }
                                 )
-                            },
+                            }
+                        )
+                    )
+                }
+
+                item {
+                    SettingsGroup(
+                        title = stringResource(R.string.settings_cat_general),
+                        items = listOf(
                             { shape ->
                                 SettingsItem(
                                     shape = shape,
@@ -150,6 +158,15 @@
                                     },
                                     icon = Icons.Rounded.Dns,
                                     onClick = { navController.navigate("proxy_settings") }
+                                )
+                            },
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.sync_title),
+                                    subtitle = stringResource(R.string.sync_intro),
+                                    icon = Icons.Rounded.Devices,
+                                    onClick = { navController.navigate("sync_settings") }
                                 )
                             },
                             { shape ->

@@ -75,7 +75,7 @@
     }
 
     enum class SearchSource {
-        SOUNDCLOUD, YOUTUBE, SPOTIFY
+        SOUNDCLOUD, YOUTUBE, SPOTIFY, VK
     }
 
     class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -119,6 +119,7 @@
         val searchResultsSpotifyAlbums = mutableStateListOf<com.alananasss.kittytune.data.spotify.SpotifyAlbum>()
         val searchResultsSpotifyPlaylists = mutableStateListOf<com.alananasss.kittytune.data.spotify.SpotifyPlaylist>()
         val searchResultsSpotifyArtists = mutableStateListOf<com.alananasss.kittytune.data.spotify.SpotifyArtist>()
+        val searchResultsVk = mutableStateListOf<Track>()
 
         private var tracksNextUrl: String? = null
         private var artistsNextUrl: String? = null
@@ -376,6 +377,7 @@
         private fun clearSearchResults() {
             searchResultsTracks.clear(); searchResultsArtists.clear(); searchResultsPlaylists.clear(); searchResultsYoutube.clear()
             searchResultsSpotify.clear(); searchResultsSpotifyAlbums.clear(); searchResultsSpotifyPlaylists.clear(); searchResultsSpotifyArtists.clear()
+            searchResultsVk.clear()
             tracksNextUrl = null; artistsNextUrl = null; playlistsNextUrl = null
         }
 
@@ -386,11 +388,27 @@
                     SearchSource.SOUNDCLOUD -> performSoundCloudSearch(query)
                     SearchSource.YOUTUBE -> performYoutubeSearch(query)
                     SearchSource.SPOTIFY -> performSpotifySearch(query)
+                    SearchSource.VK -> performVkSearch(query)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
                 isSearchLoading = false
+            }
+        }
+
+        private suspend fun performVkSearch(query: String) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val vkApi = com.alananasss.kittytune.data.vk.VkApi(getApplication())
+                    val results = vkApi.searchAudios(query)
+                    withContext(Dispatchers.Main) {
+                        searchResultsVk.clear()
+                        searchResultsVk.addAll(results.tracks)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
 
@@ -569,23 +587,35 @@
             viewModelScope.launch {
                 isSearchLoadingMore = true
                 try {
-                    when (activeFilter) {
-                        SearchFilter.TRACKS -> {
-                            if (tracksNextUrl != null) {
-                                val response = api.getSearchTracksNextPage(tracksNextUrl!!); searchResultsTracks.addAll(response.collection); tracksNextUrl = response.next_href
+                    if (activeSearchSource == SearchSource.VK) {
+                        val currentCount = searchResultsVk.size
+                        if (searchQuery.isNotBlank() && currentCount > 0) {
+                            val vkApi = com.alananasss.kittytune.data.vk.VkApi(getApplication())
+                            val results = vkApi.searchAudios(searchQuery, offset = currentCount)
+                            if (results.tracks.isNotEmpty()) {
+                                val newTracks = results.tracks.filter { nt -> searchResultsVk.none { it.id == nt.id && it.user?.id == nt.user?.id } }
+                                searchResultsVk.addAll(newTracks)
                             }
                         }
-                        SearchFilter.ARTISTS -> {
-                            if (artistsNextUrl != null) {
-                                val response = api.getSearchUsersNextPage(artistsNextUrl!!); searchResultsArtists.addAll(response.collection); artistsNextUrl = response.next_href
+                    } else {
+                        when (activeFilter) {
+                            SearchFilter.TRACKS -> {
+                                if (tracksNextUrl != null) {
+                                    val response = api.getSearchTracksNextPage(tracksNextUrl!!); searchResultsTracks.addAll(response.collection); tracksNextUrl = response.next_href
+                                }
                             }
-                        }
-                        SearchFilter.PLAYLISTS -> {
-                            if (playlistsNextUrl != null) {
-                                val response = api.getSearchPlaylistsNextPage(playlistsNextUrl!!); searchResultsPlaylists.addAll(response.collection); playlistsNextUrl = response.next_href
+                            SearchFilter.ARTISTS -> {
+                                if (artistsNextUrl != null) {
+                                    val response = api.getSearchUsersNextPage(artistsNextUrl!!); searchResultsArtists.addAll(response.collection); artistsNextUrl = response.next_href
+                                }
                             }
+                            SearchFilter.PLAYLISTS -> {
+                                if (playlistsNextUrl != null) {
+                                    val response = api.getSearchPlaylistsNextPage(playlistsNextUrl!!); searchResultsPlaylists.addAll(response.collection); playlistsNextUrl = response.next_href
+                                }
+                            }
+                            else -> {}
                         }
-                        else -> {}
                     }
                 } catch (e: Exception) { e.printStackTrace() } finally { isSearchLoadingMore = false }
             }

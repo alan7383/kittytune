@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.domain
 
 import com.alananasss.kittytune.data.network.LongIdAdapter
+import com.alananasss.kittytune.data.network.UserBadgesAdapter
 import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 
@@ -674,6 +675,7 @@ data class User(
     @SerializedName("country_code", alternate = ["countryCode"]) val countryCode: String? = null,
     @SerializedName("first_name", alternate = ["firstName"]) val firstName: String? = null,
     @SerializedName("last_name", alternate = ["lastName"]) val lastName: String? = null,
+    @SerializedName("full_name", alternate = ["fullName"]) val fullName: String? = null,
     @SerializedName("followers_count", alternate = ["followersCount"]) val followersCount: Int = 0,
     @SerializedName("followings_count", alternate = ["followingsCount"]) val followingsCount: Int = 0,
     @SerializedName("track_count", alternate = ["tracksCount", "trackCount"]) val trackCount: Int = 0,
@@ -684,14 +686,73 @@ data class User(
     val visuals: Visuals? = null,
     @SerializedName("verified") val verified: Boolean = false,
     @SerializedName("is_pro", alternate = ["isPro"]) val isPro: Boolean = false,
+    @SerializedName("plan") val plan: String? = null,
+    @SerializedName("primary_email_address", alternate = ["primary_email", "email"]) val email: String? = null,
+    @SerializedName("primary_email_confirmed") val primaryEmailConfirmed: Boolean? = null,
+    @SerializedName("comments_count", alternate = ["commentsCount", "comment_count"]) val commentsCount: Int = 0,
+    @SerializedName("reposts_count", alternate = ["repostsCount", "repost_count"]) val repostsCount: Int = 0,
+    @SerializedName("playlist_likes_count") val playlistLikesCount: Int = 0,
+    @SerializedName("quota") val quota: UserQuota? = null,
+    @SerializedName("badges") @JsonAdapter(UserBadgesAdapter::class) val badges: UserBadges? = null,
+    @SerializedName("creator_subscription") val creatorSubscription: SubscriptionWrapper? = null,
+    @SerializedName("consumer_subscription") val consumerSubscription: SubscriptionWrapper? = null,
+    @SerializedName("date_of_birth") val dateOfBirth: DateOfBirth? = null,
+    @SerializedName("station_urn") val stationUrn: String? = null,
+    @SerializedName("station_permalink") val stationPermalink: String? = null,
+    @SerializedName("station_urns", alternate = ["stationUrns"]) val stationUrns: List<String>? = null,
+    @SerializedName("default_license") val defaultLicense: String? = null,
+    @SerializedName("spotlight_limit") val spotlightLimit: Int = 0,
+    @SerializedName("last_modified") val lastModified: String? = null,
+    @SerializedName("private_playlists_count") val privatePlaylistsCount: Int = 0,
+    @SerializedName("private_tracks_count") val privateTracksCount: Int = 0,
+    @SerializedName("confirmed") val confirmed: Boolean = false,
+    @SerializedName("gender") val gender: String? = null,
+    @SerializedName("locale") val locale: String? = null,
     @SerializedName("created_at", alternate = ["createdAt"]) val createdAt: String? = null,
     @SerializedName("public_favorites_count") private val _publicFavoritesCount: Int? = 0,
     @SerializedName("likes_count") private val _likesCount: Int? = 0,
     @SerializedName("favorites_count") private val _favoritesCount: Int? = 0,
+    @SerializedName("user_avatar_url_template", alternate = ["userAvatarUrlTemplate"]) val userAvatarUrlTemplate: String? = null,
+    @SerializedName("visual_url_template", alternate = ["visualUrlTemplate"]) val visualUrlTemplate: String? = null,
     @SerializedName("urn") val urn: String? = null
 ) {
     val isArtist: Boolean
-        get() = verified || trackCount > 0 || urn?.startsWith("spotify:artist:") == true
+        get() = isVerifiedUser || trackCount > 0 || urn?.startsWith("spotify:artist:") == true
+
+    val isProUser: Boolean
+        get() = isPro ||
+                badges?.pro == true ||
+                badges?.proUnlimited == true ||
+                badges?.creatorMidTier == true ||
+                creatorSubscription?.product?.id?.contains("pro", ignoreCase = true) == true
+
+    val isVerifiedUser: Boolean
+        get() = verified || badges?.verified == true
+
+    val creatorPlanTitle: String?
+        get() = when {
+            creatorSubscription?.product?.id == "creator-pro-unlimited" -> "Artist Pro"
+            badges?.proUnlimited == true -> "Artist Pro"
+            badges?.creatorMidTier == true -> "Next Plus (Artist Pro)"
+            badges?.pro == true -> "SoundCloud Pro"
+            isPro -> "Artist Pro"
+            else -> null
+        }
+
+    val consumerPlanTitle: String?
+        get() = when {
+            consumerSubscription?.product?.id == "high_tier" || consumerSubscription?.product?.id == "go_plus" -> "SoundCloud Go+"
+            consumerSubscription?.product?.id == "mid_tier" || consumerSubscription?.product?.id == "go" -> "SoundCloud Go"
+            else -> null
+        }
+
+    val subscriptionPlanName: String?
+        get() = creatorPlanTitle ?: consumerPlanTitle ?: plan
+
+    val effectiveDisplayName: String
+        get() = fullName?.takeIf { it.isNotBlank() }
+            ?: listOfNotNull(firstName?.takeIf { it.isNotBlank() }, lastName?.takeIf { it.isNotBlank() }).joinToString(" ").takeIf { it.isNotBlank() }
+            ?: username.orEmpty()
 
     val likesCount: Int
         get() = when {
@@ -710,6 +771,10 @@ data class User(
 
     val profileNavId: String
         get() = when {
+            urn?.startsWith("vk:artist:") == true -> "profile:$urn"
+            urn?.startsWith("vk:user:") == true -> "profile:$urn"
+            urn?.startsWith("vk:") == true -> "profile:$urn"
+            permalinkUrl?.contains("vk.com") == true || permalinkUrl?.contains("vk.ru") == true -> "profile:vk:user:$id"
             urn?.startsWith("spotify:artist:") == true -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(urn)}"
             urn?.contains("spotify") == true -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(urn)}"
             permalinkUrl?.contains("spotify") == true -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(permalinkUrl)}"
@@ -719,6 +784,37 @@ data class User(
             else -> "profile:$id"
         }
 }
+
+@JsonAdapter(UserBadgesAdapter::class)
+data class UserBadges(
+    @SerializedName("pro") val pro: Boolean = false,
+    @SerializedName("creator_mid_tier") val creatorMidTier: Boolean = false,
+    @SerializedName("pro_unlimited") val proUnlimited: Boolean = false,
+    @SerializedName("verified") val verified: Boolean = false
+)
+
+data class SubscriptionWrapper(
+    @SerializedName("product") val product: SubscriptionProduct? = null
+)
+
+data class SubscriptionProduct(
+    @SerializedName("id") val id: String? = null
+)
+
+data class DateOfBirth(
+    @SerializedName("day") val day: Int? = null,
+    @SerializedName("month") val month: Int? = null,
+    @SerializedName("year") val year: Int? = null
+)
+
+data class UserQuota(
+    @SerializedName("unlimited_upload_quota") val unlimitedUploadQuota: Boolean = false,
+    @SerializedName("upload_seconds_left") val uploadSecondsLeft: Long? = null,
+    @SerializedName("upload_seconds_used") val uploadSecondsUsed: Long? = null,
+    @SerializedName("upload_tracks_used") val uploadTracksUsed: Int? = null,
+    @SerializedName("unlimited_upload_duration_quota") val unlimitedUploadDurationQuota: Boolean = false,
+    @SerializedName("unlimited_upload_track_quota") val unlimitedUploadTrackQuota: Boolean = false
+)
 
 data class Visuals(val visuals: List<VisualItem>?)
 data class VisualItem(@SerializedName("visual_url") val visualUrl: String)
@@ -758,3 +854,40 @@ fun String?.getHighResAvatarUrl(): String? {
     if (this == null || this.isDefaultAvatar()) return null
     return this.replace("large", "t500x500")
 }
+
+data class SoundCloudConfigurationResponse(
+    @SerializedName("plan") val consumerPlan: UserConsumerPlanResponse? = null,
+    @SerializedName("creator_plan") val creatorPlan: ApiUserCreatorPlanResponse? = null,
+    @SerializedName("is_monetizable_ad_geo") val isMonetizableAdGeo: Boolean = false
+)
+
+data class UserConsumerPlanResponse(
+    @SerializedName("plan_id") val planId: String? = null,
+    @SerializedName("plan_name") val planName: String? = null,
+    @SerializedName("vendor") val vendor: String? = null,
+    @SerializedName("manageable") val manageable: Boolean = false
+) {
+    val isActivePlan: Boolean
+        get() = planId?.lowercase() in listOf("go", "go_plus", "mid_tier", "high_tier", "dj", "student")
+}
+
+data class ApiUserCreatorPlanResponse(
+    @SerializedName("plan_id") val planId: String? = null,
+    @SerializedName("plan_name") val planName: String? = null,
+    @SerializedName("vendor") val vendor: String? = null
+) {
+    val isActivePlan: Boolean
+        get() = planId?.lowercase() in listOf("pro-unlimited", "pro", "artist", "creator-pro-unlimited", "creator-mid-tier")
+}
+
+data class MeEmail(
+    @SerializedName("address") val address: String,
+    @SerializedName("primary") val isPrimary: Boolean = false,
+    @SerializedName("confirmed") val isConfirmed: Boolean = true
+)
+
+data class AddEmailRequest(
+    @SerializedName("email") val email: String
+)
+
+
