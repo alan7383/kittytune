@@ -40,6 +40,15 @@ interface SoundCloudApi {
     @GET("me")
     suspend fun getMe(): User
 
+    @GET("https://api-mobile.soundcloud.com/me/emails")
+    suspend fun getMeEmails(): List<com.alananasss.kittytune.domain.MeEmail>
+
+    @POST("https://api-mobile.soundcloud.com/me/emails/confirmation")
+    suspend fun resendEmailConfirmation(): retrofit2.Response<Unit>
+
+    @GET("https://api-mobile.soundcloud.com/configuration/android")
+    suspend fun getAndroidConfiguration(): com.alananasss.kittytune.domain.SoundCloudConfigurationResponse
+
     @GET("https://api-mobile.soundcloud.com/me")
     suspend fun getMeMobile(): MeResponse
 
