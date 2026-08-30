@@ -80,6 +80,11 @@
                     <category android:name="android.intent.category.BROWSABLE" />
                     <data android:scheme="https" android:host="soundcloud.com" android:pathPrefix="/auth_mobile_callback" />
                 </intent-filter>
+                <intent-filter>
+                    <action android:name="android.intent.action.MUSIC_PLAYER" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                </intent-filter>
             </activity>
             <!-- App icon switcher: exactly one launcher alias is enabled at a time.
             MainActivity stays enabled so SoundCloud OAuth callbacks always work. -->
