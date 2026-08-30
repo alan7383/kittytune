@@ -23,21 +23,35 @@ import kotlin.coroutines.resume
  * is mostly black seeds a grey theme from a cover nobody would call grey. So vibrant first, then its muted
  * cousins, and dominant only as a last resort.
  */
+internal data class ArtworkColors(
+    val seedColor: Int?,
+    val meshColors: List<Int> = emptyList()
+)
+
 internal object CoverSeed {
 
     /**
-     * @return the seed as an ARGB int, or null when there is nothing worth seeding from — no cover, a
-     *   placeholder, or an image with no colour in it at all. Null means "keep the user's own key colour",
-     *   which is a better answer than a grey approximation of a black sleeve.
+     * @return the seed as an ARGB int, or null when there is nothing worth seeding from.
      */
     suspend fun extract(context: Context, url: String?): Int? {
-        if (url.isNullOrBlank()) return null
-        // `fullResArtwork` invents a random picsum photo for tracks with no cover, and seeding the whole app
-        // from a stranger's landscape is worse than falling back to the chosen colour.
-        if (url.contains("picsum.photos")) return null
+        return extractColors(context, url).seedColor
+    }
 
-        val bitmap = withContext(Dispatchers.IO) { loadBitmap(context, url) } ?: return null
-        return withContext(Dispatchers.Default) { seedFrom(bitmap) }
+    /**
+     * Extracts both the primary dynamic theme seed color and the multi-shade mesh palette for the lyrics background.
+     */
+    suspend fun extractColors(context: Context, url: String?): ArtworkColors {
+        if (url.isNullOrBlank()) return ArtworkColors(null, emptyList())
+        if (url.contains("picsum.photos")) return ArtworkColors(null, emptyList())
+
+        val bitmap = withContext(Dispatchers.IO) { loadBitmap(context, url) }
+            ?: return ArtworkColors(null, emptyList())
+
+        return withContext(Dispatchers.Default) {
+            val seed = seedFrom(bitmap)
+            val mesh = ArtworkPalette.meshPalette(bitmap)
+            ArtworkColors(seedColor = seed, meshColors = mesh)
+        }
     }
 
     private suspend fun loadBitmap(context: Context, url: String): Bitmap? = runCatching {
@@ -45,8 +59,7 @@ internal object CoverSeed {
             .data(url)
             // Palette reads pixels back, which a hardware bitmap will not allow.
             .allowHardware(false)
-            // Small on purpose: the seed is one colour, and decoding a 1000 px sleeve to find it is work
-            // done on every track change for no gain.
+            // Small on purpose: few enough pixels to be fast, enough for stable color histogram & palette
             .size(SAMPLE_PX)
             .build()
         (context.imageLoader.execute(request).drawable as? BitmapDrawable)?.bitmap
