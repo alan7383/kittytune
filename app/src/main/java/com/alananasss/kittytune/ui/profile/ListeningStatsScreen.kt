@@ -55,9 +55,6 @@ fun ListeningStatsScreen(
     var showSettingsDialog by remember { mutableStateOf(false) }
     var isTrackingEnabled by remember { mutableStateOf(prefs.getListeningStatsEnabled()) }
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshStats()
-    }
 
     if (showSettingsDialog) {
         AlertDialog(
@@ -200,7 +197,12 @@ fun ListeningStatsScreen(
                 )
             }
 
-            if (isLoading && selectedPeriod != StatsPeriod.ALL_TIME) {
+            // "All time" used to be a different screen rather than a longer one: it showed the month-by-month
+            // timeline and *nothing else* — no total, no play count, no top lists, no habits. So the period
+            // with the most to say showed the least, and a week of listening looked bigger than the whole
+            // history. It now shows everything the other periods show, with the timeline added underneath
+            // rather than in place of it (issue #33).
+            if (isLoading) {
                 item {
                     Box(
                         modifier = Modifier
@@ -211,36 +213,10 @@ fun ListeningStatsScreen(
                         ContainedLoadingIndicator()
                     }
                 }
-            } else if (stats.totalEvents == 0 && selectedPeriod != StatsPeriod.ALL_TIME) {
+            } else if (stats.totalEvents == 0) {
                 // Empty state
                 item {
                     EmptyStatsCard()
-                }
-            } else if (selectedPeriod == StatsPeriod.ALL_TIME) {
-                item {
-                    SectionTitle(stringResource(R.string.listening_stats_period_all))
-                }
-
-                items(viewModel.timelineChunks.value) { chunk ->
-                    TimelineChunkCard(
-                        chunk = chunk,
-                        onTrackClick = onTrackClick,
-                        onArtistClick = onArtistClick
-                    )
-                }
-
-                if (viewModel.isTimelineLoading) {
-                    item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            ContainedLoadingIndicator()
-                        }
-                    }
-                } else if (viewModel.timelineHasMore) {
-                    item {
-                        LaunchedEffect(Unit) {
-                            viewModel.loadNextTimelineChunk()
-                        }
-                    }
                 }
             } else {
 
@@ -302,6 +278,39 @@ fun ListeningStatsScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             SectionTitle(stringResource(R.string.listening_stats_insights))
                             InsightsSection(stats)
+                        }
+                    }
+                }
+
+                // The timeline, only where it means something: a month-by-month breakdown of "this week" is
+                // one row. Appended, so the totals above are what the tab opens on.
+                if (selectedPeriod == StatsPeriod.ALL_TIME) {
+                    item {
+                        SectionTitle(stringResource(R.string.listening_stats_timeline))
+                    }
+
+                    items(viewModel.timelineChunks) { chunk ->
+                        TimelineChunkCard(
+                            chunk = chunk,
+                            onTrackClick = onTrackClick,
+                            onArtistClick = onArtistClick
+                        )
+                    }
+
+                    if (viewModel.isTimelineLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ContainedLoadingIndicator()
+                            }
+                        }
+                    } else if (viewModel.timelineHasMore) {
+                        item {
+                            LaunchedEffect(Unit) {
+                                viewModel.loadNextTimelineChunk()
+                            }
                         }
                     }
                 }
