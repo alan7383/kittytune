@@ -125,6 +125,9 @@ object DownloadManager {
     private val _libraryUpdated = MutableSharedFlow<Unit>(replay = 1)
     val libraryUpdated = _libraryUpdated.asSharedFlow()
 
+    private val _trackRemovedFromPlaylist = MutableSharedFlow<Pair<Long, Long>>(extraBufferCapacity = 64)
+    val trackRemovedFromPlaylist = _trackRemovedFromPlaylist.asSharedFlow()
+
     private val _deletedPlaylistIds = MutableStateFlow<Set<Long>>(emptySet())
     val deletedPlaylistIds = _deletedPlaylistIds.asStateFlow()
 
@@ -177,6 +180,31 @@ object DownloadManager {
                 val allPlaylists = dao.getAllPlaylists().first()
                 val currentLiked = LikeRepository.likedPlaylists.value
                 allPlaylists.forEach { localPlaylist ->
+                    if (localPlaylist.id > 0) {
+                        val isBroken = localPlaylist.title == context.getString(R.string.untitled_track) || localPlaylist.title == "Untitled Track" || localPlaylist.artworkUrl.isBlank()
+                        try {
+                            val online = api.getPlaylist(localPlaylist.id)
+                            val realCount = online.trackCount ?: online.tracks?.size ?: localPlaylist.trackCount
+                            val realTitle = online.title.takeIf { !it.isNullOrBlank() } ?: localPlaylist.title
+                            val realArt = online.fullResArtwork.takeIf { it.isNotBlank() } ?: localPlaylist.artworkUrl
+                            val realArtist = online.user?.username ?: localPlaylist.artist
+                            if (isBroken || localPlaylist.trackCount != realCount || localPlaylist.title != realTitle || localPlaylist.artworkUrl != realArt) {
+                                dao.updatePlaylist(
+                                    localPlaylist.copy(
+                                        title = realTitle,
+                                        artworkUrl = realArt,
+                                        artist = realArtist,
+                                        trackCount = realCount,
+                                        permalinkUrl = online.permalinkUrl ?: localPlaylist.permalinkUrl,
+                                        isAlbum = online.isRealAlbum
+                                    )
+                                )
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DownloadManager", "Failed to sync playlist metadata for ${localPlaylist.id}", e)
+                        }
+                    }
+
                     val isSpotify = localPlaylist.permalinkUrl?.contains("spotify") == true
                     val isLiked = currentLiked.contains(localPlaylist.id)
                     if (!localPlaylist.isUserCreated && localPlaylist.id > 0 && !isSpotify && !isLiked) {
@@ -389,7 +417,11 @@ object DownloadManager {
                     artworkUrl = track.fullResArtwork,
                     duration = track.durationMs ?: 0L,
                     localAudioPath = "",
-                    localArtworkPath = ""
+                    localArtworkPath = "",
+                    source = track.source ?: "soundcloud",
+                    permalinkUrl = track.permalinkUrl,
+                    ownerId = track.user?.id ?: 0L,
+                    secretToken = track.secretToken
                 )
                 dao.insertTrack(localTrack)
             }
@@ -418,16 +450,33 @@ object DownloadManager {
                     )
                     val request = playlistUpdateRequest(onlinePlaylist, trackIds)
                     updateRemotePlaylist(playlistId, request)
+
+                    val currentDbPlaylist = dao.getPlaylist(playlistId)
+                    if (currentDbPlaylist != null) {
+                        dao.updatePlaylist(
+                            currentDbPlaylist.copy(
+                                title = onlinePlaylist.title.takeIf { !it.isNullOrBlank() } ?: currentDbPlaylist.title,
+                                artworkUrl = onlinePlaylist.fullResArtwork.takeIf { it.isNotBlank() } ?: currentDbPlaylist.artworkUrl,
+                                artist = onlinePlaylist.user?.username ?: currentDbPlaylist.artist,
+                                trackCount = maxOf(updatedCount, onlinePlaylist.trackCount ?: onlinePlaylist.tracks?.size ?: 0),
+                                permalinkUrl = onlinePlaylist.permalinkUrl ?: currentDbPlaylist.permalinkUrl,
+                                isAlbum = onlinePlaylist.isRealAlbum
+                            )
+                        )
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
             _storageTrigger.update { it + 1 }
             _libraryUpdated.tryEmit(Unit)
+            _storageTrigger.update { it + 1 }
+            _libraryUpdated.tryEmit(Unit)
         }
     }
 
     fun removeTrackFromPlaylist(playlistId: Long, trackId: Long, syncToCloud: Boolean = true) {
+        _trackRemovedFromPlaylist.tryEmit(playlistId to trackId)
         scope.launch {
             val dao = database.downloadDao()
             dao.removeTrackFromPlaylist(playlistId, trackId)
@@ -627,7 +676,11 @@ object DownloadManager {
                         artworkUrl = track.fullResArtwork,
                         duration = track.durationMs ?: 0L,
                         localAudioPath = "",
-                        localArtworkPath = ""
+                        localArtworkPath = "",
+                        source = track.source ?: "soundcloud",
+                        permalinkUrl = track.permalinkUrl,
+                        ownerId = track.user?.id ?: 0L,
+                        secretToken = track.secretToken
                     )
                     dao.insertTrack(localTrack)
                 }
@@ -1270,7 +1323,11 @@ object DownloadManager {
                         duration = track.durationMs ?: 0L,
                         localAudioPath = exoPath,
                         localArtworkPath = finalLocalArtworkPath,
-                        downloadedAt = creationTimestamp
+                        downloadedAt = creationTimestamp,
+                        source = track.source ?: "soundcloud",
+                        permalinkUrl = track.permalinkUrl,
+                        ownerId = track.user?.id ?: 0L,
+                        secretToken = track.secretToken
                     )
 
                     val dao = database.downloadDao()
@@ -1360,7 +1417,11 @@ object DownloadManager {
                     duration = track.durationMs ?: 0L,
                     localAudioPath = audioPath,
                     localArtworkPath = finalLocalArtworkPath,
-                    downloadedAt = creationTimestamp
+                    downloadedAt = creationTimestamp,
+                    source = track.source ?: "soundcloud",
+                    permalinkUrl = track.permalinkUrl,
+                    ownerId = track.user?.id ?: 0L,
+                    secretToken = track.secretToken
                 )
 
                 val dao = database.downloadDao()
@@ -1479,6 +1540,7 @@ object DownloadManager {
     }
 
     fun deleteTrack(trackId: Long) {
+        _trackRemovedFromPlaylist.tryEmit(-2L to trackId)
         scope.launch {
             if (trackId == 0L) return@launch
             val dao = database.downloadDao()
@@ -1532,7 +1594,11 @@ object DownloadManager {
                         artworkUrl = track.fullResArtwork,
                         duration = track.durationMs ?: 0L,
                         localAudioPath = "",
-                        localArtworkPath = ""
+                        localArtworkPath = "",
+                        source = track.source ?: "soundcloud",
+                        permalinkUrl = track.permalinkUrl,
+                        ownerId = track.user?.id ?: 0L,
+                        secretToken = track.secretToken
                     )
                     dao.insertTrack(localTrack)
                 }
@@ -1564,6 +1630,20 @@ object DownloadManager {
                     )
                     val request = playlistUpdateRequest(onlinePlaylist, trackIds)
                     updateRemotePlaylist(playlistId, request)
+
+                    val currentDbPlaylist = dao.getPlaylist(playlistId)
+                    if (currentDbPlaylist != null) {
+                        dao.updatePlaylist(
+                            currentDbPlaylist.copy(
+                                title = onlinePlaylist.title.takeIf { !it.isNullOrBlank() } ?: currentDbPlaylist.title,
+                                artworkUrl = onlinePlaylist.fullResArtwork.takeIf { it.isNotBlank() } ?: currentDbPlaylist.artworkUrl,
+                                artist = onlinePlaylist.user?.username ?: currentDbPlaylist.artist,
+                                trackCount = maxOf(finalTrackCount, onlinePlaylist.trackCount ?: onlinePlaylist.tracks?.size ?: 0),
+                                permalinkUrl = onlinePlaylist.permalinkUrl ?: currentDbPlaylist.permalinkUrl,
+                                isAlbum = onlinePlaylist.isRealAlbum
+                            )
+                        )
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

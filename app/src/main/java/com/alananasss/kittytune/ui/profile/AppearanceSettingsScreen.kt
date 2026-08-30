@@ -61,6 +61,7 @@ import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.PlayerProgressMode
 import com.alananasss.kittytune.data.local.StartDestination
+import com.alananasss.kittytune.data.local.TrackRemovalMethod
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
@@ -92,12 +93,14 @@ fun AppearanceSettingsScreen(
     var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
     var appIcon by remember { mutableStateOf(prefs.getAppIconId()) }
     var playerProgressMode by remember { mutableStateOf(prefs.getPlayerProgressMode()) }
+    var trackRemovalMethod by remember { mutableStateOf(prefs.getTrackRemovalMethod()) }
 
     var showPlayerStyleDialog by remember { mutableStateOf(false) }
     var showStartDestDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showPlayerCustomizationBottomSheet by remember { mutableStateOf(false) }
+    var showTrackRemovalDialog by remember { mutableStateOf(false) }
 
     val isPureBlackVisible = themeMode == AppThemeMode.DARK || (themeMode == AppThemeMode.SYSTEM && isSystemDark)
 
@@ -206,6 +209,43 @@ fun AppearanceSettingsScreen(
                 TextButton(onClick = {
                     showLanguageDialog = false
                 }) { Text(stringResource(R.string.btn_cancel)) }
+            }
+        )
+    }
+
+    if (showTrackRemovalDialog) {
+        AlertDialog(
+            onDismissRequest = { showTrackRemovalDialog = false },
+            title = { Text(stringResource(R.string.pref_track_removal_title)) },
+            text = {
+                Column {
+                    TrackRemovalRadioButton(
+                        stringResource(R.string.track_removal_swipe_and_menu),
+                        TrackRemovalMethod.SWIPE_AND_MENU,
+                        trackRemovalMethod
+                    ) {
+                        trackRemovalMethod = it
+                        prefs.setTrackRemovalMethod(it)
+                        showTrackRemovalDialog = false
+                    }
+                    TrackRemovalRadioButton(
+                        stringResource(R.string.track_removal_menu_only),
+                        TrackRemovalMethod.MENU_ONLY,
+                        trackRemovalMethod
+                    ) {
+                        trackRemovalMethod = it
+                        prefs.setTrackRemovalMethod(it)
+                        showTrackRemovalDialog = false
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showTrackRemovalDialog = false
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
     }
@@ -506,6 +546,17 @@ fun AppearanceSettingsScreen(
                                     prefs.setAchievementPopupsEnabled(it)
                                 }
                             )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_track_removal_title),
+                                subtitle = when (trackRemovalMethod) {
+                                    TrackRemovalMethod.SWIPE_AND_MENU -> stringResource(R.string.track_removal_swipe_and_menu)
+                                    TrackRemovalMethod.MENU_ONLY -> stringResource(R.string.track_removal_menu_only)
+                                },
+                                onClick = { showTrackRemovalDialog = true }
+                            )
                         }
                     )
                 )
@@ -697,6 +748,23 @@ fun LanguageRadioButton(text: String, lang: AppLanguage, selected: AppLanguage, 
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected = (lang == selected), onClick = null)
+        Spacer(Modifier.width(8.dp))
+        Text(text)
+    }
+}
+
+@Composable
+fun TrackRemovalRadioButton(
+    text: String,
+    method: TrackRemovalMethod,
+    selected: TrackRemovalMethod,
+    onSelect: (TrackRemovalMethod) -> Unit
+) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onSelect(method) }.padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = (method == selected), onClick = null)
         Spacer(Modifier.width(8.dp))
         Text(text)
     }

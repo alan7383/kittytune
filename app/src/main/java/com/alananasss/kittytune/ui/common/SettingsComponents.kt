@@ -124,15 +124,15 @@ fun SettingsItem(
                 Surface(
                     modifier = Modifier.size(42.dp),
                     shape = iconShape,
-                    color = iconContainerColor ?: (if (iconRes != null) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer)
+                    color = iconContainerColor ?: MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         if (iconRes != null) {
                             Icon(
                                 painter = androidx.compose.ui.res.painterResource(iconRes),
                                 contentDescription = null,
-                                modifier = Modifier.size(if (iconContainerColor != null) 24.dp else 36.dp),
-                                tint = iconTint ?: Color.Unspecified
+                                modifier = Modifier.size(24.dp),
+                                tint = iconTint ?: MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         } else if (icon != null) {
                             Icon(

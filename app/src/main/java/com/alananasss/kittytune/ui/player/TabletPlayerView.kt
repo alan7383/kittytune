@@ -1321,7 +1321,7 @@ fun TabletFullScreenPlayerView(
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.clickable {
-                                track.user?.id?.let { if (it > 0) viewModel.navigateToArtist(it) }
+                                viewModel.navigateToTrackArtist(track)
                             }
                         ) {
                             Text(

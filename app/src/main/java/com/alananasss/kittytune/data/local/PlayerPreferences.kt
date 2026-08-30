@@ -47,6 +47,11 @@ enum class AppLanguage(val code: String) {
     RUSSIAN("ru")
 }
 
+enum class TrackRemovalMethod {
+    SWIPE_AND_MENU,
+    MENU_ONLY
+}
+
 class PlayerPreferences(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
     private val gson = com.alananasss.kittytune.utils.AppUtils.gson
@@ -145,6 +150,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_STOP_ON_TASK_CLEAR = "stop_on_task_clear"
         private const val KEY_NEW_PLAYER_DESIGN = "new_player_design_enabled"
         private const val KEY_WAVEFORM_COMMENTS = "waveform_comments_enabled"
+        private const val KEY_TRACK_REMOVAL_METHOD = "track_removal_method"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -816,5 +822,18 @@ class PlayerPreferences(context: Context) {
             if (id != null) putString(KEY_SELECTED_PROXY_PROFILE_ID, id)
             else remove(KEY_SELECTED_PROXY_PROFILE_ID)
         }
+    }
+
+    fun getTrackRemovalMethod(): TrackRemovalMethod {
+        val raw = prefs.getString(KEY_TRACK_REMOVAL_METHOD, TrackRemovalMethod.SWIPE_AND_MENU.name)
+        return try {
+            TrackRemovalMethod.valueOf(raw ?: TrackRemovalMethod.SWIPE_AND_MENU.name)
+        } catch (_: Exception) {
+            TrackRemovalMethod.SWIPE_AND_MENU
+        }
+    }
+
+    fun setTrackRemovalMethod(method: TrackRemovalMethod) {
+        prefs.edit { putString(KEY_TRACK_REMOVAL_METHOD, method.name) }
     }
 }

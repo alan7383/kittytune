@@ -87,6 +87,7 @@ import com.alananasss.kittytune.ui.common.ShimmerBox
 import com.alananasss.kittytune.ui.common.ShimmerLine
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.profile.ArtistAvatar
+import com.alananasss.kittytune.data.local.toTrack
 
 private data class PlaylistActionItem(
     val icon: ImageVector,
@@ -233,15 +234,7 @@ fun LibraryScreen(
             } else {
                 val local = AppDatabase.getDatabase(context).downloadDao().getTracksForPlaylistSync(playlist.id)
                 if (local.isNotEmpty()) {
-                    local.map {
-                        Track(
-                            id = it.id,
-                            title = it.title,
-                            user = User(0, it.artist, null),
-                            artworkUrl = it.artworkUrl,
-                            durationMs = it.duration
-                        )
-                    }
+                    local.map { it.toTrack(artworkOverride = it.artworkUrl) }
                 } else if (playlist.id > 0) {
                     try {
                         val online = RetrofitClient.create(context).getPlaylist(playlist.id)
@@ -1453,7 +1446,7 @@ fun LibraryScreen(
                                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
-                                    SplitButton(
+                                    SplitButtonLayout(
                                         leadingButton = {
                                             SplitButtonDefaults.LeadingButton(
                                                 onClick = {
@@ -1591,14 +1584,18 @@ fun LibraryScreen(
                             SearchBarHeader(
                                 query = libraryViewModel.searchQuery,
                                 onQueryChange = { libraryViewModel.searchQuery = it },
-                                avatarUrl = libraryViewModel.userProfile?.avatarUrl,
+                                avatarUrl = if (libraryViewModel.activeLibrarySource == LibrarySource.VK) libraryViewModel.vkTokenManager.getUser()?.photoMax else libraryViewModel.userProfile?.avatarUrl,
                                 onProfileClick = onProfileClick,
                                 isGuest = isGuest,
+                                activeSource = libraryViewModel.activeLibrarySource,
+                                onSourceSelect = { libraryViewModel.onLibrarySourceChanged(it) },
                                 isUploads = libraryViewModel.selectedFilter == LibraryFilter.UPLOADS,
                                 onUploadsFilterClick = { showUploadsFilterSheet = true }
                             )
 
-                            FilterChipsRow(libraryViewModel)
+                            if (libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) {
+                                FilterChipsRow(libraryViewModel)
+                            }
                         }
                     }
                 }
@@ -1747,7 +1744,61 @@ fun LibraryScreen(
                             onUploadsFilterClick = { showUploadsFilterSheet = true }
                         )
 
-                        if (libraryViewModel.isLoading && libraryViewModel.displayedItems.isEmpty() && folderId == null) {
+                        if (libraryViewModel.activeLibrarySource == LibrarySource.VK && !libraryViewModel.vkTokenManager.isLoggedIn()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(28.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                            modifier = Modifier.size(64.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    painter = androidx.compose.ui.res.painterResource(R.drawable.ic_vk),
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(Modifier.height(16.dp))
+                                        Text(
+                                            text = stringResource(R.string.lib_vk_not_connected),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+                                        Text(
+                                            text = stringResource(R.string.lib_vk_connect_desc),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(Modifier.height(20.dp))
+                                        Button(
+                                            onClick = { onProfileClick() },
+                                            shapes = ButtonDefaults.shapes()
+                                        ) {
+                                            Text(stringResource(R.string.lib_vk_connect_action))
+                                        }
+                                    }
+                                }
+                            }
+                        } else if (((libraryViewModel.isLoading && libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) || (libraryViewModel.isVkLoading && libraryViewModel.activeLibrarySource == LibrarySource.VK)) && libraryViewModel.displayedItems.isEmpty() && folderId == null) {
                             LibraryShimmerGrid(isGridLayout = libraryViewModel.isGridLayout)
                         } else if (folderId != null && libraryViewModel.displayedItems.isEmpty()) {
                             EmptyFolderView()
@@ -2088,12 +2139,82 @@ fun LibraryShimmerGrid(isGridLayout: Boolean) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
+fun LibrarySourceSelector(
+    selectedSource: LibrarySource,
+    onSelect: (LibrarySource) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isSourceMenuExpanded by remember { mutableStateOf(false) }
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
+    Box(modifier = modifier) {
+        IconButton(
+            onClick = {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                isSourceMenuExpanded = true
+            },
+            shapes = IconButtonDefaults.shapes(),
+            modifier = Modifier.size(36.dp)
+        ) {
+            val iconRes = when (selectedSource) {
+                LibrarySource.SOUNDCLOUD -> R.drawable.ic_soundcloud
+                LibrarySource.VK -> R.drawable.ic_vk
+            }
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(iconRes),
+                contentDescription = "Change Library Source",
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        DropdownMenu(
+            expanded = isSourceMenuExpanded,
+            onDismissRequest = { isSourceMenuExpanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.lib_source_soundcloud)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_soundcloud),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    onSelect(LibrarySource.SOUNDCLOUD)
+                    isSourceMenuExpanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.lib_source_vk)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_vk),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    onSelect(LibrarySource.VK)
+                    isSourceMenuExpanded = false
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@Composable
 fun SearchBarHeader(
     query: String,
     onQueryChange: (String) -> Unit,
     avatarUrl: String?,
     onProfileClick: () -> Unit,
     isGuest: Boolean,
+    activeSource: LibrarySource = LibrarySource.SOUNDCLOUD,
+    onSourceSelect: (LibrarySource) -> Unit = {},
     isUploads: Boolean = false,
     onUploadsFilterClick: () -> Unit = {}
 ) {
@@ -2114,6 +2235,11 @@ fun SearchBarHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(end = 6.dp)
             ) {
+                LibrarySourceSelector(
+                    selectedSource = activeSource,
+                    onSelect = onSourceSelect
+                )
+                Spacer(Modifier.width(2.dp))
                 if (isUploads) {
                     IconButton(
                         onClick = onUploadsFilterClick,
@@ -2140,7 +2266,7 @@ fun SearchBarHeader(
                         .clickable { onProfileClick() }
                 ) {
                     ArtistAvatar(
-                        avatarUrl = if (isGuest) null else avatarUrl,
+                        avatarUrl = if (isGuest && activeSource == LibrarySource.SOUNDCLOUD) null else avatarUrl,
                         modifier = Modifier.size(32.dp).clip(CircleShape),
                         enableViewer = false
                     )

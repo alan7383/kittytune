@@ -4,6 +4,17 @@
     
         <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Reading the pairing QR the desktop shows. Nothing else uses the camera. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!--
+      Reaching the desktop over the local network. Android 16 introduced Local Network
+      Protection: without this, a connection to a 192.168.x.x address is dropped silently and
+      shows up only as a TCP timeout, which is indistinguishable from the desktop being off
+      (issue #33). Ignored by releases older than SDK 36, so no version gate is needed here —
+      only the runtime request is gated.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
         <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
         <uses-permission android:name="android.permission.WAKE_LOCK" />
         <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

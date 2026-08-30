@@ -3,22 +3,22 @@ package com.alananasss.kittytune.ui.profile
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,9 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import java.text.NumberFormat
 import java.util.Locale
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 enum class UserFilterType {
     ALL,
@@ -54,26 +54,23 @@ fun UserListScreen(
     val listState = rememberLazyListState()
     var selectedFilter by remember { mutableStateOf(UserFilterType.ALL) }
 
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
-            .collect { lastIndex ->
-                if (lastIndex != null && lastIndex >= viewModel.users.size - 5) {
-                    viewModel.loadMore()
-                }
-            }
-    }
-
     val title =
         if (type == "followers") stringResource(R.string.profile_followers) else stringResource(R.string.profile_followings)
 
-    val artistsCount = remember(viewModel.users) { viewModel.users.count { it.isArtist } }
-    val profilesCount = remember(viewModel.users) { viewModel.users.count { !it.isArtist } }
+    val artistsCount = remember(viewModel.users.size) { viewModel.users.count { it.isArtist } }
+    val profilesCount = remember(viewModel.users.size) { viewModel.users.count { !it.isArtist } }
 
-    val filteredUsers = remember(viewModel.users, selectedFilter) {
+    val filteredUsers = remember(viewModel.users.size, selectedFilter) {
         when (selectedFilter) {
             UserFilterType.ALL -> viewModel.users
             UserFilterType.ARTISTS -> viewModel.users.filter { it.isArtist }
             UserFilterType.PROFILES -> viewModel.users.filter { !it.isArtist }
+        }
+    }
+
+    LaunchedEffect(filteredUsers.size, selectedFilter, viewModel.hasMore) {
+        if (filteredUsers.size < 15 && viewModel.hasMore && !viewModel.isLoadingMore && !viewModel.isLoading) {
+            viewModel.loadMore()
         }
     }
 
@@ -113,66 +110,77 @@ fun UserListScreen(
         } else {
             LazyColumn(
                 state = listState,
-                contentPadding = PaddingValues(bottom = 120.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 180.dp),
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize()
             ) {
                 if (viewModel.users.isNotEmpty()) {
                     item {
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ExpressiveConnectedButtonGroup(
+                            options = listOf(UserFilterType.ALL, UserFilterType.ARTISTS, UserFilterType.PROFILES),
+                            selectedOption = selectedFilter,
+                            onOptionSelected = { selectedFilter = it },
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                            labelProvider = { filter ->
+                                Text(
+                                    text = when (filter) {
+                                        UserFilterType.ALL -> "${stringResource(R.string.filter_all)} (${viewModel.users.size})"
+                                        UserFilterType.ARTISTS -> "${stringResource(R.string.filter_artists)} ($artistsCount)"
+                                        UserFilterType.PROFILES -> "${stringResource(R.string.filter_profiles)} ($profilesCount)"
+                                    },
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            },
+                            iconProvider = { filter ->
+                                when (filter) {
+                                    UserFilterType.ALL -> Icon(
+                                        Icons.Rounded.People,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    UserFilterType.ARTISTS -> Icon(
+                                        Icons.Rounded.MusicNote,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    UserFilterType.PROFILES -> Icon(
+                                        Icons.Rounded.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+
+                if (filteredUsers.isEmpty() && viewModel.users.isNotEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 48.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            item {
-                                FilterChip(
-                                    selected = selectedFilter == UserFilterType.ALL,
-                                    onClick = { selectedFilter = UserFilterType.ALL },
-                                    label = {
-                                        Text("${stringResource(R.string.filter_all)} (${viewModel.users.size})")
-                                    },
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                            }
-                            item {
-                                FilterChip(
-                                    selected = selectedFilter == UserFilterType.ARTISTS,
-                                    onClick = { selectedFilter = UserFilterType.ARTISTS },
-                                    label = {
-                                        Text("${stringResource(R.string.filter_artists)} ($artistsCount)")
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Rounded.MusicNote,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                            }
-                            item {
-                                FilterChip(
-                                    selected = selectedFilter == UserFilterType.PROFILES,
-                                    onClick = { selectedFilter = UserFilterType.PROFILES },
-                                    label = {
-                                        Text("${stringResource(R.string.filter_profiles)} ($profilesCount)")
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Rounded.Person,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                            }
+                            Text(
+                                text = stringResource(R.string.no_results),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
 
-                items(filteredUsers, key = { "user_${it.id}_${it.urn}" }) { user ->
+                itemsIndexed(filteredUsers, key = { _, user -> "user_${user.id}_${user.urn}" }) { index, user ->
+                    if (index >= filteredUsers.size - 4) {
+                        LaunchedEffect(Unit) {
+                            viewModel.loadMore()
+                        }
+                    }
                     UserRow(user = user, onClick = { onUserClick(user.numericId) })
                 }
 
@@ -194,13 +202,13 @@ fun UserRow(user: User, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.size(54.dp)
+            modifier = Modifier.size(52.dp)
         ) {
             ArtistAvatar(
                 avatarUrl = user.avatarUrl,
@@ -213,79 +221,74 @@ fun UserRow(user: User, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.weight(1f, fill = false),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = user.username ?: stringResource(R.string.unknown_artist),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                Text(
+                    text = user.effectiveDisplayName.ifBlank { user.username ?: stringResource(R.string.unknown_artist) },
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+
+                if (user.isVerifiedUser) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        Icons.Rounded.Verified,
+                        contentDescription = stringResource(R.string.user_type_verified_artist),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
                     )
-                    if (user.verified) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            Icons.Rounded.Verified,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
                 }
 
-                Spacer(Modifier.width(8.dp))
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (user.isArtist) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainerHigh
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                if (user.isProUser && !user.isVerifiedUser) {
+                    Spacer(Modifier.width(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
                     ) {
-                        Icon(
-                            imageVector = if (user.isArtist) Icons.Rounded.MusicNote else Icons.Rounded.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(12.dp),
-                            tint = if (user.isArtist) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.width(4.dp))
                         Text(
-                            text = stringResource(
-                                if (user.verified) R.string.user_type_verified_artist
-                                else if (user.isArtist) R.string.user_type_artist
-                                else R.string.user_type_profile
-                            ),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                            color = if (user.isArtist) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            text = "PRO",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
 
-            val formattedFollowers = NumberFormat.getNumberInstance(Locale.US).format(user.followersCount)
-            val statsDetails = buildString {
-                append("$formattedFollowers ${stringResource(R.string.profile_followers)}")
-                if (user.isArtist && user.trackCount > 0) {
-                    append(" • ${user.trackCount} ${stringResource(R.string.profile_tracks)}")
-                } else if (!user.isArtist && user.playlistCount > 0) {
-                    append(" • ${user.playlistCount} ${stringResource(R.string.lib_playlists)}")
-                }
-                val location = listOfNotNull(user.city, user.countryCode ?: user.country).joinToString(", ")
-                if (location.isNotBlank()) {
-                    append(" • $location")
-                }
+            val formattedFollowers = NumberFormat.getNumberInstance(Locale.getDefault()).format(user.followersCount)
+            val followersLabel = if (user.followersCount <= 1) {
+                stringResource(R.string.profile_followers).removeSuffix("s")
+            } else {
+                stringResource(R.string.profile_followers)
             }
+
+            val tracksLabel = if (user.trackCount <= 1) {
+                stringResource(R.string.profile_tracks).removeSuffix("s")
+            } else {
+                stringResource(R.string.profile_tracks)
+            }
+
+            val playlistsLabel = stringResource(R.string.lib_playlists)
+
+            val city = user.city?.trim()?.takeIf { it.isNotBlank() }
+            val country = (user.countryCode?.trim() ?: user.country?.trim())?.takeIf { it.isNotBlank() }
+            val location = listOfNotNull(city, country).joinToString(", ").takeIf { it.isNotBlank() }
+
+            val statsDetails = buildList {
+                add("$formattedFollowers $followersLabel")
+                if (user.isArtist && user.trackCount > 0) {
+                    add("${user.trackCount} $tracksLabel")
+                } else if (!user.isArtist && user.playlistCount > 0) {
+                    add("${user.playlistCount} $playlistsLabel")
+                }
+                if (location != null) {
+                    add(location)
+                }
+            }.joinToString(" • ")
 
             Text(
                 text = statsDetails,
@@ -297,3 +300,4 @@ fun UserRow(user: User, onClick: () -> Unit) {
         }
     }
 }
+
