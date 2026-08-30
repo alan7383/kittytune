@@ -89,6 +89,7 @@ import java.io.File
 import java.text.NumberFormat
 import java.util.Locale
 import java.util.regex.Pattern
+import androidx.compose.ui.text.style.TextDecoration
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -666,11 +667,24 @@ fun ProfileScreen(
 
                         IconButton(
                             onClick = {
-                                val shareUrl = user.permalinkUrl ?: if (profileViewModel.isSpotifyProfile) {
-                                    "https://open.spotify.com/artist/${user.permalink}"
-                                } else {
-                                    val cleanUsername = user.username?.replace(" ", "")?.lowercase() ?: "user"
-                                    "https://soundcloud.com/$cleanUsername"
+                                val shareUrl = when {
+                                    // VK profiles have no soundcloud.com address; sharing one was
+                                    // handing testers a dead link.
+                                    profileViewModel.isVkProfile ->
+                                        profileViewModel.vkPageUrl
+                                            ?: user.permalinkUrl
+                                            ?: "https://vk.com/id${user.id}"
+
+                                    user.permalinkUrl != null -> user.permalinkUrl
+
+                                    profileViewModel.isSpotifyProfile ->
+                                        "https://open.spotify.com/artist/${user.permalink}"
+
+                                    else -> {
+                                        val cleanUsername =
+                                            user.username?.replace(" ", "")?.lowercase() ?: "user"
+                                        "https://soundcloud.com/$cleanUsername"
+                                    }
                                 }
                                 val sendIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
@@ -1072,7 +1086,48 @@ fun ModernProfileHeader(
             }
 
             Spacer(Modifier.height(8.dp))
-            if (profileViewModel.isSpotifyProfile) {
+            if (profileViewModel.isVkProfile || user.urn?.startsWith("vk:") == true) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                ) {
+                    val tracksCount = if (user.trackCount > 0) user.trackCount else profileViewModel.allTracks.size
+                    if (tracksCount > 0) {
+                        Text(
+                            text = "$tracksCount ${stringResource(R.string.profile_tracks)}",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = " • ",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                    val vkLink = profileViewModel.vkPageUrl ?: user.permalinkUrl
+                    Text(
+                        text = "VKontakte",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            textDecoration = if (vkLink != null) TextDecoration.Underline else null
+                        ),
+                        color = Color(0xFF0077FF),
+                        modifier = if (vkLink != null) {
+                            Modifier.clickable {
+                                // The badge looked tappable but did nothing; it now opens the VK page.
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(vkLink))
+                                    )
+                                }
+                            }
+                        } else {
+                            Modifier
+                        }
+                    )
+                }
+            } else if (profileViewModel.isSpotifyProfile) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                     val count = user.followersCount
                     if (count > 0) {
@@ -1100,10 +1155,12 @@ fun ModernProfileHeader(
                     }
                 }
             } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    verticalArrangement = Arrangement.Center,
+                    itemVerticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = "${
@@ -1280,7 +1337,7 @@ fun ModernProfileHeader(
                     }
                 }
             } else {
-                if (user.trackCount > 0) {
+                if (user.trackCount > 0 || profileViewModel.allTracks.isNotEmpty() || profileViewModel.popularTracks.isNotEmpty()) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Button(
                             onClick = {
@@ -1719,6 +1776,25 @@ fun FullListScreen(
                                 )
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
+                            }
+                        },
+                        actions = {
+                            if (tracks.isNotEmpty()) {
+                                FilledTonalIconButton(
+                                    onClick = {
+                                        playerViewModel.prepareBulkAdd(tracks)
+                                    },
+                                    shapes = IconButtonDefaults.shapes(),
+                                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = stringResource(R.string.menu_add_playlist)
+                                    )
+                                }
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
