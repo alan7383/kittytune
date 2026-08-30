@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"
+agp = "9.3.2"
 kotlin = "2.4.10"
 coreKtx = "1.19.0"
 junit = "4.13.2"
@@ -9,7 +9,7 @@ lifecycleRuntimeKtx = "2.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.08.00"
 lottieCompose = "6.7.1"
-navigationCompose = "2.9.8"
+navigationCompose = "2.10.0"
 coil = "2.7.0"
 media3 = "1.11.0"
 retrofit = "3.0.0"
@@ -19,7 +19,7 @@ ksp = "2.3.6"
 palette = "1.0.0"
 media = "1.8.0"
 mp3agic = "0.9.1"
-glance = "1.1.1"
+glance = "1.2.0"
 markdown = "0.3.1"
 newpipe = "v0.26.2"
 rhino = "1.9.1"
@@ -29,16 +29,18 @@ browser = "1.10.0"
 kotlinxSerialization = "1.11.0"
 coroutinesGuava = "1.11.0"
 reorderable = "3.1.0"
-aboutlibraries = "15.0.4"
+aboutlibraries = "15.1.1"
 ktor = "3.5.2"
 json = "20260814"
-material3 = "1.5.0-alpha26"
+material3 = "1.5.0-alpha27"
 materialKolor = "5.0.0"
 accompanist = "0.37.3"
+camerax = "1.6.2"
 timber = "5.0.1"
 mlkit-language-id = "17.0.6"
 brotli = "0.1.2"
 opencc4j = "1.14.0"
+zxing = "3.5.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -97,6 +99,11 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkit-language-id" }
 brotli = { group = "org.brotli", name = "dec", version.ref = "brotli" }
 opencc4j = { group = "com.github.houbb", name = "opencc4j", version.ref = "opencc4j" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
