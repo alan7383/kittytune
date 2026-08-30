@@ -1,8 +1,9 @@
-    package com.alananasss.kittytune.ui.player.lyrics
+package com.alananasss.kittytune.ui.player.lyrics
 
-    import androidx.compose.animation.*
-    import androidx.compose.animation.core.animateFloatAsState
-    import androidx.compose.animation.core.tween
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -37,11 +38,13 @@
     import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
     import androidx.compose.material3.*
     import androidx.compose.runtime.*
-    import androidx.compose.ui.Alignment
-    import androidx.compose.ui.Modifier
-    import androidx.compose.ui.draw.alpha
-    import androidx.compose.ui.draw.blur
-    import androidx.compose.ui.draw.clip
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Rect
@@ -98,12 +101,22 @@ fun LyricsScreen(
     onClose: () -> Unit
 ) {
     val isSearching = viewModel.isSearchingLyrics
+    val currentTrack = viewModel.currentTrack
 
     val hasSynced = viewModel.lyricsLines.any { it.endTime > 0 }
     val hasPlain = !viewModel.rawPlainLyrics.isNullOrBlank()
 
     var showQuickSettingsDialog by remember { mutableStateOf(false) }
     var showUploadYamlDialog by remember { mutableStateOf(false) }
+
+    BackHandler {
+        when {
+            showQuickSettingsDialog -> showQuickSettingsDialog = false
+            showUploadYamlDialog -> showUploadYamlDialog = false
+            isSearching -> viewModel.isSearchingLyrics = false
+            else -> onClose()
+        }
+    }
 
     if (showQuickSettingsDialog) {
         QuickLyricsSettingsDialog(
@@ -119,42 +132,82 @@ fun LyricsScreen(
         )
     }
 
-    Scaffold(
-        containerColor = Color.Transparent,
-        topBar = {
-            if (!isSearching) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            stringResource(R.string.player_lyrics),
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onClose) {
-                            Icon(Icons.Rounded.Close, stringResource(R.string.btn_close), tint = Color.White)
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { showUploadYamlDialog = true }) {
-                            Icon(Icons.Rounded.Add, stringResource(R.string.custom_lyrics_title), tint = Color.White)
-                        }
-                        IconButton(onClick = { showQuickSettingsDialog = true }) {
-                            Icon(Icons.Rounded.Settings, stringResource(R.string.pref_lyrics_title), tint = Color.White)
-                        }
-                        IconButton(onClick = { viewModel.isSearchingLyrics = true }) {
-                            Icon(Icons.Rounded.Search, stringResource(R.string.lyrics_manual_search), tint = Color.White)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-                )
+    LyricsMeshBackground {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                if (!isSearching) {
+                    CenterAlignedTopAppBar(
+                        title = {
+                            if (currentTrack != null) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                ) {
+                                    AsyncImage(
+                                        model = currentTrack.fullResArtwork,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(
+                                        horizontalAlignment = Alignment.Start,
+                                        modifier = Modifier.widthIn(max = 200.dp)
+                                    ) {
+                                        Text(
+                                            text = currentTrack.title ?: "",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = currentTrack.user?.username ?: "",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.White.copy(alpha = 0.7f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    stringResource(R.string.player_lyrics),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                            }
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = onClose) {
+                                Icon(Icons.Rounded.Close, stringResource(R.string.btn_close), tint = Color.White)
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { showUploadYamlDialog = true }) {
+                                Icon(Icons.Rounded.Add, stringResource(R.string.custom_lyrics_title), tint = Color.White)
+                            }
+                            IconButton(onClick = { showQuickSettingsDialog = true }) {
+                                val tint = if (viewModel.lyricsOffset != 0L) MaterialTheme.colorScheme.primary else Color.White
+                                Icon(Icons.Rounded.Settings, stringResource(R.string.pref_lyrics_title), tint = tint)
+                            }
+                            IconButton(onClick = { viewModel.isSearchingLyrics = true }) {
+                                Icon(Icons.Rounded.Search, stringResource(R.string.lyrics_manual_search), tint = Color.White)
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                    )
+                }
             }
-        }
-    ) { innerPadding ->
-        BoxWithConstraints(modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding)) {
+        ) { innerPadding ->
+            BoxWithConstraints(modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)) {
 
             if (isSearching) {
                 SearchLyricsView(
@@ -203,6 +256,7 @@ fun LyricsScreen(
             }
         }
     }
+}
 }
 
 @Composable
@@ -657,26 +711,32 @@ fun SearchLyricsView(
     val focusManager = LocalFocusManager.current
     var query by remember { mutableStateOf(viewModel.manualSearchQuery) }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f))) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             IconButton(onClick = onCloseSearch) {
                 Icon(Icons.Rounded.Close, stringResource(R.string.btn_close), tint = Color.White)
             }
+            Spacer(Modifier.width(4.dp))
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.weight(1f),
-                placeholder = { Text(stringResource(R.string.lyrics_search_hint), color = Color.White.copy(0.5f)) },
+                placeholder = { Text(stringResource(R.string.lyrics_search_hint), color = Color.White.copy(0.6f)) },
                 singleLine = true,
+                shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
                     unfocusedTextColor = Color.White,
                     cursorColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White.copy(0.5f)
+                    focusedBorderColor = Color.White.copy(alpha = 0.8f),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                    focusedContainerColor = Color.Black.copy(alpha = 0.25f),
+                    unfocusedContainerColor = Color.Black.copy(alpha = 0.25f),
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = {
@@ -684,6 +744,7 @@ fun SearchLyricsView(
                     focusManager.clearFocus()
                 })
             )
+            Spacer(Modifier.width(4.dp))
             IconButton(onClick = {
                 viewModel.searchLyricsManual(query, viewModel.manualSearchProvider)
                 focusManager.clearFocus()
@@ -700,7 +761,8 @@ fun SearchLyricsView(
             options = listOf("MUSIXMATCH", "LRCLIB", "GENIUS"),
             selectedOption = viewModel.manualSearchProvider,
             onOptionSelected = { viewModel.searchLyricsManual(query, it) },
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
             labelProvider = { provider ->
                 Text(
                     text = when (provider) {
@@ -708,7 +770,11 @@ fun SearchLyricsView(
                         "LRCLIB" -> "LrcLib"
                         "GENIUS" -> "Genius"
                         else -> provider
-                    }
+                    },
+                    maxLines = 1,
+                    softWrap = false,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
         )
@@ -718,14 +784,16 @@ fun SearchLyricsView(
         }
 
         LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
             items(items = searchResults, key = { it.id + it.provider }) { result ->
                 Card(
                     onClick = { viewModel.selectUnifiedLyricResult(result) },
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.35f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -740,7 +808,13 @@ fun SearchLyricsView(
                         }
                         Spacer(Modifier.width(8.dp))
                         Column(horizontalAlignment = Alignment.End) {
-                            Text(makeTimeString((result.durationSec * 1000).toLong()), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(0.7f))
+                            if (result.provider != "GENIUS" && result.durationSec > 0) {
+                                Text(
+                                    makeTimeString((result.durationSec * 1000).toLong()),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(0.7f)
+                                )
+                            }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (result.hasLineSync) {
                                     Icon(Icons.Rounded.Timer, null, tint = Color.Yellow, modifier = Modifier.size(14.dp))
@@ -1261,6 +1335,7 @@ private fun LyricsToggleRow(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomLyricsDialog(
     viewModel: PlayerViewModel,
@@ -1283,64 +1358,93 @@ fun CustomLyricsDialog(
         }
     }
 
-    Dialog(
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = true)
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        dragHandle = {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(36.dp)
+                        .height(4.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f))
+                )
+            }
+        }
     ) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 6.dp,
-            modifier = Modifier.fillMaxWidth()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding()
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.custom_lyrics_title), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    }
-                    IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, stringResource(R.string.btn_close)) }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Rounded.Add,
+                        null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.custom_lyrics_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-
-                Spacer(Modifier.height(16.dp))
-
-                Text(
-                    text = stringResource(R.string.custom_lyrics_desc_1),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = stringResource(R.string.custom_lyrics_desc_2),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                val uriHandler = LocalUriHandler.current
-                val docUrl = "https://lrclib.net/lyricsfile"
-                Text(
-                    text = stringResource(R.string.custom_lyrics_doc),
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline),
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { uriHandler.openUri(docUrl) }
-                )
-
-                Spacer(Modifier.height(24.dp))
-
-                Button(
-                    onClick = { launcher.launch("*/*") },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text(stringResource(R.string.btn_import_yaml))
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Rounded.Close, stringResource(R.string.btn_close), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+
+            Text(
+                text = stringResource(R.string.custom_lyrics_desc_1),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.custom_lyrics_desc_2),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            val uriHandler = LocalUriHandler.current
+            val docUrl = "https://lrclib.net/lyricsfile"
+            Text(
+                text = stringResource(R.string.custom_lyrics_doc),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    textDecoration = TextDecoration.Underline
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { uriHandler.openUri(docUrl) }
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = { launcher.launch("*/*") },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(stringResource(R.string.btn_import_yaml))
             }
         }
     }
