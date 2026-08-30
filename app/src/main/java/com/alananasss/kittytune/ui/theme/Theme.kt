@@ -41,6 +41,11 @@ object ThemeState {
      * this side had every piece and no wire between them.
      */
     var coverSeedColor by mutableStateOf<Int?>(null)
+
+    /**
+     * The several ambient shades extracted from the playing cover for the animated lyrics mesh background.
+     */
+    var coverMeshColors by mutableStateOf<List<Int>>(emptyList())
 }
 
 /**
