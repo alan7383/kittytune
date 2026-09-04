@@ -4,7 +4,7 @@
     <!-- APP & CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="app_name">KittyTune</string>
-    <string name="msg_retrying">Retrying&#8230;</string>
+    <string name="msg_retrying">Erneuter Versuch&#8230;</string>
     <string name="success_generic">Success</string>
     <string name="error_generic">Something went wrong</string>
     <string name="error_security_check">Security check required</string>
