@@ -95,6 +95,29 @@ object SyncLog {
         return event
     }
 
+    data class BatchItem(val kind: String, val payload: Any, val timestampMs: Long = System.currentTimeMillis())
+
+    @Synchronized
+    fun appendBatch(items: List<BatchItem>): List<SyncEvent> {
+        if (items.isEmpty()) return emptyList()
+        ensureLoaded()
+        var currentSeq = SyncMerge.nextSeq(events, deviceId)
+        val created = ArrayList<SyncEvent>(items.size)
+        for (item in items) {
+            created.add(
+                SyncEvent(
+                    deviceId = deviceId,
+                    seq = currentSeq++,
+                    timestampMs = item.timestampMs,
+                    kind = item.kind,
+                    payload = gson.toJson(item.payload),
+                )
+            )
+        }
+        write(created)
+        return created
+    }
+
     /**
      * Records events that came from a peer. Already-known ones are skipped, so calling this twice
      * with the same batch is not the same as playing it twice.

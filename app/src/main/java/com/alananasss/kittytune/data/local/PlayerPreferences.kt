@@ -119,12 +119,13 @@ class PlayerPreferences(context: Context) {
         private const val KEY_FONT_ROND = "font_rond"
         private const val KEY_FONT_GRAD = "font_grad"
         private const val KEY_FONT_OPSZ = "font_opsz"
-        private const val KEY_SYNC_LIKES = "sync_likes_enabled"
+        private const val KEY_SYNC_DISCLAIMER_DISMISSED = "sync_disclaimer_dismissed"
         private const val KEY_CROSSFADE_ENABLED = "crossfade_enabled"
         private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
         private const val KEY_KEY_COLOR = "key_color"
         private const val KEY_COLOR_STYLE = "color_style"
         private const val KEY_COLOR_SPEC = "color_spec"
+        private const val KEY_SYNC_LIKES = "sync_likes_enabled"
         private const val KEY_SLEEP_TIMER_FADE_DURATION = "sleep_timer_fade_duration"
         private const val KEY_SLEEP_TIMER_FADE_ENABLED = "sleep_timer_fade_enabled"
 
@@ -166,6 +167,9 @@ class PlayerPreferences(context: Context) {
             }
         }
     }
+
+    fun isSyncDisclaimerDismissed(): Boolean = prefs.getBoolean(KEY_SYNC_DISCLAIMER_DISMISSED, false)
+    fun setSyncDisclaimerDismissed(dismissed: Boolean) = prefs.edit { putBoolean(KEY_SYNC_DISCLAIMER_DISMISSED, dismissed) }
 
     fun getSyncLikesEnabled(): Boolean = prefs.getBoolean(KEY_SYNC_LIKES, true)
     fun setSyncLikesEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SYNC_LIKES, enabled) }

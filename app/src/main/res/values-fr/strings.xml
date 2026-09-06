@@ -2116,4 +2116,10 @@
     <string name="trim_clear">Retirer le découpage</string>
     <string name="account_vk_qr_same_device">Confirmer sur ce téléphone</string>
     <string name="account_vk_qr_same_device_hint">Ouvre l\'application VK pour approuver la connexion sans second appareil.</string>
+
+    <string name="sync_likes_title">Synchroniser les favoris et playlists</string>
+    <string name="sync_likes_sub">Partager instantanément vos titres likés et playlists entre téléphone et PC</string>
+    <string name="sync_disclaimer_title">Synchronisation compte SoundCloud</string>
+    <string name="sync_disclaimer_body">Pour les morceaux SoundCloud, vous connecter simplement avec le même compte SoundCloud sur mobile et PC reste la méthode la plus stable et fluide pour retrouver vos favoris. Cette synchronisation directe en Wi-Fi est en revanche indispensable et très pratique pour tous vos titres likés provenant de YouTube, VK, Spotify ou de fichiers locaux non hébergés sur SoundCloud.</string>
+    <string name="sync_disclaimer_dont_show_again">Ne plus afficher</string>
 </resources>

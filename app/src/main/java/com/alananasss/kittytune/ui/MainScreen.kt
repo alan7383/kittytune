@@ -20,15 +20,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -1365,48 +1368,51 @@ fun MainScreen(
 
                 }
 
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = windowSizeInfo.showPhoneBottomBar && showBottomUi && !isFullScreenRoute,
-                    enter = slideInVertically(initialOffsetY = { it }),
-                    exit = slideOutVertically(targetOffsetY = { it }),
-                    modifier = Modifier.align(Alignment.BottomCenter)
+                Column(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    KittyUnifiedBottomBar(
-                        tabs = tabs,
-                        selectedRoute = selectedRoute,
-                        onTabSelected = onTabSelected,
-                        onFabClick = onFabClick,
-                        fabIcon = fabIcon,
-                        playerViewModel = playerViewModel,
-                        onPlayerClick = { playerViewModel.isPlayerExpanded = true },
-                        style = bottomMenuStyle,
-                        blurEnabled = actualBottomMenuBlurEnabled
-                    )
-                }
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = windowSizeInfo.showPhoneBottomBar && showBottomUi && !isFullScreenRoute,
+                        enter = slideInVertically(initialOffsetY = { it }),
+                        exit = slideOutVertically(targetOffsetY = { it }),
+                    ) {
+                        KittyUnifiedBottomBar(
+                            tabs = tabs,
+                            selectedRoute = selectedRoute,
+                            onTabSelected = onTabSelected,
+                            onFabClick = onFabClick,
+                            fabIcon = fabIcon,
+                            playerViewModel = playerViewModel,
+                            onPlayerClick = { playerViewModel.isPlayerExpanded = true },
+                            style = bottomMenuStyle,
+                            blurEnabled = actualBottomMenuBlurEnabled
+                        )
+                    }
 
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = windowSizeInfo.showTabletDock && showBottomUi && !isFullScreenRoute,
-                    enter = slideInVertically(initialOffsetY = { it }),
-                    exit = slideOutVertically(targetOffsetY = { it }),
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                ) {
-                    com.alananasss.kittytune.ui.navigation.TabletBottomDock(
-                        tabs = tabs,
-                        selectedRoute = selectedRoute,
-                        onTabSelected = onTabSelected,
-                        onFabClick = onFabClick,
-                        fabIcon = fabIcon,
-                        fabLabel = fabLabel,
-                        playerViewModel = playerViewModel,
-                        onPlayerClick = {
-                            if (windowSizeInfo.showTabletDock) {
-                                playerViewModel.isSidePlayerOpen = true
-                                playerViewModel.isPlayerExpanded = false
-                            } else {
-                                playerViewModel.isPlayerExpanded = true
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = windowSizeInfo.showTabletDock && showBottomUi && !isFullScreenRoute,
+                        enter = slideInVertically(initialOffsetY = { it }),
+                        exit = slideOutVertically(targetOffsetY = { it }),
+                    ) {
+                        com.alananasss.kittytune.ui.navigation.TabletBottomDock(
+                            tabs = tabs,
+                            selectedRoute = selectedRoute,
+                            onTabSelected = onTabSelected,
+                            onFabClick = onFabClick,
+                            fabIcon = fabIcon,
+                            fabLabel = fabLabel,
+                            playerViewModel = playerViewModel,
+                            onPlayerClick = {
+                                if (windowSizeInfo.showTabletDock) {
+                                    playerViewModel.isSidePlayerOpen = true
+                                    playerViewModel.isPlayerExpanded = false
+                                } else {
+                                    playerViewModel.isPlayerExpanded = true
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
 
@@ -1696,3 +1702,5 @@ fun MainScreen(
         }
     }
 }
+
+
