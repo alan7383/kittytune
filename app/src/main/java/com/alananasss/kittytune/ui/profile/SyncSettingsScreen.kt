@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,14 +21,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Computer
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Switch
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.sync.SyncLikes
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -82,12 +92,15 @@ import kotlinx.coroutines.launch
 fun SyncSettingsScreen(onBackClick: () -> Unit) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val playerPrefs = remember { PlayerPreferences(context) }
 
     var devices by remember { mutableStateOf(SyncPeers.all()) }
     var status by remember { mutableStateOf<String?>(null) }
     var scanning by remember { mutableStateOf(false) }
     var showAdvanced by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    var likesSyncEnabled by remember { mutableStateOf(playerPrefs.getSyncLikesEnabled()) }
+    var showDisclaimerDialog by remember { mutableStateOf(!playerPrefs.isSyncDisclaimerDismissed()) }
 
     val isSyncing by SyncScheduler.isSyncing.collectAsState()
     val lastSyncAtMs by SyncScheduler.lastSyncAtMs.collectAsState()
@@ -250,6 +263,29 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
                         }
                     }
 
+                    Spacer(Modifier.height(12.dp))
+                    SettingsGroupTitle(stringResource(R.string.sync_likes_title))
+
+                    SettingsItem(
+                        title = stringResource(R.string.sync_likes_title),
+                        subtitle = stringResource(R.string.sync_likes_sub),
+                        icon = Icons.Rounded.Favorite,
+                        shape = getSettingsShape(1, 0),
+                        hasSwitch = true,
+                        switchState = likesSyncEnabled,
+                        onSwitchChange = {
+                            likesSyncEnabled = it
+                            playerPrefs.setSyncLikesEnabled(it)
+                            if (it) {
+                                scope.launch {
+                                    SyncLikes.seedMissing()
+                                    SyncLikes.seedMissingPlaylists()
+                                    SyncScheduler.triggerImmediateSync("likes_toggled")
+                                }
+                            }
+                        }
+                    )
+
                     Spacer(Modifier.height(8.dp))
                     TextButton(onClick = { showAdvanced = !showAdvanced }) {
                         Icon(
@@ -273,6 +309,69 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
                 }
             }
         }
+    }
+
+    if (showDisclaimerDialog) {
+        var dontShowAgain by remember { mutableStateOf(false) }
+        AlertDialog(
+            onDismissRequest = {
+                if (dontShowAgain) playerPrefs.setSyncDisclaimerDismissed(true)
+                showDisclaimerDialog = false
+            },
+            icon = {
+                Icon(
+                    Icons.Rounded.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp),
+                )
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.sync_disclaimer_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.sync_disclaimer_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { dontShowAgain = !dontShowAgain }
+                            .padding(vertical = 4.dp),
+                    ) {
+                        Checkbox(
+                            checked = dontShowAgain,
+                            onCheckedChange = { dontShowAgain = it },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.sync_disclaimer_dont_show_again),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (dontShowAgain) playerPrefs.setSyncDisclaimerDismissed(true)
+                        showDisclaimerDialog = false
+                    },
+                ) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+        )
     }
 }
 

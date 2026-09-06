@@ -86,8 +86,11 @@ object SyncScheduler {
     fun start() {
         if (heartbeat != null) return
         heartbeat = scope.launch {
+            if (SyncPeers.anyDialable()) {
+                runCatching { syncAll("startup") }
+            }
             delay(FIRST_RUN_DELAY_MS)
-            var lastPassAtMs = 0L
+            var lastPassAtMs = System.currentTimeMillis()
             var lastAddress = ""
             while (isActive) {
                 val address = runCatching { SyncService.localAddress() }.getOrDefault("")
@@ -137,6 +140,13 @@ object SyncScheduler {
         pending?.cancel()
         pending = scope.launch {
             delay(DEBOUNCE_MS)
+            runCatching { syncAll(reason) }
+        }
+    }
+
+    fun triggerImmediateSync(reason: String = "immediate") {
+        if (!SyncPeers.anyDialable()) return
+        scope.launch {
             runCatching { syncAll(reason) }
         }
     }

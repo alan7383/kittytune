@@ -43,9 +43,10 @@ object SyncApply {
      * @return how many rows this restored.
      */
     suspend fun reconcile(): Int {
+        val restoredLikes = runCatching { SyncLikes.reconcile() }.getOrDefault(0)
         val events = runCatching { SyncLog.all() }.getOrDefault(emptyList())
             .filter { it.kind == SyncKinds.LISTEN }
-        if (events.isEmpty()) return 0
+        if (events.isEmpty()) return restoredLikes
         val rows = events.mapNotNull { toRow(it) }
         val restored = runCatching { insertRows(rows) }
             .onFailure {
@@ -58,7 +59,7 @@ object SyncApply {
             android.util.Log.i("SyncApply", "reconcile restored $restored listens the table was missing")
         }
         if (restored > 0) ListeningStatsRepository.onStatsChanged()
-        return restored
+        return restored + restoredLikes
     }
 
     fun apply(events: List<SyncEvent>) {
@@ -75,6 +76,11 @@ object SyncApply {
      */
     suspend fun applyNow(events: List<SyncEvent>) {
         if (events.isEmpty()) return
+
+        val hasLikes = events.any { it.kind == SyncKinds.LIKE || it.kind == SyncKinds.PLAYLIST_LIKE }
+        if (hasLikes) {
+            runCatching { SyncLikes.reconcile() }
+        }
 
         // Collected first and written in one transaction. A first pairing carries hundreds of rows, and one
         // commit each turns a moment into a visible pause (issue #33).
