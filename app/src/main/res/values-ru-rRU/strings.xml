@@ -2082,4 +2082,9 @@
     <string name="sync_local_network_allow">Allow local network</string>
     <string name="account_vk_qr_same_device">Confirm on this phone</string>
     <string name="account_vk_qr_same_device_hint">Opens the VK app so you can approve the login without a second device.</string>
+    <string name="sync_likes_title">Sync Favorites &amp; Playlists</string>
+    <string name="sync_likes_sub">Instantly share liked tracks and playlists between phone and PC</string>
+    <string name="sync_disclaimer_title">SoundCloud Account Sync</string>
+    <string name="sync_disclaimer_body">For SoundCloud tracks, simply logging into the same SoundCloud account on mobile and PC is the most stable and seamless way to synchronize your likes and playlists. However, this direct Wi-Fi sync is especially useful and designed for tracks from YouTube, VK, Spotify, or local files that aren\'t hosted on SoundCloud.</string>
+    <string name="sync_disclaimer_dont_show_again">Don\'t show again</string>
 </resources>
