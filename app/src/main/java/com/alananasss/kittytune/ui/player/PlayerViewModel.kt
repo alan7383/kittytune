@@ -30,10 +30,12 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.*
+import com.alananasss.kittytune.data.spotify.SpotifyArtistRef
 import com.alananasss.kittytune.data.local.LocalPlaylist
 import com.alananasss.kittytune.ui.common.AchievementNotificationManager
 import com.alananasss.kittytune.ui.common.AchievementNotification
 import com.alananasss.kittytune.data.local.LyricsAlignment
+import com.alananasss.kittytune.data.local.LyricsDisplayState
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.network.LrcLibClient
 import com.alananasss.kittytune.data.ListeningStatsRepository
@@ -48,6 +50,9 @@ import com.google.gson.Gson
 import kotlinx.coroutines.*
 import androidx.compose.runtime.snapshotFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import org.schabi.newpipe.extractor.ServiceList
@@ -57,6 +62,10 @@ import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
+
+import com.alananasss.kittytune.data.lyrics.providers.*
+import com.alananasss.kittytune.data.lyrics.clients.*
+import com.alananasss.kittytune.KittyTuneApp
 
 enum class CommentSort(val value: String, @param:StringRes val labelResId: Int) {
     NEWEST("newest", R.string.sort_newest),
@@ -74,7 +83,8 @@ data class UnifiedLyricResult(
     val durationSec: Double,
     val hasLineSync: Boolean,
     val hasWordSync: Boolean,
-    val provider: String
+    val provider: String,
+    val rawContent: String? = null
 )
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
@@ -104,8 +114,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val _uiEvent = MutableSharedFlow<String>()
     val uiEvent = _uiEvent.asSharedFlow()
 
-    var currentUserId by mutableLongStateOf(0L)
-    var currentUser by mutableStateOf<User?>(null)
+    var currentUserId by mutableLongStateOf(playerPrefs.getCachedUserId())
+    var currentUser by mutableStateOf<User?>(
+        if (playerPrefs.getCachedUserId() != 0L) {
+            User(playerPrefs.getCachedUserId(), playerPrefs.getCachedUsername() ?: "", null)
+        } else null
+    )
     var currentTrack by mutableStateOf<Track?>(null)
     var isPlaying by mutableStateOf(false)
     var playWhenReady by mutableStateOf(false)
@@ -118,6 +132,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var isTabletSplitMode by mutableStateOf(true)
     var isLiked by mutableStateOf(false)
     var backgroundColor by mutableStateOf(Color(0xFF1E1E1E))
+    var currentAnimatedCoverUrl by mutableStateOf<String?>(null)
+    var currentAnimatedCoverTallUrl by mutableStateOf<String?>(null)
     val hasLyrics by derivedStateOf { lyricsLines.isNotEmpty() || !rawPlainLyrics.isNullOrBlank() }
     var commentSort by mutableStateOf(CommentSort.NEWEST)
 
@@ -134,6 +150,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var isReactionsLoading by mutableStateOf(false)
 
     var currentContext by mutableStateOf<PlaybackContext?>(null)
+
+    val automixDebugInfo = com.alananasss.kittytune.audio.automix.AutomixManager.automixDebugInfo
+    val isAutomixing = com.alananasss.kittytune.audio.automix.AutomixManager.isAutomixing
+    val mixBeatsLeft = com.alananasss.kittytune.audio.automix.AutomixManager.mixBeatsLeft
 
     @Volatile
     private var isRestoringSession = true
@@ -153,6 +173,25 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var effectsState by mutableStateOf(playerPrefs.getLastEffects())
     var isPreciseSpeedEnabled by mutableStateOf(playerPrefs.getPreciseSpeedEnabled())
 
+    var isHapticsEnabled by mutableStateOf(playerPrefs.getHapticsEnabled())
+        private set
+    var hapticsStrength by mutableStateOf(playerPrefs.getHapticsStrength())
+        private set
+
+    fun toggleHaptics(enabled: Boolean? = null) {
+        val newState = enabled ?: !isHapticsEnabled
+        isHapticsEnabled = newState
+        playerPrefs.setHapticsEnabled(newState)
+        com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context).setHapticsEnabled(newState)
+    }
+
+    fun updateHapticsStrength(strength: Float) {
+        val clamped = strength.coerceIn(0f, 100f)
+        hapticsStrength = clamped
+        playerPrefs.setHapticsStrength(clamped)
+        com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context).setVibrationStrength(clamped)
+    }
+
     var repeatMode by mutableStateOf(playerPrefs.getLastRepeatMode())
     var shuffleEnabled by mutableStateOf(playerPrefs.getLastShuffleEnabled())
     private var isAutoplayRadioLoading by mutableStateOf(false)
@@ -160,6 +199,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     var repostedTrackIds by mutableStateOf<Set<Long>>(emptySet())
         private set
+
+    var dismissedTrack by mutableStateOf<Track?>(null)
+    var dismissedQueue by mutableStateOf<List<Track>>(emptyList())
+    var dismissedQueueIndex by mutableIntStateOf(-1)
+    var dismissedPosition by mutableLongStateOf(0L)
+    var showDismissUndoBar by mutableStateOf(false)
+    var isMiniPlayerDismissing by mutableStateOf(false)
 
     var showMenuSheet by mutableStateOf(false)
     var navigateToPlaylistId by mutableStateOf<String?>(null)
@@ -177,6 +223,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var localFilePathForDetails by mutableStateOf<String?>(null)
 
     var showDetailsSheet by mutableStateOf(false)
+
+    var showSelectArtistDialog by mutableStateOf(false)
+    var selectedArtistDialogTrack by mutableStateOf<Track?>(null)
+    var selectArtistOptions by mutableStateOf<List<SpotifyArtistRef>>(emptyList())
 
     var showCommentsSheet by mutableStateOf(false)
     val commentsList = mutableStateListOf<Comment>()
@@ -222,12 +272,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     val onlinePl = onlineMap[current.id]
                     if (onlinePl != null) {
                         val realCount = onlinePl.trackCount ?: current.trackCount
-                        val realArt = onlinePl.fullResArtwork.takeIf { it.isNotBlank() } ?: current.artworkUrl
+                        val localCoverFile = java.io.File(context.filesDir, "playlist_cover_${current.id}.jpg")
+                        val localCoverPath = current.localCoverPath ?: if (localCoverFile.exists()) localCoverFile.absolutePath else null
+                        val realArt = localCoverPath ?: onlinePl.fullResArtwork.takeIf { it.isNotBlank() } ?: current.artworkUrl
                         val realTitle = onlinePl.title.takeIf { !it.isNullOrBlank() } ?: current.title
-                        if (realCount != current.trackCount || realArt != current.artworkUrl || realTitle != current.title) {
+                        if (realCount != current.trackCount || realArt != current.artworkUrl || realTitle != current.title || localCoverPath != current.localCoverPath) {
                             userPlaylists[i] = current.copy(
                                 trackCount = realCount,
                                 artworkUrl = realArt,
+                                localCoverPath = localCoverPath,
                                 title = realTitle
                             )
                         }
@@ -236,11 +289,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                 val currentLocalIds = userPlaylists.map { it.id }.toSet()
                 val newPlaylists = online.filter { !currentLocalIds.contains(it.id) }.map {
+                    val localCoverFile = java.io.File(context.filesDir, "playlist_cover_${it.id}.jpg")
+                    val localCover = if (localCoverFile.exists()) localCoverFile.absolutePath else null
                     LocalPlaylist(
                         id = it.id,
                         title = it.title ?: "",
                         artist = it.user?.username ?: "",
-                        artworkUrl = it.fullResArtwork,
+                        artworkUrl = localCover ?: it.fullResArtwork,
+                        localCoverPath = localCover,
                         trackCount = it.trackCount ?: 0,
                         isUserCreated = true
                     )
@@ -261,6 +317,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var isPreciseLyricsSearchEnabled by mutableStateOf(playerPrefs.getPreciseLyricsSearchEnabled())
     var showLyricsSheet by mutableStateOf(false)
     var lyricsLines = mutableStateListOf<LyricLine>()
+    var lyricsRevision by mutableIntStateOf(0)
     var isLyricsLoading by mutableStateOf(false)
     var isSearchingLyrics by mutableStateOf(false)
     var manualSearchQuery by mutableStateOf("")
@@ -284,9 +341,35 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         private set
     var isAppleMusicEffectEnabled by mutableStateOf(playerPrefs.getLyricsAppleEffectEnabled())
         private set
+    var isDuetViewEnabled by mutableStateOf(playerPrefs.getLyricsDuetViewEnabled())
+        private set
+    var lyricsUiStyle by mutableStateOf(playerPrefs.getLyricsUiStyle())
+        private set
+    var lyricsLineBlurEnabled by mutableStateOf(playerPrefs.getLyricsLineBlurEnabled())
+        private set
+    var lyricsLrcBounceEnabled by mutableStateOf(playerPrefs.getLyricsLrcBounceEnabled())
+        private set
+    var lyricsBounceFactor by mutableFloatStateOf(playerPrefs.getLyricsBounceFactor())
+        private set
+    var lyricsGlowFactor by mutableFloatStateOf(playerPrefs.getLyricsGlowFactor())
+        private set
+    var lyricsFillTransitionWidth by mutableFloatStateOf(playerPrefs.getLyricsFillTransitionWidth())
+        private set
+    var lyricsLineSpacing by mutableFloatStateOf(playerPrefs.getLyricsLineSpacing())
+        private set
+    var lyricsFont by mutableStateOf(playerPrefs.getLyricsFont())
+        private set
     var lyricsMode by mutableStateOf(LyricsMode.SYNCED)
     var rawPlainLyrics by mutableStateOf<String?>(null)
-    var showInlineLyrics by mutableStateOf(false)
+    var lyricsDisplayState by mutableStateOf(LyricsDisplayState.OFF)
+    var showInlineLyrics: Boolean
+        get() = lyricsDisplayState == LyricsDisplayState.COVER_REPLACED
+        set(value) {
+            lyricsDisplayState = if (value) LyricsDisplayState.COVER_REPLACED else LyricsDisplayState.OFF
+        }
+    val isLyricsUnderCoverActive: Boolean
+        get() = (lyricsDisplayState == LyricsDisplayState.UNDER_COVER || playerPrefs.getLyricsUnderCoverAlwaysVisible()) &&
+                hasLyrics && lyricsLines.isNotEmpty() && lyricsDisplayState != LyricsDisplayState.COVER_REPLACED
     var lyricsOffset by mutableLongStateOf(0L)
     var showLyricsOffsetControls by mutableStateOf(false)
 
@@ -726,6 +809,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             super.onMediaItemTransition(mediaItem, reason)
             if (mediaItem == null) return
 
+            if (MusicManager.isCrossfadingOut) {
+                return
+            }
+
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) {
                 if (repeatMode == RepeatMode.ALL && MusicManager.player.mediaItemCount == 1) {
                     MusicManager.player.pause()
@@ -735,6 +822,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                if (repeatMode == RepeatMode.ONE) {
+                    return
+                }
                 val shiftCount = MusicManager.player.currentMediaItemIndex
                 if (shiftCount > 0) {
                     currentQueueIndex += shiftCount
@@ -818,6 +908,47 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun dismissMiniPlayerAndShowUndo() {
+        val track = currentTrack ?: return
+        dismissedTrack = track
+        dismissedQueue = queueState.toList()
+        dismissedQueueIndex = currentQueueIndex
+        dismissedPosition = currentPosition
+        showDismissUndoBar = true
+        isMiniPlayerDismissing = false
+
+        try {
+            MusicManager.player.pause()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        currentTrack = null
+        MusicManager.currentTrack = null
+        isPlaying = false
+    }
+
+    fun undoDismissMiniPlayer() {
+        val track = dismissedTrack ?: return
+        currentTrack = track
+        MusicManager.currentTrack = track
+        if (dismissedQueue.isNotEmpty()) {
+            _queue.clear()
+            _queue.addAll(dismissedQueue)
+            updateQueueState()
+        }
+        currentQueueIndex = dismissedQueueIndex
+        currentPosition = dismissedPosition
+        seekTo(dismissedPosition)
+        togglePlayPause()
+        showDismissUndoBar = false
+        dismissedTrack = null
+    }
+
+    fun hideDismissUndoBar() {
+        showDismissUndoBar = false
+        dismissedTrack = null
+    }
+
     /**
      * Seeds the app's palette from the cover that is playing (issue #33).
      *
@@ -841,6 +972,42 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun observeAnimatedCovers() {
+        viewModelScope.launch {
+            combine(
+                snapshotFlow { currentTrack },
+                playerPrefs.getAnimatedCoversFlow()
+            ) { track: Track?, enabled: Boolean ->
+                track to enabled
+            }
+            .distinctUntilChanged()
+            .collectLatest { (track, enabled) ->
+                Log.d("PlayerViewModel", "observeAnimatedCovers triggered: enabled=$enabled, track=${track?.title} by ${track?.displayArtist}")
+                currentAnimatedCoverUrl = null
+                currentAnimatedCoverTallUrl = null
+                if (!enabled || track == null) return@collectLatest
+
+                val title = track.title?.trim().orEmpty()
+                val artist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }.trim()
+                val album = track.publisherMetadata?.albumTitle
+                val durationSec = ((track.durationMs ?: 0L) / 1000L).toInt().takeIf { it > 0 }
+                val isrc = track.publisherMetadata?.isrc
+
+                val resolved = com.alananasss.kittytune.data.cover.AnimatedCoverResolver.resolve(
+                    title = title,
+                    artist = artist,
+                    album = album,
+                    durationSeconds = durationSec,
+                    isrc = isrc
+                )
+                if (currentTrack?.id == track.id) {
+                    currentAnimatedCoverUrl = resolved.squareUrl
+                    currentAnimatedCoverTallUrl = resolved.tallUrl
+                }
+            }
+        }
+    }
+
     init {
         val filter = IntentFilter("com.alananasss.kittytune.ACTION_FORCE_UPDATE")
         ContextCompat.registerReceiver(context, syncReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
@@ -851,6 +1018,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         MusicManager.applyEffects(effectsState)
         applyRepeatMode()
         observeArtworkColors()
+        observeAnimatedCovers()
         startTrimWatcher()
 
         viewModelScope.launch {
@@ -974,6 +1142,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             showInlineLyrics = false
             lyricsLines.clear()
+            MusicManager.currentLyricsFlow.value = emptyList()
             rawPlainLyrics = null
 
             val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
@@ -1055,6 +1224,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 userPlaylists.clear()
                 val sorted =
                     playlists.sortedWith(compareByDescending<LocalPlaylist> { it.isUserCreated || it.id < 0 }.thenByDescending { it.addedAt })
+                        .map { pl ->
+                            if (pl.localCoverPath.isNullOrEmpty()) {
+                                val localCoverFile = java.io.File(context.filesDir, "playlist_cover_${pl.id}.jpg")
+                                if (localCoverFile.exists()) {
+                                    pl.copy(localCoverPath = localCoverFile.absolutePath)
+                                } else pl
+                            } else pl
+                        }
                 userPlaylists.addAll(sorted)
             }
         }
@@ -1082,7 +1259,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun toggleInlineLyrics() {
-        showInlineLyrics = !showInlineLyrics
+        val multiStateEnabled = playerPrefs.getLyricsMultiStateToggle()
+        val underCoverEnabled = playerPrefs.getLyricsUnderCoverEnabled()
+        val hasSyncedLyrics = lyricsLines.isNotEmpty()
+
+        if (multiStateEnabled && underCoverEnabled && hasSyncedLyrics) {
+            lyricsDisplayState = when (lyricsDisplayState) {
+                LyricsDisplayState.OFF -> LyricsDisplayState.UNDER_COVER
+                LyricsDisplayState.UNDER_COVER -> LyricsDisplayState.COVER_REPLACED
+                LyricsDisplayState.COVER_REPLACED -> LyricsDisplayState.OFF
+            }
+        } else {
+            lyricsDisplayState = if (lyricsDisplayState == LyricsDisplayState.COVER_REPLACED) {
+                LyricsDisplayState.OFF
+            } else {
+                LyricsDisplayState.COVER_REPLACED
+            }
+        }
     }
 
     override fun onCleared() {
@@ -1182,6 +1375,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleLyricsTranslation(enabled: Boolean) {
         isLyricsTranslationEnabled = enabled
         playerPrefs.setLyricsTranslationEnabled(enabled)
+        lyricsRevision++
         if (enabled && lyricsLines.isNotEmpty()) {
             fetchTranslationsForCurrentLines(lyricsTranslationLang)
         }
@@ -1190,6 +1384,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun updateLyricsTranslationLang(lang: String) {
         lyricsTranslationLang = lang
         playerPrefs.setLyricsTranslationLang(lang)
+        lyricsRevision++
         if (isLyricsTranslationEnabled && lyricsLines.isNotEmpty()) {
             fetchTranslationsForCurrentLines(lang)
         }
@@ -1198,6 +1393,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleRomanization(enabled: Boolean) {
         isRomanizationEnabled = enabled
         playerPrefs.setLyricsRomanizationEnabled(enabled)
+        lyricsRevision++
         if (enabled && lyricsLines.isNotEmpty()) {
             fetchRomanizationForCurrentLines()
         }
@@ -1213,6 +1409,51 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         playerPrefs.setLyricsAppleEffectEnabled(enabled)
     }
 
+    fun toggleDuetView(enabled: Boolean) {
+        isDuetViewEnabled = enabled
+        playerPrefs.setLyricsDuetViewEnabled(enabled)
+    }
+
+    fun updateLyricsUiStyle(style: com.alananasss.kittytune.data.local.LyricsUiStyle) {
+        lyricsUiStyle = style
+        playerPrefs.setLyricsUiStyle(style)
+    }
+
+    fun updateLyricsLineBlurEnabled(enabled: Boolean) {
+        lyricsLineBlurEnabled = enabled
+        playerPrefs.setLyricsLineBlurEnabled(enabled)
+    }
+
+    fun updateLyricsLrcBounceEnabled(enabled: Boolean) {
+        lyricsLrcBounceEnabled = enabled
+        playerPrefs.setLyricsLrcBounceEnabled(enabled)
+    }
+
+    fun updateLyricsBounceFactor(factor: Float) {
+        lyricsBounceFactor = factor
+        playerPrefs.setLyricsBounceFactor(factor)
+    }
+
+    fun updateLyricsGlowFactor(factor: Float) {
+        lyricsGlowFactor = factor
+        playerPrefs.setLyricsGlowFactor(factor)
+    }
+
+    fun updateLyricsFillTransitionWidth(width: Float) {
+        lyricsFillTransitionWidth = width
+        playerPrefs.setLyricsFillTransitionWidth(width)
+    }
+
+    fun updateLyricsLineSpacing(spacing: Float) {
+        lyricsLineSpacing = spacing
+        playerPrefs.setLyricsLineSpacing(spacing)
+    }
+
+    fun updateLyricsFont(font: com.alananasss.kittytune.data.local.LyricsFont) {
+        lyricsFont = font
+        playerPrefs.setLyricsFont(font)
+    }
+
     private var translationJob: Job? = null
 
     private fun fetchTranslationsForCurrentLines(targetLang: String = lyricsTranslationLang) {
@@ -1220,6 +1461,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (lyricsLines.isEmpty()) return
         val originalLines = lyricsLines.map { it.text }.filter { it.isNotBlank() }.distinct()
 
+        isTranslatingLyrics = true
         translationJob = viewModelScope.launch(Dispatchers.IO) {
             val translationMap =
                 com.alananasss.kittytune.data.network.FreeTranslator.translateMissing(originalLines, targetLang)
@@ -1227,8 +1469,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 for (i in lyricsLines.indices) {
                     val oldLine = lyricsLines[i]
                     val newTranslation = translationMap[oldLine.text.trim()]
-                    lyricsLines[i] = oldLine.copy(translation = oldLine.translation ?: newTranslation)
+                    if (newTranslation != null) {
+                        lyricsLines[i] = oldLine.copy(translation = newTranslation)
+                    }
                 }
+                isTranslatingLyrics = false
+                lyricsRevision++
             }
         }
     }
@@ -1242,8 +1488,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 for (i in lyricsLines.indices) {
                     val oldLine = lyricsLines[i]
                     val rom = romMap[oldLine.text.trim()]
-                    lyricsLines[i] = oldLine.copy(romanization = oldLine.romanization ?: rom)
+                    if (rom != null) {
+                        lyricsLines[i] = oldLine.copy(romanization = rom)
+                    }
                 }
+                lyricsRevision++
             }
         }
     }
@@ -1263,6 +1512,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             showMenuSheet = false
             showLyricsSheet = true
         }
+    }
+
+    private fun parseArtistAndTitle(title: String, uploader: String): Pair<String, String> {
+        val pairs = LyricsMatcher.generateCandidatePairs(title, uploader)
+        val best = pairs.firstOrNull() ?: return Pair(uploader.trim(), title.trim())
+        return Pair(best.second, best.first)
     }
 
     private fun generateSearchQueries(title: String, uploader: String): List<String> {
@@ -1309,14 +1564,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun loadLyrics(track: Track) {
         lyricsJob?.cancel()
         lyricsLines.clear()
+        MusicManager.currentLyricsFlow.value = emptyList()
         lyricsOffset = 0L
+        MusicManager.lyricsOffsetMs = 0L
         showLyricsOffsetControls = false
         isLyricsLoading = true
         isSearchingLyrics = false
         rawPlainLyrics = null
 
+        val (parsedArtist, parsedTitle) = parseArtistAndTitle(track.title ?: "", track.user?.username ?: "")
         val queries = generateSearchQueries(track.title ?: "", track.user?.username ?: "")
-        manualSearchQuery = queries.firstOrNull() ?: ""
+        manualSearchQuery = if (parsedTitle.isNotBlank() && parsedArtist.isNotBlank()) "$parsedTitle $parsedArtist" else (queries.firstOrNull() ?: "")
 
         lyricsJob = viewModelScope.launch(Dispatchers.IO) {
             val variant = currentLyricsVariant()
@@ -1329,7 +1587,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 variant.translationLang,
                 variant.romanized,
             )
-            if (cached != null) {
+            if (cached != null && cached.found) {
                 withContext(Dispatchers.Main) {
                     applyLyricsPayload(LyricsPayload(cached.lines, cached.plain, cached.provider))
                 }
@@ -1400,15 +1658,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val plain: String?,
         val provider: String,
         val matchScore: Float,
-        /**
-         * Small nudge for the provider named first in the settings, deliberately smaller than any meaningful
-         * difference in [matchScore]: it decides a genuine tie, it does not let the preferred provider win
-         * with lyrics that fit the track less well.
-         */
+        val titleSimilarity: Float = 0f,
         val providerBonus: Float = 0f,
     ) {
-        /** Word sync beats line sync beats plain text; match quality settles ties within a tier. */
-        val rank: Float get() = syncTier * 10f + matchScore + providerBonus
+        val rank: Float get() = LyricsMatcher.rank(syncTier, matchScore, titleSimilarity, providerBonus)
 
         val syncTier: Int get() = LyricsMatcher.syncTier(lines, plain)
 
@@ -1419,10 +1672,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun applyLyricsPayload(payload: LyricsPayload) {
         lyricsLines.clear()
         lyricsLines.addAll(payload.lines)
+        MusicManager.currentLyricsFlow.value = payload.lines
         rawPlainLyrics = payload.plain
         lyricsMode = if (payload.lines.isNotEmpty()) LyricsMode.SYNCED else LyricsMode.PLAIN
         isLyricsLoading = false
         if (payload.lines.isNotEmpty() || !payload.plain.isNullOrBlank()) isSearchingLyrics = false
+        lyricsRevision++
+
+        if (isLyricsTranslationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.translation.isNullOrBlank() }) {
+            fetchTranslationsForCurrentLines(lyricsTranslationLang)
+        }
+        if (isRomanizationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.romanization.isNullOrBlank() }) {
+            fetchRomanizationForCurrentLines()
+        }
     }
 
     /** Lyrics tagged into the downloaded file, when the user asked for those to come first. */
@@ -1475,6 +1737,44 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private suspend fun searchGenericProviderCandidate(
+        prefProvider: PreferredLyricsProvider,
+        target: LyricsMatcher.Target,
+        trackDurationMs: Long,
+        trackId: String,
+        albumTitle: String?,
+    ): LyricsCandidate? {
+        val provider = LyricsProviders.all[prefProvider] ?: return null
+        val candidates = LyricsMatcher.generateCandidatePairs(target.title, target.artist)
+        for ((candTitle, candArtist) in candidates) {
+            if (!currentCoroutineContext().isActive) return null
+            try {
+                val result = provider.getLyrics(
+                    id = trackId,
+                    title = candTitle,
+                    artist = candArtist,
+                    album = albumTitle,
+                    duration = (trackDurationMs / 1000).toInt(),
+                )
+                val raw = result.getOrNull()?.takeIf { it.isNotBlank() } ?: continue
+                val parsed = LyricsUtils.parseLyricsContent(raw, trackDurationMs)
+                val plain = if (parsed.isEmpty()) raw else null
+                val matchScore = LyricsMatcher.score(candTitle, candArtist, (trackDurationMs / 1000.0), target)
+                val titleSim = LyricsMatcher.titleSimilarity(candTitle, target)
+                return LyricsCandidate(
+                    lines = parsed,
+                    plain = plain,
+                    provider = prefProvider.name,
+                    matchScore = matchScore.coerceAtLeast(0.85f),
+                    titleSimilarity = titleSim.coerceAtLeast(0.85f),
+                )
+            } catch (e: Exception) {
+                // Continue to next candidate pair
+            }
+        }
+        return null
+    }
+
     /**
      * Runs the whole provider search for [track] without touching any UI state, so the same code serves the
      * track being played and the prefetch of the one after it.
@@ -1486,65 +1786,70 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         queries: List<String>,
         variant: LyricsVariant,
     ): LyricsPayload? = coroutineScope {
+        PaxsenixClient.setApiKey(playerPrefs.getPaxsenixApiKey())
+        val (parsedArtist, parsedTitle) = parseArtistAndTitle(track.title ?: "", track.user?.username ?: "")
         val target = LyricsMatcher.Target(
-            title = track.title ?: "",
-            artist = track.user?.username ?: "",
+            title = parsedTitle.ifBlank { track.title ?: "" },
+            artist = parsedArtist.ifBlank { track.user?.username ?: "" },
             durationMs = track.durationMs ?: 0L,
+            alternativeTitles = listOfNotNull(track.title, parsedTitle, track.title?.let { LyricsMatcher.cleanNoiseAndBrackets(it) }).filter { it.isNotBlank() }.distinct(),
+            alternativeArtists = listOfNotNull(
+                track.user?.username,
+                parsedArtist,
+                track.publisherMetadata?.artist,
+                track.displayArtist,
+            ).filter { it.isNotBlank() }.distinct(),
         )
         val trackDurationMs = track.durationMs ?: 0L
-        val preferLrcLib = lyricsProvider == com.alananasss.kittytune.ui.player.LyricsProvider.OPEN_SOURCE
-        val preferredProvider = if (preferLrcLib) "LRCLIB" else "MUSIXMATCH"
+        val orderedProviders = playerPrefs.getLyricsProviderOrder()
+            .filter { playerPrefs.getLyricsProviderEnabled(it) }
+            .ifEmpty { DefaultLyricsProviderOrder }
 
         var best: LyricsCandidate? = null
 
-        for (query in queries) {
+        for (providerId in orderedProviders) {
             if (!isActive) return@coroutineScope null
 
-            val found = if (preferLrcLib) {
-                searchLrcLibCandidates(query, target, trackDurationMs)
-            } else {
-                val mxm = async { searchMusixmatchCandidates(query, target, trackDurationMs, variant) }
-                val lrc = async { searchLrcLibCandidates(query, target, trackDurationMs) }
-                mxm.await() + lrc.await()
-            }
-            val candidates = found.map { candidate ->
-                if (candidate.provider == preferredProvider) {
-                    candidate.copy(providerBonus = PROVIDER_PREFERENCE_BONUS)
-                } else {
-                    candidate
+            val candidate = when (providerId) {
+                PreferredLyricsProvider.MUSIXMATCH -> {
+                    val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
+                    searchMusixmatchCandidates(query, target, trackDurationMs, variant).firstOrNull()
+                }
+                PreferredLyricsProvider.LRCLIB -> {
+                    val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
+                    searchLrcLibCandidates(query, target, trackDurationMs).maxByOrNull { it.rank }
+                }
+                PreferredLyricsProvider.GENIUS -> {
+                    null // Checked at end as fallback
+                }
+                else -> {
+                    searchGenericProviderCandidate(
+                        prefProvider = providerId,
+                        target = target,
+                        trackDurationMs = trackDurationMs,
+                        trackId = track.id.toString(),
+                        albumTitle = track.publisherMetadata?.albumTitle,
+                    )
                 }
             }
 
-            val bestOfQuery = candidates.filter { it.isUsable }.maxByOrNull { it.rank }
-            if (bestOfQuery != null && bestOfQuery.rank > (best?.rank ?: Float.NEGATIVE_INFINITY)) {
-                best = bestOfQuery
+            if (candidate != null && candidate.isUsable) {
+                best = candidate
+                break
             }
-
-            // Word-level sync from a confident match is as good as this gets, so stop spending requests on
-            // the remaining, progressively looser, generated queries.
-            val current = best
-            if (current != null &&
-                current.syncTier >= LyricsMatcher.SYNC_TIER_WORD &&
-                current.matchScore >= 0.6f
-            ) break
         }
 
-        // Genius only once everything else has come up empty: it never carries timings, so it is about having
-        // the words at all rather than about having them in sync.
-        if (best == null) {
+
+        // Genius only once everything else has come up empty
+        if (best == null && playerPrefs.getLyricsProviderEnabled(PreferredLyricsProvider.GENIUS)) {
             best = searchGeniusCandidate(queries, target)
         }
 
         val candidate = best ?: return@coroutineScope null
-        // Only real sync is published as sync. A single timed line is what a provider returns when it has the
-        // words but not the timings, and passing that through would put the lyrics view in synced mode with
-        // one line in it instead of showing the plain text it also sent.
         val syncedLines =
             if (candidate.syncTier >= LyricsMatcher.SYNC_TIER_LINE) candidate.lines else emptyList()
         LyricsPayload(
             lines = decorateLyrics(syncedLines, variant),
-            // Lines that turned out not to be synced are still the words: keep them as the plain text rather
-            // than dropping them along with their useless timings.
             plain = candidate.plain
                 ?: candidate.lines.takeIf { it.isNotEmpty() }?.joinToString("\n") { it.text },
             provider = candidate.provider,
@@ -1572,11 +1877,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     ?.takeIf { it.isNotBlank() }
                     ?.let { LyricsUtils.parseLyricsContent(it, trackDurationMs) }
                     ?: emptyList()
+                val candTitle = result.name
+                val titleSim = LyricsMatcher.titleSimilarity(candTitle, target)
                 LyricsCandidate(
                     lines = lines,
                     plain = result.plainLyrics,
                     provider = "LRCLIB",
                     matchScore = LyricsMatcher.score(result.name, result.artistName, result.duration, target),
+                    titleSimilarity = titleSim,
                 )
             }
     }
@@ -1601,9 +1909,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val pick = results
             .filter { LyricsMatcher.isAcceptable(it.trackName, it.artistName, target) }
             .maxByOrNull { hit ->
-                val syncTier = hit.hasRichSync * 2 + hit.hasSubtitles
-                syncTier * 10f +
-                    LyricsMatcher.score(hit.trackName, hit.artistName, hit.trackLength.toDouble(), target)
+                val syncTier = when {
+                    hit.hasRichSync == 1 -> LyricsMatcher.SYNC_TIER_WORD
+                    hit.hasSubtitles == 1 -> LyricsMatcher.SYNC_TIER_LINE
+                    else -> LyricsMatcher.SYNC_TIER_PLAIN
+                }
+                val score = LyricsMatcher.score(
+                    hit.trackName, hit.artistName, hit.trackLength.toDouble(), target
+                )
+                val titleSim = LyricsMatcher.titleSimilarity(hit.trackName, target)
+                LyricsMatcher.rank(
+                    syncTier = syncTier,
+                    matchScore = score,
+                    titleSimilarity = titleSim,
+                )
             } ?: return emptyList()
 
         val data = try {
@@ -1628,6 +1947,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     pick.trackLength.toDouble(),
                     target,
                 ),
+                titleSimilarity = LyricsMatcher.titleSimilarity(pick.trackName, target),
             )
         )
     }
@@ -1651,6 +1971,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 plain = plain,
                 provider = "GENIUS",
                 matchScore = LyricsMatcher.score(pick.title, pick.artist, 0.0, target),
+                titleSimilarity = LyricsMatcher.titleSimilarity(pick.title, target),
             )
         }
         return null
@@ -1712,6 +2033,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun adjustLyricsOffset(amount: Long) {
         lyricsOffset += amount
+        MusicManager.lyricsOffsetMs = lyricsOffset
     }
 
     private suspend fun processLyricsResponse(response: LrcLibResponse?, trackDuration: Long) {
@@ -1773,53 +2095,125 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         manualLyricSearchJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                if (provider == "GENIUS") {
-                    // Never has timings, so every hit is plain text — surfaced anyway, because a track the
-                    // other two have never heard of usually does have a Genius page (issue #33).
-                    val mapped = com.alananasss.kittytune.data.network.GeniusClient.search(query).map {
-                        UnifiedLyricResult(
-                            it.id.toString(),
-                            it.title ?: "",
-                            it.artist,
-                            it.releaseDate,
-                            0.0,
-                            false,
-                            false,
-                            "GENIUS"
-                        )
+                PaxsenixClient.setApiKey(playerPrefs.getPaxsenixApiKey())
+                val pref = PreferredLyricsProvider.fromName(provider)
+                val mapped: List<UnifiedLyricResult> = when (provider) {
+                    "GENIUS" -> {
+                        // Never has timings, so every hit is plain text — surfaced anyway, because a track the
+                        // other two have never heard of usually does have a Genius page (issue #33).
+                        com.alananasss.kittytune.data.network.GeniusClient.search(query).map {
+                            UnifiedLyricResult(
+                                it.id.toString(),
+                                it.title ?: "",
+                                it.artist,
+                                it.releaseDate,
+                                0.0,
+                                false,
+                                false,
+                                "GENIUS"
+                            )
+                        }
                     }
-                    withContext(Dispatchers.Main) { replaceLyricSearchResults(mapped) }
-                } else if (provider == "LRCLIB") {
-                    val results = LrcLibClient.api.searchLyrics(query)
-                    val mapped = results.map {
-                        UnifiedLyricResult(
-                            it.id.toString(),
-                            it.name,
-                            it.artistName,
-                            it.albumName,
-                            it.duration,
-                            !it.syncedLyrics.isNullOrEmpty(),
-                            false,
-                            "LRCLIB"
-                        )
+                    "LRCLIB" -> {
+                        val results = LrcLibClient.api.searchLyrics(query)
+                        results.map {
+                            UnifiedLyricResult(
+                                it.id.toString(),
+                                it.name,
+                                it.artistName,
+                                it.albumName,
+                                it.duration,
+                                !it.syncedLyrics.isNullOrEmpty(),
+                                false,
+                                "LRCLIB"
+                            )
+                        }
                     }
-                    withContext(Dispatchers.Main) { replaceLyricSearchResults(mapped) }
-                } else {
-                    val results = MusixmatchClient.search(context, query)
-                    val mapped = results.map {
-                        UnifiedLyricResult(
-                            it.trackId.toString(),
-                            it.trackName,
-                            it.artistName,
-                            it.albumName,
-                            it.trackLength.toDouble(),
-                            it.hasSubtitles == 1,
-                            it.hasRichSync == 1,
-                            "MUSIXMATCH"
-                        )
+                    "MUSIXMATCH" -> {
+                        val results = MusixmatchClient.search(context, query)
+                        results.map {
+                            UnifiedLyricResult(
+                                it.trackId.toString(),
+                                it.trackName,
+                                it.artistName,
+                                it.albumName,
+                                it.trackLength.toDouble(),
+                                it.hasSubtitles == 1,
+                                it.hasRichSync == 1,
+                                "MUSIXMATCH"
+                            )
+                        }
                     }
-                    withContext(Dispatchers.Main) { replaceLyricSearchResults(mapped) }
+                    "SIMPMUSIC" -> {
+                        val results = SimpMusicClient.search(query)
+                        results.mapNotNull {
+                            val vId = it.videoId?.takeIf { id -> id.isNotBlank() } ?: return@mapNotNull null
+                            UnifiedLyricResult(
+                                id = vId,
+                                name = it.title ?: query,
+                                artistName = it.artist ?: "",
+                                albumName = it.album,
+                                durationSec = (it.duration ?: 0).toDouble(),
+                                hasLineSync = true,
+                                hasWordSync = !it.richSyncLyrics.isNullOrBlank(),
+                                provider = "SIMPMUSIC"
+                            )
+                        }
+                    }
+                    else -> {
+                        val p = LyricsProviders.all[pref]
+                        if (p != null) {
+                            val trackArtist = currentTrack?.user?.username?.trim().orEmpty()
+                            val trackDuration = ((currentTrack?.durationMs ?: 0L) / 1000L).toInt()
+                            val trackAlbum = currentTrack?.publisherMetadata?.albumTitle
+
+                            val candidates = LyricsMatcher.generateCandidatePairs(query, trackArtist)
+
+                            var raw: String? = null
+                            var matchedTitle = query
+                            var matchedArtist = trackArtist
+
+                            for ((candTitle, candArtist) in candidates.distinct()) {
+                                if (candTitle.isBlank()) continue
+                                val res = p.getLyrics(
+                                    id = currentTrack?.id?.toString() ?: "",
+                                    title = candTitle,
+                                    artist = candArtist,
+                                    album = trackAlbum,
+                                    duration = trackDuration
+                                )
+                                val content = res.getOrNull()
+                                if (!content.isNullOrBlank()) {
+                                    raw = content
+                                    matchedTitle = candTitle
+                                    matchedArtist = candArtist
+                                    break
+                                }
+                            }
+
+                            if (!raw.isNullOrBlank()) {
+                                listOf(
+                                    UnifiedLyricResult(
+                                        id = query,
+                                        name = matchedTitle,
+                                        artistName = matchedArtist.ifBlank { trackArtist },
+                                        albumName = trackAlbum,
+                                        durationSec = ((currentTrack?.durationMs ?: 0L) / 1000.0),
+                                        hasLineSync = raw.contains("[0") || raw.contains("[1") || raw.contains("begin="),
+                                        hasWordSync = raw.contains("<span") || raw.contains("begin=") || raw.contains("("),
+                                        provider = provider,
+                                        rawContent = raw
+                                    )
+                                )
+                            } else {
+                                emptyList()
+                            }
+                        } else {
+                            emptyList()
+                        }
+                    }
                 }
+                withContext(Dispatchers.Main) { replaceLyricSearchResults(mapped) }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -1838,7 +2232,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             var finalLines = emptyList<LyricLine>()
             var finalPlain: String? = null
 
-            if (result.provider == "GENIUS") {
+            if (result.rawContent != null) {
+                finalLines = LyricsUtils.parseLyricsContent(result.rawContent, duration)
+                if (finalLines.isEmpty()) {
+                    finalPlain = result.rawContent
+                }
+            } else if (result.provider == "GENIUS") {
                 // Plain text only — Genius has no timings to fetch.
                 finalPlain = runCatching {
                     com.alananasss.kittytune.data.network.GeniusClient.lyrics(result.id.toLong())
@@ -1852,7 +2251,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     finalPlain = lrcData?.plainLyrics
                 } catch (e: Exception) {
                 }
-            } else {
+            } else if (result.provider == "MUSIXMATCH") {
                 val targetLang =
                     if (playerPrefs.getLyricsTranslationEnabled()) playerPrefs.getLyricsTranslationLang() else null
                 lastFetchedMxmTrackId = result.id.toLongOrNull()
@@ -1865,6 +2264,38 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 )
                 finalLines = data.first
                 finalPlain = data.second
+            } else {
+                val p = LyricsProviders.all[PreferredLyricsProvider.fromName(result.provider)]
+                if (p != null) {
+                    val raw = p.getLyrics(
+                        id = result.id,
+                        title = result.name,
+                        artist = result.artistName,
+                        album = result.albumName,
+                        duration = (duration / 1000).toInt()
+                    ).getOrNull()
+                    if (!raw.isNullOrBlank()) {
+                        finalLines = LyricsUtils.parseLyricsContent(raw, duration)
+                        if (finalLines.isEmpty()) finalPlain = raw
+                    }
+                }
+            }
+
+            currentTrack?.let { track ->
+                LyricsCache.invalidate(track.id)
+                val variant = currentLyricsVariant()
+                LyricsCache.put(
+                    track.id,
+                    LyricsCache.Entry(
+                        found = finalLines.isNotEmpty() || !finalPlain.isNullOrBlank(),
+                        lines = finalLines,
+                        plain = finalPlain,
+                        provider = result.provider,
+                        providerPreference = variant.providerPreference,
+                        translationLang = variant.translationLang,
+                        romanized = variant.romanized,
+                    )
+                )
             }
 
             withContext(Dispatchers.Main) {
@@ -2036,11 +2467,108 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         showDetailsSheet = false; isPlayerExpanded = false; navigateToPlaylistId = "tag:$tagName"
     }
 
-    fun navigateToTrackArtist(track: Track) {
+    fun openSelectArtistDialog(
+        artists: List<SpotifyArtistRef>,
+        track: Track?
+    ) {
+        showMenuSheet = false
+        showDetailsSheet = false
+        showCommentsSheet = false
+        selectArtistOptions = artists
+        selectedArtistDialogTrack = track
+        showSelectArtistDialog = true
+    }
+
+    fun dismissSelectArtistDialog() {
+        showSelectArtistDialog = false
+        selectedArtistDialogTrack = null
+        selectArtistOptions = emptyList()
+    }
+
+    private fun navigableArtists(
+        artists: List<SpotifyArtistRef>?
+    ): List<SpotifyArtistRef> =
+        artists.orEmpty().filter { it.id.isNotBlank() || it.name.isNotBlank() }.distinctBy { it.id.ifBlank { it.name } }
+
+    fun navigateToArtistChoice(
+        artists: List<SpotifyArtistRef>?,
+        fallbackUserId: Long? = null
+    ) {
+        val navigable = navigableArtists(artists)
+        when {
+            navigable.size > 1 -> openSelectArtistDialog(navigable, null)
+            navigable.size == 1 -> onArtistSelected(navigable.first())
+            else -> fallbackUserId?.takeIf { it > 0 }?.let { navigateToArtist(it) }
+        }
+    }
+
+    fun onArtistSelected(artist: SpotifyArtistRef) {
+        val track = selectedArtistDialogTrack
+        dismissSelectArtistDialog()
         showDetailsSheet = false
         showMenuSheet = false
         showCommentsSheet = false
         isPlayerExpanded = false
+
+        val isVk = track?.source == "vk"
+            || track?.user?.urn?.startsWith("vk:") == true
+            || track?.permalinkUrl?.contains("vk.com") == true
+            || artist.id.startsWith("vk:")
+
+        if (isVk) {
+            val slug = artist.id.removePrefix("vk:artist:").removePrefix("vk:").trim()
+            val target = if (slug.isNotBlank()) slug else artist.name.trim()
+            if (target.isNotBlank()) {
+                navigateToPlaylistId = "profile:vk:artist:$target"
+            }
+            return
+        }
+
+        val cleanId = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(
+            artist.id.ifBlank { artist.uri ?: "" }
+        )
+        if (cleanId.isNotBlank()) {
+            navigateToSpotifyArtist(cleanId)
+        } else if (artist.name.isNotBlank()) {
+            resolveAndNavigateToArtist(artist.name)
+        }
+    }
+
+    fun navigateToTrackArtist(track: Track?) {
+        if (track == null) return
+        val navigable = navigableArtists(track.artists)
+        if (navigable.size > 1) {
+            openSelectArtistDialog(navigable, track)
+            return
+        }
+
+        showDetailsSheet = false
+        showMenuSheet = false
+        showCommentsSheet = false
+        isPlayerExpanded = false
+
+        if (navigable.size == 1) {
+            val single = navigable.first()
+            val isVk = track.source == "vk"
+                || track.user?.urn?.startsWith("vk:") == true
+                || track.permalinkUrl?.contains("vk.com") == true
+                || single.id.startsWith("vk:")
+            if (isVk) {
+                val slug = single.id.removePrefix("vk:artist:").removePrefix("vk:").trim()
+                val target = if (slug.isNotBlank()) slug else single.name.trim()
+                if (target.isNotBlank()) {
+                    navigateToPlaylistId = "profile:vk:artist:$target"
+                }
+                return
+            }
+            val cleanId = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(
+                single.id.ifBlank { single.uri ?: "" }
+            )
+            if (cleanId.isNotBlank()) {
+                navigateToSpotifyArtist(cleanId)
+                return
+            }
+        }
 
         if (track.source == "vk" || track.user?.urn?.startsWith("vk:") == true || track.permalinkUrl?.contains("vk.com") == true) {
             val artistName = track.displayArtist.ifBlank { track.user?.username ?: "" }.trim()
@@ -2066,6 +2594,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
+        if (track.source in listOf("deezer", "tidal", "qobuz") ||
+            track.user?.urn?.startsWith("deezer:") == true ||
+            track.user?.urn?.startsWith("tidal:") == true ||
+            track.user?.urn?.startsWith("qobuz:") == true
+        ) {
+            val artistUrn = track.user?.urn ?: track.user?.permalink ?: track.artists?.firstOrNull()?.id?.let { "${track.source}:artist:$it" }
+            if (!artistUrn.isNullOrBlank()) {
+                navigateToPlaylistId = artistUrn
+                return
+            }
+        }
+
         if (track.user != null && track.user!!.id > 0) {
             navigateToUser(track.user)
         } else if (track.displayArtist.isNotBlank()) {
@@ -2074,6 +2614,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun navigateToArtist(userId: Long) {
+        val currentT = currentTrack
+        if (currentT != null) {
+            val navigable = navigableArtists(currentT.artists)
+            if (navigable.size > 1) {
+                openSelectArtistDialog(navigable, currentT)
+                return
+            }
+        }
         showDetailsSheet = false
         showMenuSheet = false
         showCommentsSheet = false
@@ -2130,6 +2678,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun navigateToAlbum(albumId: String) {
+        if (albumId.startsWith("deezer:album:") || albumId.startsWith("tidal:album:") || albumId.startsWith("qobuz:album:")) {
+            showDetailsSheet = false
+            showMenuSheet = false
+            showCommentsSheet = false
+            isPlayerExpanded = false
+            navigateToPlaylistId = albumId
+            return
+        }
         val cleanId = albumId.removePrefix("spotify:album:").removePrefix("spotify_album:").removePrefix("spotify:")
         if (cleanId.isBlank()) return
         showDetailsSheet = false
@@ -2605,6 +3161,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val me = api.getMe()
                 currentUserId = me.id
                 currentUser = me
+                playerPrefs.setCachedUserId(me.id)
+                playerPrefs.setCachedUsername(me.username)
                 SoundCloudTelemetryTracker.updateCurrentUserId(me.id)
             } catch (_: Exception) {
             }
@@ -2732,8 +3290,25 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             currentPosition = 0L
             MusicManager.isCrossfadingOut = false
             try {
-                MusicManager.player.stop()
-                MusicManager.player.clearMediaItems()
+                MusicManager.player.pause()
+                MusicManager.player.seekTo(0)
+                val artist = trackToPlay.displayArtist.ifBlank { getString(R.string.unknown_artist) }
+                val tempMetadata = MediaMetadata.Builder()
+                    .setTitle(trackToPlay.title ?: getString(R.string.untitled_track))
+                    .setArtist(artist)
+                    .setSubtitle(artist)
+                    .setArtworkUri(trackToPlay.fullResArtwork.toUri())
+                    .build()
+                if (MusicManager.player.mediaItemCount > 0) {
+                    val currentItem = MusicManager.player.getMediaItemAt(0)
+                    MusicManager.player.replaceMediaItem(
+                        0,
+                        currentItem.buildUpon().setMediaMetadata(tempMetadata).build()
+                    )
+                    if (MusicManager.player.mediaItemCount > 1) {
+                        MusicManager.player.removeMediaItem(1)
+                    }
+                }
             } catch (_: Exception) {}
         }
         beginListenSession(trackToPlay)
@@ -2780,14 +3355,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")
             saveStateAsync(saveQueue = false)
 
+            val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
+            val startPos = if (isCrossfade && automixPlan != null) automixPlan.incomingStartMs else 0L
+
             SoundCloudTelemetryTracker.onTrackStarted(
                 track = finalTrack,
                 context = currentContext,
                 isManual = true,
-                startPositionMs = if (isCrossfade) currentPosition else 0L
+                startPositionMs = startPos
             )
 
-            playRobustly(index, autoPlay = autoPlay, isCrossfade = isCrossfade)
+            playRobustly(index, autoPlay = autoPlay, startPosition = startPos, isCrossfade = isCrossfade)
 
             prefetchWaveformsForQueue(index)
 
@@ -3026,17 +3604,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun smartPrevious() {
-        if (player.currentPosition > 2000) {
+        val pos = maxOf(player.currentPosition, currentPosition)
+        if (pos > 2000) {
             incrementPlayCount()
         }
 
-        if (player.currentPosition > 5000) {
+        if (pos > 3000) {
             // The listen that just ended is written, and a new one starts from the top: replaying a track
             // is two listens, not one long one.
             flushListenSession("MANUAL_REPLAY")
             beginListenSession(currentTrack)
-            currentPosition = 0L
-            player.seekTo(0)
+            seekTo(0L)
         } else {
             val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
             playPrevious(manual = true, isCrossfade = crossfadeEnabled)
@@ -3076,7 +3654,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             RepeatMode.ALL -> Player.REPEAT_MODE_ALL
             RepeatMode.ONE -> Player.REPEAT_MODE_ONE
         }
-        MusicManager.player.repeatMode = exoMode
+        MusicManager.setRepeatMode(exoMode)
+        if (repeatMode == RepeatMode.ONE) {
+            while (MusicManager.player.mediaItemCount > 1) {
+                try {
+                    MusicManager.player.removeMediaItem(1)
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     fun toggleRepeatMode() {
@@ -3183,6 +3768,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun togglePlayPause() {
+        com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
+            context,
+            com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE
+        )
         if (player.isPlaying || playWhenReady) {
             playWhenReady = false
             player.pause()
@@ -3204,6 +3793,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun seekTo(position: Long) {
+        MusicManager.releasePrebuffered()
+        com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
+            context,
+            com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_SEEK
+        )
         isScrubbing = false
         player.seekTo(position)
         currentPosition = position
@@ -3225,6 +3819,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleLike() {
         val t = currentTrack ?: return
         isLiked = !isLiked
+        com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
+            context,
+            com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_LIKE
+        )
 
         if (isLiked) {
             LikeRepository.addLike(t)
@@ -3991,6 +4589,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             val tokenManager = TokenManager(context)
             val isGuest = tokenManager.isGuestMode()
             var lastSaveTime = System.currentTimeMillis()
+            var lastAutomixCheckTime = 0L
             while (isActive && isPlaying) {
                 try {
                     if (!isScrubbing && !isLoading) {
@@ -4007,12 +4606,97 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         }
 
                         val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
+                        val automixEnabled = playerPrefs.getAutomixEnabled()
                         val crossfadeMs = playerPrefs.getCrossfadeDuration() * 1000L
                         val dur = if (MusicManager.player.duration > 0) MusicManager.player.duration else duration
 
-                        if (crossfadeEnabled && dur > 0 && currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
-                            MusicManager.isCrossfadingOut = true
-                            playNext(manual = false, isCrossfade = true)
+                        val currTrack = currentTrack
+                        val nextIdx = if (repeatMode == RepeatMode.ONE) currentQueueIndex else currentQueueIndex + 1
+                        val nextTrack = if (nextIdx in _queue.indices) _queue[nextIdx] else if (repeatMode == RepeatMode.ALL && _queue.isNotEmpty()) _queue[0] else null
+
+                        val isGaplessAlbum = playerPrefs.getCrossfadeGapless() && currTrack != null && nextTrack != null && run {
+                            val currAlbum = currTrack.publisherMetadata?.albumTitle?.takeIf { it.isNotBlank() }
+                                ?: currTrack.publisherMetadata?.releaseTitle?.takeIf { it.isNotBlank() }
+                                ?: currTrack.publisherMetadata?.albumId?.takeIf { it.isNotBlank() }
+                            val nextAlbum = nextTrack.publisherMetadata?.albumTitle?.takeIf { it.isNotBlank() }
+                                ?: nextTrack.publisherMetadata?.releaseTitle?.takeIf { it.isNotBlank() }
+                                ?: nextTrack.publisherMetadata?.albumId?.takeIf { it.isNotBlank() }
+                            currAlbum != null && currAlbum == nextAlbum
+                        }
+
+                        if (automixEnabled && currTrack != null) {
+                            if (now - lastAutomixCheckTime > 2000L) {
+                                lastAutomixCheckTime = now
+                                com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(currTrack, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.IMMEDIATE)
+                                if (nextTrack != null) {
+                                    if (nextTrack.id != currTrack.id) {
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(nextTrack, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.IMMEDIATE)
+                                    }
+                                    val lookaheadTrack1 = _queue.getOrNull(currentQueueIndex + 2)
+                                    if (lookaheadTrack1 != null) {
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(lookaheadTrack1, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.LOOKAHEAD)
+                                    }
+                                    val lookaheadTrack2 = _queue.getOrNull(currentQueueIndex + 3)
+                                    if (lookaheadTrack2 != null) {
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(lookaheadTrack2, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.LOOKAHEAD)
+                                    }
+                                    if (isGaplessAlbum) {
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
+                                    } else if (dur > 0L) {
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.computeAutomixPlan(currTrack, nextTrack, currentPosition, dur, playerPrefs)
+                                    }
+                                }
+                            }
+
+                            val plan = if (isGaplessAlbum) null else com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
+                            if (plan != null && dur > 0L) {
+                                val triggerTime = plan.triggerTimeMs
+                                val remainingToTrigger = triggerTime - currentPosition
+                                val outBpm = com.alananasss.kittytune.audio.automix.AutomixManager.automixDebugInfo.value?.outBpm ?: 0f
+                                if (outBpm > 0f) {
+                                    val periodMs = 60000f / outBpm
+                                    val beatsLeft = kotlin.math.ceil(remainingToTrigger / periodMs).toInt()
+                                    if (!MusicManager.isCrossfadingOut && beatsLeft in 1..16) {
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(beatsLeft)
+                                    } else {
+                                        com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+                                    }
+                                }
+
+                                if (nextTrack != null && remainingToTrigger in 1000L..12000L && !MusicManager.isCrossfadingOut && !MusicManager.isPrebuffered(nextTrack.id)) {
+                                    triggerPrebuffer(nextTrack, plan)
+                                }
+
+                                if (currentPosition >= triggerTime && !MusicManager.isCrossfadingOut) {
+                                    MusicManager.isCrossfadingOut = true
+                                    com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+                                    playNext(manual = false, isCrossfade = true)
+                                }
+                            } else if (!isGaplessAlbum && crossfadeEnabled && dur > 0L) {
+                                val remainingToCrossfade = (dur - crossfadeMs) - currentPosition
+                                if (nextTrack != null && remainingToCrossfade in 1000L..12000L && !MusicManager.isCrossfadingOut && !MusicManager.isPrebuffered(nextTrack.id)) {
+                                    triggerPrebuffer(nextTrack, null)
+                                }
+                                if (currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
+                                    com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+                                    MusicManager.isCrossfadingOut = true
+                                    playNext(manual = false, isCrossfade = true)
+                                }
+                            } else {
+                                com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+                            }
+                        } else if (!isGaplessAlbum && crossfadeEnabled && dur > 0L) {
+                            val remainingToCrossfade = (dur - crossfadeMs) - currentPosition
+                            if (nextTrack != null && remainingToCrossfade in 1000L..12000L && !MusicManager.isCrossfadingOut && !MusicManager.isPrebuffered(nextTrack.id)) {
+                                triggerPrebuffer(nextTrack, null)
+                            }
+                            if (currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
+                                com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+                                MusicManager.isCrossfadingOut = true
+                                playNext(manual = false, isCrossfade = true)
+                            }
+                        } else {
+                            com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
                         }
                     }
                     AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
@@ -4023,7 +4707,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                 } catch (_: Exception) {
                 }
-                delay(1000.milliseconds)
+                val durForDelay = if (MusicManager.player.duration > 0) MusicManager.player.duration else duration
+                val sleepTime = if (durForDelay > 0 && (durForDelay - currentPosition) < 25000L) 200L else 500L
+                delay(sleepTime)
             }
         }
     }
@@ -4290,6 +4976,54 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private var prebufferJob: Job? = null
+
+    private fun triggerPrebuffer(nextTrack: Track, plan: com.alananasss.kittytune.audio.automix.AutomixPlan?) {
+        if (MusicManager.isPrebuffered(nextTrack.id)) return
+        prebufferJob?.cancel()
+        prebufferJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                var resolvedUrl: String? = null
+                var offlineKeySetId: ByteArray? = null
+
+                val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
+                val localTrack = db.getTrack(nextTrack.id)
+                if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
+                    if (localTrack.localAudioPath.startsWith("exo_cache://")) {
+                        val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
+                        resolvedUrl = parts.getOrNull(1)
+                        val tokenStr = parts.getOrNull(2)
+                        if (!tokenStr.isNullOrEmpty()) {
+                            offlineKeySetId = android.util.Base64.decode(tokenStr, android.util.Base64.NO_WRAP)
+                            MusicManager.putDrmToken(nextTrack.id, tokenStr)
+                        }
+                    } else {
+                        val fileExists = if (localTrack.localAudioPath.startsWith("content://")) true else File(localTrack.localAudioPath).exists()
+                        if (fileExists) resolvedUrl = localTrack.localAudioPath
+                    }
+                }
+
+                if (resolvedUrl == null) {
+                    val resolved = StreamResolver.resolveStreamWithDrm(context, nextTrack)
+                    resolvedUrl = resolved?.url
+                    if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
+                        MusicManager.putDrmToken(nextTrack.id, resolved.licenseAuthToken)
+                    }
+                }
+
+                if (resolvedUrl != null) {
+                    val bitmap = loadBitmap(nextTrack.fullResArtwork)
+                    val mediaItem = buildMediaItem(nextTrack, bitmap, resolvedUrl, offlineKeySetId)
+                    withContext(Dispatchers.Main) {
+                        MusicManager.prebufferTransition(mediaItem, nextTrack, plan)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w("PlayerViewModel", "triggerPrebuffer failed for track ${nextTrack.id}: ${e.message}")
+            }
+        }
+    }
+
     private fun playRobustly(
         index: Int,
         autoPlay: Boolean = true,
@@ -4300,6 +5034,33 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (index !in _queue.indices) return
 
         val trackToPlay = _queue[index]
+
+        if (isCrossfade && MusicManager.isPrebuffered(trackToPlay.id)) {
+            val emptyItem = MediaItem.Builder().setMediaId(trackToPlay.id.toString()).build()
+            viewModelScope.launch(Dispatchers.Main) {
+                try {
+                    isLoading = false
+                    isPlaying = true
+                    currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
+                    if (MusicManager.player.duration > 0) duration = MusicManager.player.duration
+                    startProgressUpdate()
+                    val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
+                    val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
+                    MusicManager.crossfadeToMediaItem(emptyItem, startPosition, crossfadeDurationMs, automixPlan)
+                    MusicManager.applyEffects(effectsState)
+                    preloadNextTrack(index + 1)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    isLoading = false
+                    isPlaying = false
+                }
+            }
+            return
+        }
+
+        if (!isCrossfade) {
+            MusicManager.releasePrebuffered()
+        }
 
         playJob?.cancel()
         playJob = viewModelScope.launch(Dispatchers.IO) {
@@ -4390,7 +5151,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                     if (isCrossfade) {
                         val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
-                        MusicManager.crossfadeToMediaItem(newMediaItem, startPosition, crossfadeDurationMs)
+                        val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
+                        MusicManager.crossfadeToMediaItem(newMediaItem, startPosition, crossfadeDurationMs, automixPlan)
                     } else {
                         MusicManager.player.setMediaItem(newMediaItem, startPosition)
                         MusicManager.player.prepare()
@@ -4413,6 +5175,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun preloadNextTrack(nextIndex: Int) {
+        if (repeatMode == RepeatMode.ONE || playerPrefs.getCrossfadeEnabled()) {
+            return
+        }
+
         val targetIndex = if (nextIndex >= _queue.size) {
             if (repeatMode == RepeatMode.ALL && _queue.isNotEmpty()) 0 else return
         } else nextIndex
@@ -4479,9 +5245,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             else -> Uri.fromFile(File(urlOverride))
         }
 
+        val artist = track.displayArtist.ifBlank { getString(R.string.unknown_artist) }
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(track.title ?: getString(R.string.untitled_track))
-            .setArtist(track.displayArtist.ifBlank { getString(R.string.unknown_artist) })
+            .setArtist(artist)
+            .setSubtitle(artist)
             .setArtworkUri(track.fullResArtwork.toUri())
 
         if (bitmap != null) {
