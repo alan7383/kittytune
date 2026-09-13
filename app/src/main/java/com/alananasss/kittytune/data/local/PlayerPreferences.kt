@@ -264,7 +264,7 @@ class PlayerPreferences(context: Context) {
     fun getCrossfadeGapless(): Boolean = prefs.getBoolean(KEY_CROSSFADE_GAPLESS, true)
     fun setCrossfadeGapless(enabled: Boolean) = prefs.edit { putBoolean(KEY_CROSSFADE_GAPLESS, enabled) }
 
-    fun getAutomixEnabled(): Boolean = prefs.getBoolean(KEY_AUTOMIX_ENABLED, true)
+    fun getAutomixEnabled(): Boolean = prefs.getBoolean(KEY_AUTOMIX_ENABLED, false)
     fun setAutomixEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTOMIX_ENABLED, enabled) }
 
     fun getAutomixDebugOverlayEnabled(): Boolean = prefs.getBoolean(KEY_AUTOMIX_DEBUG_OVERLAY, false)
@@ -723,7 +723,7 @@ class PlayerPreferences(context: Context) {
         if (getPlayerProgressMode() == PlayerProgressMode.SOUNDCLOUD) {
             return PlayerDesign.SOUNDCLOUD
         }
-        return if (getNewPlayerDesignEnabled()) PlayerDesign.PIXEL_PLAYER else PlayerDesign.CLASSIC
+        return if (getNewPlayerDesignEnabled()) PlayerDesign.MODERN else PlayerDesign.CLASSIC
     }
 
     fun setPlayerDesign(design: PlayerDesign) {

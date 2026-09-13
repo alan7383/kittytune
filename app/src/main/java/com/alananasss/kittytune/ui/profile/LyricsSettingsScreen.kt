@@ -32,6 +32,7 @@
     import com.alananasss.kittytune.ui.common.SettingsItem
     import com.alananasss.kittytune.ui.common.SettingsScaffold
     import com.alananasss.kittytune.ui.common.SettingsGroupTitle
+    import com.alananasss.kittytune.ui.common.getSettingsShape
     import com.alananasss.kittytune.ui.player.PlayerViewModel
     import androidx.compose.material3.OutlinedTextField
     import com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider
@@ -811,18 +812,24 @@
 
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
 
-                            val totalVisibleItems = 3 + (if (showLyricsButton) 1 else 0) + 1 + (if (lyricsUnderCover) 3 else 0) + 2
-                            var itemIndex = 0
+                            val inlineIndex = 2
+                            val underCoverIndex = if (showLyricsButton) 3 else 2
+                            val multiStateIndex = underCoverIndex + 1
+                            val placementIndex = underCoverIndex + 2
+                            val alwaysIndex = underCoverIndex + 3
+                            val alignIndex = underCoverIndex + (if (lyricsUnderCover) 4 else 1)
+                            val sizeIndex = alignIndex + 1
+                            val totalVisibleItems = sizeIndex + 1
 
                             SettingsItem(
-                                shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                shape = getSettingsShape(totalVisibleItems, 0),
                                 title = stringResource(R.string.pref_lyrics_provider_title),
                                 subtitle = if (provider == com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY) stringResource(R.string.pref_lyrics_provider_max_quality) else stringResource(R.string.pref_lyrics_provider_open_source),
                                 onClick = { showProviderDialog = true }
                             )
 
                             SettingsItem(
-                                shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                shape = getSettingsShape(totalVisibleItems, 1),
                                 title = stringResource(R.string.pref_lyrics_show_button),
                                 subtitle = stringResource(R.string.pref_lyrics_show_button_sub),
                                 hasSwitch = true,
@@ -839,7 +846,7 @@
                                 exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
                             ) {
                                 SettingsItem(
-                                    shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                    shape = getSettingsShape(totalVisibleItems, inlineIndex),
                                     title = stringResource(R.string.pref_lyrics_inline),
                                     subtitle = stringResource(R.string.pref_lyrics_inline_sub),
                                     hasSwitch = true,
@@ -852,7 +859,7 @@
                             }
 
                             SettingsItem(
-                                shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                shape = getSettingsShape(totalVisibleItems, underCoverIndex),
                                 title = stringResource(R.string.pref_lyrics_under_cover),
                                 subtitle = stringResource(R.string.pref_lyrics_under_cover_sub),
                                 hasSwitch = true,
@@ -870,7 +877,7 @@
                             ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                     SettingsItem(
-                                        shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                        shape = getSettingsShape(totalVisibleItems, multiStateIndex),
                                         title = stringResource(R.string.pref_lyrics_multi_state),
                                         subtitle = stringResource(R.string.pref_lyrics_multi_state_sub),
                                         hasSwitch = true,
@@ -882,7 +889,7 @@
                                     )
 
                                     SettingsItem(
-                                        shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                        shape = getSettingsShape(totalVisibleItems, placementIndex),
                                         title = stringResource(R.string.pref_lyrics_under_cover_placement),
                                         subtitle = when (lyricsUnderCoverPlacement) {
                                             LyricsUnderCoverPlacement.REPLACE_TITLE_ARTIST -> stringResource(R.string.pref_lyrics_under_cover_replace)
@@ -892,7 +899,7 @@
                                     )
 
                                     SettingsItem(
-                                        shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                        shape = getSettingsShape(totalVisibleItems, alwaysIndex),
                                         title = stringResource(R.string.pref_lyrics_under_cover_always),
                                         subtitle = stringResource(R.string.pref_lyrics_under_cover_always_sub),
                                         hasSwitch = true,
@@ -906,7 +913,7 @@
                             }
 
                             SettingsItem(
-                                shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                shape = getSettingsShape(totalVisibleItems, alignIndex),
                                 title = stringResource(R.string.pref_lyrics_align),
                                 subtitle = when(alignment) {
                                     LyricsAlignment.LEFT -> stringResource(R.string.align_left)
@@ -917,7 +924,7 @@
                             )
 
                             SettingsItem(
-                                shape = com.alananasss.kittytune.ui.common.getSettingsShape(totalVisibleItems, itemIndex++),
+                                shape = getSettingsShape(totalVisibleItems, sizeIndex),
                                 title = stringResource(R.string.pref_lyrics_size),
                                 subtitle = "${fontSize.roundToInt()} sp",
                                 onClick = { showFontSizeDialog = true }
