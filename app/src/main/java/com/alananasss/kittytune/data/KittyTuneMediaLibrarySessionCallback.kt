@@ -38,6 +38,9 @@
     import android.content.Intent
     import kotlinx.coroutines.withContext
     import kotlinx.coroutines.flow.first
+    import kotlinx.coroutines.flow.MutableStateFlow
+    import kotlinx.coroutines.flow.StateFlow
+    import kotlinx.coroutines.flow.asStateFlow
     import kotlinx.coroutines.CoroutineScope
 
     class KittyTuneMediaLibrarySessionCallback(
@@ -47,6 +50,15 @@
         private val serviceScope: CoroutineScope,
         private val onControllerConnected: () -> Unit = {}
     ) : MediaLibraryService.MediaLibrarySession.Callback {
+
+        private val automotiveControllers = mutableSetOf<MediaSession.ControllerInfo>()
+        private val _isAutomotiveControllerConnected = MutableStateFlow(false)
+        val isAutomotiveControllerConnected: StateFlow<Boolean> = _isAutomotiveControllerConnected.asStateFlow()
+
+        fun release() {
+            automotiveControllers.clear()
+            _isAutomotiveControllerConnected.value = false
+        }
 
         companion object {
             const val ROOT_ID = "kittytune_root"
@@ -68,6 +80,15 @@
             session: MediaSession,
             controller: MediaSession.ControllerInfo
         ): ListenableFuture<MediaSession.ConnectionResult> {
+            val isAuto = session.isAutomotiveController(controller) ||
+                    session.isAutoCompanionController(controller) ||
+                    controller.packageName.let { it.contains("gearhead") || it.contains("automotive") }
+            android.util.Log.d("KittyTuneAA", "onConnectAsync: pkg=${controller.packageName}, isAuto=$isAuto")
+            if (isAuto) {
+                automotiveControllers += controller
+                _isAutomotiveControllerConnected.value = true
+            }
+
             @Suppress("DEPRECATION")
             val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session)
             val defaultResult = builder.build()
@@ -86,12 +107,31 @@
             return Futures.immediateFuture(connectionResult)
         }
 
+        @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
         override fun onPostConnect(
             session: MediaSession,
             controller: MediaSession.ControllerInfo
         ) {
+            val isAuto = session.isAutomotiveController(controller) ||
+                    session.isAutoCompanionController(controller) ||
+                    controller.packageName.let { it.contains("gearhead") || it.contains("automotive") }
+            android.util.Log.d("KittyTuneAA", "onPostConnect: pkg=${controller.packageName}, isAuto=$isAuto")
+            if (isAuto) {
+                automotiveControllers += controller
+                _isAutomotiveControllerConnected.value = true
+            }
             super.onPostConnect(session, controller)
             onControllerConnected()
+        }
+
+        override fun onDisconnected(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ) {
+            android.util.Log.d("KittyTuneAA", "onDisconnected: pkg=${controller.packageName}")
+            automotiveControllers -= controller
+            _isAutomotiveControllerConnected.value = automotiveControllers.isNotEmpty()
+            super.onDisconnected(session, controller)
         }
 
         override fun onCustomCommand(
@@ -615,9 +655,11 @@
 
             val uri = if (urlOverride != null) Uri.parse(urlOverride) else Uri.parse("soundtune://track/${track.id}")
 
+            val artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) }
             val metadataBuilder = MediaMetadata.Builder()
                 .setTitle(track.title ?: context.getString(R.string.untitled_track))
-                .setArtist(track.user?.username ?: context.getString(R.string.unknown_artist))
+                .setArtist(artist)
+                .setSubtitle(artist)
                 .setArtworkUri(Uri.parse(track.fullResArtwork))
                 .setIsBrowsable(false)
                 .setIsPlayable(true)

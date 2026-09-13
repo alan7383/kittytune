@@ -26,6 +26,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import android.app.PendingIntent
 
 class PlaybackService : MediaLibraryService() {
@@ -43,11 +47,14 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private var mediaSession: MediaLibrarySession? = null
+    private var librarySessionCallback: KittyTuneMediaLibrarySessionCallback? = null
     private val serviceScope = CoroutineScope(Dispatchers.Main)
 
     private var updateJob: Job? = null
     private var discordJob: Job? = null
     private var discordRpc: DiscordRPC? = null
+    private var automotiveLyricsJob: Job? = null
+    private var automotiveLyricsGeneration = 0
     private lateinit var prefs: PlayerPreferences
 
     @OptIn(UnstableApi::class)
@@ -114,7 +121,7 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-        val librarySessionCallback = KittyTuneMediaLibrarySessionCallback(
+        librarySessionCallback = KittyTuneMediaLibrarySessionCallback(
             context = this,
             likeRepository = LikeRepository,
             api = RetrofitClient.create(this),
@@ -122,7 +129,7 @@ class PlaybackService : MediaLibraryService() {
             onControllerConnected = { requestUpdate(delayed = false) }
         )
 
-        mediaSession = MediaLibrarySession.Builder(this, createForwardingPlayer(), librarySessionCallback)
+        mediaSession = MediaLibrarySession.Builder(this, createForwardingPlayer(), librarySessionCallback!!)
             .setId("KittyTuneSession")
             .setSessionActivity(pendingIntent)
             .build()
@@ -157,6 +164,33 @@ class PlaybackService : MediaLibraryService() {
         val sessionToken = androidx.media3.session.SessionToken(this, android.content.ComponentName(this, PlaybackService::class.java))
         val controllerFuture = androidx.media3.session.MediaController.Builder(this, sessionToken).buildAsync()
         controllerFuture.addListener({ controllerFuture.get() }, androidx.core.content.ContextCompat.getMainExecutor(this))
+
+        // Android Auto synchronized lyrics observer
+        serviceScope.launch {
+            combine(
+                librarySessionCallback!!.isAutomotiveControllerConnected,
+                prefs.getAndroidAutoSyncedLyricsFlow()
+            ) { automotiveConnected, lyricsEnabled ->
+                android.util.Log.d("KittyTuneAA", "combine flow: auto=$automotiveConnected, pref=$lyricsEnabled")
+                automotiveConnected && lyricsEnabled
+            }.collectLatest { shouldRun ->
+                android.util.Log.d("KittyTuneAA", "automotiveLyricsObserver: shouldRun=$shouldRun")
+                automotiveLyricsJob?.cancel()
+                if (!shouldRun) {
+                    automotiveLyricsJob = null
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        val original = currentTrack.displayArtist.ifBlank { currentTrack.user?.username ?: getString(R.string.unknown_artist) }
+                        replaceCurrentMediaSubtitle(currentTrack.id.toString(), original)
+                    }
+                    return@collectLatest
+                }
+
+                automotiveLyricsJob = launch {
+                    runAutomotiveLyricsWorker()
+                }
+            }
+        }
 
         initDiscordRpc()
     }
@@ -284,8 +318,159 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    private fun replaceCurrentMediaSubtitle(
+        mediaId: String,
+        subtitle: CharSequence?,
+        isLyric: Boolean = false,
+    ) {
+        val player = MusicManager.player
+        val index = player.currentMediaItemIndex
+        if (index == androidx.media3.common.C.INDEX_UNSET || index !in 0 until player.mediaItemCount) return
+
+        val mediaItem = player.getMediaItemAt(index)
+        val rawItemMediaId = mediaItem.mediaId
+        val matchesId = rawItemMediaId == mediaId ||
+                rawItemMediaId.contains(mediaId) ||
+                rawItemMediaId.removePrefix("track:").substringBefore(":context:") == mediaId
+
+        android.util.Log.d("KittyTuneAA", "replaceSubtitle: rawId=$rawItemMediaId, target=$mediaId, matches=$matchesId, currentSub=${mediaItem.mediaMetadata.subtitle}, newSub=$subtitle, isLyric=$isLyric")
+        if (!matchesId) return
+        if (mediaItem.mediaMetadata.subtitle == subtitle && mediaItem.mediaMetadata.artist == subtitle) return
+
+        try {
+            val title = mediaItem.mediaMetadata.title
+            val metaBuilder = mediaItem.mediaMetadata.buildUpon()
+                .setSubtitle(subtitle)
+                .setArtist(subtitle)
+            if (isLyric && title != null) {
+                metaBuilder.setDisplayTitle(title)
+            }
+            player.replaceMediaItem(
+                index,
+                mediaItem.buildUpon()
+                    .setMediaMetadata(metaBuilder.build())
+                    .build()
+            )
+        } catch (e: Exception) {
+            android.util.Log.w("KittyTuneAA", "replaceMediaItem failed: ${e.message}")
+        }
+    }
+
+    private suspend fun runAutomotiveLyricsWorker() {
+        val generation = ++automotiveLyricsGeneration
+        android.util.Log.d("KittyTuneAA", "runAutomotiveLyricsWorker started (gen=$generation)")
+        try {
+            var lastSegmentKey: Pair<Int, Int>? = null
+            var lastSubtitle: CharSequence? = null
+            var currentMediaId: String? = null
+            var originalSubtitle: String? = null
+
+            while (serviceScope.isActive && generation == automotiveLyricsGeneration) {
+                val currentTrack = MusicManager.currentTrack
+                val player = MusicManager.player
+                if (currentTrack == null || !player.isPlaying) {
+                    delay(400)
+                    continue
+                }
+
+                val mediaId = currentTrack.id.toString()
+                if (mediaId != currentMediaId) {
+                    currentMediaId = mediaId
+                    originalSubtitle = currentTrack.displayArtist.ifBlank { currentTrack.user?.username ?: getString(R.string.unknown_artist) }
+                    lastSegmentKey = null
+                    lastSubtitle = null
+                }
+
+                var lines = MusicManager.currentLyricsFlow.value
+                if (lines.isEmpty()) {
+                    val cached = LyricsCache.get(currentTrack.id, null, null, false)
+                    if (cached != null && cached.found && cached.lines.isNotEmpty()) {
+                        MusicManager.currentLyricsFlow.value = cached.lines
+                        lines = cached.lines
+                    } else {
+                        withContext(Dispatchers.IO) {
+                            try {
+                                val provider = com.alananasss.kittytune.data.lyrics.providers.LyricsProviders.get(
+                                    com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.BETTER_LYRICS
+                                ) ?: com.alananasss.kittytune.data.lyrics.providers.LyricsProviders.get(
+                                    com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.LRCLIB
+                                )
+                                val durationSec = ((currentTrack.durationMs ?: 0L) / 1000L).toInt()
+                                val res = provider?.getLyrics(
+                                    id = currentTrack.id.toString(),
+                                    title = currentTrack.title ?: "",
+                                    artist = currentTrack.displayArtist,
+                                    album = null,
+                                    duration = durationSec
+                                )
+                                val lrc = res?.getOrNull()
+                                    if (!lrc.isNullOrBlank()) {
+                                        val parsed = com.alananasss.kittytune.ui.player.lyrics.LyricsUtils.parseLyricsContent(lrc, currentTrack.durationMs ?: 0L)
+                                        if (parsed.isNotEmpty()) {
+                                            LyricsCache.put(
+                                                currentTrack.id,
+                                                LyricsCache.Entry(found = true, lines = parsed, plain = null)
+                                            )
+                                            MusicManager.currentLyricsFlow.value = parsed
+                                        }
+                                    }
+                            } catch (_: Exception) {}
+                        }
+                        lines = MusicManager.currentLyricsFlow.value
+                    }
+                }
+
+                if (lines.isEmpty()) {
+                    if (lastSubtitle != originalSubtitle) {
+                        replaceCurrentMediaSubtitle(mediaId, originalSubtitle, isLyric = false)
+                        lastSubtitle = originalSubtitle
+                    }
+                    delay(1000)
+                    continue
+                }
+
+                val lyricsOffsetMs = MusicManager.lyricsOffsetMs
+                val trackDurationMs = player.duration.takeIf { it != androidx.media3.common.C.TIME_UNSET && it > 0L }
+                val positionMs = player.currentPosition.coerceAtLeast(0L)
+
+                val currentLine = com.alananasss.kittytune.data.auto.AndroidAutoLyrics.currentLine(
+                    lines = lines,
+                    positionMs = positionMs,
+                    offsetMs = lyricsOffsetMs,
+                    trackDurationMs = trackDurationMs
+                )
+
+                val isLyric = currentLine != null
+                val subtitle = currentLine?.text ?: originalSubtitle
+                val segmentKey = currentLine?.let { it.index to it.segmentIndex }
+
+                if (segmentKey != lastSegmentKey || subtitle != lastSubtitle) {
+                    replaceCurrentMediaSubtitle(mediaId, subtitle, isLyric = isLyric)
+                    lastSegmentKey = segmentKey
+                    lastSubtitle = subtitle
+                }
+
+                delay(com.alananasss.kittytune.data.auto.AndroidAutoLyrics.UPDATE_INTERVAL_MS)
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            android.util.Log.w("PlaybackService", "Automotive lyrics update error: ${e.message}")
+        } finally {
+            if (generation == automotiveLyricsGeneration) {
+                val currentTrack = MusicManager.currentTrack
+                if (currentTrack != null) {
+                    val original = currentTrack.displayArtist.ifBlank { currentTrack.user?.username ?: getString(R.string.unknown_artist) }
+                    replaceCurrentMediaSubtitle(currentTrack.id.toString(), original, isLyric = false)
+                }
+            }
+        }
+    }
+
     override fun onDestroy() {
         closeDiscordRpc()
+        automotiveLyricsJob?.cancel()
+        librarySessionCallback?.release()
         mediaSession?.run { release(); mediaSession = null }
         super.onDestroy()
     }
