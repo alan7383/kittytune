@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-    <resources>
-        <style name="Theme.SoundTune" parent="android:Theme.DeviceDefault.NoActionBar">
-            <item name="android:statusBarColor">@android:color/transparent</item>
-            <item name="android:navigationBarColor">@android:color/transparent</item>
-            <item name="android:windowBackground">?android:attr/colorBackground</item>
-        </style>
-    </resources>
-
-
+<resources>
+    <style name="Theme.KittyTune.Vector" parent="Theme.Material3.DynamicColors.DayNight">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+</resources>

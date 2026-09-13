@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -55,6 +56,38 @@ object ThemeState {
  */
 private const val SEED_TRANSITION_MS = 450
 
+/** The near-black the player draws its icons in once a cover is bright enough to need it. */
+internal val DarkContentColor = Color(0xFF1D1B20)
+
+/**
+ * Luminance band over which an icon on an artwork-coloured surface travels from white to [DarkContentColor].
+ *
+ * The player's play button is filled with a colour taken from the cover and tweened, so it slides through
+ * every shade between one track's colour and the next. A single threshold (`luminance() > 0.4f`) makes the
+ * icon sitting on it jump from white to black in one frame somewhere in the middle of that slide, which
+ * reads as a glitch next to a fill that is still moving. Blending across a band instead lets the icon leave
+ * white gradually, so the two finish changing together.
+ *
+ * The band is wide enough that the icon is never mid-grey for long, and narrow enough that the ends are
+ * still reached before the fill settles — at either extreme the contrast is the same as the old hard cut.
+ */
+private const val CONTENT_FLIP_LOW = 0.28f
+private const val CONTENT_FLIP_HIGH = 0.52f
+
+/**
+ * The icon colour to draw on top of [background], blended rather than switched.
+ *
+ * Use this instead of comparing `background.luminance()` to a threshold whenever [background] is itself
+ * animated: because the input is a lerp, the result follows the fill frame by frame and no separate
+ * animation is needed. Still correct on a static background, where it simply returns white or
+ * [DarkContentColor].
+ */
+internal fun blendedContentColorOn(background: Color): Color {
+    val progress = ((background.luminance() - CONTENT_FLIP_LOW) / (CONTENT_FLIP_HIGH - CONTENT_FLIP_LOW))
+        .coerceIn(0f, 1f)
+    return androidx.compose.ui.graphics.lerp(Color.White, DarkContentColor, progress)
+}
+
 internal val KittyTuneDefaultSeedColor = Color(0xFFFF7A1A)
 internal val MaterialKolorColorSpecOptions = listOf("SPEC_2025", "SPEC_2021")
 
@@ -79,6 +112,7 @@ internal fun normalizedMaterialKolorColorSpecName(colorSpec: String): String =
 internal fun rememberSoundTuneColorScheme(
     useDarkTheme: Boolean,
     dynamicColor: Boolean,
+    trackDynamicColor: Boolean = false,
     pureBlack: Boolean,
     keyColor: Int,
     colorStyle: String,
@@ -86,11 +120,8 @@ internal fun rememberSoundTuneColorScheme(
 ): ColorScheme {
     val context = LocalContext.current
 
-    // Read before anything can return, which is the whole trick. The "System" branch below hands back the
-    // platform's own wallpaper scheme and never looks at the cover — so with that style picked, and it is the
-    // default, following the artwork would have silently done nothing. The desktop had the identical bug with
-    // its own accent styles (issue #33).
-    val coverSeed = if (dynamicColor) ThemeState.coverSeedColor else null
+    // Read before anything can return: artwork seed is only used when track-based dynamic color is enabled.
+    val coverSeed = if (trackDynamicColor) ThemeState.coverSeedColor else null
 
     // Use the native system generated scheme if "System" style is selected with Auto color — but only while
     // there is no cover colour to prefer.
@@ -235,6 +266,7 @@ private fun ColorScheme.withAmoledSurfaces(): ColorScheme =
 fun SoundTuneTheme(
     themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     dynamicColor: Boolean = true,
+    trackDynamicColor: Boolean = false,
     pureBlack: Boolean = false,
     keyColor: Int = 0,
     colorStyle: String = "System",
@@ -253,6 +285,7 @@ fun SoundTuneTheme(
     val colorScheme = rememberSoundTuneColorScheme(
         useDarkTheme = useDarkTheme,
         dynamicColor = dynamicColor,
+        trackDynamicColor = trackDynamicColor,
         pureBlack = pureBlack,
         keyColor = keyColor,
         colorStyle = colorStyle,

@@ -5,6 +5,11 @@
             <item name="android:navigationBarColor">@android:color/transparent</item>
             <item name="android:windowBackground">?android:attr/colorBackground</item>
         </style>
+
+        <style name="Theme.KittyTune.Vector" parent="Theme.Material3.DynamicColors.DayNight">
+            <item name="windowActionBar">false</item>
+            <item name="windowNoTitle">true</item>
+        </style>
     </resources>
 
 
