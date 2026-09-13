@@ -2,12 +2,14 @@ package com.alananasss.kittytune.ui.navigation
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.pixel.miniPlayerDismissHorizontalGesture
+import com.alananasss.kittytune.ui.player.pixel.rememberMiniPlayerDismissGestureHandler
+import kotlin.math.abs
 
 data class KittyTab(
     val title: String,
@@ -52,6 +61,30 @@ fun KittyUnifiedBottomBar(
     val track = playerViewModel.currentTrack
     val isPlaying = playerViewModel.isPlaying
 
+    val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    val hapticFeedback = LocalHapticFeedback.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val screenWidthPx = remember(configuration, density) {
+        with(density) { configuration.screenWidthDp.dp.toPx() }
+    }
+    val offsetAnimatable = remember { Animatable(0f) }
+
+    val miniDismissGestureHandler = rememberMiniPlayerDismissGestureHandler(
+        scope = coroutineScope,
+        density = density,
+        hapticFeedback = hapticFeedback,
+        offsetAnimatable = offsetAnimatable,
+        screenWidthPx = screenWidthPx,
+        onDismiss = {
+            playerViewModel.dismissMiniPlayerAndShowUndo()
+        },
+        onDismissStarted = {
+            playerViewModel.isMiniPlayerDismissing = true
+        }
+    )
+
     if (style == "classic") {
         Column(
             modifier = modifier.fillMaxWidth()
@@ -61,6 +94,15 @@ fun KittyUnifiedBottomBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(64.dp)
+                        .systemGestureExclusion()
+                        .graphicsLayer {
+                            translationX = offsetAnimatable.value
+                            alpha = (1f - (abs(offsetAnimatable.value) / (screenWidthPx * 0.85f))).coerceIn(0f, 1f)
+                        }
+                        .miniPlayerDismissHorizontalGesture(
+                            enabled = true,
+                            handler = miniDismissGestureHandler
+                        )
                         .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                         .clickable { onPlayerClick() }
                         .background(MaterialTheme.colorScheme.surfaceContainer)
@@ -173,6 +215,15 @@ fun KittyUnifiedBottomBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(64.dp)
+                        .systemGestureExclusion()
+                        .graphicsLayer {
+                            translationX = offsetAnimatable.value
+                            alpha = (1f - (abs(offsetAnimatable.value) / (screenWidthPx * 0.85f))).coerceIn(0f, 1f)
+                        }
+                        .miniPlayerDismissHorizontalGesture(
+                            enabled = true,
+                            handler = miniDismissGestureHandler
+                        )
                         .clip(RoundedCornerShape(16.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainer)
                         .clickable { onPlayerClick() }
@@ -244,73 +295,104 @@ fun KittyUnifiedBottomBar(
                     )
                 }
             }
-            HorizontalFloatingToolbar(
-                expanded = true,
-                floatingActionButton = {
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 480.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val isCompact = maxWidth < 375.dp
+                val tabHorizontalPadding = if (isCompact) 8.dp else 11.dp
+                val selectedTabHorizontalPadding = if (isCompact) 12.dp else 14.dp
+                val maxLabelWidth = if (isCompact) 80.dp else 110.dp
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 2.dp,
+                        shadowElevation = 3.dp,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .height(56.dp)
+                                .padding(horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            tabs.forEach { tab ->
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = tab.visible,
+                                    enter = androidx.compose.animation.expandHorizontally(
+                                        expandFrom = Alignment.CenterHorizontally,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                    ) + androidx.compose.animation.fadeIn(),
+                                    exit = androidx.compose.animation.shrinkHorizontally(
+                                        shrinkTowards = Alignment.CenterHorizontally,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                    ) + androidx.compose.animation.fadeOut()
+                                ) {
+                                    val isSelected = selectedRoute == tab.route
+
+                                    val shape = CircleShape
+                                    val containerColor by animateColorAsState(
+                                        targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                        label = "containerColor"
+                                    )
+                                    val contentColor by animateColorAsState(
+                                        targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        label = "contentColor"
+                                    )
+
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(shape)
+                                            .background(color = containerColor, shape = shape)
+                                            .clickable(onClick = { onTabSelected(tab) })
+                                            .padding(
+                                                horizontal = if (isSelected) selectedTabHorizontalPadding else tabHorizontalPadding,
+                                                vertical = 10.dp
+                                            )
+                                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = tab.icon,
+                                            contentDescription = tab.title,
+                                            tint = contentColor,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+
+                                        if (isSelected) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = tab.title,
+                                                color = contentColor,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.widthIn(max = maxLabelWidth)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
                     FloatingToolbarDefaults.VibrantFloatingActionButton(
                         onClick = onFabClick,
+                        modifier = Modifier.size(56.dp),
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     ) {
                         Icon(fabIcon, contentDescription = null)
-                    }
-                },
-                modifier = Modifier.widthIn(max = 480.dp),
-                colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
-                    toolbarContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                )
-            ) {
-                tabs.forEach { tab ->
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = tab.visible,
-                        enter = androidx.compose.animation.expandHorizontally(
-                            expandFrom = Alignment.CenterHorizontally,
-                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                        ) + androidx.compose.animation.fadeIn(),
-                        exit = androidx.compose.animation.shrinkHorizontally(
-                            shrinkTowards = Alignment.CenterHorizontally,
-                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                        ) + androidx.compose.animation.fadeOut()
-                    ) {
-                        val isSelected = selectedRoute == tab.route
-
-                    val shape = RoundedCornerShape(24.dp)
-                    val containerColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                        label = "containerColor"
-                    )
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        label = "contentColor"
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .clip(shape)
-                            .background(color = containerColor, shape = shape)
-                            .clickable(onClick = { onTabSelected(tab) })
-                            .padding(horizontal = if (isSelected) 16.dp else 12.dp, vertical = 12.dp)
-                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = tab.icon,
-                            contentDescription = tab.title,
-                            tint = contentColor
-                        )
-
-                        if (isSelected) {
-                            Spacer(modifier = Modifier.size(8.dp))
-                            Text(
-                                text = tab.title,
-                                color = contentColor,
-                                style = MaterialTheme.typography.labelLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
                     }
                 }
             }

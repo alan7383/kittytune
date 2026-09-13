@@ -73,8 +73,10 @@ import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.navigation.Screen
 import com.alananasss.kittytune.ui.navigation.clippedComposable
 import com.alananasss.kittytune.ui.player.*
+import com.alananasss.kittytune.ui.profile.integrations.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
 import com.alananasss.kittytune.ui.profile.*
+import com.alananasss.kittytune.ui.profile.integrations.*
 import com.alananasss.kittytune.ui.musicimport.*
 import com.alananasss.kittytune.ui.recognition.RecognitionScreen
 import com.alananasss.kittytune.ui.upload.UploadScreen
@@ -140,7 +142,7 @@ fun MainScreen(
     var startDestination by remember {
         mutableStateOf(
             when {
-                !tokenManager.getAccessToken().isNullOrEmpty() || tokenManager.isGuestMode() -> {
+                prefs.isSetupCompleted() && (!tokenManager.getAccessToken().isNullOrEmpty() || tokenManager.isGuestMode()) -> {
                     val destPref = prefs.getStartDestination()
                     if (destPref == StartDestination.LIBRARY) Screen.Library.route else Screen.Home.route
                 }
@@ -240,7 +242,7 @@ fun MainScreen(
             val route = navController.currentBackStackEntry?.destination?.route
             val recoveredLogin = !tm.isGuestMode() && !tm.getAccessToken().isNullOrEmpty()
 
-            if (recoveredLogin && route == Screen.Welcome.route) {
+            if (recoveredLogin && route == Screen.Welcome.route && prefs.isSetupCompleted()) {
                 navigateToAuthenticatedStart()
             }
         }
@@ -344,7 +346,7 @@ fun MainScreen(
                 force = tokenManager.shouldRefreshAccessToken()
             )
             playerViewModel.fetchUserProfile()
-            if (startDestination == Screen.Welcome.route) {
+            if (startDestination == Screen.Welcome.route && prefs.isSetupCompleted()) {
                 navigateToAuthenticatedStart()
             }
         }
@@ -384,6 +386,8 @@ fun MainScreen(
                     if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
                         val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
                         navController.navigate("spotify_artist/$clean")
+                    } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
+                        navController.navigate("playlist_detail/$target")
                     } else {
                         navController.navigate("profile/$target")
                     }
@@ -433,6 +437,7 @@ fun MainScreen(
 
         val currentRoute = currentDestination?.route ?: startDestination
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
+                currentRoute.startsWith("login") ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
                 currentRoute.startsWith("chat/") ||
@@ -441,13 +446,18 @@ fun MainScreen(
                 currentRoute == Screen.Recognition.route ||
                 currentRoute == "proxy_settings" ||
                 currentRoute == "discord_login" ||
-                currentRoute == "vk_login"
+                currentRoute == "vk_login" ||
+                currentRoute == "deezer_login" ||
+                currentRoute == "tidal_login"
 
         val hideNavRail = currentRoute == Screen.Login.route ||
+                currentRoute.startsWith("login") ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
                 currentRoute == "discord_login" ||
-                currentRoute == "vk_login"
+                currentRoute == "vk_login" ||
+                currentRoute == "deezer_login" ||
+                currentRoute == "tidal_login"
 
         val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -682,28 +692,54 @@ fun MainScreen(
                         slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
                     },
                     popExitTransition = {
-                        scaleOut(targetScale = 0.9f) + fadeOut()
+                        slideOutHorizontally(targetOffsetX = { it })
+                    },
+                    predictivePopEnterTransition = {
+                        slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
+                    },
+                    predictivePopExitTransition = {
+                        slideOutHorizontally(targetOffsetX = { it })
                     }
                 ) {
-                    clippedComposable(Screen.Welcome.route) {
+                    clippedComposable(Screen.Welcome.route) { backStackEntry ->
+                        val justLoggedIn by backStackEntry.savedStateHandle
+                            .getStateFlow("login_success", false)
+                            .collectAsState()
+
                         WelcomeScreen(
-                            onLoginClick = { navController.navigate(Screen.Login.route) },
+                            onLoginClick = { navController.navigate("login?fromSetup=true") },
+                            justLoggedIn = justLoggedIn,
+                            onClearJustLoggedIn = {
+                                backStackEntry.savedStateHandle["login_success"] = false
+                            },
                             onGuestClick = {
-                                isGuestLoading = true
-                                scope.launch {
-                                    delay(8000)
-                                    if (isGuestLoading) {
-                                        val tm = TokenManager(context)
-                                        tm.setGuestMode(true)
-                                        homeViewModel.loadData()
-                                        isGuestLoading = false
-                                        navController.navigate(Screen.Home.route) {
-                                            popUpTo(Screen.Welcome.route) { inclusive = true }
-                                        }
-                                    }
+                                val tm = TokenManager(context)
+                                tm.setGuestMode(true)
+                                prefs.setSetupCompleted(true)
+                                homeViewModel.loadData()
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(Screen.Welcome.route) { inclusive = true }
                                 }
                             },
-                            isGuestLoading = isGuestLoading
+                            onSetupComplete = {
+                                prefs.setSetupCompleted(true)
+                                val tm = TokenManager(context)
+                                if (tm.getAccessToken().isNullOrEmpty()) {
+                                    tm.setGuestMode(true)
+                                } else {
+                                    tm.setGuestMode(false)
+                                }
+                                homeViewModel.loadData()
+                                playerViewModel.fetchUserProfile()
+                                val targetRoute = if (prefs.getStartDestination() == StartDestination.LIBRARY) {
+                                    Screen.Library.route
+                                } else {
+                                    Screen.Home.route
+                                }
+                                navController.navigate(targetRoute) {
+                                    popUpTo(Screen.Welcome.route) { inclusive = true }
+                                }
+                            }
                         )
                     }
 
@@ -727,11 +763,16 @@ fun MainScreen(
                                 id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
                                     navController.navigate("playlist_detail/$id")
                                 }
+                                id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
+                                    navController.navigate("playlist_detail/$id")
+                                }
                                 id.startsWith("profile:") -> {
                                     val target = id.removePrefix("profile:")
                                     if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
                                         val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
                                         navController.navigate("spotify_artist/$clean")
+                                    } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
+                                        navController.navigate("playlist_detail/$target")
                                     } else {
                                         navController.navigate("profile/$target")
                                     }
@@ -769,11 +810,16 @@ fun MainScreen(
                                     id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
                                         navController.navigate("playlist_detail/$id")
                                     }
+                                    id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
                                     id.startsWith("profile:") -> {
                                         val target = id.removePrefix("profile:")
                                         if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
                                             val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
                                             navController.navigate("spotify_artist/$clean")
+                                        } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
+                                            navController.navigate("playlist_detail/$target")
                                         } else {
                                             navController.navigate("profile/$target")
                                         }
@@ -786,13 +832,34 @@ fun MainScreen(
                         )
                     }
 
-                    clippedComposable(Screen.Login.route) {
-                        LoginScreen({
-                            SessionManager.requestSessionRefresh(context, force = true)
-                            playerViewModel.fetchUserProfile()
-                            homeViewModel.loadData()
-                            navController.navigate(Screen.Home.route) { popUpTo(0) }
-                        }, { navController.popBackStack() })
+                    clippedComposable(
+                        route = "login?fromSetup={fromSetup}",
+                        arguments = listOf(
+                            navArgument("fromSetup") {
+                                type = NavType.BoolType
+                                defaultValue = false
+                            }
+                        )
+                    ) { backStackEntry ->
+                        val fromSetup = backStackEntry.arguments?.getBoolean("fromSetup") ?: false
+                        LoginScreen(
+                            onLoginSuccess = {
+                                SessionManager.requestSessionRefresh(context, force = true)
+                                playerViewModel.fetchUserProfile()
+                                homeViewModel.loadData()
+                                if (fromSetup) {
+                                    runCatching {
+                                        navController.getBackStackEntry(Screen.Welcome.route).savedStateHandle["login_success"] = true
+                                    }.onFailure {
+                                        navController.previousBackStackEntry?.savedStateHandle?.set("login_success", true)
+                                    }
+                                    navController.popBackStack()
+                                } else {
+                                    navController.navigate(Screen.Home.route) { popUpTo(0) }
+                                }
+                            },
+                            onBackClick = { navController.popBackStack() }
+                        )
                     }
 
                     clippedComposable("expanded_queue") {
@@ -888,11 +955,16 @@ fun MainScreen(
                                     id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
                                         navController.navigate("playlist_detail/$id")
                                     }
+                                    id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
                                     id.startsWith("profile:") -> {
                                         val target = id.removePrefix("profile:")
                                         if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
                                             val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
                                             navController.navigate("spotify_artist/$clean")
+                                        } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
+                                            navController.navigate("playlist_detail/$target")
                                         } else {
                                             navController.navigate("profile/$target")
                                         }
@@ -1242,6 +1314,13 @@ fun MainScreen(
                         )
                     }
 
+                    clippedComposable("haptic_settings") {
+                        com.alananasss.kittytune.ui.profile.HapticSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            playerViewModel = playerViewModel
+                        )
+                    }
+
                     clippedComposable("drm_explanation") {
                         DrmExplanationScreen(
                             onBackClick = { navController.popBackStack() }
@@ -1338,7 +1417,49 @@ fun MainScreen(
                             onBackClick = { navController.popBackStack() },
                             onNavigateToSoundCloud = { navController.navigate("soundcloud_account_settings") },
                             onNavigateToVk = { navController.navigate("vk_account_settings") },
-                            onNavigateToDiscord = { navController.navigate("discord_settings") }
+                            onNavigateToDiscord = { navController.navigate("discord_settings") },
+                            onNavigateToProviderOrder = { navController.navigate("provider_order_settings") },
+                            onNavigateToQobuz = { navController.navigate("qobuz_settings") },
+                            onNavigateToTidal = { navController.navigate("tidal_settings") },
+                            onNavigateToDeezer = { navController.navigate("deezer_settings") }
+                        )
+                    }
+
+                    clippedComposable("provider_order_settings") {
+                        ProviderOrderScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("qobuz_settings") {
+                        QobuzSettingsScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("tidal_settings") {
+                        TidalSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigateToLogin = { navController.navigate("tidal_login") }
+                        )
+                    }
+
+                    clippedComposable("deezer_settings") {
+                        DeezerSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onNavigateToLogin = { navController.navigate("deezer_login") }
+                        )
+                    }
+
+                    clippedComposable("deezer_login") {
+                        DeezerLoginScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("tidal_login") {
+                        TidalLoginScreen(
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
 
@@ -1372,6 +1493,18 @@ fun MainScreen(
                     modifier = Modifier.align(Alignment.BottomCenter),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = playerViewModel.showDismissUndoBar && showBottomUi && !isFullScreenRoute,
+                        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        com.alananasss.kittytune.ui.player.pixel.DismissUndoBar(
+                            onUndo = { playerViewModel.undoDismissMiniPlayer() },
+                            onClose = { playerViewModel.hideDismissUndoBar() }
+                        )
+                    }
+
                     androidx.compose.animation.AnimatedVisibility(
                         visible = windowSizeInfo.showPhoneBottomBar && showBottomUi && !isFullScreenRoute,
                         enter = slideInVertically(initialOffsetY = { it }),
@@ -1661,6 +1794,10 @@ fun MainScreen(
                     }
                 }
             }
+        }
+
+        if (playerViewModel.showSelectArtistDialog) {
+            SelectArtistDialog(viewModel = playerViewModel)
         }
 
         AnimatedVisibility(

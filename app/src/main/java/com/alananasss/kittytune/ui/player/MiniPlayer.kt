@@ -43,13 +43,7 @@
             lastTrackKey = trackKey
 
             if (isTrackChange) {
-                animatedProgress.animateTo(
-                    targetValue = 0f,
-                    animationSpec = tween(
-                        durationMillis = 280,
-                        easing = FastOutSlowInEasing
-                    )
-                )
+                animatedProgress.snapTo(0f)
             }
 
             androidx.compose.runtime.snapshotFlow { 

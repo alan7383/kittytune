@@ -222,8 +222,9 @@ fun ExpandedQueueScreen(
                                     maxLines = 1
                                 )
                                 Text(
-                                    text = track.user?.username
-                                        ?: stringResource(R.string.unknown_artist),
+                                    text = track.displayArtist.ifBlank {
+                                        track.user?.username ?: stringResource(R.string.unknown_artist)
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1

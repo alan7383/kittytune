@@ -271,7 +271,14 @@ fun TabletSidePlayerPanel(
 
                     2 -> {
                         if (viewModel.lyricsLines.isNotEmpty()) {
-                            SyncedLyricsView(viewModel = viewModel, showControls = true)
+                            when (viewModel.lyricsUiStyle) {
+                                com.alananasss.kittytune.data.local.LyricsUiStyle.ENHANCED -> {
+                                    com.alananasss.kittytune.ui.player.lyrics.LyricsEnhancedView(viewModel = viewModel)
+                                }
+                                com.alananasss.kittytune.data.local.LyricsUiStyle.CLASSIC -> {
+                                    SyncedLyricsView(viewModel = viewModel, showControls = true)
+                                }
+                            }
                         } else {
                             PlainLyricsView(viewModel = viewModel, showControls = true)
                         }
