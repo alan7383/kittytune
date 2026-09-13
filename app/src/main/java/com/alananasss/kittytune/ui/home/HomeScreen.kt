@@ -377,7 +377,13 @@ fun HomeScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AnimatedVisibility(
-                                        visible = homeViewModel.activeSearchSource == SearchSource.SOUNDCLOUD || homeViewModel.activeSearchSource == SearchSource.SPOTIFY,
+                                        visible = homeViewModel.activeSearchSource in listOf(
+                                            SearchSource.SOUNDCLOUD,
+                                            SearchSource.SPOTIFY,
+                                            SearchSource.DEEZER,
+                                            SearchSource.TIDAL,
+                                            SearchSource.QOBUZ
+                                        ),
                                         enter = fadeIn(),
                                         exit = fadeOut(),
                                         modifier = Modifier.weight(1f)
@@ -538,6 +544,13 @@ fun HomeContent(
     history: List<HistoryItem>,
     onNavigate: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    val prefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
+    val historyCount = remember { history.count { it.type == "TRACK" } }
+    val isBannerEligible = remember { prefs.shouldShowSupportBanner(historyCount) }
+    var isSupportBannerVisible by remember { mutableStateOf(isBannerEligible) }
+
     val scrollState = rememberLazyListState()
     val allSections = homeViewModel.homeSections
 
@@ -550,15 +563,15 @@ fun HomeContent(
     val titleAlbums = stringResource(R.string.home_albums_for_you)
     val titleSimilarPrefix = stringResource(R.string.home_section_similar, "").trim()
 
-    val discoverySection = allSections.find { it.type == SectionType.DISCOVERY_ROW }
-    val recommendedSection = allSections.find { it.title == titleRecommended }
+    val discoverySection = allSections.find { it.id == "discovery" || it.type == SectionType.DISCOVERY_ROW }
+    val recommendedSection = allSections.find { it.id == "recommended" || it.title == titleRecommended || it.title.equals("Recommended for You", ignoreCase = true) || it.title.equals("Рекомендовано вам", ignoreCase = true) }
 
-    val rediscoverSection = allSections.find { it.title == titleRediscover }
-    val habitsSection = allSections.find { it.title == titleHabits }
+    val rediscoverSection = allSections.find { it.id == "rediscover" || it.title == titleRediscover || it.title.equals("Rediscover your collection", ignoreCase = true) || it.title.equals("Откройте свою коллекцию заново", ignoreCase = true) }
+    val habitsSection = allSections.find { it.id == "habits" || it.title == titleHabits || it.title.equals("Your Vibe", ignoreCase = true) || it.title.equals("Ваш вайб", ignoreCase = true) }
 
-    val stationsSection = allSections.find { it.title == titleStations }
-    val albumsSection = allSections.find { it.title == titleAlbums }
-    val similarSection = allSections.find { it.title.startsWith(titleSimilarPrefix) }
+    val stationsSection = allSections.find { it.id == "stations" || it.title == titleStations || it.title.equals("Discover with Stations", ignoreCase = true) || it.title.equals("Discover with stations", ignoreCase = true) || it.title.equals("Откройте для себя станции", ignoreCase = true) }
+    val albumsSection = allSections.find { it.id == "albums" || it.title == titleAlbums || it.title.equals("Albums for you", ignoreCase = true) || it.title.equals("Альбомы для вас", ignoreCase = true) }
+    val similarSection = allSections.find { it.id == "similar" || it.title.startsWith(titleSimilarPrefix) || it.title.startsWith("Similar to", ignoreCase = true) || it.title.startsWith("Похожие на", ignoreCase = true) }
 
     val usedSections = setOfNotNull(
         discoverySection,
@@ -584,14 +597,52 @@ fun HomeContent(
                 homeViewModel.moodCategories.take(10)
             }
 
-            HomeFilterRow(
-                categories = categoriesToShow,
-                onCategoryClick = { category ->
-                    val encodedTitle = Uri.encode(category.title)
-                    val encodedQuery = Uri.encode(category.query)
-                    onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
+            Column {
+                HomeFilterRow(
+                    categories = categoriesToShow,
+                    onCategoryClick = { category ->
+                        val encodedTitle = Uri.encode(category.title)
+                        val encodedQuery = Uri.encode(category.query)
+                        onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
+                    }
+                )
+
+                if (isBannerEligible) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = isSupportBannerVisible,
+                        enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(300)) +
+                                androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(300)),
+                        exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(250)) +
+                               androidx.compose.animation.shrinkVertically(
+                                   animationSpec = androidx.compose.animation.core.tween(
+                                       durationMillis = 400,
+                                       easing = androidx.compose.animation.core.FastOutSlowInEasing
+                                   )
+                               )
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(20.dp))
+                            SupportBannerCard(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                onStarGitHubClick = {
+                                    uriHandler.openUri("https://github.com/alan7383/kittytune")
+                                },
+                                onSupportKofiClick = {
+                                    uriHandler.openUri("https://ko-fi.com/alan7383")
+                                },
+                                onDismissClick = {
+                                    isSupportBannerVisible = false
+                                    prefs.setSupportBannerDismissed(true)
+                                },
+                                onRemindLaterClick = {
+                                    isSupportBannerVisible = false
+                                    prefs.snoozeSupportBanner(days = 3)
+                                }
+                            )
+                        }
+                    }
                 }
-            )
+            }
         }
 
         val cleanHistory = history.filter { it.id != "playlist:0" && !it.title.equals("history", ignoreCase = true) }
@@ -678,9 +729,12 @@ fun HomeContent(
         }
         discoverySection?.let {
             item {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(it.title, context)
+                val locSub = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(it.subtitle, context)
                 DiscoverySectionCarousel(
-                    title = it.title,
-                    subtitle = it.subtitle,
+                    title = locTitle,
+                    subtitle = locSub,
                     tracks = it.content.filterIsInstance<Track>(),
                     onTrackClick = { track ->
                         playerViewModel.playPlaylist(listOf(track), 0, null)
@@ -708,11 +762,15 @@ fun LazyListScope.RenderHomeSection(
     playerViewModel: PlayerViewModel
 ) {
     item {
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(section.title, context)
+        val locSub = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(section.subtitle, context)
+
         when (section.type) {
             SectionType.STATIONS_ROW -> {
                 StandardHorizontalSection(
-                    title = section.title,
-                    subtitle = section.subtitle
+                    title = locTitle,
+                    subtitle = locSub
                 ) {
                     val playlists = section.content.filterIsInstance<Playlist>()
                     items(playlists) { playlist ->
@@ -724,8 +782,8 @@ fun LazyListScope.RenderHomeSection(
 
             SectionType.TRACKS_ROW -> {
                 StandardHorizontalSection(
-                    title = section.title,
-                    subtitle = section.subtitle
+                    title = locTitle,
+                    subtitle = locSub
                 ) {
                     val tracks = section.content.filterIsInstance<Track>()
                     items(tracks) { track ->
@@ -736,8 +794,8 @@ fun LazyListScope.RenderHomeSection(
 
             SectionType.ARTISTS_ROW -> {
                 StandardHorizontalSection(
-                    title = section.title,
-                    subtitle = section.subtitle
+                    title = locTitle,
+                    subtitle = locSub
                 ) {
                     val artists = section.content.filterIsInstance<User>()
                     items(artists) { artist ->
@@ -748,8 +806,8 @@ fun LazyListScope.RenderHomeSection(
 
             SectionType.HIGHLIGHT_ROW -> {
                 StandardHorizontalSection(
-                    title = section.title,
-                    subtitle = section.subtitle
+                    title = locTitle,
+                    subtitle = locSub
                 ) {
                     val tracks = section.content.filterIsInstance<Track>()
                     items(tracks) { track ->
@@ -1323,16 +1381,19 @@ fun DiscoveryBigCard(
 fun StationCardLarge(playlist: Playlist, onClick: () -> Unit) {
     val isLikedBy = playlist.permalinkUrl == "liked_by_marker"
     val isArtistStation = playlist.permalinkUrl == "artist_station_marker"
+    val context = androidx.compose.ui.platform.LocalContext.current
 
-    val title = when {
-        isLikedBy -> playlist.title
+    val rawTitle = when {
+        isLikedBy -> playlist.user?.username?.let { stringResource(R.string.home_liked_by_user_title, it) } ?: playlist.title
         isArtistStation -> playlist.user?.username
         else -> playlist.title
     } ?: stringResource(R.string.untitled_track)
+    val title = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(rawTitle, context)
+
     val subtitle = when {
         isLikedBy -> stringResource(R.string.playlist_num_tracks, playlist.trackCount ?: 0)
         isArtistStation -> stringResource(R.string.home_artist_station_subtitle)
-        else -> playlist.user?.username ?: stringResource(R.string.lib_playlists)
+        else -> playlist.user?.username?.let { com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(it, context) } ?: stringResource(R.string.lib_playlists)
     }
 
     Card(
@@ -1443,6 +1504,9 @@ fun SearchSourceSelector(
                 SearchSource.YOUTUBE -> R.drawable.ic_logo_youtube
                 SearchSource.SPOTIFY -> R.drawable.ic_logo_spotify
                 SearchSource.VK -> R.drawable.ic_vk
+                SearchSource.DEEZER -> R.drawable.ic_logo_deezer
+                SearchSource.TIDAL -> R.drawable.ic_logo_tidal
+                SearchSource.QOBUZ -> R.drawable.ic_logo_qobuz
             }
             Icon(
                 painter = androidx.compose.ui.res.painterResource(iconRes),
@@ -1506,13 +1570,57 @@ fun SearchSourceSelector(
                     Icon(
                         painter = androidx.compose.ui.res.painterResource(R.drawable.ic_vk),
                         contentDescription = null,
-                        tint = Color(0xFF2787F5),
                         modifier = Modifier.size(20.dp)
                     )
                 },
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onSelect(SearchSource.VK)
+                    isSourceMenuExpanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.search_source_deezer)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_deezer),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelect(SearchSource.DEEZER)
+                    isSourceMenuExpanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.search_source_tidal)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_tidal),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelect(SearchSource.TIDAL)
+                    isSourceMenuExpanded = false
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.search_source_qobuz)) },
+                leadingIcon = {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_qobuz),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSelect(SearchSource.QOBUZ)
                     isSourceMenuExpanded = false
                 }
             )
@@ -1529,11 +1637,17 @@ fun getStationNavId(playlist: Playlist): String {
     val isSystemPlaylist = playlist.urn?.startsWith("soundcloud:system-playlists:") == true
 
     return when {
+        playlist.urn?.startsWith("deezer:") == true -> playlist.urn!!
+        playlist.urn?.startsWith("tidal:") == true -> playlist.urn!!
+        playlist.urn?.startsWith("qobuz:") == true -> playlist.urn!!
+        playlist.permalinkUrl?.startsWith("deezer:") == true -> playlist.permalinkUrl!!
+        playlist.permalinkUrl?.startsWith("tidal:") == true -> playlist.permalinkUrl!!
+        playlist.permalinkUrl?.startsWith("qobuz:") == true -> playlist.permalinkUrl!!
         isSystemPlaylist -> "system_playlist:${playlist.urn}"
         isLikedBy -> "liked_by:${playlist.id}"
         isArtistStation -> "station_artist:${playlist.id}"
-        isYoutubeRadio -> playlist.permalinkUrl!!
-        isSpotifyRadio -> playlist.permalinkUrl!!
+        isYoutubeRadio -> playlist.permalinkUrl ?: playlist.id.toString()
+        isSpotifyRadio -> playlist.permalinkUrl ?: playlist.id.toString()
         isTrackStation -> "station:${playlist.id}"
         else -> playlist.id.toString()
     }
@@ -1969,6 +2083,51 @@ fun SearchResultsList(
             }
         }
 
+        SearchSource.DEEZER -> {
+            ProviderSearchResults(
+                tracks = homeViewModel.searchResultsDeezerTracks,
+                artists = homeViewModel.searchResultsDeezerArtists,
+                albums = homeViewModel.searchResultsDeezerAlbums,
+                playlists = homeViewModel.searchResultsDeezerPlaylists,
+                homeViewModel = homeViewModel,
+                playerViewModel = playerViewModel,
+                downloadedIds = downloadedIds,
+                activeFilter = activeFilter,
+                onNavigate = onNavigate,
+                onPlaylistOptionClick = { selectedPlaylistForMenu = it }
+            )
+        }
+
+        SearchSource.TIDAL -> {
+            ProviderSearchResults(
+                tracks = homeViewModel.searchResultsTidalTracks,
+                artists = homeViewModel.searchResultsTidalArtists,
+                albums = homeViewModel.searchResultsTidalAlbums,
+                playlists = homeViewModel.searchResultsTidalPlaylists,
+                homeViewModel = homeViewModel,
+                playerViewModel = playerViewModel,
+                downloadedIds = downloadedIds,
+                activeFilter = activeFilter,
+                onNavigate = onNavigate,
+                onPlaylistOptionClick = { selectedPlaylistForMenu = it }
+            )
+        }
+
+        SearchSource.QOBUZ -> {
+            ProviderSearchResults(
+                tracks = homeViewModel.searchResultsQobuzTracks,
+                artists = homeViewModel.searchResultsQobuzArtists,
+                albums = homeViewModel.searchResultsQobuzAlbums,
+                playlists = homeViewModel.searchResultsQobuzPlaylists,
+                homeViewModel = homeViewModel,
+                playerViewModel = playerViewModel,
+                downloadedIds = downloadedIds,
+                activeFilter = activeFilter,
+                onNavigate = onNavigate,
+                onPlaylistOptionClick = { selectedPlaylistForMenu = it }
+            )
+        }
+
         SearchSource.SOUNDCLOUD -> {
             val listState = rememberLazyListState()
             val shouldLoadMore by remember {
@@ -2267,7 +2426,8 @@ fun SearchResultsList(
                                     com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
                                         playlist = playlist,
                                         tracks = playlist.tracks ?: emptyList(),
-                                        syncToCloud = !isSpotify
+                                        syncToCloud = !isSpotify,
+                                        likePlaylist = true
                                     )
                             } else {
                                 LikeRepository.togglePlaylistLike(
@@ -2326,6 +2486,184 @@ fun SearchResultsList(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 color = tint
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ProviderSearchResults(
+    tracks: List<Track>,
+    artists: List<User>,
+    albums: List<Playlist>,
+    playlists: List<Playlist>,
+    homeViewModel: HomeViewModel,
+    playerViewModel: PlayerViewModel,
+    downloadedIds: Set<Long>,
+    activeFilter: SearchFilter,
+    onNavigate: (String) -> Unit,
+    onPlaylistOptionClick: (Playlist) -> Unit
+) {
+    val listState = rememberLazyListState()
+    val isScrolling = listState.isScrollInProgress
+    var globalIndex = 0
+
+    val hasTracks = tracks.isNotEmpty()
+    val hasArtists = artists.isNotEmpty()
+    val allPlaylists = playlists + albums
+    val hasPlaylistsOrAlbums = allPlaylists.isNotEmpty()
+
+    if (!hasTracks && !hasArtists && !hasPlaylistsOrAlbums) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    } else {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(bottom = 180.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // ARTISTS SECTION
+            if (hasArtists && (activeFilter == SearchFilter.ALL || activeFilter == SearchFilter.ARTISTS)) {
+                if (activeFilter == SearchFilter.ALL) {
+                    item {
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            Text(
+                                stringResource(R.string.lib_artists),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                    item {
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(artists) { artist ->
+                                    ArtistCircle(artist) {
+                                        onNavigate(artist.urn ?: artist.id.toString())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (activeFilter == SearchFilter.ARTISTS) {
+                    items(artists) { artist ->
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onNavigate(artist.urn ?: artist.id.toString())
+                                    }
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ArtistAvatar(
+                                    avatarUrl = artist.avatarUrl,
+                                    enableViewer = false,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(CircleShape)
+                                )
+                                Spacer(Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        artist.username ?: "",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // TRACKS SECTION
+            if (hasTracks && (activeFilter == SearchFilter.ALL || activeFilter == SearchFilter.TRACKS)) {
+                if (activeFilter == SearchFilter.ALL) {
+                    item {
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            Text(
+                                stringResource(R.string.profile_tracks),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+                            )
+                        }
+                    }
+                }
+                itemsIndexed(tracks) { index, track ->
+                    val idx = globalIndex++
+                    StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                        val isDownloaded = downloadedIds.contains(track.id)
+                        TrackListItem(
+                            track = track,
+                            currentlyPlayingTrack = playerViewModel.currentTrack,
+                            index = index,
+                            isDownloading = false,
+                            isDownloaded = isDownloaded,
+                            downloadProgress = 0,
+                            onClick = { playerViewModel.playPlaylist(tracks, index) },
+                            onOptionClick = { playerViewModel.showTrackOptions(track) }
+                        )
+                    }
+                }
+            }
+
+            // PLAYLISTS & ALBUMS SECTION
+            if (hasPlaylistsOrAlbums && (activeFilter == SearchFilter.ALL || activeFilter == SearchFilter.PLAYLISTS)) {
+                if (activeFilter == SearchFilter.ALL) {
+                    item {
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            Text(
+                                stringResource(R.string.lib_playlists),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 8.dp)
+                            )
+                        }
+                    }
+                    item {
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(allPlaylists) { playlist ->
+                                    SquareCard(playlist) {
+                                        onNavigate(playlist.urn ?: playlist.permalink ?: playlist.id.toString())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (activeFilter == SearchFilter.PLAYLISTS) {
+                    items(allPlaylists) { playlist ->
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            DynamicPlaylistCard(
+                                playlist = playlist,
+                                isGrid = false,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                onOptionClick = { onPlaylistOptionClick(playlist) },
+                                onClick = {
+                                    onNavigate(playlist.urn ?: playlist.permalink ?: playlist.id.toString())
+                                }
                             )
                         }
                     }
@@ -2545,16 +2883,20 @@ fun HistoryCard(
             }
 
             Spacer(Modifier.width(16.dp))
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val displayTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(item.title, context)
+            val displaySubtitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(item.subtitle, context) ?: item.subtitle
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.title,
+                    text = displayTitle,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = item.subtitle,
+                    text = displaySubtitle,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

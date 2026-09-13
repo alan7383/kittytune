@@ -49,7 +49,8 @@
         val title: String,
         val subtitle: String? = null,
         val content: List<Any>,
-        val type: SectionType
+        val type: SectionType,
+        val id: String? = null
     )
 
     enum class SectionType {
@@ -67,7 +68,8 @@
         val type: SectionType,
         val tracks: List<Track> = emptyList(),
         val playlists: List<Playlist> = emptyList(),
-        val users: List<User> = emptyList()
+        val users: List<User> = emptyList(),
+        val id: String? = null
     )
 
     enum class SearchFilter {
@@ -75,7 +77,7 @@
     }
 
     enum class SearchSource {
-        SOUNDCLOUD, YOUTUBE, SPOTIFY, VK
+        SOUNDCLOUD, YOUTUBE, SPOTIFY, VK, DEEZER, TIDAL, QOBUZ
     }
 
     class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -120,6 +122,21 @@
         val searchResultsSpotifyPlaylists = mutableStateListOf<com.alananasss.kittytune.data.spotify.SpotifyPlaylist>()
         val searchResultsSpotifyArtists = mutableStateListOf<com.alananasss.kittytune.data.spotify.SpotifyArtist>()
         val searchResultsVk = mutableStateListOf<Track>()
+
+        val searchResultsDeezerTracks = mutableStateListOf<Track>()
+        val searchResultsDeezerAlbums = mutableStateListOf<Playlist>()
+        val searchResultsDeezerPlaylists = mutableStateListOf<Playlist>()
+        val searchResultsDeezerArtists = mutableStateListOf<User>()
+
+        val searchResultsTidalTracks = mutableStateListOf<Track>()
+        val searchResultsTidalAlbums = mutableStateListOf<Playlist>()
+        val searchResultsTidalPlaylists = mutableStateListOf<Playlist>()
+        val searchResultsTidalArtists = mutableStateListOf<User>()
+
+        val searchResultsQobuzTracks = mutableStateListOf<Track>()
+        val searchResultsQobuzAlbums = mutableStateListOf<Playlist>()
+        val searchResultsQobuzPlaylists = mutableStateListOf<Playlist>()
+        val searchResultsQobuzArtists = mutableStateListOf<User>()
 
         private var tracksNextUrl: String? = null
         private var artistsNextUrl: String? = null
@@ -378,6 +395,9 @@
             searchResultsTracks.clear(); searchResultsArtists.clear(); searchResultsPlaylists.clear(); searchResultsYoutube.clear()
             searchResultsSpotify.clear(); searchResultsSpotifyAlbums.clear(); searchResultsSpotifyPlaylists.clear(); searchResultsSpotifyArtists.clear()
             searchResultsVk.clear()
+            searchResultsDeezerTracks.clear(); searchResultsDeezerAlbums.clear(); searchResultsDeezerPlaylists.clear(); searchResultsDeezerArtists.clear()
+            searchResultsTidalTracks.clear(); searchResultsTidalAlbums.clear(); searchResultsTidalPlaylists.clear(); searchResultsTidalArtists.clear()
+            searchResultsQobuzTracks.clear(); searchResultsQobuzAlbums.clear(); searchResultsQobuzPlaylists.clear(); searchResultsQobuzArtists.clear()
             tracksNextUrl = null; artistsNextUrl = null; playlistsNextUrl = null
         }
 
@@ -389,11 +409,74 @@
                     SearchSource.YOUTUBE -> performYoutubeSearch(query)
                     SearchSource.SPOTIFY -> performSpotifySearch(query)
                     SearchSource.VK -> performVkSearch(query)
+                    SearchSource.DEEZER -> performDeezerSearch(query)
+                    SearchSource.TIDAL -> performTidalSearch(query)
+                    SearchSource.QOBUZ -> performQobuzSearch(query)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
                 isSearchLoading = false
+            }
+        }
+
+        private suspend fun performDeezerSearch(query: String) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val result = com.alananasss.kittytune.data.deezer.DeezerSearchRepository.search(query, limit = 50)
+                    withContext(Dispatchers.Main) {
+                        searchResultsDeezerTracks.clear()
+                        searchResultsDeezerTracks.addAll(result.tracks)
+                        searchResultsDeezerAlbums.clear()
+                        searchResultsDeezerAlbums.addAll(result.albums)
+                        searchResultsDeezerPlaylists.clear()
+                        searchResultsDeezerPlaylists.addAll(result.playlists)
+                        searchResultsDeezerArtists.clear()
+                        searchResultsDeezerArtists.addAll(result.artists)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        private suspend fun performTidalSearch(query: String) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val result = com.alananasss.kittytune.data.tidal.TidalSearchRepository.search(getApplication(), query, limit = 50)
+                    withContext(Dispatchers.Main) {
+                        searchResultsTidalTracks.clear()
+                        searchResultsTidalTracks.addAll(result.tracks)
+                        searchResultsTidalAlbums.clear()
+                        searchResultsTidalAlbums.addAll(result.albums)
+                        searchResultsTidalPlaylists.clear()
+                        searchResultsTidalPlaylists.addAll(result.playlists)
+                        searchResultsTidalArtists.clear()
+                        searchResultsTidalArtists.addAll(result.artists)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+
+        private suspend fun performQobuzSearch(query: String) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val result = com.alananasss.kittytune.data.qobuz.QobuzSearchRepository.search(getApplication(), query, limit = 50)
+                    withContext(Dispatchers.Main) {
+                        searchResultsQobuzTracks.clear()
+                        searchResultsQobuzTracks.addAll(result.tracks)
+                        searchResultsQobuzAlbums.clear()
+                        searchResultsQobuzAlbums.addAll(result.albums)
+                        searchResultsQobuzPlaylists.clear()
+                        searchResultsQobuzPlaylists.addAll(result.playlists)
+                        searchResultsQobuzArtists.clear()
+                        searchResultsQobuzArtists.addAll(result.artists)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
 
@@ -622,7 +705,7 @@
         }
 
         private fun getHomeCacheKey(): String {
-            val langCode = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication()).getAppLanguage().code
+            val langCode = com.alananasss.kittytune.utils.LocaleUtils.getLocale(getApplication()).language
             return "cached_home_data_$langCode"
         }
 
@@ -642,7 +725,11 @@
                                 SectionType.DISCOVERY_ROW -> section.tracks
                                 SectionType.HIGHLIGHT_ROW -> section.tracks
                             }
-                            if (content.isNotEmpty()) homeSections.add(HomeSection(section.title, section.subtitle, content, section.type))
+                            if (content.isNotEmpty()) {
+                                val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(section.title, getApplication())
+                                val locSub = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(section.subtitle, getApplication())
+                                homeSections.add(HomeSection(locTitle, locSub, content, section.type, section.id))
+                            }
                         }
                     }
                 }
@@ -652,7 +739,7 @@
         private fun saveToCache() {
             viewModelScope.launch {
                 try {
-                    val sectionsCache = homeSections.map { section -> HomeSectionCache(section.title, section.subtitle, section.type, section.content.filterIsInstance<Track>(), section.content.filterIsInstance<Playlist>(), section.content.filterIsInstance<User>()) }
+                    val sectionsCache = homeSections.map { section -> HomeSectionCache(section.title, section.subtitle, section.type, section.content.filterIsInstance<Track>(), section.content.filterIsInstance<Playlist>(), section.content.filterIsInstance<User>(), section.id) }
                     val data = HomeCacheData(userProfile, sectionsCache)
                     prefs.edit().putString(getHomeCacheKey(), gson.toJson(data)).apply()
                 } catch (e: Exception) { e.printStackTrace() }
@@ -752,7 +839,8 @@
                         title = getString(R.string.home_discovery_title),
                         subtitle = getString(R.string.home_discovery_subtitle),
                         content = discoveryTracks,
-                        type = SectionType.DISCOVERY_ROW
+                        type = SectionType.DISCOVERY_ROW,
+                        id = "discovery"
                     )
                 } else {
                     null
@@ -802,7 +890,8 @@
                             title = getString(R.string.home_section_similar, seedItem.title),
                             subtitle = getString(R.string.home_section_similar_sub),
                             content = mixed,
-                            type = SectionType.TRACKS_ROW
+                            type = SectionType.TRACKS_ROW,
+                            id = "similar"
                         )
                     } else null
                 }
@@ -857,7 +946,7 @@
                             )
                         }
                         if (habitStations.isNotEmpty()) {
-                            sections.add(HomeSection(getString(R.string.home_habits_title), getString(R.string.home_habits_sub), habitStations, SectionType.STATIONS_ROW))
+                            sections.add(HomeSection(getString(R.string.home_habits_title), getString(R.string.home_habits_sub), habitStations, SectionType.STATIONS_ROW, id = "habits"))
                         }
                     }
 
@@ -890,7 +979,7 @@
                             )
                         }
                         if (rediscoveryStations.isNotEmpty()) {
-                            sections.add(HomeSection(getString(R.string.home_rediscovery_title), getString(R.string.home_rediscovery_sub), rediscoveryStations, SectionType.STATIONS_ROW))
+                            sections.add(HomeSection(getString(R.string.home_rediscovery_title), getString(R.string.home_rediscovery_sub), rediscoveryStations, SectionType.STATIONS_ROW, id = "rediscover"))
                         }
                     }
 
@@ -991,24 +1080,24 @@
 
                     val recommendedAlbums = recommendedAlbumsDef.await()
                     if (recommendedAlbums.isNotEmpty()) {
-                        sections.add(HomeSection(getString(R.string.home_albums_for_you), null, recommendedAlbums, SectionType.STATIONS_ROW))
+                        sections.add(HomeSection(getString(R.string.home_albums_for_you), null, recommendedAlbums, SectionType.STATIONS_ROW, id = "albums"))
                     }
 
                     val artistStations = artistStationsDef.await()
                     if(artistStations.isNotEmpty()){
-                        sections.add(HomeSection(getString(R.string.home_discover_stations), getString(R.string.home_section_new_crew_sub), artistStations, SectionType.STATIONS_ROW))
+                        sections.add(HomeSection(getString(R.string.home_discover_stations), getString(R.string.home_section_new_crew_sub), artistStations, SectionType.STATIONS_ROW, id = "stations"))
                     }
 
                     val likedByItems = likedByDef.await()
                     if (likedByItems.isNotEmpty()) {
-                        sections.add(HomeSection(getString(R.string.home_liked_by_section_title), getString(R.string.home_liked_by_section_subtitle), likedByItems, SectionType.STATIONS_ROW))
+                        sections.add(HomeSection(getString(R.string.home_liked_by_section_title), getString(R.string.home_liked_by_section_subtitle), likedByItems, SectionType.STATIONS_ROW, id = "liked_by"))
                     }
 
                     val related1 = relatedDef1.await()
-                    if (related1.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_section_similar, seed1.title ?: ""), getString(R.string.home_section_similar_sub), related1, SectionType.TRACKS_ROW))
+                    if (related1.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_section_similar, seed1.title ?: ""), getString(R.string.home_section_similar_sub), related1, SectionType.TRACKS_ROW, id = "similar"))
 
                     val newCrew = newCrewDef.await()
-                    if (newCrew.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_section_new_crew), getString(R.string.home_section_new_crew_sub), newCrew, SectionType.ARTISTS_ROW))
+                    if (newCrew.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_section_new_crew), getString(R.string.home_section_new_crew_sub), newCrew, SectionType.ARTISTS_ROW, id = "new_crew"))
                 }
             } catch (e: Exception) { e.printStackTrace() }
             return sections
@@ -1064,22 +1153,22 @@
                     val artistsDef = async { try { val l1 = api.searchUsers("Billboard", limit = 5).collection; val l2 = api.searchUsers("Official Music", limit = 5).collection; (l1+l2).distinctBy{it.id}.shuffled() } catch(e:Exception){ emptyList() } }
 
                     val trending = trendingDef.await()
-                    if (trending.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_trending), null, trending, SectionType.TRACKS_ROW))
+                    if (trending.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_trending), null, trending, SectionType.TRACKS_ROW, id = "trending"))
 
                     val albums = albumsDef.await()
-                    if (albums.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_albums_for_you), null, albums, SectionType.STATIONS_ROW))
+                    if (albums.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_albums_for_you), null, albums, SectionType.STATIONS_ROW, id = "albums"))
 
                     val hiphop = hiphopDef.await()
-                    if (hiphop.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_hiphop), null, hiphop, SectionType.TRACKS_ROW))
+                    if (hiphop.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_hiphop), null, hiphop, SectionType.TRACKS_ROW, id = "hiphop"))
 
                     val techno = electroDef.await()
-                    if (techno.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_electro), null, techno, SectionType.STATIONS_ROW))
+                    if (techno.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_electro), null, techno, SectionType.STATIONS_ROW, id = "techno"))
 
                     val artists = artistsDef.await()
-                    if (artists.isNotEmpty()) sections.add(HomeSection(getString(R.string.lib_artists), null, artists, SectionType.ARTISTS_ROW))
+                    if (artists.isNotEmpty()) sections.add(HomeSection(getString(R.string.lib_artists), null, artists, SectionType.ARTISTS_ROW, id = "artists"))
 
                     val pop = popDef.await()
-                    if (pop.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_pop), null, pop, SectionType.TRACKS_ROW))
+                    if (pop.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_pop), null, pop, SectionType.TRACKS_ROW, id = "pop"))
                 }
             } catch (e: Exception) { e.printStackTrace() }
             return sections
@@ -1117,7 +1206,7 @@
 
                     val streamTracks = streamDef.await()
                     if (streamTracks.isNotEmpty()) {
-                        allSections.add(HomeSection(getString(R.string.home_stream), null, streamTracks, SectionType.HIGHLIGHT_ROW))
+                        allSections.add(HomeSection(getString(R.string.home_stream), null, streamTracks, SectionType.HIGHLIGHT_ROW, id = "stream"))
                     }
 
                     val recommendationsSection = recommendationsDef.await()
@@ -1193,7 +1282,8 @@
                         title = getString(R.string.home_recommended_tracks),
                         subtitle = getString(R.string.home_recommended_tracks_sub),
                         content = finalTracks,
-                        type = SectionType.TRACKS_ROW
+                        type = SectionType.TRACKS_ROW,
+                        id = "recommended"
                     )
                 } else {
                     null
@@ -1225,7 +1315,12 @@
                             val kind = actualObj.get("kind")?.asString
                             when (kind) {
                                 "track" -> parsedItems.add(gson.fromJson(actualObj, Track::class.java))
-                                "playlist", "system-playlist" -> parsedItems.add(gson.fromJson(actualObj, Playlist::class.java))
+                                "playlist", "system-playlist" -> {
+                                    val pl = gson.fromJson(actualObj, Playlist::class.java)
+                                    val locPlTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(pl.title, getApplication())
+                                    val locPlDesc = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(pl.description, getApplication())
+                                    parsedItems.add(pl.copy(title = locPlTitle, description = locPlDesc))
+                                }
                                 "user" -> parsedItems.add(gson.fromJson(actualObj, User::class.java))
                             }
                         } catch (e: Exception) { e.printStackTrace() }
@@ -1240,17 +1335,34 @@
                                        selection.id?.contains("follow", ignoreCase = true) == true ||
                                        selection.urn?.contains("follow", ignoreCase = true) == true
 
+                        val rawTitle = selection.title ?: "Selection"
+                        val rawDesc = selection.description
+                        val locSectionTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(rawTitle, getApplication())
+                        val locSectionDesc = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(rawDesc, getApplication())
+
+                        val derivedId = when {
+                            rawTitle.contains("discover", ignoreCase = true) || rawTitle.contains("station", ignoreCase = true) -> "stations"
+                            rawTitle.contains("more of what you like", ignoreCase = true) -> "more_of_what_you_like"
+                            rawTitle.contains("mixed for", ignoreCase = true) -> "mixed_for"
+                            rawTitle.contains("trending", ignoreCase = true) -> "trending_by_genre"
+                            rawTitle.contains("artists to watch", ignoreCase = true) -> "artists_to_watch"
+                            rawTitle.contains("made for you", ignoreCase = true) -> "made_for_you"
+                            rawTitle.contains("curated by soundcloud", ignoreCase = true) -> "curated_by_soundcloud"
+                            rawTitle.contains("liked by", ignoreCase = true) -> "liked_by"
+                            else -> selection.id ?: selection.urn
+                        }
+
                         if (tracks.isNotEmpty() && playlists.isEmpty() && users.isEmpty()) {
-                            sections.add(HomeSection(selection.title ?: "Selection", selection.description, tracks, if (isLatest) SectionType.HIGHLIGHT_ROW else SectionType.TRACKS_ROW))
+                            sections.add(HomeSection(locSectionTitle, locSectionDesc, tracks, if (isLatest) SectionType.HIGHLIGHT_ROW else SectionType.TRACKS_ROW, derivedId))
                         } else if (playlists.isNotEmpty() && tracks.isEmpty() && users.isEmpty()) {
-                            sections.add(HomeSection(selection.title ?: "Selection", selection.description, playlists, SectionType.STATIONS_ROW))
+                            sections.add(HomeSection(locSectionTitle, locSectionDesc, playlists, SectionType.STATIONS_ROW, derivedId))
                         } else if (users.isNotEmpty() && tracks.isEmpty() && playlists.isEmpty()) {
-                            sections.add(HomeSection(selection.title ?: "Selection", selection.description, users, SectionType.ARTISTS_ROW))
+                            sections.add(HomeSection(locSectionTitle, locSectionDesc, users, SectionType.ARTISTS_ROW, derivedId))
                         } else {
                             if (tracks.isNotEmpty()) {
-                                sections.add(HomeSection(selection.title ?: "Selection", selection.description, tracks, if (isLatest) SectionType.HIGHLIGHT_ROW else SectionType.TRACKS_ROW))
+                                sections.add(HomeSection(locSectionTitle, locSectionDesc, tracks, if (isLatest) SectionType.HIGHLIGHT_ROW else SectionType.TRACKS_ROW, derivedId))
                             } else if (playlists.isNotEmpty()) {
-                                sections.add(HomeSection(selection.title ?: "Selection", selection.description, playlists, SectionType.STATIONS_ROW))
+                                sections.add(HomeSection(locSectionTitle, locSectionDesc, playlists, SectionType.STATIONS_ROW, derivedId))
                             }
                         }
                     }

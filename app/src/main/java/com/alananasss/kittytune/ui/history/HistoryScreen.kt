@@ -558,7 +558,7 @@ fun HistoryTrackRow(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = track.user?.username ?: stringResource(R.string.history_unknown_artist),
+                        text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.history_unknown_artist) },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

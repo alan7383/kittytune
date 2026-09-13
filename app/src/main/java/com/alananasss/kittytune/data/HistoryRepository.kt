@@ -27,6 +27,9 @@ object HistoryRepository {
     }
 
     fun addToHistory(track: Track) {
+        try {
+            com.alananasss.kittytune.data.local.PlayerPreferences(appContext).incrementTracksPlayedCount()
+        } catch (_: Exception) {}
         scope.launch {
             val safeSource = (track.source as? String) ?: "soundcloud"
 
