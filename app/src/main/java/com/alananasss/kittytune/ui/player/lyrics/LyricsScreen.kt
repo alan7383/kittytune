@@ -14,6 +14,8 @@ import androidx.compose.animation.core.tween
     import androidx.compose.material3.SingleChoiceSegmentedButtonRow
     import androidx.compose.material3.SegmentedButton
     import androidx.compose.material3.SegmentedButtonDefaults
+    import androidx.compose.material3.FilterChip
+    import androidx.compose.material3.FilterChipDefaults
     import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
     import androidx.compose.foundation.lazy.rememberLazyListState
     import androidx.compose.foundation.rememberScrollState
@@ -37,7 +39,9 @@ import androidx.compose.animation.core.tween
     import androidx.compose.material.icons.automirrored.rounded.FormatAlignLeft
     import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
     import androidx.compose.material3.*
+    import com.alananasss.kittytune.ui.common.Slider
     import androidx.compose.runtime.*
+    import com.alananasss.kittytune.ui.theme.rememberLyricsFontFamily
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -58,6 +62,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -79,9 +84,12 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.navigationBarsPadding
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.local.LyricsAlignment
+import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.network.LrcLibResponse
+import com.alananasss.kittytune.ui.player.FluidArtworkBackground
 import com.alananasss.kittytune.ui.player.LyricsMode
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.UnifiedLyricResult
@@ -108,7 +116,6 @@ fun LyricsScreen(
 
     var showQuickSettingsDialog by remember { mutableStateOf(false) }
     var showUploadYamlDialog by remember { mutableStateOf(false) }
-
     BackHandler {
         when {
             showQuickSettingsDialog -> showQuickSettingsDialog = false
@@ -132,7 +139,47 @@ fun LyricsScreen(
         )
     }
 
-    LyricsMeshBackground {
+    val context = LocalContext.current
+    val activity = context as? android.app.Activity
+    DisposableEffect(Unit) {
+        activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+    val prefs = remember { PlayerPreferences(context) }
+    val backgroundStyle = remember { prefs.getPlayerStyle() }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (backgroundStyle) {
+            PlayerBackgroundStyle.APPLE_MUSIC -> {
+                FluidArtworkBackground(
+                    artworkUrl = currentTrack?.fullResArtwork,
+                    modifier = Modifier.fillMaxSize(),
+                    extraBlur = true
+                ) {
+                    LyricsMeshBackground { }
+                }
+                // Extra dark scrim (0.30f) to make lyrics ultra-readable
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.30f)))
+            }
+            PlayerBackgroundStyle.BLUR -> {
+                AsyncImage(
+                    model = currentTrack?.fullResArtwork,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().blur(120.dp).alpha(0.55f)
+                )
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+            }
+            PlayerBackgroundStyle.THEME -> {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+            }
+            PlayerBackgroundStyle.GRADIENT -> {
+                LyricsMeshBackground { }
+            }
+        }
+
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
@@ -229,7 +276,14 @@ fun LyricsScreen(
                     ) { mode ->
                         when (mode) {
                             LyricsMode.SYNCED -> {
-                                SyncedLyricsView(viewModel)
+                                when (viewModel.lyricsUiStyle) {
+                                    com.alananasss.kittytune.data.local.LyricsUiStyle.ENHANCED -> {
+                                        LyricsEnhancedView(viewModel)
+                                    }
+                                    com.alananasss.kittytune.data.local.LyricsUiStyle.CLASSIC -> {
+                                        SyncedLyricsView(viewModel)
+                                    }
+                                }
                             }
                             LyricsMode.PLAIN -> {
                                 PlainLyricsView(viewModel)
@@ -339,6 +393,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
     val lyrics = viewModel.lyricsLines
     val listState = rememberLazyListState()
     val fontSize = viewModel.lyricsFontSize
+    val lyricsFontFamily = rememberLyricsFontFamily(viewModel.lyricsFont)
     val alignment = when(viewModel.lyricsAlignment) {
         LyricsAlignment.LEFT -> TextAlign.Left
         LyricsAlignment.CENTER -> TextAlign.Center
@@ -354,29 +409,62 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         )
     }
 
-    // Delta-based interpolation engine: does NOT restart on currentPosition
-    val isPlaying = viewModel.isPlaying
-    val speed = viewModel.effectsState.speed
-
     var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
 
-    // Delta-based loop: only relaunches if isPlaying or speed changes
-    LaunchedEffect(isPlaying, speed) {
-        var lastFrameNanos = System.nanoTime()
-        while (isActive && isPlaying) {
-            withFrameNanos { frameNanos ->
-                val deltaMs = (frameNanos - lastFrameNanos) / 1_000_000f
-                lastFrameNanos = frameNanos
-                smoothDrawPosition += deltaMs * speed
-            }
-        }
-    }
+    // High-precision smooth frame interpolation loop with PLL drift tracking
+    LaunchedEffect(viewModel.currentTrack?.id) {
+        var smoothPosition = MusicManager.player.currentPosition.coerceAtLeast(0L).toDouble()
+        var lastOutputPosition = smoothPosition.toFloat()
+        var lastFrameNanos = 0L
 
-    // Drift correction only if >400ms (seeks, skips) — no reset on normal updates
-    LaunchedEffect(currentPosition) {
-        val drift = kotlin.math.abs(smoothDrawPosition - currentPosition)
-        if (drift > 400f) {
-            smoothDrawPosition = currentPosition.toFloat()
+        while (isActive) {
+            val isSliderActive = viewModel.isScrubbing
+            val rawPosition = if (isSliderActive) {
+                viewModel.currentPosition.toDouble()
+            } else {
+                MusicManager.player.currentPosition.coerceAtLeast(0L).toDouble()
+            }
+            val isPlayingState = MusicManager.player.isPlaying
+
+            if (isSliderActive || !isPlayingState) {
+                smoothPosition = rawPosition
+                lastOutputPosition = rawPosition.toFloat()
+                lastFrameNanos = 0L
+                smoothDrawPosition = lastOutputPosition
+                delay(50L)
+            } else {
+                val frameNanos = withFrameNanos { frameTimeNanos -> frameTimeNanos }
+
+                if (lastFrameNanos == 0L) {
+                    lastFrameNanos = frameNanos
+                    smoothPosition = rawPosition
+                    lastOutputPosition = rawPosition.toFloat()
+                } else {
+                    val elapsedNanos = frameNanos - lastFrameNanos
+                    lastFrameNanos = frameNanos
+
+                    val currentSpeed = viewModel.effectsState.speed
+                    val deltaMs = (elapsedNanos / 1_000_000.0).coerceIn(0.0, 100.0) * currentSpeed
+                    val driftMs = rawPosition - smoothPosition
+
+                    if (kotlin.math.abs(driftMs) > 300.0 || rawPosition < lastOutputPosition - 500.0) {
+                        smoothPosition = rawPosition
+                        lastOutputPosition = rawPosition.toFloat()
+                    } else {
+                        val rateCorrection = (driftMs / 250.0).coerceIn(-0.5, 0.5)
+                        val effectiveSpeed = (1.0 + rateCorrection).coerceIn(0.2, 1.8)
+                        smoothPosition += deltaMs * effectiveSpeed
+
+                        val target = smoothPosition.toFloat()
+                        if (target >= lastOutputPosition) {
+                            lastOutputPosition = target
+                        } else {
+                            smoothPosition = lastOutputPosition.toDouble()
+                        }
+                    }
+                }
+                smoothDrawPosition = lastOutputPosition
+            }
         }
     }
 
@@ -416,36 +504,67 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 val scale by animateFloatAsState(targetScale, tween(400), label = "scale")
                 val alpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
 
+                val isDuetActive = viewModel.isDuetViewEnabled
+                val effectiveSinger = if (isDuetActive) {
+                    line.singer.takeIf { it != LyricSinger.DEFAULT } ?: when (line.agent?.trim()?.lowercase()) {
+                        "v2", "singer2", "2" -> LyricSinger.SINGER_2
+                        "v1", "singer1", "1" -> LyricSinger.SINGER_1
+                        "both", "group", "all", "v1000", "v2000", "3", "v3" -> LyricSinger.BOTH
+                        else -> LyricSinger.DEFAULT
+                    }
+                } else {
+                    LyricSinger.DEFAULT
+                }
+
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                        // Duet lines are constrained to ~72% width and pushed to their side
+                        .padding(
+                            start = if (effectiveSinger == LyricSinger.SINGER_2) 100.dp else 24.dp,
+                            end = if (effectiveSinger == LyricSinger.SINGER_1) 100.dp else 24.dp
+                        )
                         .scale(scale)
                         .alpha(alpha)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) { viewModel.seekTo(line.startTime) },
-                    horizontalAlignment = when(viewModel.lyricsAlignment) {
-                        LyricsAlignment.LEFT -> Alignment.Start
-                        LyricsAlignment.CENTER -> Alignment.CenterHorizontally
-                        LyricsAlignment.RIGHT -> Alignment.End
+                    horizontalAlignment = when(effectiveSinger) {
+                        LyricSinger.SINGER_1 -> Alignment.Start
+                        LyricSinger.SINGER_2 -> Alignment.End
+                        LyricSinger.BOTH -> Alignment.CenterHorizontally
+                        else -> when(viewModel.lyricsAlignment) {
+                            LyricsAlignment.LEFT -> Alignment.Start
+                            LyricsAlignment.CENTER -> Alignment.CenterHorizontally
+                            LyricsAlignment.RIGHT -> Alignment.End
+                        }
                     }
                 ) {
                     val isWordSync = viewModel.isWordSyncEnabled
                     val isAppleEffect = viewModel.isAppleMusicEffectEnabled
                     val displayWords = if (isWordSync) line.words.orEmpty() else emptyList()
+                    // effective textAlign follows the same singer override
+                    val lineTextAlign = when(effectiveSinger) {
+                        LyricSinger.SINGER_1 -> TextAlign.Start
+                        LyricSinger.SINGER_2 -> TextAlign.End
+                        LyricSinger.BOTH -> TextAlign.Center
+                        else -> alignment
+                    }
 
                     if (isActive && displayWords.isNotEmpty()) {
+                        val formattedWords = remember(displayWords, line.text) {
+                            formatLyricWordContents(line.text, displayWords)
+                        }
                         if (isAppleEffect) {
                             var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
-                            val reconstructedText = remember(displayWords) { displayWords.joinToString("") { it.word } }
-                            val wordRanges = remember(displayWords) {
+                            val reconstructedText = remember(formattedWords) { formattedWords.joinToString("") }
+                            val wordRanges = remember(formattedWords) {
                                 val ranges = mutableListOf<Pair<Int, Int>>()
                                 var currentLen = 0
-                                for (w in displayWords) {
-                                    ranges.add(currentLen to currentLen + w.word.length)
-                                    currentLen += w.word.length
+                                for (w in formattedWords) {
+                                    ranges.add(currentLen to currentLen + w.length)
+                                    currentLen += w.length
                                 }
                                 ranges
                             }
@@ -456,10 +575,11 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                                     style = MaterialTheme.typography.headlineMedium.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = fontSize.sp,
-                                        lineHeight = (fontSize * 1.4).sp
+                                        lineHeight = (fontSize * 1.4).sp,
+                                        fontFamily = lyricsFontFamily
                                     ),
                                     color = Color.White.copy(alpha = 0.5f),
-                                    textAlign = alignment,
+                                    textAlign = lineTextAlign,
                                     modifier = Modifier.fillMaxWidth(),
                                     onTextLayout = { textLayoutResult = it }
                                 )
@@ -468,10 +588,11 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                                     style = MaterialTheme.typography.headlineMedium.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = fontSize.sp,
-                                        lineHeight = (fontSize * 1.4).sp
+                                        lineHeight = (fontSize * 1.4).sp,
+                                        fontFamily = lyricsFontFamily
                                     ),
                                     color = Color.White,
-                                    textAlign = alignment,
+                                    textAlign = lineTextAlign,
                                     modifier = Modifier.fillMaxWidth().drawWithContent {
                                         val currentPos = smoothDrawPosition + viewModel.lyricsOffset
                                         val layout = textLayoutResult ?: return@drawWithContent
@@ -503,10 +624,11 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                             }
                         } else {
                             val reconstructedText = buildAnnotatedString {
-                                displayWords.forEach { word ->
+                                displayWords.forEachIndexed { idx, word ->
                                     val isWordActive = (viewModel.currentPosition + viewModel.lyricsOffset) >= word.startTime
                                     val wordColor = if (isWordActive) Color.White else Color.White.copy(alpha = 0.5f)
-                                    withStyle(SpanStyle(color = wordColor)) { append(word.word) }
+                                    val wordText = formattedWords.getOrElse(idx) { word.word }
+                                    withStyle(SpanStyle(color = wordColor)) { append(wordText) }
                                 }
                             }
                             Text(
@@ -514,23 +636,34 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = fontSize.sp,
-                                    lineHeight = (fontSize * 1.4).sp
+                                    lineHeight = (fontSize * 1.4).sp,
+                                    fontFamily = lyricsFontFamily
                                 ),
-                                textAlign = alignment,
+                                textAlign = lineTextAlign,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
                     } else {
                         val textColor = if (isActive) Color.White else Color.White.copy(alpha = 0.5f)
+                        val shadow = if (isActive && isAppleEffect) {
+                            val shadowBlur = (14f * viewModel.lyricsGlowFactor).coerceIn(4f, 28f)
+                            androidx.compose.ui.graphics.Shadow(
+                                color = Color.White.copy(alpha = (0.45f * viewModel.lyricsGlowFactor).coerceIn(0.1f, 0.8f)),
+                                offset = androidx.compose.ui.geometry.Offset.Zero,
+                                blurRadius = shadowBlur
+                            )
+                        } else null
                         Text(
                             text = line.text,
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
                                 fontSize = fontSize.sp,
-                                lineHeight = (fontSize * 1.4).sp
+                                lineHeight = (fontSize * 1.4).sp,
+                                fontFamily = lyricsFontFamily,
+                                shadow = shadow
                             ),
                             color = textColor,
-                            textAlign = alignment,
+                            textAlign = lineTextAlign,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -544,10 +677,11 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = (fontSize * 0.85f).sp,
-                                lineHeight = (fontSize * 1.2f).sp
+                                lineHeight = (fontSize * 1.2f).sp,
+                                fontFamily = lyricsFontFamily
                             ),
                             color = MaterialTheme.colorScheme.primary.copy(alpha = if (isActive) 0.9f else 0.4f),
-                            textAlign = alignment,
+                            textAlign = lineTextAlign,
                             modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
                         )
                     }
@@ -561,10 +695,11 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 fontSize = (fontSize * 0.70f).sp,
-                                lineHeight = (fontSize * 1.0f).sp
+                                lineHeight = (fontSize * 1.0f).sp,
+                                fontFamily = lyricsFontFamily
                             ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            textAlign = alignment,
+                            textAlign = lineTextAlign,
                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                         )
                     }
@@ -712,6 +847,13 @@ fun SearchLyricsView(
     var query by remember { mutableStateOf(viewModel.manualSearchQuery) }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // State for provider picker lives here so both the button and dropdown can share it
+        val allProviders = remember {
+            com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.entries
+        }
+        val currentProvider = allProviders.firstOrNull { it.name == viewModel.manualSearchProvider }
+        var providerExpanded by remember { mutableStateOf(false) }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -753,31 +895,66 @@ fun SearchLyricsView(
             }
         }
 
+        // Provider picker — below the search bar, with M3 Expressive shape morph
+        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
+            OutlinedButton(
+                onClick = { providerExpanded = true },
+                shapes = ButtonDefaults.shapes(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.White,
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f)),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+            ) {
+                Text(
+                    text = currentProvider?.displayName ?: "Auto",
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    Icons.Rounded.ArrowDropDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            DropdownMenu(
+                expanded = providerExpanded,
+                onDismissRequest = { providerExpanded = false },
+                containerColor = Color(0xFF1E1E2E),
+                tonalElevation = 0.dp,
+            ) {
+                allProviders.forEach { provider ->
+                    val isActive = viewModel.manualSearchProvider == provider.name
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = provider.displayName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isActive) Color.White else Color.White.copy(0.7f)
+                            )
+                        },
+                        onClick = {
+                            providerExpanded = false
+                            viewModel.searchLyricsManual(query, provider.name)
+                        },
+                        leadingIcon = if (isActive) ({
+                            Icon(
+                                Icons.Rounded.Star,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }) else null
+                    )
+                }
+            }
+        }
+
         if (viewModel.isLyricsLoading) {
             LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color.White)
         }
-
-        ExpressiveConnectedButtonGroup(
-            options = listOf("MUSIXMATCH", "LRCLIB", "GENIUS"),
-            selectedOption = viewModel.manualSearchProvider,
-            onOptionSelected = { viewModel.searchLyricsManual(query, it) },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-            labelProvider = { provider ->
-                Text(
-                    text = when (provider) {
-                        "MUSIXMATCH" -> "Musixmatch"
-                        "LRCLIB" -> "LrcLib"
-                        "GENIUS" -> "Genius"
-                        else -> provider
-                    },
-                    maxLines = 1,
-                    softWrap = false,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        )
 
         val searchResults = remember(viewModel.unifiedLyricSearchResults.toList()) {
             viewModel.unifiedLyricSearchResults.toList()
@@ -1066,6 +1243,61 @@ fun QuickLyricsSettingsDialog(
                 }
             }
 
+            SettingsSectionLabel(stringResource(R.string.pref_lyrics_ui_style_title))
+            Spacer(Modifier.height(8.dp))
+            val uiStyles = listOf(
+                com.alananasss.kittytune.data.local.LyricsUiStyle.ENHANCED to stringResource(R.string.lyrics_ui_style_enhanced_short),
+                com.alananasss.kittytune.data.local.LyricsUiStyle.CLASSIC to stringResource(R.string.pref_lyrics_ui_style_classic)
+            )
+            ExpressiveConnectedButtonGroup(
+                options = uiStyles,
+                selectedOption = uiStyles.firstOrNull { it.first == viewModel.lyricsUiStyle } ?: uiStyles.first(),
+                onOptionSelected = { viewModel.updateLyricsUiStyle(it.first) },
+                labelProvider = { (_, label) -> Text(label, maxLines = 1, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium) }
+            )
+            if (viewModel.lyricsUiStyle == com.alananasss.kittytune.data.local.LyricsUiStyle.ENHANCED) {
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.pref_lyrics_line_blur_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = stringResource(R.string.pref_lyrics_line_blur_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = viewModel.lyricsLineBlurEnabled,
+                        onCheckedChange = { viewModel.updateLyricsLineBlurEnabled(it) }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            SettingsSectionLabel(stringResource(R.string.pref_lyrics_font_title))
+            Spacer(Modifier.height(8.dp))
+            val fonts = listOf(
+                com.alananasss.kittytune.data.local.LyricsFont.APPLE to stringResource(R.string.pref_lyrics_font_apple_short),
+                com.alananasss.kittytune.data.local.LyricsFont.APP_DEFAULT to stringResource(R.string.pref_lyrics_font_app_default_short)
+            )
+            ExpressiveConnectedButtonGroup(
+                options = fonts,
+                selectedOption = fonts.firstOrNull { it.first == viewModel.lyricsFont } ?: fonts.first(),
+                onOptionSelected = { viewModel.updateLyricsFont(it.first) },
+                labelProvider = { (_, label) -> Text(label, maxLines = 1, fontWeight = FontWeight.Bold) }
+            )
+
+            Spacer(Modifier.height(20.dp))
+
             SettingsSectionLabel(stringResource(R.string.pref_lyrics_provider_title))
             Spacer(Modifier.height(8.dp))
             val providers = listOf(
@@ -1225,6 +1457,13 @@ fun QuickLyricsSettingsDialog(
             }
 
             LyricsToggleRow(
+                title = stringResource(R.string.pref_lyrics_duet_title),
+                subtitle = stringResource(R.string.pref_lyrics_duet_desc),
+                checked = viewModel.isDuetViewEnabled,
+                onCheckedChange = { viewModel.toggleDuetView(it) }
+            )
+
+            LyricsToggleRow(
                 title = stringResource(R.string.pref_lyrics_translation_title),
                 subtitle = stringResource(R.string.pref_lyrics_translation_sub),
                 checked = enableTranslation,
@@ -1269,6 +1508,9 @@ fun QuickLyricsSettingsDialog(
             Spacer(Modifier.height(8.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(16.dp))
+
+
+            Spacer(Modifier.height(10.dp))
 
             Button(
                 onClick = { onDismiss(); viewModel.isSearchingLyrics = true },
