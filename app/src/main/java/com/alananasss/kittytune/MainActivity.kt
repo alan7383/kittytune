@@ -47,7 +47,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
         }
 
         private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
+            if (key == "dynamic_theme_enabled" || key == "track_dynamic_theme_enabled" || key == "app_theme_mode" || key == "pure_black_enabled" ||
                 key == "custom_font_enabled" || key?.startsWith("font_") == true ||
                 key == "key_color" || key == "color_style" || key == "color_spec") {
                 refreshThemeState()
@@ -59,6 +59,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
         private var themeModeState by mutableStateOf(AppThemeMode.SYSTEM)
         private var dynamicColorState by mutableStateOf(true)
+        private var trackDynamicColorState by mutableStateOf(false)
         private var pureBlackState by mutableStateOf(false)
         private var keyColorState by mutableIntStateOf(0)
         private var colorStyleState by mutableStateOf("Expressive")
@@ -171,6 +172,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
                 SoundTuneTheme(
                     themeMode = themeModeState,
                     dynamicColor = dynamicColorState,
+                    trackDynamicColor = trackDynamicColorState,
                     pureBlack = pureBlackState,
                     keyColor = activeKeyColor,
                     colorStyle = colorStyleState,
@@ -230,6 +232,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
         private fun refreshThemeState() {
             themeModeState = preferences.getThemeMode()
             dynamicColorState = preferences.getDynamicTheme()
+            trackDynamicColorState = preferences.getTrackDynamicTheme()
             pureBlackState = preferences.getPureBlack()
             keyColorState = preferences.getKeyColor()
             colorStyleState = preferences.getColorStyle()

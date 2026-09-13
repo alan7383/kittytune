@@ -5,6 +5,7 @@ import com.android.build.api.dsl.ApplicationExtension
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.aboutlibraries)
 }
@@ -83,6 +84,10 @@ extensions.configure<ApplicationExtension> {
             useLegacyPackaging = false
         }
     }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -152,6 +157,11 @@ dependencies {
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
+    implementation(libs.accompanist.lyrics.ui)
+    implementation(libs.accompanist.lyrics.core)
+    implementation("com.github.racra:smooth-corner-rect-android-compose:v1.0.0")
+    implementation(libs.material)
+    implementation(libs.androidx.ui.text.google.fonts)
 }
 
 kotlin {

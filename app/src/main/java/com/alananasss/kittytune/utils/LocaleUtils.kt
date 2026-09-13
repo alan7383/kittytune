@@ -66,19 +66,21 @@ object LocaleUtils {
     }
 
     fun updateBaseContextLocale(context: Context): Context {
-        val prefs = PlayerPreferences(context)
-        val language = prefs.getAppLanguage()
-        if (language == AppLanguage.SYSTEM) return context
-
-        val locale = Locale(language.code)
-        Locale.setDefault(locale)
+        val targetLocale = getLocale(context)
+        Locale.setDefault(targetLocale)
 
         val config = Configuration(context.resources.configuration)
-        config.setLocale(locale)
-        config.setLayoutDirection(locale)
+        config.setLocale(targetLocale)
+        config.setLayoutDirection(targetLocale)
 
         @Suppress("DEPRECATION")
         context.resources.updateConfiguration(config, context.resources.displayMetrics)
+
+        val appCtx = context.applicationContext
+        if (appCtx != null && appCtx !== context) {
+            @Suppress("DEPRECATION")
+            appCtx.resources.updateConfiguration(config, appCtx.resources.displayMetrics)
+        }
 
         return context.createConfigurationContext(config)
     }
