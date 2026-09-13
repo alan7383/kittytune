@@ -315,6 +315,17 @@ object SpotifyRepository {
     }
 
 
+    private val artistAvatarCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    suspend fun getArtistAvatar(artistId: String): String? {
+        val cleanId = extractId(artistId)
+        if (cleanId.isBlank()) return null
+        artistAvatarCache[cleanId]?.let { return it }
+        val avatar = getArtist(cleanId)?.avatarUrl?.takeIf { it.isNotBlank() } ?: return null
+        artistAvatarCache[cleanId] = avatar
+        return avatar
+    }
+
     suspend fun getArtist(artistId: String): SpotifyArtist? = withContext(Dispatchers.IO) {
         val cleanId = extractId(artistId)
         val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null

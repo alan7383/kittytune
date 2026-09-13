@@ -555,7 +555,8 @@ fun LibraryScreen(
                                 com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
                                     playlist = playlist,
                                     tracks = playlist.tracks ?: emptyList(),
-                                    syncToCloud = !isSpotify
+                                    syncToCloud = !isSpotify,
+                                    likePlaylist = true
                                 )
                             } else {
                                 com.alananasss.kittytune.data.LikeRepository.togglePlaylistLike(

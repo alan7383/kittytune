@@ -466,15 +466,17 @@
             RecognitionHistoryItem::class,
             LibraryFolder::class,
             LibraryItemMeta::class,
-            TrackTrimRow::class
+            TrackTrimRow::class,
+            BeatInfoEntity::class
         ],
-        version = 20,
+        version = 21,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
         abstract fun downloadDao(): DownloadDao
         abstract fun recognitionHistoryDao(): RecognitionHistoryDao
         abstract fun folderDao(): FolderDao
+        abstract fun beatInfoDao(): BeatInfoDao
 
         companion object {
             val MIGRATION_16_17 = object : Migration(16, 17) {
@@ -533,6 +535,20 @@
                 }
             }
 
+            /**
+             * Beat and tempo analysis cache for AutoMix DJ-blend transitions.
+             */
+            val MIGRATION_20_21 = object : Migration(20, 21) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS beat_info (" +
+                            "songId TEXT NOT NULL, bpm REAL NOT NULL, firstBeatOffsetMs INTEGER NOT NULL, " +
+                            "confidence REAL NOT NULL, analyzedAt INTEGER NOT NULL, mixInPointMs INTEGER, " +
+                            "mixOutPointMs INTEGER, keyPitchClass INTEGER, keyIsMinor INTEGER, PRIMARY KEY(songId))"
+                    )
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -541,7 +557,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

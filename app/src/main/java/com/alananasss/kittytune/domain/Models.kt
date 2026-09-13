@@ -487,7 +487,8 @@ data class Track(
     val artists: List<com.alananasss.kittytune.data.spotify.SpotifyArtistRef>? = null
 ) {
     val displayArtist: String
-        get() = publisherMetadata?.artist?.takeIf { it.isNotBlank() }
+        get() = artists?.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.name }?.takeIf { it.isNotBlank() }
+            ?: publisherMetadata?.artist?.takeIf { it.isNotBlank() }
             ?: user?.username?.takeIf { it.isNotBlank() }
             ?: ""
 
@@ -771,6 +772,12 @@ data class User(
 
     val profileNavId: String
         get() = when {
+            urn?.startsWith("deezer:") == true -> urn!!
+            urn?.startsWith("tidal:") == true -> urn!!
+            urn?.startsWith("qobuz:") == true -> urn!!
+            permalinkUrl?.startsWith("deezer:") == true -> permalinkUrl!!
+            permalinkUrl?.startsWith("tidal:") == true -> permalinkUrl!!
+            permalinkUrl?.startsWith("qobuz:") == true -> permalinkUrl!!
             urn?.startsWith("vk:artist:") == true -> "profile:$urn"
             urn?.startsWith("vk:user:") == true -> "profile:$urn"
             urn?.startsWith("vk:") == true -> "profile:$urn"
@@ -781,6 +788,7 @@ data class User(
             !permalink.isNullOrBlank() && id == 0L -> "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(permalink)}"
             id > 0L -> "profile:$id"
             !permalink.isNullOrBlank() -> "profile:$permalink"
+            !username.isNullOrBlank() -> "profile:$username"
             else -> "profile:$id"
         }
 }

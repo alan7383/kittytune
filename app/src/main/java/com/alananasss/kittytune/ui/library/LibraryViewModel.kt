@@ -17,6 +17,7 @@ import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.LocalArtist
+import com.alananasss.kittytune.data.local.LocalPlaylist
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.GraphQlFollowsInput
@@ -502,14 +503,16 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 DownloadManager.deletedPlaylistIds
             ) { allLocalPlaylists, likedIds, deletedIds ->
                 allLocalPlaylists.filter { local ->
-                    !deletedIds.contains(local.id) && (local.id < 0 || local.isDownloaded || likedIds.contains(local.id) || local.permalinkUrl?.contains("spotify") == true)
+                    !deletedIds.contains(local.id) && (local.id < 0 || local.isUserCreated || !local.localCoverPath.isNullOrEmpty() || local.isDownloaded || likedIds.contains(local.id) || local.permalinkUrl?.contains("spotify") == true)
                 }
             }.collect { localPlaylists ->
                 val localIds = localPlaylists.map { it.id }.toSet()
                 DownloadManager.clearDeletedPlaylistIds(localIds)
                 localItemsCache = localPlaylists.map { local ->
+                    val localCoverFile = java.io.File(app.filesDir, "playlist_cover_${local.id}.jpg")
+                    val effectiveCover = local.localCoverPath ?: if (localCoverFile.exists()) localCoverFile.absolutePath else null
                     val finalArtwork =
-                        if (!local.localCoverPath.isNullOrEmpty()) local.localCoverPath else local.artworkUrl
+                        if (!effectiveCover.isNullOrEmpty()) effectiveCover else local.artworkUrl
                     val p = Playlist(
                         id = local.id,
                         title = local.title,
@@ -778,6 +781,9 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                     isOfflineMode = false
                     val user = api.getMe()
                     userProfile = user
+                    val pPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(app)
+                    pPrefs.setCachedUserId(user.id)
+                    pPrefs.setCachedUsername(user.username)
                     loadOnlineData(user)
                 } catch (e: Exception) {
                     Log.e("LibraryVM", "online error or not connected", e)
@@ -941,7 +947,15 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                             } catch (e: Exception) {
                                 0L
                             }
-                            newOnlineItems.add(LibraryItem.PlaylistItem(pl, date))
+                            val localCoverFile = java.io.File(app.filesDir, "playlist_cover_${pl.id}.jpg")
+                            val localInDb = try { db.getPlaylist(pl.id) } catch (_: Exception) { null }
+                            val effectiveCover = localInDb?.localCoverPath ?: if (localCoverFile.exists()) localCoverFile.absolutePath else null
+                            val adjustedPlaylist = if (!effectiveCover.isNullOrEmpty()) {
+                                pl.copy(artworkUrl = effectiveCover)
+                            } else {
+                                pl
+                            }
+                            newOnlineItems.add(LibraryItem.PlaylistItem(adjustedPlaylist, date))
                         } else if (sp != null) {
                             val numId = sp.urn?.let { kotlin.math.abs(it.hashCode().toLong()) } ?: sp.numericId
                             if (numId != 0L && addedPlaylistIds.add(numId)) {
@@ -977,7 +991,43 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                             } catch (e: Exception) {
                                 0L
                             }
-                            newOnlineItems.add(LibraryItem.PlaylistItem(playlist, date))
+                            val localCoverFile = java.io.File(app.filesDir, "playlist_cover_${playlist.id}.jpg")
+                            val localInDb = try { db.getPlaylist(playlist.id) } catch (_: Exception) { null }
+                            val effectiveCover = localInDb?.localCoverPath ?: if (localCoverFile.exists()) localCoverFile.absolutePath else null
+                            val adjustedPlaylist = if (!effectiveCover.isNullOrEmpty()) {
+                                playlist.copy(artworkUrl = effectiveCover)
+                            } else {
+                                playlist
+                            }
+                            newOnlineItems.add(LibraryItem.PlaylistItem(adjustedPlaylist, date))
+                        }
+                    }
+
+                    launch(Dispatchers.IO) {
+                        createdResponse.forEach { playlist ->
+                            try {
+                                val localInDb = db.getPlaylist(playlist.id)
+                                if (localInDb == null) {
+                                    db.insertPlaylist(
+                                        LocalPlaylist(
+                                            id = playlist.id,
+                                            title = playlist.title ?: app.getString(R.string.untitled_track),
+                                            artist = playlist.user?.username ?: user.username ?: app.getString(R.string.unknown_artist),
+                                            artworkUrl = playlist.fullResArtwork,
+                                            localCoverPath = null,
+                                            trackCount = playlist.trackCount ?: playlist.tracks?.size ?: 0,
+                                            isUserCreated = true,
+                                            permalinkUrl = playlist.permalinkUrl,
+                                            isAlbum = playlist.isRealAlbum,
+                                            isDownloaded = false
+                                        )
+                                    )
+                                } else if (!localInDb.isUserCreated) {
+                                    db.updatePlaylist(localInDb.copy(isUserCreated = true))
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     }
 
@@ -990,7 +1040,15 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                             } catch (e: Exception) {
                                 0L
                             }
-                            newOnlineItems.add(LibraryItem.PlaylistItem(playlist, date))
+                            val localCoverFile = java.io.File(app.filesDir, "playlist_cover_${playlist.id}.jpg")
+                            val localInDb = try { db.getPlaylist(playlist.id) } catch (_: Exception) { null }
+                            val effectiveCover = localInDb?.localCoverPath ?: if (localCoverFile.exists()) localCoverFile.absolutePath else null
+                            val adjustedPlaylist = if (!effectiveCover.isNullOrEmpty()) {
+                                playlist.copy(artworkUrl = effectiveCover)
+                            } else {
+                                playlist
+                            }
+                            newOnlineItems.add(LibraryItem.PlaylistItem(adjustedPlaylist, date))
                         }
                     }
 
