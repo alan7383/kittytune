@@ -81,6 +81,15 @@
                                     icon = Icons.Rounded.GraphicEq,
                                     onClick = { navController.navigate("audio_settings") }
                                 )
+                            },
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.pref_haptics_title),
+                                    subtitle = stringResource(R.string.pref_haptics_subtitle),
+                                    icon = Icons.Rounded.Vibration,
+                                    onClick = { navController.navigate("haptic_settings") }
+                                )
                             }
                         )
                     )

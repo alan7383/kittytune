@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import com.alananasss.kittytune.ui.common.Slider
 import androidx.compose.runtime.*
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
@@ -620,6 +621,7 @@ private fun ThemePreviewCard(
     val colorScheme = rememberSoundTuneColorScheme(
         useDarkTheme = isDark,
         dynamicColor = dynamicColor,
+        trackDynamicColor = false,
         pureBlack = pureBlack,
         keyColor = keyColor,
         colorStyle = colorStyle,
@@ -730,6 +732,7 @@ private fun ColorButtonMaterial(
         rememberSoundTuneColorScheme(
             useDarkTheme = isDark,
             dynamicColor = dynamicColor,
+            trackDynamicColor = false,
             pureBlack = pureBlack,
             keyColor = 0,
             colorStyle = colorStyle,

@@ -176,6 +176,25 @@ data class VkAudioItem(
             )
         } ?: emptyList()
 
+        val allArtists = (mainArtists + featArtists).filter { it.name.isNotBlank() }
+        val mappedArtists = if (allArtists.isNotEmpty()) {
+            allArtists.map { vkArt ->
+                com.alananasss.kittytune.data.spotify.SpotifyArtistRef(
+                    id = vkArt.slug?.takeIf { it.isNotBlank() } ?: vkArt.name,
+                    name = vkArt.name,
+                    avatarUrl = cover
+                )
+            }
+        } else if (performer.isNotBlank()) {
+            listOf(
+                com.alananasss.kittytune.data.spotify.SpotifyArtistRef(
+                    id = artistSlug.takeIf { it.isNotBlank() } ?: performer,
+                    name = performer,
+                    avatarUrl = cover
+                )
+            )
+        } else null
+
         return Track(
             id = id,
             title = displayTitle,
@@ -203,7 +222,8 @@ data class VkAudioItem(
             // together with the track code `act=add` / `act=delete_audio` expect.
             secretToken = VkHashes.encode(hashes, trackCode),
             source = SOURCE,
-            fullDuration = durationMs
+            fullDuration = durationMs,
+            artists = mappedArtists
         )
     }
 

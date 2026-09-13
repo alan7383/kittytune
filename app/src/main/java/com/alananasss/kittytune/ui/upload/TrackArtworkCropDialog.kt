@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.CropRotate
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material3.*
+import com.alananasss.kittytune.ui.common.Slider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier

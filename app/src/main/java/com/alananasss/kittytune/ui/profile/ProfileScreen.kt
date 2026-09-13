@@ -154,6 +154,17 @@ fun ProfileScreen(
 
     val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
 
+    val animatedProfilesEnabled by prefs.getAnimatedArtistProfilesFlow()
+        .collectAsState(initial = prefs.getAnimatedArtistProfilesEnabled())
+
+    val artistVideoUrl by produceState<String?>(initialValue = null, key1 = user?.username, key2 = animatedProfilesEnabled) {
+        if (!animatedProfilesEnabled || user?.username.isNullOrBlank() || profileViewModel.isCurrentUser) {
+            value = null
+        } else {
+            value = com.alananasss.kittytune.data.cover.AppleMusicArtistBackgroundProvider.getByArtistName(user.username)
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.TopCenter
@@ -162,17 +173,27 @@ fun ProfileScreen(
             ProfileScreenShimmer(onBackClick)
         } else if (user != null) {
             val bgModel = user.bannerUrl ?: user.avatarUrl
-            if (bgModel != null) {
+            val hasMotionVideo = !artistVideoUrl.isNullOrBlank()
+            if (bgModel != null || hasMotionVideo) {
                 Box(modifier = Modifier.fillMaxWidth().height(480.dp)) {
-                    AsyncImage(
-                        model = bgModel,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .blur(60.dp)
-                            .alpha(0.6f)
-                    )
+                    if (bgModel != null) {
+                        AsyncImage(
+                            model = bgModel,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .blur(if (hasMotionVideo) 20.dp else 60.dp)
+                                .alpha(0.6f)
+                        )
+                    }
+                    if (hasMotionVideo) {
+                        com.alananasss.kittytune.ui.player.cover.CanvasVideo(
+                            canvasUrl = artistVideoUrl!!,
+                            isPlaying = true,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -180,8 +201,8 @@ fun ProfileScreen(
                                 Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                        MaterialTheme.colorScheme.background,
+                                        if (hasMotionVideo) Color.Transparent else MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                        MaterialTheme.colorScheme.background.copy(alpha = if (hasMotionVideo) 0.7f else 1f),
                                         MaterialTheme.colorScheme.background
                                     ),
                                     startY = 0f
@@ -208,7 +229,8 @@ fun ProfileScreen(
                             playerViewModel = playerViewModel,
                             onNavigate = onNavigate,
                             profileViewModel = profileViewModel,
-                            artistContext = artistPlaybackContext
+                            artistContext = artistPlaybackContext,
+                            hasMotionVideo = hasMotionVideo
                         )
                     }
 
@@ -937,7 +959,8 @@ fun ModernProfileHeader(
     playerViewModel: PlayerViewModel,
     onNavigate: (String) -> Unit,
     profileViewModel: ProfileViewModel,
-    artistContext: PlaybackContext?
+    artistContext: PlaybackContext?,
+    hasMotionVideo: Boolean = false
 ) {
     val context = LocalContext.current
     val prefs = remember(context) { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
@@ -955,38 +978,42 @@ fun ModernProfileHeader(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            Box {
-                Surface(
-                    shape = CircleShape,
-                    shadowElevation = 12.dp,
-                    color = Color.Transparent,
-                    modifier = Modifier.size(140.dp)
-                ) {
-                    ArtistAvatar(
-                        avatarUrl = user.avatarUrl,
-                        enableViewer = true,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-                if (isCurrentUser) {
+            if (!hasMotionVideo) {
+                Box {
                     Surface(
-                        onClick = onEditClick,
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = 4.dp, y = (-4).dp)
+                        shadowElevation = 12.dp,
+                        color = Color.Transparent,
+                        modifier = Modifier.size(140.dp)
                     ) {
-                        Icon(
-                            Icons.Outlined.Edit,
-                            stringResource(R.string.profile_edit),
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(20.dp)
+                        ArtistAvatar(
+                            avatarUrl = user.avatarUrl,
+                            enableViewer = true,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
+                    if (isCurrentUser) {
+                        Surface(
+                            onClick = onEditClick,
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .offset(x = 4.dp, y = (-4).dp)
+                        ) {
+                            Icon(
+                                Icons.Outlined.Edit,
+                                stringResource(R.string.profile_edit),
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .size(20.dp)
+                            )
+                        }
+                    }
                 }
+            } else {
+                Spacer(Modifier.height(140.dp))
             }
 
             Spacer(Modifier.height(20.dp))
@@ -1017,10 +1044,14 @@ fun ModernProfileHeader(
                     text = user.username ?: stringResource(R.string.unknown_artist),
                     style = MaterialTheme.typography.headlineLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp
+                        letterSpacing = (-0.5).sp,
+                        shadow = if (hasMotionVideo) androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black.copy(alpha = 0.7f),
+                            blurRadius = 12f
+                        ) else null
                     ),
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = if (hasMotionVideo) Color.White else MaterialTheme.colorScheme.onBackground
                 )
                 if (user.verified) {
                     Spacer(Modifier.width(6.dp))

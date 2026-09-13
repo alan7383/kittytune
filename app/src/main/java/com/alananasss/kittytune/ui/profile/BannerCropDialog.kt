@@ -1,47 +1,48 @@
-    package com.alananasss.kittytune.ui.profile
+package com.alananasss.kittytune.ui.profile
 
-    import android.graphics.Bitmap
-    import android.graphics.RectF
-    import androidx.compose.foundation.Canvas
-    import androidx.compose.foundation.background
-    import androidx.compose.foundation.gestures.detectTransformGestures
-    import androidx.compose.foundation.layout.*
-    import androidx.compose.foundation.shape.RoundedCornerShape
-    import androidx.compose.material.icons.Icons
-    import androidx.compose.material.icons.rounded.Add
-    import androidx.compose.material.icons.rounded.Remove
-    import androidx.compose.material3.*
-    import androidx.compose.runtime.*
-    import androidx.compose.ui.Alignment
-    import androidx.compose.ui.Modifier
-    import androidx.compose.ui.draw.clip
-    import androidx.compose.ui.geometry.Offset
-    import androidx.compose.ui.geometry.Rect
-    import androidx.compose.ui.geometry.Size
-    import androidx.compose.ui.graphics.Color
-    import androidx.compose.ui.graphics.Path
-    import androidx.compose.ui.graphics.PathOperation
-    import androidx.compose.ui.graphics.asImageBitmap
-    import androidx.compose.ui.graphics.drawscope.translate
-    import androidx.compose.ui.graphics.drawscope.withTransform
-    import androidx.compose.ui.input.pointer.pointerInput
-    import androidx.compose.ui.layout.onGloballyPositioned
-    import androidx.compose.ui.platform.LocalDensity
-    import androidx.compose.ui.res.stringResource
-    import androidx.compose.ui.text.font.FontWeight
-    import androidx.compose.ui.unit.dp
-    import androidx.compose.ui.unit.toSize
-    import androidx.compose.ui.window.Dialog
-    import androidx.compose.ui.window.DialogProperties
-    import com.alananasss.kittytune.R
-    import kotlinx.coroutines.Dispatchers
-    import kotlinx.coroutines.launch
-    import kotlinx.coroutines.withContext
-    import kotlin.math.max
-    import kotlin.math.min
+import android.graphics.Bitmap
+import android.graphics.RectF
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.*
+import com.alananasss.kittytune.ui.common.Slider
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.alananasss.kittytune.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.math.max
+import kotlin.math.min
 
-    @Composable
-    fun BannerCropDialog(
+@Composable
+fun BannerCropDialog(
         bitmap: Bitmap?,
         onDismiss: () -> Unit,
         onSave: (Bitmap) -> Unit

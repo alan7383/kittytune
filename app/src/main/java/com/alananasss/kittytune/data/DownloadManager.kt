@@ -28,6 +28,9 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.io.ByteArrayOutputStream
+import android.util.Base64
+import com.alananasss.kittytune.data.upload.ArtworkUploadRequest
 
 object DownloadManager {
     const val LIKES_BATCH_ID = -1L
@@ -413,7 +416,7 @@ object DownloadManager {
                 val localTrack = LocalTrack(
                     id = track.id,
                     title = track.title ?: context.getString(R.string.untitled_track),
-                    artist = track.user?.username ?: context.getString(R.string.unknown_artist),
+                    artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                     artworkUrl = track.fullResArtwork,
                     duration = track.durationMs ?: 0L,
                     localAudioPath = "",
@@ -549,17 +552,65 @@ object DownloadManager {
         }
     }
 
-    fun updatePlaylistCover(playlistId: Long, uri: Uri) {
+    fun updatePlaylistCover(
+        playlistId: Long,
+        uri: Uri,
+        title: String? = null,
+        artist: String? = null
+    ) {
         scope.launch(Dispatchers.IO) {
             try {
                 val inputStream = context.contentResolver.openInputStream(uri)
                 val file = File(context.filesDir, "playlist_cover_${playlistId}.jpg")
                 inputStream?.use { input -> FileOutputStream(file).use { output -> input.copyTo(output) } }
+
+                try {
+                    coil.Coil.imageLoader(context).memoryCache?.clear()
+                } catch (_: Exception) {}
+
                 val playlist = database.downloadDao().getPlaylist(playlistId)
                 if (playlist != null) {
                     database.downloadDao().updatePlaylist(playlist.copy(localCoverPath = file.absolutePath))
+                } else {
+                    val newLocal = LocalPlaylist(
+                        id = playlistId,
+                        title = title?.takeIf { it.isNotBlank() } ?: context.getString(R.string.untitled_track),
+                        artist = artist?.takeIf { it.isNotBlank() } ?: context.getString(R.string.me_artist),
+                        artworkUrl = file.absolutePath,
+                        localCoverPath = file.absolutePath,
+                        trackCount = 0,
+                        isUserCreated = true
+                    )
+                    database.downloadDao().insertPlaylist(newLocal)
                 }
                 database.downloadDao().updateHistoryItemImageUrl("playlist:$playlistId", file.absolutePath)
+
+                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                    try {
+                        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                        if (bitmap != null) {
+                            val baos = ByteArrayOutputStream()
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos)
+                            val base64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+                            val artworkReq = ArtworkUploadRequest(imageData = base64)
+                            val artResponse = api.uploadPlaylistArtwork(
+                                "soundcloud:playlists:$playlistId",
+                                artworkReq
+                            )
+                            if (artResponse.isSuccessful) {
+                                Log.d("DownloadManager", "Successfully uploaded playlist artwork to SoundCloud for $playlistId")
+                            } else {
+                                Log.w(
+                                    "DownloadManager",
+                                    "Failed to upload playlist artwork to SoundCloud: ${artResponse.code()} - ${artResponse.errorBody()?.string()}"
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DownloadManager", "Exception uploading playlist artwork to SoundCloud", e)
+                    }
+                }
+
                 _storageTrigger.update { it + 1 }
                 _libraryUpdated.tryEmit(Unit)
             } catch (e: Exception) {
@@ -568,18 +619,63 @@ object DownloadManager {
         }
     }
 
-    fun updatePlaylistCover(playlistId: Long, bitmap: Bitmap) {
+    fun updatePlaylistCover(
+        playlistId: Long,
+        bitmap: Bitmap,
+        title: String? = null,
+        artist: String? = null
+    ) {
         scope.launch(Dispatchers.IO) {
             try {
                 val file = File(context.filesDir, "playlist_cover_${playlistId}.jpg")
                 FileOutputStream(file).use { out ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
                 }
+
+                try {
+                    coil.Coil.imageLoader(context).memoryCache?.clear()
+                } catch (_: Exception) {}
+
                 val playlist = database.downloadDao().getPlaylist(playlistId)
                 if (playlist != null) {
                     database.downloadDao().updatePlaylist(playlist.copy(localCoverPath = file.absolutePath))
+                } else {
+                    val newLocal = LocalPlaylist(
+                        id = playlistId,
+                        title = title?.takeIf { it.isNotBlank() } ?: context.getString(R.string.untitled_track),
+                        artist = artist?.takeIf { it.isNotBlank() } ?: context.getString(R.string.me_artist),
+                        artworkUrl = file.absolutePath,
+                        localCoverPath = file.absolutePath,
+                        trackCount = 0,
+                        isUserCreated = true
+                    )
+                    database.downloadDao().insertPlaylist(newLocal)
                 }
                 database.downloadDao().updateHistoryItemImageUrl("playlist:$playlistId", file.absolutePath)
+
+                if (playlistId > 0 && !TokenManager(context).isGuestMode()) {
+                    try {
+                        val baos = ByteArrayOutputStream()
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos)
+                        val base64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP)
+                        val artworkReq = ArtworkUploadRequest(imageData = base64)
+                        val artResponse = api.uploadPlaylistArtwork(
+                            "soundcloud:playlists:$playlistId",
+                            artworkReq
+                        )
+                        if (artResponse.isSuccessful) {
+                            Log.d("DownloadManager", "Successfully uploaded playlist artwork to SoundCloud for $playlistId")
+                        } else {
+                            Log.w(
+                                "DownloadManager",
+                                "Failed to upload playlist artwork to SoundCloud: ${artResponse.code()} - ${artResponse.errorBody()?.string()}"
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DownloadManager", "Exception uploading playlist artwork to SoundCloud", e)
+                    }
+                }
+
                 _storageTrigger.update { it + 1 }
                 _libraryUpdated.tryEmit(Unit)
             } catch (e: Exception) {
@@ -632,10 +728,12 @@ object DownloadManager {
         playlist: Playlist,
         tracks: List<Track>,
         syncToCloud: Boolean = true,
-        isDownloaded: Boolean? = null
+        isDownloaded: Boolean? = null,
+        isUserCreated: Boolean? = null,
+        likePlaylist: Boolean = false
     ) {
         scope.launch {
-            if (playlist.id != 0L) {
+            if (likePlaylist && playlist.id != 0L) {
                 LikeRepository.togglePlaylistLike(
                     playlistId = playlist.id,
                     isLiked = true,
@@ -646,7 +744,14 @@ object DownloadManager {
 
             val dao = database.downloadDao()
             val existing = dao.getPlaylist(playlist.id)
-            val isUserCreatedFinal = playlist.id < 0 || (existing?.isUserCreated == true)
+            val prefs = PlayerPreferences(context)
+            val currentUserId = prefs.getCachedUserId()
+            val currentUsername = prefs.getCachedUsername()
+
+            val isOwner = (playlist.user?.id != null && playlist.user?.id != 0L && playlist.user?.id == currentUserId) ||
+                (!currentUsername.isNullOrBlank() && (playlist.user?.username?.equals(currentUsername, ignoreCase = true) == true || existing?.artist?.equals(currentUsername, ignoreCase = true) == true))
+
+            val isUserCreatedFinal = isUserCreated ?: (playlist.id < 0 || (existing?.isUserCreated == true) || isOwner)
             val localCover = existing?.localCoverPath ?: (if (playlist.id < 0) playlist.calculatedArtworkUrl ?: playlist.artworkUrl else null)
             val isDownloadedFinal = isDownloaded ?: (existing?.isDownloaded ?: false)
             val baseTime = System.currentTimeMillis()
@@ -672,7 +777,7 @@ object DownloadManager {
                     val localTrack = LocalTrack(
                         id = track.id,
                         title = track.title ?: context.getString(R.string.untitled_track),
-                        artist = track.user?.username ?: context.getString(R.string.unknown_artist),
+                        artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                         artworkUrl = track.fullResArtwork,
                         duration = track.durationMs ?: 0L,
                         localAudioPath = "",
@@ -1318,7 +1423,7 @@ object DownloadManager {
                     val localTrack = LocalTrack(
                         id = track.id,
                         title = track.title ?: context.getString(R.string.untitled_track),
-                        artist = track.user?.username ?: context.getString(R.string.unknown_artist),
+                        artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                         artworkUrl = finalArtworkUrl,
                         duration = track.durationMs ?: 0L,
                         localAudioPath = exoPath,
@@ -1354,9 +1459,19 @@ object DownloadManager {
                     return@launch
                 }
 
+                val isDeezerStream = streamUrl.startsWith("metrofuse-deezer://")
+                val isDeezerFlac = isDeezerStream && (streamUrl.contains("format=FLAC", ignoreCase = true) || streamUrl.contains(".flac", ignoreCase = true))
                 val isYoutubeStream = streamUrl.contains("googlevideo.com") || track.source == "youtube"
-                val ext = if (isYoutubeStream) "m4a" else "mp3"
-                val mime = if (isYoutubeStream) "audio/mp4" else "audio/mpeg"
+                val ext = when {
+                    isDeezerFlac -> "flac"
+                    isYoutubeStream -> "m4a"
+                    else -> "mp3"
+                }
+                val mime = when {
+                    isDeezerFlac -> "audio/flac"
+                    isYoutubeStream -> "audio/mp4"
+                    else -> "audio/mpeg"
+                }
 
                 tempAudioFile = File(context.cacheDir, "temp_${track.id}.$ext")
                 tempImageFile = File(context.cacheDir, "temp_art_${track.id}.jpg")
@@ -1364,9 +1479,20 @@ object DownloadManager {
                 val internalArtFile = File(context.filesDir, "art_${track.id}.jpg")
 
                 FileOutputStream(tempAudioFile).use { fos ->
-                    downloadFileToStream(streamUrl, fos) { p ->
-                        if (isActive) {
-                            _downloadProgress.update { c -> c + (track.id to p) }
+                    if (isDeezerStream) {
+                        com.alananasss.kittytune.audio.providers.deezer.DeezerAudioProvider.downloadDecryptedStream(
+                            android.net.Uri.parse(streamUrl),
+                            fos,
+                        ) { p ->
+                            if (isActive) {
+                                _downloadProgress.update { c -> c + (track.id to p) }
+                            }
+                        }
+                    } else {
+                        downloadFileToStream(streamUrl, fos) { p ->
+                            if (isActive) {
+                                _downloadProgress.update { c -> c + (track.id to p) }
+                            }
                         }
                     }
                 }
@@ -1378,7 +1504,7 @@ object DownloadManager {
                         val id3v2Tag = if (mp3file.hasId3v2Tag()) mp3file.id3v2Tag else ID3v24Tag()
                         mp3file.id3v2Tag = id3v2Tag
                         id3v2Tag.title = track.title ?: context.getString(R.string.untitled_track)
-                        id3v2Tag.artist = track.user?.username ?: context.getString(R.string.unknown_artist)
+                        id3v2Tag.artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) }
                         id3v2Tag.album =
                             if (subFolderName != null) subFolderName else context.getString(R.string.app_name)
                         id3v2Tag.comment = context.getString(R.string.download_comment)
@@ -1394,7 +1520,7 @@ object DownloadManager {
                     tempAudioFile.copyTo(taggedAudioFile, overwrite = true)
                 }
 
-                val cleanArtist = sanitizeFilename(track.user?.username ?: context.getString(R.string.generic_artist))
+                val cleanArtist = sanitizeFilename(track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.generic_artist) })
                 val cleanTitle = sanitizeFilename(track.title ?: context.getString(R.string.generic_title))
                 val finalFileName = "$cleanArtist - $cleanTitle.$ext"
 
@@ -1412,7 +1538,7 @@ object DownloadManager {
                 val localTrack = LocalTrack(
                     id = track.id,
                     title = track.title ?: context.getString(R.string.untitled_track),
-                    artist = track.user?.username ?: context.getString(R.string.unknown_artist),
+                    artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                     artworkUrl = finalArtworkUrl,
                     duration = track.durationMs ?: 0L,
                     localAudioPath = audioPath,
@@ -1590,7 +1716,7 @@ object DownloadManager {
                     val localTrack = LocalTrack(
                         id = track.id,
                         title = track.title ?: context.getString(R.string.untitled_track),
-                        artist = track.user?.username ?: context.getString(R.string.unknown_artist),
+                        artist = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.unknown_artist) },
                         artworkUrl = track.fullResArtwork,
                         duration = track.durationMs ?: 0L,
                         localAudioPath = "",

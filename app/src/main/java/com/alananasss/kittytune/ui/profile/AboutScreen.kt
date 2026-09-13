@@ -175,10 +175,12 @@ fun AboutScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_launcher_monochrome),
+                                imageVector = ImageVector.vectorResource(id = R.drawable.ic_kittytune_logo),
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.fillMaxSize().scale(1.8f)
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(20.dp)
                             )
                         }
 
