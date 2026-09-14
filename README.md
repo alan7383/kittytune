@@ -247,6 +247,25 @@ If you enjoy using **KittyTune** and want to support its ongoing development, co
 
 ---
 
+### ^ contributors
+
+thanks to everyone who helps make KittyTune better:
+
+<a href="https://github.com/wynriu" title="wynriu">
+  <img src="https://images.weserv.nl/?url=github.com/wynriu.png&mask=circle&w=64&h=64" width="64" height="64" alt="wynriu" />
+</a>
+<a href="https://github.com/sneoww98" title="sneoww98">
+  <img src="https://images.weserv.nl/?url=github.com/sneoww98.png&mask=circle&w=64&h=64" width="64" height="64" alt="sneoww98" />
+</a>
+<a href="https://github.com/quntqunt" title="quntqunt">
+  <img src="https://images.weserv.nl/?url=github.com/quntqunt.png&mask=circle&w=64&h=64" width="64" height="64" alt="quntqunt" />
+</a>
+<a href="https://github.com/tankist939-afk" title="tankist939-afk">
+  <img src="https://images.weserv.nl/?url=github.com/tankist939-afk.png&mask=circle&w=64&h=64" width="64" height="64" alt="tankist939-afk" />
+</a>
+
+---
+
 ### ~ credits & license
 
 Big thanks to the projects that help power KittyTune:
