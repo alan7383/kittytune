@@ -908,6 +908,21 @@
     <string name="discord_status_soundcloud">Название активности (SoundCloud)</string>
     <string name="discord_status_artist">Имя исполнителя</string>
     <string name="discord_status_song">Название песни</string>
+    <string name="discord_login_remote_waiting">Ожидание авторизации в Discord…</string>
+    <string name="discord_login_remote_desc">Подтвердите вход в приложении Discord или отсканируйте QR-код, чтобы войти без проблем с 2FA или ключами доступа (passkey).</string>
+    <string name="discord_login_open_app">Открыть в Discord</string>
+    <string name="discord_login_reopen_app">Открыть Discord снова</string>
+    <string name="discord_login_use_webview">Веб-вход (WebView)</string>
+    <string name="discord_login_use_remote">Быстрый вход через Discord</string>
+    <string name="discord_login_2fa_tip">Если ключ доступа не работает в WebView, нажмите «Подтвердить другим способом» в Discord, чтобы использовать код из приложения (TOTP), SMS или резервный код.</string>
+    <string name="discord_manual_token_title">Токен Discord</string>
+    <string name="discord_manual_token_desc">Вставить токен аккаунта Discord вручную</string>
+    <string name="discord_manual_token_placeholder">Вставьте токен (mfa.xxx или токен пользователя)</string>
+    <string name="discord_manual_token_invalid">Неверный токен Discord</string>
+    <string name="discord_connected_as">Подключено как %1$s</string>
+    <string name="discord_login_scanned">Отсканировано %1$s. Подтвердите в Discord!</string>
+    <string name="discord_login_success">Discord успешно подключен!</string>
+    <string name="discord_login_canceled">Вход отменен</string>
     <!-- ABOUT -->
     <string name="pref_about_title">Подробно</string>
     <string name="pref_about_subtitle">Версия и бонусы</string>

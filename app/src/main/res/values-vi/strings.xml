@@ -1097,6 +1097,21 @@
     <string name="discord_status_soundcloud">Tên hoạt động (SoundCloud)</string>
     <string name="discord_status_artist">Tên nghệ sĩ</string>
     <string name="discord_status_song">Tên bài hát</string>
+    <string name="discord_login_remote_waiting">Đang chờ xác thực từ Discord…</string>
+    <string name="discord_login_remote_desc">Xác nhận lời nhắc trong ứng dụng Discord hoặc quét mã QR để đăng nhập mà không gặp sự cố 2FA hay mã khóa (passkey).</string>
+    <string name="discord_login_open_app">Mở trong Discord</string>
+    <string name="discord_login_reopen_app">Mở lại Discord</string>
+    <string name="discord_login_use_webview">Đăng nhập web (WebView)</string>
+    <string name="discord_login_use_remote">Đăng nhập nhanh qua ứng dụng</string>
+    <string name="discord_login_2fa_tip">Nếu mã khóa thất bại trong WebView, nhấp vào \"Xác minh bằng phương thức khác\" trên Discord để dùng mã Authenticator (TOTP), SMS hoặc mã dự phòng.</string>
+    <string name="discord_manual_token_title">Token Discord</string>
+    <string name="discord_manual_token_desc">Dán token tài khoản Discord của bạn theo cách thủ công</string>
+    <string name="discord_manual_token_placeholder">Dán token (mfa.xxx hoặc token người dùng)</string>
+    <string name="discord_manual_token_invalid">Token Discord không hợp lệ</string>
+    <string name="discord_connected_as">Đã kết nối với tên %1$s</string>
+    <string name="discord_login_scanned">Đã quét bởi %1$s. Hãy xác nhận trong Discord!</string>
+    <string name="discord_login_success">Đã kết nối Discord thành công!</string>
+    <string name="discord_login_canceled">Đã hủy đăng nhập</string>
     <!-- ABOUT -->
     <string name="pref_about_title">Giới thiệu</string>
     <string name="pref_about_subtitle">Phiên bản và thông tin đóng góp</string>

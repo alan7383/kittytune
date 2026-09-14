@@ -128,6 +128,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_UNDER_COVER_PLACEMENT = "lyrics_under_cover_placement"
         private const val KEY_LYRICS_UNDER_COVER_ALWAYS_VISIBLE = "lyrics_under_cover_always_visible"
         private const val KEY_DISCORD_TOKEN = "discord_token"
+        private const val KEY_DISCORD_USERNAME = "discord_username"
         private const val KEY_DISCORD_ENABLED = "discord_rpc_enabled"
         private const val KEY_PRECISE_LYRICS_SEARCH = "precise_lyrics_search_enabled"
         private const val KEY_EARRAPE_WARNING = "has_seen_earrape_warning"
@@ -323,6 +324,11 @@ class PlayerPreferences(context: Context) {
     fun getDiscordToken(): String? = prefs.getString(KEY_DISCORD_TOKEN, null)
     fun setDiscordToken(token: String?) {
         prefs.edit { putString(KEY_DISCORD_TOKEN, token) }
+    }
+
+    fun getDiscordUsername(): String? = prefs.getString(KEY_DISCORD_USERNAME, null)
+    fun setDiscordUsername(username: String?) {
+        prefs.edit { putString(KEY_DISCORD_USERNAME, username) }
     }
 
     fun getDiscordRpcEnabled(): Boolean = prefs.getBoolean(KEY_DISCORD_ENABLED, false)

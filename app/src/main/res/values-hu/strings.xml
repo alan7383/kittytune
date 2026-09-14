@@ -908,6 +908,21 @@
     <string name="discord_status_soundcloud">Tevékenység neve (SoundCloud)</string>
     <string name="discord_status_artist">Előadó neve</string>
     <string name="discord_status_song">Dal címe</string>
+    <string name="discord_login_remote_waiting">Várakozás a Discord engedélyezésre…</string>
+    <string name="discord_login_remote_desc">Erősítsd meg a kérést a Discord alkalmazásban, vagy olvasd be a QR-kódot a 2FA és passkey problémák nélküli bejelentkezéshez.</string>
+    <string name="discord_login_open_app">Megnyitás Discordban</string>
+    <string name="discord_login_reopen_app">Discord újranyitása</string>
+    <string name="discord_login_use_webview">Webes bejelentkezés (WebView)</string>
+    <string name="discord_login_use_remote">Gyors bejelentkezés az appal</string>
+    <string name="discord_login_2fa_tip">Ha a passkey nem működik WebView-ban, kattints a \"Hitelesítés másik módszerrel\" lehetőségre a Discordon Authenticator (TOTP) kód, SMS vagy biztonsági mentési kód használatához.</string>
+    <string name="discord_manual_token_title">Discord token</string>
+    <string name="discord_manual_token_desc">Illeszd be manuálisan a Discord fiókod tokenjét</string>
+    <string name="discord_manual_token_placeholder">Illeszd be a tokent (mfa.xxx vagy felhasználói token)</string>
+    <string name="discord_manual_token_invalid">Érvénytelen Discord token</string>
+    <string name="discord_connected_as">Csatlakoztatva mint %1$s</string>
+    <string name="discord_login_scanned">Beszkennelve általa: %1$s. Erősítsd meg Discordban!</string>
+    <string name="discord_login_success">Discord sikeresen csatlakoztatva!</string>
+    <string name="discord_login_canceled">Bejelentkezés megszakítva</string>
     <!-- ABOUT -->
     <string name="pref_about_title">Névjegy</string>
     <string name="pref_about_subtitle">Verzió és kreditek</string>

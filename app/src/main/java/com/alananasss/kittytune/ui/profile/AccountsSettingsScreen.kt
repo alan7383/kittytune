@@ -136,7 +136,12 @@ fun AccountsSettingsScreen(
                                 shape = shape,
                                 title = stringResource(R.string.pref_discord_title),
                                 subtitle = if (isDiscordLoggedIn) {
-                                    stringResource(R.string.discord_connected)
+                                    val discordUsername = prefs.getDiscordUsername()
+                                    if (!discordUsername.isNullOrEmpty()) {
+                                        stringResource(R.string.discord_connected_as, discordUsername)
+                                    } else {
+                                        stringResource(R.string.discord_connected)
+                                    }
                                 } else {
                                     stringResource(R.string.discord_not_connected)
                                 },

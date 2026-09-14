@@ -1097,6 +1097,21 @@
     <string name="discord_status_soundcloud">Nom de l\'activité (SoundCloud)</string>
     <string name="discord_status_artist">Nom de l\'artiste</string>
     <string name="discord_status_song">Titre du morceau</string>
+    <string name="discord_login_remote_waiting">En attente d\'autorisation Discord…</string>
+    <string name="discord_login_remote_desc">Confirmez l\'invite dans votre application Discord ou scannez le QR code pour vous connecter sans problème de passkey ou 2FA.</string>
+    <string name="discord_login_open_app">Ouvrir dans Discord</string>
+    <string name="discord_login_reopen_app">Rouvrir Discord</string>
+    <string name="discord_login_use_webview">Connexion Web (WebView)</string>
+    <string name="discord_login_use_remote">Connexion Rapide (App Discord)</string>
+    <string name="discord_login_2fa_tip">Si la clé d\'accès échoue dans la WebView, cliquez sur « Vérifier par une autre méthode » sur Discord pour utiliser TOTP, SMS ou un code de secours.</string>
+    <string name="discord_manual_token_title">Token Discord</string>
+    <string name="discord_manual_token_desc">Coller manuellement votre token de compte Discord</string>
+    <string name="discord_manual_token_placeholder">Coller le token (mfa.xxx ou token utilisateur)</string>
+    <string name="discord_manual_token_invalid">Token Discord invalide</string>
+    <string name="discord_connected_as">Connecté en tant que %1$s</string>
+    <string name="discord_login_scanned">Scanné par %1$s. Confirmez dans l\'app Discord !</string>
+    <string name="discord_login_success">Discord connecté avec succès !</string>
+    <string name="discord_login_canceled">Connexion annulée</string>
     <!-- ABOUT -->
     <string name="pref_about_title">À propos</string>
     <string name="pref_about_subtitle">Version et crédits</string>

@@ -1176,6 +1176,21 @@
     <string name="discord_status_soundcloud">Activity Name (SoundCloud)</string>
     <string name="discord_status_artist">Artist Name</string>
     <string name="discord_status_song">Song Title</string>
+    <string name="discord_login_remote_waiting">Waiting for Discord authorization…</string>
+    <string name="discord_login_remote_desc">Confirm the prompt in your Discord app or scan the QR code to log in without 2FA or passkey issues.</string>
+    <string name="discord_login_open_app">Open in Discord</string>
+    <string name="discord_login_reopen_app">Reopen Discord</string>
+    <string name="discord_login_use_webview">Use Web Login (WebView)</string>
+    <string name="discord_login_use_remote">Use Fast App Login</string>
+    <string name="discord_login_2fa_tip">If passkey fails in WebView, click \"Verify with another method\" on Discord to use an Authenticator code (TOTP), SMS, or Backup code.</string>
+    <string name="discord_manual_token_title">Discord Token</string>
+    <string name="discord_manual_token_desc">Paste your Discord account token manually</string>
+    <string name="discord_manual_token_placeholder">Paste token (mfa.xxx or user token)</string>
+    <string name="discord_manual_token_invalid">Invalid Discord token</string>
+    <string name="discord_connected_as">Connected as %1$s</string>
+    <string name="discord_login_scanned">Scanned by %1$s. Confirm in Discord!</string>
+    <string name="discord_login_success">Discord connected successfully!</string>
+    <string name="discord_login_canceled">Login canceled</string>
 
     <!-- ABOUT -->
     <string name="pref_about_title">About</string>
