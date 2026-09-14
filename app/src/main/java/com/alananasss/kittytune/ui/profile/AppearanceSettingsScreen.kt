@@ -289,6 +289,11 @@ fun AppearanceSettingsScreen(
                         AppLanguage.RUSSIAN,
                         appLanguage
                     ) { prefs.setAppLanguage(it); restartApp(context) }
+                    LanguageRadioButton(
+                        stringResource(R.string.lang_vietnamese),
+                        AppLanguage.VIETNAMESE,
+                        appLanguage
+                    ) { prefs.setAppLanguage(it); restartApp(context) }
                 }
             },
             confirmButton = {
@@ -482,6 +487,7 @@ fun AppearanceSettingsScreen(
                                 AppLanguage.ENGLISH -> stringResource(R.string.lang_english)
                                 AppLanguage.HUNGARIAN -> stringResource(R.string.lang_hungarian)
                                 AppLanguage.RUSSIAN -> stringResource(R.string.lang_russian)
+                                AppLanguage.VIETNAMESE -> stringResource(R.string.lang_vietnamese)
                             },
                             onClick = { showLanguageDialog = true }
                         )

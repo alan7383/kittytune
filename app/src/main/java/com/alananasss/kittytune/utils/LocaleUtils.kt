@@ -26,6 +26,7 @@ object LocaleUtils {
             AppLanguage.FRENCH -> "fr-FR,fr;q=0.9,en;q=0.8"
             AppLanguage.HUNGARIAN -> "hu-HU,hu;q=0.9,en;q=0.8"
             AppLanguage.RUSSIAN -> "ru-RU,ru;q=0.9,en;q=0.8"
+            AppLanguage.VIETNAMESE -> "vi-VN,vi;q=0.9,en;q=0.8"
             AppLanguage.SYSTEM -> {
                 val defaultLocale = Locale.getDefault()
                 val lang = defaultLocale.language.ifBlank { "en" }
