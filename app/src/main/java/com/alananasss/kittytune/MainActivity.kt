@@ -119,9 +119,10 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
             handleIntent(intent)
 
+            val activeLocale = LocaleUtils.getLocale(this)
             YouTube.locale = YouTubeLocale(
-                gl = "US",
-                hl = "en"
+                gl = activeLocale.country.ifBlank { "US" },
+                hl = activeLocale.language.ifBlank { "en" }
             )
             lifecycleScope.launch {
                 YouTube.visitorData().onSuccess {

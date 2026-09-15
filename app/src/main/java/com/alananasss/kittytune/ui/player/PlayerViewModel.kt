@@ -715,7 +715,27 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             if (state == Player.STATE_READY) {
                 isLoading = false
                 currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
-                if (MusicManager.player.duration > 0) duration = MusicManager.player.duration
+                if (MusicManager.player.duration > 0) {
+                    val exoDuration = MusicManager.player.duration
+                    val trackDuration = currentTrack?.durationMs ?: 0L
+                    duration = exoDuration
+
+                    // Detect preview / wrong-stream situations: if ExoPlayer reports a duration
+                    // that dramatically differs from the track's expected duration, it is very
+                    // likely that the resolved stream is a preview, a snippet, or an entirely
+                    // different recording. Log this so it is diagnosable (issue #33).
+                    if (trackDuration > 60_000L && exoDuration > 0L) {
+                        val ratio = exoDuration.toDouble() / trackDuration.toDouble()
+                        if (ratio < 0.3 || ratio > 5.0) {
+                            Log.w(
+                                "PlayerViewModel",
+                                "Duration mismatch: ExoPlayer=${exoDuration}ms vs Track=${trackDuration}ms " +
+                                        "(ratio=${String.format("%.2f", ratio)}) for '${currentTrack?.title}' — " +
+                                        "possible preview or wrong stream"
+                            )
+                        }
+                    }
+                }
                 pendingSeekPosition?.let { MusicManager.player.seekTo(it); pendingSeekPosition = null }
             }
             if (state == Player.STATE_BUFFERING) isLoading = true
@@ -3260,7 +3280,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             true
     }
 
-    fun skipToQueueItem(index: Int, autoPlay: Boolean = isPlaying) {
+    fun skipToQueueItem(index: Int, autoPlay: Boolean = true) {
         playTrackAtIndex(
             index,
             addToHistory = false,
@@ -3274,7 +3294,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         index: Int,
         addToHistory: Boolean = true,
         isCrossfade: Boolean = false,
-        autoPlay: Boolean = isPlaying
+        autoPlay: Boolean = true
     ) {
         if (index < 0 || index >= _queue.size) {
             currentContext = null; return
@@ -3381,8 +3401,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun playNext(manual: Boolean = true, isCrossfade: Boolean = false, ignoreRepeatOne: Boolean = false) {
         if (isAutoplayRadioLoading) return
 
-        val shouldAutoPlay = if (manual) isPlaying else true
-
         if (manual && player.currentPosition > 2000) {
             incrementPlayCount()
         }
@@ -3396,7 +3414,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 currentQueueIndex,
                 addToHistory = false,
                 isCrossfade = isCrossfade,
-                autoPlay = shouldAutoPlay
+                autoPlay = true
             )
             return
         }
@@ -3410,10 +3428,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         if (nextIndex < _queue.size) {
-            playTrackAtIndex(nextIndex, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
+            playTrackAtIndex(nextIndex, addToHistory = false, isCrossfade = isCrossfade, autoPlay = true)
         } else {
             if (repeatMode == RepeatMode.ALL) {
-                playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
+                playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade, autoPlay = true)
             } else {
                 val autoPlayEnabled = playerPrefs.getAutoplayEnabled()
                 val isSpotify = currentTrack?.let {
@@ -3442,7 +3460,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                 newNextIndex,
                                 addToHistory = false,
                                 isCrossfade = isCrossfade,
-                                autoPlay = shouldAutoPlay
+                                autoPlay = true
                             )
                         } else {
                             MusicManager.player.pause()
@@ -3592,14 +3610,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun playPrevious(manual: Boolean = true, isCrossfade: Boolean = false) {
-        val shouldAutoPlay = if (manual) isPlaying else true
         if (manual) flushListenSession("SKIP_PREVIOUS")
 
         val prevIndex = currentQueueIndex - 1
         if (prevIndex >= 0) {
-            playTrackAtIndex(prevIndex, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
+            playTrackAtIndex(prevIndex, addToHistory = false, isCrossfade = isCrossfade, autoPlay = true)
         } else {
-            playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade, autoPlay = shouldAutoPlay)
+            playTrackAtIndex(0, addToHistory = false, isCrossfade = isCrossfade, autoPlay = true)
         }
     }
 
@@ -3615,6 +3632,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             flushListenSession("MANUAL_REPLAY")
             beginListenSession(currentTrack)
             seekTo(0L)
+            playWhenReady = true
+            player.play()
         } else {
             val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
             playPrevious(manual = true, isCrossfade = crossfadeEnabled)
@@ -4608,7 +4627,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
                         val automixEnabled = playerPrefs.getAutomixEnabled()
                         val crossfadeMs = playerPrefs.getCrossfadeDuration() * 1000L
-                        val dur = if (MusicManager.player.duration > 0) MusicManager.player.duration else duration
+                        val exoDur = if (MusicManager.player.duration > 0) MusicManager.player.duration else 0L
+                        val trackDur = currentTrack?.durationMs ?: 0L
+                        // Prefer ExoPlayer's reported duration when available; it is the ground
+                        // truth for the stream that is actually playing. Fall back to the Track's
+                        // duration only when ExoPlayer hasn't determined one yet. This prevents
+                        // crossfade/automix from misfiring when the Track metadata carries a stale
+                        // or incorrect value (e.g. 5 hours) that does not match the stream
+                        // (issue #33).
+                        val dur = if (exoDur > 0L) exoDur else trackDur
 
                         val currTrack = currentTrack
                         val nextIdx = if (repeatMode == RepeatMode.ONE) currentQueueIndex else currentQueueIndex + 1

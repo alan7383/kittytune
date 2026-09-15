@@ -2,6 +2,7 @@ package com.alananasss.kittytune.ui.profile
 
 import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -264,36 +265,48 @@ fun AppearanceSettingsScreen(
             title = { Text(stringResource(R.string.pref_language)) },
             text = {
                 Column {
+                    val onLanguageSelected: (AppLanguage) -> Unit = { selectedLang ->
+                        appLanguage = selectedLang
+                        prefs.setAppLanguage(selectedLang)
+                        showLanguageDialog = false
+                        restartApp(context)
+                    }
                     LanguageRadioButton(
                         stringResource(R.string.theme_system),
                         AppLanguage.SYSTEM,
-                        appLanguage
-                    ) { prefs.setAppLanguage(it); restartApp(context) }
+                        appLanguage,
+                        onLanguageSelected
+                    )
                     LanguageRadioButton(
                         stringResource(R.string.lang_french),
                         AppLanguage.FRENCH,
-                        appLanguage
-                    ) { prefs.setAppLanguage(it); restartApp(context) }
+                        appLanguage,
+                        onLanguageSelected
+                    )
                     LanguageRadioButton(
                         stringResource(R.string.lang_english),
                         AppLanguage.ENGLISH,
-                        appLanguage
-                    ) { prefs.setAppLanguage(it); restartApp(context) }
+                        appLanguage,
+                        onLanguageSelected
+                    )
                     LanguageRadioButton(
                         stringResource(R.string.lang_hungarian),
                         AppLanguage.HUNGARIAN,
-                        appLanguage
-                    ) { prefs.setAppLanguage(it); restartApp(context) }
+                        appLanguage,
+                        onLanguageSelected
+                    )
                     LanguageRadioButton(
                         stringResource(R.string.lang_russian),
                         AppLanguage.RUSSIAN,
-                        appLanguage
-                    ) { prefs.setAppLanguage(it); restartApp(context) }
+                        appLanguage,
+                        onLanguageSelected
+                    )
                     LanguageRadioButton(
                         stringResource(R.string.lang_vietnamese),
                         AppLanguage.VIETNAMESE,
-                        appLanguage
-                    ) { prefs.setAppLanguage(it); restartApp(context) }
+                        appLanguage,
+                        onLanguageSelected
+                    )
                 }
             },
             confirmButton = {
@@ -958,14 +971,21 @@ fun TrackRemovalRadioButton(
     }
 }
 
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 fun restartApp(context: Context) {
     com.alananasss.kittytune.utils.LocaleUtils.applyAppLanguage(context)
     com.alananasss.kittytune.data.network.RetrofitClient.resetClient()
-    if (context is Activity) {
-        val intent = Intent(context, context.javaClass)
+    val activity = context.findActivity()
+    if (activity != null) {
+        val intent = Intent(activity, activity.javaClass)
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        context.startActivity(intent)
-        context.finish()
+        activity.startActivity(intent)
+        activity.finish()
     } else {
         val packageManager = context.packageManager
         val intent = packageManager.getLaunchIntentForPackage(context.packageName)

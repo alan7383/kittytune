@@ -285,6 +285,18 @@
                         if (providerStream != null) {
                             return@run providerStream
                         }
+                        // Provider failed — fall back to YouTube rather than silently playing
+                        // a SoundCloud snippet of a different song (issue #33).
+                        val allowYoutubeFallback = PlayerPreferences(context).getYouTubeFallbackEnabled()
+                        if (allowYoutubeFallback) {
+                            Log.w(TAG, "Provider track (${track.source}) resolution failed, trying YouTube fallback for: ${track.title}")
+                            val ytFallback = resolveViaNewPipe(track)
+                            if (ytFallback != null) {
+                                return@run ResolvedStream(ytFallback)
+                            }
+                        }
+                        Log.w(TAG, "Could not resolve provider track (${track.source}): ${track.title}")
+                        return@run null
                     }
 
                     val prefs = PlayerPreferences(context)
@@ -307,7 +319,18 @@
                     if (scStream != null) {
                         scStream
                     } else {
-                        resolveViaProviders(context, track, forDownload)
+                        val providerFallback = resolveViaProviders(context, track, forDownload)
+                        if (providerFallback != null) {
+                            providerFallback
+                        } else if (allowYoutube) {
+                            // Last resort: YouTube fallback when both SoundCloud and all
+                            // providers have failed (issue #33).
+                            Log.w(TAG, "All sources failed for '${track.title}', trying final YouTube fallback")
+                            val ytUrl = resolveViaNewPipe(track)
+                            ytUrl?.let { ResolvedStream(it) }
+                        } else {
+                            null
+                        }
                     }
                 }
 
@@ -443,6 +466,12 @@
                             if (track.source == "soundcloud" || track.source.isNullOrEmpty()) {
                                 val scStream = resolveFromSoundCloudWithDrm(context, track, forDownload)
                                 if (scStream != null) return scStream
+                            } else if (track.source in listOf("deezer", "tidal", "qobuz")) {
+                                // Skip SoundCloud text-search fallback for provider-sourced tracks:
+                                // searching SoundCloud by title+artist frequently returns a completely
+                                // different recording — a snippet, a remix, or a "sped up" edit — that
+                                // plays as a 30-second preview of the wrong song (issue #33).
+                                Log.d(TAG, "Skipping SoundCloud text-search fallback for ${track.source} track: ${track.title}")
                             } else {
                                 try {
                                     val q = "$artist $title".trim()

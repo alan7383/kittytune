@@ -537,7 +537,7 @@ class PlayerPreferences(context: Context) {
         if (code != null) return code
         val appLang = getAppLanguage()
         if (appLang != AppLanguage.SYSTEM) return appLang.code
-        return java.util.Locale.getDefault().language.take(2).lowercase()
+        return com.alananasss.kittytune.utils.LocaleUtils.getLocale(context).language.take(2).lowercase()
     }
 
     fun setLyricsTranslationLang(lang: String) = prefs.edit { putString(KEY_LYRICS_TRANSLATION_LANG, lang) }

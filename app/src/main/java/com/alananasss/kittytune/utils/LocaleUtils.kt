@@ -8,19 +8,53 @@ import java.util.Locale
 
 object LocaleUtils {
 
-    fun getLocale(context: Context): Locale {
-        val prefs = PlayerPreferences(context)
-        val language = prefs.getAppLanguage()
-        return if (language == AppLanguage.SYSTEM) {
-            Locale.getDefault()
-        } else {
-            Locale(language.code)
+    private val initialDefaultLocale: Locale = Locale.getDefault()
+
+    fun getSystemLocale(): Locale {
+        return try {
+            val locales = android.content.res.Resources.getSystem().configuration.locales
+            if (!locales.isEmpty) locales[0] else initialDefaultLocale
+        } catch (_: Throwable) {
+            initialDefaultLocale
         }
     }
 
-    fun getAcceptLanguage(context: Context): String {
+    fun getSystemLocaleList(): android.os.LocaleList {
+        return try {
+            val locales = android.content.res.Resources.getSystem().configuration.locales
+            if (!locales.isEmpty) locales else android.os.LocaleList(initialDefaultLocale)
+        } catch (_: Throwable) {
+            android.os.LocaleList(initialDefaultLocale)
+        }
+    }
+
+    fun getLocaleForLanguage(language: AppLanguage): Locale {
+        return if (language == AppLanguage.SYSTEM) {
+            getSystemLocale()
+        } else {
+            Locale.forLanguageTag(language.code)
+        }
+    }
+
+    fun getLocaleListForLanguage(language: AppLanguage): android.os.LocaleList {
+        return if (language == AppLanguage.SYSTEM) {
+            getSystemLocaleList()
+        } else {
+            android.os.LocaleList(Locale.forLanguageTag(language.code))
+        }
+    }
+
+    fun getLocale(context: Context): Locale {
         val prefs = PlayerPreferences(context)
-        val language = prefs.getAppLanguage()
+        return getLocaleForLanguage(prefs.getAppLanguage())
+    }
+
+    fun getLocaleList(context: Context): android.os.LocaleList {
+        val prefs = PlayerPreferences(context)
+        return getLocaleListForLanguage(prefs.getAppLanguage())
+    }
+
+    fun getAcceptLanguageForLanguage(language: AppLanguage): String {
         return when (language) {
             AppLanguage.ENGLISH -> "en-US,en;q=0.9"
             AppLanguage.FRENCH -> "fr-FR,fr;q=0.9,en;q=0.8"
@@ -28,7 +62,7 @@ object LocaleUtils {
             AppLanguage.RUSSIAN -> "ru-RU,ru;q=0.9,en;q=0.8"
             AppLanguage.VIETNAMESE -> "vi-VN,vi;q=0.9,en;q=0.8"
             AppLanguage.SYSTEM -> {
-                val defaultLocale = Locale.getDefault()
+                val defaultLocale = getSystemLocale()
                 val lang = defaultLocale.language.ifBlank { "en" }
                 val country = defaultLocale.country
                 if (country.isNotBlank()) {
@@ -40,38 +74,51 @@ object LocaleUtils {
         }
     }
 
-    fun applyAppLanguage(context: Context) {
+    fun getAcceptLanguage(context: Context): String {
         val prefs = PlayerPreferences(context)
-        val language = prefs.getAppLanguage()
-        if (language != AppLanguage.SYSTEM) {
-            val locale = Locale(language.code)
-            Locale.setDefault(locale)
+        return getAcceptLanguageForLanguage(prefs.getAppLanguage())
+    }
 
-            val res = context.resources
-            val config = Configuration(res.configuration)
-            config.setLocale(locale)
-            config.setLayoutDirection(locale)
+    fun applyAppLanguage(context: Context) {
+        val targetLocale = getLocale(context)
+        val targetLocaleList = getLocaleList(context)
+
+        Locale.setDefault(targetLocale)
+
+        val res = context.resources
+        val config = Configuration(res.configuration)
+        config.setLocales(targetLocaleList)
+        config.setLayoutDirection(targetLocale)
+        @Suppress("DEPRECATION")
+        res.updateConfiguration(config, res.displayMetrics)
+
+        val appCtx = context.applicationContext
+        if (appCtx != null && appCtx !== context) {
+            val appRes = appCtx.resources
+            val appConfig = Configuration(appRes.configuration)
+            appConfig.setLocales(targetLocaleList)
+            appConfig.setLayoutDirection(targetLocale)
             @Suppress("DEPRECATION")
-            res.updateConfiguration(config, res.displayMetrics)
+            appRes.updateConfiguration(appConfig, appRes.displayMetrics)
+        }
 
-            val appCtx = context.applicationContext
-            if (appCtx != null && appCtx !== context) {
-                val appRes = appCtx.resources
-                val appConfig = Configuration(appRes.configuration)
-                appConfig.setLocale(locale)
-                appConfig.setLayoutDirection(locale)
-                @Suppress("DEPRECATION")
-                appRes.updateConfiguration(appConfig, appRes.displayMetrics)
-            }
+        try {
+            com.zionhuang.innertube.YouTube.locale = com.zionhuang.innertube.models.YouTubeLocale(
+                gl = targetLocale.country.ifBlank { "US" },
+                hl = targetLocale.language.ifBlank { "en" }
+            )
+        } catch (_: Throwable) {
         }
     }
 
     fun updateBaseContextLocale(context: Context): Context {
         val targetLocale = getLocale(context)
+        val targetLocaleList = getLocaleList(context)
+
         Locale.setDefault(targetLocale)
 
         val config = Configuration(context.resources.configuration)
-        config.setLocale(targetLocale)
+        config.setLocales(targetLocaleList)
         config.setLayoutDirection(targetLocale)
 
         @Suppress("DEPRECATION")
