@@ -1,11 +1,19 @@
 package com.alananasss.kittytune.ui.player.pixel
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +32,7 @@ import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
@@ -57,6 +66,7 @@ fun AnimatedPlaybackControls(
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     modifier: Modifier = Modifier,
+    isLoadingProvider: () -> Boolean = { false },
     height: Dp = 90.dp,
     baseWeight: Float = 1f,
     expansionWeight: Float = 1.1f,
@@ -77,14 +87,9 @@ fun AnimatedPlaybackControls(
     iconSize: Dp = 32.dp,
 ) {
     val isPlaying = isPlayingProvider()
+    val isLoading = isLoadingProvider()
     var lastClicked by remember { mutableStateOf<PlaybackButtonType?>(null) }
     var clickTrigger by remember { mutableStateOf(0) }
-    val latestIsPlayingProvider by rememberUpdatedState(newValue = isPlayingProvider)
-    val latestLastClicked by rememberUpdatedState(newValue = lastClicked)
-    val isPlayPauseLocked =
-        lastClicked == PlaybackButtonType.NEXT || lastClicked == PlaybackButtonType.PREVIOUS
-    var playPauseVisualState by remember { mutableStateOf(isPlaying) }
-    var pendingPlayPauseState by remember { mutableStateOf<Boolean?>(null) }
     val hapticFeedback = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -93,36 +98,8 @@ fun AnimatedPlaybackControls(
 
     LaunchedEffect(lastClicked, clickTrigger) {
         if (lastClicked != null) {
-            val delayTime = when (lastClicked) {
-                PlaybackButtonType.NEXT, PlaybackButtonType.PREVIOUS -> 600L
-                else -> releaseDelay
-            }
-            delay(delayTime)
-            lastClicked = null
-        }
-    }
-
-    LaunchedEffect(isPlaying) {
-        if (isPlaying) {
-            pendingPlayPauseState = true
-            return@LaunchedEffect
-        }
-
-        val shouldDelay = latestLastClicked != PlaybackButtonType.PLAY_PAUSE
-        if (shouldDelay) {
             delay(releaseDelay)
-        }
-        if (!latestIsPlayingProvider()) {
-            pendingPlayPauseState = false
-        }
-    }
-
-    LaunchedEffect(isPlayPauseLocked, pendingPlayPauseState) {
-        if (!isPlayPauseLocked) {
-            pendingPlayPauseState?.let {
-                playPauseVisualState = it
-                pendingPlayPauseState = null
-            }
+            lastClicked = null
         }
     }
 
@@ -177,7 +154,7 @@ fun AnimatedPlaybackControls(
                 label = "playWeight"
             )
             val playCorner by animateDpAsState(
-                targetValue = if (!playPauseVisualState) playPauseCornerPlaying else playPauseCornerPaused,
+                targetValue = if (!isPlaying) playPauseCornerPlaying else playPauseCornerPaused,
                 animationSpec = defaultSpatialDpSpec,
                 label = "playCorner"
             )
@@ -208,7 +185,8 @@ fun AnimatedPlaybackControls(
                 contentAlignment = Alignment.Center
             ) {
                 MorphingPlayPauseIcon(
-                    isPlaying = playPauseVisualState,
+                    isPlaying = isPlaying,
+                    isLoading = isLoading,
                     tint = tintPlayPauseIcon,
                     size = playPauseIconSize,
                     motionScheme = motionScheme
@@ -251,20 +229,36 @@ fun AnimatedPlaybackControls(
 @Composable
 private fun MorphingPlayPauseIcon(
     isPlaying: Boolean,
+    isLoading: Boolean,
     tint: Color,
     size: Dp,
     motionScheme: MotionScheme
 ) {
-    Crossfade(
-        targetState = isPlaying,
-        animationSpec = motionScheme.fastEffectsSpec(),
-        label = "playPauseCrossfade"
-    ) { playing ->
-        Icon(
-            imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-            contentDescription = if (playing) "Pause" else "Play",
-            tint = tint,
-            modifier = Modifier.size(size)
-        )
+    AnimatedContent(
+        targetState = Pair(isLoading, isPlaying),
+        transitionSpec = {
+            val springSpec = spring<Float>(dampingRatio = 0.6f, stiffness = 1000f)
+            (scaleIn(initialScale = 0.8f, animationSpec = springSpec) + fadeIn(tween(100)))
+                .togetherWith(
+                    scaleOut(targetScale = 0.8f, animationSpec = springSpec) + fadeOut(tween(100))
+                )
+                .using(SizeTransform(clip = false))
+        },
+        label = "playPauseLoadingCrossfade"
+    ) { (loading, playing) ->
+        if (loading) {
+            LoadingIndicator(
+                color = tint,
+                modifier = Modifier.size(size)
+            )
+        } else {
+            Icon(
+                imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                contentDescription = if (playing) "Pause" else "Play",
+                tint = tint,
+                modifier = Modifier.size(size)
+            )
+        }
     }
 }
+

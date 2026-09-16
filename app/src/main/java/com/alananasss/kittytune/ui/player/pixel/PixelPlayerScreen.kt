@@ -40,7 +40,12 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -125,7 +130,7 @@ private fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PixelPlayerScreen(
     viewModel: PlayerViewModel,
@@ -455,14 +460,15 @@ fun PixelPlayerScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Collapse circular button
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(topBarBtnBg)
-                        .clickable(onClick = handleClose),
-                    contentAlignment = Alignment.Center
+                // Collapse button with expressive morphing shapes
+                FilledIconButton(
+                    onClick = handleClose,
+                    modifier = Modifier.size(42.dp),
+                    shapes = IconButtonDefaults.shapes(),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = topBarBtnBg,
+                        contentColor = topBarBtnTint
+                    )
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.rounded_keyboard_arrow_down_24),
@@ -665,22 +671,47 @@ fun PixelPlayerScreen(
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { viewModel.navigateToTrackDetails(track.id, 0) }
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
 
                 // Artist (GoogleSansRounded Medium)
-                Text(
-                    text = track.user?.username ?: stringResource(R.string.unknown_artist),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = GoogleSansRounded,
-                        color = subTextColor
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { viewModel.navigateToTrackArtist(track) }
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = track.displayArtist.ifBlank {
+                            track.user?.username ?: stringResource(R.string.unknown_artist)
+                        },
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = GoogleSansRounded,
+                            color = subTextColor
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center
+                    )
+                    val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
+                    if (isAnyVerified) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Rounded.Verified,
+                            contentDescription = "Verified",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -912,6 +943,7 @@ fun PixelPlayerScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     isPlayingProvider = { viewModel.isPlaying },
+                    isLoadingProvider = { viewModel.isLoading },
                     onPrevious = { viewModel.smartPrevious() },
                     onPlayPause = { viewModel.togglePlayPause() },
                     onNext = { viewModel.playNext() },

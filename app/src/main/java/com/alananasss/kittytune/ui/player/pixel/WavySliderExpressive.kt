@@ -92,11 +92,13 @@ fun WavySliderExpressive(
     }
 
     val latestValue by rememberUpdatedState(value)
-    val normalizedValueState = remember(valueRange) {
+    val latestValueRange by rememberUpdatedState(valueRange)
+    val normalizedValueState = remember {
         derivedStateOf {
             val v = latestValue()
-            if (valueRange.endInclusive == valueRange.start) 0f
-            else ((v - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
+            val range = latestValueRange
+            if (range.endInclusive == range.start) 0f
+            else ((v - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
         }
     }
 
@@ -107,9 +109,10 @@ fun WavySliderExpressive(
             ((norm / safeSemanticsStep).roundToInt() * safeSemanticsStep).coerceIn(0f, 1f)
         }
     }
-    val semanticSliderValueState = remember(valueRange) {
+    val semanticSliderValueState = remember {
         derivedStateOf {
-            valueRange.start + semanticNormalizedValueState.value * (valueRange.endInclusive - valueRange.start)
+            val range = latestValueRange
+            range.start + semanticNormalizedValueState.value * (range.endInclusive - range.start)
         }
     }
     val latestOnValueChange by rememberUpdatedState(onValueChange)
@@ -152,6 +155,10 @@ fun WavySliderExpressive(
         val initialNorm = if (valueRange.endInclusive == valueRange.start) 0f
         else ((initialVal - valueRange.start) / (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
         mutableFloatStateOf(initialNorm)
+    }
+
+    LaunchedEffect(valueRange) {
+        renderedNormalizedProgress.floatValue = normalizedValueState.value
     }
     var lastProgressUpdateNanos by remember { mutableLongStateOf(0L) }
     LaunchedEffect(isInteracting, enabled) {

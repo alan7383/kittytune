@@ -868,7 +868,7 @@ class PlayerPreferences(context: Context) {
             0 -> PlayerActionButtonSlot.SHUFFLE
             1 -> PlayerActionButtonSlot.REPEAT
             2 -> PlayerActionButtonSlot.LIKE
-            3 -> PlayerActionButtonSlot.QUEUE
+            3 -> PlayerActionButtonSlot.AUDIO_FX
             else -> PlayerActionButtonSlot.NONE
         }
         val raw = prefs.getString("${KEY_PIXEL_SLOT_PREFIX}$index", null) ?: return defaultSlot
