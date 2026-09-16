@@ -7,7 +7,8 @@
      */
     data class ResolvedStream(
         val url: String,
-        val licenseAuthToken: String? = null
+        val licenseAuthToken: String? = null,
+        val mimeType: String? = null,
     ) {
         /** true when the stream requires Widevine DRM decryption */
         val isDrmProtected: Boolean get() = !licenseAuthToken.isNullOrEmpty()

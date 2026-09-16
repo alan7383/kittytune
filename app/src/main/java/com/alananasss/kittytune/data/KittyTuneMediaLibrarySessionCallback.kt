@@ -669,8 +669,10 @@
                 .setUri(uri)
                 .setMediaMetadata(metadataBuilder.build())
 
-            if (urlOverride != null && urlOverride.contains(".m3u8")) {
+            if (urlOverride != null && (urlOverride.contains(".m3u8") || urlOverride.contains("m3u8"))) {
                 builder.setMimeType(MimeTypes.APPLICATION_M3U8)
+            } else if (urlOverride != null && (urlOverride.contains(".mpd") || urlOverride.contains("mpd") || com.alananasss.kittytune.audio.providers.tidal.TidalAudioProvider.isLiveManifestUri(urlOverride))) {
+                builder.setMimeType(MimeTypes.APPLICATION_MPD)
             }
 
             // Configure Widevine DRM if a license token is cached for this track
