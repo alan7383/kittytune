@@ -401,7 +401,7 @@
                             val resolved = QobuzAudioProvider.resolve(query)
                             if (resolved != null && resolved.mediaUri.isNotBlank()) {
                                 Log.i(TAG, "Using Qobuz stream for '${track.title}': ${resolved.label}")
-                                return ResolvedStream(resolved.mediaUri)
+                                return ResolvedStream(resolved.mediaUri, mimeType = "audio/mp4")
                             }
                         }
                         AudioProviderOrderItem.TIDAL -> {
@@ -419,20 +419,27 @@
                                 query = query,
                                 cacheDir = context.cacheDir,
                                 preferAtmos = false,
-                                preferLiveDash = false,
+                                preferLiveDash = true,
                                 audioQuality = quality,
                                 resolverEndpoints = endpoints
                             )
                             if (resolved != null && resolved.mediaUri.isNotBlank()) {
                                 Log.i(TAG, "Using Tidal stream for '${track.title}': ${resolved.label}")
-                                return ResolvedStream(resolved.mediaUri)
+                                return ResolvedStream(resolved.mediaUri, mimeType = resolved.mimeType)
                             }
                         }
                         AudioProviderOrderItem.DEEZER -> {
                             val resolverUrl = prefs.getDeezerResolverUrl()
                             val quality = prefs.getDeezerAudioQuality()
                             val fastMode = prefs.getDeezerFastMode()
-                            val proxyUrl = prefs.getDeezerProxyUrl()
+                            val configuredProxyUrl = prefs.getDeezerProxyUrl()
+                            val proxyMode = prefs.getDeezerProxyMode()
+                            val globalProxyEnabled = prefs.getProxyEnabled()
+                            val effectiveProxyUrl = DeezerAudioProvider.effectiveProxyUrl(
+                                configuredProxyMode = proxyMode,
+                                configuredProxyUrl = configuredProxyUrl,
+                                globalProxyEnabled = globalProxyEnabled
+                            )
                             val cookie = prefs.getDeezerCookie()
                             val useAccount = prefs.getDeezerUseAccount()
                             val query = DeezerAudioProvider.Query(
@@ -445,14 +452,15 @@
                                 resolverUrl = resolverUrl,
                                 quality = quality,
                                 fastMode = fastMode,
-                                proxyUrl = proxyUrl,
+                                proxyUrl = effectiveProxyUrl,
                                 cookie = cookie,
                                 useAccount = useAccount
                             )
                             val resolved = DeezerAudioProvider.resolve(query)
                             if (resolved != null && resolved.mediaUri.isNotBlank()) {
                                 Log.i(TAG, "Using Deezer stream for '${track.title}': ${resolved.label}")
-                                return ResolvedStream(resolved.mediaUri)
+                                val mimeType = if (resolved.mediaUri.contains(".flac", ignoreCase = true) || resolved.label.contains("FLAC", ignoreCase = true)) "audio/flac" else "audio/mpeg"
+                                return ResolvedStream(resolved.mediaUri, mimeType = mimeType)
                             }
                         }
                         AudioProviderOrderItem.YOUTUBE_MUSIC -> {

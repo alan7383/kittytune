@@ -1459,8 +1459,8 @@ object DownloadManager {
                     return@launch
                 }
 
-                val isDeezerStream = streamUrl.startsWith("metrofuse-deezer://")
-                val isDeezerFlac = isDeezerStream && (streamUrl.contains("format=FLAC", ignoreCase = true) || streamUrl.contains(".flac", ignoreCase = true))
+                val isDeezerStream = streamUrl.startsWith("deezer-audio://") || streamUrl.startsWith("metrofuse-deezer://")
+                val isDeezerFlac = isDeezerStream && (streamUrl.contains("format=FLAC", ignoreCase = true) || streamUrl.contains(".flac", ignoreCase = true) || streamUrl.contains("quality=FLAC", ignoreCase = true))
                 val isYoutubeStream = streamUrl.contains("googlevideo.com") || track.source == "youtube"
                 val ext = when {
                     isDeezerFlac -> "flac"

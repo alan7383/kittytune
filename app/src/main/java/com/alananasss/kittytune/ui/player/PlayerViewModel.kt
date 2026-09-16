@@ -3398,7 +3398,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun playNext(manual: Boolean = true, isCrossfade: Boolean = false, ignoreRepeatOne: Boolean = false) {
+    fun playNext(
+        manual: Boolean = true,
+        isCrossfade: Boolean = playerPrefs.getCrossfadeEnabled(),
+        ignoreRepeatOne: Boolean = false
+    ) {
         if (isAutoplayRadioLoading) return
 
         if (manual && player.currentPosition > 2000) {
@@ -3609,7 +3613,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun playPrevious(manual: Boolean = true, isCrossfade: Boolean = false) {
+    fun playPrevious(
+        manual: Boolean = true,
+        isCrossfade: Boolean = playerPrefs.getCrossfadeEnabled()
+    ) {
         if (manual) flushListenSession("SKIP_PREVIOUS")
 
         val prevIndex = currentQueueIndex - 1
@@ -5030,9 +5037,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
 
+                var resolvedMimeType: String? = null
                 if (resolvedUrl == null) {
                     val resolved = StreamResolver.resolveStreamWithDrm(context, nextTrack)
                     resolvedUrl = resolved?.url
+                    resolvedMimeType = resolved?.mimeType
                     if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
                         MusicManager.putDrmToken(nextTrack.id, resolved.licenseAuthToken)
                     }
@@ -5040,7 +5049,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
                 if (resolvedUrl != null) {
                     val bitmap = loadBitmap(nextTrack.fullResArtwork)
-                    val mediaItem = buildMediaItem(nextTrack, bitmap, resolvedUrl, offlineKeySetId)
+                    val mediaItem = buildMediaItem(nextTrack, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType)
                     withContext(Dispatchers.Main) {
                         MusicManager.prebufferTransition(mediaItem, nextTrack, plan)
                     }
@@ -5123,9 +5132,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 e.printStackTrace()
             }
 
+            var resolvedMimeType: String? = null
             if (resolvedUrl == null) {
                 val resolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
                 resolvedUrl = resolved?.url
+                resolvedMimeType = resolved?.mimeType
                 if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
                     MusicManager.putDrmToken(trackToPlay.id, resolved.licenseAuthToken)
                     Log.d("PlayerViewModel", "DRM token pre-cached for track ${trackToPlay.id}")
@@ -5143,6 +5154,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 try {
                     val retryResolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
                     resolvedUrl = retryResolved?.url
+                    resolvedMimeType = retryResolved?.mimeType
                     if (retryResolved?.isDrmProtected == true && retryResolved.licenseAuthToken != null) {
                         MusicManager.putDrmToken(trackToPlay.id, retryResolved.licenseAuthToken)
                     }
@@ -5170,7 +5182,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
-            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId)
+            val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType)
 
             withContext(Dispatchers.Main) {
                 try {
@@ -5231,16 +5243,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
 
+                var resolvedMimeType: String? = null
                 if (resolvedUrl == null) {
                     val resolved = StreamResolver.resolveStreamWithDrm(context, nextTrack)
                     resolvedUrl = resolved?.url
+                    resolvedMimeType = resolved?.mimeType
                     if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
                         MusicManager.putDrmToken(nextTrack.id, resolved.licenseAuthToken)
                     }
                 }
 
                 if (resolvedUrl != null) {
-                    val nextMediaItem = buildMediaItem(nextTrack, null, resolvedUrl, offlineKeySetId)
+                    val nextMediaItem = buildMediaItem(nextTrack, null, resolvedUrl, offlineKeySetId, resolvedMimeType)
                     withContext(Dispatchers.Main) {
                         if (MusicManager.player.mediaItemCount == 1) {
                             MusicManager.player.addMediaItem(nextMediaItem)
@@ -5264,11 +5278,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         track: Track,
         bitmap: Bitmap?,
         urlOverride: String? = null,
-        offlineKeySetId: ByteArray? = null
+        offlineKeySetId: ByteArray? = null,
+        mimeTypeOverride: String? = null,
     ): MediaItem {
         val uri = when {
             urlOverride == null -> "soundtune://track/${track.id}".toUri()
-            urlOverride.startsWith("http") || urlOverride.startsWith("content://") || urlOverride.startsWith("file://") -> urlOverride.toUri()
+            urlOverride.contains("://") -> urlOverride.toUri()
             else -> Uri.fromFile(File(urlOverride))
         }
 
@@ -5290,8 +5305,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             .setMediaId(track.id.toString())
             .setMediaMetadata(metadataBuilder.build())
 
-        if (urlOverride != null && urlOverride.contains(".m3u8")) {
-            builder.setMimeType(androidx.media3.common.MimeTypes.APPLICATION_M3U8)
+        val resolvedMimeType = when {
+            mimeTypeOverride != null -> mimeTypeOverride
+            urlOverride != null && (urlOverride.contains(".m3u8") || urlOverride.contains("m3u8")) -> androidx.media3.common.MimeTypes.APPLICATION_M3U8
+            urlOverride != null && (urlOverride.contains(".mpd") || urlOverride.contains("mpd") || com.alananasss.kittytune.audio.providers.tidal.TidalAudioProvider.isLiveManifestUri(urlOverride)) -> androidx.media3.common.MimeTypes.APPLICATION_MPD
+            else -> null
+        }
+
+        if (resolvedMimeType != null) {
+            builder.setMimeType(resolvedMimeType)
         }
 
         val drmToken = MusicManager.getDrmToken(track.id)

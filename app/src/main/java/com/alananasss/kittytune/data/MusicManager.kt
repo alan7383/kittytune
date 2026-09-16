@@ -240,9 +240,10 @@ object MusicManager {
             .setUserAgent(customUserAgent)
             .setAllowCrossProtocolRedirects(true)
 
-        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+        val defaultDataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+        val deezerAwareDataSourceFactory = com.alananasss.kittytune.audio.providers.deezer.DeezerAudioAwareDataSourceFactory(defaultDataSourceFactory)
 
-        val resolvingDataSourceFactory = ResolvingDataSource.Factory(dataSourceFactory, object : ResolvingDataSource.Resolver {
+        val resolvingDataSourceFactory = ResolvingDataSource.Factory(deezerAwareDataSourceFactory, object : ResolvingDataSource.Resolver {
             override fun resolveDataSpec(dataSpec: DataSpec): DataSpec {
                 val uri = dataSpec.uri
 
@@ -322,7 +323,7 @@ object MusicManager {
 
                         val finalUrl = streamUrl
                         if (finalUrl != null) {
-                            val uri = if (finalUrl.startsWith("http") || finalUrl.startsWith("content://")) {
+                            val uri = if (finalUrl.contains("://")) {
                                 Uri.parse(finalUrl)
                             } else {
                                 Uri.fromFile(java.io.File(finalUrl))
@@ -392,10 +393,9 @@ object MusicManager {
         }
 
         val cache = com.alananasss.kittytune.data.local.ExoCacheManager.getCache(context)
-        val deezerAwareFactory = com.alananasss.kittytune.audio.providers.deezer.DeezerAudioAwareDataSourceFactory(resolvingDataSourceFactory)
         val cacheDataSourceFactory = androidx.media3.datasource.cache.CacheDataSource.Factory()
             .setCache(cache)
-            .setUpstreamDataSourceFactory(deezerAwareFactory)
+            .setUpstreamDataSourceFactory(resolvingDataSourceFactory)
             .setFlags(androidx.media3.datasource.cache.CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
 
         val createExoPlayer = { index: Int ->
@@ -605,7 +605,7 @@ object MusicManager {
         val targetVolume = 1f
         newPlayer.volume = 0f
 
-        if (oldPlayer.playWhenReady) newPlayer.play()
+        newPlayer.play()
 
         if (effectivePlan != null) {
             com.alananasss.kittytune.audio.automix.AutomixManager.setIsAutomixing(true)

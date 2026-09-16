@@ -230,11 +230,34 @@ object DeezerAudioProvider {
     private val lastResolverRequestAtMs = AtomicLong(0L)
 
     fun resolve(query: Query): Resolved {
-        val resolverUrl = if (query.quality == DeezerAudioQuality.MP3_128) {
-            normalizeResolverUrl(DEFAULT_RESOLVER_URL_128)
-        } else {
-            normalizeResolverUrl(query.resolverUrl)
+        val resolverUrls = buildList {
+            if (query.resolverUrl.isNotBlank()) {
+                add(query.resolverUrl)
+            }
+            if (query.quality == DeezerAudioQuality.MP3_128) {
+                add(DEFAULT_RESOLVER_URL_128)
+            }
+            add(DEFAULT_RESOLVER_URL)
+            add(RENDER_RESOLVER_URL)
         }
+            .map(::normalizeResolverUrl)
+            .distinct()
+
+        var lastError: Throwable? = null
+        resolverUrls.forEach { resolverUrl ->
+            runCatching {
+                resolveWithResolver(query.copy(resolverUrl = resolverUrl.toString()))
+            }.onSuccess { return it }
+                .onFailure { lastError = it }
+        }
+        throw DeezerResolutionException(
+            "All Deezer resolvers failed for ${query.title}",
+            lastError,
+        )
+    }
+
+    private fun resolveWithResolver(query: Query): Resolved {
+        val resolverUrl = normalizeResolverUrl(query.resolverUrl)
         val proxyUrl = normalizeProxyUrl(query.proxyUrl)
         val directTrackId = query.mediaId.toDeezerTrackIdOrNull(allowPlainNumeric = false)
         if (query.fastMode) {
@@ -377,6 +400,27 @@ object DeezerAudioProvider {
         streamCache[cacheKey]
             ?.takeIf { it.expiresAtMs > now + 20_000L }
             ?.let { return it }
+
+        if (query.useAccount && query.cookie.isNotBlank()) {
+            val accountCacheKey = "acct::$cacheKey"
+            streamCache[accountCacheKey]
+                ?.takeIf { it.expiresAtMs > now + 20_000L }
+                ?.let { return it }
+            val accountAttempt = requestAccountStream(
+                cookie = query.cookie,
+                mediaId = query.mediaId,
+                trackId = track.trackId,
+                preferredQuality = query.quality,
+                qualities = qualities,
+                durationMs = query.durationMs ?: track.durationMs,
+                proxyUrl = proxyUrl,
+            )
+            accountAttempt.resolved?.let { resolved ->
+                streamCache[accountCacheKey] = resolved
+                return resolved
+            }
+            accountAttempt.error?.takeIf { it.isNotBlank() }?.let { Timber.tag("DeezerAudioProvider").w(it) }
+        }
 
         val attempt = requestResolverStream(
             resolverUrl = resolverUrl,
@@ -1726,7 +1770,7 @@ class DeezerAudioDataSource(
                 .readTimeout(90, TimeUnit.SECONDS)
                 .build()
 
-        fun isDeezerUri(uri: Uri): Boolean = uri.scheme == SCHEME
+        fun isDeezerUri(uri: Uri): Boolean = uri.scheme == SCHEME || uri.scheme == "metrofuse-deezer"
 
         fun mediaIdFromUri(uri: Uri): String? =
             uri.takeIf(::isDeezerUri)
