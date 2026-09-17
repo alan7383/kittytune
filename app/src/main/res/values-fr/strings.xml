@@ -1133,6 +1133,8 @@
     <string name="update_btn_install">Installer</string>
     <string name="update_btn_redownload">Re-télécharger</string>
     <string name="update_cached_info">Mise à jour prête à être installée</string>
+    <string name="update_mobile_data_warning">Vous êtes en données mobiles. Le téléchargement de cette mise à jour utilisera votre forfait internet.</string>
+    <string name="update_mobile_data_warning_with_size">Vous êtes en données mobiles. Le téléchargement de cette mise à jour (%1$s) utilisera votre forfait internet.</string>
     <string name="update_downloading">Téléchargement&#8230;</string>
     <string name="update_error">Échec de la mise à jour</string>
     <string name="update_no_update">Aucune mise à jour disponible</string>

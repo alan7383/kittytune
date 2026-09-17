@@ -944,6 +944,8 @@
     <string name="update_btn_install">Установить</string>
     <string name="update_btn_redownload">Скачать заново</string>
     <string name="update_cached_info">Обновление готово к установке</string>
+    <string name="update_mobile_data_warning">Вы используете мобильный интернет. Загрузка обновления израсходует трафик.</string>
+    <string name="update_mobile_data_warning_with_size">Вы используете мобильный интернет. Загрузка обновления (%1$s) израсходует трафик.</string>
     <string name="update_downloading">Загрузка обновления&#8230;</string>
     <string name="update_error">Сбой обновления</string>
     <string name="update_no_update">Обновления отсутствуют</string>

@@ -944,6 +944,8 @@
     <string name="update_btn_install">Telepítés</string>
     <string name="update_btn_redownload">Újratöltés</string>
     <string name="update_cached_info">A frissítés készen áll a telepítésre</string>
+    <string name="update_mobile_data_warning">Mobilinternetet használsz. A frissítés letöltése adatforgalmat használ.</string>
+    <string name="update_mobile_data_warning_with_size">Mobilinternetet használsz. A frissítés (%1$s) letöltése adatforgalmat használ.</string>
     <string name="update_downloading">Letöltés&#8230;</string>
     <string name="update_error">Sikertelen frissítés</string>
     <string name="update_no_update">Nincs elérhető frissítés</string>

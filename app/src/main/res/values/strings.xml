@@ -1214,6 +1214,8 @@
     <string name="update_btn_install">Install</string>
     <string name="update_btn_redownload">Re-download</string>
     <string name="update_cached_info">Update ready to install</string>
+    <string name="update_mobile_data_warning">You are on mobile data. Downloading this update will use cellular data.</string>
+    <string name="update_mobile_data_warning_with_size">You are on mobile data. Downloading this update (%1$s) will use cellular data.</string>
     <string name="update_downloading">Downloading update&#8230;</string>
     <string name="update_error">Update failed</string>
     <string name="update_no_update">No update available</string>

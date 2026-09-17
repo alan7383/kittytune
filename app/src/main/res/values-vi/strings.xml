@@ -1133,6 +1133,8 @@
     <string name="update_btn_install">Cài đặt</string>
     <string name="update_btn_redownload">Tải lại</string>
     <string name="update_cached_info">Bản cập nhật đã sẵn sàng cài đặt</string>
+    <string name="update_mobile_data_warning">Bạn đang dùng dữ liệu di động. Tải xuống bản cập nhật sẽ tiêu tốn dung lượng.</string>
+    <string name="update_mobile_data_warning_with_size">Bạn đang dùng dữ liệu di động. Tải xuống bản cập nhật (%1$s) sẽ tiêu tốn dung lượng.</string>
     <string name="update_downloading">Đang tải bản cập nhật&#8230;</string>
     <string name="update_error">Cập nhật thất bại</string>
     <string name="update_no_update">Đang dùng bản mới nhất</string>
