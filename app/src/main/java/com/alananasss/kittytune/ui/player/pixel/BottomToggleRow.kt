@@ -1,12 +1,15 @@
 package com.alananasss.kittytune.ui.player.pixel
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -16,6 +19,7 @@ import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.Icon
@@ -28,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -49,6 +54,7 @@ fun BottomToggleRow(
     repeatMode: RepeatMode,
     isFavorite: Boolean,
     isLyricsActive: Boolean = false,
+    isFullscreenLyricsActive: Boolean = false,
     isSleepTimerActive: Boolean = false,
     isHapticsActive: Boolean = false,
     onShuffleToggle: () -> Unit,
@@ -57,6 +63,7 @@ fun BottomToggleRow(
     onQueueClick: () -> Unit = {},
     onEffectsClick: () -> Unit = {},
     onLyricsClick: () -> Unit = {},
+    onFullscreenLyricsClick: () -> Unit = {},
     onShareClick: () -> Unit = {},
     onCommentsClick: () -> Unit = {},
     onSleepTimerClick: () -> Unit = {},
@@ -215,8 +222,23 @@ fun BottomToggleRow(
                             inactiveColor = inactiveColor,
                             inactiveContentColor = inactiveContentColor,
                             onClick = onLyricsClick,
+                            onLongClick = onFullscreenLyricsClick,
                             iconVector = Icons.Rounded.Description,
                             contentDesc = "Lyrics"
+                        )
+                    }
+                    PlayerActionButtonSlot.FULLSCREEN_LYRICS -> {
+                        ToggleSegmentButton(
+                            modifier = commonModifier,
+                            active = isFullscreenLyricsActive,
+                            activeColor = activeBg,
+                            activeCornerRadius = rowCorners,
+                            activeContentColor = activeContent,
+                            inactiveColor = inactiveColor,
+                            inactiveContentColor = inactiveContentColor,
+                            onClick = onFullscreenLyricsClick,
+                            iconVector = Icons.Rounded.OpenInFull,
+                            contentDesc = "Full Screen Lyrics"
                         )
                     }
                     PlayerActionButtonSlot.SHARE -> {
@@ -296,6 +318,7 @@ fun BottomToggleRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ToggleSegmentButton(
     modifier: Modifier = Modifier,
@@ -307,10 +330,12 @@ fun ToggleSegmentButton(
     inactiveContentColor: Color,
     activeCornerRadius: Dp = 60.dp,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     iconId: Int? = null,
     iconVector: ImageVector? = null,
     contentDesc: String
 ) {
+    val view = LocalView.current
     val targetBgColor = if (active) activeColor else inactiveColor
     val bgColor by animateColorAsState(
         targetValue = if (enabled) targetBgColor else targetBgColor.copy(alpha = 0.5f),
@@ -323,12 +348,25 @@ fun ToggleSegmentButton(
         label = "toggleCorner"
     )
 
+    val clickModifier = if (onLongClick != null) {
+        Modifier.combinedClickable(
+            enabled = enabled,
+            onClick = onClick,
+            onLongClick = {
+                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                onLongClick()
+            }
+        )
+    } else {
+        Modifier.clickable(enabled = enabled, onClick = onClick)
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(cornerRadius))
             .background(bgColor)
-            .clickable(enabled = enabled, onClick = onClick),
+            .then(clickModifier),
         contentAlignment = Alignment.Center
     ) {
         Box(

@@ -77,6 +77,13 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -477,13 +484,81 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         }
     }
 
-    LaunchedEffect(activeIndex) {
-        if (activeIndex >= 0 && !listState.isScrollInProgress) {
+    var isManualScrolling by remember { mutableStateOf(false) }
+    var isUserTouching by remember { mutableStateOf(false) }
+    var lastManualScrollTime by remember { mutableLongStateOf(0L) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput) {
+                    isManualScrolling = true
+                    lastManualScrollTime = System.currentTimeMillis()
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (isManualScrolling) {
+                    lastManualScrollTime = System.currentTimeMillis()
+                }
+                return Velocity.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(isManualScrolling, isUserTouching, lastManualScrollTime) {
+        if (isManualScrolling) {
+            while (isUserTouching || listState.isScrollInProgress) {
+                lastManualScrollTime = System.currentTimeMillis()
+                delay(100L)
+            }
+            while (isActive) {
+                val elapsed = System.currentTimeMillis() - lastManualScrollTime
+                val remaining = 3000L - elapsed
+                if (remaining <= 0) break
+                delay(remaining.coerceAtLeast(10L))
+                if (isUserTouching || listState.isScrollInProgress) {
+                    lastManualScrollTime = System.currentTimeMillis()
+                }
+            }
+            if (!isUserTouching && !listState.isScrollInProgress) {
+                isManualScrolling = false
+            }
+        }
+    }
+
+    LaunchedEffect(activeIndex, isManualScrolling) {
+        if (activeIndex >= 0 && !isManualScrolling) {
+            val distance = kotlin.math.abs(activeIndex - listState.firstVisibleItemIndex)
+            if (distance > 15) {
+                listState.scrollToItem((activeIndex - 2).coerceAtLeast(0))
+            }
             listState.animateScrollToItem(index = activeIndex)
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val anyPressed = event.changes.any { it.pressed }
+                        if (anyPressed) {
+                            isUserTouching = true
+                            isManualScrolling = true
+                            lastManualScrollTime = System.currentTimeMillis()
+                        } else if (isUserTouching) {
+                            isUserTouching = false
+                            lastManualScrollTime = System.currentTimeMillis()
+                        }
+                    }
+                }
+            }
+            .nestedScroll(nestedScrollConnection)
+    ) {
         val screenHeight = maxHeight
         val halfHeight = screenHeight / 2
         val topPadding = halfHeight - 50.dp
@@ -529,7 +604,11 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { viewModel.seekTo(line.startTime) },
+                        ) {
+                            isManualScrolling = false
+                            isUserTouching = false
+                            viewModel.seekTo(line.startTime)
+                        },
                     horizontalAlignment = when(effectiveSinger) {
                         LyricSinger.SINGER_1 -> Alignment.Start
                         LyricSinger.SINGER_2 -> Alignment.End

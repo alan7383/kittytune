@@ -57,6 +57,7 @@ enum class PlayerActionButtonSlot(@StringRes val titleRes: Int) {
     SHUFFLE(R.string.slot_shuffle),
     REPEAT(R.string.slot_repeat),
     LYRICS(R.string.slot_lyrics),
+    FULLSCREEN_LYRICS(R.string.slot_fullscreen_lyrics),
     SLEEP_TIMER(R.string.slot_sleep_timer),
     HAPTICS(R.string.slot_haptics),
     MORE(R.string.slot_more),

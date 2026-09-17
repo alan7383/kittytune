@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -172,45 +173,7 @@ fun ProfileScreen(
         if (profileViewModel.isLoading && user == null) {
             ProfileScreenShimmer(onBackClick)
         } else if (user != null) {
-            val bgModel = user.bannerUrl ?: user.avatarUrl
             val hasMotionVideo = !artistVideoUrl.isNullOrBlank()
-            if (bgModel != null || hasMotionVideo) {
-                Box(modifier = Modifier.fillMaxWidth().height(480.dp)) {
-                    if (bgModel != null) {
-                        AsyncImage(
-                            model = bgModel,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .blur(if (hasMotionVideo) 20.dp else 60.dp)
-                                .alpha(0.6f)
-                        )
-                    }
-                    if (hasMotionVideo) {
-                        com.alananasss.kittytune.ui.player.cover.CanvasVideo(
-                            canvasUrl = artistVideoUrl!!,
-                            isPlaying = true,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        if (hasMotionVideo) Color.Transparent else MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
-                                        MaterialTheme.colorScheme.background.copy(alpha = if (hasMotionVideo) 0.7f else 1f),
-                                        MaterialTheme.colorScheme.background
-                                    ),
-                                    startY = 0f
-                                )
-                            )
-                    )
-                }
-            }
 
             Box(
                 modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp)
@@ -230,7 +193,8 @@ fun ProfileScreen(
                             onNavigate = onNavigate,
                             profileViewModel = profileViewModel,
                             artistContext = artistPlaybackContext,
-                            hasMotionVideo = hasMotionVideo
+                            hasMotionVideo = hasMotionVideo,
+                            artistVideoUrl = artistVideoUrl
                         )
                     }
 
@@ -960,17 +924,58 @@ fun ModernProfileHeader(
     onNavigate: (String) -> Unit,
     profileViewModel: ProfileViewModel,
     artistContext: PlaybackContext?,
-    hasMotionVideo: Boolean = false
+    hasMotionVideo: Boolean = false,
+    artistVideoUrl: String? = null
 ) {
     val context = LocalContext.current
     val prefs = remember(context) { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
+    val bgModel = user.bannerUrl ?: user.avatarUrl
+    val showVideo = hasMotionVideo && !artistVideoUrl.isNullOrBlank()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(480.dp),
+            .height(480.dp)
+            .clipToBounds(),
         contentAlignment = Alignment.BottomCenter
     ) {
+        if (bgModel != null || showVideo) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (bgModel != null) {
+                    AsyncImage(
+                        model = bgModel,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(if (showVideo) 20.dp else 60.dp)
+                            .alpha(0.6f)
+                    )
+                }
+                if (showVideo && !artistVideoUrl.isNullOrBlank()) {
+                    com.alananasss.kittytune.ui.player.cover.CanvasVideo(
+                        canvasUrl = artistVideoUrl,
+                        isPlaying = true,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    if (showVideo) Color.Transparent else MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+                                    MaterialTheme.colorScheme.background.copy(alpha = if (showVideo) 0.7f else 1f),
+                                    MaterialTheme.colorScheme.background
+                                ),
+                                startY = 0f
+                            )
+                        )
+                )
+            }
+        }
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)

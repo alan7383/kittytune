@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.SharedPreferences
 import android.os.Build
+import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
@@ -17,8 +18,10 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -41,15 +44,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -130,7 +136,7 @@ private fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun PixelPlayerScreen(
     viewModel: PlayerViewModel,
@@ -157,10 +163,11 @@ fun PixelPlayerScreen(
     val handleClose: () -> Unit = {
         scope.launch {
             predictiveBackProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
+                1f,
+                animationSpec = tween(150, easing = LinearEasing)
             )
             onClose()
+            predictiveBackProgress.snapTo(0f)
         }
     }
 
@@ -170,17 +177,11 @@ fun PixelPlayerScreen(
                 progressFlow.collect { backEvent ->
                     predictiveBackProgress.snapTo(backEvent.progress)
                 }
+                handleClose()
+            } catch (e: Exception) {
                 scope.launch {
                     predictiveBackProgress.animateTo(
-                        targetValue = 1f,
-                        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
-                    )
-                    onClose()
-                }
-            } catch (_: kotlin.coroutines.cancellation.CancellationException) {
-                scope.launch {
-                    predictiveBackProgress.animateTo(
-                        targetValue = 0f,
+                        0f,
                         animationSpec = spring(
                             dampingRatio = Spring.DampingRatioLowBouncy,
                             stiffness = Spring.StiffnessMediumLow
@@ -194,6 +195,7 @@ fun PixelPlayerScreen(
     }
 
     val context = LocalContext.current
+    val view = LocalView.current
     val prefs = remember { PlayerPreferences(context) }
 
     DisposableEffect(viewModel.showInlineLyrics) {
@@ -505,9 +507,15 @@ fun PixelPlayerScreen(
                                 )
                             )
                             .background(if (viewModel.showInlineLyrics) activeChipBg else topBarBtnBg)
-                            .clickable {
-                                viewModel.showInlineLyrics = !viewModel.showInlineLyrics
-                            },
+                            .combinedClickable(
+                                onClick = {
+                                    viewModel.showInlineLyrics = !viewModel.showInlineLyrics
+                                },
+                                onLongClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    viewModel.openLyrics(forceSheet = true)
+                                }
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -970,6 +978,7 @@ fun PixelPlayerScreen(
                     repeatMode = viewModel.repeatMode,
                     isFavorite = viewModel.isLiked,
                     isLyricsActive = viewModel.showInlineLyrics || viewModel.isLyricsUnderCoverActive,
+                    isFullscreenLyricsActive = viewModel.showLyricsSheet,
                     isSleepTimerActive = viewModel.isSleepTimerActive,
                     isHapticsActive = viewModel.isHapticsEnabled,
                     onShuffleToggle = { viewModel.toggleShuffle() },
@@ -978,6 +987,7 @@ fun PixelPlayerScreen(
                     onQueueClick = { showQueueSheet = true },
                     onEffectsClick = { showEffectsSheet = true },
                     onLyricsClick = { viewModel.openLyrics() },
+                    onFullscreenLyricsClick = { viewModel.openLyrics(forceSheet = true) },
                     onShareClick = { viewModel.currentTrack?.let { viewModel.shareTrack(it) } },
                     onCommentsClick = {
                         viewModel.selectedTrackForSheet = viewModel.currentTrack

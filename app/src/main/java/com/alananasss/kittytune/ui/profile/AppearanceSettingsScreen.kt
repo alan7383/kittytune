@@ -1006,6 +1006,7 @@ fun getSlotIcon(slot: PlayerActionButtonSlot): ImageVector {
         PlayerActionButtonSlot.SHUFFLE -> Icons.Rounded.Shuffle
         PlayerActionButtonSlot.REPEAT -> Icons.Rounded.Repeat
         PlayerActionButtonSlot.LYRICS -> Icons.Rounded.Description
+        PlayerActionButtonSlot.FULLSCREEN_LYRICS -> Icons.Rounded.OpenInFull
         PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
         PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
         PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert

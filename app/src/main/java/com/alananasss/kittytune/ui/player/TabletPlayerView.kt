@@ -6,8 +6,10 @@ import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -1162,7 +1164,7 @@ private fun formatCount(count: Int): String {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TabletFullScreenPlayerView(
     viewModel: PlayerViewModel,
@@ -1356,9 +1358,19 @@ fun TabletFullScreenPlayerView(
                             enter = fadeIn(tween(300)),
                             exit = fadeOut(tween(200))
                         ) {
-                            IconButton(
-                                onClick = { viewModel.openLyrics() },
-                                shapes = IconButtonDefaults.shapes()
+                            val view = LocalView.current
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .combinedClickable(
+                                        onClick = { viewModel.openLyrics() },
+                                        onLongClick = {
+                                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                            viewModel.openLyrics(forceSheet = true)
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Rounded.Description,

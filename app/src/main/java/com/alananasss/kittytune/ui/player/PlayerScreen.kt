@@ -12,6 +12,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.interaction.*
 import androidx.compose.foundation.layout.*
@@ -38,6 +40,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.*
 import androidx.compose.ui.graphics.vector.*
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.input.nestedscroll.*
 import androidx.compose.ui.layout.*
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.res.*
@@ -384,13 +387,81 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         }
     }
 
-    LaunchedEffect(activeIndex) {
-        if (activeIndex >= 0 && !listState.isScrollInProgress) {
+    var isManualScrolling by remember { mutableStateOf(false) }
+    var isUserTouching by remember { mutableStateOf(false) }
+    var lastManualScrollTime by remember { mutableLongStateOf(0L) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput) {
+                    isManualScrolling = true
+                    lastManualScrollTime = System.currentTimeMillis()
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (isManualScrolling) {
+                    lastManualScrollTime = System.currentTimeMillis()
+                }
+                return Velocity.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(isManualScrolling, isUserTouching, lastManualScrollTime) {
+        if (isManualScrolling) {
+            while (isUserTouching || listState.isScrollInProgress) {
+                lastManualScrollTime = System.currentTimeMillis()
+                delay(100L)
+            }
+            while (isActive) {
+                val elapsed = System.currentTimeMillis() - lastManualScrollTime
+                val remaining = 3000L - elapsed
+                if (remaining <= 0) break
+                delay(remaining.coerceAtLeast(10L))
+                if (isUserTouching || listState.isScrollInProgress) {
+                    lastManualScrollTime = System.currentTimeMillis()
+                }
+            }
+            if (!isUserTouching && !listState.isScrollInProgress) {
+                isManualScrolling = false
+            }
+        }
+    }
+
+    LaunchedEffect(activeIndex, isManualScrolling) {
+        if (activeIndex >= 0 && !isManualScrolling) {
+            val distance = kotlin.math.abs(activeIndex - listState.firstVisibleItemIndex)
+            if (distance > 15) {
+                listState.scrollToItem((activeIndex - 2).coerceAtLeast(0))
+            }
             listState.animateScrollToItem(index = activeIndex, scrollOffset = 0)
         }
     }
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val anyPressed = event.changes.any { it.pressed }
+                        if (anyPressed) {
+                            isUserTouching = true
+                            isManualScrolling = true
+                            lastManualScrollTime = System.currentTimeMillis()
+                        } else if (isUserTouching) {
+                            isUserTouching = false
+                            lastManualScrollTime = System.currentTimeMillis()
+                        }
+                    }
+                }
+            }
+            .nestedScroll(nestedScrollConnection)
+    ) {
         val screenHeight = maxHeight
         val halfHeight = screenHeight / 2
         val topPadding = halfHeight - 50.dp
@@ -434,7 +505,11 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
-                        ) { viewModel.seekTo(line.startTime) }
+                        ) {
+                            isManualScrolling = false
+                            isUserTouching = false
+                            viewModel.seekTo(line.startTime)
+                        }
                 ) {
                     val isWordSync = viewModel.isWordSyncEnabled
                     val isAppleEffect = viewModel.isAppleMusicEffectEnabled
@@ -696,7 +771,7 @@ fun PlayerScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NewPlayerScreen(
     viewModel: PlayerViewModel,
@@ -1123,9 +1198,19 @@ fun NewPlayerScreen(
                                     enter = fadeIn(animationSpec = tween(400)),
                                     exit = fadeOut(animationSpec = tween(200))
                                 ) {
-                                    IconButton(
-                                        onClick = { viewModel.openLyrics() },
-                                        modifier = Modifier.size(44.dp)
+                                    val view = LocalView.current
+                                    Box(
+                                        modifier = Modifier
+                                            .size(44.dp)
+                                            .clip(CircleShape)
+                                            .combinedClickable(
+                                                onClick = { viewModel.openLyrics() },
+                                                onLongClick = {
+                                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                    viewModel.openLyrics(forceSheet = true)
+                                                }
+                                            ),
+                                        contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Rounded.Description,
@@ -4256,6 +4341,7 @@ fun PlayerControls(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlayerSlotButton(
     slot: PlayerActionButtonSlot,
@@ -4269,7 +4355,7 @@ private fun PlayerSlotButton(
     onQueueClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
+    val view = LocalView.current
     val currentTrack = viewModel.currentTrack
     val isSpotifyCurrent = currentTrack?.let {
         it.source == "spotify" || it.user?.urn?.startsWith("spotify") == true || it.artists?.isNotEmpty() == true
@@ -4287,6 +4373,7 @@ private fun PlayerSlotButton(
         PlayerActionButtonSlot.SHUFFLE -> viewModel.shuffleEnabled
         PlayerActionButtonSlot.REPEAT -> viewModel.repeatMode != RepeatMode.NONE
         PlayerActionButtonSlot.LYRICS -> viewModel.showInlineLyrics || viewModel.isLyricsUnderCoverActive
+        PlayerActionButtonSlot.FULLSCREEN_LYRICS -> viewModel.showLyricsSheet
         PlayerActionButtonSlot.SLEEP_TIMER -> viewModel.isSleepTimerActive
         PlayerActionButtonSlot.HAPTICS -> viewModel.isHapticsEnabled
         else -> false
@@ -4304,6 +4391,7 @@ private fun PlayerSlotButton(
             else -> Icons.Rounded.Repeat
         }
         PlayerActionButtonSlot.LYRICS -> Icons.Rounded.Description
+        PlayerActionButtonSlot.FULLSCREEN_LYRICS -> Icons.Rounded.OpenInFull
         PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
         PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
         PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
@@ -4322,8 +4410,16 @@ private fun PlayerSlotButton(
             label = "slotContentColor"
         )
 
-        FilledIconButton(
-            onClick = {
+        val clickModifier = if (effectiveSlot == PlayerActionButtonSlot.LYRICS) {
+            Modifier.combinedClickable(
+                onClick = { viewModel.openLyrics() },
+                onLongClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    viewModel.openLyrics(forceSheet = true)
+                }
+            )
+        } else {
+            Modifier.clickable {
                 when (effectiveSlot) {
                     PlayerActionButtonSlot.LIKE -> viewModel.toggleLike()
                     PlayerActionButtonSlot.COMMENTS -> {
@@ -4337,26 +4433,30 @@ private fun PlayerSlotButton(
                     PlayerActionButtonSlot.AUDIO_FX -> onEffectsClick()
                     PlayerActionButtonSlot.SHUFFLE -> viewModel.toggleShuffle()
                     PlayerActionButtonSlot.REPEAT -> viewModel.toggleRepeatMode()
-                    PlayerActionButtonSlot.LYRICS -> viewModel.openLyrics()
+                    PlayerActionButtonSlot.FULLSCREEN_LYRICS -> viewModel.openLyrics(forceSheet = true)
                     PlayerActionButtonSlot.SLEEP_TIMER -> viewModel.showSleepTimerDialog = true
                     PlayerActionButtonSlot.HAPTICS -> viewModel.toggleHaptics()
                     PlayerActionButtonSlot.MORE -> {
                         viewModel.currentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) }
                     }
-                    PlayerActionButtonSlot.NONE -> {}
+                    PlayerActionButtonSlot.NONE, PlayerActionButtonSlot.LYRICS -> {}
                 }
-            },
-            shape = shape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = containerColor,
-                contentColor = contentColor
-            ),
-            modifier = modifier.size(42.dp)
+            }
+        }
+
+        Box(
+            modifier = modifier
+                .size(42.dp)
+                .clip(shape)
+                .background(containerColor)
+                .then(clickModifier),
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = iconVector,
                 contentDescription = stringResource(effectiveSlot.titleRes),
-                modifier = Modifier.size(22.dp)
+                tint = contentColor,
+                modifier = Modifier.size(20.dp)
             )
         }
     } else {
@@ -10396,7 +10496,7 @@ private fun android.content.Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun OldPlayerScreen(
     viewModel: PlayerViewModel,
@@ -10766,9 +10866,19 @@ fun OldPlayerScreen(
                                 enter = fadeIn(animationSpec = tween(400)),
                                 exit = fadeOut(animationSpec = tween(200))
                             ) {
-                                IconButton(
-                                    onClick = { viewModel.openLyrics() },
-                                    modifier = Modifier.size(44.dp)
+                                val view = LocalView.current
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .combinedClickable(
+                                            onClick = { viewModel.openLyrics() },
+                                            onLongClick = {
+                                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                viewModel.openLyrics(forceSheet = true)
+                                            }
+                                        ),
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.Rounded.Description,
@@ -12487,6 +12597,20 @@ fun SoundCloudPlayerView(
                                 Icon(
                                     imageVector = Icons.Rounded.Description,
                                     contentDescription = stringResource(R.string.player_lyrics),
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+
+                        PlayerActionButtonSlot.FULLSCREEN_LYRICS -> {
+                            IconButton(
+                                onClick = { viewModel.openLyrics(pageTrack, forceSheet = true) },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.OpenInFull,
+                                    contentDescription = stringResource(R.string.slot_fullscreen_lyrics),
                                     tint = Color.White,
                                     modifier = Modifier.size(22.dp)
                                 )
