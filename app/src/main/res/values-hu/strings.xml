@@ -941,6 +941,9 @@
     <string name="about_made_with">Fejlesztette: Alan &gt;.&lt;</string>
     <string name="update_available_title">Frissítés elérhető</string>
     <string name="update_btn_download">Letöltés és Telepítés</string>
+    <string name="update_btn_install">Telepítés</string>
+    <string name="update_btn_redownload">Újratöltés</string>
+    <string name="update_cached_info">A frissítés készen áll a telepítésre</string>
     <string name="update_downloading">Letöltés&#8230;</string>
     <string name="update_error">Sikertelen frissítés</string>
     <string name="update_no_update">Nincs elérhető frissítés</string>
@@ -1809,6 +1812,7 @@
     <string name="slot_shuffle">Véletlenszerű</string>
     <string name="slot_repeat">Ismétlés</string>
     <string name="slot_lyrics">Dalszöveg</string>
+    <string name="slot_fullscreen_lyrics">Teljes képernyős dalszöveg</string>
     <string name="slot_sleep_timer">Elalvási időzítő</string>
     <string name="slot_more">További opciók</string>
     <string name="slot_none">Rejtett</string>

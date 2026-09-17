@@ -1211,6 +1211,9 @@
 
     <string name="update_available_title">Update Available</string>
     <string name="update_btn_download">Download &amp; Install</string>
+    <string name="update_btn_install">Install</string>
+    <string name="update_btn_redownload">Re-download</string>
+    <string name="update_cached_info">Update ready to install</string>
     <string name="update_downloading">Downloading update&#8230;</string>
     <string name="update_error">Update failed</string>
     <string name="update_no_update">No update available</string>
@@ -1973,6 +1976,7 @@
     <string name="slot_shuffle">Shuffle</string>
     <string name="slot_repeat">Repeat</string>
     <string name="slot_lyrics">Lyrics</string>
+    <string name="slot_fullscreen_lyrics">Full screen lyrics</string>
     <string name="slot_sleep_timer">Sleep timer</string>
     <string name="slot_more">More options</string>
     <string name="slot_none">Hidden</string>

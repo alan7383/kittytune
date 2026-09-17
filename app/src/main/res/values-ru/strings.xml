@@ -941,6 +941,9 @@
     <string name="about_made_with">Разработано Аланом &gt;.&lt;</string>
     <string name="update_available_title">Доступно обновление</string>
     <string name="update_btn_download">Загрузка и установка</string>
+    <string name="update_btn_install">Установить</string>
+    <string name="update_btn_redownload">Скачать заново</string>
+    <string name="update_cached_info">Обновление готово к установке</string>
     <string name="update_downloading">Загрузка обновления&#8230;</string>
     <string name="update_error">Сбой обновления</string>
     <string name="update_no_update">Обновления отсутствуют</string>
@@ -1800,6 +1803,7 @@
     <string name="slot_shuffle">Перемешать</string>
     <string name="slot_repeat">Повтор</string>
     <string name="slot_lyrics">Текст песни</string>
+    <string name="slot_fullscreen_lyrics">Текст песни на весь экран</string>
     <string name="slot_sleep_timer">Таймер сна</string>
     <string name="slot_more">Дополнительно</string>
     <string name="slot_none">Скрыто</string>

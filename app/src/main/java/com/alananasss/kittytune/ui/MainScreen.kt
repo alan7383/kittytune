@@ -414,6 +414,7 @@ fun MainScreen(
     val updateStatus by UpdateManager.status.collectAsState()
     val downloadProgress by UpdateManager.downloadProgress.collectAsState()
     val totalDownloadSize by UpdateManager.downloadSize.collectAsState()
+    val isUpdateDownloaded by UpdateManager.isDownloaded.collectAsState()
     val releaseInfo = UpdateManager.releaseInfo
 
     LaunchedEffect(updateStatus) {
@@ -1737,8 +1738,12 @@ fun MainScreen(
                     status = updateStatus,
                     progress = downloadProgress,
                     totalSize = totalDownloadSize,
+                    isDownloaded = isUpdateDownloaded,
                     onDownload = {
                         scope.launch { UpdateManager.downloadUpdate(context.applicationContext) }
+                    },
+                    onForceRedownload = {
+                        scope.launch { UpdateManager.downloadUpdate(context.applicationContext, forceRedownload = true) }
                     },
                     onDismiss = {
                         UpdateManager.dismiss()

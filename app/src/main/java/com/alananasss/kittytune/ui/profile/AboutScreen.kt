@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -61,6 +62,7 @@ fun AboutScreen(
 
     var showCreditsSheet by remember { mutableStateOf(false) }
     val updateStatus by UpdateManager.status.collectAsState()
+    val isUpdateDownloaded by UpdateManager.isDownloaded.collectAsState()
 
     LaunchedEffect(updateStatus) {
         if (updateStatus == UpdateStatus.NO_UPDATE) {
@@ -222,8 +224,8 @@ fun AboutScreen(
                             shapes = ButtonDefaults.shapes(),
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                containerColor = if (isUpdateDownloaded) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                contentColor = if (isUpdateDownloaded) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                                 disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
                                 disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
@@ -237,7 +239,7 @@ fun AboutScreen(
                                 Spacer(Modifier.width(12.dp))
                             } else {
                                 Icon(
-                                    Icons.Rounded.Refresh,
+                                    imageVector = if (isUpdateDownloaded) Icons.Outlined.InstallMobile else Icons.Rounded.Refresh,
                                     contentDescription = null,
                                     modifier = Modifier.size(20.dp),
                                     tint = MaterialTheme.colorScheme.primary
@@ -245,7 +247,7 @@ fun AboutScreen(
                                 Spacer(Modifier.width(12.dp))
                             }
                             Text(
-                                stringResource(R.string.update_check_manual),
+                                stringResource(if (isUpdateDownloaded) R.string.update_btn_install else R.string.update_check_manual),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold
                             )

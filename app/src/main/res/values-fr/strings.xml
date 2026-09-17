@@ -1130,6 +1130,9 @@
     <string name="about_made_with">Développé par Alan &gt;.&lt;</string>
     <string name="update_available_title">Mise à jour disponible</string>
     <string name="update_btn_download">Télécharger &amp; Installer</string>
+    <string name="update_btn_install">Installer</string>
+    <string name="update_btn_redownload">Re-télécharger</string>
+    <string name="update_cached_info">Mise à jour prête à être installée</string>
     <string name="update_downloading">Téléchargement&#8230;</string>
     <string name="update_error">Échec de la mise à jour</string>
     <string name="update_no_update">Aucune mise à jour disponible</string>
@@ -1869,6 +1872,7 @@
     <string name="slot_shuffle">Aléatoire</string>
     <string name="slot_repeat">Répétition</string>
     <string name="slot_lyrics">Paroles</string>
+    <string name="slot_fullscreen_lyrics">Paroles plein écran</string>
     <string name="slot_sleep_timer">Minuteur</string>
     <string name="slot_more">Options</string>
     <string name="slot_none">Masqué</string>

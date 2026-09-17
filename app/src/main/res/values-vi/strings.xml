@@ -1130,6 +1130,9 @@
     <string name="about_made_with">Phát triển bởi Alan &gt;.&lt;</string>
     <string name="update_available_title">Có bản cập nhật mới</string>
     <string name="update_btn_download">Tải xuống &amp; Cài đặt</string>
+    <string name="update_btn_install">Cài đặt</string>
+    <string name="update_btn_redownload">Tải lại</string>
+    <string name="update_cached_info">Bản cập nhật đã sẵn sàng cài đặt</string>
     <string name="update_downloading">Đang tải bản cập nhật&#8230;</string>
     <string name="update_error">Cập nhật thất bại</string>
     <string name="update_no_update">Đang dùng bản mới nhất</string>
@@ -1846,6 +1849,7 @@
     <string name="slot_shuffle">Trộn bài</string>
     <string name="slot_repeat">Lặp lại</string>
     <string name="slot_lyrics">Lời bài hát</string>
+    <string name="slot_fullscreen_lyrics">Lời bài hát toàn màn hình</string>
     <string name="slot_sleep_timer">Hẹn giờ ngủ</string>
     <string name="slot_more">Tùy chọn khác</string>
     <string name="slot_none">Ẩn</string>

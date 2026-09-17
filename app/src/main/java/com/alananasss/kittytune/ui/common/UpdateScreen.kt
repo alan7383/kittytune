@@ -23,6 +23,9 @@ import com.alananasss.kittytune.data.UpdateStatus
 import com.alananasss.kittytune.data.network.GithubRelease
 import dev.jeziellago.compose.markdowntext.MarkdownText
 
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Refresh
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun UpdateScreen(
@@ -30,7 +33,9 @@ fun UpdateScreen(
     status: UpdateStatus,
     progress: Float,
     totalSize: Long,
+    isDownloaded: Boolean = false,
     onDownload: () -> Unit,
+    onForceRedownload: (() -> Unit)? = null,
     onDismiss: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -40,7 +45,10 @@ fun UpdateScreen(
     val isDownloading = status == UpdateStatus.DOWNLOADING
 
     val buttonConfig = when (status) {
-        UpdateStatus.AVAILABLE -> Triple(onDownload, R.string.update_btn_download, Icons.Outlined.InstallMobile)
+        UpdateStatus.AVAILABLE -> {
+            val labelRes = if (isDownloaded) R.string.update_btn_install else R.string.update_btn_download
+            Triple(onDownload, labelRes, Icons.Outlined.InstallMobile)
+        }
         UpdateStatus.DOWNLOADING -> Triple(onDismiss, R.string.btn_cancel, Icons.Outlined.Cancel)
         else -> null
     }
@@ -82,7 +90,8 @@ fun UpdateScreen(
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.background)
                         .navigationBarsPadding()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     FilledTonalButton(
                         onClick = onClick,
@@ -98,6 +107,25 @@ fun UpdateScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
+                    }
+
+                    if (isDownloaded && !isDownloading && onForceRedownload != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(
+                            onClick = onForceRedownload,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                Icons.Rounded.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.update_btn_redownload),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
@@ -140,6 +168,21 @@ fun UpdateScreen(
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.primary
                         )
+
+                        if (isDownloaded && !isDownloading) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = CircleShape
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.update_cached_info),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
                     Text(
