@@ -4702,7 +4702,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                 }
 
                                 if (currentPosition >= triggerTime && !MusicManager.isCrossfadingOut) {
-                                    MusicManager.isCrossfadingOut = true
+                                    MusicManager.beginCrossfadeRequest()
                                     com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
                                     playNext(manual = false, isCrossfade = true)
                                 }
@@ -4713,7 +4713,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                 }
                                 if (currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
                                     com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
-                                    MusicManager.isCrossfadingOut = true
+                                    MusicManager.beginCrossfadeRequest()
                                     playNext(manual = false, isCrossfade = true)
                                 }
                             } else {
@@ -4726,7 +4726,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             }
                             if (currentPosition >= (dur - crossfadeMs) && !MusicManager.isCrossfadingOut) {
                                 com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
-                                MusicManager.isCrossfadingOut = true
+                                MusicManager.beginCrossfadeRequest()
                                 playNext(manual = false, isCrossfade = true)
                             }
                         } else {
