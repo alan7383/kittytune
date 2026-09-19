@@ -281,8 +281,8 @@
     <string name="menu_rename_folder">Переименовать папку</string>
     <string name="menu_delete_folder">Удалить папку</string>
     <string name="dialog_delete_folder_title">Удалить папку?</string>
-    <string name="dialog_delete_folder_msg">All playlists and folders inside will be moved to your library.</string>
-    <string name="dialog_rename_folder_title">Rename folder</string>
+    <string name="dialog_delete_folder_msg">Все плейлисты и папки внутри них будут перемещены в вашу библиотеку.</string>
+    <string name="dialog_rename_folder_title">Переименовать папку</string>
     <string name="dialog_rename_folder_hint">Имя папки</string>
     <string name="select_folder_title">Выбрать папку</string>
     <string name="folder_created_toast">Папка создана</string>
@@ -317,10 +317,10 @@
     <string name="effect_reverb">Реверберация</string>
     <string name="effect_rain">Режим дождя</string>
     <string name="effect_vintage_mp3">Винтаж MP3</string>
-    <string name="fx_vintage_mp3_desc">Lo-Fi 2000s MP3 player and low-bitrate compression</string>
-    <string name="label_vintage_mp3_compression">Compression: %1$d%% (%2$s)</string>
-    <string name="effect_vocal_remover">Vocal Attenuation</string>
-    <string name="fx_vocal_remover_desc">Attenuates center lead vocals to bring out the instrumental</string>
+    <string name="fx_vintage_mp3_desc">Lo-Fi 2000s MP3 плеер и сжатие с низким битрейтом</string>
+    <string name="label_vintage_mp3_compression">Сжатие: %1$d%% (%2$s)</string>
+    <string name="effect_vocal_remover">Вокальное утоление</string>
+    <string name="fx_vocal_remover_desc">Приглушает вокал, чтобы выделить музыку</string>
     <string name="label_vocal_remover_level">Attenuation level: %1$d%%</string>
     <string name="effect_vocal_boost">Vocal Boost</string>
     <string name="fx_vocal_boost_desc">Brings vocals to the foreground with crystal clarity while attenuating background instrumentation</string>
