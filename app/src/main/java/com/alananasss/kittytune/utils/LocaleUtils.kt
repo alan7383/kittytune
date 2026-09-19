@@ -58,6 +58,7 @@ object LocaleUtils {
         return when (language) {
             AppLanguage.ENGLISH -> "en-US,en;q=0.9"
             AppLanguage.FRENCH -> "fr-FR,fr;q=0.9,en;q=0.8"
+            AppLanguage.GERMAN -> "de-DE,de;q=0.9,en;q=0.8"
             AppLanguage.HUNGARIAN -> "hu-HU,hu;q=0.9,en;q=0.8"
             AppLanguage.RUSSIAN -> "ru-RU,ru;q=0.9,en;q=0.8"
             AppLanguage.VIETNAMESE -> "vi-VN,vi;q=0.9,en;q=0.8"

@@ -290,6 +290,12 @@ fun AppearanceSettingsScreen(
                         onLanguageSelected
                     )
                     LanguageRadioButton(
+                        stringResource(R.string.lang_german),
+                        AppLanguage.GERMAN,
+                        appLanguage,
+                        onLanguageSelected
+                    )
+                    LanguageRadioButton(
                         stringResource(R.string.lang_hungarian),
                         AppLanguage.HUNGARIAN,
                         appLanguage,
@@ -498,6 +504,7 @@ fun AppearanceSettingsScreen(
                                 AppLanguage.SYSTEM -> stringResource(R.string.theme_system)
                                 AppLanguage.FRENCH -> stringResource(R.string.lang_french)
                                 AppLanguage.ENGLISH -> stringResource(R.string.lang_english)
+                                AppLanguage.GERMAN -> stringResource(R.string.lang_german)
                                 AppLanguage.HUNGARIAN -> stringResource(R.string.lang_hungarian)
                                 AppLanguage.RUSSIAN -> stringResource(R.string.lang_russian)
                                 AppLanguage.VIETNAMESE -> stringResource(R.string.lang_vietnamese)

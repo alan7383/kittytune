@@ -22,6 +22,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -497,21 +498,38 @@ private fun WelcomePage() {
                 .padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            // Each line is meant to stay on one line. "Welcome to " fits at 42.sp,
+            // but longer translations (German "Willkommen bei ") did not and were
+            // broken mid-word. Auto-sizing keeps the original size where it fits.
             Text(
                 text = stringResource(R.string.setup_welcome_prefix),
+                modifier = Modifier.fillMaxWidth(),
                 style = ExpTitleTypography.displayLarge.copy(
                     fontSize = 42.sp,
                     lineHeight = 1.1.em
                 ),
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 26.sp,
+                    maxFontSize = 42.sp,
+                    stepSize = 1.sp
+                ),
+                maxLines = 1
             )
             Text(
                 text = stringResource(R.string.app_name),
+                modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.displayLarge.copy(
                     fontFamily = GoogleSansRounded,
                     fontSize = 46.sp,
                     color = MaterialTheme.colorScheme.primary,
                     lineHeight = 1.1.em
                 ),
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = 28.sp,
+                    maxFontSize = 46.sp,
+                    stepSize = 1.sp
+                ),
+                maxLines = 1
             )
         }
         Spacer(modifier = Modifier.height(10.dp))
@@ -611,14 +629,7 @@ private fun AuthModePage(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.setup_auth_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+            SetupPageTitle(text = stringResource(R.string.setup_auth_title))
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.setup_auth_subtitle),
@@ -831,14 +842,7 @@ fun PermissionPageLayout(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+            SetupPageTitle(text = title)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = description,
@@ -998,14 +1002,7 @@ private fun PlayerDesignSelectionPage(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.setup_player_design_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+            SetupPageTitle(text = stringResource(R.string.setup_player_design_title))
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.setup_player_design_subtitle),
@@ -1172,14 +1169,7 @@ private fun SliderStyleSelectionPage(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.setup_slider_style_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+            SetupPageTitle(text = stringResource(R.string.setup_slider_style_title))
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.setup_slider_style_subtitle),
@@ -1374,14 +1364,7 @@ private fun ThemeSelectionPage(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.setup_theme_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+            SetupPageTitle(text = stringResource(R.string.setup_theme_title))
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = stringResource(R.string.setup_theme_subtitle),
@@ -1533,14 +1516,7 @@ private fun FinishPage(
             modifier = Modifier.fillMaxWidth()
         ) {
             Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.setup_all_set_title),
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontFamily = GoogleSansRounded,
-                    fontSize = 32.sp
-                ),
-                textAlign = TextAlign.Center
-            )
+            SetupPageTitle(text = stringResource(R.string.setup_all_set_title))
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = stringResource(R.string.setup_all_set_body),
@@ -1622,4 +1598,35 @@ private fun FinishPage(
             }
         }
     }
+}
+
+
+/**
+ * Title for a setup page.
+ *
+ * The setup titles used a fixed 32.sp, which only fits the English strings. Longer
+ * translations (German "Wiedergabebenachrichtigungen", Hungarian, Russian) overflowed
+ * and Compose broke them mid-word. Auto-sizing keeps 32.sp whenever the text fits, so
+ * English is unchanged, and steps down only as far as a longer translation needs.
+ */
+@Composable
+private fun SetupPageTitle(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = text,
+        modifier = modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.displayMedium.copy(
+            fontFamily = GoogleSansRounded,
+            fontSize = 32.sp
+        ),
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = 20.sp,
+            maxFontSize = 32.sp,
+            stepSize = 1.sp
+        ),
+        maxLines = 2,
+        textAlign = TextAlign.Center
+    )
 }

@@ -68,6 +68,7 @@ enum class AppLanguage(val code: String) {
     SYSTEM("system"),
     FRENCH("fr"),
     ENGLISH("en"),
+    GERMAN("de"),
     HUNGARIAN("hu"),
     RUSSIAN("ru"),
     VIETNAMESE("vi")
