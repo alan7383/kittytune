@@ -45,7 +45,7 @@ fun AutomixBadge(
     val isAutomixing by AutomixManager.isAutomixing.collectAsState()
     val automixDebug by AutomixManager.automixDebugInfo.collectAsState()
     val mixBeatsLeft by AutomixManager.mixBeatsLeft.collectAsState()
-    val isCrossfading = com.alananasss.kittytune.data.MusicManager.isCrossfadingOut
+    val isCrossfading by com.alananasss.kittytune.data.MusicManager.isCrossfadingOutFlow.collectAsState()
     val beats = mixBeatsLeft
 
     // Dynamic tempo-synced beat period (ms) based on outgoing track BPM
