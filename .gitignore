@@ -3,6 +3,7 @@ local.properties
 *.keystore
 build/
 *.apk
+!builds/*.apk
 *.aab
 *.ap_
 *.jar
