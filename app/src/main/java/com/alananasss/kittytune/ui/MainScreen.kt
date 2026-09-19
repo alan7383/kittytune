@@ -1372,8 +1372,13 @@ fun MainScreen(
                     clippedComposable("about") {
                         AboutScreen(
                             onBackClick = { navController.popBackStack() },
-                            onLicensesClick = { navController.navigate("licenses") }
+                            onLicensesClick = { navController.navigate("licenses") },
+                            onCreditsClick = { navController.navigate("credits") }
                         )
+                    }
+
+                    clippedComposable("credits") {
+                        CreditsScreen(onBackClick = { navController.popBackStack() })
                     }
 
                     clippedComposable("licenses") {
