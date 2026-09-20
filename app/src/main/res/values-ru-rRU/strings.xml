@@ -490,10 +490,10 @@
     <string name="preset_night_coupe">Midnight Coupe</string>
     <string name="effect_ambient_sound">Ambience</string>
     <string name="fx_ambient_desc">Relaxing background ambient soundscapes playing alongside your music</string>
-    <string name="ambient_rain">Rain</string>
-    <string name="ambient_fireplace">Campfire</string>
-    <string name="ambient_ocean">Ocean</string>
-    <string name="ambient_cafe">Cafe</string>
+    <string name="ambient_rain">Дождь</string>
+    <string name="ambient_fireplace">Костёр</string>
+    <string name="ambient_ocean">Океан</string>
+    <string name="ambient_cafe">Кафе</string>
     <string name="label_ambient_volume">Ambience volume: %1$d%%</string>
     <string name="btn_explore_all_effects">Explore all effects</string>
     <string name="edit_tiles_title">Edit tiles</string>
@@ -1161,11 +1161,11 @@
     <string name="about_made_with">Разработано Аланом &gt;.&lt;</string>
     <string name="update_available_title">Доступно обновление</string>
     <string name="update_btn_download">Загрузка и установка</string>
-    <string name="update_btn_install">Install</string>
-    <string name="update_btn_redownload">Re-download</string>
-    <string name="update_cached_info">Update ready to install</string>
-    <string name="update_mobile_data_warning">You are on mobile data. Downloading this update will use cellular data.</string>
-    <string name="update_mobile_data_warning_with_size">You are on mobile data. Downloading this update (%1$s) will use cellular data.</string>
+    <string name="update_btn_install">Установить</string>
+    <string name="update_btn_redownload">Скачать снова</string>
+    <string name="update_cached_info">Обновление готово к установке</string>
+    <string name="update_mobile_data_warning">Вы используете мобильные данные. При загрузке этого обновления будут использоваться мобильные данные.</string>
+    <string name="update_mobile_data_warning_with_size">Вы используете мобильные данные. При загрузке обновления (%1$s) будут использоваться мобильные данные.</string>
     <string name="update_downloading">Загрузка обновления&#8230;</string>
     <string name="update_error">Сбой обновления</string>
     <string name="update_no_update">Обновления отсутствуют</string>
@@ -1631,8 +1631,8 @@
     <string name="upload_btn_cancel">Cancel</string>
     <string name="upload_success_title">Upload successful! (≧◡≦)</string>
     <string name="upload_success_message">\"%1$s\" is now processing on SoundCloud. It will be available shortly.</string>
-    <string name="edit_track_success_title">Track updated! (≧◡≦)</string>
-    <string name="edit_track_success_message">\"%1$s\" has been updated successfully.</string>
+    <string name="edit_track_success_title">Трек обновлён! (≧◡≦)</string>
+    <string name="edit_track_success_message">%1$s были успешно обновлены.</string>
     <string name="upload_btn_back_to_profile">Back to profile</string>
     <string name="upload_btn_upload_another">Upload another track</string>
     <string name="upload_error_title">Upload failed</string>
@@ -2039,7 +2039,7 @@
     <string name="accounts_screen_title">Accounts</string>
     <string name="accounts_connected_section">Connected Platforms</string>
     <string name="accounts_other_platforms_title">Other Platforms</string>
-    <string name="accounts_other_platforms_desc">Additional account integrations (Spotify, YouTube Music, Apple Music) will be available in upcoming updates.</string>
+    <string name="accounts_other_platforms_desc">В будущих обновлениях будет доступна интеграция аккаунтов с другими сервисами (Spotify, YouTube Music, Apple Music).</string>
     <string name="accounts_platform_coming_soon">Coming soon</string>
     <!-- VKontakte (VK) Account -->
     <string name="pref_account_vk_title">VKontakte (VK)</string>
@@ -2109,7 +2109,7 @@
     <string name="account_label_default_license">Default Upload License</string>
     <string name="account_label_spotlight_limit">Spotlight Feature Limit</string>
     <string name="account_label_spotlight_desc">%1$d featured tracks allowed</string>
-    <string name="account_label_last_modified">Last Profile Update</string>
+    <string name="account_label_last_modified">Последнее обновление профиля</string>
     <string name="account_label_station">Artist Radio Station</string>
     <string name="account_license_all_rights">All Rights Reserved</string>
     <string name="account_license_cc">Creative Commons</string>
@@ -2315,7 +2315,7 @@
     <string name="deezer_cookie_saved">Deezer login saved.</string>
     <string name="deezer_integration_info">The resolver only finds the encrypted Deezer media URL. Kittytune decrypts the stream locally during playback or downloads, and keeps public search and artwork requests off your Deezer session.</string>
     <string name="deezer_login_notice_title">Log in to Deezer</string>
-    <string name="deezer_login_notice_subtitle">New in this update</string>
+    <string name="deezer_login_notice_subtitle">Новое в этом обновлении</string>
     <string name="deezer_login_notice_body">Kittytune can now stream straight from your own Deezer account. Logging in gives you the most reliable playback and cuts loading to near-instant, because tracks resolve directly from Deezer instead of passing through a shared server.</string>
     <string name="deezer_login_notice_action">Log in to Deezer</string>
     <string name="tidal_web_login">TIDAL Web login</string>
