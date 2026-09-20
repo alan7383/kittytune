@@ -13,8 +13,6 @@ lint-results-*.xml
 .idea/*
 !.idea/runConfigurations/
 !.idea/runConfigurations/*.xml
-!.idea/inspectionProfiles/
-!.idea/inspectionProfiles/*.xml
 *.iml
 *.ipr
 *.iws
