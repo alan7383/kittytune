@@ -708,19 +708,17 @@ private fun AuthModeOptionCard(
     icon: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val containerColor by animateColorAsState(
-        targetValue = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-        } else {
-            MaterialTheme.colorScheme.surfaceContainer
-        },
-        animationSpec = tween(200),
+    val cardColors = setupSelectionCardColors(
+        isSelected = isSelected,
         label = "AuthCardContainerColor"
     )
 
     Card(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
+        colors = CardDefaults.cardColors(
+            containerColor = cardColors.container,
+            contentColor = cardColors.content
+        ),
         shape = RoundedCornerShape(24.dp),
         modifier = modifier.fillMaxWidth()
     ) {
@@ -781,7 +779,7 @@ private fun AuthModeOptionCard(
                 Text(
                     text = description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = cardColors.supportingContent
                 )
             }
 
@@ -895,6 +893,63 @@ fun PermissionPageLayout(
             Spacer(modifier = Modifier.height(12.dp))
         }
     }
+}
+
+// -----------------------------------------------------------------------------------------
+// Selection Card Colors
+// -----------------------------------------------------------------------------------------
+
+/**
+ * Container and content colors for a selectable setup card.
+ *
+ * A selected card is painted with [ColorScheme.primaryContainer], so its text has to
+ * switch to `onPrimaryContainer`. `CardDefaults.cardColors` cannot derive that on its
+ * own here: the container is alpha-modified, so `contentColorFor` finds no match,
+ * returns `Color.Unspecified` and the card keeps the surface content color. Together
+ * with the descriptions, which asked for `onSurfaceVariant` outright, that left the
+ * selected card's title and description near-invisible on the light container.
+ */
+@Immutable
+private data class SetupSelectionCardColors(
+    val container: Color,
+    val content: Color,
+    val supportingContent: Color
+)
+
+@Composable
+private fun setupSelectionCardColors(
+    isSelected: Boolean,
+    label: String
+): SetupSelectionCardColors {
+    val scheme = MaterialTheme.colorScheme
+    val container by animateColorAsState(
+        targetValue = if (isSelected) {
+            scheme.primaryContainer.copy(alpha = 0.7f)
+        } else {
+            scheme.surfaceContainer
+        },
+        animationSpec = tween(200),
+        label = label
+    )
+    val content by animateColorAsState(
+        targetValue = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
+        animationSpec = tween(200),
+        label = "${label}Content"
+    )
+    val supportingContent by animateColorAsState(
+        targetValue = if (isSelected) {
+            scheme.onPrimaryContainer.copy(alpha = 0.78f)
+        } else {
+            scheme.onSurfaceVariant
+        },
+        animationSpec = tween(200),
+        label = "${label}SupportingContent"
+    )
+    return SetupSelectionCardColors(
+        container = container,
+        content = content,
+        supportingContent = supportingContent
+    )
 }
 
 // -----------------------------------------------------------------------------------------
@@ -1020,19 +1075,17 @@ private fun PlayerDesignSelectionPage(
         ) {
             options.forEach { item ->
                 val isSelected = selectedDesign == item.design
-                val containerColor by animateColorAsState(
-                    targetValue = if (isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    },
-                    animationSpec = tween(200),
+                val cardColors = setupSelectionCardColors(
+                    isSelected = isSelected,
                     label = "PlayerCardColor"
                 )
 
                 Card(
                     onClick = { onDesignSelected(item.design) },
-                    colors = CardDefaults.cardColors(containerColor = containerColor),
+                    colors = CardDefaults.cardColors(
+                        containerColor = cardColors.container,
+                        contentColor = cardColors.content
+                    ),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1109,7 +1162,7 @@ private fun PlayerDesignSelectionPage(
                             Text(
                                 text = stringResource(item.descRes),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = cardColors.supportingContent
                             )
                         }
 
@@ -1382,19 +1435,17 @@ private fun ThemeSelectionPage(
         ) {
             themeOptions.forEach { option ->
                 val isSelected = selectedTheme == option.mode
-                val containerColor by animateColorAsState(
-                    targetValue = if (isSelected) {
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                    } else {
-                        MaterialTheme.colorScheme.surfaceContainer
-                    },
-                    animationSpec = tween(200),
+                val cardColors = setupSelectionCardColors(
+                    isSelected = isSelected,
                     label = "ThemeCardColor"
                 )
 
                 Card(
                     onClick = { onThemeSelected(option.mode) },
-                    colors = CardDefaults.cardColors(containerColor = containerColor),
+                    colors = CardDefaults.cardColors(
+                        containerColor = cardColors.container,
+                        contentColor = cardColors.content
+                    ),
                     shape = RoundedCornerShape(24.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -1461,7 +1512,7 @@ private fun ThemeSelectionPage(
                             Text(
                                 text = stringResource(option.descRes),
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = cardColors.supportingContent
                             )
                         }
 
