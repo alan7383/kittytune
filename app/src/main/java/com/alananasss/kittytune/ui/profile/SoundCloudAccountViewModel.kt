@@ -69,6 +69,10 @@ class SoundCloudAccountViewModel(application: Application) : AndroidViewModel(ap
                 withContext(Dispatchers.IO) {
                     val me = api.getMe()
                     user = me
+                    // The resolver needs to know whether this account may stream Go+ tracks, and
+                    // /me is the only place that says so. Cache it while we have the answer.
+                    com.alananasss.kittytune.data.local.PlayerPreferences(app)
+                        .setSoundCloudGoPlus(me.consumerPlanTitle == "SoundCloud Go+")
                     try {
                         val config = api.getAndroidConfiguration()
                         configuration = config
