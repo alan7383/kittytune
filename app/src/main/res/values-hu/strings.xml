@@ -939,6 +939,11 @@
     <string name="about_credits_subtitle">Szívből köszönjük mindenkinek, aki segít jobbá tenni a KittyTune-t.</string>
     <string name="about_credits_dev_section">Fejlesztés</string>
     <string name="about_credits_translation_section">Fordítások</string>
+    <string name="about_credits_community_section">Közösség &amp; QA</string>
+    <string name="about_credits_filter_all">Mind</string>
+    <string name="about_credits_filter_dev">Fejlesztés</string>
+    <string name="about_credits_filter_translation">Fordítások</string>
+    <string name="about_credits_filter_community">Közösség</string>
     <string name="about_role_dev">Alkotó &amp; Fő fejlesztő</string>
     <string name="about_role_dev_desc">Alkalmazás architektúra, funkciók és UI design</string>
     <string name="about_role_translation">Fordítás</string>
@@ -946,8 +951,22 @@
     <string name="about_role_translation_ru_desc">Teljes orosz lokalizáció a Crowdinon</string>
     <string name="about_role_translation_vi">Vietnámi fordítás</string>
     <string name="about_role_translation_vi_desc">Vietnámi lokalizáció és közreműködés</string>
+    <string name="about_role_translation_de">Német fordítás</string>
+    <string name="about_role_translation_de_desc">Német lokalizáció és felületi adaptációk</string>
     <string name="about_role_translation_qa">Fordítások &amp; QA</string>
     <string name="about_role_translation_qa_desc">Fordítások, tesztelés és javaslatok</string>
+    <string name="about_role_community_contrib">Kód &amp; Közösség</string>
+    <string name="about_role_community_contrib_desc">Hozzájárulások, visszajelzések és javaslatok</string>
+    <string name="about_credits_contribute_section">Szeretnél hozzájárulni?</string>
+    <string name="about_credits_crowdin_title">KittyTune fordítása</string>
+    <string name="about_credits_crowdin_desc">Segíts elhozni a KittyTune-t a nyelvedre a Crowdinon</string>
+    <string name="about_credits_github_title">Hozzájárulás a kódhoz</string>
+    <string name="about_credits_github_desc">Hibák jelentése, PR-ek beküldése és funkciójavaslatok</string>
+    <string name="about_credits_kofi_title">Támogatás a Ko-fi-n</string>
+    <string name="about_credits_kofi_desc">Fejlesztés és szerverköltségek támogatása</string>
+    <string name="about_credits_stats_contributors">%1$d közreműködő</string>
+    <string name="about_credits_stats_languages">6 nyelv</string>
+    <string name="about_credits_stats_open_source">100% Nyílt Forráskódú</string>
     <string name="about_translate_title">Fordítsd le az appot</string>
     <string name="about_translate_desc">Segíts a fordításban Crowdin-on!</string>
     <string name="about_made_with">Fejlesztette: Alan &gt;.&lt;</string>
@@ -1889,6 +1908,7 @@
     <string name="proxy_profile_empty_name">A profil neve nem lehet üres</string>
     <string name="proxy_playback_error">Lejátszási hiba: ellenőrizze a proxy beállításokat</string>
     <string name="network_playback_error">Lejátszási hiba: ellenőrizze az internetkapcsolatot</string>
+    <string name="restricted_playback_error">Ez a szám csak SoundCloud Go+ előfizetéssel játszható le, és nem található alternatív forrás</string>
 
     <!-- Spotify Integration -->
     <string name="spotify_verified">A Spotify által ellenőrizve</string>

@@ -1128,6 +1128,11 @@
     <string name="about_credits_subtitle">Chân thành cảm ơn tất cả những người đã giúp KittyTune ngày một hoàn thiện hơn.</string>
     <string name="about_credits_dev_section">Phát triển</string>
     <string name="about_credits_translation_section">Bản dịch</string>
+    <string name="about_credits_community_section">Cộng đồng &amp; QA</string>
+    <string name="about_credits_filter_all">Tất cả</string>
+    <string name="about_credits_filter_dev">Lập trình</string>
+    <string name="about_credits_filter_translation">Bản dịch</string>
+    <string name="about_credits_filter_community">Cộng đồng</string>
     <string name="about_role_dev">Người sáng lập &amp; Lập trình viên chính</string>
     <string name="about_role_dev_desc">Kiến trúc ứng dụng, tính năng &amp; giao diện UI</string>
     <string name="about_role_translation">Dịch thuật</string>
@@ -1135,8 +1140,22 @@
     <string name="about_role_translation_ru_desc">Bản dịch tiếng Nga đầy đủ trên Crowdin</string>
     <string name="about_role_translation_vi">Bản dịch tiếng Việt</string>
     <string name="about_role_translation_vi_desc">Bản dịch tiếng Việt &amp; đóng góp</string>
+    <string name="about_role_translation_de">Bản dịch tiếng Đức</string>
+    <string name="about_role_translation_de_desc">Bản dịch tiếng Đức &amp; điều chỉnh giao diện UI</string>
     <string name="about_role_translation_qa">Bản dịch &amp; Đảm bảo chất lượng (QA)</string>
     <string name="about_role_translation_qa_desc">Dịch thuật, kiểm thử &amp; góp ý</string>
+    <string name="about_role_community_contrib">Mã nguồn &amp; Cộng đồng</string>
+    <string name="about_role_community_contrib_desc">Đóng góp, phản hồi &amp; đề xuất</string>
+    <string name="about_credits_contribute_section">Muốn đóng góp?</string>
+    <string name="about_credits_crowdin_title">Dịch KittyTune</string>
+    <string name="about_credits_crowdin_desc">Giúp đưa KittyTune đến với ngôn ngữ của bạn trên Crowdin</string>
+    <string name="about_credits_github_title">Đóng góp mã nguồn</string>
+    <string name="about_credits_github_desc">Báo lỗi, gửi PR và đề xuất tính năng mới</string>
+    <string name="about_credits_kofi_title">Ủng hộ qua Ko-fi</string>
+    <string name="about_credits_kofi_desc">Hỗ trợ chi phí phát triển và duy trì máy chủ</string>
+    <string name="about_credits_stats_contributors">%1$d người đóng góp</string>
+    <string name="about_credits_stats_languages">6 ngôn ngữ</string>
+    <string name="about_credits_stats_open_source">100% Mã nguồn mở</string>
     <string name="about_translate_title">Dịch ứng dụng</string>
     <string name="about_translate_desc">Đóng góp bản dịch trên Crowdin!</string>
     <string name="about_made_with">Phát triển bởi Alan &gt;.&lt;</string>
@@ -1926,6 +1945,7 @@
     <string name="proxy_no_profiles">Chưa có cấu hình proxy nào được lưu</string>
     <string name="proxy_playback_error">Phát thất bại: vui lòng kiểm tra cài đặt proxy của bạn</string>
     <string name="network_playback_error">Phát thất bại: vui lòng kiểm tra kết nối mạng Internet</string>
+    <string name="restricted_playback_error">Bài hát này chỉ có thể phát với gói đăng ký SoundCloud Go+, và không tìm thấy nguồn thay thế nào</string>
     <!-- Spotify Integration -->
     <string name="spotify_verified">Xác minh bởi Spotify</string>
     <string name="spotify_monthly_listeners">%1$s người nghe hàng tháng</string>

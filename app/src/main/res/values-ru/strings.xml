@@ -939,6 +939,11 @@
     <string name="about_credits_subtitle">Огромное спасибо всем, кто помогает делать KittyTune лучше.</string>
     <string name="about_credits_dev_section">Разработка</string>
     <string name="about_credits_translation_section">Перевод</string>
+    <string name="about_credits_community_section">Сообщество и QA</string>
+    <string name="about_credits_filter_all">Все</string>
+    <string name="about_credits_filter_dev">Разработка</string>
+    <string name="about_credits_filter_translation">Переводы</string>
+    <string name="about_credits_filter_community">Сообщество</string>
     <string name="about_role_dev">Создатель и главный разработчик</string>
     <string name="about_role_dev_desc">Архитектура приложения, функции и дизайн</string>
     <string name="about_role_translation">Переводчик</string>
@@ -946,8 +951,22 @@
     <string name="about_role_translation_ru_desc">Полный перевод приложения на русский в Crowdin</string>
     <string name="about_role_translation_vi">Вьетнамский перевод</string>
     <string name="about_role_translation_vi_desc">Вьетнамский перевод и улучшения приложения</string>
+    <string name="about_role_translation_de">Немецкий перевод</string>
+    <string name="about_role_translation_de_desc">Немецкая локализация и адаптация интерфейса</string>
     <string name="about_role_translation_qa">Перевод и тестирование</string>
     <string name="about_role_translation_qa_desc">Переводы, тестирование и отзывы</string>
+    <string name="about_role_community_contrib">Код и сообщество</string>
+    <string name="about_role_community_contrib_desc">Вклад в разработку, отзывы и предложения</string>
+    <string name="about_credits_contribute_section">Хотите помочь?</string>
+    <string name="about_credits_crowdin_title">Перевести KittyTune</string>
+    <string name="about_credits_crowdin_desc">Помогите перевести KittyTune на ваш язык на Crowdin</string>
+    <string name="about_credits_github_title">Внести вклад в код</string>
+    <string name="about_credits_github_desc">Сообщайте об ошибках, создавайте PR и предлагайте функции</string>
+    <string name="about_credits_kofi_title">Поддержать на Ko-fi</string>
+    <string name="about_credits_kofi_desc">Поддержка разработки и оплаты серверов</string>
+    <string name="about_credits_stats_contributors">%1$d участников</string>
+    <string name="about_credits_stats_languages">6 языков</string>
+    <string name="about_credits_stats_open_source">100% открытый исходный код</string>
     <string name="about_translate_title">Перевести приложение</string>
     <string name="about_translate_desc">Помогите перевести на Crowdin!</string>
     <string name="about_made_with">Разработано Аланом &gt;.&lt;</string>
@@ -1880,6 +1899,7 @@
     <string name="proxy_profile_empty_name">Имя профиля не может быть пустым</string>
     <string name="proxy_playback_error">Ошибка воспроизведения: проверьте настройки прокси</string>
     <string name="network_playback_error">Ошибка воспроизведения: проверьте интернет-соединение</string>
+    <string name="restricted_playback_error">Этот трек доступен только с подпиской SoundCloud Go+, и альтернативный источник не найден</string>
 
     <!-- Spotify Integration -->
     <string name="spotify_verified">Подтверждено Spotify</string>
