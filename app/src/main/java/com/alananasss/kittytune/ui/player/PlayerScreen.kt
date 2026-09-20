@@ -4432,7 +4432,10 @@ private fun PlayerSlotButton(
                         viewModel.showCommentsSheet = true
                     }
                     PlayerActionButtonSlot.SHARE -> {
-                        viewModel.currentTrack?.let { viewModel.shareTrack(it) }
+                        // The card sheet still carries the link, so nothing is lost for someone
+                        // who only wanted to send one - and it is reachable from the player now
+                        // rather than two taps deep in the overflow menu.
+                        viewModel.currentTrack?.let { viewModel.openShareCard(it) }
                     }
                     PlayerActionButtonSlot.QUEUE -> onQueueClick()
                     PlayerActionButtonSlot.AUDIO_FX -> onEffectsClick()

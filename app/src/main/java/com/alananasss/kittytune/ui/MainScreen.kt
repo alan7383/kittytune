@@ -1651,6 +1651,7 @@ fun MainScreen(
                 artist = cardTrack.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                 trackId = cardTrack.id,
                 trackUrl = cardTrack.permalinkUrl,
+                lyrics = playerViewModel.shareCardLyrics,
                 onDismiss = { playerViewModel.dismissShareCard() },
             )
         }

@@ -64,6 +64,7 @@ fun ShareCard(
     style: ShareCardStyle,
     modifier: Modifier = Modifier,
     qrCover: Bitmap? = null,
+    lyrics: List<String>? = null,
 ) {
     Box(
         modifier = modifier
@@ -77,7 +78,15 @@ fun ShareCard(
                 )
             )
     ) {
-        Column(
+        if (!lyrics.isNullOrEmpty()) {
+            LyricsBody(
+                artwork = artwork,
+                title = title,
+                artist = artist,
+                style = style,
+                lines = lyrics,
+            )
+        } else Column(
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth()
@@ -167,3 +176,95 @@ private fun Color.compositeOverBlack(): Color =
         blue = blue * alpha,
         alpha = 1f,
     )
+
+/**
+ * The lyrics face of the card: the song named small at the top, its words given the space.
+ *
+ * Inverted against the cover layout on purpose. A lyric is shared because of what it says, so
+ * the artwork steps back to a thumbnail that identifies the track and the lines take the middle
+ * at a size meant to be read across a feed.
+ */
+@Composable
+private fun LyricsBody(
+    artwork: Bitmap?,
+    title: String,
+    artist: String,
+    style: ShareCardStyle,
+    lines: List<String>,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 36.dp, vertical = 56.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(style.onBackground.copy(alpha = 0.08f))
+            ) {
+                if (artwork != null) {
+                    Image(
+                        bitmap = artwork.asImageBitmap(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.size(44.dp),
+                    )
+                }
+            }
+            Column {
+                Text(
+                    text = title,
+                    color = style.onBackground,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = artist,
+                    color = style.onBackground.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            lines.forEach { line ->
+                Text(
+                    text = line,
+                    color = style.onBackground,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 36.sp,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_kittytune_logo),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                text = "KittyTune",
+                color = style.onBackground.copy(alpha = 0.78f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}

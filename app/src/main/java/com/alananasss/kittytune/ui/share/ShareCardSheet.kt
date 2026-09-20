@@ -19,6 +19,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -40,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.theme.ArtworkPalette
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -59,6 +63,7 @@ fun ShareCardSheet(
     artist: String,
     trackId: Long,
     trackUrl: String?,
+    lyrics: List<String> = emptyList(),
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -70,6 +75,7 @@ fun ShareCardSheet(
     var selected by remember(styles) { mutableStateOf(styles.first()) }
     var busy by remember { mutableStateOf(false) }
     var asQr by remember { mutableStateOf(false) }
+    var lyricsFace by remember(lyrics) { mutableStateOf(false) }
     var qrCover by remember(artwork, trackUrl) { mutableStateOf<Bitmap?>(null) }
 
     // Rendered once per track rather than on every toggle: the encode and the per-module draw
@@ -78,7 +84,13 @@ fun ShareCardSheet(
     LaunchedEffect(artwork, trackUrl) {
         qrCover = trackUrl?.takeIf { it.isNotBlank() }?.let { url ->
             withContext(Dispatchers.Default) {
-                QrCoverRenderer.render(content = url, cover = artwork, sizePx = 1024)
+                val prefs = PlayerPreferences(context)
+                val style = when (prefs.getShareCardCodeMode()) {
+                    1 -> QrCoverRenderer.CoverCodeStyle.SOLID
+                    2 -> QrCoverRenderer.CoverCodeStyle.HALFTONE
+                    else -> QrCoverRenderer.chooseStyle(artwork)
+                }
+                QrCoverRenderer.render(content = url, cover = artwork, sizePx = 1024, style = style)
             }
         }
     }
@@ -112,8 +124,24 @@ fun ShareCardSheet(
                     artist = artist,
                     style = selected,
                     modifier = Modifier.fillMaxWidth(),
-                    qrCover = qrCover.takeIf { asQr },
+                    qrCover = qrCover.takeIf { asQr && !lyricsFace },
+                    lyrics = lyrics.takeIf { lyricsFace && it.isNotEmpty() },
                 )
+            }
+
+            if (lyrics.isNotEmpty()) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 20.dp)) {
+                    SegmentedButton(
+                        selected = !lyricsFace,
+                        onClick = { lyricsFace = false },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    ) { Text(stringResource(R.string.share_card_face_song)) }
+                    SegmentedButton(
+                        selected = lyricsFace,
+                        onClick = { lyricsFace = true },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) { Text(stringResource(R.string.share_card_face_lyrics)) }
+                }
             }
 
             if (styles.size > 1) {
@@ -143,7 +171,7 @@ fun ShareCardSheet(
                 }
             }
 
-            if (qrCover != null) {
+            if (qrCover != null && !lyricsFace) {
                 FilterChip(
                     selected = asQr,
                     onClick = { asQr = !asQr },

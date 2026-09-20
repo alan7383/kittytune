@@ -90,6 +90,59 @@ fun AppearanceSettingsScreen(
     var dynamicTheme by remember { mutableStateOf(prefs.getDynamicTheme()) }
     var trackDynamicTheme by remember { mutableStateOf(prefs.getTrackDynamicTheme()) }
     var themeMode by remember { mutableStateOf(prefs.getThemeMode()) }
+    var shareCardCodeMode by remember { mutableIntStateOf(prefs.getShareCardCodeMode()) }
+    var showShareCardCodeDialog by remember { mutableStateOf(false) }
+
+    if (showShareCardCodeDialog) {
+        val labels = listOf(
+            stringResource(R.string.share_card_code_auto) to stringResource(R.string.share_card_code_auto_desc),
+            stringResource(R.string.share_card_code_solid) to stringResource(R.string.share_card_code_solid_desc),
+            stringResource(R.string.share_card_code_halftone) to stringResource(R.string.share_card_code_halftone_desc),
+        )
+        AlertDialog(
+            onDismissRequest = { showShareCardCodeDialog = false },
+            title = { Text(stringResource(R.string.share_card_code_title)) },
+            text = {
+                Column {
+                    labels.forEachIndexed { index, (label, desc) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            RadioButton(
+                                selected = shareCardCodeMode == index,
+                                onClick = {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                },
+                            )
+                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                                Text(label, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showShareCardCodeDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            },
+        )
+    }
     var pureBlack by remember { mutableStateOf(prefs.getPureBlack()) }
     var playerStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
     var playerDesign by remember { mutableStateOf(prefs.getPlayerDesign()) }
@@ -484,6 +537,21 @@ fun AppearanceSettingsScreen(
 
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.share_card_settings_group))
+                    val codeLabels = listOf(
+                        stringResource(R.string.share_card_code_auto),
+                        stringResource(R.string.share_card_code_solid),
+                        stringResource(R.string.share_card_code_halftone),
+                    )
+                    SettingsItem(
+                        shape = getSettingsShape(1, 0),
+                        title = stringResource(R.string.share_card_code_title),
+                        subtitle = stringResource(R.string.share_card_code_subtitle),
+                        trailingText = codeLabels[shareCardCodeMode.coerceIn(0, 2)],
+                        onClick = { showShareCardCodeDialog = true },
+                    )
+                    Spacer(Modifier.height(16.dp))
+
                     SettingsGroupTitle(stringResource(R.string.settings_cat_appearance)) // "Apparence"
                     ThemeSelector(
                         currentTheme = themeMode,

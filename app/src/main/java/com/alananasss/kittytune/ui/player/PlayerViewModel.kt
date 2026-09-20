@@ -223,9 +223,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var shareCardArtwork by mutableStateOf<Bitmap?>(null)
         private set
 
+    /**
+     * Lines of the song to offer on the card, taken around where playback stands.
+     *
+     * Captured when the sheet opens rather than followed live: the card is a still, and lyrics
+     * that moved on between the preview and the send would share a line the user never saw.
+     */
+    var shareCardLyrics by mutableStateOf<List<String>>(emptyList())
+        private set
+
     fun openShareCard(track: Track) {
         shareCardTrack = track
         shareCardArtwork = null
+        shareCardLyrics = lyricsSnippetAt(currentPosition)
         showMenuSheet = false
         viewModelScope.launch {
             val bitmap = withContext(Dispatchers.IO) { loadBitmap(track.fullResArtwork) }
@@ -238,6 +248,21 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun dismissShareCard() {
         shareCardTrack = null
         shareCardArtwork = null
+        shareCardLyrics = emptyList()
+    }
+
+    /**
+     * Picks up to four lines starting at the one playing at [positionMs].
+     *
+     * Four is what fits the card at a size worth reading. Starting at the current line rather
+     * than centring on it means the card carries the part that is about to be sung, which is
+     * what someone shares a lyric for.
+     */
+    private fun lyricsSnippetAt(positionMs: Long): List<String> {
+        val lines = lyricsLines.filter { it.text.isNotBlank() }
+        if (lines.isEmpty()) return emptyList()
+        val start = lines.indexOfLast { it.startTime <= positionMs }.coerceAtLeast(0)
+        return lines.drop(start).take(4).map { it.text }
     }
     var navigateToPlaylistId by mutableStateOf<String?>(null)
     var trackForMenu by mutableStateOf<Track?>(null)
