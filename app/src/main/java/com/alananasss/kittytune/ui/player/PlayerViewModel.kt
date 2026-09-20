@@ -5172,7 +5172,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                    val msg = if (playerPrefs.getProxyEnabled()) {
+                    // A subscription-only track is not a connection problem, and telling the user to
+                    // check their internet over and over for a track that will never resolve is worse
+                    // than useless. Name the real reason when the API has told us what it is.
+                    val msg = if (StreamResolver.isKnownRestricted(trackToPlay)) {
+                        context.getString(R.string.restricted_playback_error)
+                    } else if (playerPrefs.getProxyEnabled()) {
                         context.getString(R.string.proxy_playback_error)
                     } else {
                         context.getString(R.string.network_playback_error)

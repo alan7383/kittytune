@@ -2073,6 +2073,7 @@
     <string name="proxy_no_profiles">No saved proxy profiles yet</string>
     <string name="proxy_playback_error">Playback failed: please check your proxy settings</string>
     <string name="network_playback_error">Playback failed: please check your internet connection</string>
+    <string name="restricted_playback_error">This track is only streamable with a SoundCloud Go+ subscription, and no alternative source was found</string>
 
     <!-- Spotify Integration -->
     <string name="spotify_verified">Verified by Spotify</string>

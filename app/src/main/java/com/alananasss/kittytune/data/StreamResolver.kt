@@ -146,6 +146,21 @@
                     track.monetizationModel == "SUB_HIGH_TIER"
         }
 
+        /**
+         * Ids of tracks the API told us, on the full payload, that this account may not stream.
+         *
+         * A queue often holds tracks in a lean form carrying no policy at all, so when one of those
+         * failed the UI could not tell a subscription-only track from a network failure and reported
+         * both as a connection problem. Recorded here once the full payload settles it, so the error
+         * can name the real reason.
+         */
+        private val restrictedTrackIds: MutableSet<Long> =
+            java.util.Collections.newSetFromMap(ConcurrentHashMap<Long, Boolean>())
+
+        /** Whether [track] is known to be one SoundCloud will not stream to this account. */
+        fun isKnownRestricted(track: Track): Boolean =
+            isRestricted(track) || restrictedTrackIds.contains(track.id)
+
         suspend fun resolveStream(context: Context, track: Track, forDownload: Boolean = false): String? {
             return resolveStreamWithDrm(context, track, forDownload)?.url
         }
@@ -642,6 +657,25 @@
                 }
             }
 
+            // A track that arrived without media - from a station, a radio payload or a lean
+            // search result - carries no policy either, so the restriction check upstream saw
+            // nothing to act on. Now that it has been fetched in full, re-read it: a Go+ track
+            // has no transcoding this account may stream, so trying them all just fails slowly
+            // and then gave up without ever reaching the fallbacks.
+            if (!isRestricted(track) && isRestricted(trackToUse)) {
+                Log.d(
+                    TAG,
+                    "Track ${track.id} - restricted on the full payload " +
+                        "(policy=${trackToUse.policy}, monetization=${trackToUse.monetizationModel}), going to the fallbacks"
+                )
+                restrictedTrackIds.add(track.id)
+                resolveViaProviders(context, trackToUse, forDownload)?.let { return it }
+                if (prefs.getYouTubeFallbackEnabled()) {
+                    resolveViaNewPipe(trackToUse)?.let { return ResolvedStream(it) }
+                }
+                return null
+            }
+
             val transcodings = trackToUse.media?.transcodings ?: return null
             val qualityPref = prefs.getAudioQuality()
 
@@ -656,8 +690,11 @@
 
             if (candidates.isEmpty()) {
                 Log.w(TAG, "Track ${track.id} — no matching transcoding found!")
-                if (forDownload && prefs.getYouTubeFallbackEnabled()) {
-                    val url = resolveViaNewPipe(track)
+                // Playback used to give up here while downloads fell back, so a track SoundCloud
+                // offers us nothing playable for - a Go+ track above all - died at 00:00 with a
+                // misleading network error instead of reaching the fallback the user has on.
+                if (prefs.getYouTubeFallbackEnabled()) {
+                    val url = resolveViaNewPipe(trackToUse)
                     return url?.let { ResolvedStream(it) }
                 }
                 return null
@@ -744,9 +781,9 @@
             }
 
             Log.e(TAG, "Track ${track.id} — all ${candidates.size} transcoding candidates failed!")
-            if (forDownload && prefs.getYouTubeFallbackEnabled()) {
+            if (prefs.getYouTubeFallbackEnabled()) {
                 Log.w(TAG, "Falling back to NewPipe after transcoding failures")
-                val url = resolveViaNewPipe(track)
+                val url = resolveViaNewPipe(trackToUse)
                 return url?.let { ResolvedStream(it) }
             }
             return null
