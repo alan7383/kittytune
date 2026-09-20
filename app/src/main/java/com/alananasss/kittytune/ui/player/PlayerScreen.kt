@@ -2030,7 +2030,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 ) { viewModel.shareTrack(track) })
             add(
                 DockOptionItem(
-                    Icons.Outlined.Share,
+                    Icons.Outlined.PhotoLibrary,
                     stringResource(R.string.share_card_title)
                 ) { viewModel.openShareCard(track) })
         }
