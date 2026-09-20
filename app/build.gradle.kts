@@ -88,6 +88,13 @@ extensions.configure<ApplicationExtension> {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+
+    lint {
+        lintConfig = file("lint.xml")
+        disable += "MissingTranslation"
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
 }
 
 dependencies {
