@@ -124,6 +124,24 @@ object MusicManager {
     private var fadingPlayer: ExoPlayer? = null
 
     /**
+     * Identifies each transition, and counts the ones still running.
+     *
+     * Ownership cannot be judged by which player is fading: the two players alternate, so after
+     * two transitions the oldPlayer of a stale coroutine is the oldPlayer of the live one again,
+     * and the stale one tears down a transition it no longer owns. A number that only ever goes
+     * up cannot be mistaken that way.
+     *
+     * [liveTransitions] carries the invariant that matters more: the latch is held while at least
+     * one transition is running and released the moment the last one ends. Releasing it only from
+     * the owning coroutine left no one to release it when that coroutine lost ownership - and the
+     * request watchdog could not step in either, because it waits for a fadingPlayer that the same
+     * coroutine was supposed to clear. With both paths blocked the latch stayed set, and a track
+     * that ended after that never advanced, because advancing is gated on the latch being clear.
+     */
+    private var transitionSeq = 0L
+    private var liveTransitions = 0
+
+    /**
      * Latches [isCrossfadingOut] for a transition that has been decided on but not started yet.
      *
      * The caller sets the latch before it resolves the next track's stream, and everything
@@ -136,10 +154,11 @@ object MusicManager {
      */
     fun beginCrossfadeRequest() {
         isCrossfadingOut = true
+        val seqAtRequest = transitionSeq
         crossfadeRequestWatchdog?.cancel()
         crossfadeRequestWatchdog = scope.launch {
             delay(CROSSFADE_REQUEST_TIMEOUT_MS)
-            if (fadingPlayer == null && _isCrossfadingOut.value) {
+            if (transitionSeq == seqAtRequest && liveTransitions == 0 && _isCrossfadingOut.value) {
                 Log.w(
                     "MusicManager",
                     "Crossfade request timed out after ${CROSSFADE_REQUEST_TIMEOUT_MS}ms without a transition; clearing latch"
@@ -637,6 +656,9 @@ object MusicManager {
         // The transition owns the latch from here on, so the request watchdog stands down.
         crossfadeRequestWatchdog?.cancel()
         crossfadeRequestWatchdog = null
+        transitionSeq++
+        val myTransition = transitionSeq
+        liveTransitions++
         fadingPlayer = oldPlayer
 
         lastPlayer = oldPlayer
@@ -735,7 +757,7 @@ object MusicManager {
                     val delayMs = (actualCrossfadeMs / steps).coerceAtLeast(5L)
 
                     for (i in 0..steps) {
-                        if (fadingPlayer != oldPlayer) break
+                        if (transitionSeq != myTransition) break
                         if (!isActive) break
 
                         // Hold the ramp while the user has playback paused, but never block on a
@@ -744,14 +766,14 @@ object MusicManager {
                         // the duck gains stayed applied, the outgoing player was never stopped and
                         // the automix flag was never cleared, which left the badge lit for good.
                         var stalledMs = 0L
-                        while (!newPlayer.isPlaying && isActive && fadingPlayer == oldPlayer) {
+                        while (!newPlayer.isPlaying && isActive && transitionSeq == myTransition) {
                             if (newPlayer.playWhenReady) {
                                 if (stalledMs >= CROSSFADE_STALL_TIMEOUT_MS) break
                                 stalledMs += 100
                             }
                             delay(100)
                         }
-                        if (fadingPlayer != oldPlayer) break
+                        if (transitionSeq != myTransition) break
 
                         if (oldPlayer.playbackState == Player.STATE_ENDED || oldPlayer.playbackState == Player.STATE_IDLE) {
                             newPlayer.volume = targetVolume
@@ -782,7 +804,7 @@ object MusicManager {
                 // and the automix state from the moment it claimed them; clearing those from here
                 // left it believing it no longer owned the transition, so its own outgoing player
                 // was never stopped and both tracks kept playing.
-                val stillOwnsTransition = fadingPlayer == oldPlayer
+                val stillOwnsTransition = transitionSeq == myTransition
                 try {
                     if (stillOwnsTransition) {
                         newPlayer.volume = targetVolume
@@ -822,6 +844,15 @@ object MusicManager {
                     }
                 }
                 if (stillOwnsTransition) {
+                    fadingPlayer = null
+                }
+                // The latch is held while a transition is running and released the moment the last
+                // one ends - including when this coroutine was superseded and the one that replaced
+                // it is already gone. Leaving the release to the owner alone is what let the latch
+                // survive every transition and stop the queue advancing.
+                liveTransitions--
+                if (liveTransitions <= 0) {
+                    liveTransitions = 0
                     fadingPlayer = null
                     isCrossfadingOut = false
                 }
