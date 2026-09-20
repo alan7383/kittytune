@@ -13,7 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -37,7 +41,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.theme.ArtworkPalette
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Preview of the share card, with the styles the artwork allows, and a button to send it.
@@ -63,6 +69,19 @@ fun ShareCardSheet(
     val styles = remember(artwork) { artwork.toShareCardStyles() }
     var selected by remember(styles) { mutableStateOf(styles.first()) }
     var busy by remember { mutableStateOf(false) }
+    var asQr by remember { mutableStateOf(false) }
+    var qrCover by remember(artwork, trackUrl) { mutableStateOf<Bitmap?>(null) }
+
+    // Rendered once per track rather than on every toggle: the encode and the per-module draw
+    // are cheap individually but add up to a visible stutter if they run on each tap. Off the
+    // main thread, since both touch the artwork bitmap.
+    LaunchedEffect(artwork, trackUrl) {
+        qrCover = trackUrl?.takeIf { it.isNotBlank() }?.let { url ->
+            withContext(Dispatchers.Default) {
+                QrCoverRenderer.render(content = url, cover = artwork, sizePx = 1024)
+            }
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -93,6 +112,7 @@ fun ShareCardSheet(
                     artist = artist,
                     style = selected,
                     modifier = Modifier.fillMaxWidth(),
+                    qrCover = qrCover.takeIf { asQr },
                 )
             }
 
@@ -121,6 +141,22 @@ fun ShareCardSheet(
                         )
                     }
                 }
+            }
+
+            if (qrCover != null) {
+                FilterChip(
+                    selected = asQr,
+                    onClick = { asQr = !asQr },
+                    label = { Text(stringResource(R.string.share_card_qr)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.QrCode2,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    modifier = Modifier.padding(top = 16.dp),
+                )
             }
 
             Button(

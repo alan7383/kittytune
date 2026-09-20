@@ -63,6 +63,7 @@ fun ShareCard(
     artist: String,
     style: ShareCardStyle,
     modifier: Modifier = Modifier,
+    qrCover: Bitmap? = null,
 ) {
     Box(
         modifier = modifier
@@ -84,19 +85,26 @@ fun ShareCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
+            // The QR cover replaces the artwork rather than sitting beside it: the point is that
+            // the cover is the code. It carries its own light ground, which is why it is not
+            // tinted with the card's colours - a scanner needs that contrast more than the card
+            // needs the match.
+            val shown = qrCover ?: artwork
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(style.onBackground.copy(alpha = 0.06f)),
+                    .background(
+                        if (qrCover != null) Color.White else style.onBackground.copy(alpha = 0.06f)
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (artwork != null) {
+                if (shown != null) {
                     Image(
-                        bitmap = artwork.asImageBitmap(),
+                        bitmap = shown.asImageBitmap(),
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        contentScale = if (qrCover != null) ContentScale.Fit else ContentScale.Crop,
                         modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     )
                 }
