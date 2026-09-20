@@ -1969,6 +1969,7 @@
     <string name="proxy_no_profiles">Aucun profil proxy enregistré pour l\'instant</string>
     <string name="proxy_playback_error">Échec de lecture : vérifiez vos paramètres proxy</string>
     <string name="network_playback_error">Échec de lecture : vérifiez votre connexion Internet</string>
+    <string name="restricted_playback_error">Ce titre est uniquement disponible avec un abonnement SoundCloud Go+, et aucune source alternative n\'a été trouvée</string>
 
     <!-- Spotify Integration -->
     <string name="spotify_verified">Vérifié par Spotify</string>
