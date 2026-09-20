@@ -1112,6 +1112,10 @@
     <string name="discord_login_scanned">Scanned by %1$s. Confirm in Discord!</string>
     <string name="discord_login_success">Discord connected successfully!</string>
     <string name="discord_login_canceled">Login canceled</string>
+    <string name="discord_login_captcha_required">Security Check Required</string>
+    <string name="discord_login_captcha_desc">Discord requires a quick security verification before completing your login.</string>
+    <string name="discord_login_captcha_loading">Completing security check…</string>
+    <string name="discord_login_captcha_error">Security check failed. Please retry.</string>
     <!-- ABOUT -->
     <string name="pref_about_title">À propos</string>
     <string name="pref_about_subtitle">Version et crédits</string>
@@ -1945,6 +1949,7 @@
     <string name="proxy_no_profiles">No saved proxy profiles yet</string>
     <string name="proxy_playback_error">Playback failed: please check your proxy settings</string>
     <string name="network_playback_error">Playback failed: please check your internet connection</string>
+    <string name="restricted_playback_error">This track is only streamable with a SoundCloud Go+ subscription, and no alternative source was found</string>
     <!-- Spotify Integration -->
     <string name="spotify_verified">Verified by Spotify</string>
     <string name="spotify_monthly_listeners">%1$s monthly listeners</string>
