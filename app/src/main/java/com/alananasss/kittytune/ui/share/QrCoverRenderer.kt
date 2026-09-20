@@ -46,6 +46,63 @@ object QrCoverRenderer {
     /** How far the module fill is pushed towards black, so a pale cover still reads as dark. */
     private const val MODULE_DARKEN = 0.45f
 
+    /** Luminance band a pixel has to fall in for halftone to have room to push it either way. */
+    private const val MID_LOW = 0.15f
+    private const val MID_HIGH = 0.85f
+
+    /** How much of the cover must sit in that band before halftone is worth the loss in contrast. */
+    private const val HALFTONE_THRESHOLD = 0.60f
+
+    /** Pixels sampled when judging a cover. Enough to be representative, few enough to be instant. */
+    private const val SAMPLE_STEPS = 64
+
+    /**
+     * How the cover and the code are combined.
+     *
+     * [SOLID] keeps the code's own contrast and lets the artwork texture the modules. [HALFTONE]
+     * shows the cover whole and carries the code in a grid of dots, which is the better picture
+     * and the harder scan.
+     */
+    enum class CoverCodeStyle { SOLID, HALFTONE }
+
+    /**
+     * Picks the style this cover can carry.
+     *
+     * Halftone works by forcing one dot per module to black or white while the rest of the
+     * artwork stays as it is, so it needs a cover that has somewhere to be pushed. A picture
+     * already crushed to black or blown to white has none: every forced dot lands far from its
+     * surroundings, which both looks like damage and leaves the scanner sampling a speck against
+     * a field of the opposite value. Judged by how much of the cover sits in the middle of the
+     * luminance range, where there is room in both directions.
+     */
+    fun chooseStyle(cover: Bitmap?): CoverCodeStyle {
+        val bitmap = cover ?: return CoverCodeStyle.SOLID
+        return try {
+            val stepX = (bitmap.width / SAMPLE_STEPS).coerceAtLeast(1)
+            val stepY = (bitmap.height / SAMPLE_STEPS).coerceAtLeast(1)
+            var mid = 0
+            var total = 0
+            var y = 0
+            while (y < bitmap.height) {
+                var x = 0
+                while (x < bitmap.width) {
+                    val p = bitmap.getPixel(x, y)
+                    val l = (0.2126f * Color.red(p) + 0.7152f * Color.green(p) + 0.0722f * Color.blue(p)) / 255f
+                    if (l in MID_LOW..MID_HIGH) mid++
+                    total++
+                    x += stepX
+                }
+                y += stepY
+            }
+            val share = if (total == 0) 0f else mid.toFloat() / total
+            Log.d(TAG, "Cover mid-tone share %.2f -> %s".format(share, if (share >= HALFTONE_THRESHOLD) "HALFTONE" else "SOLID"))
+            if (share >= HALFTONE_THRESHOLD) CoverCodeStyle.HALFTONE else CoverCodeStyle.SOLID
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not judge the cover, falling back to the robust style", e)
+            CoverCodeStyle.SOLID
+        }
+    }
+
     /**
      * Renders [content] as a QR code textured with [cover].
      *
@@ -58,6 +115,7 @@ object QrCoverRenderer {
         sizePx: Int,
         groundColor: Int = Color.WHITE,
         moduleColor: Int = Color.BLACK,
+        style: CoverCodeStyle = chooseStyle(cover),
     ): Bitmap? {
         if (content.isBlank() || sizePx <= 0) return null
 
@@ -71,6 +129,11 @@ object QrCoverRenderer {
 
         val modules = matrix.width
         val total = modules + QUIET_ZONE * 2
+
+        if (style == CoverCodeStyle.HALFTONE && cover != null) {
+            return renderHalftone(matrix, modules, total, cover, sizePx, groundColor, moduleColor)
+        }
+
         // Snap the module size to whole pixels: a fractional one leaves seams between modules
         // that a scanner reads as noise.
         val moduleSize = (sizePx / total).coerceAtLeast(1)
@@ -111,6 +174,79 @@ object QrCoverRenderer {
         drawFinders(canvas, modules, moduleSize, origin, solidPaint, groundColor)
         if (cover != null) drawCentre(canvas, cover, side, groundColor)
 
+        return out
+    }
+
+    /**
+     * Draws the cover whole, and carries the code in one forced dot per module.
+     *
+     * A scanner samples the centre of a module and nothing else, so only that centre has to hold
+     * the value. Each module is split three by three and the middle ninth is forced to black or
+     * white; the other eight keep the artwork. The reader gets the exact value at every point it
+     * looks at, while the eye sees the cover behind a fine grid of dots.
+     *
+     * The quiet zone stays plain: a border of artwork is the one thing that reliably stops a
+     * code from being found at all, whatever the modules do.
+     */
+    private fun renderHalftone(
+        matrix: com.google.zxing.qrcode.encoder.ByteMatrix,
+        modules: Int,
+        total: Int,
+        cover: Bitmap,
+        sizePx: Int,
+        groundColor: Int,
+        moduleColor: Int,
+    ): Bitmap {
+        // Each module is three sub-cells wide, and all of them whole pixels: a dot landing half
+        // on a pixel boundary is a dot the scanner reads as grey.
+        val subSize = (sizePx / (total * 3)).coerceAtLeast(1)
+        val moduleSize = subSize * 3
+        val side = moduleSize * total
+        val origin = (moduleSize * QUIET_ZONE).toFloat()
+        val codeSide = (moduleSize * modules).toFloat()
+
+        val out = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        canvas.drawColor(groundColor)
+
+        val coverPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+            shader = BitmapShader(cover, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply {
+                val scale = codeSide / minOf(cover.width, cover.height).toFloat()
+                setLocalMatrix(
+                    Matrix().apply {
+                        setScale(scale, scale)
+                        postTranslate(
+                            origin - (cover.width * scale - codeSide) / 2f,
+                            origin - (cover.height * scale - codeSide) / 2f,
+                        )
+                    }
+                )
+            }
+        }
+        canvas.drawRect(origin, origin, origin + codeSide, origin + codeSide, coverPaint)
+
+        val darkDot = Paint().apply { color = moduleColor }
+        val lightDot = Paint().apply { color = groundColor }
+
+        for (y in 0 until modules) {
+            for (x in 0 until modules) {
+                if (isFinder(x, y, modules)) continue
+                val isDark = matrix.get(x, y).toInt() == 1
+                val left = origin + x * moduleSize + subSize
+                val top = origin + y * moduleSize + subSize
+                // Square, not round: the sampled area is a cell, and a circle inside it leaves
+                // the corners to the artwork, which drags the average back towards the cover.
+                canvas.drawRect(
+                    left,
+                    top,
+                    left + subSize,
+                    top + subSize,
+                    if (isDark) darkDot else lightDot,
+                )
+            }
+        }
+
+        drawFinders(canvas, modules, moduleSize, origin, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = moduleColor }, groundColor)
         return out
     }
 
