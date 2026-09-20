@@ -378,6 +378,18 @@ class PlayerPreferences(context: Context) {
     fun getSoundCloudGoPlus(): Boolean = prefs.getBoolean(KEY_SC_GO_PLUS, false)
     fun setSoundCloudGoPlus(active: Boolean) = prefs.edit { putBoolean(KEY_SC_GO_PLUS, active) }
 
+    /**
+     * Records the tier from a freshly fetched account.
+     *
+     * Called wherever `/me` is already being loaded, so the resolver knows the tier after
+     * ordinary use of the app rather than only once the account screen has been opened. It
+     * reads a response that is already in hand and makes no request of its own, and keeping
+     * the comparison here means the tier is recognised the same way at every call site.
+     */
+    fun rememberSoundCloudTier(user: com.alananasss.kittytune.domain.User) {
+        setSoundCloudGoPlus(user.consumerPlanTitle == "SoundCloud Go+")
+    }
+
     fun getDownloadDrmStreamsEnabled(): Boolean = prefs.getBoolean(KEY_DOWNLOAD_DRM_STREAMS, true)
     fun setDownloadDrmStreamsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DOWNLOAD_DRM_STREAMS, enabled) }
 
