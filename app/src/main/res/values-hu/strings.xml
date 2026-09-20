@@ -924,6 +924,10 @@
     <string name="discord_login_scanned">Beszkennelve általa: %1$s. Erősítsd meg Discordban!</string>
     <string name="discord_login_success">Discord sikeresen csatlakoztatva!</string>
     <string name="discord_login_canceled">Bejelentkezés megszakítva</string>
+    <string name="discord_login_captcha_required">Biztonsági ellenőrzés szükséges</string>
+    <string name="discord_login_captcha_desc">A Discord gyors biztonsági ellenőrzést igényel a bejelentkezés befejezése előtt.</string>
+    <string name="discord_login_captcha_loading">Biztonsági ellenőrzés folyamatban…</string>
+    <string name="discord_login_captcha_error">Biztonsági ellenőrzés sikertelen. Próbálja újra.</string>
     <!-- ABOUT -->
     <string name="pref_about_title">Névjegy</string>
     <string name="pref_about_subtitle">Verzió és kreditek</string>

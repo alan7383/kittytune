@@ -1192,6 +1192,10 @@
     <string name="discord_login_scanned">Gescannt von %1$s. Bestätige in Discord!</string>
     <string name="discord_login_success">Discord erfolgreich verbunden!</string>
     <string name="discord_login_canceled">Anmeldung abgebrochen</string>
+    <string name="discord_login_captcha_required">Sicherheitsüberprüfung erforderlich</string>
+    <string name="discord_login_captcha_desc">Discord erfordert eine kurze Sicherheitsüberprüfung vor dem Abschluss der Anmeldung.</string>
+    <string name="discord_login_captcha_loading">Sicherheitsüberprüfung läuft…</string>
+    <string name="discord_login_captcha_error">Sicherheitsüberprüfung fehlgeschlagen. Bitte erneut versuchen.</string>
 
     <!-- ABOUT -->
     <string name="pref_about_title">Über</string>

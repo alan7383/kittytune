@@ -1113,6 +1113,10 @@
     <string name="discord_login_scanned">Scanné par %1$s. Confirmez dans l\'app Discord !</string>
     <string name="discord_login_success">Discord connecté avec succès !</string>
     <string name="discord_login_canceled">Connexion annulée</string>
+    <string name="discord_login_captcha_required">Vérification de sécurité requise</string>
+    <string name="discord_login_captcha_desc">Discord requiert une vérification de sécurité rapide avant de finaliser la connexion.</string>
+    <string name="discord_login_captcha_loading">Vérification en cours…</string>
+    <string name="discord_login_captcha_error">Échec de la vérification. Veuillez réessayer.</string>
     <!-- ABOUT -->
     <string name="pref_about_title">À propos</string>
     <string name="pref_about_subtitle">Version et crédits</string>

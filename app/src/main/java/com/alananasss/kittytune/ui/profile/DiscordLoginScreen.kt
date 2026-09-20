@@ -76,6 +76,188 @@ private fun launchDiscordDeepLink(context: Context, url: String) {
     }
 }
 
+/**
+ * Builds the exact same HTML page that Discord's own Android app injects into its captcha
+ * WebView (extracted from assets/index.android.bundle, Hermes bytecode v98, build 346.12).
+ *
+ * Protocol (identical to Discord):
+ *   - hCaptcha is loaded with size="invisible" and executes immediately on page load.
+ *   - Results are delivered to the native layer via window.ReactNativeWebView.postMessage:
+ *       token string  → captcha solved successfully
+ *       "cancel"      → user dismissed / challenge expired
+ *       "error"       → render / execution failure
+ *       "expired"     → token expired before submission
+ *
+ * [siteKey]  hCaptcha site key UUID received from Discord's 400 response (captcha_sitekey field).
+ * [rqdata]   Optional rqdata (captcha_rqdata field) – Discord includes this when available.
+ * [theme]    "dark" or "light" – passed to hcaptcha.render so the widget matches the UI.
+ */
+@SuppressLint("SetJavaScriptEnabled")
+private fun buildHCaptchaHtml(siteKey: String, rqdata: String? = null, theme: String = "dark"): String {
+    val rqdataBlock = if (!rqdata.isNullOrBlank()) {
+        """
+          if (rqdata) { opts.rqdata = rqdata; }
+        """.trimIndent()
+    } else ""
+
+    return """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    html, body { margin:0; padding:0; background:transparent; }
+    #submit { display:none; }
+  </style>
+</head>
+<body>
+  <div id="submit"></div>
+  <script src="https://hcaptcha.com/1/api.js?render=explicit&onload=onloadCallback" async defer></script>
+  <script type="text/javascript">
+    var onloadCallback = function() {
+      try {
+        console.log("challenge onload starting");
+        hcaptcha.render("submit", getRenderConfig("${siteKey.replace("\"", "\\\"")}", "${theme}"));
+        // hcaptcha.render is synchronous; widget is ready by this point
+        console.log("challenge render complete");
+      } catch (e) {
+        console.log("challenge failed to render");
+        window.ReactNativeWebView.postMessage("error");
+        return;
+      }
+      try {
+        console.log("showing challenge");
+        hcaptcha.execute(getExecuteOpts());
+      } catch (e) {
+        console.log("failed to show challenge");
+        window.ReactNativeWebView.postMessage("error");
+      }
+    };
+
+    var onDataCallback = function(response) {
+      window.ReactNativeWebView.postMessage(response);
+    };
+    var onCancel = function() {
+      window.ReactNativeWebView.postMessage("cancel");
+    };
+    var onOpen = function() {
+      // NOTE: disabled for simplicity (mirrors Discord's comment verbatim)
+      // window.ReactNativeWebView.postMessage("open");
+      console.log("challenge opened");
+    };
+    var onDataExpiredCallback = function(error) { window.ReactNativeWebView.postMessage("expired"); };
+    var onChalExpiredCallback = function(error) { window.ReactNativeWebView.postMessage("cancel"); };
+    var onDataErrorCallback = function(error) {
+      console.log("challenge error callback fired");
+      window.ReactNativeWebView.postMessage("error");
+    };
+
+    const getRenderConfig = function(siteKey, theme) {
+      var config = {
+        sitekey: siteKey,
+        size: "invisible",
+        callback: onDataCallback,
+        "close-callback": onCancel,
+        "open-callback": onOpen,
+        "expired-callback": onDataExpiredCallback,
+        "chalexpired-callback": onChalExpiredCallback,
+        "error-callback": onDataErrorCallback
+      };
+      if (theme) { config.theme = theme; }
+      return config;
+    };
+
+    const getExecuteOpts = function() {
+      var opts = {};
+      const rqdata = "${rqdata?.replace("\"", "\\\"") ?: ""}";
+      if (rqdata) { opts.rqdata = rqdata; }
+      return opts;
+    };
+  </script>
+</body>
+</html>
+""".trimIndent()
+}
+
+/**
+ * Invisible hCaptcha WebView that mirrors Discord's exact captcha implementation.
+ * Calls [onToken] with the solved hCaptcha response token on success,
+ * or [onError] / [onCancel] on failure.
+ */
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun HCaptchaWebView(
+    siteKey: String,
+    rqdata: String?,
+    onToken: (String) -> Unit,
+    onError: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val theme = if (isDarkTheme) "dark" else "light"
+    val htmlContent = remember(siteKey, rqdata, theme) { buildHCaptchaHtml(siteKey, rqdata, theme) }
+
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
+        factory = { ctx ->
+            WebView(ctx).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    // Allow hcaptcha.com scripts to load
+                    allowFileAccess = false
+                }
+
+                // Bridge: window.ReactNativeWebView.postMessage → Android callback
+                // (Discord uses this exact bridge name in their mobile app)
+                addJavascriptInterface(object : Any() {
+                    @android.webkit.JavascriptInterface
+                    fun postMessage(message: String) {
+                        when {
+                            message == "cancel" || message == "expired" -> onCancel()
+                            message == "error" -> onError()
+                            message.isNotBlank() -> onToken(message)
+                        }
+                    }
+                }, "ReactNativeWebView")
+
+                webViewClient = object : WebViewClient() {
+                    override fun onReceivedError(
+                        view: WebView?,
+                        errorCode: Int,
+                        description: String?,
+                        failingUrl: String?
+                    ) {
+                        super.onReceivedError(view, errorCode, description, failingUrl)
+                        android.util.Log.w("HCaptchaWebView", "Page error $errorCode: $description @ $failingUrl")
+                    }
+                }
+
+                // Load the self-contained HTML – same approach Discord uses
+                loadDataWithBaseURL(
+                    "https://discord.com",   // origin required for hCaptcha domain check
+                    htmlContent,
+                    "text/html",
+                    "UTF-8",
+                    null
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun isSystemInDarkTheme(): Boolean {
+    val uiMode = LocalContext.current.resources.configuration.uiMode
+    return (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+}
+
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -472,6 +654,74 @@ fun DiscordLoginScreen(
                                     textAlign = TextAlign.Center
                                 )
                             }
+
+                            // ─── hCaptcha state ─────────────────────────────────────────────────────────
+                            is RemoteAuthState.CaptchaRequired -> {
+                                var captchaError by remember { mutableStateOf(false) }
+
+                                Text(
+                                    text = stringResource(R.string.discord_login_captcha_required),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    text = stringResource(R.string.discord_login_captcha_desc),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(Modifier.height(16.dp))
+
+                                if (captchaError) {
+                                    Text(
+                                        text = stringResource(R.string.discord_login_captcha_error),
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Button(
+                                        onClick = { authManager.start() },
+                                        shapes = ButtonDefaults.shapes()
+                                    ) {
+                                        Icon(Icons.Rounded.Refresh, contentDescription = null)
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(stringResource(R.string.account_action_refresh))
+                                    }
+                                } else {
+                                    // Embedded invisible hCaptcha WebView – same mechanism as Discord
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(300.dp)
+                                    ) {
+                                        HCaptchaWebView(
+                                            siteKey = state.captchaSitekey,
+                                            rqdata = null,
+                                            onToken = { token ->
+                                                authManager.submitCaptchaToken(token)
+                                            },
+                                            onError = { captchaError = true },
+                                            onCancel = { /* user dismissed – stay on screen */ }
+                                        )
+                                        // Overlay message while captcha loads / runs
+                                        Column(
+                                            modifier = Modifier.align(Alignment.Center),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            ContainedLoadingIndicator()
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(
+                                                text = stringResource(R.string.discord_login_captcha_loading),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            // ────────────────────────────────────────────────────────────────────────────
 
                             is RemoteAuthState.Success -> {
                                 Icon(

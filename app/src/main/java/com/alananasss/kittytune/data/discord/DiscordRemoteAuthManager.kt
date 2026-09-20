@@ -45,6 +45,22 @@ sealed interface RemoteAuthState {
         val discriminator: String,
         val avatarUrl: String?
     ) : RemoteAuthState
+    /**
+     * Discord returned HTTP 400 with captcha_key, requiring an hCaptcha token before we can
+     * complete the remote-auth ticket exchange.  The UI should render the hCaptcha WebView and
+     * call [DiscordRemoteAuthManager.submitCaptchaToken] once the user passes the challenge.
+     *
+     * Fields mirror exactly what Discord's API sends back:
+     *   captchaKey      – hCaptcha site key (UUID string)
+     *   captchaSitekey  – same site key (redundant field Discord sends)
+     *   captchaRqtoken  – opaque token echoed back via X-Captcha-Rqtoken on retry
+     */
+    data class CaptchaRequired(
+        val ticket: String,
+        val captchaKey: String,
+        val captchaSitekey: String,
+        val captchaRqtoken: String
+    ) : RemoteAuthState
     data class Success(
         val token: String,
         val username: String?
@@ -250,24 +266,61 @@ class DiscordRemoteAuthManager {
     private suspend fun exchangeTicketForToken(
         ticket: String,
         keyPair: KeyPair,
-        webSocket: WebSocket
+        webSocket: WebSocket,
+        captchaToken: String? = null,
+        captchaRqtoken: String? = null
     ) {
         try {
             val body = JSONObject().apply { put("ticket", ticket) }
                 .toString()
                 .toRequestBody("application/json; charset=utf-8".toMediaType())
 
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(LOGIN_ENDPOINT)
                 .addHeader("Origin", ORIGIN_HEADER)
                 .addHeader("User-Agent", USER_AGENT)
-                .post(body)
-                .build()
 
+            // Attach captcha headers exactly as Discord's own APK does
+            if (captchaToken != null) {
+                requestBuilder.addHeader("X-Captcha-Key", captchaToken)
+                Log.d(TAG, "Retrying ticket exchange with X-Captcha-Key")
+            }
+            if (captchaRqtoken != null) {
+                requestBuilder.addHeader("X-Captcha-Rqtoken", captchaRqtoken)
+            }
+
+            val request = requestBuilder.post(body).build()
             val response = httpClient.newCall(request).execute()
             val rawBody = response.body.string()
+
             if (!response.isSuccessful) {
-                Log.e(TAG, "Failed ticket exchange: $rawBody")
+                Log.e(TAG, "Failed ticket exchange (${response.code}): $rawBody")
+
+                // hCaptcha gate – parse exactly what Discord's /remote-auth/login returns
+                if (response.code == 400) {
+                    try {
+                        val errorJson = JSONObject(rawBody)
+                        // captcha_key is an array; first element is the hCaptcha site key UUID
+                        val captchaKeyArray = errorJson.optJSONArray("captcha_key")
+                        val captchaKey = captchaKeyArray?.optString(0) ?: ""
+                        val captchaSitekey = errorJson.optString("captcha_sitekey", captchaKey)
+                        val captchaRqtokenVal = errorJson.optString("captcha_rqtoken", "")
+
+                        if (captchaKey.isNotBlank() && captchaSitekey.isNotBlank()) {
+                            Log.d(TAG, "Captcha required – sitekey=$captchaSitekey")
+                            _state.value = RemoteAuthState.CaptchaRequired(
+                                ticket = ticket,
+                                captchaKey = captchaKey,
+                                captchaSitekey = captchaSitekey,
+                                captchaRqtoken = captchaRqtokenVal
+                            )
+                            return
+                        }
+                    } catch (parseEx: Exception) {
+                        Log.w(TAG, "Could not parse captcha error body", parseEx)
+                    }
+                }
+
                 _state.value = RemoteAuthState.Error("Failed to exchange ticket: ${response.code}")
                 return
             }
@@ -297,6 +350,38 @@ class DiscordRemoteAuthManager {
         } catch (e: Exception) {
             Log.e(TAG, "Error in exchangeTicketForToken", e)
             _state.value = RemoteAuthState.Error(e.message ?: "Token exchange failed")
+        }
+    }
+
+    /**
+     * Called by the UI once the hCaptcha WebView delivers a solved token.
+     * Resumes the ticket exchange with X-Captcha-Key + X-Captcha-Rqtoken headers,
+     * replicating exactly what Discord's mobile app does after a captcha challenge.
+     */
+    fun submitCaptchaToken(captchaToken: String) {
+        val currentState = _state.value
+        if (currentState !is RemoteAuthState.CaptchaRequired) {
+            Log.w(TAG, "submitCaptchaToken called but state is not CaptchaRequired: $currentState")
+            return
+        }
+        val ws = currentWebSocket ?: run {
+            _state.value = RemoteAuthState.Error("WebSocket closed – please retry")
+            return
+        }
+        val keyPair = rsaKeyPair ?: run {
+            _state.value = RemoteAuthState.Error("RSA key lost – please retry")
+            return
+        }
+
+        _state.value = RemoteAuthState.Connecting
+        scope.launch {
+            exchangeTicketForToken(
+                ticket = currentState.ticket,
+                keyPair = keyPair,
+                webSocket = ws,
+                captchaToken = captchaToken,
+                captchaRqtoken = currentState.captchaRqtoken.ifBlank { null }
+            )
         }
     }
 

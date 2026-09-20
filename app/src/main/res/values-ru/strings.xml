@@ -924,6 +924,10 @@
     <string name="discord_login_scanned">Отсканировано %1$s. Подтвердите в Discord!</string>
     <string name="discord_login_success">Discord успешно подключен!</string>
     <string name="discord_login_canceled">Вход отменен</string>
+    <string name="discord_login_captcha_required">Требуется проверка безопасности</string>
+    <string name="discord_login_captcha_desc">Discord требует быструю проверку безопасности перед завершением входа.</string>
+    <string name="discord_login_captcha_loading">Выполняется проверка безопасности…</string>
+    <string name="discord_login_captcha_error">Проверка не пройдена. Попробуйте ещё раз.</string>
     <!-- ABOUT -->
     <string name="pref_about_title">Подробно</string>
     <string name="pref_about_subtitle">Версия и бонусы</string>

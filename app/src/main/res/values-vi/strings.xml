@@ -1113,6 +1113,10 @@
     <string name="discord_login_scanned">Đã quét bởi %1$s. Hãy xác nhận trong Discord!</string>
     <string name="discord_login_success">Đã kết nối Discord thành công!</string>
     <string name="discord_login_canceled">Đã hủy đăng nhập</string>
+    <string name="discord_login_captcha_required">Yêu cầu kiểm tra bảo mật</string>
+    <string name="discord_login_captcha_desc">Discord yêu cầu xác minh bảo mật nhanh trước khi hoàn tất đăng nhập.</string>
+    <string name="discord_login_captcha_loading">Đang hoàn thành kiểm tra bảo mật…</string>
+    <string name="discord_login_captcha_error">Kiểm tra bảo mật thất bại. Vui lòng thử lại.</string>
     <!-- ABOUT -->
     <string name="pref_about_title">Giới thiệu</string>
     <string name="pref_about_subtitle">Phiên bản và thông tin đóng góp</string>
