@@ -640,6 +640,8 @@
     <string name="detail_show_less">Show less</string>
     <string name="untitled_track">Untitled Track</string>
     <string name="unknown_artist">Unknown Artist</string>
+    <string name="share_card_send">Share card</string>
+    <string name="share_card_title">Share as card</string>
     <string name="share_via">Share via</string>
     <string name="generic_title">Title</string>
     <string name="generic_artist">Artist</string>

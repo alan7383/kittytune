@@ -1644,6 +1644,17 @@ fun MainScreen(
             }
         }
 
+        playerViewModel.shareCardTrack?.let { cardTrack ->
+            com.alananasss.kittytune.ui.share.ShareCardSheet(
+                artwork = playerViewModel.shareCardArtwork,
+                title = cardTrack.title ?: stringResource(R.string.untitled_track),
+                artist = cardTrack.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                trackId = cardTrack.id,
+                trackUrl = cardTrack.permalinkUrl,
+                onDismiss = { playerViewModel.dismissShareCard() },
+            )
+        }
+
         if (playerViewModel.showAddToPlaylistSheet) {
             com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { playerViewModel.showAddToPlaylistSheet = false },

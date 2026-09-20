@@ -2028,6 +2028,11 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     Icons.Outlined.Share,
                     stringResource(R.string.btn_share)
                 ) { viewModel.shareTrack(track) })
+            add(
+                DockOptionItem(
+                    Icons.Outlined.Share,
+                    stringResource(R.string.share_card_title)
+                ) { viewModel.openShareCard(track) })
         }
         if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId != -2L) {
             add(

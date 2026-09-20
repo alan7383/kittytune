@@ -640,6 +640,8 @@
     <string name="detail_show_less">Weniger anzeigen</string>
     <string name="untitled_track">Titel ohne Namen</string>
     <string name="unknown_artist">Unbekannter Künstler</string>
+    <string name="share_card_send">Karte teilen</string>
+    <string name="share_card_title">Als Karte teilen</string>
     <string name="share_via">Teilen über</string>
     <string name="generic_title">Titel</string>
     <string name="generic_artist">Künstler</string>
