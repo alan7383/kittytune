@@ -2074,6 +2074,7 @@
     <string name="proxy_no_profiles">Noch keine gespeicherten Proxy-Profile</string>
     <string name="proxy_playback_error">Wiedergabe fehlgeschlagen: Bitte prüfe deine Proxy-Einstellungen</string>
     <string name="network_playback_error">Wiedergabe fehlgeschlagen: Bitte prüfe deine Internetverbindung</string>
+    <string name="restricted_playback_error">Dieser Titel ist nur mit einem SoundCloud-Go+-Abo abspielbar, und es wurde keine alternative Quelle gefunden</string>
 
     <!-- Spotify Integration -->
     <string name="spotify_verified">Von Spotify verifiziert</string>

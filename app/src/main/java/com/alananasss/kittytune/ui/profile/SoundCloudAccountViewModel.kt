@@ -69,6 +69,7 @@ class SoundCloudAccountViewModel(application: Application) : AndroidViewModel(ap
                 withContext(Dispatchers.IO) {
                     val me = api.getMe()
                     user = me
+                    com.alananasss.kittytune.data.local.PlayerPreferences(app).rememberSoundCloudTier(me)
                     try {
                         val config = api.getAndroidConfiguration()
                         configuration = config

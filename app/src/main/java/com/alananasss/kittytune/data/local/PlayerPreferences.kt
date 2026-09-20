@@ -122,6 +122,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_PRECISE_SPEED = "precise_speed_enabled"
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
+        private const val KEY_SC_GO_PLUS = "soundcloud_go_plus_active"
         private const val KEY_DOWNLOAD_DRM_STREAMS = "download_drm_streams_enabled"
         private const val KEY_SHOW_LYRICS_BUTTON = "show_lyrics_button_enabled"
         private const val KEY_INLINE_LYRICS = "inline_lyrics_enabled"
@@ -365,6 +366,29 @@ class PlayerPreferences(context: Context) {
 
     fun getYouTubeFallbackEnabled(): Boolean = prefs.getBoolean(KEY_YOUTUBE_FALLBACK, true)
     fun setYouTubeFallbackEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_YOUTUBE_FALLBACK, enabled) }
+
+    /**
+     * Whether the signed-in SoundCloud account holds a Go+ subscription.
+     *
+     * Cached from `/me` so the stream resolver can tell a track this account is entitled to from
+     * one it is not, without a network round trip on every resolve. Absent until the account has
+     * been fetched once, which reads as no subscription - the safe direction, since it only means
+     * the fallback is preferred over a stream that would have failed anyway.
+     */
+    fun getSoundCloudGoPlus(): Boolean = prefs.getBoolean(KEY_SC_GO_PLUS, false)
+    fun setSoundCloudGoPlus(active: Boolean) = prefs.edit { putBoolean(KEY_SC_GO_PLUS, active) }
+
+    /**
+     * Records the tier from a freshly fetched account.
+     *
+     * Called wherever `/me` is already being loaded, so the resolver knows the tier after
+     * ordinary use of the app rather than only once the account screen has been opened. It
+     * reads a response that is already in hand and makes no request of its own, and keeping
+     * the comparison here means the tier is recognised the same way at every call site.
+     */
+    fun rememberSoundCloudTier(user: com.alananasss.kittytune.domain.User) {
+        setSoundCloudGoPlus(user.consumerPlanTitle == "SoundCloud Go+")
+    }
 
     fun getDownloadDrmStreamsEnabled(): Boolean = prefs.getBoolean(KEY_DOWNLOAD_DRM_STREAMS, true)
     fun setDownloadDrmStreamsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DOWNLOAD_DRM_STREAMS, enabled) }

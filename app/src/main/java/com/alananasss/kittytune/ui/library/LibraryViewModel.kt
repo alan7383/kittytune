@@ -784,6 +784,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                     val pPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(app)
                     pPrefs.setCachedUserId(user.id)
                     pPrefs.setCachedUsername(user.username)
+                    pPrefs.rememberSoundCloudTier(user)
                     loadOnlineData(user)
                 } catch (e: Exception) {
                     Log.e("LibraryVM", "online error or not connected", e)

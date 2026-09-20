@@ -146,6 +146,34 @@
                     track.monetizationModel == "SUB_HIGH_TIER"
         }
 
+        /**
+         * Whether the API has told us that *this account* may not stream the track.
+         *
+         * `policy` is the per-account verdict: SoundCloud answers ALLOW for a Go+ track when the
+         * account holds the subscription, and SNIP or BLOCK when it does not. `monetizationModel`
+         * describes the track alone - every Go+ track is SUB_HIGH_TIER, subscriber or not - so a
+         * decision resting on it sends a paying subscriber to the fallback instead of the stream
+         * they are entitled to. Only [isRestricted] may read it, and only together with the
+         * account's own tier.
+         */
+        fun isBlockedForAccount(track: Track): Boolean =
+            track.policy == "SNIP" || track.policy == "BLOCK"
+
+        /**
+         * Ids of tracks the API told us, on the full payload, that this account may not stream.
+         *
+         * A queue often holds tracks in a lean form carrying no policy at all, so when one of those
+         * failed the UI could not tell a subscription-only track from a network failure and reported
+         * both as a connection problem. Recorded here once the full payload settles it, so the error
+         * can name the real reason.
+         */
+        private val restrictedTrackIds: MutableSet<Long> =
+            java.util.Collections.newSetFromMap(ConcurrentHashMap<Long, Boolean>())
+
+        /** Whether [track] is known to be one SoundCloud will not stream to this account. */
+        fun isKnownRestricted(track: Track): Boolean =
+            isRestricted(track) || restrictedTrackIds.contains(track.id)
+
         suspend fun resolveStream(context: Context, track: Track, forDownload: Boolean = false): String? {
             return resolveStreamWithDrm(context, track, forDownload)?.url
         }
@@ -302,7 +330,14 @@
                     val prefs = PlayerPreferences(context)
                     val allowYoutube = prefs.getYouTubeFallbackEnabled()
 
-                    if (isRestricted(track)) {
+                    // A Go+ subscriber is entitled to the SoundCloud stream, and the app can play it:
+                    // buildTranscodingCandidates asks for the CENC transcodings and the player holds the
+                    // Widevine licence. Reaching for a substitute first on the strength of
+                    // monetizationModel alone handed a paying subscriber a YouTube copy of a track they
+                    // pay to stream properly. Prefer the fallback only when SoundCloud has actually
+                    // refused this account, or when the account has no Go+ to refuse with.
+                    val goPlus = prefs.getSoundCloudGoPlus()
+                    if (isBlockedForAccount(track) || (isRestricted(track) && !goPlus)) {
                         val providerStream = resolveViaProviders(context, track, forDownload)
                         if (providerStream != null) {
                             return@run providerStream
@@ -640,6 +675,24 @@
                 } catch (e: Exception) {
                     return null
                 }
+            }
+
+            // A track that arrived without media - from a station, a radio payload or a lean
+            // search result - carries no policy either, so the check upstream saw nothing to act
+            // on. Now that it has been fetched in full, re-read the per-account verdict: when
+            // SoundCloud refuses this account outright, no transcoding here will play, and
+            // working through them all only delays the fallback the caller is about to reach.
+            if (!isBlockedForAccount(track) && isBlockedForAccount(trackToUse)) {
+                Log.d(
+                    TAG,
+                    "Track ${track.id} - restricted on the full payload " +
+                        "(policy=${trackToUse.policy}, monetization=${trackToUse.monetizationModel}), going to the fallbacks"
+                )
+                restrictedTrackIds.add(track.id)
+                // Nothing to add here: the caller already falls through to the providers and then
+                // to the final YouTube fallback when this returns null. Repeating that search here
+                // would only run it twice on a track that is nowhere to be found.
+                return null
             }
 
             val transcodings = trackToUse.media?.transcodings ?: return null

@@ -1178,6 +1178,8 @@
             try {
                 val me = api.getMe()
                 userProfile = me
+                com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
+                    .rememberSoundCloudTier(me)
                 val allSections = mutableListOf<HomeSection>()
 
                 coroutineScope {

@@ -487,6 +487,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 try {
                     val me = api.getMe()
                     isCurrentUser = (me.id == userId)
+                    com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
+                        .rememberSoundCloudTier(me)
                 } catch (e: Exception) {
                 }
 
