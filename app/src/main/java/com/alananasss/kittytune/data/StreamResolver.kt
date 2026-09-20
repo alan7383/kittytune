@@ -680,9 +680,8 @@
             // A track that arrived without media - from a station, a radio payload or a lean
             // search result - carries no policy either, so the check upstream saw nothing to act
             // on. Now that it has been fetched in full, re-read the per-account verdict: when
-            // SoundCloud refuses this account outright there is no transcoding here that will
-            // play, so trying them all just fails slowly and then gave up without ever reaching
-            // the fallbacks.
+            // SoundCloud refuses this account outright, no transcoding here will play, and
+            // working through them all only delays the fallback the caller is about to reach.
             if (!isBlockedForAccount(track) && isBlockedForAccount(trackToUse)) {
                 Log.d(
                     TAG,
@@ -690,10 +689,9 @@
                         "(policy=${trackToUse.policy}, monetization=${trackToUse.monetizationModel}), going to the fallbacks"
                 )
                 restrictedTrackIds.add(track.id)
-                resolveViaProviders(context, trackToUse, forDownload)?.let { return it }
-                if (prefs.getYouTubeFallbackEnabled()) {
-                    resolveViaNewPipe(trackToUse)?.let { return ResolvedStream(it) }
-                }
+                // Nothing to add here: the caller already falls through to the providers and then
+                // to the final YouTube fallback when this returns null. Repeating that search here
+                // would only run it twice on a track that is nowhere to be found.
                 return null
             }
 
@@ -711,11 +709,8 @@
 
             if (candidates.isEmpty()) {
                 Log.w(TAG, "Track ${track.id} — no matching transcoding found!")
-                // Playback used to give up here while downloads fell back, so a track SoundCloud
-                // offers us nothing playable for - a Go+ track above all - died at 00:00 with a
-                // misleading network error instead of reaching the fallback the user has on.
-                if (prefs.getYouTubeFallbackEnabled()) {
-                    val url = resolveViaNewPipe(trackToUse)
+                if (forDownload && prefs.getYouTubeFallbackEnabled()) {
+                    val url = resolveViaNewPipe(track)
                     return url?.let { ResolvedStream(it) }
                 }
                 return null
@@ -802,9 +797,9 @@
             }
 
             Log.e(TAG, "Track ${track.id} — all ${candidates.size} transcoding candidates failed!")
-            if (prefs.getYouTubeFallbackEnabled()) {
+            if (forDownload && prefs.getYouTubeFallbackEnabled()) {
                 Log.w(TAG, "Falling back to NewPipe after transcoding failures")
-                val url = resolveViaNewPipe(trackToUse)
+                val url = resolveViaNewPipe(track)
                 return url?.let { ResolvedStream(it) }
             }
             return null
