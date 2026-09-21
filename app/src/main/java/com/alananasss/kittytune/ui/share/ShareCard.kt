@@ -196,7 +196,7 @@ private fun LyricsBody(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 36.dp, vertical = 56.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+        verticalArrangement = Arrangement.spacedBy(28.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -248,23 +248,6 @@ private fun LyricsBody(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Image(
-                painter = painterResource(R.drawable.ic_kittytune_logo),
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                text = "KittyTune",
-                color = style.onBackground.copy(alpha = 0.78f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
         }
     }
 }
