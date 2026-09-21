@@ -244,7 +244,7 @@ private fun LyricsBody(
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
                     lineHeight = 36.sp,
-                    maxLines = 3,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

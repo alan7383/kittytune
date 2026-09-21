@@ -252,9 +252,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Picks up to four lines starting at the one playing at [positionMs].
+     * Picks up to two lines starting at the one playing at [positionMs].
      *
-     * Four is what fits the card at a size worth reading. Starting at the current line rather
+     * Two is what actually fits the card without overrunning it: each line can itself wrap,
+     * so more than that crowds past the fixed card height. Starting at the current line rather
      * than centring on it means the card carries the part that is about to be sung, which is
      * what someone shares a lyric for.
      */
@@ -262,7 +263,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val lines = lyricsLines.filter { it.text.isNotBlank() }
         if (lines.isEmpty()) return emptyList()
         val start = lines.indexOfLast { it.startTime <= positionMs }.coerceAtLeast(0)
-        return lines.drop(start).take(4).map { it.text }
+        return lines.drop(start).take(2).map { it.text }
     }
     var navigateToPlaylistId by mutableStateOf<String?>(null)
     var trackForMenu by mutableStateOf<Track?>(null)
