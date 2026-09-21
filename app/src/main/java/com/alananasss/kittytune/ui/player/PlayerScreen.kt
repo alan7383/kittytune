@@ -1274,18 +1274,6 @@ fun NewPlayerScreen(
                                         )
                                     }
                                 }
-
-                                IconButton(
-                                    onClick = { viewModel.openShareCard(track) },
-                                    modifier = Modifier.size(44.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Share,
-                                        contentDescription = stringResource(R.string.share_card_title),
-                                        tint = iconTint,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                }
                             }
                         }
                     }

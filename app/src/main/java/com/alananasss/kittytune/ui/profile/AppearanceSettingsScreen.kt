@@ -1099,7 +1099,10 @@ fun PlayerCustomizationBottomSheet(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showShareCardCodeDialog = false }) {
+                TextButton(
+                    onClick = { showShareCardCodeDialog = false },
+                    shapes = ButtonDefaults.shapes()
+                ) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             },
