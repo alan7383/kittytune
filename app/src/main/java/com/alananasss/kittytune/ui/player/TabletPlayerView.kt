@@ -1446,12 +1446,12 @@ fun TabletFullScreenPlayerView(
                         }
 
                         IconButton(
-                            onClick = { viewModel.shareTrack(track) },
+                            onClick = { viewModel.openShareCard(track) },
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Share,
-                                contentDescription = stringResource(R.string.btn_share),
+                                contentDescription = stringResource(R.string.share_card_title),
                                 tint = iconTint.copy(alpha = 0.75f),
                                 modifier = Modifier.size(22.dp)
                             )

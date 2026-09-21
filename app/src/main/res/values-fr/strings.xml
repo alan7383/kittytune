@@ -2466,4 +2466,20 @@
     <string name="qobuz_quality_hires_96">Hi-Res FLAC / 24 bits 96 kHz</string>
     <string name="qobuz_quality_cd">FLAC CD / 16 bits 44,1 kHz</string>
     <string name="qobuz_quality_mp3_320">MP3 320 kbps</string>
+
+    <!-- Share Card -->
+    <string name="share_card_settings_group">Carte de partage</string>
+    <string name="share_card_code_title">Pochette en code QR</string>
+    <string name="share_card_code_subtitle">Comment le code et la pochette sont combinés</string>
+    <string name="share_card_code_auto">Automatique</string>
+    <string name="share_card_code_auto_desc">Choisi par pochette, en privilégiant la lisibilité au scan</string>
+    <string name="share_card_code_solid">Robuste</string>
+    <string name="share_card_code_solid_desc">Contraste maximal, visuel uniquement dans le code</string>
+    <string name="share_card_code_halftone">Pochette entière</string>
+    <string name="share_card_code_halftone_desc">Visuel complet visible, scan plus délicat</string>
+    <string name="share_card_face_song">Morceau</string>
+    <string name="share_card_face_lyrics">Paroles</string>
+    <string name="share_card_qr">Pochette en code QR</string>
+    <string name="share_card_send">Partager la carte</string>
+    <string name="share_card_title">Partager en carte</string>
 </resources>

@@ -123,6 +123,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
         private const val KEY_SC_GO_PLUS = "soundcloud_go_plus_active"
+        private const val KEY_SHARE_CARD_CODE = "share_card_code_mode"
         private const val KEY_DOWNLOAD_DRM_STREAMS = "download_drm_streams_enabled"
         private const val KEY_SHOW_LYRICS_BUTTON = "show_lyrics_button_enabled"
         private const val KEY_INLINE_LYRICS = "inline_lyrics_enabled"
@@ -363,6 +364,17 @@ class PlayerPreferences(context: Context) {
 
     fun getShowLyricsButtonEnabled(): Boolean = prefs.getBoolean(KEY_SHOW_LYRICS_BUTTON, true)
     fun setShowLyricsButtonEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_LYRICS_BUTTON, enabled) }
+
+    /**
+     * Which code style the share card uses: 0 automatic, 1 solid, 2 halftone.
+     *
+     * Automatic is the default because the choice turns on something the listener cannot see -
+     * whether the artwork has room for a forced dot in both directions - but it stays a choice,
+     * since someone sharing a code they will scan themselves values the robust style, and
+     * someone posting a picture values the cover.
+     */
+    fun getShareCardCodeMode(): Int = prefs.getInt(KEY_SHARE_CARD_CODE, 0)
+    fun setShareCardCodeMode(mode: Int) = prefs.edit { putInt(KEY_SHARE_CARD_CODE, mode) }
 
     fun getYouTubeFallbackEnabled(): Boolean = prefs.getBoolean(KEY_YOUTUBE_FALLBACK, true)
     fun setYouTubeFallbackEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_YOUTUBE_FALLBACK, enabled) }

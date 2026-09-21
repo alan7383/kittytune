@@ -1052,6 +1052,63 @@ fun PlayerCustomizationBottomSheet(
 
     var selectedSlotToEdit by remember { mutableStateOf<Int?>(null) }
 
+    var shareCardCodeMode by remember { mutableIntStateOf(prefs.getShareCardCodeMode()) }
+    var showShareCardCodeDialog by remember { mutableStateOf(false) }
+
+    if (showShareCardCodeDialog) {
+        val labels = listOf(
+            stringResource(R.string.share_card_code_auto) to stringResource(R.string.share_card_code_auto_desc),
+            stringResource(R.string.share_card_code_solid) to stringResource(R.string.share_card_code_solid_desc),
+            stringResource(R.string.share_card_code_halftone) to stringResource(R.string.share_card_code_halftone_desc),
+        )
+        AlertDialog(
+            onDismissRequest = { showShareCardCodeDialog = false },
+            title = { Text(stringResource(R.string.share_card_code_title)) },
+            text = {
+                Column {
+                    labels.forEachIndexed { index, (label, desc) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            RadioButton(
+                                selected = shareCardCodeMode == index,
+                                onClick = {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                },
+                            )
+                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                                Text(label, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showShareCardCodeDialog = false },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            },
+        )
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -1444,6 +1501,20 @@ fun PlayerCustomizationBottomSheet(
                     }
                 }
             }
+
+            SettingsGroupTitle(stringResource(R.string.share_card_settings_group))
+            val codeLabels = listOf(
+                stringResource(R.string.share_card_code_auto),
+                stringResource(R.string.share_card_code_solid),
+                stringResource(R.string.share_card_code_halftone),
+            )
+            SettingsItem(
+                shape = getSettingsShape(1, 0),
+                title = stringResource(R.string.share_card_code_title),
+                subtitle = stringResource(R.string.share_card_code_subtitle),
+                trailingText = codeLabels[shareCardCodeMode.coerceIn(0, 2)],
+                onClick = { showShareCardCodeDialog = true },
+            )
         }
     }
 

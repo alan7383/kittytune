@@ -2028,6 +2028,11 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     Icons.Outlined.Share,
                     stringResource(R.string.btn_share)
                 ) { viewModel.shareTrack(track) })
+            add(
+                DockOptionItem(
+                    Icons.Outlined.PhotoLibrary,
+                    stringResource(R.string.share_card_title)
+                ) { viewModel.openShareCard(track) })
         }
         if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId != -2L) {
             add(
@@ -4427,7 +4432,10 @@ private fun PlayerSlotButton(
                         viewModel.showCommentsSheet = true
                     }
                     PlayerActionButtonSlot.SHARE -> {
-                        viewModel.currentTrack?.let { viewModel.shareTrack(it) }
+                        // The card sheet still carries the link, so nothing is lost for someone
+                        // who only wanted to send one - and it is reachable from the player now
+                        // rather than two taps deep in the overflow menu.
+                        viewModel.currentTrack?.let { viewModel.openShareCard(it) }
                     }
                     PlayerActionButtonSlot.QUEUE -> onQueueClick()
                     PlayerActionButtonSlot.AUDIO_FX -> onEffectsClick()
@@ -12509,17 +12517,7 @@ fun SoundCloudPlayerView(
 
                         PlayerActionButtonSlot.SHARE -> {
                             IconButton(
-                                onClick = {
-                                    val url = pageTrack.permalinkUrl
-                                    if (!url.isNullOrBlank()) {
-                                        val sendIntent =
-                                            android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                                putExtra(android.content.Intent.EXTRA_TEXT, url)
-                                                type = "text/plain"
-                                            }
-                                        context.startActivity(android.content.Intent.createChooser(sendIntent, null))
-                                    }
-                                },
+                                onClick = { viewModel.openShareCard(pageTrack) },
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(

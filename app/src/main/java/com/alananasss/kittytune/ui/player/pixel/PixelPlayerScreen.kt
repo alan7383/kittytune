@@ -988,7 +988,7 @@ fun PixelPlayerScreen(
                     onEffectsClick = { showEffectsSheet = true },
                     onLyricsClick = { viewModel.openLyrics() },
                     onFullscreenLyricsClick = { viewModel.openLyrics(forceSheet = true) },
-                    onShareClick = { viewModel.currentTrack?.let { viewModel.shareTrack(it) } },
+                    onShareClick = { viewModel.currentTrack?.let { viewModel.openShareCard(it) } },
                     onCommentsClick = {
                         viewModel.selectedTrackForSheet = viewModel.currentTrack
                         viewModel.showCommentsSheet = true

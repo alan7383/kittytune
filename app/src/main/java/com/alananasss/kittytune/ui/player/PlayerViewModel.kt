@@ -208,6 +208,63 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var isMiniPlayerDismissing by mutableStateOf(false)
 
     var showMenuSheet by mutableStateOf(false)
+
+    /**
+     * The track whose share card is being composed, or null while no card is open.
+     *
+     * Held as the track rather than a flag so the sheet keeps showing the one the user picked
+     * even if playback moves on underneath it - a card that changed its artwork mid-compose
+     * would be shared as something the user never approved.
+     */
+    var shareCardTrack by mutableStateOf<Track?>(null)
+        private set
+
+    /** Artwork for [shareCardTrack], loaded once when the sheet opens. */
+    var shareCardArtwork by mutableStateOf<Bitmap?>(null)
+        private set
+
+    /**
+     * Lines of the song to offer on the card, taken around where playback stands.
+     *
+     * Captured when the sheet opens rather than followed live: the card is a still, and lyrics
+     * that moved on between the preview and the send would share a line the user never saw.
+     */
+    var shareCardLyrics by mutableStateOf<List<String>>(emptyList())
+        private set
+
+    fun openShareCard(track: Track) {
+        shareCardTrack = track
+        shareCardArtwork = null
+        shareCardLyrics = lyricsSnippetAt(currentPosition)
+        showMenuSheet = false
+        viewModelScope.launch {
+            val bitmap = withContext(Dispatchers.IO) { loadBitmap(track.fullResArtwork) }
+            // The sheet may already be gone, or moved on to another track, by the time a slow
+            // artwork arrives; dropping it then keeps a stale cover off the current card.
+            if (shareCardTrack?.id == track.id) shareCardArtwork = bitmap
+        }
+    }
+
+    fun dismissShareCard() {
+        shareCardTrack = null
+        shareCardArtwork = null
+        shareCardLyrics = emptyList()
+    }
+
+    /**
+     * Picks up to two lines starting at the one playing at [positionMs].
+     *
+     * Two is what actually fits the card without overrunning it: each line can itself wrap,
+     * so more than that crowds past the fixed card height. Starting at the current line rather
+     * than centring on it means the card carries the part that is about to be sung, which is
+     * what someone shares a lyric for.
+     */
+    private fun lyricsSnippetAt(positionMs: Long): List<String> {
+        val lines = lyricsLines.filter { it.text.isNotBlank() }
+        if (lines.isEmpty()) return emptyList()
+        val start = lines.indexOfLast { it.startTime <= positionMs }.coerceAtLeast(0)
+        return lines.drop(start).take(2).map { it.text }
+    }
     var navigateToPlaylistId by mutableStateOf<String?>(null)
     var trackForMenu by mutableStateOf<Track?>(null)
     var trackToEdit by mutableStateOf<Track?>(null)
