@@ -537,21 +537,6 @@ fun AppearanceSettingsScreen(
 
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.share_card_settings_group))
-                    val codeLabels = listOf(
-                        stringResource(R.string.share_card_code_auto),
-                        stringResource(R.string.share_card_code_solid),
-                        stringResource(R.string.share_card_code_halftone),
-                    )
-                    SettingsItem(
-                        shape = getSettingsShape(1, 0),
-                        title = stringResource(R.string.share_card_code_title),
-                        subtitle = stringResource(R.string.share_card_code_subtitle),
-                        trailingText = codeLabels[shareCardCodeMode.coerceIn(0, 2)],
-                        onClick = { showShareCardCodeDialog = true },
-                    )
-                    Spacer(Modifier.height(16.dp))
-
                     SettingsGroupTitle(stringResource(R.string.settings_cat_appearance)) // "Apparence"
                     ThemeSelector(
                         currentTheme = themeMode,
@@ -1512,6 +1497,20 @@ fun PlayerCustomizationBottomSheet(
                     }
                 }
             }
+
+            SettingsGroupTitle(stringResource(R.string.share_card_settings_group))
+            val codeLabels = listOf(
+                stringResource(R.string.share_card_code_auto),
+                stringResource(R.string.share_card_code_solid),
+                stringResource(R.string.share_card_code_halftone),
+            )
+            SettingsItem(
+                shape = getSettingsShape(1, 0),
+                title = stringResource(R.string.share_card_code_title),
+                subtitle = stringResource(R.string.share_card_code_subtitle),
+                trailingText = codeLabels[shareCardCodeMode.coerceIn(0, 2)],
+                onClick = { showShareCardCodeDialog = true },
+            )
         }
     }
 
