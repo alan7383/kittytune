@@ -2419,4 +2419,20 @@
     <string name="home_support_banner_donate_kofi">Ủng hộ trên Ko-fi</string>
     <string name="home_support_banner_dismiss">Bỏ qua</string>
     <string name="home_support_banner_remind_later">Nhắc lại sau</string>
+
+    <!-- Share Card -->
+    <string name="share_card_settings_group">Thẻ chia sẻ</string>
+    <string name="share_card_code_title">Ảnh bìa dạng mã QR</string>
+    <string name="share_card_code_subtitle">Cách kết hợp mã QR và ảnh bìa</string>
+    <string name="share_card_code_auto">Tự động</string>
+    <string name="share_card_code_auto_desc">Tự chọn theo ảnh bìa, ưu tiên khả năng quét mã</string>
+    <string name="share_card_code_solid">Rõ nét</string>
+    <string name="share_card_code_solid_desc">Độ tương phản cao nhất, ảnh bìa chỉ nằm trong mã</string>
+    <string name="share_card_code_halftone">Toàn bộ ảnh bìa</string>
+    <string name="share_card_code_halftone_desc">Hiển thị toàn bộ ảnh bìa, khó quét hơn</string>
+    <string name="share_card_face_song">Bài hát</string>
+    <string name="share_card_face_lyrics">Lời bài hát</string>
+    <string name="share_card_qr">Ảnh bìa dạng mã QR</string>
+    <string name="share_card_send">Chia sẻ thẻ</string>
+    <string name="share_card_title">Chia sẻ dạng thẻ</string>
 </resources>

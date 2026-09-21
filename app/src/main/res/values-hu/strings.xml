@@ -2447,4 +2447,20 @@
     <string name="trim_set_start">Kezdés ekkor: %1$s</string>
     <string name="trim_sub">Ugorj át dalrészleteket lejátszás közben. A fájl nem változik, a vágás törlésével visszakapod az eredetit.</string>
     <string name="trim_title">Szám vágása</string>
+
+    <!-- Share Card -->
+    <string name="share_card_settings_group">Megosztási kártya</string>
+    <string name="share_card_code_title">Borító QR-kódként</string>
+    <string name="share_card_code_subtitle">Hogyan egyesül a kód és a borítókép</string>
+    <string name="share_card_code_auto">Automatikus</string>
+    <string name="share_card_code_auto_desc">Borítónként választva, a beolvashatóságot előtérbe helyezve</string>
+    <string name="share_card_code_solid">Megbízható</string>
+    <string name="share_card_code_solid_desc">Legnagyobb kontraszt, kép csak a kódon belül</string>
+    <string name="share_card_code_halftone">Teljes borító</string>
+    <string name="share_card_code_halftone_desc">A teljes kép látható, nehezebben olvasható be</string>
+    <string name="share_card_face_song">Dal</string>
+    <string name="share_card_face_lyrics">Dalszöveg</string>
+    <string name="share_card_qr">Borító QR-kódként</string>
+    <string name="share_card_send">Kártya megosztása</string>
+    <string name="share_card_title">Megosztás kártyaként</string>
 </resources>

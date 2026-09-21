@@ -2440,4 +2440,20 @@
     <string name="trim_set_start">Начало в %1$s</string>
     <string name="trim_sub">Пропускайте части песни во время воспроизведения. Файл не изменяется, сброс обрезки вернёт оригинальное звучание.</string>
     <string name="trim_title">Обрезать этот трек</string>
+
+    <!-- Share Card -->
+    <string name="share_card_settings_group">Карточка трека</string>
+    <string name="share_card_code_title">Обложка как QR-код</string>
+    <string name="share_card_code_subtitle">Способ объединения кода и обложки</string>
+    <string name="share_card_code_auto">Автоматически</string>
+    <string name="share_card_code_auto_desc">Выбирается для каждой обложки с приоритетом считывания</string>
+    <string name="share_card_code_solid">Надёжный</string>
+    <string name="share_card_code_solid_desc">Максимальный контраст, изображение только внутри кода</string>
+    <string name="share_card_code_halftone">Вся обложка</string>
+    <string name="share_card_code_halftone_desc">Обложка видна целиком, сканирование сложнее</string>
+    <string name="share_card_face_song">Трек</string>
+    <string name="share_card_face_lyrics">Текст песни</string>
+    <string name="share_card_qr">Обложка как QR-код</string>
+    <string name="share_card_send">Поделиться карточкой</string>
+    <string name="share_card_title">Поделиться карточкой</string>
 </resources>
