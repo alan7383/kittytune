@@ -57,6 +57,15 @@ object DownbeatTracker {
         val barPhaseBeats: Int,
         val phrasePhaseBars: Int,
         val confidence: Float,
+        /**
+         * 0..1 margin for the phrase phase, reported separately from [confidence].
+         *
+         * Knowing which beat is beat 1 and knowing which bar opens a phrase are different
+         * questions with different evidence, and they fail independently: a track can have an
+         * unmistakable backbeat and a completely flat arrangement. Reporting one number for
+         * both would let a confident downbeat vouch for a phrase position nothing supports.
+         */
+        val phraseConfidence: Float = 0f,
     )
 
     /** Onsets are sampled over this fraction of a beat period on each side of the grid line. */
@@ -99,7 +108,12 @@ object DownbeatTracker {
             beatsPerBar = beatsPerBar,
             barsPerPhrase = barsPerPhrase,
         )
-        return Downbeat(barPhase.first, phrasePhase, barPhase.second)
+        return Downbeat(
+            barPhaseBeats = barPhase.first,
+            phrasePhaseBars = phrasePhase.first,
+            confidence = barPhase.second,
+            phraseConfidence = phrasePhase.second,
+        )
     }
 
     /** Frame index of every beat line that fits inside the analysed window. */
@@ -232,8 +246,8 @@ object DownbeatTracker {
         barPhaseBeats: Int,
         beatsPerBar: Int,
         barsPerPhrase: Int,
-    ): Int {
-        if (barsPerPhrase <= 1) return 0
+    ): Pair<Int, Float> {
+        if (barsPerPhrase <= 1) return 0 to 0f
 
         val downbeatNovelty = ArrayList<Float>()
         val downbeatKick = ArrayList<Float>()
@@ -244,7 +258,7 @@ object DownbeatTracker {
             beat += beatsPerBar
         }
         // Fewer than two phrases of material means there is nothing to compare.
-        if (downbeatNovelty.size < barsPerPhrase * 2) return 0
+        if (downbeatNovelty.size < barsPerPhrase * 2) return 0 to 0f
 
         val noveltyAt = FloatArray(barsPerPhrase)
         val kickAt = FloatArray(barsPerPhrase)
@@ -256,16 +270,15 @@ object DownbeatTracker {
         val zNovelty = standardize(noveltyAt)
         val zKick = standardize(kickAt)
 
+        val scores = FloatArray(barsPerPhrase) { zNovelty[it] + 0.4f * zKick[it] }
         var best = 0
-        var bestScore = Float.NEGATIVE_INFINITY
-        for (p in 0 until barsPerPhrase) {
-            val score = zNovelty[p] + 0.4f * zKick[p]
-            if (score > bestScore) {
-                bestScore = score
-                best = p
-            }
-        }
-        return best
+        for (p in 1 until barsPerPhrase) if (scores[p] > scores[best]) best = p
+        var runnerUp = Float.NEGATIVE_INFINITY
+        for (p in 0 until barsPerPhrase) if (p != best && scores[p] > runnerUp) runnerUp = scores[p]
+
+        // Same z-scored margin as the bar phase, so both numbers mean the same thing.
+        val margin = if (runnerUp.isFinite()) ((scores[best] - runnerUp) / 2f).coerceIn(0f, 1f) else 0f
+        return best to margin
     }
 
     /** Mean of every element whose index is congruent to [phase] modulo [modulus]. */

@@ -26,6 +26,8 @@ data class BeatInfoEntity(
     val phraseOffsetMs: Long = 0L,
     /** 0..1 confidence that beat 1 was identified correctly. Low on beatless or ambiguous material. */
     val downbeatConfidence: Float = 0f,
+    /** 0..1 confidence that the 16-beat phrase boundary was identified correctly. */
+    val phraseConfidence: Float = 0f,
     /**
      * Version of the analyzer that produced this row. Rows below [CURRENT_ANALYSIS_VERSION] are
      * re-analyzed: a cached grid from an older analyzer is not wrong so much as incomplete, and
@@ -37,10 +39,70 @@ data class BeatInfoEntity(
     val isCurrentAnalysis: Boolean get() = analysisVersion >= CURRENT_ANALYSIS_VERSION
 
     companion object {
-        /** Bump whenever the analyzer's output changes meaningfully, to force re-analysis. */
-        const val CURRENT_ANALYSIS_VERSION = 1
+        /**
+         * Bump whenever the analyzer's output changes meaningfully, to force re-analysis.
+         *
+         * 2: phrase confidence is recorded separately. Version 1 rows carry a downbeat margin
+         * but no phrase margin, and treating a missing margin as "unsure" would demote every
+         * one of them to bar quantization - including the ones that were confidently right.
+         */
+        const val CURRENT_ANALYSIS_VERSION = 2
     }
 }
+
+/**
+ * How precisely this track's grid may be trusted, and therefore what a cue point is allowed to
+ * claim.
+ *
+ * The downbeat classifier is a hand-tuned template match, not a learned model, and it knows when
+ * it is unsure: across 139 analysed tracks the margin was above 0.70 on 47 % and below 0.30 on
+ * 20 %. Quantizing a cue point to a 16-beat phrase on the strength of a 0.08 margin is a
+ * confident answer built on a guess — it lands the drop somewhere arbitrary while looking
+ * exactly as authoritative as a correct one.
+ *
+ * So the claim shrinks with the evidence. Each step down is still musically valid, just less
+ * ambitious, and the beat grid itself is always safe because tempo confidence is measured
+ * separately from downbeat confidence.
+ */
+enum class GridTrust(val quantizeBeats: Int) {
+    /** Downbeat and phrase both solid: cue on the 16-beat phrase, where the drop sits. */
+    PHRASE(16),
+
+    /** Beat 1 is known but the phrase position is not: cue on the bar. */
+    BAR(4),
+
+    /** The downbeat itself is a guess: cue on the beat and claim nothing more. */
+    BEAT(1),
+}
+
+/** Below this the bar phase is a coin flip rather than a reading. */
+const val MIN_DOWNBEAT_CONFIDENCE = 0.30f
+
+/** The phrase phase needs its own evidence; a confident downbeat does not vouch for it. */
+const val MIN_PHRASE_CONFIDENCE = 0.25f
+
+val BeatInfoEntity.gridTrust: GridTrust
+    get() = when {
+        // Rows analysed before confidence was recorded: treat as phrase-safe, which is what
+        // they were already being used for. Downgrading them would change behaviour for tracks
+        // nobody complained about.
+        downbeatConfidence <= 0f && phraseConfidence <= 0f && phraseOffsetMs > 0L -> GridTrust.PHRASE
+        downbeatConfidence < MIN_DOWNBEAT_CONFIDENCE -> GridTrust.BEAT
+        phraseConfidence < MIN_PHRASE_CONFIDENCE -> GridTrust.BAR
+        else -> GridTrust.PHRASE
+    }
+
+/**
+ * The anchor to quantize against, matching [gridTrust]: the phrase start, the first downbeat,
+ * or just the beat grid. Falls back to the plain grid for rows written before the downbeat
+ * pass existed.
+ */
+val BeatInfoEntity.trustedAnchorMs: Long
+    get() = when (gridTrust) {
+        GridTrust.PHRASE -> if (phraseOffsetMs > 0L || downbeatConfidence > 0f) phraseOffsetMs else firstBeatOffsetMs
+        GridTrust.BAR -> if (downbeatOffsetMs > 0L || downbeatConfidence > 0f) downbeatOffsetMs else firstBeatOffsetMs
+        GridTrust.BEAT -> firstBeatOffsetMs
+    }
 
 /**
  * The anchor every cue point must be quantized against: a real phrase start when the downbeat
