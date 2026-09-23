@@ -61,6 +61,8 @@ import com.alananasss.kittytune.ui.player.audio.StadiumAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.CassetteWalkmanAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.AsmrVocalAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.NightDriveAudioProcessor
+import com.alananasss.kittytune.ui.player.EqualizerState
+import com.alananasss.kittytune.ui.player.audio.EqualizerAudioProcessor
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -284,6 +286,7 @@ object MusicManager {
     private val cassetteWalkmanProcessors = listOf(CassetteWalkmanAudioProcessor(), CassetteWalkmanAudioProcessor())
     private val asmrVocalProcessors = listOf(AsmrVocalAudioProcessor(), AsmrVocalAudioProcessor())
     private val nightDriveProcessors = listOf(NightDriveAudioProcessor(), NightDriveAudioProcessor())
+    private val equalizerProcessors = listOf(EqualizerAudioProcessor(), EqualizerAudioProcessor())
     private val automixDuckProcessors = listOf(
         com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor(),
         com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor()
@@ -492,7 +495,7 @@ object MusicManager {
                             val hapticProc = hapticProcessors?.getOrNull(index) ?: com.alananasss.kittytune.audio.haptics.HapticAudioProcessor(context)
                             val duckProc = automixDuckProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor()
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(hapticProc, duckProc, vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
+                                .setAudioProcessors(arrayOf(hapticProc, duckProc, equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()
@@ -1067,6 +1070,13 @@ object MusicManager {
         rainPlayer?.setEnabled(state.isRainEnabled)
         rainPlayer?.setVolume(state.rainVolume)
         rainPlayer?.setAmbientType(state.ambientType)
+    }
+
+    fun applyEqualizer(state: EqualizerState) {
+        val gains = state.bandGainsDb.toFloatArray()
+        equalizerProcessors.forEach {
+            it.setParameters(state.isEnabled, state.preampDb, gains)
+        }
     }
 
     fun releasePlayer() {

@@ -4551,8 +4551,10 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
     var showAsmrVocalDialog by remember { mutableStateOf(false) }
     var showNightDriveDialog by remember { mutableStateOf(false) }
     var showStudioEditSheet by remember { mutableStateOf(false) }
+    var showEqualizerSheet by remember { mutableStateOf(false) }
 
     val allEffects = getAudioFxDefinitions(
+        onOpenEqualizerSheet = { showEqualizerSheet = true },
         onOpenBassBoostDialog = { showBassBoostDialog = true },
         onOpenEarrapeDialog = { showEarrapeDialog = true },
         onOpenEightDDialog = { showEightDDialog = true },
@@ -7744,6 +7746,13 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
             )
         }
 
+        if (showEqualizerSheet) {
+            com.alananasss.kittytune.ui.player.audio.EqualizerSheet(
+                viewModel = viewModel,
+                onDismiss = { showEqualizerSheet = false }
+            )
+        }
+
         if (showStudioEditSheet) {
             com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { showStudioEditSheet = false },
@@ -7753,6 +7762,7 @@ fun AudioControlDock(viewModel: PlayerViewModel) {
                 AudioFxStudioSheet(
                     viewModel = viewModel,
                     allEffects = allEffects,
+                    onOpenEqualizerSheet = { showEqualizerSheet = true },
                     onOpenBassBoostDialog = { showBassBoostDialog = true },
                     onOpenEarrapeDialog = { showEarrapeDialog = true },
                     onOpenEightDDialog = { showEightDDialog = true },
@@ -7903,6 +7913,7 @@ data class AudioFxDefinition(
 
 @Composable
 fun getAudioFxDefinitions(
+    onOpenEqualizerSheet: () -> Unit,
     onOpenBassBoostDialog: () -> Unit,
     onOpenEarrapeDialog: () -> Unit,
     onOpenEightDDialog: () -> Unit,
@@ -7938,6 +7949,17 @@ fun getAudioFxDefinitions(
     onOpenNightDriveDialog: () -> Unit,
     onShowEarrapeWarning: () -> Unit
 ): List<AudioFxDefinition> = listOf(
+    AudioFxDefinition(
+        id = "equalizer",
+        titleRes = R.string.equalizer_title,
+        icon = Icons.Rounded.Equalizer,
+        categoryRes = R.string.category_power_eq,
+        isActive = { it.isEqualizerEnabled },
+        onToggle = { vm, _ -> vm.toggleEqualizer() },
+        onOpenDialog = onOpenEqualizerSheet,
+        activeColor = { MaterialTheme.colorScheme.primary },
+        activeContentColor = { MaterialTheme.colorScheme.onPrimary }
+    ),
     AudioFxDefinition(
         id = "bass_boost",
         titleRes = R.string.effect_bass_boost,
@@ -8324,6 +8346,7 @@ fun getAudioFxDefinitions(
 fun AudioFxStudioSheet(
     viewModel: PlayerViewModel,
     allEffects: List<AudioFxDefinition>,
+    onOpenEqualizerSheet: () -> Unit = {},
     onOpenBassBoostDialog: () -> Unit,
     onOpenEarrapeDialog: () -> Unit,
     onOpenEightDDialog: () -> Unit,

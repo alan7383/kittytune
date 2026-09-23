@@ -2491,4 +2491,15 @@
     <string name="share_card_qr">Borító QR-kódként</string>
     <string name="share_card_send">Kártya megosztása</string>
     <string name="share_card_title">Megosztás kártyaként</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer_title">Hangszínszabályzó</string>
+    <string name="equalizer_subtitle">16 sávos grafikus hangszínszabályzó és előerősítő</string>
+    <string name="equalizer_response_curve">Frekvenciamenet</string>
+    <string name="equalizer_presets">Előre beállított értékek</string>
+    <string name="equalizer_preamp">Előerősítő</string>
+    <string name="equalizer_bands_title">Frekvenciasávok</string>
+    <string name="equalizer_double_tap_hint">Koppintson duplán a sávra a 0 dB-re való visszaállításhoz</string>
+    <string name="equalizer_reset">Hangszínszabályzó visszaállítása</string>
+    <string name="equalizer_off">Ki</string>
 </resources>

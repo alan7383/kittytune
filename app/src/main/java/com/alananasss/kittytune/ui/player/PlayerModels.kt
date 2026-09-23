@@ -101,7 +101,8 @@
         val isNightDriveEnabled: Boolean = false,
         val nightDriveCabin: Float = 0.65f,
         val nightDriveRoad: Float = 0.45f,
-        val ambientType: String = "rain"
+        val ambientType: String = "rain",
+        val isEqualizerEnabled: Boolean = false
     )
 
     data class PlaybackContext(
@@ -111,4 +112,37 @@
         val artistName: String? = null,
         val isVerified: Boolean = false
     )
+
+    data class EqualizerState(
+        val isEnabled: Boolean = false,
+        val preampDb: Float = 0f,
+        val bandGainsDb: List<Float> = List(16) { 0f },
+        val selectedPreset: String = "Flat"
+    )
+
+    data class EqualizerPreset(
+        val name: String,
+        val bandGainsDb: List<Float>,
+        val preampDb: Float = 0f
+    )
+
+    object EqualizerPresets {
+        val Flat = EqualizerPreset("Flat", List(16) { 0f })
+        val BassBoost = EqualizerPreset("Bass Boost", listOf(6.0f, 5.5f, 4.5f, 3.5f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), -1.5f)
+        val TrebleBoost = EqualizerPreset("Treble Boost", listOf(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 5.5f, 6.0f, 6.0f, 6.0f), -1.5f)
+        val Vocal = EqualizerPreset("Vocal", listOf(-2.0f, -1.5f, -1.0f, 0.0f, 1.5f, 3.0f, 4.0f, 4.5f, 4.0f, 3.0f, 2.0f, 1.0f, 0.0f, -1.0f, -1.5f, -2.0f), -1.0f)
+        val Pop = EqualizerPreset("Pop", listOf(-1.0f, 0.0f, 1.5f, 2.5f, 3.0f, 2.0f, 0.0f, -1.0f, -1.0f, 0.0f, 1.5f, 2.5f, 3.0f, 3.5f, 3.0f, 2.5f), -1.0f)
+        val Rock = EqualizerPreset("Rock", listOf(4.5f, 3.5f, 2.5f, 1.0f, -0.5f, -1.5f, -1.0f, 0.0f, 1.5f, 2.5f, 3.5f, 4.0f, 4.5f, 4.5f, 4.0f, 3.5f), -1.5f)
+        val Electronic = EqualizerPreset("Electronic", listOf(5.5f, 5.0f, 3.5f, 2.0f, 0.5f, -1.0f, -1.5f, 0.0f, 1.0f, 2.5f, 4.0f, 4.5f, 5.0f, 5.5f, 5.0f, 4.5f), -2.0f)
+        val HipHop = EqualizerPreset("Hip-Hop", listOf(6.0f, 5.5f, 4.5f, 3.0f, 1.5f, 0.0f, -0.5f, 0.5f, 1.5f, 2.0f, 2.5f, 3.0f, 3.5f, 3.5f, 3.0f, 2.5f), -2.0f)
+        val Acoustic = EqualizerPreset("Acoustic", listOf(2.5f, 2.0f, 1.5f, 1.0f, 1.0f, 1.5f, 2.0f, 2.5f, 2.5f, 3.0f, 3.0f, 3.5f, 3.0f, 2.5f, 2.0f, 1.5f), -1.0f)
+        val Jazz = EqualizerPreset("Jazz", listOf(3.0f, 2.5f, 2.0f, 1.0f, 0.5f, -0.5f, -0.5f, 0.5f, 1.5f, 2.0f, 2.0f, 2.5f, 2.5f, 2.0f, 1.5f, 1.0f), -0.5f)
+        val Classical = EqualizerPreset("Classical", listOf(3.0f, 2.5f, 2.0f, 1.5f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f, 1.5f, 2.0f, 2.5f, 3.0f, 3.0f, 2.5f, 2.0f), -1.0f)
+        val Metal = EqualizerPreset("Metal", listOf(5.0f, 4.5f, 3.0f, 1.0f, -1.5f, -2.5f, -2.0f, -1.0f, 1.0f, 2.5f, 4.0f, 5.0f, 5.5f, 5.0f, 4.5f, 4.0f), -2.0f)
+
+        val all = listOf(Flat, BassBoost, TrebleBoost, Vocal, Pop, Rock, Electronic, HipHop, Acoustic, Jazz, Classical, Metal)
+
+        fun getByName(name: String): EqualizerPreset = all.find { it.name.equals(name, ignoreCase = true) } ?: Flat
+    }
+
 
