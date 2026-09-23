@@ -469,7 +469,7 @@
             TrackTrimRow::class,
             BeatInfoEntity::class
         ],
-        version = 21,
+        version = 24,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
@@ -549,6 +549,41 @@
                 }
             }
 
+            /**
+             * Downbeat and phrase anchors for the beat grid. Existing rows keep their BPM but
+             * are marked unanalyzed (analyzedAt = 0) so the downbeat pass re-runs for them —
+             * a cached grid without a downbeat cannot be quantized against.
+             */
+            val MIGRATION_21_22 = object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE beat_info ADD COLUMN downbeatOffsetMs INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE beat_info ADD COLUMN phraseOffsetMs INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE beat_info ADD COLUMN downbeatConfidence REAL NOT NULL DEFAULT 0")
+                    db.execSQL("UPDATE beat_info SET analyzedAt = 0")
+                }
+            }
+
+            /**
+             * Explicit analyzer version on each cached row. Existing rows default to 0, which is
+             * below the current version, so they are re-analyzed on next use — clearing analyzedAt
+             * alone did nothing, because the cache check never looked at it.
+             */
+            val MIGRATION_22_23 = object : Migration(22, 23) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE beat_info ADD COLUMN analysisVersion INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+
+            /**
+             * Separate confidence for the phrase phase. Existing rows keep 0, which
+             * [gridTrust] reads as "analysed before this existed" rather than "unsure".
+             */
+            val MIGRATION_23_24 = object : Migration(23, 24) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE beat_info ADD COLUMN phraseConfidence REAL NOT NULL DEFAULT 0")
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -557,7 +592,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance
