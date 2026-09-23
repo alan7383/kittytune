@@ -221,6 +221,22 @@ fun LibraryScreen(
 
     val scope = rememberCoroutineScope()
 
+    suspend fun resolvePlaylistTracks(playlist: Playlist): List<Track> {
+        if (!playlist.tracks.isNullOrEmpty()) return playlist.tracks!!
+        val local = AppDatabase.getDatabase(context).downloadDao().getTracksForPlaylistSync(playlist.id)
+        if (local.isNotEmpty()) {
+            return local.map { it.toTrack(artworkOverride = it.artworkUrl) }
+        }
+        if (playlist.id > 0) {
+            return try {
+                RetrofitClient.create(context).getPlaylist(playlist.id).tracks ?: emptyList()
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        return emptyList()
+    }
+
     fun playPlaylistHelper(
         playlist: Playlist,
         shuffle: Boolean = false,
@@ -229,21 +245,7 @@ fun LibraryScreen(
         prepareBulkAdd: Boolean = false
     ) {
         scope.launch(Dispatchers.IO) {
-            val tracks: List<Track> = if (!playlist.tracks.isNullOrEmpty()) {
-                playlist.tracks!!
-            } else {
-                val local = AppDatabase.getDatabase(context).downloadDao().getTracksForPlaylistSync(playlist.id)
-                if (local.isNotEmpty()) {
-                    local.map { it.toTrack(artworkOverride = it.artworkUrl) }
-                } else if (playlist.id > 0) {
-                    try {
-                        val online = RetrofitClient.create(context).getPlaylist(playlist.id)
-                        online.tracks ?: emptyList()
-                    } catch (e: Exception) {
-                        emptyList()
-                    }
-                } else emptyList()
-            }
+            val tracks = resolvePlaylistTracks(playlist)
 
             if (tracks.isNotEmpty()) {
                 kotlinx.coroutines.withContext(Dispatchers.Main) {
@@ -259,6 +261,31 @@ fun LibraryScreen(
                         playerViewModel.playPlaylist(tracks, 0)
                     }
                 }
+            }
+        }
+    }
+
+    fun likeAllSongsHelper(playlist: Playlist) {
+        scope.launch(Dispatchers.IO) {
+            val tracks = resolvePlaylistTracks(playlist)
+            if (tracks.isEmpty()) {
+                kotlinx.coroutines.withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        context,
+                        context.getString(R.string.toast_like_all_nothing),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return@launch
+            }
+            val likedCount = LikeRepository.addLikesBulk(tracks)
+            kotlinx.coroutines.withContext(Dispatchers.Main) {
+                val message = if (likedCount > 0) {
+                    context.getString(R.string.toast_like_all_done, likedCount)
+                } else {
+                    context.getString(R.string.toast_like_all_nothing)
+                }
+                android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -574,6 +601,18 @@ fun LibraryScreen(
                         playlistForDetails = targetPlaylist
                         showPlaylistDetailsSheet = true
                     })
+                }
+                if (playlist.isRealAlbum) {
+                    add(
+                        PlaylistActionItem(
+                            icon = Icons.Rounded.Favorite,
+                            text = context.getString(R.string.menu_like_all_songs),
+                            tint = primaryColor
+                        ) {
+                            selectedPlaylistForMenu = null
+                            likeAllSongsHelper(playlist)
+                        }
+                    )
                 }
                 if (!isInsideFolder) {
                     add(

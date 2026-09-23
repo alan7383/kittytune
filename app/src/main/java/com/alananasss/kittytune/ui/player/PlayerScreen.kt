@@ -71,6 +71,7 @@ import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.PlayerProgressMode
 import com.alananasss.kittytune.data.local.PlayerSliderStyle
+import com.alananasss.kittytune.data.local.WaveformColorMode
 import com.alananasss.kittytune.data.local.LyricsUnderCoverPlacement
 import com.alananasss.kittytune.ui.player.lyrics.PlayerInlineLyrics
 import com.alananasss.kittytune.ui.player.lyrics.LyricsUtils
@@ -799,13 +800,13 @@ fun NewPlayerScreen(
     } else null
     var showLyricsButtonEnabled by remember { mutableStateOf(prefs.getShowLyricsButtonEnabled()) }
     var waveformCommentsEnabled by remember { mutableStateOf(prefs.getWaveformCommentsEnabled()) }
-    var playerProgressMode by remember { mutableStateOf(prefs.getPlayerProgressMode()) }
+    var playerProgressMode by remember(forceSoundCloud) { mutableStateOf(prefs.getPlayerProgressMode()) }
     DisposableEffect(Unit) {
         val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "show_lyrics_button_enabled") {
                 showLyricsButtonEnabled = prefs.getShowLyricsButtonEnabled()
-            } else if (key == "waveform_comments_enabled" || key == PlayerPreferences.KEY_PLAYER_PROGRESS_MODE) {
+            } else if (key == "waveform_comments_enabled" || key == PlayerPreferences.KEY_PLAYER_PROGRESS_MODE || key == PlayerPreferences.KEY_PLAYER_DESIGN) {
                 waveformCommentsEnabled = prefs.getWaveformCommentsEnabled()
                 playerProgressMode = prefs.getPlayerProgressMode()
             } else if (key == PlayerPreferences.KEY_PLAYER_STYLE) {
@@ -1290,7 +1291,7 @@ fun NewPlayerScreen(
                         if (playerProgressMode == PlayerProgressMode.HYBRID_WAVEFORM) {
                             WaveformPlayerProgress(viewModel = viewModel, textColor = mainContentColor)
                         } else {
-                            PlayerProgress(viewModel, mainContentColor)
+                            ClassicPlayerProgress(viewModel = viewModel, textColor = mainContentColor)
                         }
                     }
 
@@ -1985,6 +1986,15 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 forceSheet = true
             )
         })
+        val isDuetBlacklisted = viewModel.isTrackDuetBlacklisted(track.id)
+        add(
+            DockOptionItem(
+                if (isDuetBlacklisted) Icons.Rounded.MicOff else Icons.Rounded.RecordVoiceOver,
+                if (isDuetBlacklisted) stringResource(R.string.menu_enable_duet_lyrics) else stringResource(R.string.menu_disable_duet_lyrics)
+            ) {
+                viewModel.toggleTrackDuetBlacklist(track.id)
+            }
+        )
         add(DockOptionItem(Icons.Default.Add, stringResource(R.string.menu_add_playlist)) {
             viewModel.showMenuSheet = false; viewModel.showAddToPlaylistSheet = true
         })
@@ -2129,6 +2139,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             if (item.text == stringResource(R.string.action_unlike)) tint = activeColor
             if (item.text == stringResource(R.string.menu_shuffle) && viewModel.shuffleEnabled) tint = activeColor
             if (item.text == stringResource(R.string.menu_reposted)) tint = activeColor
+            if (item.text == stringResource(R.string.menu_enable_duet_lyrics)) tint = activeColor
             if (item.text == stringResource(R.string.menu_repeat)) {
                 if (viewModel.repeatMode != com.alananasss.kittytune.ui.player.RepeatMode.NONE) tint = activeColor
                 text = when (viewModel.repeatMode) {
@@ -3295,7 +3306,7 @@ fun QueueContent(
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = track.user?.username ?: stringResource(R.string.generic_artist),
+                                    text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.generic_artist) },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1
@@ -3341,13 +3352,13 @@ fun PlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
 
-    var waveformCommentsEnabled by remember { mutableStateOf(prefs.getWaveformCommentsEnabled()) }
+    var progressMode by remember { mutableStateOf(prefs.getPlayerProgressMode()) }
 
     DisposableEffect(Unit) {
         val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == "waveform_comments_enabled") {
-                waveformCommentsEnabled = prefs.getWaveformCommentsEnabled()
+            if (key == PlayerPreferences.KEY_PLAYER_PROGRESS_MODE || key == "waveform_comments_enabled" || key == PlayerPreferences.KEY_PLAYER_DESIGN) {
+                progressMode = prefs.getPlayerProgressMode()
             }
         }
         sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
@@ -3355,7 +3366,7 @@ fun PlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        if (waveformCommentsEnabled) {
+        if (progressMode == PlayerProgressMode.HYBRID_WAVEFORM) {
             WaveformPlayerProgress(viewModel = viewModel, textColor = textColor)
             Box(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), contentAlignment = Alignment.Center) {
                 com.alananasss.kittytune.ui.player.automix.AutomixBadge(textColor = textColor)
@@ -3673,7 +3684,38 @@ fun WaveformPlayerProgress(
         }
     }
 
-    val accentColor = Color(0xFFFF5500)
+    var waveformColorMode by remember { mutableStateOf(prefs.getWaveformColorMode()) }
+    var customWaveformColor by remember { mutableIntStateOf(prefs.getWaveformCustomColor()) }
+
+    DisposableEffect(context) {
+        val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PlayerPreferences.KEY_WAVEFORM_COLOR_MODE) {
+                waveformColorMode = prefs.getWaveformColorMode()
+            } else if (key == PlayerPreferences.KEY_WAVEFORM_CUSTOM_COLOR) {
+                customWaveformColor = prefs.getWaveformCustomColor()
+            }
+        }
+        sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            sharedPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    val themePrimary = MaterialTheme.colorScheme.primary
+    val targetAccentColor = remember(waveformColorMode, customWaveformColor, viewModel.backgroundColor, themePrimary) {
+        when (waveformColorMode) {
+            WaveformColorMode.SOUNDCLOUD -> Color(0xFFFF5500)
+            WaveformColorMode.COVER_ART -> viewModel.backgroundColor
+            WaveformColorMode.APP_THEME -> themePrimary
+            WaveformColorMode.CUSTOM -> Color(customWaveformColor)
+        }
+    }
+    val accentColor by animateColorAsState(
+        targetValue = targetAccentColor,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "waveformAccentColor"
+    )
     val inactiveBarColor = Color(0xCCFFFFFF)
 
     val fallbackBars = remember {
@@ -4404,16 +4446,13 @@ private fun PlayerSlotButton(
     }
 
     if (iconVector != null) {
-        val containerColor by animateColorAsState(
-            targetValue = if (isSlotActive) animatedMainColor else pillContainerColor,
-            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-            label = "slotContainerColor"
+        val activeFraction by animateFloatAsState(
+            targetValue = if (isSlotActive) 1f else 0f,
+            animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
+            label = "slotActiveFraction"
         )
-        val contentColor by animateColorAsState(
-            targetValue = if (isSlotActive) playIconColor else pillContentColor,
-            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
-            label = "slotContentColor"
-        )
+        val containerColor = androidx.compose.ui.graphics.lerp(pillContainerColor, animatedMainColor, activeFraction)
+        val contentColor = androidx.compose.ui.graphics.lerp(pillContentColor, playIconColor, activeFraction)
 
         val clickModifier = if (effectiveSlot == PlayerActionButtonSlot.LYRICS) {
             Modifier.combinedClickable(
@@ -9358,7 +9397,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = track.user?.username ?: "",
+                                    text = track.displayArtist.ifBlank { track.user?.username ?: "" },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -11602,7 +11641,7 @@ fun PlayerTrackDetailsSideContent(viewModel: PlayerViewModel, track: Track) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        track.user?.username ?: "-",
+                        track.displayArtist.ifBlank { track.user?.username ?: "-" },
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
@@ -11927,6 +11966,39 @@ fun SoundCloudPlayerView(
     val showReactionsBar = prefs.getSoundCloudReactionsBarEnabled()
     val enableParallax = prefs.getSoundCloudParallaxEnabled()
     val slots = remember { List(5) { i -> prefs.getSoundCloudSlot(i) } }
+
+    var scWaveformColorMode by remember { mutableStateOf(prefs.getWaveformColorMode()) }
+    var scCustomWaveformColor by remember { mutableIntStateOf(prefs.getWaveformCustomColor()) }
+
+    DisposableEffect(context) {
+        val sharedPrefs = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PlayerPreferences.KEY_WAVEFORM_COLOR_MODE) {
+                scWaveformColorMode = prefs.getWaveformColorMode()
+            } else if (key == PlayerPreferences.KEY_WAVEFORM_CUSTOM_COLOR) {
+                scCustomWaveformColor = prefs.getWaveformCustomColor()
+            }
+        }
+        sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose {
+            sharedPrefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
+    }
+
+    val scThemePrimary = MaterialTheme.colorScheme.primary
+    val scTargetAccentColor = remember(scWaveformColorMode, scCustomWaveformColor, animatedColor, scThemePrimary) {
+        when (scWaveformColorMode) {
+            WaveformColorMode.SOUNDCLOUD -> Color(0xFFFF5500)
+            WaveformColorMode.COVER_ART -> animatedColor
+            WaveformColorMode.APP_THEME -> scThemePrimary
+            WaveformColorMode.CUSTOM -> Color(scCustomWaveformColor)
+        }
+    }
+    val scAccentColor by animateColorAsState(
+        targetValue = scTargetAccentColor,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "scAccentColor"
+    )
 
     var scrubbedMs by remember { mutableFloatStateOf(0f) }
     var isScrubbing by remember { mutableStateOf(false) }
@@ -12468,7 +12540,7 @@ fun SoundCloudPlayerView(
                                 Icon(
                                     imageVector = if (isTrackLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                                     contentDescription = null,
-                                    tint = if (isTrackLiked) Color(0xFFFF5500) else Color.White,
+                                    tint = if (isTrackLiked) scAccentColor else Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
                                 if (!isSpotifyTrack && displayLikes > 0) {
@@ -12565,7 +12637,7 @@ fun SoundCloudPlayerView(
                                 Icon(
                                     imageVector = Icons.Rounded.Shuffle,
                                     contentDescription = null,
-                                    tint = if (viewModel.shuffleEnabled) Color(0xFFFF5500) else Color.White.copy(alpha = 0.65f),
+                                    tint = if (viewModel.shuffleEnabled) scAccentColor else Color.White.copy(alpha = 0.65f),
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -12579,7 +12651,7 @@ fun SoundCloudPlayerView(
                                 Icon(
                                     imageVector = if (viewModel.repeatMode == RepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                                     contentDescription = null,
-                                    tint = if (viewModel.repeatMode != RepeatMode.NONE) Color(0xFFFF5500) else Color.White.copy(
+                                    tint = if (viewModel.repeatMode != RepeatMode.NONE) scAccentColor else Color.White.copy(
                                         alpha = 0.65f
                                     ),
                                     modifier = Modifier.size(22.dp)

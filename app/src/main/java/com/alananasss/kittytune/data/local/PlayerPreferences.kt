@@ -47,6 +47,7 @@ enum class PlayerSliderStyle { BAR, WAVY, SLIM, SQUIGGLY }
 enum class PlayerDesign { PIXEL_PLAYER, SOUNDCLOUD, MODERN, CLASSIC }
 enum class LyricsUnderCoverPlacement { REPLACE_TITLE_ARTIST, ABOVE_TITLE_ARTIST }
 enum class LyricsDisplayState { OFF, UNDER_COVER, COVER_REPLACED }
+enum class WaveformColorMode { SOUNDCLOUD, COVER_ART, APP_THEME, CUSTOM }
 
 enum class PlayerActionButtonSlot(@StringRes val titleRes: Int) {
     LIKE(R.string.slot_like),
@@ -89,6 +90,8 @@ class PlayerPreferences(context: Context) {
         const val KEY_PLAYER_PROGRESS_MODE = "player_progress_mode"
         const val KEY_PLAYER_SLIDER_STYLE = "player_slider_style"
         const val KEY_WAVEFORM_COMMENTS_POPUP = "waveform_comments_popup_enabled"
+        const val KEY_WAVEFORM_COLOR_MODE = "waveform_color_mode"
+        const val KEY_WAVEFORM_CUSTOM_COLOR = "waveform_custom_color"
         const val KEY_SOUNDCLOUD_REACTIONS_BAR = "soundcloud_reactions_bar_enabled"
         const val KEY_SOUNDCLOUD_PARALLAX = "soundcloud_parallax_enabled"
         const val KEY_SOUNDCLOUD_SLOT_PREFIX = "soundcloud_slot_"
@@ -163,6 +166,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_LINE_SPACING = "lyrics_line_spacing"
         private const val KEY_LYRICS_FONT = "lyrics_font"
         private const val KEY_LYRICS_DUET_VIEW = "lyrics_duet_view"
+        private const val KEY_LYRICS_DUET_BLACKLIST = "lyrics_duet_blacklist"
 
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
@@ -177,7 +181,9 @@ class PlayerPreferences(context: Context) {
         private const val KEY_CROSSFADE_ENABLED = "crossfade_enabled"
         private const val KEY_CROSSFADE_DURATION = "crossfade_duration"
         private const val KEY_CROSSFADE_GAPLESS = "crossfade_gapless"
+        const val KEY_CROSSFADE_INDICATOR = "crossfade_indicator"
         const val KEY_AUTOMIX_ENABLED = "automix_enabled"
+        const val KEY_AUTOMIX_INDICATOR = "automix_indicator"
         const val KEY_AUTOMIX_DEBUG_OVERLAY = "automix_debug_overlay"
         private const val KEY_AUTOMIX_TEMPO_MATCH = "automix_tempo_match"
         private const val KEY_AUTOMIX_HARMONIC_MIX = "automix_harmonic_mix"
@@ -270,6 +276,9 @@ class PlayerPreferences(context: Context) {
     fun getCrossfadeGapless(): Boolean = prefs.getBoolean(KEY_CROSSFADE_GAPLESS, true)
     fun setCrossfadeGapless(enabled: Boolean) = prefs.edit { putBoolean(KEY_CROSSFADE_GAPLESS, enabled) }
 
+    fun getCrossfadeIndicatorEnabled(): Boolean = prefs.getBoolean(KEY_CROSSFADE_INDICATOR, false)
+    fun setCrossfadeIndicatorEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CROSSFADE_INDICATOR, enabled) }
+
     fun getAutomixEnabled(): Boolean = prefs.getBoolean(KEY_AUTOMIX_ENABLED, false)
     fun setAutomixEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTOMIX_ENABLED, enabled) }
 
@@ -290,6 +299,9 @@ class PlayerPreferences(context: Context) {
 
     fun getAutomixOverlapMode(): Int = prefs.getInt(KEY_AUTOMIX_OVERLAP_MODE, 0)
     fun setAutomixOverlapMode(mode: Int) = prefs.edit { putInt(KEY_AUTOMIX_OVERLAP_MODE, mode) }
+
+    fun getAutomixIndicatorEnabled(): Boolean = prefs.getBoolean(KEY_AUTOMIX_INDICATOR, false)
+    fun setAutomixIndicatorEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTOMIX_INDICATOR, enabled) }
 
     fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, true)
     fun setCustomFontEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled) }
@@ -626,6 +638,19 @@ class PlayerPreferences(context: Context) {
     fun getLyricsDuetViewEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_DUET_VIEW, true)
     fun setLyricsDuetViewEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_DUET_VIEW, enabled) }
 
+    fun getLyricsDuetBlacklist(): Set<String> = prefs.getStringSet(KEY_LYRICS_DUET_BLACKLIST, emptySet()) ?: emptySet()
+    fun setLyricsDuetBlacklist(blacklist: Set<String>) = prefs.edit { putStringSet(KEY_LYRICS_DUET_BLACKLIST, blacklist) }
+    fun isTrackDuetBlacklisted(trackId: Long): Boolean = getLyricsDuetBlacklist().contains(trackId.toString())
+    fun setTrackDuetBlacklisted(trackId: Long, blacklisted: Boolean) {
+        val current = getLyricsDuetBlacklist().toMutableSet()
+        if (blacklisted) {
+            current.add(trackId.toString())
+        } else {
+            current.remove(trackId.toString())
+        }
+        setLyricsDuetBlacklist(current)
+    }
+
     fun getLocalMediaEnabled(): Boolean = prefs.getBoolean(KEY_LOCAL_MEDIA_ENABLED, false)
     fun setLocalMediaEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LOCAL_MEDIA_ENABLED, enabled) }
     fun getLocalMediaUris(): Set<String> = prefs.getStringSet(KEY_LOCAL_MEDIA_URIS_SET, emptySet()) ?: emptySet()
@@ -779,9 +804,18 @@ class PlayerPreferences(context: Context) {
                 putString(KEY_PLAYER_PROGRESS_MODE, PlayerProgressMode.SOUNDCLOUD.name)
                 putBoolean(KEY_WAVEFORM_COMMENTS, true)
             } else if (design == PlayerDesign.MODERN) {
-                if (getPlayerProgressMode() == PlayerProgressMode.SOUNDCLOUD || !prefs.contains(KEY_PLAYER_PROGRESS_MODE)) {
+                val currentMode = getPlayerProgressMode()
+                if (currentMode == PlayerProgressMode.SOUNDCLOUD || !prefs.contains(KEY_PLAYER_PROGRESS_MODE)) {
+                    putString(KEY_PLAYER_PROGRESS_MODE, PlayerProgressMode.CLASSIC_BAR.name)
+                    putBoolean(KEY_WAVEFORM_COMMENTS, false)
+                } else {
+                    putBoolean(KEY_WAVEFORM_COMMENTS, currentMode != PlayerProgressMode.CLASSIC_BAR)
+                }
+            } else {
+                if (getPlayerProgressMode() == PlayerProgressMode.SOUNDCLOUD) {
                     putString(KEY_PLAYER_PROGRESS_MODE, PlayerProgressMode.CLASSIC_BAR.name)
                 }
+                putBoolean(KEY_WAVEFORM_COMMENTS, false)
             }
         }
     }
@@ -831,6 +865,23 @@ class PlayerPreferences(context: Context) {
     fun getWaveformCommentsPopupEnabled(): Boolean = prefs.getBoolean(KEY_WAVEFORM_COMMENTS_POPUP, true)
     fun setWaveformCommentsPopupEnabled(enabled: Boolean) =
         prefs.edit { putBoolean(KEY_WAVEFORM_COMMENTS_POPUP, enabled) }
+
+    fun getWaveformColorMode(): WaveformColorMode {
+        val raw = prefs.getString(KEY_WAVEFORM_COLOR_MODE, WaveformColorMode.SOUNDCLOUD.name)
+        return try {
+            WaveformColorMode.valueOf(raw!!)
+        } catch (_: Exception) {
+            WaveformColorMode.SOUNDCLOUD
+        }
+    }
+
+    fun setWaveformColorMode(mode: WaveformColorMode) =
+        prefs.edit { putString(KEY_WAVEFORM_COLOR_MODE, mode.name) }
+
+    fun getWaveformCustomColor(): Int = prefs.getInt(KEY_WAVEFORM_CUSTOM_COLOR, 0xFFFF5500.toInt())
+
+    fun setWaveformCustomColor(color: Int) =
+        prefs.edit { putInt(KEY_WAVEFORM_CUSTOM_COLOR, color) }
 
     fun getSoundCloudReactionsBarEnabled(): Boolean = prefs.getBoolean(KEY_SOUNDCLOUD_REACTIONS_BAR, true)
     fun setSoundCloudReactionsBarEnabled(enabled: Boolean) =

@@ -274,6 +274,9 @@
     <string name="menu_unpin_folder">Désépingler le dossier</string>
     <string name="menu_move_to_folder">Déplacer vers le dossier</string>
     <string name="menu_move_to_library">Déplacer vers la bibliothèque</string>
+    <string name="menu_like_all_songs">Liker tous les titres</string>
+    <string name="toast_like_all_done">%1$d titres likés</string>
+    <string name="toast_like_all_nothing">Aucun nouveau titre à liker</string>
     <string name="menu_rename_folder">Renommer le dossier</string>
     <string name="menu_delete_folder">Supprimer le dossier</string>
     <string name="dialog_delete_folder_title">Supprimer le dossier ?</string>
@@ -944,6 +947,8 @@
     <string name="pref_lyrics_apple_effect_sub">Remplit les lettres de façon fluide au lieu de sauter d\'un mot à l\'autre.</string>
     <string name="pref_lyrics_duet_title">Mode Duo</string>
     <string name="pref_lyrics_duet_desc">Aligner les paroles selon le chanteur (à gauche pour chanteur 1, à droite pour chanteur 2)</string>
+    <string name="menu_disable_duet_lyrics">Désactiver le mode duo</string>
+    <string name="menu_enable_duet_lyrics">Activer le mode duo</string>
     <string name="pref_android_auto_synced_lyrics">Paroles synchronisées Android Auto</string>
     <string name="pref_android_auto_synced_lyrics_desc">Affiche les paroles synchronisées à la place du nom de l\'artiste dans Android Auto</string>
     <string name="pref_animated_covers">Pochettes d\'album animées</string>
@@ -1419,6 +1424,10 @@
     <string name="automix_mix_in">MIX DANS %1$d</string>
     <string name="crossfade_gapless">Ne pas enchaîner les pistes d\'un même album</string>
     <string name="crossfade_gapless_desc">Préserve les transitions sans coupure des albums studio et concerts live</string>
+    <string name="pref_crossfade_indicator_title">Afficher l\'indicateur de fondu</string>
+    <string name="pref_crossfade_indicator_desc">Affiche le badge \'Fondu enchaîné\' sur le lecteur pendant la transition</string>
+    <string name="pref_automix_indicator_title">Afficher l\'indicateur d\'automix</string>
+    <string name="pref_automix_indicator_desc">Affiche le compte à rebours et le badge \'Automix\' sur le lecteur pendant les transitions DJ</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- LISTENING STATS                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1893,6 +1902,25 @@
     <string name="player_opt_reactions_bar_subtitle">Capsule de réaction rapide sur la carte</string>
     <string name="player_opt_parallax_title">Glissement de la pochette (Parallaxe)</string>
     <string name="player_opt_parallax_subtitle">Défilement dynamique pendant la lecture</string>
+    <string name="pref_waveform_color_title">Couleur de la forme d\'onde</string>
+    <string name="pref_waveform_color_subtitle">Couleur de mise en valeur de la progression sur la forme d\'onde</string>
+    <string name="waveform_color_soundcloud">Orange classique (SoundCloud)</string>
+    <string name="waveform_color_cover_art">Assortir à la pochette (Auto)</string>
+    <string name="waveform_color_app_theme">Accent du thème de l\'application</string>
+    <string name="waveform_color_custom">Couleur personnalisée</string>
+    <string name="waveform_preview_title">Aperçu de la waveform</string>
+    <string name="waveform_mode_soundcloud_title">SoundCloud</string>
+    <string name="waveform_mode_soundcloud_sub">Orange classique</string>
+    <string name="waveform_mode_cover_title">Pochette</string>
+    <string name="waveform_mode_cover_sub">Auto-adaptatif</string>
+    <string name="waveform_mode_theme_title">Thème</string>
+    <string name="waveform_mode_theme_sub">Accent de l\'app</string>
+    <string name="waveform_mode_custom_title">Sur-mesure</string>
+    <string name="waveform_mode_custom_sub">Palette tactile</string>
+    <string name="color_picker_hue">Teinte</string>
+    <string name="color_picker_saturation">Saturation</string>
+    <string name="color_picker_brightness">Luminosité</string>
+    <string name="color_picker_presets">Nuances populaires</string>
     <string name="player_action_bar_5_title">BARRE D\'ACTIONS INFÉRIEURE (5 BOUTONS)</string>
     <string name="player_action_bar_4_title">BARRE D\'ACTIONS INFÉRIEURE (4 BOUTONS)</string>
     <string name="player_action_bar_5_desc">5 boutons configurables au bas du lecteur</string>

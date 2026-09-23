@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.graphics.Color as AndroidColor
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -14,6 +15,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,16 +25,31 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import com.alananasss.kittytune.data.MusicManager
+import com.alananasss.kittytune.data.WaveformRepository
+import com.alananasss.kittytune.ui.theme.ThemeState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessAuto
 import androidx.compose.material.icons.filled.DarkMode
@@ -48,11 +65,15 @@ import com.alananasss.kittytune.ui.common.Slider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
@@ -67,6 +88,7 @@ import com.alananasss.kittytune.data.local.PlayerProgressMode
 import com.alananasss.kittytune.data.local.PlayerSliderStyle
 import com.alananasss.kittytune.data.local.StartDestination
 import com.alananasss.kittytune.data.local.TrackRemovalMethod
+import com.alananasss.kittytune.data.local.WaveformColorMode
 import com.alananasss.kittytune.ui.player.slider.SliderStyleDialog
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroup
@@ -1042,6 +1064,10 @@ fun PlayerCustomizationBottomSheet(
     var reactionsBar by remember { mutableStateOf(prefs.getSoundCloudReactionsBarEnabled()) }
     var parallax by remember { mutableStateOf(prefs.getSoundCloudParallaxEnabled()) }
 
+    var waveformColorMode by remember { mutableStateOf(prefs.getWaveformColorMode()) }
+    var waveformCustomColor by remember { mutableIntStateOf(prefs.getWaveformCustomColor()) }
+    var showWaveformColorDialog by remember { mutableStateOf(false) }
+
     var showSliderStyleDialog by remember { mutableStateOf(false) }
 
     val slotCount = if (currentDesign == PlayerDesign.SOUNDCLOUD) 5 else 4
@@ -1106,6 +1132,26 @@ fun PlayerCustomizationBottomSheet(
                     Text(stringResource(R.string.btn_cancel))
                 }
             },
+        )
+    }
+
+    if (showWaveformColorDialog) {
+        WaveformColorDialog(
+            currentMode = waveformColorMode,
+            currentColor = waveformCustomColor,
+            onModeSelected = { mode ->
+                waveformColorMode = mode
+                prefs.setWaveformColorMode(mode)
+                onUpdated()
+            },
+            onColorSelected = { color ->
+                waveformCustomColor = color
+                prefs.setWaveformCustomColor(color)
+                waveformColorMode = WaveformColorMode.CUSTOM
+                prefs.setWaveformColorMode(WaveformColorMode.CUSTOM)
+                onUpdated()
+            },
+            onDismiss = { showWaveformColorDialog = false }
         )
     }
 
@@ -1283,7 +1329,20 @@ fun PlayerCustomizationBottomSheet(
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
                         SettingsItem(
-                            shape = getSettingsShape(3, 0),
+                            shape = getSettingsShape(4, 0),
+                            title = stringResource(R.string.pref_waveform_color_title),
+                            subtitle = when (waveformColorMode) {
+                                WaveformColorMode.SOUNDCLOUD -> stringResource(R.string.waveform_color_soundcloud)
+                                WaveformColorMode.COVER_ART -> stringResource(R.string.waveform_color_cover_art)
+                                WaveformColorMode.APP_THEME -> stringResource(R.string.waveform_color_app_theme)
+                                WaveformColorMode.CUSTOM -> stringResource(R.string.waveform_color_custom)
+                            },
+                            icon = Icons.Rounded.Palette,
+                            onClick = { showWaveformColorDialog = true }
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(4, 1),
                             title = stringResource(R.string.player_opt_comment_bubbles_title),
                             subtitle = stringResource(R.string.player_opt_comment_bubbles_subtitle),
                             icon = Icons.Rounded.ChatBubbleOutline,
@@ -1297,7 +1356,7 @@ fun PlayerCustomizationBottomSheet(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(3, 1),
+                            shape = getSettingsShape(4, 2),
                             title = stringResource(R.string.player_opt_reactions_bar_title),
                             subtitle = stringResource(R.string.player_opt_reactions_bar_subtitle),
                             icon = Icons.Rounded.AddReaction,
@@ -1311,7 +1370,7 @@ fun PlayerCustomizationBottomSheet(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(3, 2),
+                            shape = getSettingsShape(4, 3),
                             title = stringResource(R.string.player_opt_parallax_title),
                             subtitle = stringResource(R.string.player_opt_parallax_subtitle),
                             icon = Icons.Rounded.AutoAwesome,
@@ -1400,7 +1459,20 @@ fun PlayerCustomizationBottomSheet(
                     ) {
                         if (modernProgressMode == PlayerProgressMode.HYBRID_WAVEFORM) {
                             SettingsItem(
-                                shape = getSettingsShape(1, 0),
+                                shape = getSettingsShape(2, 0),
+                                title = stringResource(R.string.pref_waveform_color_title),
+                                subtitle = when (waveformColorMode) {
+                                    WaveformColorMode.SOUNDCLOUD -> stringResource(R.string.waveform_color_soundcloud)
+                                    WaveformColorMode.COVER_ART -> stringResource(R.string.waveform_color_cover_art)
+                                    WaveformColorMode.APP_THEME -> stringResource(R.string.waveform_color_app_theme)
+                                    WaveformColorMode.CUSTOM -> stringResource(R.string.waveform_color_custom)
+                                },
+                                icon = Icons.Rounded.Palette,
+                                onClick = { showWaveformColorDialog = true }
+                            )
+
+                            SettingsItem(
+                                shape = getSettingsShape(2, 1),
                                 title = stringResource(R.string.player_opt_comment_bubbles_title),
                                 subtitle = stringResource(R.string.player_opt_comment_bubbles_subtitle),
                                 icon = Icons.Rounded.ChatBubbleOutline,
@@ -1576,4 +1648,792 @@ fun PlayerCustomizationBottomSheet(
         )
     }
 }
+
+@Composable
+fun WaveformColorDialog(
+    currentMode: WaveformColorMode,
+    currentColor: Int,
+    onModeSelected: (WaveformColorMode) -> Unit,
+    onColorSelected: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    var selectedMode by remember { mutableStateOf(currentMode) }
+    var selectedColor by remember { mutableIntStateOf(currentColor) }
+
+    val initialHsv = remember(currentColor) {
+        FloatArray(3).also { AndroidColor.colorToHSV(currentColor, it) }
+    }
+    var hue by remember { mutableFloatStateOf(initialHsv[0]) }
+    var saturation by remember { mutableFloatStateOf(initialHsv[1]) }
+    var brightness by remember { mutableFloatStateOf(initialHsv[2]) }
+
+    var hexInput by remember {
+        mutableStateOf(String.format("%06X", currentColor and 0xFFFFFF))
+    }
+    var hexError by remember { mutableStateOf(false) }
+
+    fun updateColorFromHsv(newH: Float, newS: Float, newV: Float) {
+        hue = newH
+        saturation = newS
+        brightness = newV
+        val argb = AndroidColor.HSVToColor(floatArrayOf(newH, newS, newV))
+        selectedColor = argb
+        hexInput = String.format("%06X", argb and 0xFFFFFF)
+        hexError = false
+        onColorSelected(argb)
+    }
+
+    fun selectPreset(presetInt: Int) {
+        selectedColor = presetInt
+        val hsv = FloatArray(3).also { AndroidColor.colorToHSV(presetInt, it) }
+        hue = hsv[0]
+        saturation = hsv[1]
+        brightness = hsv[2]
+        hexInput = String.format("%06X", presetInt and 0xFFFFFF)
+        hexError = false
+        onColorSelected(presetInt)
+        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+    }
+
+    val presetColors = remember {
+        listOf(
+            0xFFFF5500.toInt(), // SoundCloud Orange
+            0xFFFF3366.toInt(), // Neon Coral Pink
+            0xFFE53935.toInt(), // Crimson Red
+            0xFF8E24AA.toInt(), // Purple
+            0xFF3F51B5.toInt(), // Indigo
+            0xFF1E88E5.toInt(), // Sky Blue
+            0xFF00ACC1.toInt(), // Cyan
+            0xFF00E676.toInt(), // Mint Green
+            0xFF43A047.toInt(), // Emerald Green
+            0xFFFFB300.toInt(), // Amber Gold
+            0xFFFFFFFF.toInt()  // Pure White
+        )
+    }
+
+    val hueGradient = remember {
+        Brush.horizontalGradient(
+            colors = listOf(
+                Color(0xFFFF0000), // Red
+                Color(0xFFFFFF00), // Yellow
+                Color(0xFF00FF00), // Green
+                Color(0xFF00FFFF), // Cyan
+                Color(0xFF0000FF), // Blue
+                Color(0xFFFF00FF), // Magenta
+                Color(0xFFFF0000)  // Red
+            )
+        )
+    }
+
+    val satGradient = remember(hue, brightness) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                Color(AndroidColor.HSVToColor(floatArrayOf(hue, 0.0f, brightness))),
+                Color(AndroidColor.HSVToColor(floatArrayOf(hue, 1.0f, brightness)))
+            )
+        )
+    }
+
+    val brightGradient = remember(hue, saturation) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                Color.Black,
+                Color(AndroidColor.HSVToColor(floatArrayOf(hue, saturation, 1.0f)))
+            )
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Palette,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = stringResource(R.string.pref_waveform_color_title),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = stringResource(R.string.pref_waveform_color_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // 1. Live Waveform Preview Card
+                MiniWaveformPreview(
+                    mode = selectedMode,
+                    customColor = selectedColor
+                )
+
+                // 2. Mode Cards Grid (2 rows x 2 columns)
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        WaveformModeCard(
+                            title = stringResource(R.string.waveform_mode_soundcloud_title),
+                            subtitle = stringResource(R.string.waveform_mode_soundcloud_sub),
+                            isSelected = selectedMode == WaveformColorMode.SOUNDCLOUD,
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFFF5500))
+                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), CircleShape)
+                                )
+                            },
+                            onClick = {
+                                selectedMode = WaveformColorMode.SOUNDCLOUD
+                                onModeSelected(WaveformColorMode.SOUNDCLOUD)
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        WaveformModeCard(
+                            title = stringResource(R.string.waveform_mode_cover_title),
+                            subtitle = stringResource(R.string.waveform_mode_cover_sub),
+                            isSelected = selectedMode == WaveformColorMode.COVER_ART,
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            Brush.sweepGradient(
+                                                listOf(
+                                                    Color(0xFFE53935),
+                                                    Color(0xFFFFB300),
+                                                    Color(0xFF43A047),
+                                                    Color(0xFF1E88E5),
+                                                    Color(0xFF8E24AA),
+                                                    Color(0xFFE53935)
+                                                )
+                                            )
+                                        )
+                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), CircleShape)
+                                )
+                            },
+                            onClick = {
+                                selectedMode = WaveformColorMode.COVER_ART
+                                onModeSelected(WaveformColorMode.COVER_ART)
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        WaveformModeCard(
+                            title = stringResource(R.string.waveform_mode_theme_title),
+                            subtitle = stringResource(R.string.waveform_mode_theme_sub),
+                            isSelected = selectedMode == WaveformColorMode.APP_THEME,
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), CircleShape)
+                                )
+                            },
+                            onClick = {
+                                selectedMode = WaveformColorMode.APP_THEME
+                                onModeSelected(WaveformColorMode.APP_THEME)
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        WaveformModeCard(
+                            title = stringResource(R.string.waveform_mode_custom_title),
+                            subtitle = stringResource(R.string.waveform_mode_custom_sub),
+                            isSelected = selectedMode == WaveformColorMode.CUSTOM,
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(selectedColor))
+                                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), CircleShape)
+                                )
+                            },
+                            onClick = {
+                                selectedMode = WaveformColorMode.CUSTOM
+                                onModeSelected(WaveformColorMode.CUSTOM)
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // 3. Custom Color Section (animated)
+                AnimatedVisibility(
+                    visible = selectedMode == WaveformColorMode.CUSTOM,
+                    enter = fadeIn(tween(200)) + expandVertically(tween(250)),
+                    exit = fadeOut(tween(150)) + shrinkVertically(tween(200))
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 2.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+
+                        // Expressive Color Sliders Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                            ),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                WaveformColorSlider(
+                                    label = stringResource(R.string.color_picker_hue),
+                                    value = hue,
+                                    valueText = "${hue.toInt()}°",
+                                    valueRange = 0f..360f,
+                                    gradientBrush = hueGradient,
+                                    onValueChange = { newHue ->
+                                        updateColorFromHsv(newHue, saturation, brightness)
+                                    }
+                                )
+
+                                WaveformColorSlider(
+                                    label = stringResource(R.string.color_picker_saturation),
+                                    value = saturation,
+                                    valueText = "${(saturation * 100).toInt()}%",
+                                    valueRange = 0f..1f,
+                                    gradientBrush = satGradient,
+                                    onValueChange = { newSat ->
+                                        updateColorFromHsv(hue, newSat, brightness)
+                                    }
+                                )
+
+                                WaveformColorSlider(
+                                    label = stringResource(R.string.color_picker_brightness),
+                                    value = brightness,
+                                    valueText = "${(brightness * 100).toInt()}%",
+                                    valueRange = 0f..1f,
+                                    gradientBrush = brightGradient,
+                                    onValueChange = { newBright ->
+                                        updateColorFromHsv(hue, saturation, newBright)
+                                    }
+                                )
+                            }
+                        }
+
+                        // Presets Swatches
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.color_picker_presets),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(presetColors.size) { idx ->
+                                    val colorInt = presetColors[idx]
+                                    val isColorActive = (selectedColor and 0xFFFFFF) == (colorInt and 0xFFFFFF)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(colorInt))
+                                            .border(
+                                                width = if (isColorActive) 2.5.dp else 1.dp,
+                                                color = if (isColorActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                                                shape = CircleShape
+                                            )
+                                            .clickable { selectPreset(colorInt) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isColorActive) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Check,
+                                                contentDescription = null,
+                                                tint = if ((colorInt and 0xFFFFFF) == 0xFFFFFF || (colorInt and 0xFFFFFF) == 0xFFFFB300.toInt()) Color.Black else Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // HEX input row + preview swatch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = hexInput,
+                                onValueChange = { input ->
+                                    val filtered = input.take(6).filter { c ->
+                                        c in '0'..'9' || c in 'a'..'f' || c in 'A'..'F'
+                                    }
+                                    hexInput = filtered.uppercase()
+                                    if (filtered.length == 6) {
+                                        try {
+                                            val parsed = (0xFF000000L or filtered.toLong(16)).toInt()
+                                            selectedColor = parsed
+                                            val hsv = FloatArray(3).also { AndroidColor.colorToHSV(parsed, it) }
+                                            hue = hsv[0]
+                                            saturation = hsv[1]
+                                            brightness = hsv[2]
+                                            hexError = false
+                                            onColorSelected(parsed)
+                                        } catch (e: Exception) {
+                                            hexError = true
+                                        }
+                                    } else {
+                                        hexError = false
+                                    }
+                                },
+                                label = { Text("HEX") },
+                                prefix = { Text("#") },
+                                singleLine = true,
+                                isError = hexError,
+                                keyboardOptions = KeyboardOptions(
+                                    capitalization = KeyboardCapitalization.Characters,
+                                    keyboardType = KeyboardType.Ascii
+                                ),
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+
+                            Surface(
+                                modifier = Modifier.size(52.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(selectedColor),
+                                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            ) {}
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                shapes = ButtonDefaults.shapes(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.btn_ok),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun MiniWaveformPreview(
+    mode: WaveformColorMode,
+    customColor: Int,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val currentTrack = MusicManager.currentTrack
+    val trackId = currentTrack?.id
+
+    var waveformSamples by remember(trackId) {
+        mutableStateOf(trackId?.let { WaveformRepository.getCachedWaveform(it) })
+    }
+
+    LaunchedEffect(trackId) {
+        if (currentTrack != null && waveformSamples == null) {
+            val samples = withContext(Dispatchers.IO) {
+                WaveformRepository.getWaveform(context, currentTrack)
+            }
+            if (samples != null) {
+                waveformSamples = samples
+            }
+        }
+    }
+
+    val fallbackBars = remember {
+        val rng = java.util.Random(13L)
+        FloatArray(200) { i ->
+            val base = (Math.sin(i * 0.08) * 0.3 + 0.55).toFloat()
+            val noise = (rng.nextFloat() - 0.5f) * 0.25f
+            (base + noise).coerceIn(0.08f, 0.95f)
+        }
+    }
+
+    val themePrimary = MaterialTheme.colorScheme.primary
+    val targetAccentColor = remember(mode, customColor, themePrimary, ThemeState.coverSeedColor) {
+        when (mode) {
+            WaveformColorMode.SOUNDCLOUD -> Color(0xFFFF5500)
+            WaveformColorMode.COVER_ART -> ThemeState.coverSeedColor?.let { Color(it) } ?: Color(0xFFE53935)
+            WaveformColorMode.APP_THEME -> themePrimary
+            WaveformColorMode.CUSTOM -> Color(customColor)
+        }
+    }
+    val accentColor by animateColorAsState(
+        targetValue = targetAccentColor,
+        animationSpec = tween(durationMillis = 300),
+        label = "miniWaveformAccentColor"
+    )
+    val inactiveBarColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+
+    var progressFrac by remember { mutableFloatStateOf(0.55f) }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.GraphicEq,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = accentColor
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.waveform_preview_title),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (currentTrack != null && !currentTrack.title.isNullOrBlank()) {
+                            Text(
+                                text = currentTrack.title,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                ) {
+                    Text(
+                        text = when (mode) {
+                            WaveformColorMode.SOUNDCLOUD -> "SoundCloud"
+                            WaveformColorMode.COVER_ART -> "Auto Match"
+                            WaveformColorMode.APP_THEME -> "App Theme"
+                            WaveformColorMode.CUSTOM -> String.format("#%06X", customColor and 0xFFFFFF)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp)
+            ) {
+                val density = LocalDensity.current
+                val canvasWidthPx = with(density) { maxWidth.toPx() }
+                val barWidthPx = with(density) { 2.2.dp.toPx() }
+                val gapPx = with(density) { 1.2.dp.toPx() }
+                val stepPx = barWidthPx + gapPx
+                val cornerRadius = CornerRadius(barWidthPx / 2f)
+
+                val targetBarCount = (canvasWidthPx / stepPx).toInt().coerceAtLeast(20)
+
+                val resampledBars = remember(waveformSamples, targetBarCount) {
+                    val raw = waveformSamples ?: fallbackBars
+                    val rawSize = raw.size
+                    val result = FloatArray(targetBarCount)
+                    for (j in 0 until targetBarCount) {
+                        val startIdx = (j.toLong() * rawSize / targetBarCount).toInt()
+                        val endIdx = (((j + 1).toLong() * rawSize / targetBarCount).toInt())
+                            .coerceAtMost(rawSize)
+                            .coerceAtLeast(startIdx + 1)
+                        var sum = 0f
+                        for (k in startIdx until endIdx) {
+                            sum += raw[k]
+                        }
+                        result[j] = (sum / (endIdx - startIdx)).coerceIn(0.04f, 1f)
+                    }
+                    result
+                }
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(canvasWidthPx) {
+                            detectTapGestures { offset ->
+                                progressFrac = (offset.x / size.width).coerceIn(0.05f, 0.95f)
+                            }
+                        }
+                        .pointerInput(canvasWidthPx) {
+                            detectHorizontalDragGestures { change, _ ->
+                                change.consume()
+                                progressFrac = (change.position.x / size.width).coerceIn(0.05f, 0.95f)
+                            }
+                        }
+                ) {
+                    val cH = size.height
+                    val baselineY = cH * 0.60f
+                    val reflectGap = 1.5.dp.toPx()
+
+                    val barsToDraw = resampledBars
+                    val barCount = barsToDraw.size
+                    val cutoffX = size.width * progressFrac
+
+                    for (i in 0 until barCount) {
+                        val x = i * stepPx
+                        if (x + barWidthPx < 0f || x > size.width) continue
+
+                        val h = barsToDraw[i]
+                        val isPlayed = (x + barWidthPx / 2f) <= cutoffX
+
+                        val topH = (baselineY * h * 0.92f).coerceAtLeast(3f)
+                        val botH = ((cH - baselineY - reflectGap) * h * 0.65f).coerceAtLeast(2f)
+
+                        val topColor = if (isPlayed) accentColor else inactiveBarColor
+                        val botColor = if (isPlayed) accentColor.copy(alpha = 0.50f) else inactiveBarColor.copy(alpha = 0.30f)
+
+                        drawRoundRect(
+                            color = topColor,
+                            topLeft = Offset(x, baselineY - topH),
+                            size = Size(barWidthPx, topH),
+                            cornerRadius = cornerRadius
+                        )
+                        drawRoundRect(
+                            color = botColor,
+                            topLeft = Offset(x, baselineY + reflectGap),
+                            size = Size(barWidthPx, botH),
+                            cornerRadius = cornerRadius
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WaveformModeCard(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    leadingContent: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        },
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            leadingContent()
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WaveformColorSlider(
+    label: String,
+    value: Float,
+    valueText: String,
+    valueRange: ClosedFloatingPointRange<Float>,
+    gradientBrush: Brush,
+    onValueChange: (Float) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(34.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(gradientBrush)
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(6.dp)
+                    )
+            )
+
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = valueRange,
+                colors = SliderDefaults.colors(
+                    activeTrackColor = Color.Transparent,
+                    inactiveTrackColor = Color.Transparent,
+                    activeTickColor = Color.Transparent,
+                    inactiveTickColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
 

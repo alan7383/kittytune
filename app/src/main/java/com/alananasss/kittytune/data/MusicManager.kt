@@ -596,6 +596,7 @@ object MusicManager {
         val pb = prebuffered ?: return
         prebuffered = null
         try {
+            pb.player.playWhenReady = false
             pb.player.stop()
             pb.player.clearMediaItems()
         } catch (_: Exception) {}
@@ -611,6 +612,7 @@ object MusicManager {
 
         val inactivePlayer = if (activePlayerIndex == 1) getOrInitPlayer2() else _player1!!
         try {
+            inactivePlayer.playWhenReady = false
             inactivePlayer.stop()
             inactivePlayer.clearMediaItems()
             inactivePlayer.volume = 0f
@@ -674,10 +676,14 @@ object MusicManager {
             isAdopted = true
             basePlaybackParams = pb.basePlaybackParams
             prebuffered = null
+            if (kotlin.math.abs(newPlayer.currentPosition - startPositionMs) > 100L) {
+                newPlayer.seekTo(startPositionMs)
+            }
             Log.d("MusicManager", "Adopted prebuffered player for track $targetTrackId (state=${newPlayer.playbackState})")
         } else {
             isAdopted = false
             releasePrebuffered()
+            newPlayer.playWhenReady = false
             newPlayer.setMediaItem(mediaItem, startPositionMs)
             val base = try { newPlayer.playbackParameters } catch (_: Exception) { PlaybackParameters.DEFAULT }
             basePlaybackParams = base
@@ -749,6 +755,7 @@ object MusicManager {
 
                 if (actualCrossfadeMs <= 0L) {
                     newPlayer.volume = targetVolume
+                    oldPlayer.playWhenReady = false
                     oldPlayer.stop()
                     oldPlayer.clearMediaItems()
                 } else {
@@ -781,9 +788,14 @@ object MusicManager {
                         }
 
                         val progress = i.toFloat() / steps
-                        // Fade-out then fade-in with gentle dip (equal power curves)
-                        val fadeOut = equalPowerOut(0f, 0.6f, progress)
-                        val fadeIn = equalPowerIn(0.4f, 1f, progress)
+                        val (fadeOut, fadeIn) = if (effectivePlan != null) {
+                            // Fade-out then fade-in with gentle dip (equal power curves) for automix
+                            equalPowerOut(0f, 0.6f, progress) to equalPowerIn(0.4f, 1f, progress)
+                        } else {
+                            // Full-range smooth equal power curves for standard crossfade
+                            kotlin.math.cos(progress * (Math.PI / 2.0).toFloat()) to
+                                    kotlin.math.sin(progress * (Math.PI / 2.0).toFloat())
+                        }
 
                         newPlayer.volume = targetVolume * fadeIn
                         oldPlayer.volume = targetVolume * fadeOut
@@ -809,6 +821,7 @@ object MusicManager {
                     if (stillOwnsTransition) {
                         newPlayer.volume = targetVolume
                         oldPlayer.volume = 0f
+                        oldPlayer.playWhenReady = false
                         oldPlayer.stop()
                         oldPlayer.clearMediaItems()
                     }
@@ -863,6 +876,7 @@ object MusicManager {
     fun preloadNext(nextTrack: Track, context: Context) {
         preloadedTrack = nextTrack
         val inactivePlayer = if (activePlayerIndex == 1) getOrInitPlayer2() else _player1!!
+        inactivePlayer.playWhenReady = false
         inactivePlayer.stop()
         inactivePlayer.clearMediaItems()
 
