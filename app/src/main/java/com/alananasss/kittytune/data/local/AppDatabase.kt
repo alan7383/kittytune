@@ -469,7 +469,7 @@
             TrackTrimRow::class,
             BeatInfoEntity::class
         ],
-        version = 23,
+        version = 24,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
@@ -574,6 +574,16 @@
                 }
             }
 
+            /**
+             * Separate confidence for the phrase phase. Existing rows keep 0, which
+             * [gridTrust] reads as "analysed before this existed" rather than "unsure".
+             */
+            val MIGRATION_23_24 = object : Migration(23, 24) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE beat_info ADD COLUMN phraseConfidence REAL NOT NULL DEFAULT 0")
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -582,7 +592,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

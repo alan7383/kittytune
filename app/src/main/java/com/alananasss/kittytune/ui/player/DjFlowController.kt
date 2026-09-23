@@ -13,7 +13,8 @@ import com.alananasss.kittytune.audio.automix.BeatAnalysisPriority
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.BeatInfoEntity
 import com.alananasss.kittytune.data.local.PlayerPreferences
-import com.alananasss.kittytune.data.local.phraseAnchorMs
+import com.alananasss.kittytune.data.local.gridTrust
+import com.alananasss.kittytune.data.local.trustedAnchorMs
 import com.alananasss.kittytune.domain.Track
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -464,7 +465,7 @@ class DjFlowController(
             val currInfo = currentTrack?.let { beatCache[it.id.toString()] }
             // Counting from the classified phrase start, so beat 1 of the display is beat 1 of
             // the music. Counting from the raw beat grid put "the One" on a random beat.
-            val phraseAnchor = currInfo?.phraseAnchorMs ?: 0L
+            val phraseAnchor = currInfo?.trustedAnchorMs ?: 0L
             val elapsedSinceAnchor = positionMs - phraseAnchor
             val exactBeats = elapsedSinceAnchor / periodMs
             val totalBeats = kotlin.math.floor(exactBeats).toLong()
@@ -764,13 +765,17 @@ class DjFlowController(
             if (normCurrBpm > 0f && dur > 10_000L) {
                 val periodMs = 60_000.0 / normCurrBpm
                 val stylePhraseBeats = topMatch?.transitionStyle?.defaultPhraseBeats ?: 16
-                val phraseBeats = 16 // 4 bars per phrase
+                // How coarse the cue may be is the track's call, not a constant: a 16-beat
+                // claim on a downbeat the classifier only guessed lands the drop somewhere
+                // arbitrary while looking exactly as certain as a correct one.
+                val outTrust = currInfo?.gridTrust ?: com.alananasss.kittytune.data.local.GridTrust.PHRASE
+                val phraseBeats = outTrust.quantizeBeats
                 val phraseMs = periodMs * phraseBeats
                 val transitionDuration = (periodMs * stylePhraseBeats).toLong().coerceIn(4_000L, 20_000L)
                 plannedDuration = transitionDuration
 
                 val rawMixOut = currInfo?.mixOutPointMs?.takeIf { it > 0L } ?: (dur - 16_000L)
-                val outAnchor = currInfo?.phraseAnchorMs ?: 0L
+                val outAnchor = currInfo?.trustedAnchorMs ?: 0L
 
                 // Quantize Mix-Out to an exact 16-beat phrase boundary off the classified downbeat
                 val phraseCount = kotlin.math.max(1L, ((rawMixOut - outAnchor) / phraseMs).toLong())
@@ -791,8 +796,9 @@ class DjFlowController(
                         plannedTempoRatio = (normCurrBpm / normInBpm).coerceIn(0.92f, 1.08f)
                     }
                     val inPeriodMs = 60_000.0 / normInBpm
-                    val inPhraseMs = inPeriodMs * phraseBeats
-                    val inAnchor = targetInfo.phraseAnchorMs
+                    // The incoming track's own trust level, not the outgoing track's.
+                    val inPhraseMs = inPeriodMs * targetInfo.gridTrust.quantizeBeats
+                    val inAnchor = targetInfo.trustedAnchorMs
                     val rawMixIn = targetInfo.mixInPointMs?.takeIf { it > 0L } ?: inAnchor
                     val inK = kotlin.math.max(0L, kotlin.math.ceil((rawMixIn - inAnchor) / inPhraseMs).toLong())
                     val phraseDropMs = (inAnchor + inK * inPhraseMs).toLong().coerceAtLeast(0L)

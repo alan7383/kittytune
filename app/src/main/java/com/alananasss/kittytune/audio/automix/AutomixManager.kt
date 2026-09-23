@@ -6,7 +6,8 @@ import android.util.Log
 import com.alananasss.kittytune.data.StreamResolver
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.BeatInfoEntity
-import com.alananasss.kittytune.data.local.phraseAnchorMs
+import com.alananasss.kittytune.data.local.gridTrust
+import com.alananasss.kittytune.data.local.trustedAnchorMs
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Track
 import kotlinx.coroutines.CoroutineScope
@@ -268,6 +269,7 @@ object AutomixManager {
             downbeatOffsetMs = result.downbeatOffsetMs,
             phraseOffsetMs = result.phraseOffsetMs,
             downbeatConfidence = result.downbeatConfidence,
+            phraseConfidence = result.phraseConfidence,
             analysisVersion = BeatInfoEntity.CURRENT_ANALYSIS_VERSION,
         )
 
@@ -364,8 +366,10 @@ object AutomixManager {
         // Snap the fade start onto an 8-beat phrase boundary of the outgoing track's grid.
         // The anchor is a classified downbeat, so "phrase boundary" means an actual beat 1 -
         // quantizing against the raw beat grid lands the fade 1-3 beats off the One.
-        val phraseMs = periodMs * 8
-        val outAnchorMs = outBeat.phraseAnchorMs
+        // Half the track's trusted granularity: the fade start wants to be finer than a full
+        // phrase, but never finer than the grid can actually support.
+        val phraseMs = periodMs * max(2, outBeat.gridTrust.quantizeBeats / 2)
+        val outAnchorMs = outBeat.trustedAnchorMs
         val anchor = max(effectiveTrigger, currentPosition + 1000)
         val k = ((anchor - outAnchorMs) / phraseMs).toLong()
         var triggerTime = (outAnchorMs + k * phraseMs).toLong()
@@ -406,11 +410,11 @@ object AutomixManager {
 
         // Dynamic mix-in: skip incoming track's intro, snapped onto its 8-beat phrase grid
         val inPeriodMs = (60_000f / inBeat.bpm).toDouble()
-        val inAnchorMs = inBeat.phraseAnchorMs
+        val inAnchorMs = inBeat.trustedAnchorMs
         val rawStart = if (prefs.getAutomixDynamicMixPointsEnabled()) {
             inBeat.mixInPointMs?.takeIf { it > 0 } ?: inAnchorMs
         } else inAnchorMs
-        val inPhraseMs = inPeriodMs * 8
+        val inPhraseMs = inPeriodMs * max(2, inBeat.gridTrust.quantizeBeats / 2)
         val inK = ceil((rawStart - inAnchorMs) / inPhraseMs).toLong().coerceAtLeast(0)
         val incomingStart = (inAnchorMs + inK * inPhraseMs).toLong()
 

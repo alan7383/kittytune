@@ -57,6 +57,8 @@ object BeatAnalyzer {
         val phraseOffsetMs: Long = 0L,
         /** 0..1 confidence that beat 1 was identified correctly (see [DownbeatTracker]). */
         val downbeatConfidence: Float = 0f,
+        /** 0..1 confidence that the 16-beat phrase boundary was identified correctly. */
+        val phraseConfidence: Float = 0f,
     )
 
     private const val TAG = "BeatAnalyzer"
@@ -205,6 +207,7 @@ object BeatAnalyzer {
             downbeatOffsetMs = grid.downbeatOffsetMs,
             phraseOffsetMs = grid.phraseOffsetMs,
             downbeatConfidence = grid.downbeatConfidence,
+            phraseConfidence = grid.phraseConfidence,
         )
         return CachedAnalysis(result, complete = true)
     }
@@ -472,6 +475,7 @@ object BeatAnalyzer {
         val downbeatOffsetMs: Long,
         val phraseOffsetMs: Long,
         val downbeatConfidence: Float,
+        val phraseConfidence: Float,
     )
 
     /**
@@ -528,6 +532,7 @@ object BeatAnalyzer {
             downbeatOffsetMs = downbeatMs.roundToLong().coerceAtLeast(0L),
             phraseOffsetMs = phraseMs.roundToLong().coerceAtLeast(0L),
             downbeatConfidence = downbeat.confidence,
+            phraseConfidence = downbeat.phraseConfidence,
         )
     }
 
