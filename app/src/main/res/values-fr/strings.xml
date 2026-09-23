@@ -2510,4 +2510,15 @@
     <string name="share_card_qr">Pochette en code QR</string>
     <string name="share_card_send">Partager la carte</string>
     <string name="share_card_title">Partager en carte</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer_title">Égaliseur</string>
+    <string name="equalizer_subtitle">Égaliseur graphique 16 bandes et préampli</string>
+    <string name="equalizer_response_curve">Réponse en fréquence</string>
+    <string name="equalizer_presets">Préréglages</string>
+    <string name="equalizer_preamp">Préampli</string>
+    <string name="equalizer_bands_title">Bandes de fréquences</string>
+    <string name="equalizer_double_tap_hint">Appuyez deux fois sur une bande pour réinitialiser à 0 dB</string>
+    <string name="equalizer_reset">Réinitialiser l\'égaliseur</string>
+    <string name="equalizer_off">Désactivé</string>
 </resources>

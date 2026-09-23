@@ -2484,4 +2484,15 @@
     <string name="share_card_qr">Обложка как QR-код</string>
     <string name="share_card_send">Поделиться карточкой</string>
     <string name="share_card_title">Поделиться карточкой</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer_title">Эквалайзер</string>
+    <string name="equalizer_subtitle">16-полосный графический эквалайзер и предусилитель</string>
+    <string name="equalizer_response_curve">Амплитудно-частотная характеристика</string>
+    <string name="equalizer_presets">Пресеты</string>
+    <string name="equalizer_preamp">Предусилитель</string>
+    <string name="equalizer_bands_title">Частотные полосы</string>
+    <string name="equalizer_double_tap_hint">Дважды коснитесь полосы для сброса на 0 дБ</string>
+    <string name="equalizer_reset">Сбросить эквалайзер</string>
+    <string name="equalizer_off">Выкл</string>
 </resources>

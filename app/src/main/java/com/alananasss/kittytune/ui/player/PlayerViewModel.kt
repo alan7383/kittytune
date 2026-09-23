@@ -166,11 +166,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 MusicManager.init(context)
                 MusicManager.player.addListener(playerListener)
                 MusicManager.applyEffects(effectsState)
+                MusicManager.applyEqualizer(equalizerState)
                 return MusicManager.player
             }
         }
 
-    var effectsState by mutableStateOf(playerPrefs.getLastEffects())
+    var effectsState by mutableStateOf(playerPrefs.getLastEffects().copy(isEqualizerEnabled = playerPrefs.getEqualizerState().isEnabled))
+    var equalizerState by mutableStateOf(playerPrefs.getEqualizerState())
     var isPreciseSpeedEnabled by mutableStateOf(playerPrefs.getPreciseSpeedEnabled())
 
     var isHapticsEnabled by mutableStateOf(playerPrefs.getHapticsEnabled())
@@ -1095,6 +1097,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         MusicManager.init(context)
         bindToActivePlayer()
         MusicManager.applyEffects(effectsState)
+        MusicManager.applyEqualizer(equalizerState)
         applyRepeatMode()
         observeArtworkColors()
         observeAnimatedCovers()
@@ -4421,6 +4424,49 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 effectsState
             )
         }
+    }
+
+    private fun applyEqualizerAndSave() {
+        effectsState = effectsState.copy(isEqualizerEnabled = equalizerState.isEnabled)
+        MusicManager.applyEqualizer(equalizerState)
+        viewModelScope.launch(Dispatchers.IO) {
+            playerPrefs.saveEqualizerState(equalizerState)
+        }
+    }
+
+    fun toggleEqualizer() {
+        equalizerState = equalizerState.copy(isEnabled = !equalizerState.isEnabled)
+        applyEqualizerAndSave()
+    }
+
+    fun setEqualizerBand(bandIndex: Int, gainDb: Float) {
+        val currentGains = equalizerState.bandGainsDb.toMutableList()
+        if (bandIndex in currentGains.indices) {
+            currentGains[bandIndex] = gainDb.coerceIn(-12f, 12f)
+            equalizerState = equalizerState.copy(
+                bandGainsDb = currentGains,
+                selectedPreset = "Custom"
+            )
+            applyEqualizerAndSave()
+        }
+    }
+
+    fun setEqualizerPreamp(preampDb: Float) {
+        equalizerState = equalizerState.copy(preampDb = preampDb.coerceIn(-12f, 12f))
+        applyEqualizerAndSave()
+    }
+
+    fun applyEqualizerPreset(preset: EqualizerPreset) {
+        equalizerState = equalizerState.copy(
+            bandGainsDb = preset.bandGainsDb,
+            preampDb = preset.preampDb,
+            selectedPreset = preset.name
+        )
+        applyEqualizerAndSave()
+    }
+
+    fun resetEqualizer() {
+        applyEqualizerPreset(EqualizerPresets.Flat)
     }
 
     fun loadSocialProof(specificTrack: Track? = null) {

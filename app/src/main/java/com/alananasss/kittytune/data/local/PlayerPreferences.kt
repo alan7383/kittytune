@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.player.AudioEffectsState
+import com.alananasss.kittytune.ui.player.EqualizerState
 import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.RepeatMode
 import com.google.gson.Gson
@@ -198,6 +199,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_SYNC_LIKES = "sync_likes_enabled"
         private const val KEY_SLEEP_TIMER_FADE_DURATION = "sleep_timer_fade_duration"
         private const val KEY_SLEEP_TIMER_FADE_ENABLED = "sleep_timer_fade_enabled"
+        const val KEY_EQUALIZER_STATE = "equalizer_state_json"
 
         const val KEY_PROXY_ENABLED = "proxy_enabled"
         const val KEY_PROXY_TYPE = "proxy_type"
@@ -1109,6 +1111,19 @@ class PlayerPreferences(context: Context) {
 
     fun saveEffects(state: AudioEffectsState) {
         prefs.edit { putString(KEY_EFFECTS, gson.toJson(state)) }
+    }
+
+    fun getEqualizerState(): EqualizerState {
+        val json = prefs.getString(KEY_EQUALIZER_STATE, null) ?: return EqualizerState()
+        return try {
+            gson.fromJson(json, EqualizerState::class.java) ?: EqualizerState()
+        } catch (_: Exception) {
+            EqualizerState()
+        }
+    }
+
+    fun saveEqualizerState(state: EqualizerState) {
+        prefs.edit { putString(KEY_EQUALIZER_STATE, gson.toJson(state)) }
     }
 
     fun saveDownloadLocation(uriString: String?) {

@@ -2603,4 +2603,15 @@
     <string name="home_support_banner_donate_kofi">Support on Ko-fi</string>
     <string name="home_support_banner_dismiss">Dismiss</string>
     <string name="home_support_banner_remind_later">Remind me later</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer_title">Equalizer</string>
+    <string name="equalizer_subtitle">16-band graphic equalizer &amp; preamp</string>
+    <string name="equalizer_response_curve">Frequency Response</string>
+    <string name="equalizer_presets">Presets</string>
+    <string name="equalizer_preamp">Preamp</string>
+    <string name="equalizer_bands_title">Frequency Bands</string>
+    <string name="equalizer_double_tap_hint">Double tap any band to reset to 0 dB</string>
+    <string name="equalizer_reset">Reset Equalizer</string>
+    <string name="equalizer_off">Off</string>
 </resources>

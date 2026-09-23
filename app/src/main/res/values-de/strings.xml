@@ -2604,4 +2604,15 @@
     <string name="home_support_banner_donate_kofi">Auf Ko-fi unterstützen</string>
     <string name="home_support_banner_dismiss">Ausblenden</string>
     <string name="home_support_banner_remind_later">Später erinnern</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer_title">Equalizer</string>
+    <string name="equalizer_subtitle">16-Band Grafik-Equalizer &amp; Vorverstärker</string>
+    <string name="equalizer_response_curve">Frequenzgang</string>
+    <string name="equalizer_presets">Voreinstellungen</string>
+    <string name="equalizer_preamp">Vorverstärkung</string>
+    <string name="equalizer_bands_title">Frequenzbänder</string>
+    <string name="equalizer_double_tap_hint">Doppeltippen zum Zurücksetzen auf 0 dB</string>
+    <string name="equalizer_reset">Equalizer zurücksetzen</string>
+    <string name="equalizer_off">Aus</string>
 </resources>

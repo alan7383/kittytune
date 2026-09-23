@@ -2463,4 +2463,15 @@
     <string name="share_card_qr">Ảnh bìa dạng mã QR</string>
     <string name="share_card_send">Chia sẻ thẻ</string>
     <string name="share_card_title">Chia sẻ dạng thẻ</string>
+
+    <!-- Equalizer -->
+    <string name="equalizer_title">Bộ cân bằng</string>
+    <string name="equalizer_subtitle">Bộ cân bằng đồ họa 16 băng tần &amp; tiền khuếch đại</string>
+    <string name="equalizer_response_curve">Đáp tuyến tần số</string>
+    <string name="equalizer_presets">Cài đặt sẵn</string>
+    <string name="equalizer_preamp">Tiền khuếch đại</string>
+    <string name="equalizer_bands_title">Dải tần số</string>
+    <string name="equalizer_double_tap_hint">Chạm hai lần vào bất kỳ dải tần nào để đặt lại về 0 dB</string>
+    <string name="equalizer_reset">Đặt lại bộ cân bằng</string>
+    <string name="equalizer_off">Tắt</string>
 </resources>

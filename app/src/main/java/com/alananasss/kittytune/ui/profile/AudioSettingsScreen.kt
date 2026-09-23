@@ -31,6 +31,7 @@ import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
 
 @Composable
 fun AudioSettingsScreen(
@@ -75,6 +76,14 @@ fun AudioSettingsScreen(
     var showCrossfadeDurationDialog by remember { mutableStateOf(false) }
     var showNormalizationDialog by remember { mutableStateOf(false) }
     var showNormalizationInfoDialog by remember { mutableStateOf(false) }
+    var showEqualizerSheet by remember { mutableStateOf(false) }
+
+    if (showEqualizerSheet) {
+        EqualizerSheet(
+            viewModel = playerViewModel,
+            onDismiss = { showEqualizerSheet = false }
+        )
+    }
 
     if (showFadeDurationDialog) {
         AlertDialog(
@@ -423,10 +432,23 @@ fun AudioSettingsScreen(
                     SettingsGroupTitle("Audio DSP")
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = 3
+                        val totalVisibleItems = 4
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 0),
+                            title = stringResource(R.string.equalizer_title),
+                            subtitle = if (playerViewModel.equalizerState.isEnabled) {
+                                playerViewModel.equalizerState.selectedPreset
+                            } else {
+                                stringResource(R.string.equalizer_subtitle)
+                            },
+                            onClick = { showEqualizerSheet = true },
+                            switchState = playerViewModel.equalizerState.isEnabled,
+                            onSwitchChange = { playerViewModel.toggleEqualizer() }
+                        )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 0),
+                            shape = getSettingsShape(totalVisibleItems, 1),
                             title = stringResource(R.string.pref_audio_mono),
                             subtitle = stringResource(R.string.pref_audio_mono_sub),
                             hasSwitch = true,
@@ -435,7 +457,7 @@ fun AudioSettingsScreen(
                         )
 
                         SplitSettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 1),
+                            shape = getSettingsShape(totalVisibleItems, 2),
                             title = stringResource(R.string.pref_norm_title),
                             subtitle = stringResource(R.string.pref_norm_sub),
                             onClick = { showNormalizationDialog = true },
@@ -444,7 +466,7 @@ fun AudioSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 2),
+                            shape = getSettingsShape(totalVisibleItems, 3),
                             title = stringResource(R.string.pref_haptics_title),
                             subtitle = stringResource(R.string.pref_haptics_subtitle),
                             hasSwitch = true,
