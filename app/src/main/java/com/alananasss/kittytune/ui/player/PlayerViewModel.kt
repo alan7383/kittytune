@@ -1,3 +1,9 @@
+/**
+ * Developed by Jason-Marshall Fastner, Germany <jasonfastner@protonmail.com>
+ * Questions, feedback, or beat-matching debates? Feel free to reach out via email!
+ * 
+ * Note: Cats always land on their feet, and with this engine, your transitions will too.
+ */
 package com.alananasss.kittytune.ui.player
 
 import android.app.Application
@@ -516,6 +522,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var pendingSeekPosition: Long? = null
     private var saveQueueJob: Job? = null
     private companion object {
+
         /**
          * How often the trim watcher looks at the clock (issue #33).
          *
@@ -556,6 +563,94 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Whether the trim editor is open. */
     var showTrimDialog by mutableStateOf(false)
+
+    /** Whether the DJ Flow developer debug console is open. */
+    /**
+     * True while the player UI that renders the live beat grid is on screen.
+     *
+     * The 25 Hz position ticker exists only to drive those animations. With the screen off or
+     * the player closed there is nothing to animate, and running it anyway costs close to a
+     * full CPU core for no visible effect - measured at ~232 % vs ~135 % with DJ Flow off.
+     */
+    /** Guards against repeated skip presses; see [requestSkipNext]. */
+    private var lastSkipRequestAt: Long = 0L
+
+    var isDjBeatUiVisible by mutableStateOf(false)
+
+    var showDjDebugSheet by mutableStateOf(false)
+
+    private var djCustomCrossfadeDurationMs: Long? = null
+    private var djCustomStartPositionMs: Long? = null
+    private var djCustomTempoRatio: Float? = null
+    private var djCustomPhaseOffsetMs: Long? = null
+
+    /** Modular DJ Flow controller orchestrating non-stop harmonic transitions. */
+    val djFlowController: DjFlowController = DjFlowController(
+        context = getApplication<Application>().applicationContext,
+        scope = viewModelScope,
+        prefs = playerPrefs,
+        onSeekTo = { pos ->
+            try {
+                player.seekTo(pos)
+                currentPosition = pos
+            } catch (_: Exception) {}
+        }
+    ).apply {
+        onExecuteTransition = { targetTrack, crossfadeDurationMs ->
+            if (targetTrack != null) {
+                val existingIdx = _queue.indexOfFirst { it.id == targetTrack.id }
+                if (existingIdx > currentQueueIndex + 1) {
+                    val item = _queue.removeAt(existingIdx)
+                    _queue.add(currentQueueIndex + 1, item)
+                    queueState = _queue.toList()
+                } else if (existingIdx < 0) {
+                    _queue.add(currentQueueIndex + 1, targetTrack)
+                    queueState = _queue.toList()
+                }
+            }
+            val djState = flowState.value
+            djCustomCrossfadeDurationMs = crossfadeDurationMs
+            djCustomStartPositionMs = djState.incomingDropPointMs
+            djCustomTempoRatio = djState.sync.tempoRatio
+            djCustomPhaseOffsetMs = djState.sync.phaseOffsetMs
+            MusicManager.beginCrossfadeRequest()
+            com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+            playNext(manual = false, isCrossfade = true)
+        }
+        onRequestAutonomousTransition = { targetTrack, startPositionMs, crossfadeDurationMs, tempoRatio, phaseOffsetMs ->
+            val existingIdx = _queue.indexOfFirst { it.id == targetTrack.id }
+            if (existingIdx > currentQueueIndex + 1) {
+                val item = _queue.removeAt(existingIdx)
+                _queue.add(currentQueueIndex + 1, item)
+                queueState = _queue.toList()
+            } else if (existingIdx < 0) {
+                _queue.add(currentQueueIndex + 1, targetTrack)
+                queueState = _queue.toList()
+            }
+            djCustomCrossfadeDurationMs = crossfadeDurationMs
+            djCustomStartPositionMs = startPositionMs
+            djCustomTempoRatio = tempoRatio
+            djCustomPhaseOffsetMs = phaseOffsetMs
+            MusicManager.beginCrossfadeRequest()
+            com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+            playNext(manual = false, isCrossfade = true)
+        }
+        onRequestPromoteTrack = { fromIdx, toIdx ->
+            moveQueueItem(fromIdx, toIdx)
+        }
+        onRequestPrebuffer = { targetTrack, startPos ->
+            if (!MusicManager.isCrossfadingOut && !MusicManager.isPrebuffered(targetTrack.id)) {
+                val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
+                triggerPrebuffer(targetTrack, automixPlan)
+            }
+        }
+        onRequestAppendToQueue = { tracks ->
+            addToQueue(tracks)
+        }
+        onRequestPlayTracks = { tracks ->
+            playPlaylist(tracks)
+        }
+    }
 
     private var trimJob: Job? = null
     private var trimWatchJob: Job? = null
@@ -1199,10 +1294,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
-        MusicManager.onNextClick = {
-            val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
-            playNext(manual = true, isCrossfade = crossfadeEnabled)
-        }
+        MusicManager.onNextClick = { requestSkipNext() }
         MusicManager.onPreviousClick = { smartPrevious() }
 
         MusicManager.onTrackChange = trackChangeHandler@{ newTrack ->
@@ -3395,6 +3487,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         hasPushedRecentlyPlayed = false
 
         currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
+        djFlowController.onTrackChanged(trackToPlay)
+        djFlowController.onQueueUpdated(_queue.toList(), currentQueueIndex)
         val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
         startServiceSafe(context, intent)
 
@@ -3433,7 +3527,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             saveStateAsync(saveQueue = false)
 
             val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
-            val startPos = if (isCrossfade && automixPlan != null) automixPlan.incomingStartMs else 0L
+            val djState = djFlowController.flowState.value
+            val startPos = if (isCrossfade) {
+                if (djCustomStartPositionMs != null) {
+                    val custom = djCustomStartPositionMs!!
+                    djCustomStartPositionMs = null
+                    custom
+                } else if (djState.isActive && djState.incomingDropPointMs != null && djState.incomingDropPointMs > 0L) {
+                    djState.incomingDropPointMs
+                } else if (automixPlan != null) {
+                    automixPlan.incomingStartMs
+                } else 0L
+            } else 0L
 
             SoundCloudTelemetryTracker.onTrackStarted(
                 track = finalTrack,
@@ -3452,6 +3557,51 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             ) {
                 HistoryRepository.addToHistory(finalTrack)
             }
+        }
+    }
+
+    /**
+     * Single entry point for every "next" the user triggers — the on-screen buttons, a
+     * headphone click, the notification, the widget and the media session all route here.
+     *
+     * Two things have to be handled that a direct [playNext] call does not:
+     *
+     * **Rapid presses.** Each skip starts a track load, and there was no debounce anywhere: on a
+     * headphone button that repeats, or an impatient tap-tap-tap, loads stacked on top of each
+     * other. With DJ Flow that also re-entered the transition planner mid-transition, which is
+     * how three crossfades ended up running inside 0.7 s.
+     *
+     * **What a skip means in DJ Flow.** With the engine running, a cut to the next track is the
+     * one thing the feature exists to avoid. The first press therefore blends — immediately, not
+     * on the next phrase, because a button that appears to do nothing for three seconds feels
+     * broken. A second press while that blend is running means the listener wants out now, so it
+     * falls through to a hard skip.
+     */
+    fun requestSkipNext() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val dj = djFlowController.flowState.value
+        val action = SkipDecision.decide(
+            sinceLastPressMs = now - lastSkipRequestAt,
+            djActive = dj.isActive,
+            hasNextMatch = dj.nextTrackMatch != null,
+            transitionRunning = MusicManager.isCrossfadingOut ||
+                dj.transitionPhase != TransitionPhase.IDLE,
+        )
+        if (action == SkipAction.IGNORE) return
+        lastSkipRequestAt = now
+
+        when (action) {
+            SkipAction.BLEND -> {
+                android.util.Log.d("PlayerViewModel", "Skip -> DJ blend")
+                djFlowController.triggerTransition()
+            }
+            SkipAction.HARD_SKIP -> {
+                android.util.Log.d("PlayerViewModel", "Skip -> hard cut")
+                // Stop the engine finishing a fade into a track the listener just skipped past.
+                djFlowController.cancelTransition()
+                playNext(manual = true, isCrossfade = playerPrefs.getCrossfadeEnabled())
+            }
+            SkipAction.IGNORE -> {}
         }
     }
 
@@ -3762,6 +3912,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updateQueueState() {
         queueState = _queue.toList()
+        djFlowController.onQueueUpdated(queueState, currentQueueIndex)
     }
 
     fun moveQueueItem(from: Int, to: Int) {
@@ -4673,6 +4824,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             val isGuest = tokenManager.isGuestMode()
             var lastSaveTime = System.currentTimeMillis()
             var lastAutomixCheckTime = 0L
+            // Playtime is counted in seconds, so it has to follow the clock rather than the
+            // loop: the tick rate varies from 40 ms to 500 ms, and adding 1 per tick counted
+            // 25 seconds per second in DJ mode and 2 outside it.
+            var lastPlayTimeCreditAt = System.currentTimeMillis()
+            // Preferences change when the user opens settings, not 25 times a second.
+            var prefsReadAt = 0L
+            var crossfadeEnabledCached = false
+            var automixEnabledCached = false
+            var crossfadeMsCached = 0L
+            var gaplessCached = false
             while (isActive && isPlaying) {
                 try {
                     if (!isScrubbing && !isLoading) {
@@ -4688,9 +4849,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             saveStateAsync(savePositionOnly = true)
                         }
 
-                        val crossfadeEnabled = playerPrefs.getCrossfadeEnabled()
-                        val automixEnabled = playerPrefs.getAutomixEnabled()
-                        val crossfadeMs = playerPrefs.getCrossfadeDuration() * 1000L
+                        if (now - prefsReadAt > 1000L) {
+                            prefsReadAt = now
+                            crossfadeEnabledCached = playerPrefs.getCrossfadeEnabled()
+                            automixEnabledCached = playerPrefs.getAutomixEnabled()
+                            crossfadeMsCached = playerPrefs.getCrossfadeDuration() * 1000L
+                            gaplessCached = playerPrefs.getCrossfadeGapless()
+                        }
+                        val crossfadeEnabled = crossfadeEnabledCached
+                        val automixEnabled = automixEnabledCached
+                        val crossfadeMs = crossfadeMsCached
                         val exoDur = if (MusicManager.player.duration > 0) MusicManager.player.duration else 0L
                         val trackDur = currentTrack?.durationMs ?: 0L
                         // Prefer ExoPlayer's reported duration when available; it is the ground
@@ -4700,12 +4868,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         // or incorrect value (e.g. 5 hours) that does not match the stream
                         // (issue #33).
                         val dur = if (exoDur > 0L) exoDur else trackDur
+                        djFlowController.onPositionUpdated(currentPosition, dur)
 
                         val currTrack = currentTrack
                         val nextIdx = if (repeatMode == RepeatMode.ONE) currentQueueIndex else currentQueueIndex + 1
                         val nextTrack = if (nextIdx in _queue.indices) _queue[nextIdx] else if (repeatMode == RepeatMode.ALL && _queue.isNotEmpty()) _queue[0] else null
 
-                        val isGaplessAlbum = playerPrefs.getCrossfadeGapless() && currTrack != null && nextTrack != null && run {
+                        val isGaplessAlbum = gaplessCached && currTrack != null && nextTrack != null && run {
                             val currAlbum = currTrack.publisherMetadata?.albumTitle?.takeIf { it.isNotBlank() }
                                 ?: currTrack.publisherMetadata?.releaseTitle?.takeIf { it.isNotBlank() }
                                 ?: currTrack.publisherMetadata?.albumId?.takeIf { it.isNotBlank() }
@@ -4715,7 +4884,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             currAlbum != null && currAlbum == nextAlbum
                         }
 
-                        if (automixEnabled && currTrack != null) {
+                        val isDjFlowActive = djFlowController.flowState.value.isActive || showDjDebugSheet
+                        if ((automixEnabled || isDjFlowActive) && currTrack != null) {
                             if (now - lastAutomixCheckTime > 2000L) {
                                 lastAutomixCheckTime = now
                                 com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(currTrack, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.IMMEDIATE)
@@ -4790,16 +4960,37 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
                         }
                     }
-                    AchievementManager.addPlayTime(1, isGuest, effectsState.speed)
-                    if (effectsState.isBassBoostEnabled || effectsState.isEarrapeEnabled) AchievementManager.increment(
-                        "bass_addict",
-                        1
-                    )
+                    // Credit whole seconds of wall time, independent of the tick rate. Each
+                    // call writes nine achievement counters to SharedPreferences, so doing it
+                    // per tick was also 225 writes a second in DJ mode.
+                    val sinceCredit = System.currentTimeMillis() - lastPlayTimeCreditAt
+                    if (sinceCredit >= 1000L) {
+                        val seconds = (sinceCredit / 1000L).toInt()
+                        lastPlayTimeCreditAt += seconds * 1000L
+                        AchievementManager.addPlayTime(seconds, isGuest, effectsState.speed)
+                        if (effectsState.isBassBoostEnabled || effectsState.isEarrapeEnabled) {
+                            AchievementManager.increment("bass_addict", seconds)
+                        }
+                    }
 
                 } catch (_: Exception) {
                 }
                 val durForDelay = if (MusicManager.player.duration > 0) MusicManager.player.duration else duration
-                val sleepTime = if (durForDelay > 0 && (durForDelay - currentPosition) < 25000L) 200L else 500L
+                val isDjActive = djFlowController.flowState.value.isActive || showDjDebugSheet
+                val sleepTime = if (isDjActive && (isDjBeatUiVisible || showDjDebugSheet)) {
+                    40L // 25 fps beat ticker, only while something is on screen to animate
+                } else if (isDjActive) {
+                    // DJ Flow running with nothing to draw: still poll often enough that the
+                    // autonomous trigger fires on time, but stop burning a core on animation
+                    // frames nobody sees. The transition prebuffers seconds ahead and the decks
+                    // are phase-locked from live positions afterwards, so a quarter second of
+                    // trigger jitter is absorbed rather than heard.
+                    250L
+                } else if (durForDelay > 0 && (durForDelay - currentPosition) < 25000L) {
+                    200L
+                } else {
+                    500L
+                }
                 delay(sleepTime)
             }
         }
@@ -5137,9 +5328,44 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                     if (MusicManager.player.duration > 0) duration = MusicManager.player.duration
                     startProgressUpdate()
-                    val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
+                    val crossfadeDurationMs = if (djCustomCrossfadeDurationMs != null) {
+                        val d = djCustomCrossfadeDurationMs!!
+                        djCustomCrossfadeDurationMs = null
+                        d
+                    } else if (djFlowController.flowState.value.let { it.isActive && it.plannedTransitionDurationMs > 0L }) {
+                        djFlowController.flowState.value.plannedTransitionDurationMs
+                    } else {
+                        playerPrefs.getCrossfadeDuration() * 1000L
+                    }
+                    val tempoRatio = if (djCustomTempoRatio != null) {
+                        val r = djCustomTempoRatio!!
+                        djCustomTempoRatio = null
+                        r
+                    } else if (djFlowController.flowState.value.isActive) {
+                        djFlowController.flowState.value.sync.tempoRatio
+                    } else 1.0f
+
+                    val phaseOffset = if (djCustomPhaseOffsetMs != null) {
+                        val p = djCustomPhaseOffsetMs!!
+                        djCustomPhaseOffsetMs = null
+                        p
+                    } else if (djFlowController.flowState.value.isActive) {
+                        djFlowController.flowState.value.sync.phaseOffsetMs
+                    } else 0L
+
                     val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
-                    MusicManager.crossfadeToMediaItem(emptyItem, startPosition, crossfadeDurationMs, automixPlan)
+                    val isDjConstantEnergy = djFlowController.flowState.value.let { it.isActive && it.isConstantEnergyEnabled }
+                    MusicManager.crossfadeToMediaItem(
+                        emptyItem,
+                        startPosition,
+                        crossfadeDurationMs,
+                        automixPlan,
+                        isDjConstantEnergy = isDjConstantEnergy,
+                        djTempoRatio = tempoRatio,
+                        djPhaseOffsetMs = phaseOffset,
+                        outgoingGrid = djFlowController.flowState.value.sync.outgoingGrid,
+                        incomingGrid = djFlowController.flowState.value.sync.incomingGrid
+                    )
                     MusicManager.applyEffects(effectsState)
                     preloadNextTrack(index + 1)
                 } catch (e: Exception) {
@@ -5251,9 +5477,44 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     queueChunkingJob?.cancel()
 
                     if (isCrossfade) {
-                        val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
+                        val crossfadeDurationMs = if (djCustomCrossfadeDurationMs != null) {
+                            val d = djCustomCrossfadeDurationMs!!
+                            djCustomCrossfadeDurationMs = null
+                            d
+                        } else if (djFlowController.flowState.value.let { it.isActive && it.plannedTransitionDurationMs > 0L }) {
+                            djFlowController.flowState.value.plannedTransitionDurationMs
+                        } else {
+                            playerPrefs.getCrossfadeDuration() * 1000L
+                        }
+                        val tempoRatio = if (djCustomTempoRatio != null) {
+                            val r = djCustomTempoRatio!!
+                            djCustomTempoRatio = null
+                            r
+                        } else if (djFlowController.flowState.value.isActive) {
+                            djFlowController.flowState.value.sync.tempoRatio
+                        } else 1.0f
+
+                        val phaseOffset = if (djCustomPhaseOffsetMs != null) {
+                            val p = djCustomPhaseOffsetMs!!
+                            djCustomPhaseOffsetMs = null
+                            p
+                        } else if (djFlowController.flowState.value.isActive) {
+                            djFlowController.flowState.value.sync.phaseOffsetMs
+                        } else 0L
+
                         val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
-                        MusicManager.crossfadeToMediaItem(newMediaItem, startPosition, crossfadeDurationMs, automixPlan)
+                        val isDjConstantEnergy = djFlowController.flowState.value.let { it.isActive && it.isConstantEnergyEnabled }
+                        MusicManager.crossfadeToMediaItem(
+                            newMediaItem,
+                            startPosition,
+                            crossfadeDurationMs,
+                            automixPlan,
+                            isDjConstantEnergy = isDjConstantEnergy,
+                            djTempoRatio = tempoRatio,
+                            djPhaseOffsetMs = phaseOffset,
+                            outgoingGrid = djFlowController.flowState.value.sync.outgoingGrid,
+                            incomingGrid = djFlowController.flowState.value.sync.incomingGrid
+                        )
                     } else {
                         MusicManager.player.setMediaItem(newMediaItem, startPosition)
                         MusicManager.player.prepare()

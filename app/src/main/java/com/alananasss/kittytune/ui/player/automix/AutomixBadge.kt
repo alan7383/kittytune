@@ -1,3 +1,9 @@
+/**
+ * Developed by Jason-Marshall Fastner, Germany <jasonfastner@protonmail.com>
+ * Questions, feedback, or beat-matching debates? Feel free to reach out via email!
+ * 
+ * Note: Cats always land on their feet, and with this engine, your transitions will too.
+ */
 package com.alananasss.kittytune.ui.player.automix
 
 import androidx.compose.animation.AnimatedVisibility
@@ -118,7 +124,7 @@ fun AutomixBadge(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.GraphicEq,
@@ -136,6 +142,21 @@ fun AutomixBadge(
                         color = textColor.copy(alpha = beatAlpha),
                         maxLines = 1,
                     )
+                    // Animated 4-Beat LED grid
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        (1..4).forEach { dotIdx ->
+                            val isCurrentBeat = (((32 - beats) % 4) + 1) == dotIdx
+                            Box(
+                                modifier = Modifier
+                                    .size(if (isCurrentBeat) 6.dp else 4.dp)
+                                    .clip(androidx.compose.foundation.shape.CircleShape)
+                                    .background(if (isCurrentBeat) textColor else textColor.copy(alpha = 0.3f))
+                            )
+                        }
+                    }
                 }
             }
         }

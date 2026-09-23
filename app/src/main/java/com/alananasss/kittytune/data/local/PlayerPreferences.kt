@@ -1,3 +1,9 @@
+/**
+ * Developed by Jason-Marshall Fastner, Germany <jasonfastner@protonmail.com>
+ * Questions, feedback, or beat-matching debates? Feel free to reach out via email!
+ * 
+ * Note: Cats always land on their feet, and with this engine, your transitions will too.
+ */
 package com.alananasss.kittytune.data.local
 
 import android.content.Context
@@ -184,6 +190,16 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUTOMIX_DYNAMIC_MIX_POINTS = "automix_dynamic_mix_points"
         private const val KEY_AUTOMIX_BASS_DUCKING = "automix_bass_ducking"
         private const val KEY_AUTOMIX_OVERLAP_MODE = "automix_overlap_mode"
+        private const val KEY_DJ_FLOW_ENABLED = "dj_flow_enabled"
+        private const val KEY_DJ_FLOW_ENERGY_MODE = "dj_flow_energy_mode"
+        private const val KEY_DJ_FLOW_AUTONOMOUS_ENABLED = "dj_flow_autonomous_enabled"
+        private const val KEY_DJ_FLOW_CONSTANT_ENERGY = "dj_flow_constant_energy"
+        private const val KEY_DJ_FLOW_AUTO_REORDER = "dj_flow_auto_reorder"
+        private const val KEY_DJ_FLOW_LOOP_EXTENSION = "dj_flow_loop_extension"
+        private const val KEY_DJ_FLOW_LOOP_BEATS = "dj_flow_loop_beats"
+        private const val KEY_DJ_FLOW_INFINITE_STREAM = "dj_flow_infinite_stream"
+        private const val KEY_DJ_FLOW_CATEGORY = "dj_flow_category"
+        private const val KEY_DJ_FLOW_AUTO_STEM_CUT = "dj_flow_auto_stem_cut"
         private const val KEY_CACHED_USER_ID = "cached_user_id"
         private const val KEY_CACHED_USERNAME = "cached_username"
         private const val KEY_KEY_COLOR = "key_color"
@@ -290,6 +306,36 @@ class PlayerPreferences(context: Context) {
 
     fun getAutomixOverlapMode(): Int = prefs.getInt(KEY_AUTOMIX_OVERLAP_MODE, 0)
     fun setAutomixOverlapMode(mode: Int) = prefs.edit { putInt(KEY_AUTOMIX_OVERLAP_MODE, mode) }
+
+    fun getDjFlowEnabled(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_ENABLED, false)
+    fun setDjFlowEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_ENABLED, enabled) }
+
+    fun getDjFlowEnergyMode(): String = prefs.getString(KEY_DJ_FLOW_ENERGY_MODE, "HOLD") ?: "HOLD"
+    fun setDjFlowEnergyMode(mode: String) = prefs.edit { putString(KEY_DJ_FLOW_ENERGY_MODE, mode) }
+
+    fun getDjFlowAutonomousEnabled(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_AUTONOMOUS_ENABLED, true)
+    fun setDjFlowAutonomousEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_AUTONOMOUS_ENABLED, enabled) }
+
+    fun getDjFlowConstantEnergy(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_CONSTANT_ENERGY, true)
+    fun setDjFlowConstantEnergy(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_CONSTANT_ENERGY, enabled) }
+
+    fun getDjFlowAutoReorder(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_AUTO_REORDER, true)
+    fun setDjFlowAutoReorder(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_AUTO_REORDER, enabled) }
+
+    fun getDjFlowLoopExtension(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_LOOP_EXTENSION, false)
+    fun setDjFlowLoopExtension(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_LOOP_EXTENSION, enabled) }
+
+    fun getDjFlowLoopBeats(): Int = prefs.getInt(KEY_DJ_FLOW_LOOP_BEATS, 8)
+    fun setDjFlowLoopBeats(beats: Int) = prefs.edit { putInt(KEY_DJ_FLOW_LOOP_BEATS, beats) }
+
+    fun getDjFlowInfiniteStream(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_INFINITE_STREAM, true)
+    fun setDjFlowInfiniteStream(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_INFINITE_STREAM, enabled) }
+
+    fun getDjFlowCategory(): String = prefs.getString(KEY_DJ_FLOW_CATEGORY, "Meine Likes") ?: "Meine Likes"
+    fun setDjFlowCategory(category: String) = prefs.edit { putString(KEY_DJ_FLOW_CATEGORY, category) }
+
+    fun getDjFlowAutoStemCut(): Boolean = prefs.getBoolean(KEY_DJ_FLOW_AUTO_STEM_CUT, true)
+    fun setDjFlowAutoStemCut(enabled: Boolean) = prefs.edit { putBoolean(KEY_DJ_FLOW_AUTO_STEM_CUT, enabled) }
 
     fun getCustomFontEnabled() = prefs.getBoolean(KEY_CUSTOM_FONT_ENABLED, true)
     fun setCustomFontEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CUSTOM_FONT_ENABLED, enabled) }
@@ -566,6 +612,7 @@ class PlayerPreferences(context: Context) {
         PaxsenixClient.setApiKey(key)
         prefs.edit { putString(KEY_PAXSENIX_API_KEY, key) }
     }
+
 
     fun getLyricsTranslationEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_TRANSLATION, false)
     fun setLyricsTranslationEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_TRANSLATION, enabled) }

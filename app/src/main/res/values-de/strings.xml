@@ -2576,4 +2576,20 @@
     <string name="home_support_banner_donate_kofi">Auf Ko-fi unterstützen</string>
     <string name="home_support_banner_dismiss">Ausblenden</string>
     <string name="home_support_banner_remind_later">Später erinnern</string>
+
+    <!-- DJ Flow / DJ assistant -->
+    <string name="dj_flow_subtitle_on">Non-Stop-Mix</string>
+    <string name="dj_flow_subtitle_off">Aus</string>
+    <string name="dj_flow_key">Tonart</string>
+    <string name="dj_flow_analysing">Analysiere…</string>
+    <string name="dj_flow_bar_beat">Takt %1$d/4 · Beat %2$d/16</string>
+    <string name="dj_flow_ask_button">Was möchtest du hören?</string>
+    <string name="dj_flow_next_up">Als Nächstes</string>
+    <string name="dj_flow_unknown_track">Unbekannt</string>
+    <string name="dj_flow_match_summary">%1$d%% Übereinstimmung</string>
+    <string name="dj_flow_mixing_in_bars">Übergang in %1$d Takten</string>
+    <string name="dj_flow_mixing_in_bar">Übergang in 1 Takt</string>
+    <string name="dj_flow_mixing_now">Übergang läuft</string>
+    <string name="dj_flow_mix_now">Jetzt überblenden</string>
+    <string name="dj_flow_empty_queue">Füge Songs zur Warteschlange hinzu, damit der DJ planen kann.</string>
 </resources>

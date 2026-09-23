@@ -124,6 +124,7 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.QueueContent
 import com.alananasss.kittytune.ui.player.SleepTimerDialog
 import com.alananasss.kittytune.ui.player.TrackTrimDialog
+import com.alananasss.kittytune.ui.player.DjDevDebugSheet
 import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
 import com.alananasss.kittytune.ui.player.cover.CanvasVideo
 import com.alananasss.kittytune.ui.theme.GoogleSansRounded
@@ -954,7 +955,7 @@ fun PixelPlayerScreen(
                     isLoadingProvider = { viewModel.isLoading },
                     onPrevious = { viewModel.smartPrevious() },
                     onPlayPause = { viewModel.togglePlayPause() },
-                    onNext = { viewModel.playNext() },
+                    onNext = { viewModel.requestSkipNext() },
                     height = 80.dp,
                     colorOtherButtons = skipContainer,
                     colorPlayPause = playPauseContainer,
@@ -1043,6 +1044,7 @@ fun PixelPlayerScreen(
 
         SleepTimerDialog(viewModel)
         TrackTrimDialog(viewModel)
+        DjDevDebugSheet(viewModel)
     }
 }
 
