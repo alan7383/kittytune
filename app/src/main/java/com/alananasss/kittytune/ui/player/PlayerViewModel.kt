@@ -619,7 +619,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private suspend fun applyTrimNow() {
         val trim = currentTrim
         if (trim.isEmpty) return
-        val duration = if (player.duration > 0) player.duration else (currentTrack?.durationMs ?: 0L)
+        val duration = if (player.duration > 0) player.duration else (currentTrack?.actualDurationMs ?: 0L)
         when (val action = trim.actionFor(player.currentPosition, duration)) {
             is com.alananasss.kittytune.audio.TrimAction.Continue -> Unit
 
@@ -778,7 +778,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
                 if (MusicManager.player.duration > 0) {
                     val exoDuration = MusicManager.player.duration
-                    val trackDuration = currentTrack?.durationMs ?: 0L
+                    val trackDuration = currentTrack?.actualDurationMs ?: 0L
                     duration = exoDuration
 
                     // Detect preview / wrong-stream situations: if ExoPlayer reports a duration
@@ -1071,7 +1071,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val title = track.title?.trim().orEmpty()
                 val artist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }.trim()
                 val album = track.publisherMetadata?.albumTitle
-                val durationSec = ((track.durationMs ?: 0L) / 1000L).toInt().takeIf { it > 0 }
+                val durationSec = (track.actualDurationMs / 1000L).toInt().takeIf { it > 0 }
                 val isrc = track.publisherMetadata?.isrc
 
                 val resolved = com.alananasss.kittytune.data.cover.AnimatedCoverResolver.resolve(
@@ -1796,7 +1796,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (localTrack.localAudioPath.isEmpty()) return null
         val raw = LyricsUtils.extractLocalLyrics(localTrack.localAudioPath)
         if (raw.isNullOrBlank()) return null
-        val trackDurationMs = track.durationMs ?: 0L
+        val trackDurationMs = track.actualDurationMs
         val parsed = LyricsUtils.parseLyricsContent(raw, trackDurationMs)
         return LyricsPayload(
             lines = parsed.ifEmpty { listOf(LyricLine(raw, 0, trackDurationMs)) },
@@ -1895,7 +1895,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val target = LyricsMatcher.Target(
             title = parsedTitle.ifBlank { track.title ?: "" },
             artist = parsedArtist.ifBlank { effectiveArtist },
-            durationMs = track.durationMs ?: 0L,
+            durationMs = track.actualDurationMs,
             alternativeTitles = listOfNotNull(track.title, parsedTitle, track.title?.let { LyricsMatcher.cleanNoiseAndBrackets(it) }).filter { it.isNotBlank() }.distinct(),
             alternativeArtists = listOfNotNull(
                 track.displayArtist,
@@ -1904,7 +1904,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 track.user?.username,
             ).filter { it.isNotBlank() }.distinct(),
         )
-        val trackDurationMs = track.durationMs ?: 0L
+        val trackDurationMs = track.actualDurationMs
         val orderedProviders = playerPrefs.getLyricsProviderOrder()
             .filter { playerPrefs.getLyricsProviderEnabled(it) }
             .ifEmpty { DefaultLyricsProviderOrder }
@@ -2118,7 +2118,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun loadCustomLyrics(content: String) {
         viewModelScope.launch {
-            val trackDuration = currentTrack?.durationMs ?: 0L
+            val trackDuration = currentTrack?.actualDurationMs ?: 0L
             val resultLines = LyricsUtils.parseLyricsContent(content, trackDuration)
             withContext(Dispatchers.Main) {
                 lyricsLines.clear()
@@ -2268,7 +2268,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         val p = LyricsProviders.all[pref]
                         if (p != null) {
                             val trackArtist = currentTrack?.displayArtist?.ifBlank { currentTrack?.user?.username.orEmpty() }?.trim().orEmpty()
-                            val trackDuration = ((currentTrack?.durationMs ?: 0L) / 1000L).toInt()
+                            val trackDuration = ((currentTrack?.actualDurationMs ?: 0L) / 1000L).toInt()
                             val trackAlbum = currentTrack?.publisherMetadata?.albumTitle
 
                             val candidates = LyricsMatcher.generateCandidatePairs(query, trackArtist)
@@ -2302,7 +2302,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                         name = matchedTitle,
                                         artistName = matchedArtist.ifBlank { trackArtist },
                                         albumName = trackAlbum,
-                                        durationSec = ((currentTrack?.durationMs ?: 0L) / 1000.0),
+                                        durationSec = ((currentTrack?.actualDurationMs ?: 0L) / 1000.0),
                                         hasLineSync = raw.contains("[0") || raw.contains("[1") || raw.contains("begin="),
                                         hasWordSync = raw.contains("<span") || raw.contains("begin=") || raw.contains("("),
                                         provider = provider,
@@ -3389,7 +3389,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         playWhenReady = autoPlay
         progressJob?.cancel()
         isLoading = true
-        duration = trackToPlay.durationMs ?: 0L
+        duration = trackToPlay.actualDurationMs
         currentPosition = 0L
         if (!isCrossfade) {
             MusicManager.isCrossfadingOut = false
@@ -4762,7 +4762,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         val automixEnabled = playerPrefs.getAutomixEnabled()
                         val crossfadeMs = playerPrefs.getCrossfadeDuration() * 1000L
                         val exoDur = if (MusicManager.player.duration > 0) MusicManager.player.duration else 0L
-                        val trackDur = currentTrack?.durationMs ?: 0L
+                        val trackDur = currentTrack?.actualDurationMs ?: 0L
                         // Prefer ExoPlayer's reported duration when available; it is the ground
                         // truth for the stream that is actually playing. Fall back to the Track's
                         // duration only when ExoPlayer hasn't determined one yet. This prevents
@@ -5011,13 +5011,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         if (currentPlayerMediaId == lastTrack.id.toString()) {
                             isPlaying = MusicManager.player.isPlaying; duration =
                                 MusicManager.player.duration.coerceAtLeast(
-                                    lastTrack.durationMs ?: 0L
+                                    lastTrack.actualDurationMs
                                 ); currentPosition = MusicManager.player.currentPosition; MusicManager.applyEffects(
                                 effectsState
                             )
                         } else {
                             currentPosition = lastPosition
-                            duration = lastTrack.durationMs ?: 0L
+                            duration = lastTrack.actualDurationMs
                             if (currentQueueIndex >= 0) {
                                 playRobustly(currentQueueIndex, autoPlay = false, startPosition = lastPosition)
                             }
@@ -5208,7 +5208,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     isLoading = false
                     isPlaying = true
                     currentPosition = startPosition
-                    duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else (trackToPlay.durationMs ?: 0L)
+                    duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else trackToPlay.actualDurationMs
                     startProgressUpdate()
                     MusicManager.applyEffects(effectsState)
                     preloadNextTrack(index + 1)
@@ -5327,7 +5327,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         isLoading = false
                         isPlaying = true
                         currentPosition = startPosition
-                        duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else (trackToPlay.durationMs ?: 0L)
+                        duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else trackToPlay.actualDurationMs
                         startProgressUpdate()
                     } else {
                         MusicManager.player.setMediaItem(newMediaItem, startPosition)

@@ -1552,7 +1552,7 @@ private fun TabletQueueList(
                 )
                 if (queue.isNotEmpty()) {
                     val totalDuration = remember(queue) {
-                        val sumMs = queue.sumOf { it.durationMs ?: 0L }
+                        val sumMs = queue.sumOf { it.actualDurationMs }
                         if (sumMs > 0) makeTimeString(sumMs) else null
                     }
                     totalDuration?.let { dur ->
@@ -1724,15 +1724,13 @@ private fun TabletQueueList(
                                     }
                                 }
 
-                                trackItem.durationMs?.let { durMs ->
-                                    if (durMs > 0) {
-                                        Text(
-                                            text = makeTimeString(durMs),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                            modifier = Modifier.padding(horizontal = 4.dp)
-                                        )
-                                    }
+                                trackItem.actualDurationMs.takeIf { it > 0 }?.let { durMs ->
+                                    Text(
+                                        text = makeTimeString(durMs),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    )
                                 }
 
                                 IconButton(

@@ -2684,7 +2684,7 @@ fun TrackSelectionContent(
                                     )
                                 }
 
-                                val trackDuration = track.durationMs ?: track.fullDuration ?: 0L
+                                val trackDuration = track.actualDurationMs
                                 if (trackDuration > 0) {
                                     Spacer(Modifier.width(8.dp))
                                     Text(
@@ -2880,7 +2880,7 @@ fun TrackSelectionContent(
                         )
                     }
 
-                    val trackDuration = track.durationMs ?: track.fullDuration ?: 0L
+                    val trackDuration = track.actualDurationMs
                     if (trackDuration > 0) {
                         Spacer(Modifier.width(8.dp))
                         Text(
@@ -9965,7 +9965,7 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                 val formatText = if (bitrateStr.isNotEmpty()) "$fileFormatStr • $bitrateStr" else fileFormatStr
                 DetailInfoRow(stringResource(R.string.detail_format), formatText)
                 if (fileSizeStr.isNotEmpty()) DetailInfoRow(stringResource(R.string.detail_size), fileSizeStr)
-                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.durationMs ?: 0L))
+                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.actualDurationMs))
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 Spacer(Modifier.height(16.dp))
@@ -10274,12 +10274,12 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                 if (!track.publisherMetadata?.albumTitle.isNullOrBlank()) {
                     DetailInfoRow(stringResource(R.string.profile_tab_albums), track.publisherMetadata!!.albumTitle!!)
                 }
-                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.durationMs ?: 0L))
+                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.actualDurationMs))
                 Spacer(Modifier.height(32.dp))
             }
         } else if (isVkTrack) {
             item {
-                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.durationMs ?: 0L))
+                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.actualDurationMs))
                 if (!track.publisherMetadata?.albumTitle.isNullOrBlank()) {
                     DetailInfoRow(
                         stringResource(R.string.profile_tab_albums),
@@ -11676,7 +11676,7 @@ fun PlayerTrackDetailsSideContent(viewModel: PlayerViewModel, track: Track) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        makeTimeString(track.durationMs ?: 0L),
+                        makeTimeString(track.actualDurationMs),
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
@@ -11874,7 +11874,7 @@ private fun StaticWaveformPlaceholder(track: Track, viewModel: PlayerViewModel? 
         }
     }
     val inactiveBarColor = Color(0xCCFFFFFF)
-    val totalDuration = if ((track.durationMs ?: 0L) > 1000) (track.durationMs ?: 0L).toFloat() else 180000f
+    val totalDuration = if (track.actualDurationMs > 1000) track.actualDurationMs.toFloat() else 180000f
 
     var cachedSamples by remember(track.id) {
         mutableStateOf(com.alananasss.kittytune.data.WaveformRepository.getCachedWaveform(track.id))

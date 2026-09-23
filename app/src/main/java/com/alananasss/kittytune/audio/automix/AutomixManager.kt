@@ -156,7 +156,7 @@ object AutomixManager {
             }
         } catch (_: Exception) {}
 
-        val trackDurationMs = track.durationMs ?: track.fullDuration ?: 0L
+        val trackDurationMs = track.actualDurationMs
         if (localPath != null) {
             if (localPath.startsWith("exo_cache://")) {
                 val parts = localPath.removePrefix("exo_cache://").split("::", limit = 3)

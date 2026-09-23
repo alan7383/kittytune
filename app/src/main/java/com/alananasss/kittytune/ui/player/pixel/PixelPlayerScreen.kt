@@ -727,7 +727,7 @@ fun PixelPlayerScreen(
                 val totalDuration = if (viewModel.duration > 1000) {
                     viewModel.duration
                 } else {
-                    track.durationMs?.takeIf { it > 1000 } ?: 180000L
+                    track.actualDurationMs.takeIf { it > 1000 } ?: 180000L
                 }
 
                 val (smoothProgressState, _) = rememberSmoothProgress(
