@@ -248,7 +248,7 @@ fun TabletBottomDock(
 
                             // Bouton Suivant
                             IconButton(
-                                onClick = { playerViewModel.playNext() },
+                                onClick = { playerViewModel.requestSkipNext() },
                                 shapes = IconButtonDefaults.shapes(),
                                 modifier = Modifier.size(36.dp)
                             ) {

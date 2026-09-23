@@ -755,20 +755,54 @@ fun PlayerScreen(
     val prefs = remember { PlayerPreferences(context) }
     val playerDesign by prefs.getPlayerDesignFlow().collectAsState(initial = prefs.getPlayerDesign())
 
-    when (playerDesign) {
-        com.alananasss.kittytune.data.local.PlayerDesign.PIXEL_PLAYER -> {
-            com.alananasss.kittytune.ui.player.pixel.PixelPlayerScreen(viewModel, onClose)
+    // The DJ panel is attached here, at the one point where every layout is dispatched from,
+    // rather than inside the four player screens. None of them has to know the feature exists,
+    // and taking it out again is a single block. It only appears while DJ Flow is on, so the
+    // normal player is untouched for everyone who never enables it.
+    val djState by viewModel.djFlowController.flowState.collectAsState()
+
+    // Tells the position ticker that the live beat grid is actually on screen. Composition
+    // scope is exactly the right signal: it ends when the player is closed or the process is
+    // backgrounded, which is precisely when the 25 Hz animation rate stops being worth a core.
+    DisposableEffect(Unit) {
+        viewModel.isDjBeatUiVisible = true
+        onDispose { viewModel.isDjBeatUiVisible = false }
+    }
+
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+        when (playerDesign) {
+            com.alananasss.kittytune.data.local.PlayerDesign.PIXEL_PLAYER -> {
+                com.alananasss.kittytune.ui.player.pixel.PixelPlayerScreen(viewModel, onClose)
+            }
+            com.alananasss.kittytune.data.local.PlayerDesign.SOUNDCLOUD -> {
+                NewPlayerScreen(viewModel, onClose, forceSoundCloud = true)
+            }
+            com.alananasss.kittytune.data.local.PlayerDesign.MODERN -> {
+                NewPlayerScreen(viewModel, onClose, forceSoundCloud = false)
+            }
+            com.alananasss.kittytune.data.local.PlayerDesign.CLASSIC -> {
+                OldPlayerScreen(viewModel, onClose)
+            }
         }
-        com.alananasss.kittytune.data.local.PlayerDesign.SOUNDCLOUD -> {
-            NewPlayerScreen(viewModel, onClose, forceSoundCloud = true)
-        }
-        com.alananasss.kittytune.data.local.PlayerDesign.MODERN -> {
-            NewPlayerScreen(viewModel, onClose, forceSoundCloud = false)
-        }
-        com.alananasss.kittytune.data.local.PlayerDesign.CLASSIC -> {
-            OldPlayerScreen(viewModel, onClose)
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = djState.isActive,
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            enter = androidx.compose.animation.slideInVertically { it } + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.slideOutVertically { it } + androidx.compose.animation.fadeOut(),
+        ) {
+            com.alananasss.kittytune.ui.player.dj.DjFlowPanel(
+                state = djState,
+                onToggleDj = viewModel.djFlowController::enableDjMode,
+                onEnergyMode = viewModel.djFlowController::setEnergyMode,
+                onMixNow = { viewModel.djFlowController.triggerTransition() },
+            )
         }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -1342,6 +1376,7 @@ fun NewPlayerScreen(
 
         SleepTimerDialog(viewModel)
         TrackTrimDialog(viewModel)
+        DjDevDebugSheet(viewModel)
     }
 }
 
@@ -2056,6 +2091,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 ) {
                     viewModel.showMenuSheet = false
                     viewModel.showTrimDialog = true
+                })
+            add(
+                DockOptionItem(
+                    Icons.Rounded.GraphicEq,
+                    "DJ Flow (Dev)"
+                ) {
+                    viewModel.showMenuSheet = false
+                    viewModel.showDjDebugSheet = true
                 })
         }
     }
@@ -4247,7 +4290,7 @@ fun PlayerControls(
                     .clickable(
                         interactionSource = nextInteractionSource,
                         indication = ripple()
-                    ) { viewModel.playNext() },
+                    ) { viewModel.requestSkipNext() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Rounded.SkipNext, null, tint = sideButtonContentColor, modifier = Modifier.size(32.dp))
@@ -11011,6 +11054,7 @@ fun OldPlayerScreen(
 
         SleepTimerDialog(viewModel)
         TrackTrimDialog(viewModel)
+        DjDevDebugSheet(viewModel)
     }
 }
 
@@ -11290,7 +11334,7 @@ fun OldPlayerControls(
                     }
                 }
             }
-            IconButton(onClick = { viewModel.playNext() }, modifier = Modifier.size(48.dp)) {
+            IconButton(onClick = { viewModel.requestSkipNext() }, modifier = Modifier.size(48.dp)) {
                 Icon(Icons.Rounded.SkipNext, null, tint = contentColorOverride, modifier = Modifier.size(36.dp))
             }
         }
@@ -11434,7 +11478,7 @@ fun LandscapePlayerView(
                         )
                     }
                 }
-                IconButton(onClick = { viewModel.playNext() }) {
+                IconButton(onClick = { viewModel.requestSkipNext() }) {
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
                         contentDescription = "Next",
@@ -12332,7 +12376,7 @@ fun SoundCloudPlayerView(
                                 .clickable {
                                     view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     if (isCurrentPage) {
-                                        viewModel.playNext()
+                                        viewModel.requestSkipNext()
                                     } else {
                                         viewModel.skipToQueueItem((page + 1).coerceAtMost(viewModel.queueState.lastIndex))
                                     }

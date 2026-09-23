@@ -2575,4 +2575,24 @@
     <string name="home_support_banner_donate_kofi">Support on Ko-fi</string>
     <string name="home_support_banner_dismiss">Dismiss</string>
     <string name="home_support_banner_remind_later">Remind me later</string>
+
+    <!-- DJ Flow / DJ assistant -->
+    <string name="dj_flow_title">DJ Flow</string>
+    <string name="dj_flow_subtitle_on">Non-stop mixing</string>
+    <string name="dj_flow_subtitle_off">Off</string>
+    <string name="dj_flow_tempo">Tempo</string>
+    <string name="dj_flow_key">Key</string>
+    <string name="dj_flow_analysing">Analysing…</string>
+    <string name="dj_flow_unknown">—</string>
+    <string name="dj_flow_bpm_value">%1$d BPM</string>
+    <string name="dj_flow_bar_beat">Bar %1$d/4 · Beat %2$d/16</string>
+    <string name="dj_flow_ask_button">What do you want to hear?</string>
+    <string name="dj_flow_next_up">Next up</string>
+    <string name="dj_flow_unknown_track">Unknown</string>
+    <string name="dj_flow_match_summary">%1$d%% match</string>
+    <string name="dj_flow_mixing_in_bars">Mixing in %1$d bars</string>
+    <string name="dj_flow_mixing_in_bar">Mixing in 1 bar</string>
+    <string name="dj_flow_mixing_now">Mixing now</string>
+    <string name="dj_flow_mix_now">Mix now</string>
+    <string name="dj_flow_empty_queue">Add tracks to the queue so the DJ can plan ahead.</string>
 </resources>

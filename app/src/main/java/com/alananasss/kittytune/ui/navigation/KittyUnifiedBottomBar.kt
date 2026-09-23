@@ -155,7 +155,7 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
-                        IconButton(onClick = { playerViewModel.playNext() }) {
+                        IconButton(onClick = { playerViewModel.requestSkipNext() }) {
                             Icon(
                                 imageVector = Icons.Rounded.SkipNext,
                                 contentDescription = null,
@@ -272,7 +272,7 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
-                        IconButton(onClick = { playerViewModel.playNext() }) {
+                        IconButton(onClick = { playerViewModel.requestSkipNext() }) {
                             Icon(
                                 imageVector = Icons.Rounded.SkipNext,
                                 contentDescription = null,
