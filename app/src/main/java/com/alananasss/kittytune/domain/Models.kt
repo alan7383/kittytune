@@ -481,6 +481,7 @@ data class Track(
 
     @SerializedName("waveform_url") val waveformUrl: String? = null,
     @SerializedName("full_duration") val fullDuration: Long? = null,
+    @SerializedName("snipped") val snipped: Boolean? = null,
     val source: String? = "soundcloud",
     val likedAt: Long? = null,
     val playCount: Long? = null,
@@ -491,6 +492,18 @@ data class Track(
             ?: publisherMetadata?.artist?.takeIf { it.isNotBlank() }
             ?: user?.username?.takeIf { it.isNotBlank() }
             ?: ""
+
+    val actualDurationMs: Long
+        get() {
+            val full = fullDuration ?: 0L
+            val dur = durationMs ?: 0L
+            return if (full > dur) full else if (dur > 0L) dur else full
+        }
+
+    val isSnipped: Boolean
+        get() = snipped == true ||
+                policy == "SNIP" ||
+                (fullDuration != null && durationMs != null && fullDuration > 0 && durationMs in 1..45000 && fullDuration > durationMs + 15000)
 
     val fullResArtwork: String
         get() {
@@ -827,7 +840,13 @@ data class UserQuota(
 data class Visuals(val visuals: List<VisualItem>?)
 data class VisualItem(@SerializedName("visual_url") val visualUrl: String)
 data class Media(val transcodings: List<Transcoding>?)
-data class Transcoding(val url: String, val preset: String, val format: Format?)
+data class Transcoding(
+    val url: String,
+    val preset: String,
+    val format: Format?,
+    val snipped: Boolean = false,
+    val duration: Long? = null
+)
 data class Format(val protocol: String?, @SerializedName("mime_type") val mimeType: String?)
 data class StreamUrlResponse(
     val url: String?,

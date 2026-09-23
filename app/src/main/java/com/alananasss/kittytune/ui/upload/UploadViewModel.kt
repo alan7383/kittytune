@@ -572,7 +572,7 @@ class UploadViewModel(application: Application) : AndroidViewModel(application) 
                             ) TrackPrivacy.PRIVATE else TrackPrivacy.PUBLIC
                         }
                         track.waveformUrl?.let { waveformUrl = it }
-                        val durSec = ((track.durationMs ?: track.fullDuration ?: 0L) / 1000L).toInt()
+                        val durSec = (track.actualDurationMs / 1000L).toInt()
                         if (durSec > 0) {
                             trackDurationSeconds = durSec
                             snippetEndSeconds = (snippetStartSeconds + 20).coerceAtMost(durSec)

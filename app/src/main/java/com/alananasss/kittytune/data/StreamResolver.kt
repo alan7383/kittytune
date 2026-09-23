@@ -143,6 +143,7 @@
         fun isRestricted(track: Track): Boolean {
             return track.policy == "SNIP" ||
                     track.policy == "BLOCK" ||
+                    track.isSnipped ||
                     track.monetizationModel == "SUB_HIGH_TIER"
         }
 
@@ -157,7 +158,7 @@
          * account's own tier.
          */
         fun isBlockedForAccount(track: Track): Boolean =
-            track.policy == "SNIP" || track.policy == "BLOCK"
+            track.policy == "SNIP" || track.policy == "BLOCK" || track.isSnipped
 
         /**
          * Ids of tracks the API told us, on the full payload, that this account may not stream.
@@ -396,7 +397,7 @@
             val title = track.title?.trim().orEmpty()
             val artist = (track.displayArtist.ifBlank { track.user?.username.orEmpty() }).trim()
             val album = (track.publisherMetadata?.albumTitle ?: track.publisherMetadata?.releaseTitle).orEmpty()
-            val durationMs = track.durationMs ?: 0L
+            val durationMs = track.actualDurationMs
 
             var isrc = ProviderIsrc.normalize(track.publisherMetadata?.isrc)
             if (isrc == null && title.isNotBlank() && artist.isNotBlank()) {
@@ -558,7 +559,7 @@
                 // for a three-minute song: YouTube's top result for a track name is frequently a snippet, a
                 // teaser or a "sped up" edit. A substitute has to be the same length as the thing it
                 // replaces (issue #33).
-                val wantedSec = (track.durationMs ?: 0L) / 1000
+                val wantedSec = track.actualDurationMs / 1000
                 val firstResultUrl = if (wantedSec <= 0) {
                     videoResults.first().url
                 } else {
@@ -682,11 +683,11 @@
             // on. Now that it has been fetched in full, re-read the per-account verdict: when
             // SoundCloud refuses this account outright, no transcoding here will play, and
             // working through them all only delays the fallback the caller is about to reach.
-            if (!isBlockedForAccount(track) && isBlockedForAccount(trackToUse)) {
+            if (isBlockedForAccount(track) || isBlockedForAccount(trackToUse)) {
                 Log.d(
                     TAG,
-                    "Track ${track.id} - restricted on the full payload " +
-                        "(policy=${trackToUse.policy}, monetization=${trackToUse.monetizationModel}), going to the fallbacks"
+                    "Track ${track.id} - restricted on payload " +
+                        "(policy=${trackToUse.policy}, isSnipped=${trackToUse.isSnipped}, monetization=${trackToUse.monetizationModel}), going to the fallbacks"
                 )
                 restrictedTrackIds.add(track.id)
                 // Nothing to add here: the caller already falls through to the providers and then
@@ -811,21 +812,23 @@
             allowDrm: Boolean
         ): List<com.alananasss.kittytune.domain.Transcoding> {
             val candidates = mutableListOf<com.alananasss.kittytune.domain.Transcoding>()
-            transcodings.find { it.format?.protocol == "progressive" }?.let { candidates.add(it) }
+            // Exclude snipped transcodings so preview teasers (~30s) are never played as full tracks
+            val playableTranscodings = transcodings.filter { !it.snipped }
+            playableTranscodings.find { it.format?.protocol == "progressive" }?.let { candidates.add(it) }
             if (qualityPref != "HIGH") {
-                transcodings.find { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }?.let { candidates.add(it) }
+                playableTranscodings.find { it.format?.protocol == "hls" && it.format.mimeType?.contains("mpeg") == true }?.let { candidates.add(it) }
             }
-            transcodings.find { it.format?.protocol == "hls" }?.let {
+            playableTranscodings.find { it.format?.protocol == "hls" }?.let {
                 if (!candidates.contains(it)) candidates.add(it)
             }
 
             if (allowDrm) {
                 val cencPresets = listOf("aac_160k", "aac_96k", "abr_sq")
                 for (preset in cencPresets) {
-                    transcodings.find { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }?.let { candidates.add(it) }
-                    transcodings.find { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }?.let { candidates.add(it) }
+                    playableTranscodings.find { it.preset == preset && it.format?.protocol == "ctr-encrypted-hls" }?.let { candidates.add(it) }
+                    playableTranscodings.find { it.preset == preset && it.format?.protocol == "cbc-encrypted-hls" }?.let { candidates.add(it) }
                 }
-                transcodings.filter { it.format?.protocol?.contains("encrypted") == true }.forEach {
+                playableTranscodings.filter { it.format?.protocol?.contains("encrypted") == true }.forEach {
                     if (!candidates.contains(it)) candidates.add(it)
                 }
             }
