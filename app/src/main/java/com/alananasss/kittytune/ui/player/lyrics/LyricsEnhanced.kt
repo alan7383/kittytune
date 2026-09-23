@@ -106,7 +106,7 @@ fun LyricsEnhancedView(
         "${viewModel.currentTrack?.id ?: 0L}_${rawLines.size}"
     }
 
-    val isDuetEnabled = viewModel.isDuetViewEnabled
+    val isDuetEnabled = viewModel.isDuetActiveForTrack(viewModel.currentTrack)
     val syncedLyrics = remember(
         viewModel.lyricsRevision,
         rawLines.size,

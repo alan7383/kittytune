@@ -303,6 +303,9 @@
     <string name="menu_unpin_folder">Ordner lösen</string>
     <string name="menu_move_to_folder">In Ordner verschieben</string>
     <string name="menu_move_to_library">In die Bibliothek verschieben</string>
+    <string name="menu_like_all_songs">Alle Songs liken</string>
+    <string name="toast_like_all_done">%1$d Songs geliked</string>
+    <string name="toast_like_all_nothing">Keine neuen Songs zum Liken</string>
     <string name="menu_rename_folder">Ordner umbenennen</string>
     <string name="menu_delete_folder">Ordner löschen</string>
     <string name="dialog_delete_folder_title">Ordner löschen?</string>
@@ -1032,6 +1035,8 @@
     <string name="pref_lyrics_apple_effect_sub">Füllt die Buchstaben fließend, statt von Wort zu Wort zu springen.</string>
     <string name="pref_lyrics_duet_title">Duett-Modus</string>
     <string name="pref_lyrics_duet_desc">Richtet den Songtext nach Sänger aus (links für Sänger 1, rechts für Sänger 2)</string>
+    <string name="menu_disable_duet_lyrics">Duett-Modus deaktivieren</string>
+    <string name="menu_enable_duet_lyrics">Duett-Modus aktivieren</string>
     <string name="pref_android_auto_synced_lyrics">Synchronisierte Songtexte in Android Auto</string>
     <string name="pref_android_auto_synced_lyrics_desc">Zeigt synchronisierte Songtexte anstelle des Künstlernamens an, wenn Android Auto verbunden ist</string>
     <string name="pref_animated_covers">Animierte Albumcover</string>
@@ -1595,6 +1600,10 @@
     <string name="automix_mix_in">MIX IN %1$d</string>
     <string name="crossfade_gapless">Titel desselben Albums nicht überblenden</string>
     <string name="crossfade_gapless_desc">Erhält nahtlose Übergänge bei Live-Aufnahmen und durchgehenden Alben</string>
+    <string name="pref_crossfade_indicator_title">Crossfade-Anzeige einblenden</string>
+    <string name="pref_crossfade_indicator_desc">Blendet das \'Crossfade läuft\'-Badge während des Übergangs auf dem Player ein</string>
+    <string name="pref_automix_indicator_title">Automix-Anzeige einblenden</string>
+    <string name="pref_automix_indicator_desc">Blendet den Countdown und das \'Automixing\'-Badge auf dem Player ein</string>
 
     <string name="pref_bottom_menu_title">Navigationsleiste</string>
     <string name="pref_bottom_menu_subtitle">Untere Leiste und FAB anpassen</string>
@@ -2012,6 +2021,25 @@
     <string name="player_opt_reactions_bar_subtitle">Kapsel für schnelle Reaktionen auf der Karte</string>
     <string name="player_opt_parallax_title">Cover-Effekt (Parallaxe)</string>
     <string name="player_opt_parallax_subtitle">Dynamisches Mitscrollen während der Wiedergabe</string>
+    <string name="pref_waveform_color_title">Wellenform-Farbe</string>
+    <string name="pref_waveform_color_subtitle">Farbe für den Wiedergabefortschritt der Wellenform</string>
+    <string name="waveform_color_soundcloud">Klassisches Orange (SoundCloud)</string>
+    <string name="waveform_color_cover_art">An Cover anpassen (Auto)</string>
+    <string name="waveform_color_app_theme">App-Design-Akzent</string>
+    <string name="waveform_color_custom">Benutzerdefinierte Farbe</string>
+    <string name="waveform_preview_title">Waveform-Vorschau</string>
+    <string name="waveform_mode_soundcloud_title">SoundCloud</string>
+    <string name="waveform_mode_soundcloud_sub">Klassisches Orange</string>
+    <string name="waveform_mode_cover_title">Cover</string>
+    <string name="waveform_mode_cover_sub">Dynamische Farbe</string>
+    <string name="waveform_mode_theme_title">App-Design</string>
+    <string name="waveform_mode_theme_sub">Hauptakzent</string>
+    <string name="waveform_mode_custom_title">Benutzerdefiniert</string>
+    <string name="waveform_mode_custom_sub">Farbwähler</string>
+    <string name="color_picker_hue">Farbton</string>
+    <string name="color_picker_saturation">Sättigung</string>
+    <string name="color_picker_brightness">Helligkeit</string>
+    <string name="color_picker_presets">Beliebte Farben</string>
     <string name="player_action_bar_5_title">UNTERE AKTIONSLEISTE (5 SCHALTFLÄCHEN)</string>
     <string name="player_action_bar_4_title">UNTERE AKTIONSLEISTE (4 SCHALTFLÄCHEN)</string>
     <string name="player_action_bar_5_desc">5 konfigurierbare Schaltflächen am unteren Rand des Players</string>

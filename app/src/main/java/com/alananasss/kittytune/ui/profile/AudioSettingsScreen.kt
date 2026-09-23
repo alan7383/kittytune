@@ -58,6 +58,7 @@ fun AudioSettingsScreen(
     var crossfadeEnabled by remember { mutableStateOf(prefs.getCrossfadeEnabled()) }
     var crossfadeDuration by remember { mutableStateOf(prefs.getCrossfadeDuration()) }
     var crossfadeGapless by remember { mutableStateOf(prefs.getCrossfadeGapless()) }
+    var crossfadeIndicator by remember { mutableStateOf(prefs.getCrossfadeIndicatorEnabled()) }
 
     var automixEnabled by remember { mutableStateOf(prefs.getAutomixEnabled()) }
     var automixDebugOverlay by remember { mutableStateOf(prefs.getAutomixDebugOverlayEnabled()) }
@@ -66,6 +67,7 @@ fun AudioSettingsScreen(
     var automixDynamicMix by remember { mutableStateOf(prefs.getAutomixDynamicMixPointsEnabled()) }
     var automixBassDucking by remember { mutableStateOf(prefs.getAutomixBassDuckingEnabled()) }
     var automixOverlapMode by remember { mutableStateOf(prefs.getAutomixOverlapMode()) }
+    var automixIndicator by remember { mutableStateOf(prefs.getAutomixIndicatorEnabled()) }
     var showAutomixOverlapDialog by remember { mutableStateOf(false) }
 
     var showQualityDialog by remember { mutableStateOf(false) }
@@ -541,12 +543,7 @@ fun AudioSettingsScreen(
                                     onClick = { showCrossfadeDurationDialog = true }
                                 )
                                 SettingsItem(
-                                    shape = RoundedCornerShape(
-                                        topStart = 4.dp,
-                                        topEnd = 4.dp,
-                                        bottomStart = 24.dp,
-                                        bottomEnd = 24.dp
-                                    ),
+                                    shape = RoundedCornerShape(4.dp),
                                     title = stringResource(R.string.crossfade_gapless),
                                     subtitle = stringResource(R.string.crossfade_gapless_desc),
                                     hasSwitch = true,
@@ -554,6 +551,22 @@ fun AudioSettingsScreen(
                                     onSwitchChange = {
                                         crossfadeGapless = it
                                         prefs.setCrossfadeGapless(it)
+                                    }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(
+                                        topStart = 4.dp,
+                                        topEnd = 4.dp,
+                                        bottomStart = 24.dp,
+                                        bottomEnd = 24.dp
+                                    ),
+                                    title = stringResource(R.string.pref_crossfade_indicator_title),
+                                    subtitle = stringResource(R.string.pref_crossfade_indicator_desc),
+                                    hasSwitch = true,
+                                    switchState = crossfadeIndicator,
+                                    onSwitchChange = {
+                                        crossfadeIndicator = it
+                                        prefs.setCrossfadeIndicatorEnabled(it)
                                     }
                                 )
                             }
@@ -651,6 +664,17 @@ fun AudioSettingsScreen(
                                     onSwitchChange = {
                                         automixBassDucking = it
                                         prefs.setAutomixBassDuckingEnabled(it)
+                                    }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.pref_automix_indicator_title),
+                                    subtitle = stringResource(R.string.pref_automix_indicator_desc),
+                                    hasSwitch = true,
+                                    switchState = automixIndicator,
+                                    onSwitchChange = {
+                                        automixIndicator = it
+                                        prefs.setAutomixIndicatorEnabled(it)
                                     }
                                 )
                                 SettingsItem(

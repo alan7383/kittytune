@@ -10,6 +10,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -141,6 +142,98 @@ object LikeRepository {
                 }
             }
         }
+    }
+
+    /** One bulk-like network pass at a time, so two rapid "Like all" clicks cannot double-send. */
+    private val bulkLikeInFlight = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** Same batch size and pacing the guest-transfer path has always used successfully. */
+    private const val BULK_LIKE_BATCH_SIZE = 25
+    private const val BULK_LIKE_BATCH_DELAY_MS = 350L
+    private const val BULK_LIKE_RATE_LIMIT_WAIT_MS = 2_000L
+
+    /**
+     * Likes every track in [tracks] in one pass: a single local update and disk write, then the
+     * SoundCloud call batched 25-per-POST with a pause between batches — never one request per
+     * track, so a whole album cannot look like a burst. VK tracks keep their individual path.
+     * Returns how many tracks were newly liked.
+     */
+    fun addLikesBulk(tracks: List<Track>): Int {
+        val toLike = tracks.filter { !isTrackLiked(it.id) }
+        if (toLike.isEmpty()) return 0
+
+        val now = System.currentTimeMillis()
+        toLike.forEach { removeFromBlacklist(it.id) }
+        _likedTracks.update { current ->
+            val byId = current.associateBy { it.id }.toMutableMap()
+            for (track in toLike) {
+                val safeSource = track.source ?: "soundcloud"
+                byId[track.id] = track.copy(isLiked = true, source = safeSource, likedAt = now)
+            }
+            byId.values.sortedByDescending { it.likedAt ?: 0L }
+        }
+        saveLikedTracks()
+        toLike.forEach { com.alananasss.kittytune.data.sync.SyncLikes.record(it.id, liked = true, track = it) }
+
+        val soundCloudLikeable = toLike.filter { track ->
+            track.id > 0 &&
+                track.source != "spotify" &&
+                track.source != "vk" &&
+                track.user?.urn?.startsWith("spotify") != true &&
+                track.permalinkUrl?.contains("spotify") != true
+        }
+        val vkLikeable = toLike.filter { it.source == "vk" }
+        if (soundCloudLikeable.isEmpty() && vkLikeable.isEmpty()) return toLike.size
+
+        scope.launch {
+            if (!playerPrefs.getSyncLikesEnabled()) return@launch
+            val tokenManager = TokenManager(appContext)
+            if (tokenManager.isGuestMode()) return@launch
+            val token = tokenManager.getAccessToken()
+            if (token.isNullOrEmpty() && vkLikeable.isEmpty()) return@launch
+            if (!bulkLikeInFlight.compareAndSet(false, true)) return@launch
+            try {
+                if (!token.isNullOrEmpty()) {
+                    for (batch in soundCloudLikeable.chunked(BULK_LIKE_BATCH_SIZE)) {
+                        val payload = TrackLikeRequest(
+                            likes = batch.map { TrackLikeItem("soundcloud:tracks:${it.id}") }
+                        )
+                        try {
+                            var response = api.likeTrack(payload)
+                            if (response.code() == 401) {
+                                com.alananasss.kittytune.data.SessionManager.requestSessionRefresh(appContext, force = true)
+                            }
+                            if (response.code() == 429) {
+                                delay(BULK_LIKE_RATE_LIMIT_WAIT_MS)
+                                response = api.likeTrack(payload)
+                                if (response.code() == 429) break
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("LikeRepository", "Bulk like batch failed", e)
+                        }
+                        delay(BULK_LIKE_BATCH_DELAY_MS)
+                    }
+                }
+
+                if (vkLikeable.isNotEmpty()) {
+                    val vkTokenManager = com.alananasss.kittytune.data.vk.VkTokenManager(appContext)
+                    if (vkTokenManager.isLoggedIn()) {
+                        val vkRepo = com.alananasss.kittytune.data.vk.VkRepository.getInstance(appContext)
+                        for (track in vkLikeable) {
+                            try {
+                                vkRepo.likeTrack(track)
+                            } catch (e: Exception) {
+                                android.util.Log.e("LikeRepository", "VK bulk track like failed", e)
+                            }
+                            delay(BULK_LIKE_BATCH_DELAY_MS)
+                        }
+                    }
+                }
+            } finally {
+                bulkLikeInFlight.set(false)
+            }
+        }
+        return toLike.size
     }
 
     fun removeLike(trackId: Long) {

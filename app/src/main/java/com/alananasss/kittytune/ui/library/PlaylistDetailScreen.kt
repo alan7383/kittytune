@@ -2317,6 +2317,7 @@ fun PlaylistDetailScreen(
                     isYoutubeRadio = isYoutubeRadio,
                     playlistSharing = playlistSharing,
                     isUserOwned = isUserCreated,
+                    isAlbum = isAlbum,
                     onSharingToggle = { newSharing ->
                         scope.launch {
                             try {
@@ -2459,6 +2460,7 @@ fun PlaylistOptionsSheet(
     isYoutubeRadio: Boolean = false,
     playlistSharing: String? = null,
     isUserOwned: Boolean = false,
+    isAlbum: Boolean = false,
     onSharingToggle: (String) -> Unit = {},
     onDetailsClick: () -> Unit = {},
     onDeleteClick: (() -> Unit)? = null
@@ -2533,7 +2535,7 @@ fun PlaylistOptionsSheet(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick) {
+        val items = remember(isLocal, playlistId, isYoutubeRadio, isUserOwned, playlistSharing, onDeleteClick, isAlbum, tracks) {
             mutableListOf(
                 DockOptionItem(
                     Icons.Rounded.PlayArrow,
@@ -2560,6 +2562,23 @@ fun PlaylistOptionsSheet(
                             Icons.Default.Add,
                             context.getString(R.string.menu_add_playlist)
                         ) { playerViewModel.prepareBulkAdd(tracks); onDismiss() })
+                }
+
+                if (isAlbum && tracks.isNotEmpty() && !isYoutubeRadio) {
+                    add(
+                        DockOptionItem(
+                            Icons.Rounded.Favorite,
+                            context.getString(R.string.menu_like_all_songs)
+                        ) {
+                            val likedCount = com.alananasss.kittytune.data.LikeRepository.addLikesBulk(tracks)
+                            val message = if (likedCount > 0) {
+                                context.getString(R.string.toast_like_all_done, likedCount)
+                            } else {
+                                context.getString(R.string.toast_like_all_nothing)
+                            }
+                            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                            onDismiss()
+                        })
                 }
 
                 if (playlistId != 0L && !isYoutubeRadio && playlistId != DownloadManager.LIKES_BATCH_ID) {

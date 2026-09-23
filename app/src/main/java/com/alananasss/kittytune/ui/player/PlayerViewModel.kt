@@ -400,6 +400,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         private set
     var isDuetViewEnabled by mutableStateOf(playerPrefs.getLyricsDuetViewEnabled())
         private set
+    var duetBlacklist by mutableStateOf(playerPrefs.getLyricsDuetBlacklist())
+        private set
     var lyricsUiStyle by mutableStateOf(playerPrefs.getLyricsUiStyle())
         private set
     var lyricsLineBlurEnabled by mutableStateOf(playerPrefs.getLyricsLineBlurEnabled())
@@ -1491,6 +1493,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         playerPrefs.setLyricsDuetViewEnabled(enabled)
     }
 
+    fun isTrackDuetBlacklisted(trackId: Long): Boolean = duetBlacklist.contains(trackId.toString())
+
+    fun toggleTrackDuetBlacklist(trackId: Long) {
+        val currentlyBlacklisted = isTrackDuetBlacklisted(trackId)
+        playerPrefs.setTrackDuetBlacklisted(trackId, !currentlyBlacklisted)
+        duetBlacklist = playerPrefs.getLyricsDuetBlacklist()
+    }
+
+    fun isDuetActiveForTrack(track: Track?): Boolean =
+        isDuetViewEnabled && (track == null || !isTrackDuetBlacklisted(track.id))
+
     fun updateLyricsUiStyle(style: com.alananasss.kittytune.data.local.LyricsUiStyle) {
         lyricsUiStyle = style
         playerPrefs.setLyricsUiStyle(style)
@@ -1597,7 +1610,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         return Pair(best.second, best.first)
     }
 
-    private fun generateSearchQueries(title: String, uploader: String): List<String> {
+    private fun generateSearchQueries(title: String, uploader: String, rawUploader: String? = null): List<String> {
         val queries = mutableSetOf<String>()
         val cleanArtist = uploader.replace(Regex("[^\\p{L}\\p{Nd}\\s\\-&'$]"), "").trim()
         val cleanTitle = title.replace(Regex("(?i)\\[.*?\\]|\\(.*?\\)"), "").trim()
@@ -1621,6 +1634,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (ultraCleanTitle.isNotBlank()) queries.add(ultraCleanTitle)
         if (parsedTitle.isNotBlank()) queries.add(parsedTitle)
         queries.add(cleanTitle)
+
+        if (!rawUploader.isNullOrBlank()) {
+            val cleanRaw = rawUploader.replace(Regex("[^\\p{L}\\p{Nd}\\s\\-&'$]"), "").trim()
+            if (cleanRaw.isNotBlank() && cleanRaw != cleanArtist && cleanRaw != parsedArtist) {
+                if (ultraCleanTitle.isNotBlank()) queries.add("$ultraCleanTitle $cleanRaw")
+                if (parsedTitle.isNotBlank()) queries.add("$parsedTitle $cleanRaw")
+            }
+        }
 
         return queries.filter { it.length > 2 }.toList()
     }
@@ -1649,8 +1670,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         isSearchingLyrics = false
         rawPlainLyrics = null
 
-        val (parsedArtist, parsedTitle) = parseArtistAndTitle(track.title ?: "", track.user?.username ?: "")
-        val queries = generateSearchQueries(track.title ?: "", track.user?.username ?: "")
+        val effectiveArtist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }
+        val (parsedArtist, parsedTitle) = parseArtistAndTitle(track.title ?: "", effectiveArtist)
+        val queries = generateSearchQueries(track.title ?: "", effectiveArtist, track.user?.username)
         manualSearchQuery = if (parsedTitle.isNotBlank() && parsedArtist.isNotBlank()) "$parsedTitle $parsedArtist" else (queries.firstOrNull() ?: "")
 
         lyricsJob = viewModelScope.launch(Dispatchers.IO) {
@@ -1796,7 +1818,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         lyricsPrefetchJob?.cancel()
         lyricsPrefetchJob = viewModelScope.launch(Dispatchers.IO) {
-            val queries = generateSearchQueries(next.title ?: "", next.user?.username ?: "")
+            val effectiveArtist = next.displayArtist.ifBlank { next.user?.username.orEmpty() }
+            val queries = generateSearchQueries(next.title ?: "", effectiveArtist, next.user?.username)
             val payload = runCatching { resolveLyrics(next, queries, variant) }.getOrNull()
             if (!isActive) return@launch
             LyricsCache.put(
@@ -1864,17 +1887,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         variant: LyricsVariant,
     ): LyricsPayload? = coroutineScope {
         PaxsenixClient.setApiKey(playerPrefs.getPaxsenixApiKey())
-        val (parsedArtist, parsedTitle) = parseArtistAndTitle(track.title ?: "", track.user?.username ?: "")
+        val effectiveArtist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }
+        val (parsedArtist, parsedTitle) = parseArtistAndTitle(track.title ?: "", effectiveArtist)
         val target = LyricsMatcher.Target(
             title = parsedTitle.ifBlank { track.title ?: "" },
-            artist = parsedArtist.ifBlank { track.user?.username ?: "" },
+            artist = parsedArtist.ifBlank { effectiveArtist },
             durationMs = track.durationMs ?: 0L,
             alternativeTitles = listOfNotNull(track.title, parsedTitle, track.title?.let { LyricsMatcher.cleanNoiseAndBrackets(it) }).filter { it.isNotBlank() }.distinct(),
             alternativeArtists = listOfNotNull(
-                track.user?.username,
+                track.displayArtist,
                 parsedArtist,
                 track.publisherMetadata?.artist,
-                track.displayArtist,
+                track.user?.username,
             ).filter { it.isNotBlank() }.distinct(),
         )
         val trackDurationMs = track.durationMs ?: 0L
@@ -2240,7 +2264,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     else -> {
                         val p = LyricsProviders.all[pref]
                         if (p != null) {
-                            val trackArtist = currentTrack?.user?.username?.trim().orEmpty()
+                            val trackArtist = currentTrack?.displayArtist?.ifBlank { currentTrack?.user?.username.orEmpty() }?.trim().orEmpty()
                             val trackDuration = ((currentTrack?.durationMs ?: 0L) / 1000L).toInt()
                             val trackAlbum = currentTrack?.publisherMetadata?.albumTitle
 
@@ -3363,8 +3387,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         progressJob?.cancel()
         isLoading = true
         duration = trackToPlay.durationMs ?: 0L
+        currentPosition = 0L
         if (!isCrossfade) {
-            currentPosition = 0L
             MusicManager.isCrossfadingOut = false
             try {
                 MusicManager.player.pause()
@@ -3549,7 +3573,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     displayText = "YouTube Mix • ${lastTrack.title}",
                     navigationId = "yt_radio:${Uri.encode(lastTrack.permalinkUrl)}",
                     imageUrl = lastTrack.fullResArtwork,
-                    artistName = lastTrack.user?.username,
+                    artistName = lastTrack.displayArtist.ifBlank { lastTrack.user?.username.orEmpty() },
                     isVerified = false
                 )
                 currentContext = ctx
@@ -3657,7 +3681,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     displayText = getString(R.string.context_station, lastTrack.title ?: ""),
                     navigationId = "spotify_radio:$spotifyId",
                     imageUrl = lastTrack.fullResArtwork,
-                    artistName = lastTrack.user?.username,
+                    artistName = lastTrack.displayArtist.ifBlank { lastTrack.user?.username.orEmpty() },
                     isVerified = lastTrack.user?.verified == true
                 )
                 currentContext = ctx
@@ -5132,14 +5156,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             val emptyItem = MediaItem.Builder().setMediaId(trackToPlay.id.toString()).build()
             viewModelScope.launch(Dispatchers.Main) {
                 try {
-                    isLoading = false
-                    isPlaying = true
-                    currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
-                    if (MusicManager.player.duration > 0) duration = MusicManager.player.duration
-                    startProgressUpdate()
                     val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
                     val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
                     MusicManager.crossfadeToMediaItem(emptyItem, startPosition, crossfadeDurationMs, automixPlan)
+                    isLoading = false
+                    isPlaying = true
+                    currentPosition = startPosition
+                    duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else (trackToPlay.durationMs ?: 0L)
+                    startProgressUpdate()
                     MusicManager.applyEffects(effectsState)
                     preloadNextTrack(index + 1)
                 } catch (e: Exception) {
@@ -5254,6 +5278,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         val crossfadeDurationMs = playerPrefs.getCrossfadeDuration() * 1000L
                         val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
                         MusicManager.crossfadeToMediaItem(newMediaItem, startPosition, crossfadeDurationMs, automixPlan)
+                        isLoading = false
+                        isPlaying = true
+                        currentPosition = startPosition
+                        duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else (trackToPlay.durationMs ?: 0L)
+                        startProgressUpdate()
                     } else {
                         MusicManager.player.setMediaItem(newMediaItem, startPosition)
                         MusicManager.player.prepare()

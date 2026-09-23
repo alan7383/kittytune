@@ -579,7 +579,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 val scale by animateFloatAsState(targetScale, tween(400), label = "scale")
                 val alpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
 
-                val isDuetActive = viewModel.isDuetViewEnabled
+                val isDuetActive = viewModel.isDuetActiveForTrack(viewModel.currentTrack)
                 val effectiveSinger = if (isDuetActive) {
                     line.singer.takeIf { it != LyricSinger.DEFAULT } ?: when (line.agent?.trim()?.lowercase()) {
                         "v2", "singer2", "2" -> LyricSinger.SINGER_2
