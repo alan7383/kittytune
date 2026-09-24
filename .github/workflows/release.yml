@@ -92,3 +92,69 @@ jobs:
           body_path: CHANGELOG_RELEASE.md
           files: app/build/outputs/apk/release/*.apk
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Discord Release Notification ────────────────────────────────────────
+      - name: Send Discord Release Notification
+        if: success()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          python3 - << 'EOF'
+          import os, json, urllib.request
+
+          webhook_url = os.environ.get("DISCORD_WEBHOOK")
+          if not webhook_url:
+              print("No DISCORD_RELEASE_WEBHOOK configured, skipping.")
+              exit(0)
+
+          tag = os.environ.get("TAG_NAME", "")
+          release_url = f"https://github.com/alan7383/kittytune/releases/tag/{tag}"
+
+          changelog = ""
+          if os.path.exists("CHANGELOG_RELEASE.md"):
+              with open("CHANGELOG_RELEASE.md", "r", encoding="utf-8") as f:
+                  changelog = f.read().strip()
+
+          if len(changelog) > 1500:
+              changelog = changelog[:1490] + "\n\n... *(full changelog on GitHub)*"
+
+          payload = {
+              "content": f"<@&1552727930801627166> **(=^･ω･^=) KittyTune {tag} is now available!**",
+              "allowed_mentions": {
+                  "roles": ["1552727930801627166"]
+              },
+              "embeds": [
+                  {
+                      "title": f"KittyTune {tag}",
+                      "url": release_url,
+                      "description": changelog if changelog else f"KittyTune {tag} has been released!",
+                      "color": 16742005,
+                      "fields": [
+                          {
+                              "name": "✦ Download APK",
+                              "value": f"[GitHub Releases & Assets]({release_url})",
+                              "inline": False
+                          }
+                      ],
+                      "footer": {
+                          "text": "KittyTune • Automated Release Pipeline"
+                      }
+                  }
+              ]
+          }
+
+          req = urllib.request.Request(
+              webhook_url,
+              data=json.dumps(payload).encode("utf-8"),
+              headers={
+                  "Content-Type": "application/json",
+                  "User-Agent": "GitHub-Actions-Release-Notifier"
+              }
+          )
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  print("Discord notification sent! Status:", resp.status)
+          except Exception as e:
+              print("Failed to send Discord notification:", e)
+          EOF
