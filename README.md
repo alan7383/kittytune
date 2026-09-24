@@ -17,6 +17,9 @@
   <a href="https://ko-fi.com/alan7383">
     <img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
   </a>
+  <a href="https://discord.gg/thyHQH9jV9">
+    <img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+  </a>
   <img src="https://img.shields.io/badge/status-beta-yellow?style=for-the-badge" alt="Status: Beta">
   <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android Badge">
   <a href="https://github.com/alan7383/KittyTuneDesktop">
