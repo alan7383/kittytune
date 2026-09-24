@@ -87,12 +87,12 @@ fun CreditsScreen(
                 category = ContributorCategory.DEV
             ),
             Contributor(
-                name = "gashjfkkjhsdafjnk",
+                name = "jason-fastner007",
                 roleResId = R.string.about_role_translation_de,
                 descriptionResId = R.string.about_role_translation_de_desc,
                 badge = "🇩🇪 Deutsch",
-                url = "https://github.com/gashjfkkjhsdafjnk",
-                avatarUrl = "https://github.com/gashjfkkjhsdafjnk.png",
+                url = "https://github.com/jason-fastner007",
+                avatarUrl = "https://github.com/jason-fastner007.png",
                 category = ContributorCategory.TRANSLATION
             ),
             Contributor(
