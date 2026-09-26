@@ -15,6 +15,16 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,7 +39,6 @@ import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -96,27 +105,71 @@ fun ListeningStatsScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        StatsHeader(
-            report = report,
-            period = period,
-            onSelect = { viewModel.selectPeriod(it.toStatsPeriod()) }
-        )
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-        AnimatedContent(
-            targetState = report?.takeIf { !isLoading },
-            transitionSpec = {
-                fadeIn(tween(220, delayMillis = 60)) togetherWith fadeOut(tween(90))
-            },
-            label = "statsBody",
-            modifier = Modifier.fillMaxSize()
-        ) { shown ->
-            if (shown == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.ContainedLoadingIndicator()
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Column {
+                        Text(
+                            stringResource(R.string.listening_stats_title),
+                            fontWeight = FontWeight.Bold
+                        )
+                        // Which days the numbers actually cover. A bare total does not say whether
+                        // it is three days or three years, which matters once "all time" is one of
+                        // the options.
+                        Text(
+                            report?.let { spanLabel(period, it) } ?: " ",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                navigationIcon = {
+                    FilledTonalIconButton(
+                        onClick = onBackClick,
+                        shapes = IconButtonDefaults.shapes(),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.btn_close))
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { innerPadding ->
+        Column(
+            Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
+        ) {
+            StatsHeader(period = period, onSelect = { viewModel.selectPeriod(it.toStatsPeriod()) })
+
+            AnimatedContent(
+                targetState = report?.takeIf { !isLoading },
+                transitionSpec = {
+                    fadeIn(tween(220, delayMillis = 60)) togetherWith fadeOut(tween(90))
+                },
+                label = "statsBody",
+                modifier = Modifier.fillMaxSize()
+            ) { shown ->
+                if (shown == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        ContainedLoadingIndicator()
+                    }
+                } else {
+                    OverviewStats(shown, period, { openList = it }, onTrackClick, onArtistClick)
                 }
-            } else {
-                OverviewStats(shown, period, { openList = it }, onTrackClick, onArtistClick)
             }
         }
     }
@@ -124,28 +177,14 @@ fun ListeningStatsScreen(
 
 @Composable
 private fun StatsHeader(
-    report: ListeningReport?,
     period: ReportPeriod,
     onSelect: (ReportPeriod) -> Unit
 ) {
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)
     ) {
-        Text(
-            stringResource(R.string.listening_stats_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        // Which days the numbers actually cover. A bare total does not say whether it is three days
-        // or three years, which matters once "all time" is one of the options.
-        Text(
-            report?.let { spanLabel(period, it) } ?: " ",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(12.dp))
         ExpressiveConnectedButtonGroup(
             options = ReportPeriod.entries,
             selectedOption = period,
@@ -190,7 +229,7 @@ private fun OverviewStats(
         val isWide = maxWidth >= 760.dp
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 180.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { SummaryCard(report, period, onOpen) }
@@ -232,16 +271,27 @@ private fun OverviewStats(
                             { onOpen(StatsList.ARTISTS) }
                         } else null
                     ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(top = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            report.topArtists.take(TOP_ARTISTS_SHOWN).forEachIndexed { index, artist ->
-                                ArtistTile(index + 1, artist, Modifier.weight(1f)) { onArtistClick(artist) }
-                            }
-                            repeat((TOP_ARTISTS_SHOWN - report.topArtists.size).coerceAtLeast(0)) {
-                                Spacer(Modifier.weight(1f))
-                            }
+                        // Three across in two rows rather than six in one: at a phone's width six
+                        // 84 dp tiles leave about 40 dp each, which crops the names to nothing and
+                        // puts the rank badge over the face. Six in a row only fits a tablet.
+                        val perRow = if (isWide) TOP_ARTISTS_SHOWN else 3
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            report.topArtists.take(TOP_ARTISTS_SHOWN)
+                                .mapIndexed { index, artist -> (index + 1) to artist }
+                                .chunked(perRow)
+                                .forEach { row ->
+                                    Row(
+                                        Modifier.fillMaxWidth().padding(top = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        row.forEach { (rank, artist) ->
+                                            ArtistTile(rank, artist, Modifier.weight(1f)) { onArtistClick(artist) }
+                                        }
+                                        repeat((perRow - row.size).coerceAtLeast(0)) {
+                                            Spacer(Modifier.weight(1f))
+                                        }
+                                    }
+                                }
                         }
                     }
                 }

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -95,14 +96,16 @@ internal fun StatsListDialog(
     ) {
         Column(Modifier.fillMaxWidth().fillMaxHeight(0.92f)) {
             Row(
-                Modifier.padding(start = 24.dp, end = 12.dp, top = 4.dp),
+                Modifier.fillMaxWidth().padding(start = 24.dp, end = 16.dp, top = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f, fill = false)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
                 Spacer(Modifier.width(10.dp))
                 Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
@@ -112,8 +115,8 @@ internal fun StatsListDialog(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp)
                     )
                 }
-                Spacer(Modifier.weight(1f))
-                IconButton(onClick = onDismiss) {
+                Spacer(Modifier.width(8.dp))
+                IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.btn_close))
                 }
             }
