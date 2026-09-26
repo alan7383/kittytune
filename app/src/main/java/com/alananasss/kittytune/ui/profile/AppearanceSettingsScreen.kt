@@ -108,7 +108,6 @@ fun AppearanceSettingsScreen(
     val prefs = remember { PlayerPreferences(context) }
     val isSystemDark = isSystemInDarkTheme()
 
-    var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
     var dynamicTheme by remember { mutableStateOf(prefs.getDynamicTheme()) }
     var trackDynamicTheme by remember { mutableStateOf(prefs.getTrackDynamicTheme()) }
     var themeMode by remember { mutableStateOf(prefs.getThemeMode()) }
@@ -117,9 +116,7 @@ fun AppearanceSettingsScreen(
     var playerDesign by remember { mutableStateOf(prefs.getPlayerDesign()) }
     var showPlayerDesignDialog by remember { mutableStateOf(false) }
     var waveformComments by remember { mutableStateOf(prefs.getWaveformCommentsEnabled()) }
-    var appLanguage by remember { mutableStateOf(prefs.getAppLanguage()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
-    var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
     var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
     var appIcon by remember { mutableStateOf(prefs.getAppIconId()) }
     var playerProgressMode by remember { mutableStateOf(prefs.getPlayerProgressMode()) }
@@ -132,8 +129,6 @@ fun AppearanceSettingsScreen(
 
     var showPlayerStyleDialog by remember { mutableStateOf(false) }
     var showSliderStyleDialog by remember { mutableStateOf(false) }
-    var showStartDestDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showPlayerCustomizationBottomSheet by remember { mutableStateOf(false) }
     var showTrackRemovalDialog by remember { mutableStateOf(false) }
@@ -160,32 +155,6 @@ fun AppearanceSettingsScreen(
                 prefs.setPlayerSliderStyle(it)
             },
             onDismiss = { showSliderStyleDialog = false }
-        )
-    }
-
-    if (showStartDestDialog) {
-        AlertDialog(
-            onDismissRequest = { showStartDestDialog = false },
-            title = { Text(stringResource(R.string.pref_start_screen)) },
-            text = {
-                Column {
-                    StartDestRadioButton(
-                        stringResource(R.string.nav_home),
-                        StartDestination.HOME,
-                        startDestination
-                    ) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
-                    StartDestRadioButton(
-                        stringResource(R.string.nav_library),
-                        StartDestination.LIBRARY,
-                        startDestination
-                    ) { startDestination = it; prefs.setStartDestination(it); showStartDestDialog = false }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showStartDestDialog = false
-                }) { Text(stringResource(R.string.btn_cancel)) }
-            }
         )
     }
 
@@ -277,70 +246,6 @@ fun AppearanceSettingsScreen(
                 TextButton(onClick = { showPlayerDesignDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
-            }
-        )
-    }
-
-    if (showLanguageDialog) {
-        AlertDialog(
-            onDismissRequest = { showLanguageDialog = false },
-            title = { Text(stringResource(R.string.pref_language)) },
-            text = {
-                Column {
-                    val onLanguageSelected: (AppLanguage) -> Unit = { selectedLang ->
-                        appLanguage = selectedLang
-                        prefs.setAppLanguage(selectedLang)
-                        showLanguageDialog = false
-                        restartApp(context)
-                    }
-                    LanguageRadioButton(
-                        stringResource(R.string.theme_system),
-                        AppLanguage.SYSTEM,
-                        appLanguage,
-                        onLanguageSelected
-                    )
-                    LanguageRadioButton(
-                        stringResource(R.string.lang_french),
-                        AppLanguage.FRENCH,
-                        appLanguage,
-                        onLanguageSelected
-                    )
-                    LanguageRadioButton(
-                        stringResource(R.string.lang_english),
-                        AppLanguage.ENGLISH,
-                        appLanguage,
-                        onLanguageSelected
-                    )
-                    LanguageRadioButton(
-                        stringResource(R.string.lang_german),
-                        AppLanguage.GERMAN,
-                        appLanguage,
-                        onLanguageSelected
-                    )
-                    LanguageRadioButton(
-                        stringResource(R.string.lang_hungarian),
-                        AppLanguage.HUNGARIAN,
-                        appLanguage,
-                        onLanguageSelected
-                    )
-                    LanguageRadioButton(
-                        stringResource(R.string.lang_russian),
-                        AppLanguage.RUSSIAN,
-                        appLanguage,
-                        onLanguageSelected
-                    )
-                    LanguageRadioButton(
-                        stringResource(R.string.lang_vietnamese),
-                        AppLanguage.VIETNAMESE,
-                        appLanguage,
-                        onLanguageSelected
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showLanguageDialog = false
-                }) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
     }
@@ -525,25 +430,9 @@ fun AppearanceSettingsScreen(
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (isPureBlackVisible) 5 else 4
+                        val totalVisibleItems = if (isPureBlackVisible) 4 else 3
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
-                            title = stringResource(R.string.pref_language),
-                            subtitle = stringResource(R.string.pref_language_sub),
-                            trailingText = when (appLanguage) {
-                                AppLanguage.SYSTEM -> stringResource(R.string.theme_system)
-                                AppLanguage.FRENCH -> stringResource(R.string.lang_french)
-                                AppLanguage.ENGLISH -> stringResource(R.string.lang_english)
-                                AppLanguage.GERMAN -> stringResource(R.string.lang_german)
-                                AppLanguage.HUNGARIAN -> stringResource(R.string.lang_hungarian)
-                                AppLanguage.RUSSIAN -> stringResource(R.string.lang_russian)
-                                AppLanguage.VIETNAMESE -> stringResource(R.string.lang_vietnamese)
-                            },
-                            onClick = { showLanguageDialog = true }
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 1),
                             title = stringResource(R.string.pref_theme_dynamic),
                             subtitle = stringResource(R.string.pref_theme_dynamic_sub),
                             hasSwitch = true,
@@ -562,7 +451,7 @@ fun AppearanceSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 2),
+                            shape = getSettingsShape(totalVisibleItems, 1),
                             title = stringResource(R.string.pref_theme_track_dynamic),
                             subtitle = stringResource(R.string.pref_theme_track_dynamic_sub),
                             hasSwitch = true,
@@ -583,7 +472,7 @@ fun AppearanceSettingsScreen(
                             exit = shrinkVertically() + fadeOut()
                         ) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 3),
+                                shape = getSettingsShape(totalVisibleItems, 2),
                                 title = stringResource(R.string.pref_theme_pure_black),
                                 subtitle = stringResource(R.string.pref_theme_pure_black_sub),
                                 hasSwitch = true,
@@ -593,7 +482,7 @@ fun AppearanceSettingsScreen(
                         }
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, if (isPureBlackVisible) 4 else 3),
+                            shape = getSettingsShape(totalVisibleItems, if (isPureBlackVisible) 3 else 2),
                             title = stringResource(R.string.pref_color_palette_title),
                             subtitle = stringResource(R.string.pref_color_palette_subtitle),
                             onClick = onNavigateToColors
@@ -677,29 +566,6 @@ fun AppearanceSettingsScreen(
                                 title = stringResource(R.string.pref_bottom_menu_title),
                                 subtitle = stringResource(R.string.pref_bottom_menu_subtitle),
                                 onClick = onNavigateToBottomBarSettings
-                            )
-                        },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_start_screen),
-                                subtitle = if (startDestination == StartDestination.HOME) stringResource(R.string.nav_home) else stringResource(
-                                    R.string.nav_library
-                                ),
-                                onClick = { showStartDestDialog = true }
-                            )
-                        },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_auto_update),
-                                subtitle = stringResource(R.string.pref_auto_update_sub),
-                                hasSwitch = true,
-                                switchState = autoUpdate,
-                                onSwitchChange = {
-                                    autoUpdate = it
-                                    prefs.setAutoUpdateEnabled(it)
-                                }
                             )
                         },
                         { shape ->
