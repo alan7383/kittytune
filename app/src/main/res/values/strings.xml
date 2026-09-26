@@ -1521,6 +1521,27 @@
     <string name="listening_stats_period_week">This Week</string>
     <string name="listening_stats_period_month">This Month</string>
     <string name="listening_stats_period_all">All Time</string>
+    <string name="listening_stats_period_year">This Year</string>
+
+    <!-- Comparison against the equivalent span before this one -->
+    <string name="listening_stats_vs_previous">vs %1$s</string>
+    <string name="listening_stats_more">%1$s more</string>
+    <string name="listening_stats_less">%1$s less</string>
+
+    <!-- New section built from the one-pass report -->
+    <string name="listening_stats_when">When You Listen</string>
+    <string name="listening_stats_night">Night</string>
+    <string name="listening_stats_morning">Morning</string>
+    <string name="listening_stats_afternoon">Afternoon</string>
+    <string name="listening_stats_evening">Evening</string>
+    <string name="listening_stats_streak_title">Longest streak</string>
+    <string name="listening_stats_streak_days">%1$d days</string>
+    <string name="listening_stats_streak_one">%1$d day</string>
+    <string name="listening_stats_busiest_day">Busiest day</string>
+    <string name="listening_stats_peak_hour">Peak hour</string>
+    <string name="listening_stats_active_days">Active days</string>
+    <string name="listening_stats_per_day">Per day</string>
+    <string name="listening_stats_avg_play">Avg per play</string>
 
     <string name="listening_stats_time_listened">Time Listened</string>
     <string name="listening_stats_plays">Plays</string>

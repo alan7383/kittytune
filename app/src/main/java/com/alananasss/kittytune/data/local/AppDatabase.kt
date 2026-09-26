@@ -233,6 +233,19 @@
         suspend fun getEventsAfter(since: Long): List<ListeningStatsEvent>
 
         /**
+         * The most recent [limit] rows, newest first.
+         *
+         * "All time" only ever charts its last two years and compares against nothing, so its report
+         * is built from a bounded read rather than from every listen ever recorded.
+         */
+        @Query("SELECT * FROM listening_stats WHERE timestamp >= :since ORDER BY timestamp DESC LIMIT :limit")
+        suspend fun getRecentEventsAfter(since: Long, limit: Int): List<ListeningStatsEvent>
+
+        /** Listening time inside a closed range, for comparing a span against the one before it. */
+        @Query("SELECT COALESCE(SUM(listenDurationMs), 0) FROM listening_stats WHERE timestamp >= :since AND timestamp < :until")
+        suspend fun getTotalListenTimeBetween(since: Long, until: Long): Long
+
+        /**
          * Every number the statistics header shows, in one query.
          *
          * This replaces nine separate scalar queries. Nine round trips each rescanning the same rows is

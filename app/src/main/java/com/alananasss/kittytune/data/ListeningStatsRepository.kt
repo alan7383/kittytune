@@ -302,6 +302,22 @@ object ListeningStatsRepository {
     suspend fun getEventCount(type: String, since: Long): Int = dao.getEventCountByType(type, since)
     suspend fun getEvents(since: Long): List<ListeningStatsEvent> = dao.getEventsAfter(since)
 
+    /** The most recent [limit] rows from [since], newest first. */
+    suspend fun getRecentEvents(since: Long, limit: Int): List<ListeningStatsEvent> =
+        dao.getRecentEventsAfter(since, limit)
+
+    /** Listening time inside a closed range, for comparing a span against the one before it. */
+    suspend fun getTotalListenTime(since: Long, until: Long): Long =
+        dao.getTotalListenTimeBetween(since, until)
+
+    /**
+     * When the first listen was recorded, or null with none.
+     *
+     * "All time" is a window like any other, so it has to begin where the history does rather than
+     * at the epoch — otherwise the activity chart opens on years of empty months.
+     */
+    suspend fun getOldestEventAt(): Long? = getSnapshot(0L).firstAtMs?.takeIf { it > 0L }
+
     fun clearStats() {
         scope.launch {
             dao.clearStats()

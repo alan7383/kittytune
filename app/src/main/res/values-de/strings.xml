@@ -1521,6 +1521,23 @@
     <string name="listening_stats_period_week">Diese Woche</string>
     <string name="listening_stats_period_month">Diesen Monat</string>
     <string name="listening_stats_period_all">Gesamt</string>
+    <string name="listening_stats_period_year">Dieses Jahr</string>
+    <string name="listening_stats_vs_previous">vs %1$s</string>
+    <string name="listening_stats_more">%1$s mehr</string>
+    <string name="listening_stats_less">%1$s weniger</string>
+    <string name="listening_stats_when">Wann du hörst</string>
+    <string name="listening_stats_night">Nacht</string>
+    <string name="listening_stats_morning">Morgen</string>
+    <string name="listening_stats_afternoon">Nachmittag</string>
+    <string name="listening_stats_evening">Abend</string>
+    <string name="listening_stats_streak_title">Längste Serie</string>
+    <string name="listening_stats_streak_days">%1$d Tage</string>
+    <string name="listening_stats_streak_one">%1$d Tag</string>
+    <string name="listening_stats_busiest_day">Aktivster Tag</string>
+    <string name="listening_stats_peak_hour">Hauptzeit</string>
+    <string name="listening_stats_active_days">Aktive Tage</string>
+    <string name="listening_stats_per_day">Pro Tag</string>
+    <string name="listening_stats_avg_play">Ø pro Titel</string>
 
     <string name="listening_stats_time_listened">Hördauer</string>
     <string name="listening_stats_plays">Wiedergaben</string>

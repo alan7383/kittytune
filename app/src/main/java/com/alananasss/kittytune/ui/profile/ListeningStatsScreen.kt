@@ -2,6 +2,7 @@ package com.alananasss.kittytune.ui.profile
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,6 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -35,6 +39,7 @@ import java.util.Locale
 import java.util.Calendar
 import androidx.compose.ui.platform.LocalContext
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.stats.ListeningReport
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -46,6 +51,7 @@ fun ListeningStatsScreen(
 ) {
     val viewModel: ListeningStatsViewModel = viewModel()
     val stats = viewModel.stats
+    val report = viewModel.report
     val selectedPeriod = viewModel.selectedPeriod
     val isLoading = viewModel.isLoading
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -226,7 +232,8 @@ fun ListeningStatsScreen(
                         totalListenTimeMs = stats.totalListenTimeMs,
                         totalPlays = stats.totalPlays,
                         uniqueTracks = stats.uniqueTracks,
-                        uniqueArtists = stats.uniqueArtists
+                        uniqueArtists = stats.uniqueArtists,
+                        change = report?.change
                     )
                 }
 
@@ -258,6 +265,51 @@ fun ListeningStatsScreen(
                             ) {
                                 items(stats.topArtists) { artist ->
                                     TopArtistCard(artist, onClick = { onArtistClick(artist) })
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // What the report adds over the aggregate query: when in the day the listening
+                // happens, and how consistently. None of it is derivable from a single number.
+                report?.let { r ->
+                    if (r.partsOfDay.any { it > 0L }) {
+                        item {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                SectionTitle(stringResource(R.string.listening_stats_when))
+                                PartsOfDayChart(r)
+                            }
+                        }
+                    }
+
+                    if (r.longestStreakDays > 1 || r.busiestWeekday != null || r.peakHour != null) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                if (r.longestStreakDays > 0) {
+                                    HabitCard(
+                                        icon = Icons.Rounded.LocalFireDepartment,
+                                        title = stringResource(R.string.listening_stats_streak_title),
+                                        value = stringResource(
+                                            if (r.longestStreakDays == 1) R.string.listening_stats_streak_one
+                                            else R.string.listening_stats_streak_days,
+                                            r.longestStreakDays
+                                        ),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                r.busiestWeekday?.let { day ->
+                                    HabitCard(
+                                        icon = Icons.Rounded.CalendarToday,
+                                        title = stringResource(R.string.listening_stats_busiest_day),
+                                        value = day.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()),
+                                        modifier = Modifier.weight(1f)
+                                    )
                                 }
                             }
                         }
@@ -335,6 +387,7 @@ private fun PeriodSelector(
             val label = when (period) {
                 StatsPeriod.WEEK -> stringResource(R.string.listening_stats_period_week)
                 StatsPeriod.MONTH -> stringResource(R.string.listening_stats_period_month)
+                StatsPeriod.YEAR -> stringResource(R.string.listening_stats_period_year)
                 StatsPeriod.ALL_TIME -> stringResource(R.string.listening_stats_period_all)
             }
             Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
@@ -387,7 +440,8 @@ private fun HeroStatsCard(
     totalListenTimeMs: Long,
     totalPlays: Int,
     uniqueTracks: Int,
-    uniqueArtists: Int
+    uniqueArtists: Int,
+    change: Float? = null
 ) {
     val targetSeconds = (totalListenTimeMs / 1000f)
     val animatedSeconds by animateFloatAsState(
@@ -426,6 +480,16 @@ private fun HeroStatsCard(
                     ),
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
+                // Against the same length of time just before this one, so a week is compared with
+                // the week before it rather than with whatever seven days happen to overlap it.
+                // Null for "all time", which has no equal span behind it.
+                if (change != null) {
+                    Text(
+                        text = comparisonLabel(change),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f)
+                    )
+                }
             }
 
             Row(
@@ -689,7 +753,7 @@ private fun HabitCard(
     icon: ImageVector,
     title: String,
     value: String,
-    subtitle: String,
+    subtitle: String = "",
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -1001,5 +1065,93 @@ private fun TimelineItemRow(
                 )
             }
         }
+    }
+}
+
+/**
+ * Listening split across the four parts of the day, as four proportional bars.
+ *
+ * Drawn from [ListeningReport.partsOfDay] rather than a per-hour chart on purpose: which half of
+ * the day someone listens in is the readable part, and the hourly detail is a 24-column chart that
+ * answers nothing they asked for.
+ */
+@Composable
+private fun PartsOfDayChart(report: ListeningReport) {
+    val parts = report.partsOfDay
+    val labels = listOf(
+        stringResource(R.string.listening_stats_night),
+        stringResource(R.string.listening_stats_morning),
+        stringResource(R.string.listening_stats_afternoon),
+        stringResource(R.string.listening_stats_evening)
+    )
+    val total = parts.sum().coerceAtLeast(1L)
+    val peak = parts.maxOrNull()?.coerceAtLeast(1L) ?: 1L
+    // Read outside the Canvas: the draw lambda is not a composable scope.
+    val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val barColor = MaterialTheme.colorScheme.primary
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            parts.forEachIndexed { index, ms ->
+                val fraction = ms.toFloat() / total.toFloat()
+                val heightFraction = ms.toFloat() / peak.toFloat()
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = labels[index],
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = String.format(Locale.US, "%.0f%%", fraction * 100),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Canvas(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                    ) {
+                        val radius = CornerRadius(size.height / 2f, size.height / 2f)
+                        drawRoundRect(
+                            color = trackColor,
+                            size = size,
+                            cornerRadius = radius
+                        )
+                        if (ms > 0L) {
+                            drawRoundRect(
+                                color = barColor,
+                                size = Size((size.width * heightFraction).coerceAtLeast(size.height), size.height),
+                                cornerRadius = radius
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** "vs 25% more" / "vs 10% less", against the span before this one. */
+@Composable
+private fun comparisonLabel(change: Float): String {
+    val percent = String.format(Locale.US, "%.0f%%", kotlin.math.abs(change) * 100)
+    return if (change >= 0f) {
+        stringResource(R.string.listening_stats_vs_previous, stringResource(R.string.listening_stats_more, percent))
+    } else {
+        stringResource(R.string.listening_stats_vs_previous, stringResource(R.string.listening_stats_less, percent))
     }
 }

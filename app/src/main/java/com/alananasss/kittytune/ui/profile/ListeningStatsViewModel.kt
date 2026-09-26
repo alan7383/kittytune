@@ -11,9 +11,14 @@ import com.alananasss.kittytune.data.local.StatsMonth
 import com.alananasss.kittytune.data.local.StatsSnapshot
 import com.alananasss.kittytune.data.local.TopArtistResult
 import com.alananasss.kittytune.data.local.TopTrackResult
+import com.alananasss.kittytune.data.stats.ListeningReport
+import com.alananasss.kittytune.data.stats.ListeningReports
+import com.alananasss.kittytune.data.stats.ReportPeriod
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
+import java.time.ZoneId
 import java.util.Calendar
 
 /**
@@ -49,7 +54,15 @@ data class TimelineChunk(
     val topArtist: TopArtistResult?,
 )
 
-enum class StatsPeriod { WEEK, MONTH, ALL_TIME }
+enum class StatsPeriod { WEEK, MONTH, YEAR, ALL_TIME }
+
+/** [StatsPeriod] as the report layer names it. */
+private fun StatsPeriod.toReportPeriod(): ReportPeriod = when (this) {
+    StatsPeriod.WEEK -> ReportPeriod.WEEK
+    StatsPeriod.MONTH -> ReportPeriod.MONTH
+    StatsPeriod.YEAR -> ReportPeriod.YEAR
+    StatsPeriod.ALL_TIME -> ReportPeriod.ALL_TIME
+}
 
 /**
  * The statistics screen's state (issue #33).
@@ -76,6 +89,18 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
         private set
     var stats by mutableStateOf(PeriodStats())
         private set
+
+    /**
+     * The same span as [stats], built in one pass: the comparison against the previous span, the
+     * activity chart, the hours of the day and the streak.
+     *
+     * Separate from [PeriodStats] because that one is a view over the aggregate query, and this is a
+     * computation over the rows themselves. They are built from the same window, so they cannot
+     * disagree.
+     */
+    var report by mutableStateOf<ListeningReport?>(null)
+        private set
+
     var isLoading by mutableStateOf(true)
         private set
 
@@ -91,6 +116,10 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
     private var monthsShown = 0
 
     private var loadJob: Job? = null
+
+    private val splitter = ListeningReports.ArtistSplitter { raw ->
+        ListeningStatsRepository.splitArtistNames(raw)
+    }
 
     init {
         load()
@@ -120,11 +149,41 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
         loadJob?.cancel()
         isLoading = true
         loadJob = viewModelScope.launch {
-            val since = sinceFor(period)
-            val snapshot = ListeningStatsRepository.getSnapshot(since)
-            val tracks = ListeningStatsRepository.getTopTracks(since, TOP_LIMIT)
-            val artists = ListeningStatsRepository.getTopArtists(since, TOP_LIMIT)
+            val zone = ZoneId.systemDefault()
+            val weekStartsOn = firstDayOfWeekAsDayOfWeek()
+            val now = System.currentTimeMillis()
+
+            // "All time" has to start where the history does, not at the epoch: the window is what
+            // the previous-span comparison and the activity chart are measured against.
+            val firstEventMs = if (period == StatsPeriod.ALL_TIME) {
+                ListeningStatsRepository.getOldestEventAt()
+            } else null
+
+            val window = ListeningReports.windowFor(
+                period.toReportPeriod(), now, zone, firstEventMs, weekStartsOn
+            )
+            val previous = ListeningReports.previousWindow(period.toReportPeriod(), window, zone, weekStartsOn)
+
+            val snapshot = ListeningStatsRepository.getSnapshot(window.startMs)
+            val tracks = ListeningStatsRepository.getTopTracks(window.startMs, TOP_LIMIT)
+            val artists = ListeningStatsRepository.getTopArtists(window.startMs, TOP_LIMIT)
             stats = PeriodStats(snapshot = snapshot, topTracks = tracks, topArtists = artists)
+
+            // One read of the rows serves the whole report. Bounded, because the report is built in
+            // memory and a heavy year of listening is tens of thousands of rows; the aggregate
+            // query above is what the exact totals come from, so the cap only bounds the shape of
+            // the chart and the habits, never the headline numbers.
+            val events = ListeningStatsRepository.getRecentEvents(window.startMs, REPORT_EVENT_LIMIT)
+            val previousListenMs = previous?.let { ListeningStatsRepository.getTotalListenTime(it.startMs, it.endMs) }
+            report = ListeningReports.build(
+                period = period.toReportPeriod(),
+                window = window,
+                events = events,
+                previousListenMs = previousListenMs,
+                zone = zone,
+                splitter = splitter,
+                nowMs = now,
+            )
             isLoading = false
 
             if (period == StatsPeriod.ALL_TIME) resetTimeline()
@@ -174,23 +233,28 @@ class ListeningStatsViewModel(application: Application) : AndroidViewModel(appli
         return start.timeInMillis to end.timeInMillis
     }
 
-    private fun sinceFor(period: StatsPeriod): Long {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        return when (period) {
-            // The current week, from its own first day — which is Monday or Sunday depending on where
-            // you are, so the calendar is asked rather than assumed.
-            StatsPeriod.WEEK -> cal.apply { set(Calendar.DAY_OF_WEEK, firstDayOfWeek) }.timeInMillis
-            StatsPeriod.MONTH -> cal.apply { set(Calendar.DAY_OF_MONTH, 1) }.timeInMillis
-            StatsPeriod.ALL_TIME -> 0L
-        }
+    /**
+     * The locale's first day of the week, so "this week" starts on Sunday in the US and Monday
+     * nearly everywhere else. Guessing Monday would shift every week figure for half the users.
+     */
+    private fun firstDayOfWeekAsDayOfWeek(): DayOfWeek = when (Calendar.getInstance().firstDayOfWeek) {
+        Calendar.SUNDAY -> DayOfWeek.SUNDAY
+        Calendar.MONDAY -> DayOfWeek.MONDAY
+        Calendar.TUESDAY -> DayOfWeek.TUESDAY
+        Calendar.WEDNESDAY -> DayOfWeek.WEDNESDAY
+        Calendar.THURSDAY -> DayOfWeek.THURSDAY
+        Calendar.FRIDAY -> DayOfWeek.FRIDAY
+        else -> DayOfWeek.SATURDAY
     }
 
     private companion object {
         const val TOP_LIMIT = 10
         const val MONTHS_PER_PAGE = 6
+
+        /**
+         * Rows read to build the report. The report is computed in memory from these, so it is
+         * capped rather than pulling in a whole history.
+         */
+        const val REPORT_EVENT_LIMIT = 40_000
     }
 }
