@@ -4,36 +4,36 @@
     <!-- APP & CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="app_name">KittyTune</string>
-    <string name="msg_retrying">Retrying&#8230;</string>
-    <string name="success_generic">Success</string>
-    <string name="error_generic">Something went wrong</string>
-    <string name="error_security_check">Security check required</string>
-    <string name="security_check">Security Check</string>
-    <string name="no_results">No results found</string>
-    <string name="unknown">Unknown</string>
+    <string name="msg_retrying">Retentando...&#8230;</string>
+    <string name="success_generic">Sucesso</string>
+    <string name="error_generic">Algo deu errado</string>
+    <string name="error_security_check">Verificação de segurança necessária</string>
+    <string name="security_check">Verificação de segurança</string>
+    <string name="no_results">Nenhum resultado encontrado</string>
+    <string name="unknown">Desconhecido</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- BUTTONS & ACTIONS                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <string name="btn_ok">OK</string>
-    <string name="btn_cancel">Cancel</string>
-    <string name="btn_confirm">Confirm</string>
-    <string name="btn_save">Save</string>
-    <string name="btn_save_changes">Save changes</string>
-    <string name="btn_delete">Delete</string>
-    <string name="btn_create">Create</string>
-    <string name="btn_close">Close</string>
-    <string name="music_import_transfer_in_progress_toast">Please wait for the transfer to complete</string>
-    <string name="music_import_login_required">To use this feature, you must log in to a SoundCloud account</string>
-    <string name="btn_logout">Log out</string>
-    <string name="btn_back">Back</string>
-    <string name="btn_reset">Reset</string>
-    <string name="btn_see_all">See all</string>
-    <string name="btn_options">Options</string>
-    <string name="btn_play">Play</string>
-    <string name="btn_pause">Pause</string>
-    <string name="btn_shuffle">Shuffle</string>
-    <string name="btn_download">Download</string>
-    <string name="btn_downloaded">Downloaded</string>
+    <string name="btn_ok">Ok</string>
+    <string name="btn_cancel">Cancelar</string>
+    <string name="btn_confirm">Confirmar</string>
+    <string name="btn_save">Salvar</string>
+    <string name="btn_save_changes">Salvar mudanças</string>
+    <string name="btn_delete">Deletar</string>
+    <string name="btn_create">Criar</string>
+    <string name="btn_close">Fechar</string>
+    <string name="music_import_transfer_in_progress_toast">Por, favor espere a transferência completar</string>
+    <string name="music_import_login_required">Para usar essa função, é preciso entrar em uma conta SoundCloud</string>
+    <string name="btn_logout">Sair</string>
+    <string name="btn_back">Voltar</string>
+    <string name="btn_reset">Reiniciar</string>
+    <string name="btn_see_all">Ver tudo</string>
+    <string name="btn_options">Opções</string>
+    <string name="btn_play">Reproduzir</string>
+    <string name="btn_pause">Pausar</string>
+    <string name="btn_shuffle">Embaralhar</string>
+    <string name="btn_download">Baixar</string>
+    <string name="btn_downloaded">Baixado</string>
     <string name="cover_copy_link">Copy link</string>
     <string name="cover_saved">Image saved</string>
     <string name="cover_save_error">Error saving image</string>
