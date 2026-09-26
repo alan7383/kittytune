@@ -882,7 +882,7 @@ fun HighlightTrackCard(track: Track, onClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = track.user?.username ?: stringResource(R.string.unknown_user),
+                    text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_user) },
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color.White,
                     maxLines = 1,
@@ -1340,7 +1340,7 @@ fun DiscoveryBigCard(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = track.user?.username ?: stringResource(R.string.unknown_artist),
+                        text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) },
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White.copy(alpha = 0.9f),
                         maxLines = 1
@@ -1364,7 +1364,7 @@ fun DiscoveryBigCard(
                 val contextText = if (!track.genre.isNullOrBlank()) {
                     stringResource(R.string.home_discovery_context_genre, track.genre)
                 } else {
-                    stringResource(R.string.home_section_similar, track.user?.username ?: "Music")
+                    stringResource(R.string.home_section_similar, track.displayArtist.ifBlank { track.user?.username ?: "Music" })
                 }
 
                 Text(
@@ -1474,7 +1474,7 @@ fun TrackCardModern(track: Track, onClick: () -> Unit) {
             overflow = TextOverflow.Ellipsis
         )
         Text(
-            text = track.user?.username ?: stringResource(R.string.unknown_artist),
+            text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1

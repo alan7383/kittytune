@@ -1419,6 +1419,12 @@
     <string name="automix_overlap_4bars">4 mesures</string>
     <string name="automix_overlap_8bars">8 mesures</string>
     <string name="automix_overlap_custom">Durée personnalisée</string>
+    <string name="automix_start_offset">Décalage de début</string>
+    <string name="automix_start_offset_desc">Choisir où commence la lecture du morceau suivant pendant la transition</string>
+    <string name="automix_start_offset_auto">Automatique (saut d\'intro intelligent)</string>
+    <string name="automix_start_offset_beginning">Début du morceau (0:00)</string>
+    <string name="automix_start_offset_custom">Décalage personnalisé</string>
+    <string name="automix_start_offset_custom_value">Décalage : %d secondes</string>
     <string name="automixing">Automix en cours</string>
     <string name="crossfading">Fondu enchaîné</string>
     <string name="automix_mix_in">MIX DANS %1$d</string>

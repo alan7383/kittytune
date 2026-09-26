@@ -68,8 +68,11 @@ fun AudioSettingsScreen(
     var automixDynamicMix by remember { mutableStateOf(prefs.getAutomixDynamicMixPointsEnabled()) }
     var automixBassDucking by remember { mutableStateOf(prefs.getAutomixBassDuckingEnabled()) }
     var automixOverlapMode by remember { mutableStateOf(prefs.getAutomixOverlapMode()) }
+    var automixStartOffsetMode by remember { mutableStateOf(prefs.getAutomixStartOffsetMode()) }
+    var automixStartOffsetCustomSec by remember { mutableStateOf(prefs.getAutomixStartOffsetCustomSec()) }
     var automixIndicator by remember { mutableStateOf(prefs.getAutomixIndicatorEnabled()) }
     var showAutomixOverlapDialog by remember { mutableStateOf(false) }
+    var showAutomixStartOffsetDialog by remember { mutableStateOf(false) }
 
     var showQualityDialog by remember { mutableStateOf(false) }
     var showFadeDurationDialog by remember { mutableStateOf(false) }
@@ -184,6 +187,80 @@ fun AudioSettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showAutomixOverlapDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showAutomixStartOffsetDialog) {
+        var tempMode by remember { mutableStateOf(automixStartOffsetMode) }
+        var tempCustomSec by remember { mutableStateOf(automixStartOffsetCustomSec) }
+        val offsetOptions = listOf(
+            PlayerPreferences.AUTOMIX_START_OFFSET_AUTO to stringResource(R.string.automix_start_offset_auto),
+            PlayerPreferences.AUTOMIX_START_OFFSET_BEGINNING to stringResource(R.string.automix_start_offset_beginning),
+            PlayerPreferences.AUTOMIX_START_OFFSET_CUSTOM to stringResource(R.string.automix_start_offset_custom),
+        )
+        AlertDialog(
+            onDismissRequest = { showAutomixStartOffsetDialog = false },
+            title = { Text(stringResource(R.string.automix_start_offset)) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.automix_start_offset_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    offsetOptions.forEach { (mode, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { tempMode = mode }
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = tempMode == mode,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(label, fontWeight = FontWeight.Normal)
+                        }
+                    }
+                    if (tempMode == PlayerPreferences.AUTOMIX_START_OFFSET_CUSTOM) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.automix_start_offset_custom_value, tempCustomSec),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Slider(
+                            value = tempCustomSec.toFloat(),
+                            onValueChange = { tempCustomSec = it.toInt() },
+                            valueRange = 1f..30f,
+                            steps = 28,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    automixStartOffsetMode = tempMode
+                    automixStartOffsetCustomSec = tempCustomSec
+                    prefs.setAutomixStartOffsetMode(tempMode)
+                    prefs.setAutomixStartOffsetCustomSec(tempCustomSec)
+                    com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
+                    showAutomixStartOffsetDialog = false
+                }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAutomixStartOffsetDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -605,6 +682,11 @@ fun AudioSettingsScreen(
                     4 -> stringResource(R.string.automix_overlap_custom)
                     else -> stringResource(R.string.automix_overlap_auto)
                 }
+                val automixStartOffsetLabel = when (automixStartOffsetMode) {
+                    PlayerPreferences.AUTOMIX_START_OFFSET_BEGINNING -> stringResource(R.string.automix_start_offset_beginning)
+                    PlayerPreferences.AUTOMIX_START_OFFSET_CUSTOM -> "${stringResource(R.string.automix_start_offset_custom)} (${automixStartOffsetCustomSec}s)"
+                    else -> stringResource(R.string.automix_start_offset_auto)
+                }
 
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.automix))
@@ -643,6 +725,12 @@ fun AudioSettingsScreen(
                                     title = stringResource(R.string.automix_overlap_mode),
                                     subtitle = automixOverlapLabel,
                                     onClick = { showAutomixOverlapDialog = true }
+                                )
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.automix_start_offset),
+                                    subtitle = automixStartOffsetLabel,
+                                    onClick = { showAutomixStartOffsetDialog = true }
                                 )
                                 SettingsItem(
                                     shape = RoundedCornerShape(4.dp),

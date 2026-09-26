@@ -281,11 +281,20 @@
         @Query("SELECT artistName, MAX(artistAvatarUrl) as artworkUrl, MAX(artistId) as artistId, MAX(artistPermalink) as artistPermalink, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND ${StatsSql.COUNTS_AS_PLAY} GROUP BY artistName ORDER BY totalListenMs DESC LIMIT :limit")
         suspend fun getTopArtistsAfter(since: Long, limit: Int = 10): List<TopArtistResult>
 
+        @Query("SELECT artistName, MAX(artistAvatarUrl) as artworkUrl, MAX(artistId) as artistId, MAX(artistPermalink) as artistPermalink, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND ${StatsSql.COUNTS_AS_PLAY} GROUP BY artistName")
+        suspend fun getRawTopArtistsAfter(since: Long): List<TopArtistResult>
+
         @Query("SELECT trackId, trackTitle, artistName, MAX(artworkUrl) as artworkUrl, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND timestamp < :until AND ${StatsSql.COUNTS_AS_PLAY} GROUP BY trackId ORDER BY totalListenMs DESC LIMIT :limit")
         suspend fun getTopTracksBetween(since: Long, until: Long, limit: Int = 1): List<TopTrackResult>
 
         @Query("SELECT artistName, MAX(artistAvatarUrl) as artworkUrl, MAX(artistId) as artistId, MAX(artistPermalink) as artistPermalink, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND timestamp < :until AND ${StatsSql.COUNTS_AS_PLAY} GROUP BY artistName ORDER BY totalListenMs DESC LIMIT :limit")
         suspend fun getTopArtistsBetween(since: Long, until: Long, limit: Int = 1): List<TopArtistResult>
+
+        @Query("SELECT artistName, MAX(artistAvatarUrl) as artworkUrl, MAX(artistId) as artistId, MAX(artistPermalink) as artistPermalink, MAX(source) as source, COUNT(*) as playCount, SUM(listenDurationMs) as totalListenMs FROM listening_stats WHERE timestamp >= :since AND timestamp < :until AND ${StatsSql.COUNTS_AS_PLAY} GROUP BY artistName")
+        suspend fun getRawTopArtistsBetween(since: Long, until: Long): List<TopArtistResult>
+
+        @Query("SELECT DISTINCT artistName FROM listening_stats WHERE timestamp >= :since AND ${StatsSql.COUNTS_AS_PLAY}")
+        suspend fun getDistinctArtistNamesAfter(since: Long): List<String>
 
         @Query("SELECT COALESCE(SUM(listenDurationMs), 0) FROM listening_stats WHERE timestamp >= :since")
         suspend fun getTotalListenTimeAfter(since: Long): Long

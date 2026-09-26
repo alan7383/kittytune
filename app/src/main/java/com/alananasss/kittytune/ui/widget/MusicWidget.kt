@@ -135,7 +135,7 @@
             ) {
                 if (track != null) {
                     prefs[KEY_TITLE] = track.title ?: context.getString(R.string.widget_unknown)
-                    prefs[KEY_ARTIST] = track.user?.username ?: context.getString(R.string.widget_unknown)
+                    prefs[KEY_ARTIST] = track.displayArtist.ifBlank { track.user?.username ?: context.getString(R.string.widget_unknown) }
                     val path = getCachedArtworkPath(context, track.id)
                     prefs[KEY_COVER_PATH] = path ?: ""
                 } else {

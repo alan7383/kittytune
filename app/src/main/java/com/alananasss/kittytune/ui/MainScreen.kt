@@ -1196,7 +1196,11 @@ fun MainScreen(
                                 }
                             },
                             onArtistClick = { artist ->
-                                if (artist.source == "soundcloud") {
+                                if (artist.source == "spotify" && !artist.artistPermalink.isNullOrBlank()) {
+                                    playerViewModel.navigateToSpotifyArtist(
+                                        artist.artistPermalink.removePrefix("spotify:artist:")
+                                    )
+                                } else {
                                     playerViewModel.resolveAndNavigateToArtist(artist.artistName, artist.artistId)
                                 }
                             }

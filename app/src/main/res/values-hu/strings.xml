@@ -2181,6 +2181,12 @@
     <string name="automix_overlap_auto">Automatikus (4 ütem)</string>
     <string name="automix_overlap_custom">Egyéni időtartam</string>
     <string name="automix_overlap_mode">Átmenet hossza</string>
+    <string name="automix_start_offset">Kezdési eltolás</string>
+    <string name="automix_start_offset_desc">Válaszd ki, hol kezdődjön a következő szám lejátszása az átmenet során</string>
+    <string name="automix_start_offset_auto">Automatikus (intelligens intro-átugrás)</string>
+    <string name="automix_start_offset_beginning">A szám eleje (0:00)</string>
+    <string name="automix_start_offset_custom">Egyéni eltolás</string>
+    <string name="automix_start_offset_custom_value">Eltolás: %d másodperc</string>
     <string name="automix_tempo_match">Tempóigazítás</string>
     <string name="automix_tempo_match_desc">Finom sebességkorrekció (akár ±8%), hogy az ütem tökéletesen zárjon</string>
     <string name="automixing">Automix folyamatban</string>

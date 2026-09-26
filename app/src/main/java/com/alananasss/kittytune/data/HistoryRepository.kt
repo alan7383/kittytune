@@ -37,7 +37,7 @@ object HistoryRepository {
                 id = "track:${track.id}",
                 numericId = track.id,
                 title = track.title ?: appContext.getString(R.string.history_untitled_track),
-                subtitle = track.user?.username ?: appContext.getString(R.string.history_unknown_artist),
+                subtitle = track.displayArtist.ifBlank { track.user?.username.orEmpty() }.ifBlank { appContext.getString(R.string.history_unknown_artist) },
                 imageUrl = track.fullResArtwork.takeIf { !it.contains("picsum.photos") } ?: "",
                 type = "TRACK",
                 isVerified = track.user?.verified == true,

@@ -2183,6 +2183,12 @@
     <string name="automix_overlap_auto">Автоматически (4 такта)</string>
     <string name="automix_overlap_custom">Пользовательская длительность</string>
     <string name="automix_overlap_mode">Длительность перехода</string>
+    <string name="automix_start_offset">Смещение начала</string>
+    <string name="automix_start_offset_desc">Выберите, с какого момента начинается следующий трек при переходе</string>
+    <string name="automix_start_offset_auto">Автоматически (умный пропуск интро)</string>
+    <string name="automix_start_offset_beginning">С начала трека (0:00)</string>
+    <string name="automix_start_offset_custom">Своё смещение</string>
+    <string name="automix_start_offset_custom_value">Смещение: %d сек</string>
     <string name="automix_tempo_match">Выравнивание темпа</string>
     <string name="automix_tempo_match_desc">Незначительная подстройка скорости (до ±8%) для фиксации бита</string>
     <string name="automixing">Сведение треков</string>

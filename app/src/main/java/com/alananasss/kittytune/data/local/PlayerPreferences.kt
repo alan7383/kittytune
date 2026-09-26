@@ -207,6 +207,11 @@ class PlayerPreferences(context: Context) {
         private const val KEY_DJ_FLOW_INFINITE_STREAM = "dj_flow_infinite_stream"
         private const val KEY_DJ_FLOW_CATEGORY = "dj_flow_category"
         private const val KEY_DJ_FLOW_AUTO_STEM_CUT = "dj_flow_auto_stem_cut"
+        const val AUTOMIX_START_OFFSET_AUTO = 0
+        const val AUTOMIX_START_OFFSET_BEGINNING = 1
+        const val AUTOMIX_START_OFFSET_CUSTOM = 2
+        private const val KEY_AUTOMIX_START_OFFSET_MODE = "automix_start_offset_mode"
+        private const val KEY_AUTOMIX_START_OFFSET_CUSTOM_SEC = "automix_start_offset_custom_sec"
         private const val KEY_CACHED_USER_ID = "cached_user_id"
         private const val KEY_CACHED_USERNAME = "cached_username"
         private const val KEY_KEY_COLOR = "key_color"
@@ -317,6 +322,12 @@ class PlayerPreferences(context: Context) {
 
     fun getAutomixOverlapMode(): Int = prefs.getInt(KEY_AUTOMIX_OVERLAP_MODE, 0)
     fun setAutomixOverlapMode(mode: Int) = prefs.edit { putInt(KEY_AUTOMIX_OVERLAP_MODE, mode) }
+
+    fun getAutomixStartOffsetMode(): Int = prefs.getInt(KEY_AUTOMIX_START_OFFSET_MODE, AUTOMIX_START_OFFSET_AUTO)
+    fun setAutomixStartOffsetMode(mode: Int) = prefs.edit { putInt(KEY_AUTOMIX_START_OFFSET_MODE, mode) }
+
+    fun getAutomixStartOffsetCustomSec(): Int = prefs.getInt(KEY_AUTOMIX_START_OFFSET_CUSTOM_SEC, 10)
+    fun setAutomixStartOffsetCustomSec(seconds: Int) = prefs.edit { putInt(KEY_AUTOMIX_START_OFFSET_CUSTOM_SEC, seconds.coerceIn(0, 60)) }
 
     fun getAutomixIndicatorEnabled(): Boolean = prefs.getBoolean(KEY_AUTOMIX_INDICATOR, false)
     fun setAutomixIndicatorEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTOMIX_INDICATOR, enabled) }

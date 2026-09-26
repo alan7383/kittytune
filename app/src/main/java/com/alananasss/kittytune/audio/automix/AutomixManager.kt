@@ -408,21 +408,53 @@ object AutomixManager {
             }
         }
 
-        // Dynamic mix-in: skip incoming track's intro, snapped onto its 8-beat phrase grid
+        // Start offset: Auto (dynamic intro skip), Beginning (0:00), or Custom offset (snapped to downbeats)
+        val inPeriodMs = (60_000f / inBeat.bpm).toDouble()
+        // Dynamic mix-in: where the incoming track starts. The offset mode decides whether that is
+        // the detected intro skip, the very beginning, or a fixed offset the user set. Whichever it
+        // is, the result is snapped onto the incoming track's own trusted phrase anchor rather than
+        // an arbitrary beat of the grid, and the phrase length follows how far the downbeat
+        // classification could actually be trusted.
         val inPeriodMs = (60_000f / inBeat.bpm).toDouble()
         val inAnchorMs = inBeat.trustedAnchorMs
-        val rawStart = if (prefs.getAutomixDynamicMixPointsEnabled()) {
-            inBeat.mixInPointMs?.takeIf { it > 0 } ?: inAnchorMs
-        } else inAnchorMs
         val inPhraseMs = inPeriodMs * max(2, inBeat.gridTrust.quantizeBeats / 2)
-        val inK = ceil((rawStart - inAnchorMs) / inPhraseMs).toLong().coerceAtLeast(0)
-        val incomingStart = (inAnchorMs + inK * inPhraseMs).toLong()
+        val startOffsetMode = prefs.getAutomixStartOffsetMode()
+        val incomingStart: Long = when (startOffsetMode) {
+            PlayerPreferences.AUTOMIX_START_OFFSET_BEGINNING -> 0L
+            PlayerPreferences.AUTOMIX_START_OFFSET_CUSTOM -> {
+                val customSec = prefs.getAutomixStartOffsetCustomSec()
+                val targetMs = customSec * 1000L
+                if (targetMs <= 0L) {
+                    0L
+                } else if (inBeat.bpm > 0f) {
+                    val inBarMs = inPeriodMs * 4
+                    val inBars = kotlin.math.round((targetMs - inAnchorMs) / inBarMs).toLong().coerceAtLeast(0)
+                    (inAnchorMs + inBars * inBarMs).toLong().coerceAtLeast(0L)
+                } else {
+                    targetMs
+                }
+            }
+            else -> { // AUTOMIX_START_OFFSET_AUTO
+                val rawStart = if (prefs.getAutomixDynamicMixPointsEnabled()) {
+                    inBeat.mixInPointMs?.takeIf { it > 0 } ?: inAnchorMs
+                } else inAnchorMs
+                val inK = ceil((rawStart - inAnchorMs) / inPhraseMs).toLong().coerceAtLeast(0)
+                (inAnchorMs + inK * inPhraseMs).toLong()
+            }
+        }
+        // Never start so close to the end that the track has no room to play.
+        val nextDuration = nextTrack.durationMs?.takeIf { it > 5000L }
+        val effectiveIncomingStart = if (nextDuration != null) {
+            incomingStart.coerceIn(0L, nextDuration - 3000L)
+        } else {
+            incomingStart.coerceAtLeast(0L)
+        }
 
         val plan = AutomixPlan(
             currentId = currentId,
             nextId = nextId,
             triggerTimeMs = triggerTime,
-            incomingStartMs = incomingStart,
+            incomingStartMs = effectiveIncomingStart,
             tempoRatio = tempoRatio,
             pitchRatio = pitchRatio,
             overlapMs = effectiveOverlapMs,

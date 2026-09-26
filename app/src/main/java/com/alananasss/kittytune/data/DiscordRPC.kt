@@ -61,7 +61,7 @@ class DiscordRPC(
         startTime: Long?,
         endTime: Long?
     ) {
-        val artistName = track.user?.username ?: "Unknown Artist"
+        val artistName = track.displayArtist.ifBlank { track.user?.username ?: "Unknown Artist" }
         val trackTitle = track.title ?: "Unknown Title"
         val playlistInfo = contextName ?: "KittyTune"
 

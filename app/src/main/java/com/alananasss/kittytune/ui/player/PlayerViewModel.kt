@@ -2652,8 +2652,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 val user = gson.fromJson(resolvedObject, User::class.java)
                 if (user.id > 0) {
                     navigateToPlaylistId = "profile:${user.id}"
+                    return@launch
                 }
             } catch (_: Exception) {
+                try {
+                    val search = com.alananasss.kittytune.data.spotify.SpotifyRepository.search(cleanName)
+                    val match = search.artists.firstOrNull { it.name.equals(cleanName, ignoreCase = true) }
+                        ?: search.artists.firstOrNull()
+                    if (match != null && match.id.isNotBlank()) {
+                        navigateToSpotifyArtist(match.id)
+                        return@launch
+                    }
+                } catch (_: Exception) {}
                 emitUiEvent(getString(R.string.error_generic))
             }
         }

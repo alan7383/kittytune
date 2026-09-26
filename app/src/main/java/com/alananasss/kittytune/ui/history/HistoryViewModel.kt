@@ -52,6 +52,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             if (searchQuery.isBlank()) return tracksHistory
             return tracksHistory.filter { item ->
                 (item.track.title?.contains(searchQuery, ignoreCase = true) == true) ||
+                        (item.track.displayArtist.contains(searchQuery, ignoreCase = true)) ||
                         (item.track.user?.username?.contains(searchQuery, ignoreCase = true) == true)
             }
         }
@@ -158,7 +159,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                                     id = "track:${track.id}",
                                     numericId = track.id,
                                     title = track.title ?: app.getString(R.string.history_untitled_track),
-                                    subtitle = track.user?.username ?: app.getString(R.string.history_unknown_artist),
+                                    subtitle = track.displayArtist.ifBlank { track.user?.username.orEmpty() }.ifBlank { app.getString(R.string.history_unknown_artist) },
                                     imageUrl = effectiveArtwork,
                                     type = "TRACK",
                                     isVerified = track.user?.verified == true,
@@ -273,7 +274,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                                     id = "track:${track.id}",
                                     numericId = track.id,
                                     title = track.title ?: app.getString(R.string.history_untitled_track),
-                                    subtitle = track.user?.username ?: app.getString(R.string.history_unknown_artist),
+                                    subtitle = track.displayArtist.ifBlank { track.user?.username.orEmpty() }.ifBlank { app.getString(R.string.history_unknown_artist) },
                                     imageUrl = track.fullResArtwork ?: "",
                                     type = "TRACK",
                                     isVerified = track.user?.verified == true,

@@ -264,7 +264,7 @@
                 )
                 // artist and play count
                 Text(
-                    text = "${track.user?.username ?: stringResource(R.string.unknown_artist)} • ${formatNumber(track.playbackCount)} ${stringResource(R.string.playback_count_formatted)}",
+                    text = "${track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) }} • ${formatNumber(track.playbackCount)} ${stringResource(R.string.playback_count_formatted)}",
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,
