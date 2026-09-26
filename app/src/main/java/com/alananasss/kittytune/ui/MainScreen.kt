@@ -1431,6 +1431,27 @@ fun MainScreen(
                         )
                     }
 
+                    clippedComposable("interface_settings") {
+                        InterfaceSettingsScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("player_design_settings") {
+                        PlayerDesignSettingsScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("misc_settings") {
+                        MiscSettingsScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
                     clippedComposable("accounts_settings") {
                         AccountsSettingsScreen(
                             currentUser = homeViewModel.userProfile,

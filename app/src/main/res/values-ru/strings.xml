@@ -547,6 +547,14 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <string name="settings_cat_interface_sub">Темы, плеер и тексты песен</string>
+    <string name="settings_cat_interface">Интерфейс</string>
+    <string name="settings_cat_misc">Прочее</string>
+    <string name="settings_page_themes">Темы</string>
+    <string name="settings_page_themes_sub">Цвета, фон и шрифт</string>
+    <string name="settings_page_player">Плеер</string>
+    <string name="settings_page_player_sub">Расположение и элементы управления</string>
+    <string name="settings_page_lyrics_sub">Вид и поведение текстов песен</string>
     <string name="settings_title">Настройки</string>
     <string name="settings_cat_general">Общие</string>
     <string name="settings_cat_appearance">Оформление</string>

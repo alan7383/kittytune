@@ -698,6 +698,14 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <string name="settings_cat_interface_sub">Chủ đề, trình phát và lời bài hát</string>
+    <string name="settings_cat_interface">Giao diện</string>
+    <string name="settings_cat_misc">Khác</string>
+    <string name="settings_page_themes">Chủ đề</string>
+    <string name="settings_page_themes_sub">Màu sắc, nền và phông chữ</string>
+    <string name="settings_page_player">Trình phát</string>
+    <string name="settings_page_player_sub">Bố cục và điều khiển</string>
+    <string name="settings_page_lyrics_sub">Cách hiển thị lời bài hát</string>
     <string name="settings_title">Cài đặt</string>
     <string name="settings_cat_general">Chung</string>
     <string name="settings_cat_appearance">Giao diện</string>

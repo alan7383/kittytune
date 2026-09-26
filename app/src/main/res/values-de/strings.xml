@@ -774,6 +774,14 @@
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
+    <string name="settings_cat_interface_sub">Designs, Player und Songtexte</string>
+    <string name="settings_cat_interface">Oberfläche</string>
+    <string name="settings_cat_misc">Verschiedenes</string>
+    <string name="settings_page_themes">Designs</string>
+    <string name="settings_page_themes_sub">Farben, Hintergrund und Schrift</string>
+    <string name="settings_page_player">Player</string>
+    <string name="settings_page_player_sub">Layout und Bedienung</string>
+    <string name="settings_page_lyrics_sub">Wie Songtexte aussehen und sich verhalten</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_cat_general">Allgemein</string>
     <string name="settings_cat_appearance">Darstellung</string>

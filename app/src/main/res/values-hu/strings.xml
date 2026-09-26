@@ -539,6 +539,14 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <string name="settings_cat_interface_sub">Témák, lejátszó és dalszövegek</string>
+    <string name="settings_cat_interface">Felület</string>
+    <string name="settings_cat_misc">Egyéb</string>
+    <string name="settings_page_themes">Témák</string>
+    <string name="settings_page_themes_sub">Színek, háttér és betűtípus</string>
+    <string name="settings_page_player">Lejátszó</string>
+    <string name="settings_page_player_sub">Elrendezés és vezérlők</string>
+    <string name="settings_page_lyrics_sub">A dalszövegek megjelenése és működése</string>
     <string name="settings_title">Beállítások</string>
     <string name="settings_cat_general">Általános</string>
     <string name="settings_cat_appearance">Megjelenés</string>

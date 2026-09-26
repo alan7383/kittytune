@@ -703,6 +703,14 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <string name="settings_cat_interface_sub">Thèmes, lecteur et paroles</string>
+    <string name="settings_cat_interface">Interface</string>
+    <string name="settings_cat_misc">Divers</string>
+    <string name="settings_page_themes">Thèmes</string>
+    <string name="settings_page_themes_sub">Couleurs, fond et police</string>
+    <string name="settings_page_player">Lecteur</string>
+    <string name="settings_page_player_sub">Disposition et commandes</string>
+    <string name="settings_page_lyrics_sub">Apparence et comportement des paroles</string>
     <string name="settings_title">Paramètres</string>
     <string name="settings_cat_general">Général</string>
     <string name="settings_cat_appearance">Apparence</string>
