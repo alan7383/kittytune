@@ -1187,7 +1187,7 @@ fun MainScreen(
                                 if (track.source == "soundcloud") {
                                     val stubTrack = com.alananasss.kittytune.domain.Track(
                                         id = track.trackId,
-                                        title = track.trackTitle,
+                                        title = track.title,
                                         user = com.alananasss.kittytune.domain.User(0, track.artistName, null),
                                         artworkUrl = track.artworkUrl,
                                         durationMs = 0L
@@ -1196,12 +1196,12 @@ fun MainScreen(
                                 }
                             },
                             onArtistClick = { artist ->
-                                if (artist.source == "spotify" && !artist.artistPermalink.isNullOrBlank()) {
+                                if (artist.source == "spotify" && !artist.permalink.isNullOrBlank()) {
                                     playerViewModel.navigateToSpotifyArtist(
-                                        artist.artistPermalink.removePrefix("spotify:artist:")
+                                        artist.permalink.removePrefix("spotify:artist:")
                                     )
                                 } else {
-                                    playerViewModel.resolveAndNavigateToArtist(artist.artistName, artist.artistId)
+                                    playerViewModel.resolveAndNavigateToArtist(artist.name, artist.artistId)
                                 }
                             }
                         )

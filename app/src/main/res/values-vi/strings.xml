@@ -1398,6 +1398,34 @@
     <!-- LISTENING STATS                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="profile_menu_listening_stats">Thống kê nghe nhạc</string>
+    <string name="listening_stats_show_all">Xem tất cả</string>
+    <string name="listening_stats_all_tracks">Tất cả bài hát</string>
+    <string name="listening_stats_all_artists">Tất cả nghệ sĩ</string>
+    <string name="listening_stats_all_plays">Tất cả lượt nghe</string>
+    <string name="listening_stats_change_week">%1$s so với tuần trước</string>
+    <string name="listening_stats_change_month">%1$s so với tháng trước</string>
+    <string name="listening_stats_change_year">%1$s so với năm trước</string>
+    <string name="listening_stats_activity_days">Nghe theo ngày</string>
+    <string name="listening_stats_activity_months">Nghe theo tháng</string>
+    <string name="listening_stats_activity_avg_day">Trung bình %1$s mỗi ngày</string>
+    <string name="listening_stats_activity_avg_month">Trung bình %1$s mỗi tháng</string>
+    <string name="listening_stats_hours">Thời điểm trong ngày</string>
+    <string name="listening_stats_since">%1$s – hôm nay</string>
+    <string name="listening_stats_skips_of">Đã bỏ qua: %1$d</string>
+    <string name="listening_stats_avg_play_desc">Thời lượng nghe trung bình</string>
+    <string name="listening_stats_duration_min">%1$d phút</string>
+    <string name="listening_stats_streak">Ngày liên tiếp</string>
+    <string name="listening_stats_period_week_short">Tuần</string>
+    <string name="listening_stats_period_month_short">Tháng</string>
+    <string name="listening_stats_period_year_short">Năm</string>
+    <string name="stats_sort_time">Theo thời gian</string>
+    <string name="stats_sort_plays">Theo lượt nghe</string>
+    <string name="stats_sort_name">A–Z</string>
+    <string name="stats_filter_hint">Lọc</string>
+    <string name="stats_today">Hôm nay</string>
+    <string name="listening_stats_peak_hour_label">Đỉnh %1$s</string>
+    <string name="listening_stats_busiest_day_named">Nhiều nhất: %1$s</string>
+    <string name="listening_stats_active_days_count">%1$d ngày có nghe</string>
     <string name="listening_stats_title">Thống kê nghe nhạc</string>
     <string name="listening_stats_subtitle">Thói quen nghe nhạc của bạn</string>
     <string name="listening_stats_period_week">Tuần này</string>

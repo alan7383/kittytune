@@ -1209,6 +1209,34 @@
     <!-- LISTENING STATS                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="profile_menu_listening_stats">Hallgatási statisztikák</string>
+    <string name="listening_stats_show_all">Összes</string>
+    <string name="listening_stats_all_tracks">Összes szám</string>
+    <string name="listening_stats_all_artists">Összes előadó</string>
+    <string name="listening_stats_all_plays">Összes lejátszás</string>
+    <string name="listening_stats_change_week">%1$s az előző héthez</string>
+    <string name="listening_stats_change_month">%1$s az előző hónaphoz</string>
+    <string name="listening_stats_change_year">%1$s az előző évhez</string>
+    <string name="listening_stats_activity_days">Hallgatás naponta</string>
+    <string name="listening_stats_activity_months">Hallgatás havonta</string>
+    <string name="listening_stats_activity_avg_day">Átlagosan napi %1$s</string>
+    <string name="listening_stats_activity_avg_month">Átlagosan havi %1$s</string>
+    <string name="listening_stats_hours">Napszak</string>
+    <string name="listening_stats_since">%1$s – ma</string>
+    <string name="listening_stats_skips_of">Átugorva: %1$d</string>
+    <string name="listening_stats_avg_play_desc">Átlagosan mennyi szól egy számból</string>
+    <string name="listening_stats_duration_min">%1$d perc</string>
+    <string name="listening_stats_streak">Nap egymás után</string>
+    <string name="listening_stats_period_week_short">Hét</string>
+    <string name="listening_stats_period_month_short">Hónap</string>
+    <string name="listening_stats_period_year_short">Év</string>
+    <string name="stats_sort_time">Idő szerint</string>
+    <string name="stats_sort_plays">Hallgatás szerint</string>
+    <string name="stats_sort_name">A–Z</string>
+    <string name="stats_filter_hint">Szűrés</string>
+    <string name="stats_today">Ma</string>
+    <string name="listening_stats_peak_hour_label">Csúcs %1$s</string>
+    <string name="listening_stats_busiest_day_named">Legaktívabb: %1$s</string>
+    <string name="listening_stats_active_days_count">%1$d nap hallgatással</string>
     <string name="listening_stats_title">Hallgatási statisztikák</string>
     <string name="listening_stats_subtitle">A zenehallgatási szokásaid</string>
     <string name="listening_stats_period_week">Ez a hét</string>

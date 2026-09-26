@@ -1515,6 +1515,34 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="profile_menu_listening_stats">Hörstatistiken</string>
+    <string name="listening_stats_show_all">Alle anzeigen</string>
+    <string name="listening_stats_all_tracks">Alle Titel</string>
+    <string name="listening_stats_all_artists">Alle Künstler</string>
+    <string name="listening_stats_all_plays">Alle Wiedergaben</string>
+    <string name="listening_stats_change_week">%1$s ggü. letzter Woche</string>
+    <string name="listening_stats_change_month">%1$s ggü. letztem Monat</string>
+    <string name="listening_stats_change_year">%1$s ggü. letztem Jahr</string>
+    <string name="listening_stats_activity_days">Hören pro Tag</string>
+    <string name="listening_stats_activity_months">Hören pro Monat</string>
+    <string name="listening_stats_activity_avg_day">Im Schnitt %1$s pro Tag</string>
+    <string name="listening_stats_activity_avg_month">Im Schnitt %1$s pro Monat</string>
+    <string name="listening_stats_hours">Tageszeit</string>
+    <string name="listening_stats_since">%1$s – heute</string>
+    <string name="listening_stats_skips_of">Übersprungen: %1$d</string>
+    <string name="listening_stats_avg_play_desc">Wie lange ein Titel im Schnitt läuft</string>
+    <string name="listening_stats_duration_min">%1$d Min.</string>
+    <string name="listening_stats_streak">Tage am Stück</string>
+    <string name="listening_stats_period_week_short">Woche</string>
+    <string name="listening_stats_period_month_short">Monat</string>
+    <string name="listening_stats_period_year_short">Jahr</string>
+    <string name="stats_sort_time">Nach Zeit</string>
+    <string name="stats_sort_plays">Nach Wiedergaben</string>
+    <string name="stats_sort_name">A–Z</string>
+    <string name="stats_filter_hint">Filtern</string>
+    <string name="stats_today">Heute</string>
+    <string name="listening_stats_peak_hour_label">Spitze %1$s</string>
+    <string name="listening_stats_busiest_day_named">Aktivster %1$s</string>
+    <string name="listening_stats_active_days_count">%1$d Tage mit Wiedergabe</string>
     <string name="listening_stats_title">Hörstatistiken</string>
     <string name="listening_stats_subtitle">Deine Hörgewohnheiten</string>
 
