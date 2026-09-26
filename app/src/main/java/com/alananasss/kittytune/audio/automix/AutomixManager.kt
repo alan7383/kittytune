@@ -409,7 +409,6 @@ object AutomixManager {
         }
 
         // Start offset: Auto (dynamic intro skip), Beginning (0:00), or Custom offset (snapped to downbeats)
-        val inPeriodMs = (60_000f / inBeat.bpm).toDouble()
         // Dynamic mix-in: where the incoming track starts. The offset mode decides whether that is
         // the detected intro skip, the very beginning, or a fixed offset the user set. Whichever it
         // is, the result is snapped onto the incoming track's own trusted phrase anchor rather than
