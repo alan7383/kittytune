@@ -93,7 +93,10 @@ fun SettingsItem(
     sliderValue: Float = 0f,
     sliderRange: ClosedFloatingPointRange<Float> = 0f..1f,
     onSliderChange: ((Float) -> Unit)? = null,
-    titleColor: Color = MaterialTheme.colorScheme.onSurface
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    modifier: Modifier = Modifier,
+    /** Sits after the switch, for anything a row needs on its right that is not a value. */
+    trailingContent: (@Composable () -> Unit)? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
@@ -110,7 +113,7 @@ fun SettingsItem(
         enabled = onClick != null || hasSwitch,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         shape = shape,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         interactionSource = interactionSource
     ) {
         Row(
@@ -183,6 +186,11 @@ fun SettingsItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            if (trailingContent != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                trailingContent()
             }
 
             if (hasSwitch && onSwitchChange != null) {

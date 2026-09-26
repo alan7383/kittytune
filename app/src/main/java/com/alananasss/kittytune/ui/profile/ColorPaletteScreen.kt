@@ -136,6 +136,7 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
     val themeMode = prefs.getThemeMode()
     val pureBlack = prefs.getPureBlack()
     val dynamicTheme = prefs.getDynamicTheme()
+    val trackDynamicTheme = prefs.getTrackDynamicTheme()
 
     val isDark = ((themeMode == AppThemeMode.DARK) || (themeMode == AppThemeMode.SYSTEM && isSystemInDarkTheme()))
 
@@ -157,6 +158,7 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
                 isDark = isDark,
                 pureBlack = pureBlack,
                 dynamicColor = dynamicTheme,
+                trackDynamicColor = trackDynamicTheme,
                 colorStyle = colorStyle,
                 colorSpec = colorSpec
             )
@@ -166,6 +168,7 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
                 isDark = isDark,
                 pureBlack = pureBlack,
                 dynamicColor = dynamicTheme,
+                trackDynamicColor = trackDynamicTheme,
                 colorStyle = colorStyle,
                 colorSpec = colorSpec,
             ) { seed ->
@@ -216,6 +219,7 @@ private fun SeedPaletteCard(
     isDark: Boolean,
     pureBlack: Boolean,
     dynamicColor: Boolean,
+    trackDynamicColor: Boolean,
     colorStyle: String,
     colorSpec: String,
     onSeedSelected: (Int) -> Unit
@@ -295,6 +299,7 @@ private fun SeedPaletteCard(
                     isDark = isDark,
                     pureBlack = pureBlack,
                     dynamicColor = dynamicColor,
+                    trackDynamicColor = trackDynamicColor,
                     colorStyle = colorStyle,
                     colorSpec = colorSpec,
                     onClick = { onSeedSelected(0) },
@@ -308,6 +313,7 @@ private fun SeedPaletteCard(
                         isDark = isDark,
                         pureBlack = pureBlack,
                         dynamicColor = dynamicColor,
+                        trackDynamicColor = trackDynamicColor,
                         colorStyle = colorStyle,
                         colorSpec = colorSpec,
                         onClick = { onSeedSelected(option.color) },
@@ -615,13 +621,14 @@ private fun ThemePreviewCard(
     isDark: Boolean,
     pureBlack: Boolean,
     dynamicColor: Boolean,
+    trackDynamicColor: Boolean,
     colorStyle: String,
     colorSpec: String
 ) {
     val colorScheme = rememberSoundTuneColorScheme(
         useDarkTheme = isDark,
         dynamicColor = dynamicColor,
-        trackDynamicColor = false,
+        trackDynamicColor = trackDynamicColor,
         pureBlack = pureBlack,
         keyColor = keyColor,
         colorStyle = colorStyle,
@@ -724,6 +731,7 @@ private fun ColorButtonMaterial(
     isDark: Boolean,
     pureBlack: Boolean,
     dynamicColor: Boolean,
+    trackDynamicColor: Boolean,
     colorStyle: String,
     colorSpec: String,
     onClick: () -> Unit,
@@ -732,7 +740,7 @@ private fun ColorButtonMaterial(
         rememberSoundTuneColorScheme(
             useDarkTheme = isDark,
             dynamicColor = dynamicColor,
-            trackDynamicColor = false,
+            trackDynamicColor = trackDynamicColor,
             pureBlack = pureBlack,
             keyColor = 0,
             colorStyle = colorStyle,

@@ -1314,6 +1314,8 @@
     <string name="pref_bottom_menu_fab_recognition">Zeneazonosítás</string>
     <string name="pref_bottom_menu_blur">Elmosódás</string>
     <string name="pref_bottom_menu_blur_sub">Homályos üveg hatás</string>
+    <string name="pref_bottom_menu_tabs_reorder">Húzd az átrendezéshez. A sáv ezt a sorrendet követi.</string>
+    <string name="reorder_handle">Átrendezés</string>
     <string name="pref_bottom_menu_tabs">Látható lapok</string>
 \n    <string name="fab_settings_no_playlists">Nincs lejátszási lista a könyvtárában.</string>
     <string name="fab_settings_hint">Tipp: csak a könyvtárához adott lejátszási listák jelennek meg itt. Nyugodtan kedveljen lejátszási listákat, hogy parancsikonként használhassa őket!</string>

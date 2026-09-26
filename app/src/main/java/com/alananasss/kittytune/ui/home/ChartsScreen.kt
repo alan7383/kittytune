@@ -608,8 +608,8 @@
         val k = count / 1000.0
         val m = count / 1000000.0
         return when {
-            m >= 1.0 -> String.format(Locale.US, "%.1fM", m)
-            k >= 1.0 -> String.format(Locale.US, "%.1fk", k)
+            m >= 1.0 -> String.format(Locale.getDefault(), "%.1fM", m)
+            k >= 1.0 -> String.format(Locale.getDefault(), "%.1fk", k)
             else -> count.toString()
         }
     }

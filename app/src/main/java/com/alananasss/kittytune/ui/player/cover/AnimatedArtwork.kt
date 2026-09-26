@@ -33,6 +33,14 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import coil.compose.AsyncImage
 
 @Composable
@@ -45,6 +53,11 @@ fun AnimatedArtwork(
     contentDescription: String? = null,
 ) {
     Box(modifier = modifier) {
+        // Underneath the image rather than as its error state, so it also covers the gap while the
+        // cover loads. A local file with no embedded art, a cover-less Spotify track, or a failed
+        // load used to leave a bare grey square here.
+        ArtworkPlaceholder(Modifier.fillMaxSize())
+
         // Base static artwork
         AsyncImage(
             model = artworkUrl,
@@ -246,5 +259,24 @@ fun CanvasVideo(
                 .fillMaxSize()
                 .alpha(videoAlpha)
         )
+    }
+}
+
+/** A themed note on the container colour, shown while the cover loads and when there is none. */
+@Composable
+internal fun ArtworkPlaceholder(modifier: Modifier = Modifier) {
+    Box(
+        modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest),
+        contentAlignment = Alignment.Center
+    ) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val side = minOf(maxWidth, maxHeight) * 0.4f
+            Icon(
+                imageVector = Icons.Rounded.MusicNote,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(side)
+            )
+        }
     }
 }

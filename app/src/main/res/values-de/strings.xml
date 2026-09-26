@@ -1667,6 +1667,8 @@
     <string name="pref_bottom_menu_fab_recognition">Musikerkennung</string>
     <string name="pref_bottom_menu_blur">Weichzeichner-Effekt</string>
     <string name="pref_bottom_menu_blur_sub">Einen Milchglas-Effekt anwenden</string>
+    <string name="pref_bottom_menu_tabs_reorder">Ziehen zum Ändern. Die Leiste folgt dieser Reihenfolge.</string>
+    <string name="reorder_handle">Reihenfolge ändern</string>
     <string name="pref_bottom_menu_tabs">Sichtbare Tabs</string>
     <string name="fab_settings_no_playlists">Keine Playlist in deiner Bibliothek gefunden.</string>
     <string name="fab_settings_hint">Tipp: Hier erscheinen nur Playlists, die zu deiner Bibliothek hinzugefügt wurden. Like Playlists, um sie als Verknüpfungen nutzen zu können!</string>

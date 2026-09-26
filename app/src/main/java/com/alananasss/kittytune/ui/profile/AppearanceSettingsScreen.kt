@@ -512,6 +512,14 @@ fun AppearanceSettingsScreen(
                         onThemeSelected = {
                             themeMode = it
                             prefs.setThemeMode(it)
+                            // Pure black is applied whenever the resolved theme is dark, so leaving
+                            // it set means enabling it in Dark, switching to Light and coming back
+                            // restores true black unasked. Turned off with the theme that cannot
+                            // show it.
+                            if (it == AppThemeMode.LIGHT && pureBlack) {
+                                pureBlack = false
+                                prefs.setPureBlack(false)
+                            }
                         },
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
@@ -540,7 +548,17 @@ fun AppearanceSettingsScreen(
                             subtitle = stringResource(R.string.pref_theme_dynamic_sub),
                             hasSwitch = true,
                             switchState = dynamicTheme,
-                            onSwitchChange = { dynamicTheme = it; prefs.setDynamicTheme(it) }
+                            onSwitchChange = { on ->
+                                dynamicTheme = on
+                                prefs.setDynamicTheme(on)
+                                // The two cannot both be on: the cover seed is resolved before the
+                                // system dynamic scheme, so leaving both enabled means one of the
+                                // two switches does nothing and the user cannot tell which.
+                                if (on && trackDynamicTheme) {
+                                    trackDynamicTheme = false
+                                    prefs.setTrackDynamicTheme(false)
+                                }
+                            }
                         )
 
                         SettingsItem(
@@ -549,7 +567,14 @@ fun AppearanceSettingsScreen(
                             subtitle = stringResource(R.string.pref_theme_track_dynamic_sub),
                             hasSwitch = true,
                             switchState = trackDynamicTheme,
-                            onSwitchChange = { trackDynamicTheme = it; prefs.setTrackDynamicTheme(it) }
+                            onSwitchChange = { on ->
+                                trackDynamicTheme = on
+                                prefs.setTrackDynamicTheme(on)
+                                if (on && dynamicTheme) {
+                                    dynamicTheme = false
+                                    prefs.setDynamicTheme(false)
+                                }
+                            }
                         )
 
                         AnimatedVisibility(

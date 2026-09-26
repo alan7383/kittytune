@@ -1312,6 +1312,8 @@
     <string name="pref_bottom_menu_fab_recognition">Распознавание музыки</string>
     <string name="pref_bottom_menu_blur">Эффект размытия</string>
     <string name="pref_bottom_menu_blur_sub">Эффект матового стекла</string>
+    <string name="pref_bottom_menu_tabs_reorder">Перетащите, чтобы изменить порядок. Панель следует ему.</string>
+    <string name="reorder_handle">Изменить порядок</string>
     <string name="pref_bottom_menu_tabs">Отображаемые вкладки</string>
     <string name="fab_settings_no_playlists">Плейлист не найден в вашей библиотеке.</string>
     <string name="fab_settings_hint">Совет: здесь появляются только плейлисты, добавленные в вашу библиотеку. Вы можете добавлять их в избранное, чтобы использовать как ярлыки!</string>

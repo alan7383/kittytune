@@ -1539,6 +1539,8 @@
     <string name="pref_bottom_menu_fab_recognition">Nhận diện bài hát</string>
     <string name="pref_bottom_menu_blur">Hiệu ứng làm mờ</string>
     <string name="pref_bottom_menu_blur_sub">Áp dụng hiệu ứng kính mờ</string>
+    <string name="pref_bottom_menu_tabs_reorder">Kéo để sắp xếp. Thanh này sẽ theo thứ tự đó.</string>
+    <string name="reorder_handle">Sắp xếp</string>
     <string name="pref_bottom_menu_tabs">Các tab hiển thị</string>
     <string name="fab_settings_no_playlists">Không tìm thấy danh sách phát nào trong thư viện.</string>
     <string name="fab_settings_hint">Mẹo: Chỉ các danh sách phát đã thêm vào thư viện mới xuất hiện ở đây. Hãy nhấn thích danh sách phát để dùng làm lối tắt!</string>

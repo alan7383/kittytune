@@ -302,7 +302,12 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
     val currentPosition = viewModel.currentPosition
     val adjustedPosition = currentPosition + viewModel.lyricsOffset
     val lyrics = viewModel.lyricsLines
-    val listState = rememberLazyListState()
+    // Opened on the line being sung, not on line one. Two minutes into a track the first frame
+    // used to be the top of the song, which read as a jolt on every open before the follow logic
+    // caught up.
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = LyricsUtils.activeLineIndex(lyrics, adjustedPosition).coerceAtLeast(0)
+    )
     val fontSize = viewModel.lyricsFontSize
     val lyricsFontFamily = com.alananasss.kittytune.ui.theme.rememberLyricsFontFamily(viewModel.lyricsFont)
     val alignment = when (viewModel.lyricsAlignment) {
@@ -10559,8 +10564,8 @@ fun formatNumber(count: Int): String {
     val k = count / 1000.0;
     val m = count / 1000000.0
     return when {
-        m >= 1.0 -> String.format(Locale.US, "%.1fM", m); k >= 1.0 -> String.format(
-            Locale.US,
+        m >= 1.0 -> String.format(Locale.getDefault(), "%.1fM", m); k >= 1.0 -> String.format(
+            Locale.getDefault(),
             "%.1fk",
             k
         ); else -> count.toString()

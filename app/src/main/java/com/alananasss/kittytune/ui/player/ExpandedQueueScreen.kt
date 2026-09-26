@@ -59,12 +59,23 @@ fun ExpandedQueueScreen(
     val view = LocalView.current
     val listState = rememberLazyListState()
 
+    // Anchored only when the playing track is not already on screen, and jumping rather than
+    // crawling when it is far off. This ran on every currentTrack change, so tapping a row jumped
+    // the list and put the row third from the top - which made tapping anything past the first
+    // screen unusable.
     LaunchedEffect(viewModel.currentTrack) {
         val track = viewModel.currentTrack
         if (track != null && queueState.isNotEmpty()) {
             val index = queueState.indexOfFirst { it.id == track.id }
             if (index >= 0) {
-                listState.scrollToItem(kotlin.math.max(0, index - 2))
+                val alreadyVisible = listState.layoutInfo.visibleItemsInfo.any { it.index == index }
+                if (!alreadyVisible) {
+                    if (index - listState.firstVisibleItemIndex > FAR_JUMP_ITEMS) {
+                        listState.scrollToItem(kotlin.math.max(0, index - 2))
+                    } else {
+                        listState.animateScrollToItem(kotlin.math.max(0, index - 2))
+                    }
+                }
             }
         }
     }
@@ -362,3 +373,6 @@ private fun SwipeToDeleteItem(
         }
     }
 }
+
+/** Past this many rows away, jump instead of scrolling a whole screenful. */
+private const val FAR_JUMP_ITEMS = 12

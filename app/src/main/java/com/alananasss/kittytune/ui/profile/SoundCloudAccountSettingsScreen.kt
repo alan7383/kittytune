@@ -1174,8 +1174,8 @@ private fun SoundCloudGuestCard(
 
 private fun formatStatNumber(number: Int): String {
     return when {
-        number >= 1_000_000 -> String.format(Locale.US, "%.1fM", number / 1_000_000.0)
-        number >= 1_000 -> String.format(Locale.US, "%.1fK", number / 1_000.0)
+        number >= 1_000_000 -> String.format(Locale.getDefault(), "%.1fM", number / 1_000_000.0)
+        number >= 1_000 -> String.format(Locale.getDefault(), "%.1fK", number / 1_000.0)
         else -> number.toString()
     }
 }

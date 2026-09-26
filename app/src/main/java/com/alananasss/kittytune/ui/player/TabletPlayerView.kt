@@ -1531,7 +1531,13 @@ private fun TabletQueueList(
             lastScrolledTrackId = trackId
             val index = queue.indexOfFirst { it.id == trackId }
             if (index >= 0) {
-                listState.animateScrollToItem(kotlin.math.max(0, index - 2))
+                // Only when the row is not already on screen. lastScrolledTrackId deduplicated the
+                // same track coming back, but not a tap on a different row, so the panel still
+                // scrolled on every tap and put the row third from the top.
+                val alreadyVisible = listState.layoutInfo.visibleItemsInfo.any { it.index == index }
+                if (!alreadyVisible) {
+                    listState.animateScrollToItem(kotlin.math.max(0, index - 2))
+                }
             }
         }
     }
