@@ -2639,6 +2639,10 @@
     <string name="equalizer_reset">Equalizer zurücksetzen</string>
     <string name="equalizer_off">Aus</string>
     <!-- DJ Flow / DJ assistant -->
+    <string name="dj_flow_title">DJ Flow</string>
+    <string name="dj_flow_tempo">Tempo</string>
+    <string name="dj_flow_unknown">—</string>
+    <string name="dj_flow_bpm_value">%1$d BPM</string>
     <string name="dj_flow_subtitle_on">Non-Stop-Mix</string>
     <string name="dj_flow_subtitle_off">Aus</string>
     <string name="dj_flow_key">Tonart</string>

@@ -2525,4 +2525,22 @@
     <string name="equalizer_double_tap_hint">Koppintson duplán a sávra a 0 dB-re való visszaállításhoz</string>
     <string name="equalizer_reset">Hangszínszabályzó visszaállítása</string>
     <string name="equalizer_off">Ki</string>
+    <string name="dj_flow_title">DJ Flow</string>
+    <string name="dj_flow_subtitle_on">Folyamatos keverés</string>
+    <string name="dj_flow_subtitle_off">Kikapcsolva</string>
+    <string name="dj_flow_tempo">Tempó</string>
+    <string name="dj_flow_key">Hangnem</string>
+    <string name="dj_flow_analysing">Elemzés…</string>
+    <string name="dj_flow_unknown">—</string>
+    <string name="dj_flow_bpm_value">%1$d BPM</string>
+    <string name="dj_flow_bar_beat">Ütem %1$d/4 · Beat %2$d/16</string>
+    <string name="dj_flow_ask_button">Mit szeretnél hallgatni?</string>
+    <string name="dj_flow_next_up">Következő</string>
+    <string name="dj_flow_unknown_track">Ismeretlen</string>
+    <string name="dj_flow_match_summary">%1$d%% egyezés</string>
+    <string name="dj_flow_mixing_in_bars">Keverés %1$d ütemben</string>
+    <string name="dj_flow_mixing_in_bar">Keverés 1 ütemben</string>
+    <string name="dj_flow_mixing_now">Keverés folyamatban</string>
+    <string name="dj_flow_mix_now">Keverés most</string>
+    <string name="dj_flow_empty_queue">Adj hozzá számokat a lejátszási listához, hogy a DJ előre tudjon tervezni.</string>
 </resources>

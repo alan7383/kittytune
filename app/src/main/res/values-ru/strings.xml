@@ -1216,7 +1216,7 @@
     <string name="listening_stats_when">Когда вы слушаете</string>
     <string name="listening_stats_night">Ночь</string>
     <string name="listening_stats_morning">Утро</string>
-    <string name="listening_stats_afternoon">День</string>
+    <string name="listening_stats_afternoon">Днём</string>
     <string name="listening_stats_evening">Вечер</string>
     <string name="listening_stats_streak_title">Самая длинная серия</string>
     <string name="listening_stats_streak_days">%1$d дн.</string>
@@ -2518,4 +2518,22 @@
     <string name="equalizer_double_tap_hint">Дважды коснитесь полосы для сброса на 0 дБ</string>
     <string name="equalizer_reset">Сбросить эквалайзер</string>
     <string name="equalizer_off">Выкл</string>
+    <string name="dj_flow_title">DJ Flow</string>
+    <string name="dj_flow_subtitle_on">Микш без остановки</string>
+    <string name="dj_flow_subtitle_off">Выключено</string>
+    <string name="dj_flow_tempo">Темп</string>
+    <string name="dj_flow_key">Тональность</string>
+    <string name="dj_flow_analysing">Анализ…</string>
+    <string name="dj_flow_unknown">—</string>
+    <string name="dj_flow_bpm_value">%1$d BPM</string>
+    <string name="dj_flow_bar_beat">Такт %1$d/4 · Доля %2$d/16</string>
+    <string name="dj_flow_ask_button">Что хочешь послушать?</string>
+    <string name="dj_flow_next_up">Далее</string>
+    <string name="dj_flow_unknown_track">Неизвестно</string>
+    <string name="dj_flow_match_summary">совпадение %1$d%%</string>
+    <string name="dj_flow_mixing_in_bars">Сведение через %1$d тактов</string>
+    <string name="dj_flow_mixing_in_bar">Сведение через 1 такт</string>
+    <string name="dj_flow_mixing_now">Сведение</string>
+    <string name="dj_flow_mix_now">Свести сейчас</string>
+    <string name="dj_flow_empty_queue">Добавь треки в очередь, чтобы DJ мог всё спланировать.</string>
 </resources>

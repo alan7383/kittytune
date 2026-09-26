@@ -2544,4 +2544,22 @@
     <string name="equalizer_double_tap_hint">Appuyez deux fois sur une bande pour réinitialiser à 0 dB</string>
     <string name="equalizer_reset">Réinitialiser l\'égaliseur</string>
     <string name="equalizer_off">Désactivé</string>
+    <string name="dj_flow_title">DJ Flow</string>
+    <string name="dj_flow_subtitle_on">Mixage non-stop</string>
+    <string name="dj_flow_subtitle_off">Désactivé</string>
+    <string name="dj_flow_tempo">Tempo</string>
+    <string name="dj_flow_key">Tonalité</string>
+    <string name="dj_flow_analysing">Analyse…</string>
+    <string name="dj_flow_unknown">—</string>
+    <string name="dj_flow_bpm_value">%1$d BPM</string>
+    <string name="dj_flow_bar_beat">Mesure %1$d/4 · Temps %2$d/16</string>
+    <string name="dj_flow_ask_button">Qu\'est-ce que tu veux écouter ?</string>
+    <string name="dj_flow_next_up">À suivre</string>
+    <string name="dj_flow_unknown_track">Inconnu</string>
+    <string name="dj_flow_match_summary">%1$d%% de correspondance</string>
+    <string name="dj_flow_mixing_in_bars">Mixage dans %1$d mesures</string>
+    <string name="dj_flow_mixing_in_bar">Mixage dans 1 mesure</string>
+    <string name="dj_flow_mixing_now">Mixage en cours</string>
+    <string name="dj_flow_mix_now">Mixer maintenant</string>
+    <string name="dj_flow_empty_queue">Ajoute des titres à la file pour que le DJ puisse anticiper.</string>
 </resources>

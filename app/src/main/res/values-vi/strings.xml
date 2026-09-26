@@ -2497,4 +2497,22 @@
     <string name="equalizer_double_tap_hint">Chạm hai lần vào bất kỳ dải tần nào để đặt lại về 0 dB</string>
     <string name="equalizer_reset">Đặt lại bộ cân bằng</string>
     <string name="equalizer_off">Tắt</string>
+    <string name="dj_flow_title">DJ Flow</string>
+    <string name="dj_flow_subtitle_on">Trộn liên tục</string>
+    <string name="dj_flow_subtitle_off">Tắt</string>
+    <string name="dj_flow_tempo">Nhịp độ</string>
+    <string name="dj_flow_key">Giọng</string>
+    <string name="dj_flow_analysing">Đang phân tích…</string>
+    <string name="dj_flow_unknown">—</string>
+    <string name="dj_flow_bpm_value">%1$d BPM</string>
+    <string name="dj_flow_bar_beat">Nhịp %1$d/4 · Phách %2$d/16</string>
+    <string name="dj_flow_ask_button">Bạn muốn nghe gì?</string>
+    <string name="dj_flow_next_up">Tiếp theo</string>
+    <string name="dj_flow_unknown_track">Không rõ</string>
+    <string name="dj_flow_match_summary">khớp %1$d%%</string>
+    <string name="dj_flow_mixing_in_bars">Trộn sau %1$d nhịp</string>
+    <string name="dj_flow_mixing_in_bar">Trộn sau 1 nhịp</string>
+    <string name="dj_flow_mixing_now">Đang trộn</string>
+    <string name="dj_flow_mix_now">Trộn ngay</string>
+    <string name="dj_flow_empty_queue">Thêm bài hát vào hàng đợi để DJ có thể tính trước.</string>
 </resources>
