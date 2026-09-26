@@ -6,6 +6,8 @@ import android.util.Log
 import com.alananasss.kittytune.data.StreamResolver
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.BeatInfoEntity
+import com.alananasss.kittytune.data.local.gridTrust
+import com.alananasss.kittytune.data.local.trustedAnchorMs
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Track
 import kotlinx.coroutines.CoroutineScope
@@ -13,6 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -46,6 +50,9 @@ object AutomixManager {
 
     private val _mixBeatsLeft = MutableStateFlow<Int?>(null)
     val mixBeatsLeft = _mixBeatsLeft.asStateFlow()
+
+    private val _onBeatAnalysisCompleted = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    val onBeatAnalysisCompleted = _onBeatAnalysisCompleted.asSharedFlow()
 
     @Volatile
     var currentAutomixPlan: AutomixPlan? = null
@@ -123,7 +130,9 @@ object AutomixManager {
         val songId = track.id.toString()
         val db = AppDatabase.getDatabase(context)
         val existing = db.beatInfoDao().getBeatInfo(songId)
-        if (existing != null && existing.bpm > 0f) {
+        // A row from an older analyzer carries a beat grid but no classified downbeat, so its
+        // cue points cannot be phrase-quantized. Re-analyze instead of mixing off a random beat.
+        if (existing != null && existing.bpm > 0f && existing.isCurrentAnalysis) {
             val currentDbg = _automixDebugInfo.value
             val isCurrent = com.alananasss.kittytune.data.MusicManager.currentTrack?.id == track.id
             if (isCurrent && (currentDbg == null || currentDbg.outBpm == null)) {
@@ -257,10 +266,16 @@ object AutomixManager {
             mixOutPointMs = result.mixOutPointMs ?: -1L,
             keyPitchClass = result.keyPitchClass,
             keyIsMinor = result.keyIsMinor,
+            downbeatOffsetMs = result.downbeatOffsetMs,
+            phraseOffsetMs = result.phraseOffsetMs,
+            downbeatConfidence = result.downbeatConfidence,
+            phraseConfidence = result.phraseConfidence,
+            analysisVersion = BeatInfoEntity.CURRENT_ANALYSIS_VERSION,
         )
 
         withContext(Dispatchers.IO) {
             db.beatInfoDao().upsert(entity)
+            _onBeatAnalysisCompleted.tryEmit(songId)
         }
 
         val currentDbg = _automixDebugInfo.value
@@ -348,12 +363,17 @@ object AutomixManager {
         } else null
         val effectiveTrigger = mixOut?.coerceAtMost(latestTrigger) ?: latestTrigger
 
-        // Snap the fade start onto an 8-beat phrase boundary of the outgoing track's grid
-        val phraseMs = periodMs * 8
+        // Snap the fade start onto an 8-beat phrase boundary of the outgoing track's grid.
+        // The anchor is a classified downbeat, so "phrase boundary" means an actual beat 1 -
+        // quantizing against the raw beat grid lands the fade 1-3 beats off the One.
+        // Half the track's trusted granularity: the fade start wants to be finer than a full
+        // phrase, but never finer than the grid can actually support.
+        val phraseMs = periodMs * max(2, outBeat.gridTrust.quantizeBeats / 2)
+        val outAnchorMs = outBeat.trustedAnchorMs
         val anchor = max(effectiveTrigger, currentPosition + 1000)
-        val k = ((anchor - outBeat.firstBeatOffsetMs) / phraseMs).toLong()
-        var triggerTime = (outBeat.firstBeatOffsetMs + k * phraseMs).toLong()
-        if (triggerTime < anchor) triggerTime = (outBeat.firstBeatOffsetMs + (k + 1) * phraseMs).toLong()
+        val k = ((anchor - outAnchorMs) / phraseMs).toLong()
+        var triggerTime = (outAnchorMs + k * phraseMs).toLong()
+        if (triggerTime < anchor) triggerTime = (outAnchorMs + (k + 1) * phraseMs).toLong()
 
         val roomMs = trackDuration - 500 - triggerTime
         val effectiveOverlapMs = overlapMs.coerceAtMost(roomMs)
@@ -390,12 +410,13 @@ object AutomixManager {
 
         // Dynamic mix-in: skip incoming track's intro, snapped onto its 8-beat phrase grid
         val inPeriodMs = (60_000f / inBeat.bpm).toDouble()
+        val inAnchorMs = inBeat.trustedAnchorMs
         val rawStart = if (prefs.getAutomixDynamicMixPointsEnabled()) {
-            inBeat.mixInPointMs?.takeIf { it > 0 } ?: inBeat.firstBeatOffsetMs
-        } else inBeat.firstBeatOffsetMs
-        val inPhraseMs = inPeriodMs * 8
-        val inK = ceil((rawStart - inBeat.firstBeatOffsetMs) / inPhraseMs).toLong().coerceAtLeast(0)
-        val incomingStart = (inBeat.firstBeatOffsetMs + inK * inPhraseMs).toLong()
+            inBeat.mixInPointMs?.takeIf { it > 0 } ?: inAnchorMs
+        } else inAnchorMs
+        val inPhraseMs = inPeriodMs * max(2, inBeat.gridTrust.quantizeBeats / 2)
+        val inK = ceil((rawStart - inAnchorMs) / inPhraseMs).toLong().coerceAtLeast(0)
+        val incomingStart = (inAnchorMs + inK * inPhraseMs).toLong()
 
         val plan = AutomixPlan(
             currentId = currentId,

@@ -13,6 +13,9 @@ interface BeatInfoDao {
     @Query("SELECT * FROM beat_info WHERE songId = :songId LIMIT 1")
     suspend fun getBeatInfo(songId: String): BeatInfoEntity?
 
+    @Query("SELECT * FROM beat_info WHERE songId IN (:songIds)")
+    suspend fun getBeatInfoForSongs(songIds: List<String>): List<BeatInfoEntity>
+
     @Query("DELETE FROM beat_info WHERE songId = :songId")
     suspend fun deleteBeatInfo(songId: String)
 

@@ -133,7 +133,7 @@
                     )
                 }
 
-                IconButton(onClick = { viewModel.playNext() }) {
+                IconButton(onClick = { viewModel.requestSkipNext() }) {
                     Icon(
                         imageVector = Icons.Rounded.SkipNext,
                         contentDescription = stringResource(R.string.menu_play_next),

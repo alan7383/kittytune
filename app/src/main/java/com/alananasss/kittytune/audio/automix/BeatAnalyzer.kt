@@ -1,3 +1,9 @@
+/**
+ * Developed by Jason-Marshall Fastner, Germany <jasonfastner@protonmail.com>
+ * Questions, feedback, or beat-matching debates? Feel free to reach out via email!
+ * 
+ * Note: Cats always land on their feet, and with this engine, your transitions will too.
+ */
 package com.alananasss.kittytune.audio.automix
 
 import android.content.Context
@@ -39,6 +45,20 @@ object BeatAnalyzer {
         /** 0=C, 1=C#, ... 11=B. Null when the chroma signal was too weak to call a key. */
         val keyPitchClass: Int? = null,
         val keyIsMinor: Boolean? = null,
+        /**
+         * Time of the first beat 1 in the track. Downbeats are at
+         * downbeatOffsetMs + k * 4 * (60000 / bpm).
+         */
+        val downbeatOffsetMs: Long = 0L,
+        /**
+         * Time of the first 16-beat phrase start. Every cue point must be quantized to
+         * phraseOffsetMs + k * 16 * (60000 / bpm), never to the raw beat grid.
+         */
+        val phraseOffsetMs: Long = 0L,
+        /** 0..1 confidence that beat 1 was identified correctly (see [DownbeatTracker]). */
+        val downbeatConfidence: Float = 0f,
+        /** 0..1 confidence that the 16-beat phrase boundary was identified correctly. */
+        val phraseConfidence: Float = 0f,
     )
 
     private const val TAG = "BeatAnalyzer"
@@ -55,9 +75,23 @@ object BeatAnalyzer {
     private const val HEAD_WINDOW_US = 16_000_000L
     private const val TAIL_WINDOW_US = 24_000_000L
 
-    /** Canonical BPM range; octave-fold estimates into it (61.9 -> 123.8, 160 -> 80...). */
-    private const val MIN_CANONICAL_BPM = 70f
-    private const val MAX_CANONICAL_BPM = 140f
+    /** Canonical BPM range; octave-fold estimates into electronic music range [90..180] (160 BPM Hardtekk stays 160 BPM, 80 BPM folds up). */
+    private const val MIN_CANONICAL_BPM = 90f
+    private const val MAX_CANONICAL_BPM = 180f
+
+    /**
+     * Perceptual tempo prior. Listeners tap along near 120–130 BPM, so when autocorrelation
+     * cannot separate a tempo from its half or double (a 160 BPM track with a halftime snare
+     * correlates exactly like 80 BPM), the octave closest to this centre wins.
+     */
+    private const val PREFERRED_BPM = 125f
+    private const val TEMPO_PRIOR_OCTAVES = 0.85f
+
+    /** Beats per bar and bars per phrase. 4/4 with 4-bar phrases covers effectively all club music. */
+    const val BEATS_PER_BAR = 4
+    const val BARS_PER_PHRASE = 4
+    const val BEATS_PER_PHRASE = BEATS_PER_BAR * BARS_PER_PHRASE
+
     private const val ENERGY_BLOCK_MS = 500
     private const val MAX_INTRO_SKIP_MS = 20_000L
     private const val MAX_OUTRO_CUT_MS = 45_000L
@@ -126,30 +160,14 @@ object BeatAnalyzer {
         val key = estimateKey(pcm.samples, pcm.sampleRate)
 
         if (shouldCancel()) return null
-        val flux = spectralFlux(pcm.samples)
-        val frameRate = pcm.sampleRate.toFloat() / HOP_SIZE
+        val grid = computeGrid(pcm.samples, pcm.sampleRate, pcm.actualStartUs / 1000) ?: return null
+        val bpm = grid.bpm
+        val periodMs = grid.periodMs.toFloat()
 
-        val (periodFrames, confidence) = estimateTempoPeriod(flux, frameRate) ?: return null
-        val phaseFrames = estimateBeatPhase(flux, periodFrames)
-
-        var periodMs = periodFrames / frameRate * 1000f
-        var bpm = 60_000f / periodMs
-        while (bpm < MIN_CANONICAL_BPM) {
-            bpm *= 2f
-            periodMs /= 2f
-        }
-        while (bpm >= MAX_CANONICAL_BPM) {
-            bpm /= 2f
-            periodMs *= 2f
-        }
-        val windowStartMs = pcm.actualStartUs / 1000
-        val anchorMs = windowStartMs + (phaseFrames / frameRate * 1000f).roundToLong()
-        val firstBeatOffsetMs = (anchorMs % periodMs.roundToLong() + periodMs.roundToLong()) % periodMs.roundToLong()
-
-        // 2. Mix-in point from the decoded samples
+        // 2. Mix-in point from the decoded samples, snapped to the phrase grid (not the raw beat grid)
         val mixInPointMs = detectMixIn(
             energyEnvelope(pcm.samples, pcm.sampleRate),
-            firstBeatOffsetMs,
+            grid.phraseOffsetMs,
             periodMs
         )
 
@@ -170,7 +188,7 @@ object BeatAnalyzer {
                 if (tailPcm != null && tailPcm.samples.size >= FFT_SIZE * 4) {
                     val tailEnv = energyEnvelope(tailPcm.samples, tailPcm.sampleRate)
                     val tailStartMs = tailPcm.actualStartUs / 1000L
-                    mixOutPointMs = detectMixOut(tailEnv, tailStartMs, totalDurationMs)
+                    mixOutPointMs = detectMixOut(tailEnv, tailStartMs, totalDurationMs, grid.phraseOffsetMs, periodMs)
                     Log.d(TAG, "DRM stream mix-out point detected: $mixOutPointMs ms")
                 }
             } catch (e: Exception) {
@@ -178,7 +196,19 @@ object BeatAnalyzer {
             }
         }
 
-        val result = Result(bpm, firstBeatOffsetMs, confidence, mixInPointMs, mixOutPointMs, key?.first, key?.second)
+        val result = Result(
+            bpm = bpm,
+            firstBeatOffsetMs = grid.firstBeatOffsetMs,
+            confidence = grid.confidence,
+            mixInPointMs = mixInPointMs,
+            mixOutPointMs = mixOutPointMs,
+            keyPitchClass = key?.first,
+            keyIsMinor = key?.second,
+            downbeatOffsetMs = grid.downbeatOffsetMs,
+            phraseOffsetMs = grid.phraseOffsetMs,
+            downbeatConfidence = grid.downbeatConfidence,
+            phraseConfidence = grid.phraseConfidence,
+        )
         return CachedAnalysis(result, complete = true)
     }
 
@@ -371,30 +401,9 @@ object BeatAnalyzer {
             val key = estimateKey(pcm.samples, pcm.sampleRate)
 
             if (shouldCancel()) return null
-            val flux = spectralFlux(pcm.samples)
-            val frameRate = pcm.sampleRate.toFloat() / HOP_SIZE
-
-            val (periodFrames, confidence) = estimateTempoPeriod(flux, frameRate) ?: return null
-            val phaseFrames = estimateBeatPhase(flux, periodFrames)
-
-            var periodMs = periodFrames / frameRate * 1000f
-            var bpm = 60_000f / periodMs
-            // Octave-fold into the canonical range: the beat grid stays valid because
-            // doubling/halving the period keeps the same phase anchor.
-            while (bpm < MIN_CANONICAL_BPM) {
-                bpm *= 2f
-                periodMs /= 2f
-            }
-            while (bpm >= MAX_CANONICAL_BPM) {
-                bpm /= 2f
-                periodMs *= 2f
-            }
-            val windowStartMs = actualStartUs / 1000
-            val anchorMs = windowStartMs + (phaseFrames / frameRate * 1000f).roundToLong()
-
-            // Extrapolate the periodic grid back to the start of the track.
-            val firstBeatOffsetMs = (anchorMs % periodMs.roundToLong() + periodMs.roundToLong()) %
-                periodMs.roundToLong()
+            val grid = computeGrid(pcm.samples, pcm.sampleRate, actualStartUs / 1000) ?: return null
+            val bpm = grid.bpm
+            val periodMs = grid.periodMs.toFloat()
 
             // Head pass: skip low-energy intros; start the incoming track on the first
             // sustained-energy downbeat instead.
@@ -405,7 +414,7 @@ object BeatAnalyzer {
                 decodeMono(extractor, format, HEAD_WINDOW_US, shouldCancel)?.let { head ->
                     mixInPointMs = detectMixIn(
                         energyEnvelope(head.samples, head.sampleRate),
-                        firstBeatOffsetMs,
+                        grid.phraseOffsetMs,
                         periodMs,
                     )
                 }
@@ -425,17 +434,106 @@ object BeatAnalyzer {
                         energyEnvelope(tail.samples, tail.sampleRate),
                         tailActualStartMs,
                         durationMs,
+                        grid.phraseOffsetMs,
+                        periodMs
                     )
                 }
             }
 
-            return Result(bpm, firstBeatOffsetMs, confidence, mixInPointMs, mixOutPointMs, key?.first, key?.second)
+            return Result(
+                bpm = bpm,
+                firstBeatOffsetMs = grid.firstBeatOffsetMs,
+                confidence = grid.confidence,
+                mixInPointMs = mixInPointMs,
+                mixOutPointMs = mixOutPointMs,
+                keyPitchClass = key?.first,
+                keyIsMinor = key?.second,
+                downbeatOffsetMs = grid.downbeatOffsetMs,
+                phraseOffsetMs = grid.phraseOffsetMs,
+                downbeatConfidence = grid.downbeatConfidence,
+            )
         } catch (e: Exception) {
             Log.w(TAG, "Beat analysis failed: ${e.message}")
             return null
         } finally {
             extractor.release()
         }
+    }
+
+    /**
+     * Beat grid of one analysed window, resolved all the way up to phrase level.
+     *
+     * [firstBeatOffsetMs] only fixes *a* beat; [downbeatOffsetMs] fixes beat 1 and
+     * [phraseOffsetMs] fixes the start of a 4-bar phrase. Cue points must be quantized
+     * against the latter, otherwise they land 1–3 beats off the "One".
+     */
+    class Grid(
+        val bpm: Float,
+        val periodMs: Double,
+        val confidence: Float,
+        val firstBeatOffsetMs: Long,
+        val downbeatOffsetMs: Long,
+        val phraseOffsetMs: Long,
+        val downbeatConfidence: Float,
+        val phraseConfidence: Float,
+    )
+
+    /**
+     * Runs the full grid pipeline on one decoded window:
+     * multi-band onsets -> tempo period -> octave resolution -> beat phase -> downbeat + phrase phase.
+     *
+     * @param windowStartMs where [samples] begins inside the track, so the grid can be
+     *   extrapolated back to position 0.
+     */
+    fun computeGrid(samples: FloatArray, sampleRate: Int, windowStartMs: Long): Grid? {
+        val onsets = multiBandFlux(samples, sampleRate)
+        if (onsets.size < 8) return null
+        val frameRate = onsets.frameRate
+
+        val (rawPeriodFrames, confidence) = estimateTempoPeriod(onsets.full, frameRate) ?: return null
+        val periodFrames = resolveTempoOctave(onsets.full, frameRate, rawPeriodFrames)
+        if (periodFrames <= 0f) return null
+        val phaseFrames = estimateBeatPhase(onsets.full, periodFrames)
+
+        val periodMs = periodFrames / frameRate * 1000.0
+        if (periodMs <= 0.0) return null
+        val bpm = (60_000.0 / periodMs).toFloat()
+
+        val downbeat = DownbeatTracker.estimate(
+            onsets = onsets,
+            periodFrames = periodFrames,
+            beatPhaseFrames = phaseFrames,
+            beatsPerBar = BEATS_PER_BAR,
+            barsPerPhrase = BARS_PER_PHRASE,
+        )
+
+        // Time of beat 0 of the analysed window, then the grid extrapolated back to the track start.
+        val anchorMs = windowStartMs + phaseFrames / frameRate * 1000.0
+        val firstBeatMs = anchorMs - kotlin.math.floor(anchorMs / periodMs) * periodMs
+
+        // Absolute beat index of the window anchor, counted from the extrapolated first beat.
+        val anchorBeatIndex = ((anchorMs - firstBeatMs) / periodMs).roundToLong()
+
+        // The anchor sits barPhaseBeats before a downbeat, so the first downbeat of the track is
+        // whichever of the first BEATS_PER_BAR beats is congruent to it.
+        val firstDownbeatIndex = Math.floorMod(anchorBeatIndex + downbeat.barPhaseBeats, BEATS_PER_BAR.toLong())
+        val downbeatMs = firstBeatMs + firstDownbeatIndex * periodMs
+
+        // Same trick one level up: count bars from the first downbeat to the first phrase start.
+        val barsFromDownbeat = (anchorBeatIndex + downbeat.barPhaseBeats - firstDownbeatIndex) / BEATS_PER_BAR
+        val firstPhraseBar = Math.floorMod(barsFromDownbeat + downbeat.phrasePhaseBars, BARS_PER_PHRASE.toLong())
+        val phraseMs = downbeatMs + firstPhraseBar * BEATS_PER_BAR * periodMs
+
+        return Grid(
+            bpm = bpm,
+            periodMs = periodMs,
+            confidence = confidence,
+            firstBeatOffsetMs = firstBeatMs.roundToLong().coerceAtLeast(0L),
+            downbeatOffsetMs = downbeatMs.roundToLong().coerceAtLeast(0L),
+            phraseOffsetMs = phraseMs.roundToLong().coerceAtLeast(0L),
+            downbeatConfidence = downbeat.confidence,
+            phraseConfidence = downbeat.phraseConfidence,
+        )
     }
 
     private class MonoPcm(val samples: FloatArray, val sampleRate: Int)
@@ -565,10 +663,14 @@ object BeatAnalyzer {
 
     /**
      * First block where energy reaches and sustains near body level, snapped forward
-     * onto the beat grid. Null when the track starts hot (no intro worth skipping).
+     * strictly onto a 16-beat phrase boundary (4 full bars in 4/4 time).
+     *
+     * Quantizing to 16 beats eliminates arbitrary drop-in points (e.g. at 00:06 or mid-bar),
+     * ensuring that incoming tracks drop right on the "One" (Beat 1 of a major musical phrase).
+     * Returns null when the track starts hot (starts on beat 1).
      */
-    fun detectMixIn(env: FloatArray, firstBeatOffsetMs: Long, periodMs: Float): Long? {
-        if (env.size < 8) return null
+    fun detectMixIn(env: FloatArray, phraseAnchorMs: Long, periodMs: Float): Long? {
+        if (env.size < 8 || periodMs <= 0f) return null
         val ref = percentile(env, 0.75f)
         if (ref <= 0f) return null
 
@@ -588,16 +690,27 @@ object BeatAnalyzer {
         val candidateMs = candidateBlock.toLong() * ENERGY_BLOCK_MS
         if (candidateMs > MAX_INTRO_SKIP_MS) return null
 
-        // Snap forward to the next downbeat.
-        val k = kotlin.math.ceil((candidateMs - firstBeatOffsetMs) / periodMs.toDouble()).toLong()
-        return (firstBeatOffsetMs + max(0L, k) * periodMs.toDouble()).roundToLong()
+        // Strictly quantize to a 16-beat phrase boundary (4 full 4/4 bars) from the phrase anchor,
+        // which is a real beat 1 — quantizing from an arbitrary beat lands 1-3 beats off the "One".
+        val phraseMs = BEATS_PER_PHRASE * periodMs.toDouble()
+        val phraseIndex = kotlin.math.ceil((candidateMs - phraseAnchorMs) / phraseMs).toLong()
+        val dropInMs = (phraseAnchorMs + max(0L, phraseIndex) * phraseMs).roundToLong()
+
+        return if (dropInMs <= MAX_INTRO_SKIP_MS) dropInMs else phraseAnchorMs
     }
 
     /**
      * Last moment the tail window is still at body loudness; everything after is outro.
+     * Quantized to a 16-beat phrase boundary when period is available.
      * Null when the track stays loud to the end (no early mix-out warranted).
      */
-    fun detectMixOut(env: FloatArray, windowStartMs: Long, durationMs: Long): Long? {
+    fun detectMixOut(
+        env: FloatArray,
+        windowStartMs: Long,
+        durationMs: Long,
+        phraseAnchorMs: Long = 0L,
+        periodMs: Float = 0f
+    ): Long? {
         if (env.size < 8 || durationMs <= 0) return null
         val ref = percentile(env, 0.75f)
         if (ref <= 0f) return null
@@ -611,19 +724,59 @@ object BeatAnalyzer {
         }
         if (lastLoudBlock < 0) return null
 
-        val mixOutMs = windowStartMs + (lastLoudBlock + 1).toLong() * ENERGY_BLOCK_MS
+        val rawMixOutMs = windowStartMs + (lastLoudBlock + 1).toLong() * ENERGY_BLOCK_MS
         // Loud almost to the end: nothing to cut.
-        if (durationMs - mixOutMs < 3_000) return null
-        // Never cut more than MAX_OUTRO_CUT_MS.
-        return max(mixOutMs, durationMs - MAX_OUTRO_CUT_MS)
+        if (durationMs - rawMixOutMs < 3_000) return null
+
+        val mixOutMs = max(rawMixOutMs, durationMs - MAX_OUTRO_CUT_MS)
+        if (periodMs > 0f) {
+            val phraseMs = BEATS_PER_PHRASE * periodMs.toDouble()
+            val k = kotlin.math.floor((mixOutMs - phraseAnchorMs) / phraseMs).toLong()
+            val quantized = (phraseAnchorMs + max(0L, k) * phraseMs).roundToLong()
+            return quantized.coerceIn(phraseAnchorMs, durationMs - 3_000L)
+        }
+        return mixOutMs
     }
 
     /** Half-wave-rectified spectral flux per hop, log-compressed magnitudes. */
-    fun spectralFlux(samples: FloatArray): FloatArray {
+    fun spectralFlux(samples: FloatArray): FloatArray =
+        multiBandFlux(samples, DEFAULT_ANALYSIS_RATE).full
+
+    /** Assumed rate when a caller only wants the sample-rate-independent full-band flux. */
+    private const val DEFAULT_ANALYSIS_RATE = 44100
+
+    /** Band edges in Hz: kick body, snare body, snare crack / hats. */
+    private const val LOW_BAND_HZ = 150f
+    private const val MID_BAND_LO_HZ = 150f
+    private const val MID_BAND_HI_HZ = 800f
+    private const val HIGH_BAND_LO_HZ = 2000f
+    private const val HIGH_BAND_HI_HZ = 8000f
+
+    /**
+     * One STFT pass yielding the full-band onset envelope used for tempo estimation plus the
+     * three per-instrument bands [DownbeatTracker] needs to tell beat 1 from beats 2–4.
+     *
+     * Splitting by band is what makes downbeat classification possible at all: a summed
+     * envelope cannot distinguish a kick from a clap, and that distinction *is* the downbeat.
+     */
+    fun multiBandFlux(samples: FloatArray, sampleRate: Int): DownbeatTracker.BandOnsets {
         val window = FloatArray(FFT_SIZE) { 0.5f - 0.5f * cos(2.0 * Math.PI * it / FFT_SIZE).toFloat() }
-        val numFrames = (samples.size - FFT_SIZE) / HOP_SIZE
+        val numFrames = max(0, (samples.size - FFT_SIZE) / HOP_SIZE)
         val bins = FFT_SIZE / 2
-        val flux = FloatArray(numFrames)
+        val rate = if (sampleRate > 0) sampleRate else DEFAULT_ANALYSIS_RATE
+        val binHz = rate.toFloat() / FFT_SIZE
+
+        fun binOf(hz: Float) = (hz / binHz).toInt().coerceIn(0, bins - 1)
+        val lowHi = binOf(LOW_BAND_HZ)
+        val midLo = binOf(MID_BAND_LO_HZ)
+        val midHi = binOf(MID_BAND_HI_HZ)
+        val highLo = binOf(HIGH_BAND_LO_HZ)
+        val highHi = binOf(HIGH_BAND_HI_HZ)
+
+        val full = FloatArray(numFrames)
+        val low = FloatArray(numFrames)
+        val mid = FloatArray(numFrames)
+        val high = FloatArray(numFrames)
         val prevMag = FloatArray(bins)
         val re = FloatArray(FFT_SIZE)
         val im = FloatArray(FFT_SIZE)
@@ -636,27 +789,107 @@ object BeatAnalyzer {
             }
             fft(re, im)
             var sum = 0f
+            var lowSum = 0f
+            var midSum = 0f
+            var highSum = 0f
             for (b in 0 until bins) {
                 val mag = ln(1f + 10f * sqrt(re[b] * re[b] + im[b] * im[b]))
                 val diff = mag - prevMag[b]
-                if (diff > 0) sum += diff
                 prevMag[b] = mag
+                if (diff <= 0) continue
+                sum += diff
+                if (b <= lowHi) lowSum += diff
+                if (b in midLo..midHi) midSum += diff
+                if (b in highLo..highHi) highSum += diff
             }
-            flux[frame] = sum
+            full[frame] = sum
+            low[frame] = lowSum
+            mid[frame] = midSum
+            high[frame] = highSum
         }
 
         // Subtract local mean so autocorrelation sees onsets, not slow dynamics.
         val meanWindow = (0.5f * FFT_SIZE / HOP_SIZE * 8).roundToInt().coerceAtLeast(8)
-        val detrended = FloatArray(numFrames)
-        for (i in 0 until numFrames) {
+        return DownbeatTracker.BandOnsets(
+            low = detrend(low, meanWindow),
+            mid = detrend(mid, meanWindow),
+            high = detrend(high, meanWindow),
+            full = detrend(full, meanWindow),
+            frameRate = rate.toFloat() / HOP_SIZE,
+        )
+    }
+
+    private fun detrend(values: FloatArray, meanWindow: Int): FloatArray {
+        val out = FloatArray(values.size)
+        for (i in values.indices) {
             val lo = max(0, i - meanWindow)
-            val hi = min(numFrames - 1, i + meanWindow)
+            val hi = min(values.size - 1, i + meanWindow)
             var mean = 0f
-            for (j in lo..hi) mean += flux[j]
+            for (j in lo..hi) mean += values[j]
             mean /= hi - lo + 1
-            detrended[i] = max(0f, flux[i] - mean)
+            out[i] = max(0f, values[i] - mean)
         }
-        return detrended
+        return out
+    }
+
+    /**
+     * Relative plausibility of a tempo, peaking at [PREFERRED_BPM] and falling off by
+     * octave distance. Used to break ties between a period and its half or double.
+     */
+    fun tempoPrior(bpm: Float): Float {
+        if (bpm <= 0f) return 0f
+        val octaves = (ln(bpm / PREFERRED_BPM) / ln(2f))
+        return kotlin.math.exp(-0.5f * (octaves / TEMPO_PRIOR_OCTAVES) * (octaves / TEMPO_PRIOR_OCTAVES))
+    }
+
+    /**
+     * Picks between a period and its half / double / third using autocorrelation support
+     * weighted by [tempoPrior], instead of blindly folding into a fixed BPM window.
+     *
+     * Blind folding is what turns a 160 BPM track with a halftime snare into an 80 BPM track:
+     * both periods correlate equally well, and only the prior separates them.
+     *
+     * @return the chosen period in frames.
+     */
+    fun resolveTempoOctave(flux: FloatArray, frameRate: Float, periodFrames: Float): Float {
+        if (periodFrames <= 0f || frameRate <= 0f || flux.isEmpty()) return periodFrames
+
+        fun correlationAt(lag: Float): Float {
+            val l = lag.roundToInt()
+            if (l < 2 || l >= flux.size) return 0f
+            var sum = 0f
+            var energy = 1e-9f
+            for (i in 0 until flux.size - l) {
+                sum += flux[i] * flux[i + l]
+                energy += flux[i] * flux[i]
+            }
+            return sum / energy
+        }
+
+        // Halves, doubles and the triplet relation cover every octave error that matters.
+        val factors = floatArrayOf(0.25f, 1f / 3f, 0.5f, 2f / 3f, 1f, 1.5f, 2f, 3f, 4f)
+        var bestPeriod = periodFrames
+        var bestScore = Float.NEGATIVE_INFINITY
+        for (factor in factors) {
+            val candidate = periodFrames * factor
+            val bpm = 60f * frameRate / candidate
+            if (bpm < MIN_CANONICAL_BPM || bpm >= MAX_CANONICAL_BPM) continue
+            val score = correlationAt(candidate) * tempoPrior(bpm)
+            if (score > bestScore) {
+                bestScore = score
+                bestPeriod = candidate
+            }
+        }
+
+        // Nothing landed inside the canonical range: fall back to plain octave folding.
+        if (bestScore == Float.NEGATIVE_INFINITY) {
+            var period = periodFrames
+            var bpm = 60f * frameRate / period
+            while (bpm < MIN_CANONICAL_BPM) { bpm *= 2f; period /= 2f }
+            while (bpm >= MAX_CANONICAL_BPM) { bpm /= 2f; period *= 2f }
+            return period
+        }
+        return bestPeriod
     }
 
     /**
