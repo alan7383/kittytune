@@ -1319,6 +1319,9 @@ private fun SliderStyleSelectionPage(
                                     val slimState = remember { SliderState(0.65f, 0, 0f..1f) }
                                     Slider(
                                         state = slimState,
+                                        // Non-interactive style preview. material3 1.5.0-alpha29 made
+                                        // onValueChange a required parameter of the state overload.
+                                        onValueChange = {},
                                         thumb = { Spacer(modifier = Modifier.size(0.dp)) },
                                         track = { sliderState ->
                                             PlayerSliderTrack(
