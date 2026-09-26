@@ -27,9 +27,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -190,11 +190,13 @@ fun WavySliderExpressive(
             }
 
             val durationNanos = (intervalMs * 900_000L).coerceAtLeast(1_000_000L)
-            var startFrameNanos = 0L
+            val startNanos = System.nanoTime()
             while (isActive) {
-                val frameNanos = withFrameNanos { it }
-                if (startFrameNanos == 0L) startFrameNanos = frameNanos
-                val elapsedNanos = (frameNanos - startFrameNanos).coerceAtLeast(0L)
+                // Paced by `delay`, not by awaiting the next frame: awaiting a frame is itself a
+                // request for one, and this glide re-requested a frame for its whole duration on
+                // top of the indicator's own wave animation.
+                delay(WAVE_TICK_MS)
+                val elapsedNanos = (System.nanoTime() - startNanos).coerceAtLeast(0L)
                 val fraction = (elapsedNanos.toDouble() / durationNanos.toDouble()).toFloat().coerceIn(0f, 1f)
                 renderedNormalizedProgress.floatValue = start + (target - start) * fraction
                 if (fraction >= 1f) break
@@ -245,7 +247,7 @@ fun WavySliderExpressive(
                 stopSize = 3.dp,
                 amplitude = { progress -> if (progress > 0f) animatedAmplitude else 0f },
                 wavelength = wavelength,
-                waveSpeed = waveSpeed
+                waveSpeed = if (isPlaying) waveSpeed else 0.dp
             )
         } else {
             Spacer(modifier = Modifier.fillMaxWidth().height(containerHeight))
@@ -354,3 +356,6 @@ fun WavySliderExpressive(
         )
     }
 }
+
+/** 30 fps. The wave does not need the display rate, and asking for it costs a frame each time. */
+private const val WAVE_TICK_MS = 33L

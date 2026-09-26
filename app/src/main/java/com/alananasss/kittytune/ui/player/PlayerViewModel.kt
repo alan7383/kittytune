@@ -5213,12 +5213,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                 playRobustly(currentQueueIndex, autoPlay = false, startPosition = lastPosition)
                             }
                         }
-                        delay(200.milliseconds)
-                        val intent = Intent(context, PlaybackService::class.java).apply {
-                            action = PlaybackService.ACTION_FORCE_UPDATE
-                        }
-                        startServiceSafe(context, intent)
                     }
+
+                    // Started unconditionally, outside the restored-track block above. Nothing else
+                    // starts it until playback begins, so with an empty saved queue - a fresh
+                    // install, or "Remember queue" off, which makes getLastTrack() null - there was
+                    // no media session, no notification, and the lock screen and media keys stayed
+                    // dead until play was pressed inside the app.
+                    delay(200.milliseconds)
+                    val intent = Intent(context, PlaybackService::class.java).apply {
+                        action = PlaybackService.ACTION_FORCE_UPDATE
+                    }
+                    startServiceSafe(context, intent)
                 }
             } catch (_: Exception) {
             } finally {

@@ -29,10 +29,13 @@ object FreeTranslator {
             .build()
 
         try {
-            val response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                val body = response.body?.string() ?: return@withContext emptyMap()
-
+            // The body is only read on success, so an unsuccessful response left its connection
+            // unreturned to the pool. This endpoint rate-limits readily, which is exactly the path
+            // that leaked.
+            val body = client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) response.body?.string() else null
+            }
+            if (body != null) {
                 val rootArray = com.google.gson.JsonParser.parseString(body).asJsonArray
                 val textBlocks = rootArray.get(0).asJsonArray
 
@@ -52,7 +55,7 @@ object FreeTranslator {
                 }
             }
         } catch (e: Exception) {
-            println("Google Translate Error: \${e.message}")
+            println("Google Translate Error: ${e.message}")
         }
         return@withContext resultMap
     }
@@ -74,9 +77,12 @@ object FreeTranslator {
                         .url(url)
                         .header("User-Agent", "Mozilla/5.0")
                         .build()
-                    val response = client.newCall(request).execute()
-                    if (response.isSuccessful) {
-                        val body = response.body?.string() ?: return@async
+                    // One request per lyric line, so an error-path leak here multiplied by the
+                    // length of the song.
+                    val body = client.newCall(request).execute().use { response ->
+                        if (response.isSuccessful) response.body?.string() else null
+                    }
+                    if (body != null) {
                         val rootArray = com.google.gson.JsonParser.parseString(body).asJsonArray
                         if (rootArray.size() > 0 && rootArray.get(0).isJsonArray) {
                             val textBlocks = rootArray.get(0).asJsonArray
@@ -97,7 +103,7 @@ object FreeTranslator {
                         }
                     }
                 } catch (e: Exception) {
-                    println("Romanization line error: \${e.message}")
+                    println("Romanization line error: ${e.message}")
                 }
             }
         }

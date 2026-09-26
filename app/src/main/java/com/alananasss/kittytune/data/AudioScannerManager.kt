@@ -199,8 +199,13 @@ object AudioScannerManager {
             try {
                 if (nativeHandle != 0L) nativeDestroyAnalyzer(nativeHandle)
             } catch (_: Exception) {}
+            // Split, like the two blocks above: sharing one try meant a throwing stop() - routine
+            // for a codec that was configured but never started - skipped the release and leaked
+            // the native MediaCodec instance.
             try {
                 decoder?.stop()
+            } catch (_: Exception) {}
+            try {
                 decoder?.release()
             } catch (_: Exception) {}
             try {

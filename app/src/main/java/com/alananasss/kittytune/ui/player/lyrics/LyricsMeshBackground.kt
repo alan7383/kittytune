@@ -12,9 +12,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.State
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -41,27 +42,31 @@ private data class Blob(val baseX: Float, val baseY: Float, val rate: Float, val
 private const val WANDER = 0.40f
 private const val BLOB_RADIUS = 0.85f
 private const val MESH_CYCLE_MS = 26_000f
+private const val MESH_TICK_MS = 33L
 private const val COLOUR_TRAVEL_MS = 900
 
 /**
  * Continuous smooth drift clock for the ambient background lights.
+ *
+ * Returned as state and read while drawing, and paced by `delay`: it used to be read at the top of
+ * the screen and advanced by awaiting every frame, so the background recomposed at the display rate
+ * for lights that take twenty-six seconds to go round once. `delay` does not itself request a frame,
+ * so the ticker only costs a coroutine resume.
  */
 @Composable
-internal fun rememberMeshDrift(): Float {
-    var elapsedSeconds by remember { mutableFloatStateOf(0f) }
+internal fun rememberMeshDrift(): State<Float> {
+    val drift = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
-        var lastNanos = 0L
+        var last = System.nanoTime()
         while (true) {
-            withFrameNanos { now ->
-                if (lastNanos != 0L) {
-                    val dt = ((now - lastNanos) / 1_000_000_000f).coerceIn(0f, 0.1f)
-                    elapsedSeconds += dt
-                }
-                lastNanos = now
-            }
+            delay(MESH_TICK_MS)
+            val now = System.nanoTime()
+            val seconds = ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
+            last = now
+            drift.floatValue += seconds / (MESH_CYCLE_MS / 1000f)
         }
     }
-    return elapsedSeconds / (MESH_CYCLE_MS / 1000f)
+    return drift
 }
 
 /**
@@ -119,8 +124,9 @@ private fun spreadFrom(seed: Color): List<Color> {
  */
 internal fun DrawScope.drawLyricsMesh(
     palette: LyricsMeshPalette,
-    drift: Float,
+    drift: () -> Float,
 ) {
+    val driftPhase = drift()
     val w = size.width
     val h = size.height
     val radius = max(size.minDimension * 1.0f, size.maxDimension * 0.58f)
@@ -133,7 +139,7 @@ internal fun DrawScope.drawLyricsMesh(
     )
 
     lights.forEachIndexed { index, blob ->
-        val angle = ((drift * blob.rate + blob.phase) * 2f * Math.PI).toFloat()
+        val angle = ((driftPhase * blob.rate + blob.phase) * 2f * Math.PI).toFloat()
         val x = w * (blob.baseX + WANDER * cos(angle))
         val y = h * (blob.baseY + WANDER * 0.76f * sin(angle * 1.3f))
         drawRect(
@@ -171,7 +177,7 @@ fun LyricsMeshBackground(
         modifier = modifier
             .fillMaxSize()
             .background(palette.base)
-            .drawBehind { drawLyricsMesh(palette, drift) }
+            .drawBehind { drawLyricsMesh(palette) { drift.value } }
     ) {
         content(palette)
     }

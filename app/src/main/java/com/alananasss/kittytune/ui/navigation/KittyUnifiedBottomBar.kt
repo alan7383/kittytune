@@ -164,12 +164,10 @@ fun KittyUnifiedBottomBar(
                         }
                     }
 
-                    val progress = if (playerViewModel.duration > 0) {
-                        playerViewModel.currentPosition.toFloat() / playerViewModel.duration.toFloat()
-                    } else 0f
+                    val progress = rememberDockProgress(playerViewModel)
 
                     LinearProgressIndicator(
-                        progress = { progress },
+                        progress = { progress.value },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(2.dp)
@@ -281,12 +279,10 @@ fun KittyUnifiedBottomBar(
                         }
                     }
 
-                    val progress = if (playerViewModel.duration > 0) {
-                        playerViewModel.currentPosition.toFloat() / playerViewModel.duration.toFloat()
-                    } else 0f
+                    val progress = rememberDockProgress(playerViewModel)
 
                     LinearProgressIndicator(
-                        progress = { progress },
+                        progress = { progress.value },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(2.dp)
@@ -399,4 +395,43 @@ fun KittyUnifiedBottomBar(
             }
         }
     }
+}
+
+/**
+ * Playback progress for the docks, kept out of the caller's recomposition scope.
+ *
+ * Reading `currentPosition` in a composable body makes that whole body recompose on every position
+ * tick, and the docks are large - the mini player, the navigation bar and every navigation item, in
+ * both style branches. The tick runs at 500 ms normally, 200 ms near the end of a track, and 25 Hz
+ * while DJ Flow has the player open, so the whole bar was being rebuilt up to 25 times a second to
+ * move a 2 dp line.
+ *
+ * Collecting inside [snapshotFlow] reads the position in a snapshot observer instead, so only the
+ * progress value changes. Same approach as the mini player's own bar.
+ */
+@Composable
+internal fun rememberDockProgress(viewModel: com.alananasss.kittytune.ui.player.PlayerViewModel): Animatable<Float, androidx.compose.animation.core.AnimationVector1D> {
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(viewModel) {
+        snapshotFlow {
+            if (viewModel.duration > 0) {
+                (viewModel.currentPosition.toFloat() / viewModel.duration.toFloat()).coerceIn(0f, 1f)
+            } else 0f
+        }.collect { target ->
+            // Snap on a track change or a seek, glide in between, so the line does not stutter at
+            // the tick rate.
+            val delta = target - progress.value
+            val spec: androidx.compose.animation.core.TweenSpec<Float> =
+                if (kotlin.math.abs(delta) > 0.05f) {
+                    androidx.compose.animation.core.tween(150)
+                } else {
+                    androidx.compose.animation.core.tween(
+                        durationMillis = 1000,
+                        easing = androidx.compose.animation.core.LinearEasing
+                    )
+                }
+            progress.animateTo(target, animationSpec = spec)
+        }
+    }
+    return progress
 }

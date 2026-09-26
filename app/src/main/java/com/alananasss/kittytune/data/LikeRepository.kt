@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.FileWriter
 import java.io.FileReader
@@ -144,8 +145,11 @@ object LikeRepository {
         }
     }
 
-    /** One bulk-like network pass at a time, so two rapid "Like all" clicks cannot double-send. */
-    private val bulkLikeInFlight = java.util.concurrent.atomic.AtomicBoolean(false)
+    /**
+     * Bulk-like passes run one after another. A pass that arrived while another was sending used to be
+     * dropped outright — its tracks already showed as liked here but never reached SoundCloud.
+     */
+    private val bulkLikeMutex = kotlinx.coroutines.sync.Mutex()
 
     /** Same batch size and pacing the guest-transfer path has always used successfully. */
     private const val BULK_LIKE_BATCH_SIZE = 25
@@ -191,8 +195,7 @@ object LikeRepository {
             if (tokenManager.isGuestMode()) return@launch
             val token = tokenManager.getAccessToken()
             if (token.isNullOrEmpty() && vkLikeable.isEmpty()) return@launch
-            if (!bulkLikeInFlight.compareAndSet(false, true)) return@launch
-            try {
+            bulkLikeMutex.withLock {
                 if (!token.isNullOrEmpty()) {
                     for (batch in soundCloudLikeable.chunked(BULK_LIKE_BATCH_SIZE)) {
                         val payload = TrackLikeRequest(
@@ -201,7 +204,10 @@ object LikeRepository {
                         try {
                             var response = api.likeTrack(payload)
                             if (response.code() == 401) {
+                                // Refreshing alone left this batch unsent; send it again on the new session.
                                 com.alananasss.kittytune.data.SessionManager.requestSessionRefresh(appContext, force = true)
+                                delay(BULK_LIKE_RATE_LIMIT_WAIT_MS)
+                                response = api.likeTrack(payload)
                             }
                             if (response.code() == 429) {
                                 delay(BULK_LIKE_RATE_LIMIT_WAIT_MS)
@@ -229,8 +235,6 @@ object LikeRepository {
                         }
                     }
                 }
-            } finally {
-                bulkLikeInFlight.set(false)
             }
         }
         return toLike.size

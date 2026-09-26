@@ -261,12 +261,10 @@ fun TabletBottomDock(
                             }
                         }
 
-                        val progress = if (playerViewModel.duration > 0) {
-                            playerViewModel.currentPosition.toFloat() / playerViewModel.duration.toFloat()
-                        } else 0f
+                        val progress = rememberDockProgress(playerViewModel)
 
                         LinearProgressIndicator(
-                            progress = { progress },
+                            progress = { progress.value },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(3.dp)

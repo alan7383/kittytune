@@ -18,10 +18,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
@@ -186,6 +186,7 @@ private const val TEXTURE_CACHE = 3
 private const val CROSSFADE_MS = 1400
 private const val APPEAR_MS = 800
 private const val FRAME_SECONDS = 1f / 30f
+private const val FRAME_TICK_MS = 33L
 
 private val textureCache = LinkedHashMap<String, Bitmap>()
 
@@ -304,13 +305,17 @@ fun FluidArtworkBackground(
 
     var seconds by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
-        var last = 0L
+        var last = System.nanoTime()
         var pending = 0f
         while (true) {
-            withFrameNanos { now ->
-                if (last != 0L) pending += ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
-                last = now
-            }
+            // Paced by `delay` rather than by awaiting the next frame: awaiting a frame is itself a
+            // request for one, so the loop used to keep the display refreshing at full rate for the
+            // whole time this background was on screen. `delay` wakes on a timer and asks for
+            // nothing, and the published value is throttled to FRAME_SECONDS either way.
+            delay(FRAME_TICK_MS)
+            val now = System.nanoTime()
+            pending += ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
+            last = now
             if (pending >= FRAME_SECONDS) {
                 seconds += pending
                 pending = 0f

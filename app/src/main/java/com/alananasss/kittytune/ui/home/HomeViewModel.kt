@@ -220,11 +220,12 @@
 
         private suspend fun unshortenUrl(shortUrl: String): String = withContext(Dispatchers.IO) {
             try {
-                val builder = OkHttpClient.Builder().followRedirects(true).followSslRedirects(true)
-                val client = com.alananasss.kittytune.data.network.ProxyManager.configureOkHttpClient(builder).build()
+                // The shared client already follows redirects; the response is closed so its pooled
+                // connection goes back instead of leaking. Only the request metadata is read here,
+                // so the body was never consumed and the socket was never released.
+                val client = com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient()
                 val request = Request.Builder().url(shortUrl).head().build()
-                val response = client.newCall(request).execute()
-                response.request.url.toString()
+                client.newCall(request).execute().use { response -> response.request.url.toString() }
             } catch (e: Exception) {
                 shortUrl
             }
