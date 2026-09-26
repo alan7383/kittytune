@@ -102,6 +102,7 @@ fun AppearanceSettingsScreen(
     onNavigateToColors: () -> Unit,
     onNavigateToBottomBarSettings: () -> Unit,
     onNavigateToAppIconSettings: () -> Unit,
+    onNavigateToPlayerCustomization: () -> Unit,
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -626,8 +627,7 @@ fun AppearanceSettingsScreen(
                                     }
                                     PlayerDesign.CLASSIC -> stringResource(R.string.player_style_classic_desc)
                                 },
-                                trailingText = stringResource(R.string.player_slot_edit),
-                                onClick = { showPlayerCustomizationBottomSheet = true }
+                                onClick = { onNavigateToPlayerCustomization() }
                             )
                         }
                         add { shape ->

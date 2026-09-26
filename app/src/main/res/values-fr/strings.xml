@@ -1952,6 +1952,8 @@
     <string name="player_style_classic_desc">Mode standard classique (Barre plate)</string>
     <string name="player_customization_title">Personnalisation du Lecteur</string>
     <string name="player_customization_subtitle">Styles, effets et barre d\'actions</string>
+    <string name="player_style_classic_short">Classique</string>
+    <string name="player_style_hybrid_short">Hybride</string>
     <string name="player_style_group">STYLE DU LECTEUR</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Hybride</string>

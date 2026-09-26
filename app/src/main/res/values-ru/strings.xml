@@ -1871,6 +1871,8 @@
     <string name="player_style_classic_desc">Классический стандартный режим (Плоская полоса)</string>
     <string name="player_customization_title">Персонализация плеера</string>
     <string name="player_customization_subtitle">Стили, эффекты и панель действий</string>
+    <string name="player_style_classic_short">Классика</string>
+    <string name="player_style_hybrid_short">Гибрид</string>
     <string name="player_style_group">СТИЛЬ ПЛЕЕРА</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Гибридный</string>

@@ -239,6 +239,7 @@ fun SettingsItem(
 fun SettingsScaffold(
     title: String,
     onBackClick: () -> Unit,
+    subtitle: String? = null,
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -250,7 +251,20 @@ fun SettingsScaffold(
         topBar = {
             LargeTopAppBar(
                 title = {
-                    Text(title, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Column {
+                        Text(title, fontWeight = FontWeight.Bold, maxLines = 1)
+                        // What the page is for, under its name - the desktop's settings pages all
+                        // carry one, and it is the fastest way to tell two similarly-named pages apart.
+                        if (subtitle != null) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                 },
                 navigationIcon = {
                     FilledTonalIconButton(

@@ -1355,6 +1355,7 @@ fun MainScreen(
                             onNavigateToColors = { navController.navigate("color_palette") },
                             onNavigateToBottomBarSettings = { navController.navigate("bottom_bar_settings") },
                             onNavigateToAppIconSettings = { navController.navigate("app_icon_settings") },
+                            onNavigateToPlayerCustomization = { navController.navigate("player_design_settings") },
                             onBackClick = { navController.popBackStack() }
                         )
                     }
@@ -1439,8 +1440,7 @@ fun MainScreen(
                     }
 
                     clippedComposable("player_design_settings") {
-                        PlayerDesignSettingsScreen(
-                            navController = navController,
+                        PlayerCustomizationScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }

@@ -1880,6 +1880,8 @@
     <string name="player_style_classic_desc">Klasszikus normál mód (Lapos sáv)</string>
     <string name="player_customization_title">Lejátszó testreszabása</string>
     <string name="player_customization_subtitle">Stílusok, effektusok és műveletsáv</string>
+    <string name="player_style_classic_short">Klasszikus</string>
+    <string name="player_style_hybrid_short">Hibrid</string>
     <string name="player_style_group">LEJÁTSZÓ STÍLUSA</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Hibrid</string>

@@ -2074,6 +2074,8 @@
     <string name="player_style_classic_desc">Classic standard mode (Flat bar)</string>
     <string name="player_customization_title">Player Customization</string>
     <string name="player_customization_subtitle">Styles, visual effects and action bar</string>
+    <string name="player_style_classic_short">Classic</string>
+    <string name="player_style_hybrid_short">Hybrid</string>
     <string name="player_style_group">PLAYER STYLE</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Hybrid</string>

@@ -2071,6 +2071,8 @@
     <string name="player_style_classic_desc">Klassischer Standardmodus (flache Leiste)</string>
     <string name="player_customization_title">Player-Anpassung</string>
     <string name="player_customization_subtitle">Stile, visuelle Effekte und Aktionsleiste</string>
+    <string name="player_style_classic_short">Klassisch</string>
+    <string name="player_style_hybrid_short">Hybrid</string>
     <string name="player_style_group">PLAYER-STIL</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Hybrid</string>

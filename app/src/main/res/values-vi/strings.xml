@@ -1929,6 +1929,8 @@
     <string name="player_style_classic_desc">Chế độ tiêu chuẩn cổ điển (Thanh trượt phẳng)</string>
     <string name="player_customization_title">Tùy biến trình phát</string>
     <string name="player_customization_subtitle">Kiểu dáng, hiệu ứng thị giác và thanh tác vụ</string>
+    <string name="player_style_classic_short">Cổ điển</string>
+    <string name="player_style_hybrid_short">Kết hợp</string>
     <string name="player_style_group">KIỂU TRÌNH PHÁT</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Lai (Hybrid)</string>
