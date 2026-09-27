@@ -48,6 +48,7 @@ import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material3.*
+import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -295,7 +296,7 @@ fun LibraryScreen(
             onDismissRequest = { if (!isCreatingPlaylist) showCreateDialog = false },
             title = { Text(stringResource(R.string.lib_create_playlist_title)) },
             text = {
-                OutlinedTextField(
+                KittyOutlinedTextField(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
                     label = { Text(stringResource(R.string.lib_create_playlist_hint)) },
@@ -370,7 +371,7 @@ fun LibraryScreen(
             },
             title = { Text(stringResource(R.string.lib_create_folder_title)) },
             text = {
-                OutlinedTextField(
+                KittyOutlinedTextField(
                     value = newFolderName,
                     onValueChange = { newFolderName = it },
                     label = { Text(stringResource(R.string.lib_create_folder_hint)) },
@@ -422,7 +423,7 @@ fun LibraryScreen(
             onDismissRequest = { folderToRename = null },
             title = { Text(stringResource(R.string.dialog_rename_folder_title)) },
             text = {
-                OutlinedTextField(
+                KittyOutlinedTextField(
                     value = renameFolderName,
                     onValueChange = { renameFolderName = it },
                     label = { Text(stringResource(R.string.dialog_rename_folder_hint)) },

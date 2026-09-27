@@ -63,6 +63,7 @@ import com.alananasss.kittytune.ui.player.cover.CanvasVideo
 import com.alananasss.kittytune.ui.common.WindowSizeInfo
 import com.alananasss.kittytune.ui.common.WindowHeightSizeClass
 import com.alananasss.kittytune.ui.common.viewableCover
+import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
 import com.alananasss.kittytune.ui.common.rememberWindowSizeInfo
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.R
@@ -2692,7 +2693,7 @@ fun TrackSelectionContent(
                             }
 
                             AnimatedVisibility(visible = isSearchExpanded) {
-                                OutlinedTextField(
+                                KittyOutlinedTextField(
                                     value = searchQuery,
                                     onValueChange = { searchQuery = it },
                                     placeholder = { Text(stringResource(R.string.search_hint)) },
@@ -2924,7 +2925,7 @@ fun TrackSelectionContent(
         }
 
         AnimatedVisibility(visible = isSearchExpanded) {
-            OutlinedTextField(
+            KittyOutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text(stringResource(R.string.search_hint)) },

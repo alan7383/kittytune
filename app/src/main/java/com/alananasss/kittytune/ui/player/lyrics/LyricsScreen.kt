@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
     import androidx.compose.foundation.interaction.MutableInteractionSource
+    import androidx.compose.foundation.interaction.collectIsFocusedAsState
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.LazyColumn
     import androidx.compose.foundation.lazy.items
@@ -21,8 +22,9 @@ import androidx.compose.animation.core.tween
     import androidx.compose.foundation.rememberScrollState
     import androidx.compose.foundation.shape.CircleShape
     import androidx.compose.foundation.shape.RoundedCornerShape
-    import androidx.compose.foundation.text.KeyboardActions
     import androidx.compose.foundation.text.KeyboardOptions
+    import androidx.compose.foundation.text.input.TextFieldLineLimits
+    import androidx.compose.foundation.text.input.TextFieldState
     import androidx.compose.foundation.verticalScroll
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.rounded.Close
@@ -40,6 +42,7 @@ import androidx.compose.animation.core.tween
     import androidx.compose.material.icons.automirrored.rounded.FormatAlignRight
     import androidx.compose.material3.*
     import com.alananasss.kittytune.ui.common.Slider
+    import com.alananasss.kittytune.ui.common.moveCaretWithArrowKeys
     import androidx.compose.runtime.*
     import com.alananasss.kittytune.ui.theme.rememberLyricsFontFamily
 import androidx.compose.ui.Alignment
@@ -928,7 +931,9 @@ fun SearchLyricsView(
     onCloseSearch: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
-    var query by remember { mutableStateOf(viewModel.manualSearchQuery) }
+    val queryState = remember(viewModel.manualSearchQuery) { TextFieldState(viewModel.manualSearchQuery) }
+    val queryInteractions = remember { MutableInteractionSource() }
+    val isQueryFocused by queryInteractions.collectIsFocusedAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         // State for provider picker lives here so both the button and dropdown can share it
@@ -942,6 +947,7 @@ fun SearchLyricsView(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
+                .moveCaretWithArrowKeys(queryState, isQueryFocused)
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             IconButton(onClick = onCloseSearch) {
@@ -949,11 +955,10 @@ fun SearchLyricsView(
             }
             Spacer(Modifier.width(4.dp))
             OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
+                state = queryState,
                 modifier = Modifier.weight(1f),
                 placeholder = { Text(stringResource(R.string.lyrics_search_hint), color = Color.White.copy(0.6f)) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.White,
@@ -965,14 +970,15 @@ fun SearchLyricsView(
                     unfocusedContainerColor = Color.Black.copy(alpha = 0.25f),
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = {
-                    viewModel.searchLyricsManual(query, viewModel.manualSearchProvider)
+                onKeyboardAction = {
+                    viewModel.searchLyricsManual(queryState.text.toString(), viewModel.manualSearchProvider)
                     focusManager.clearFocus()
-                })
+                },
+                interactionSource = queryInteractions
             )
             Spacer(Modifier.width(4.dp))
             IconButton(onClick = {
-                viewModel.searchLyricsManual(query, viewModel.manualSearchProvider)
+                viewModel.searchLyricsManual(queryState.text.toString(), viewModel.manualSearchProvider)
                 focusManager.clearFocus()
             }) {
                 Icon(Icons.Rounded.Search, stringResource(R.string.search_hint), tint = Color.White)
@@ -1021,7 +1027,7 @@ fun SearchLyricsView(
                         },
                         onClick = {
                             providerExpanded = false
-                            viewModel.searchLyricsManual(query, provider.name)
+                            viewModel.searchLyricsManual(queryState.text.toString(), provider.name)
                         },
                         leadingIcon = if (isActive) ({
                             Icon(

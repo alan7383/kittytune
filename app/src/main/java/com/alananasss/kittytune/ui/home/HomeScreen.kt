@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -44,6 +45,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +62,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -74,6 +77,7 @@ import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.data.SearchCategory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
 import com.alananasss.kittytune.data.local.HistoryItem
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
@@ -82,6 +86,7 @@ import com.alananasss.kittytune.ui.common.ArtistCircleShimmer
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.ShimmerLine
 import com.alananasss.kittytune.ui.common.SquareCardShimmer
+import com.alananasss.kittytune.ui.common.moveCaretWithArrowKeys
 import com.alananasss.kittytune.ui.library.DynamicPlaylistCard
 import com.alananasss.kittytune.ui.library.TrackListItem
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -106,6 +111,7 @@ import androidx.compose.ui.layout.boundsInParent
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.draw.drawBehind
 import android.net.ConnectivityManager
@@ -125,6 +131,9 @@ fun HomeScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
+    val searchFieldState = remember { TextFieldState() }
+    val searchFieldInteractions = remember { MutableInteractionSource() }
+    val isSearchFieldFocused by searchFieldInteractions.collectIsFocusedAsState()
 
     val isKeyboardOpen = WindowInsets.isImeVisible
 
@@ -155,6 +164,22 @@ fun HomeScreen(
             }
         } else {
             focusManager.clearFocus()
+        }
+    }
+
+    LaunchedEffect(searchFieldState) {
+        snapshotFlow { searchFieldState.text.toString() }
+            .distinctUntilChanged()
+            .collect { homeViewModel.onSearchQueryChanged(it) }
+    }
+
+    LaunchedEffect(homeViewModel.searchQuery) {
+        val query = homeViewModel.searchQuery
+        if (searchFieldState.text.toString() != query) {
+            searchFieldState.edit {
+                replace(0, length, query)
+                selection = TextRange(length)
+            }
         }
     }
 
@@ -267,8 +292,7 @@ fun HomeScreen(
                     SearchBar(
                         inputField = {
                             SearchBarDefaults.InputField(
-                                query = homeViewModel.searchQuery,
-                                onQueryChange = homeViewModel::onSearchQueryChanged,
+                                state = searchFieldState,
                                 onSearch = { focusManager.clearFocus() },
                                 expanded = isSearching,
                                 onExpandedChange = {
@@ -285,6 +309,7 @@ fun HomeScreen(
                                     )
                                 },
                                 modifier = Modifier.focusRequester(focusRequester),
+                                interactionSource = searchFieldInteractions,
                                 leadingIcon = {
                                     if (isSearching) {
                                         IconButton(
@@ -361,6 +386,7 @@ fun HomeScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
+                            .moveCaretWithArrowKeys(searchFieldState, isSearchFieldFocused)
                             .padding(horizontal = searchBarPadding)
                             .padding(bottom = 8.dp),
                         colors = SearchBarDefaults.colors(

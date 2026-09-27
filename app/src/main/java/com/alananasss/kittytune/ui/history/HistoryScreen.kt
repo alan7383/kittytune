@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -220,7 +221,7 @@ fun HistoryScreen(
                 .padding(top = innerPadding.calculateTopPadding())
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            OutlinedTextField(
+            KittyOutlinedTextField(
                 value = historyViewModel.searchQuery,
                 onValueChange = { historyViewModel.searchQuery = it },
                 placeholder = {
