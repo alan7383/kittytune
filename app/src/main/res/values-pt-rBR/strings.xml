@@ -2555,4 +2555,8 @@
     <string name="dj_flow_mixing_now">Mixing now</string>
     <string name="dj_flow_mix_now">Mix now</string>
     <string name="dj_flow_empty_queue">Add tracks to the queue so the DJ can plan ahead.</string>
+    <string name="pref_haptics_contrast">Impact</string>
+    <string name="pref_haptics_contrast_sub">How much the vibration follows contrast rather than loudness. Higher keeps build-ups light so the drop lands.</string>
+    <string name="pref_haptics_contrast_off">Off</string>
+    <string name="pref_haptics_contrast_full">Full</string>
 </resources>
