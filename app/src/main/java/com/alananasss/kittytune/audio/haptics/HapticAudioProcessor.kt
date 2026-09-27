@@ -24,6 +24,13 @@ class HapticAudioProcessor(context: Context) : BaseAudioProcessor() {
     private var bassFilterState = 0f
     private var midFilterState = 0f
 
+    /**
+     * Frames pushed into the sink so far. Together with the player's own position this gives the
+     * output latency, which is what the vibration has to be delayed by - see
+     * [HapticLatencyEstimator].
+     */
+    private var framesWritten: Long = 0L
+
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT && inputAudioFormat.encoding != C.ENCODING_PCM_FLOAT) {
             return AudioProcessor.AudioFormat.NOT_SET
@@ -36,6 +43,12 @@ class HapticAudioProcessor(context: Context) : BaseAudioProcessor() {
         if (remaining == 0) return
 
         if (hapticManager.isHapticsEnabled) {
+            val bytesPerSample = if (inputAudioFormat.encoding == C.ENCODING_PCM_16BIT) 2 else 4
+            val bytesPerFrame = bytesPerSample * inputAudioFormat.channelCount
+            if (bytesPerFrame > 0 && inputAudioFormat.sampleRate > 0) {
+                framesWritten += remaining / bytesPerFrame
+                hapticManager.onAudioWritten(framesWritten * 1000L / inputAudioFormat.sampleRate)
+            }
             analyzePcmForHaptics(inputBuffer)
         }
 
@@ -106,6 +119,8 @@ class HapticAudioProcessor(context: Context) : BaseAudioProcessor() {
     }
 
     override fun onFlush() {
+        framesWritten = 0L
+        hapticManager.onAudioPipelineReset()
         subBassFilterState = 0f
         bassFilterState = 0f
         midFilterState = 0f

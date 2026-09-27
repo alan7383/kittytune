@@ -248,6 +248,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_TRACK_REMOVAL_METHOD = "track_removal_method"
 
         const val KEY_HAPTICS_ENABLED = "haptics_enabled"
+        const val KEY_HAPTICS_CONTRAST = "haptics_contrast"
         const val KEY_HAPTICS_STRENGTH = "haptics_strength"
         const val KEY_HAPTICS_PLAY_PAUSE = "haptics_play_pause"
         const val KEY_HAPTICS_SEEK = "haptics_seek"
@@ -638,6 +639,19 @@ class PlayerPreferences(context: Context) {
         prefs.edit { putString(KEY_PAXSENIX_API_KEY, key) }
     }
 
+
+    /**
+     * How much the beat haptics follow contrast rather than absolute loudness, 0..1.
+     *
+     * At 0 the motor tracks level, which means a build-up buzzes as hard as the drop it leads
+     * into. Higher values keep sustained passages light so the drop has somewhere to go.
+     */
+    fun getHapticContrast(): Float =
+        prefs.getFloat(KEY_HAPTICS_CONTRAST, com.alananasss.kittytune.audio.haptics.HapticDynamics.DEFAULT_CONTRAST)
+
+    fun setHapticContrast(value: Float) {
+        prefs.edit { putFloat(KEY_HAPTICS_CONTRAST, value.coerceIn(0f, 1f)) }
+    }
 
     fun getLyricsTranslationEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_TRANSLATION, false)
     fun setLyricsTranslationEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_TRANSLATION, enabled) }

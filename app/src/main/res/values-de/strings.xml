@@ -2697,4 +2697,8 @@
     <string name="dj_flow_mixing_now">Übergang läuft</string>
     <string name="dj_flow_mix_now">Jetzt überblenden</string>
     <string name="dj_flow_empty_queue">Füge Songs zur Warteschlange hinzu, damit der DJ planen kann.</string>
+    <string name="pref_haptics_contrast">Wucht</string>
+    <string name="pref_haptics_contrast_sub">Wie stark die Vibration dem Kontrast statt der Lautstärke folgt. Höher hält Build-ups leicht, damit der Drop einschlägt.</string>
+    <string name="pref_haptics_contrast_off">Aus</string>
+    <string name="pref_haptics_contrast_full">Voll</string>
 </resources>

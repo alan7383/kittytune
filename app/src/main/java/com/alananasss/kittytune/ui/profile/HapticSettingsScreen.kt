@@ -11,6 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,7 @@ fun HapticSettingsScreen(
 
     var hapticsEnabled by remember { mutableStateOf(prefs.getHapticsEnabled()) }
     var hapticsStrength by remember { mutableStateOf(prefs.getHapticsStrength()) }
+    var hapticsContrast by remember { mutableStateOf(prefs.getHapticContrast()) }
     var playPauseHaptics by remember { mutableStateOf(prefs.getHapticsPlayPause()) }
     var seekHaptics by remember { mutableStateOf(prefs.getHapticsSeek()) }
     var likeHaptics by remember { mutableStateOf(prefs.getHapticsLike()) }
@@ -138,6 +141,49 @@ fun HapticSettingsScreen(
                                             hapticManager.triggerTestVibration(hapticsStrength)
                                         },
                                         valueRange = 10f..100f,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Spacer(Modifier.height(18.dp))
+
+                                    // Contrast, not level. At 0 the motor tracks loudness, so a
+                                    // build-up buzzes as hard as the drop it leads into and the
+                                    // drop has nowhere left to go.
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.pref_haptics_contrast),
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                        Text(
+                                            text = when {
+                                                hapticsContrast <= 0.02f ->
+                                                    stringResource(R.string.pref_haptics_contrast_off)
+                                                hapticsContrast >= 0.98f ->
+                                                    stringResource(R.string.pref_haptics_contrast_full)
+                                                else -> "${(hapticsContrast * 100).roundToInt()}%"
+                                            },
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    Text(
+                                        text = stringResource(R.string.pref_haptics_contrast_sub),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Slider(
+                                        value = hapticsContrast,
+                                        onValueChange = { newVal ->
+                                            hapticsContrast = newVal
+                                            prefs.setHapticContrast(newVal)
+                                            hapticManager.setHapticContrast(newVal)
+                                        },
+                                        valueRange = 0f..1f,
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
