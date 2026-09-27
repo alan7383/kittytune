@@ -11,6 +11,8 @@
     import androidx.compose.foundation.lazy.grid.items
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.filled.ArrowBack
+    import androidx.compose.material.icons.automirrored.filled.ViewList
+    import androidx.compose.material.icons.filled.GridView
     import androidx.compose.material3.*
     import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.Composable
@@ -19,7 +21,6 @@
     import androidx.compose.ui.res.stringResource
     import androidx.compose.ui.text.font.FontWeight
     import androidx.compose.ui.unit.dp
-    import androidx.compose.foundation.lazy.grid.itemsIndexed
     import androidx.lifecycle.viewmodel.compose.viewModel
     import com.alananasss.kittytune.R
 
@@ -31,6 +32,7 @@
         viewModel: GenresViewModel = viewModel()
     ) {
         val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+        val columns = if (viewModel.isGridLayout) GridCells.Fixed(2) else GridCells.Fixed(1)
 
         Scaffold(
             modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -49,8 +51,23 @@
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
                         }
                     },
+                    actions = {
+                        FilledTonalIconButton(
+                            onClick = { viewModel.toggleLayout() },
+                            shapes = IconButtonDefaults.shapes(),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            Icon(
+                                imageVector = if (viewModel.isGridLayout) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                                contentDescription = stringResource(R.string.btn_options)
+                            )
+                        }
+                    },
                     scrollBehavior = scrollBehavior,
-                    colors = TopAppBarDefaults.largeTopAppBarColors(
+                    colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background,
                         scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                     )
@@ -59,7 +76,7 @@
             containerColor = MaterialTheme.colorScheme.background
         ) { innerPadding ->
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 160.dp),
+                columns = columns,
                 modifier = Modifier
                     .padding(innerPadding)
                     .fillMaxSize(),
@@ -78,7 +95,7 @@
                 }
 
                 items(viewModel.moodCategories) { category ->
-                    SearchCategoryCard(category) {
+                    SearchCategoryCard(category = category, isSquare = viewModel.isGridLayout) {
                         val encodedTitle = Uri.encode(category.title)
                         val encodedQuery = Uri.encode(category.query)
                         onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
@@ -96,7 +113,7 @@
                 }
 
                 items(viewModel.genreCategories) { category ->
-                    SearchCategoryCard(category) {
+                    SearchCategoryCard(category = category, isSquare = viewModel.isGridLayout) {
                         val encodedTitle = Uri.encode(category.title)
                         val encodedQuery = Uri.encode(category.query)
                         onNavigate("genre_detail/$encodedTitle/$encodedQuery")

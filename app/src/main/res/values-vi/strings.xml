@@ -1537,6 +1537,10 @@
     <string name="pref_automix_indicator_title">Hiển thị chỉ báo tự động hòa âm</string>
     <string name="pref_automix_indicator_desc">Hiển thị đếm ngược và huy hiệu trên trình phát khi tự động hòa âm</string>
     <string name="pref_bottom_menu_title">Thanh điều hướng</string>
+    <string name="pref_explorer_grid_title">Chế độ lưới khám phá</string>
+    <string name="pref_explorer_grid_subtitle">Hiển thị danh mục khám phá dưới dạng ô vuông thành 2 cột</string>
+    <string name="pref_playlist_grid_title">Chế độ lưới danh sách phát</string>
+    <string name="pref_playlist_grid_subtitle">Hiển thị các bài hát trong danh sách phát và tệp cục bộ thành 2 cột</string>
     <string name="pref_bottom_menu_subtitle">Tùy chỉnh thanh dưới cùng và nút nổi (FAB)</string>
     <string name="pref_bottom_menu_style">Kiểu thanh menu</string>
     <string name="pref_bottom_menu_style_modern">Hiện đại</string>
@@ -2555,4 +2559,30 @@
     <string name="dj_flow_mixing_now">Đang trộn</string>
     <string name="dj_flow_mix_now">Trộn ngay</string>
     <string name="dj_flow_empty_queue">Thêm bài hát vào hàng đợi để DJ có thể tính trước.</string>
+
+    <string name="pref_haptics_contrast">Độ tương phản</string>
+    <string name="pref_haptics_contrast_sub">Mức độ rung theo độ tương phản thay vì âm lượng. Mức cao hơn giúp giữ phần dựng bài nhẹ nhàng để phần drop bùng nổ hơn.</string>
+    <string name="pref_haptics_contrast_off">Tắt</string>
+    <string name="pref_haptics_contrast_full">Tối đa</string>
+
+    <!-- App Logs & Diagnostics -->
+    <string name="logs_title">Nhật ký ứng dụng &amp; Chẩn đoán</string>
+    <string name="logs_subtitle">Xem, sao chép hoặc chia sẻ nhật ký để hỗ trợ khắc phục sự cố</string>
+    <string name="logs_copy_all">Sao chép tất cả</string>
+    <string name="logs_copy_summary">Sao chép chẩn đoán</string>
+    <string name="logs_copy_logcat">Sao chép Logcat</string>
+    <string name="logs_share">Chia sẻ nhật ký</string>
+    <string name="logs_copied_toast">Đã sao chép nhật ký vào khay nhớ tạm!</string>
+    <string name="logs_tab_diagnostics">Chẩn đoán</string>
+    <string name="logs_tab_logcat">Logcat</string>
+    <string name="logs_tab_crash">Báo cáo sự cố</string>
+    <string name="logs_no_crash">Không có sự cố nào được ghi nhận. Ứng dụng đang hoạt động ổn định!</string>
+    <string name="logs_clear_crash">Xóa nhật ký sự cố</string>
+    <string name="logs_search_hint">Lọc nhật ký (ví dụ: error, exoplayer)&#8230;</string>
+    <string name="logs_sec_device">Thiết bị &amp; Hệ thống</string>
+    <string name="logs_sec_app">Ứng dụng</string>
+    <string name="logs_sec_memory">Bộ nhớ &amp; Lưu trữ</string>
+    <string name="logs_sec_playback">Phát lại &amp; Âm thanh</string>
+    <string name="logs_sec_network">Mạng &amp; Nhà cung cấp</string>
+    <string name="logs_refresh">Làm mới</string>
 </resources>

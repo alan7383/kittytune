@@ -1312,6 +1312,10 @@
     <string name="pref_bottom_menu_fab_stats">Statisztikák</string>
     <string name="pref_bottom_menu_fab_playlist">Lejátszási lista</string>
     <string name="pref_bottom_menu_title">Navigációs sáv</string>
+    <string name="pref_explorer_grid_title">Felfedező rács nézet</string>
+    <string name="pref_explorer_grid_subtitle">Felfedező kategóriák megjelenítése 2 oszlopos négyzetes csempékben</string>
+    <string name="pref_playlist_grid_title">Lejátszási lista rács nézet</string>
+    <string name="pref_playlist_grid_subtitle">Számok megjelenítése a lejátszási listákban és helyi fájlokban 2 oszlopban</string>
     <string name="pref_bottom_menu_subtitle">Alsó sáv és FAB testreszabása</string>
     <string name="pref_bottom_menu_style">Menü stílusa</string>
     <string name="pref_bottom_menu_style_modern">Modern</string>
@@ -2583,4 +2587,30 @@
     <string name="dj_flow_mixing_now">Keverés folyamatban</string>
     <string name="dj_flow_mix_now">Keverés most</string>
     <string name="dj_flow_empty_queue">Adj hozzá számokat a lejátszási listához, hogy a DJ előre tudjon tervezni.</string>
+
+    <string name="pref_haptics_contrast">Hatás</string>
+    <string name="pref_haptics_contrast_sub">A rezgés mennyire követi a kontrasztot a hangerő helyett. A magasabb szint könnyedén tartja a felépítéseket, így a drop jobban érvényesül.</string>
+    <string name="pref_haptics_contrast_off">Ki</string>
+    <string name="pref_haptics_contrast_full">Teljes</string>
+
+    <!-- App Logs & Diagnostics -->
+    <string name="logs_title">Alkalmazásnaplók és diagnosztika</string>
+    <string name="logs_subtitle">Naplók megtekintése, másolása vagy megosztása a hibák elhárításához</string>
+    <string name="logs_copy_all">Összes másolása</string>
+    <string name="logs_copy_summary">Diagnosztika másolása</string>
+    <string name="logs_copy_logcat">Logcat másolása</string>
+    <string name="logs_share">Naplók megosztása</string>
+    <string name="logs_copied_toast">Naplók a vágólapra másolva!</string>
+    <string name="logs_tab_diagnostics">Diagnosztika</string>
+    <string name="logs_tab_logcat">Logcat</string>
+    <string name="logs_tab_crash">Összeomlási jelentés</string>
+    <string name="logs_no_crash">Nincs rögzített összeomlás. Az alkalmazás zökkenőmentesen fut!</string>
+    <string name="logs_clear_crash">Összeomlási napló törlése</string>
+    <string name="logs_search_hint">Naplók szűrése (pl. error, exoplayer)&#8230;</string>
+    <string name="logs_sec_device">Eszköz és rendszer</string>
+    <string name="logs_sec_app">Alkalmazás</string>
+    <string name="logs_sec_memory">Memória és tárhely</string>
+    <string name="logs_sec_playback">Lejátszás és hang</string>
+    <string name="logs_sec_network">Hálózat és szolgáltatók</string>
+    <string name="logs_refresh">Frissítés</string>
 </resources>

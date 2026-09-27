@@ -126,6 +126,8 @@ fun AppearanceSettingsScreen(
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
+    var explorerGridLayout by remember { mutableStateOf(prefs.getExplorerGridLayout()) }
+    var playlistGridLayout by remember { mutableStateOf(prefs.getPlaylistGridLayout()) }
 
     var showPlayerStyleDialog by remember { mutableStateOf(false) }
     var showFontConfigDialog by remember { mutableStateOf(false) }
@@ -509,6 +511,32 @@ fun AppearanceSettingsScreen(
                                     TrackRemovalMethod.MENU_ONLY -> stringResource(R.string.track_removal_menu_only)
                                 },
                                 onClick = { showTrackRemovalDialog = true }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_explorer_grid_title),
+                                subtitle = stringResource(R.string.pref_explorer_grid_subtitle),
+                                hasSwitch = true,
+                                switchState = explorerGridLayout,
+                                onSwitchChange = {
+                                    explorerGridLayout = it
+                                    prefs.setExplorerGridLayout(it)
+                                }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_playlist_grid_title),
+                                subtitle = stringResource(R.string.pref_playlist_grid_subtitle),
+                                hasSwitch = true,
+                                switchState = playlistGridLayout,
+                                onSwitchChange = {
+                                    playlistGridLayout = it
+                                    prefs.setPlaylistGridLayout(it)
+                                }
                             )
                         }
                     )

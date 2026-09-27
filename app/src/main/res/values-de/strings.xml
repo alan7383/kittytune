@@ -1665,6 +1665,10 @@
     <string name="pref_automix_indicator_desc">Blendet den Countdown und das \'Automixing\'-Badge auf dem Player ein</string>
 
     <string name="pref_bottom_menu_title">Navigationsleiste</string>
+    <string name="pref_explorer_grid_title">Entdecker-Rasteransicht</string>
+    <string name="pref_explorer_grid_subtitle">Entdecker-Kategorien als quadratische Kacheln in 2 Spalten anzeigen</string>
+    <string name="pref_playlist_grid_title">Playlist-Rasteransicht</string>
+    <string name="pref_playlist_grid_subtitle">Titel in Playlists und lokalen Dateien in 2 Spalten anzeigen</string>
     <string name="pref_bottom_menu_subtitle">Untere Leiste und FAB anpassen</string>
     <string name="pref_bottom_menu_style">Menüstil</string>
     <string name="pref_bottom_menu_style_modern">Modern</string>
@@ -2701,4 +2705,25 @@
     <string name="pref_haptics_contrast_sub">Wie stark die Vibration dem Kontrast statt der Lautstärke folgt. Höher hält Build-ups leicht, damit der Drop einschlägt.</string>
     <string name="pref_haptics_contrast_off">Aus</string>
     <string name="pref_haptics_contrast_full">Voll</string>
+
+    <!-- App Logs & Diagnostics -->
+    <string name="logs_title">App-Protokolle &amp; Diagnose</string>
+    <string name="logs_subtitle">Protokolle anzeigen, kopieren oder teilen, um Probleme zu beheben</string>
+    <string name="logs_copy_all">Alles kopieren</string>
+    <string name="logs_copy_summary">Diagnose kopieren</string>
+    <string name="logs_copy_logcat">Logcat kopieren</string>
+    <string name="logs_share">Protokolle teilen</string>
+    <string name="logs_copied_toast">Protokolle in Zwischenablage kopiert!</string>
+    <string name="logs_tab_diagnostics">Diagnose</string>
+    <string name="logs_tab_logcat">Logcat</string>
+    <string name="logs_tab_crash">Absturzbericht</string>
+    <string name="logs_no_crash">Kein Absturz aufgezeichnet. Die App läuft einwandfrei!</string>
+    <string name="logs_clear_crash">Absturzprotokoll löschen</string>
+    <string name="logs_search_hint">Protokolle filtern (z. B. error, exoplayer)&#8230;</string>
+    <string name="logs_sec_device">Gerät &amp; System</string>
+    <string name="logs_sec_app">Anwendung</string>
+    <string name="logs_sec_memory">Speicher &amp; RAM</string>
+    <string name="logs_sec_playback">Wiedergabe &amp; Audio</string>
+    <string name="logs_sec_network">Netzwerk &amp; Anbieter</string>
+    <string name="logs_refresh">Aktualisieren</string>
 </resources>

@@ -58,6 +58,7 @@ fun AboutScreen(
     val appVersion = AppUtils.getAppVersion(context)
     val scope = rememberCoroutineScope()
     var tapCount by remember { mutableIntStateOf(0) }
+    var showLogsSheet by remember { mutableStateOf(false) }
 
     val updateStatus by UpdateManager.status.collectAsState()
     val isUpdateDownloaded by UpdateManager.isDownloaded.collectAsState()
@@ -320,6 +321,15 @@ fun AboutScreen(
                         { shape ->
                             SettingsItem(
                                 shape = shape,
+                                icon = Icons.Rounded.Info,
+                                title = stringResource(R.string.logs_title),
+                                subtitle = stringResource(R.string.logs_subtitle),
+                                onClick = { showLogsSheet = true }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
                                 icon = Icons.AutoMirrored.Rounded.OpenInNew,
                                 title = stringResource(R.string.about_licenses),
                                 onClick = onLicensesClick
@@ -393,6 +403,12 @@ fun AboutScreen(
                 Spacer(Modifier.height(32.dp))
             }
         }
+    }
+
+    if (showLogsSheet) {
+        AppLogsSheet(
+            onDismissRequest = { showLogsSheet = false }
+        )
     }
 }
 

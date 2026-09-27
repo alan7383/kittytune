@@ -1310,6 +1310,10 @@
     <string name="pref_crossfade_title">Плавный переход</string>
     <string name="pref_crossfade_sub">Плавный переход между треками без пауз</string>
     <string name="pref_bottom_menu_title">Панель навигации</string>
+    <string name="pref_explorer_grid_title">Сетка проводника</string>
+    <string name="pref_explorer_grid_subtitle">Отображать жанры плитками по 2 в ряд</string>
+    <string name="pref_playlist_grid_title">Сетка треков в плейлистах</string>
+    <string name="pref_playlist_grid_subtitle">Отображать треки в плейлистах и локальных файлах по 2 в ряд</string>
     <string name="pref_bottom_menu_subtitle">Настройка нижней панели и FAB</string>
     <string name="pref_bottom_menu_style">Стиль меню</string>
     <string name="pref_bottom_menu_style_modern">Модерн</string>
@@ -2576,4 +2580,30 @@
     <string name="dj_flow_mixing_now">Сведение</string>
     <string name="dj_flow_mix_now">Свести сейчас</string>
     <string name="dj_flow_empty_queue">Добавь треки в очередь, чтобы DJ мог всё спланировать.</string>
+
+    <string name="pref_haptics_contrast">Воздействие</string>
+    <string name="pref_haptics_contrast_sub">Насколько вибрация следует за контрастом, а не за громкостью. Более высокое значение сохраняет нарастания лёгкими, чтобы дроп чувствовался ярче.</string>
+    <string name="pref_haptics_contrast_off">Выкл.</string>
+    <string name="pref_haptics_contrast_full">Максимум</string>
+
+    <!-- App Logs & Diagnostics -->
+    <string name="logs_title">Логи и диагностика</string>
+    <string name="logs_subtitle">Просмотр, копирование и отправка логов для исправления ошибок</string>
+    <string name="logs_copy_all">Скопировать всё</string>
+    <string name="logs_copy_summary">Скопировать сводку</string>
+    <string name="logs_copy_logcat">Скопировать логкат</string>
+    <string name="logs_share">Поделиться</string>
+    <string name="logs_copied_toast">Логи скопированы в буфер обмена!</string>
+    <string name="logs_tab_diagnostics">Диагностика</string>
+    <string name="logs_tab_logcat">Логкат</string>
+    <string name="logs_tab_crash">Отчет о сбое</string>
+    <string name="logs_no_crash">Сбоев не зафиксировано. Приложение работает стабильно!</string>
+    <string name="logs_clear_crash">Очистить отчет</string>
+    <string name="logs_search_hint">Поиск по логам (например, error, exoplayer)&#8230;</string>
+    <string name="logs_sec_device">Устройство и система</string>
+    <string name="logs_sec_app">Приложение</string>
+    <string name="logs_sec_memory">Память и хранилище</string>
+    <string name="logs_sec_playback">Воспроизведение и звук</string>
+    <string name="logs_sec_network">Сеть и источники</string>
+    <string name="logs_refresh">Обновить</string>
 </resources>

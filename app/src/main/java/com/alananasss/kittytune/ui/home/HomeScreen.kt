@@ -1723,10 +1723,21 @@ fun SearchCategoriesGrid(
 @Composable
 fun SearchCategoryCard(
     category: SearchCategory,
+    isSquare: Boolean = false,
     onClick: () -> Unit
 ) {
     val containerColor = MaterialTheme.colorScheme.secondaryContainer
     val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+
+    val cardModifier = if (isSquare) {
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .height(110.dp)
+    }
 
     Card(
         onClick = onClick,
@@ -1735,9 +1746,7 @@ fun SearchCategoryCard(
             containerColor = containerColor,
             contentColor = contentColor
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp)
+        modifier = cardModifier
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Icon(

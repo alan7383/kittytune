@@ -269,6 +269,8 @@ class PlayerPreferences(context: Context) {
         const val KEY_DEEZER_PROXY_URL = "deezer_proxy_url"
         const val KEY_DEEZER_COOKIE = "deezer_cookie"
         const val KEY_DEEZER_USE_ACCOUNT = "deezer_use_account"
+        const val KEY_PLAYLIST_GRID_LAYOUT = "playlist_grid_layout"
+        const val KEY_EXPLORER_GRID_LAYOUT = "explorer_grid_layout"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -293,6 +295,12 @@ class PlayerPreferences(context: Context) {
 
     fun getCrossfadeEnabled(): Boolean = prefs.getBoolean(KEY_CROSSFADE_ENABLED, false)
     fun setCrossfadeEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CROSSFADE_ENABLED, enabled) }
+
+    fun getPlaylistGridLayout(): Boolean = prefs.getBoolean(KEY_PLAYLIST_GRID_LAYOUT, false)
+    fun setPlaylistGridLayout(enabled: Boolean) = prefs.edit { putBoolean(KEY_PLAYLIST_GRID_LAYOUT, enabled) }
+
+    fun getExplorerGridLayout(): Boolean = prefs.getBoolean(KEY_EXPLORER_GRID_LAYOUT, true)
+    fun setExplorerGridLayout(enabled: Boolean) = prefs.edit { putBoolean(KEY_EXPLORER_GRID_LAYOUT, enabled) }
 
     fun getCrossfadeDuration(): Int = prefs.getInt(KEY_CROSSFADE_DURATION, 5)
     fun setCrossfadeDuration(seconds: Int) = prefs.edit { putInt(KEY_CROSSFADE_DURATION, seconds.coerceIn(1, 12)) }

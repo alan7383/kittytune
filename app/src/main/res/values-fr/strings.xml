@@ -1541,6 +1541,10 @@
     <string name="nav_search">Rechercher</string>
 
     <string name="pref_bottom_menu_title">Barre de navigation</string>
+    <string name="pref_explorer_grid_title">Grille de l\'explorateur</string>
+    <string name="pref_explorer_grid_subtitle">Afficher les catégories sous forme de tuiles carrées sur 2 colonnes</string>
+    <string name="pref_playlist_grid_title">Grille des playlists</string>
+    <string name="pref_playlist_grid_subtitle">Afficher les morceaux des playlists et fichiers locaux en grille sur 2 colonnes</string>
     <string name="pref_bottom_menu_subtitle">Personnaliser la barre du bas et le FAB</string>
     <string name="pref_bottom_menu_style">Style du menu</string>
     <string name="pref_bottom_menu_style_modern">Moderne</string>
@@ -2602,4 +2606,30 @@
     <string name="dj_flow_mixing_now">Mixage en cours</string>
     <string name="dj_flow_mix_now">Mixer maintenant</string>
     <string name="dj_flow_empty_queue">Ajoute des titres à la file pour que le DJ puisse anticiper.</string>
+
+    <string name="pref_haptics_contrast">Impact</string>
+    <string name="pref_haptics_contrast_sub">Mesure à laquelle la vibration suit le contraste plutôt que le volume sonore. Plus élevé garde les montées légères pour maximiser l\'impact du drop.</string>
+    <string name="pref_haptics_contrast_off">Désactivé</string>
+    <string name="pref_haptics_contrast_full">Complet</string>
+
+    <!-- App Logs & Diagnostics -->
+    <string name="logs_title">Journaux &amp; Diagnostics</string>
+    <string name="logs_subtitle">Consulter, copier ou partager les logs pour aider à résoudre les problèmes</string>
+    <string name="logs_copy_all">Tout copier</string>
+    <string name="logs_copy_summary">Copier le diagnostic</string>
+    <string name="logs_copy_logcat">Copier le logcat</string>
+    <string name="logs_share">Partager</string>
+    <string name="logs_copied_toast">Journaux copiés dans le presse-papiers !</string>
+    <string name="logs_tab_diagnostics">Diagnostics</string>
+    <string name="logs_tab_logcat">Logcat</string>
+    <string name="logs_tab_crash">Rapport de crash</string>
+    <string name="logs_no_crash">Aucun crash enregistré. L\'application fonctionne normalement !</string>
+    <string name="logs_clear_crash">Effacer le rapport</string>
+    <string name="logs_search_hint">Filtrer les logs (ex : error, exoplayer)&#8230;</string>
+    <string name="logs_sec_device">Appareil &amp; Système</string>
+    <string name="logs_sec_app">Application</string>
+    <string name="logs_sec_memory">Mémoire &amp; Stockage</string>
+    <string name="logs_sec_playback">Lecture &amp; Moteur audio</string>
+    <string name="logs_sec_network">Réseau &amp; Fournisseurs</string>
+    <string name="logs_refresh">Actualiser</string>
 </resources>
