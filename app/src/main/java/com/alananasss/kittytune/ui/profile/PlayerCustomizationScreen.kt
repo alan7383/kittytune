@@ -1,46 +1,104 @@
 package com.alananasss.kittytune.ui.profile
 
+import android.graphics.Color as AndroidColor
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.LinearScale
 import androidx.compose.material.icons.rounded.Smartphone
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.MusicManager
+import com.alananasss.kittytune.data.WaveformRepository
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.data.local.PlayerDesign
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.PlayerProgressMode
+import com.alananasss.kittytune.data.local.PlayerSliderStyle
 import com.alananasss.kittytune.data.local.WaveformColorMode
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.common.Slider
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.slider.SliderStyleDialog
+import com.alananasss.kittytune.ui.theme.ThemeState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextFieldDefaults
 
 /**
  * Player customisation, as one page with every section visible.
@@ -71,11 +129,16 @@ fun PlayerCustomizationScreen(
     }
     var sliderStyle by remember { mutableStateOf(prefs.getPlayerSliderStyle()) }
     var waveformColorMode by remember { mutableStateOf(prefs.getWaveformColorMode()) }
+    var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
+    var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
+    var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var commentsPopup by remember { mutableStateOf(prefs.getWaveformCommentsPopupEnabled()) }
     var reactionsBar by remember { mutableStateOf(prefs.getSoundCloudReactionsBarEnabled()) }
     var parallax by remember { mutableStateOf(prefs.getSoundCloudParallaxEnabled()) }
     var selectedSlotToEdit by remember { mutableStateOf(-1) }
     var showSliderStyleDialog by remember { mutableStateOf(false) }
+    var showWaveformColorDialog by remember { mutableStateOf(false) }
+    var waveformCustomColor by remember { mutableIntStateOf(prefs.getWaveformCustomColor()) }
 
     val slotCount = if (currentDesign == PlayerDesign.SOUNDCLOUD) 5 else 4
     var slots by remember(currentDesign) {
@@ -171,62 +234,119 @@ fun PlayerCustomizationScreen(
             // 3. What it looks like
             item {
                 SettingsGroupTitle(stringResource(R.string.player_visual_options_group))
+                // Built as a list first so every row gets the right shape: the first and last of a
+                // group round their outer corners, the ones between do not, and the count changes
+                // with the design and with whether the fade-UI row is showing.
+                val rows = buildList<@Composable (Shape) -> Unit> {
+                    add { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.pref_slider_style),
+                            subtitle = sliderStyleLabel(sliderStyle),
+                            onClick = { showSliderStyleDialog = true }
+                        )
+                    }
+                    add { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.pref_animated_covers),
+                            subtitle = stringResource(R.string.pref_animated_covers_desc),
+                            hasSwitch = true,
+                            switchState = animatedCovers,
+                            onSwitchChange = {
+                                animatedCovers = it
+                                prefs.setAnimatedCoversEnabled(it)
+                            }
+                        )
+                    }
+                    if (animatedCovers) {
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_animated_covers_fade_ui),
+                                subtitle = stringResource(R.string.pref_animated_covers_fade_ui_desc),
+                                hasSwitch = true,
+                                switchState = animatedCoversFadeUi,
+                                onSwitchChange = {
+                                    animatedCoversFadeUi = it
+                                    prefs.setAnimatedCoversFadeUiEnabled(it)
+                                }
+                            )
+                        }
+                    }
+                    add { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.pref_animated_artist_profiles),
+                            subtitle = stringResource(R.string.pref_animated_artist_profiles_desc),
+                            hasSwitch = true,
+                            switchState = animatedArtistProfiles,
+                            onSwitchChange = {
+                                animatedArtistProfiles = it
+                                prefs.setAnimatedArtistProfilesEnabled(it)
+                            }
+                        )
+                    }
+                    if (currentDesign == PlayerDesign.SOUNDCLOUD) {
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_waveform_color_title),
+                                subtitle = when (waveformColorMode) {
+                                    WaveformColorMode.SOUNDCLOUD -> stringResource(R.string.waveform_color_soundcloud)
+                                    WaveformColorMode.COVER_ART -> stringResource(R.string.waveform_color_cover_art)
+                                    WaveformColorMode.APP_THEME -> stringResource(R.string.waveform_color_app_theme)
+                                    WaveformColorMode.CUSTOM -> stringResource(R.string.waveform_color_custom)
+                                },
+                                onClick = { showWaveformColorDialog = true }
+                            )
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.player_opt_comment_bubbles_title),
+                                subtitle = stringResource(R.string.player_opt_comment_bubbles_subtitle),
+                                hasSwitch = true,
+                                switchState = commentsPopup,
+                                onSwitchChange = {
+                                    commentsPopup = it
+                                    prefs.setWaveformCommentsPopupEnabled(it)
+                                }
+                            )
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.player_opt_reactions_bar_title),
+                                subtitle = stringResource(R.string.player_opt_reactions_bar_subtitle),
+                                hasSwitch = true,
+                                switchState = reactionsBar,
+                                onSwitchChange = {
+                                    reactionsBar = it
+                                    prefs.setSoundCloudReactionsBarEnabled(it)
+                                }
+                            )
+                        }
+                        add { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.player_opt_parallax_title),
+                                subtitle = stringResource(R.string.player_opt_parallax_subtitle),
+                                hasSwitch = true,
+                                switchState = parallax,
+                                onSwitchChange = {
+                                    parallax = it
+                                    prefs.setSoundCloudParallaxEnabled(it)
+                                }
+                            )
+                        }
+                    }
+                }
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    SettingsItem(
-                        shape = getSettingsShape(displayOptionCount(currentDesign), 0),
-                        title = stringResource(R.string.pref_slider_style),
-                        subtitle = sliderStyleLabel(sliderStyle),
-                        onClick = { showSliderStyleDialog = true }
-                    )
-                    if (currentDesign == PlayerDesign.SOUNDCLOUD) {
-                        SettingsItem(
-                            shape = getSettingsShape(displayOptionCount(currentDesign), 1),
-                            title = stringResource(R.string.pref_waveform_color_title),
-                            subtitle = when (waveformColorMode) {
-                                WaveformColorMode.SOUNDCLOUD -> stringResource(R.string.waveform_color_soundcloud)
-                                WaveformColorMode.COVER_ART -> stringResource(R.string.waveform_color_cover_art)
-                                WaveformColorMode.APP_THEME -> stringResource(R.string.waveform_color_app_theme)
-                                WaveformColorMode.CUSTOM -> stringResource(R.string.waveform_color_custom)
-                            },
-                            onClick = { onUpdated() }
-                        )
-                        SettingsItem(
-                            shape = getSettingsShape(displayOptionCount(currentDesign), 2),
-                            title = stringResource(R.string.player_opt_comment_bubbles_title),
-                            subtitle = stringResource(R.string.player_opt_comment_bubbles_subtitle),
-                            hasSwitch = true,
-                            switchState = commentsPopup,
-                            onSwitchChange = {
-                                commentsPopup = it
-                                prefs.setWaveformCommentsPopupEnabled(it)
-                            }
-                        )
-                        SettingsItem(
-                            shape = getSettingsShape(displayOptionCount(currentDesign), 3),
-                            title = stringResource(R.string.player_opt_reactions_bar_title),
-                            subtitle = stringResource(R.string.player_opt_reactions_bar_subtitle),
-                            hasSwitch = true,
-                            switchState = reactionsBar,
-                            onSwitchChange = {
-                                reactionsBar = it
-                                prefs.setSoundCloudReactionsBarEnabled(it)
-                            }
-                        )
-                        SettingsItem(
-                            shape = getSettingsShape(displayOptionCount(currentDesign), 4),
-                            title = stringResource(R.string.player_opt_parallax_title),
-                            subtitle = stringResource(R.string.player_opt_parallax_subtitle),
-                            hasSwitch = true,
-                            switchState = parallax,
-                            onSwitchChange = {
-                                parallax = it
-                                prefs.setSoundCloudParallaxEnabled(it)
-                            }
-                        )
-                    }
+                    rows.forEachIndexed { index, row -> row(getSettingsShape(rows.size, index)) }
                 }
             }
 
@@ -261,6 +381,26 @@ fun PlayerCustomizationScreen(
                 }
             }
         }
+    }
+
+    if (showWaveformColorDialog) {
+        WaveformColorDialog(
+            currentMode = waveformColorMode,
+            currentColor = waveformCustomColor,
+            onModeSelected = { mode ->
+                waveformColorMode = mode
+                prefs.setWaveformColorMode(mode)
+                onUpdated()
+            },
+            onColorSelected = { color ->
+                waveformCustomColor = color
+                prefs.setWaveformCustomColor(color)
+                waveformColorMode = WaveformColorMode.CUSTOM
+                prefs.setWaveformColorMode(WaveformColorMode.CUSTOM)
+                onUpdated()
+            },
+            onDismiss = { showWaveformColorDialog = false }
+        )
     }
 
     if (showSliderStyleDialog) {
@@ -319,9 +459,6 @@ fun PlayerCustomizationScreen(
         )
     }
 }
-
-/** How many rows "display & visual effects" holds, so the last one's shape matches its neighbours. */
-private fun displayOptionCount(design: PlayerDesign): Int = if (design == PlayerDesign.SOUNDCLOUD) 5 else 1
 
 @Composable
 private fun sliderStyleLabel(style: com.alananasss.kittytune.data.local.PlayerSliderStyle): String = when (style) {

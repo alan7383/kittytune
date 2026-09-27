@@ -115,7 +115,6 @@ fun AppearanceSettingsScreen(
     var pureBlack by remember { mutableStateOf(prefs.getPureBlack()) }
     var playerStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
     var playerDesign by remember { mutableStateOf(prefs.getPlayerDesign()) }
-    var showPlayerDesignDialog by remember { mutableStateOf(false) }
     var waveformComments by remember { mutableStateOf(prefs.getWaveformCommentsEnabled()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
     var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
@@ -129,35 +128,10 @@ fun AppearanceSettingsScreen(
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
 
     var showPlayerStyleDialog by remember { mutableStateOf(false) }
-    var showSliderStyleDialog by remember { mutableStateOf(false) }
     var showFontConfigDialog by remember { mutableStateOf(false) }
-    var showPlayerCustomizationBottomSheet by remember { mutableStateOf(false) }
     var showTrackRemovalDialog by remember { mutableStateOf(false) }
 
     val isPureBlackVisible = themeMode == AppThemeMode.DARK || (themeMode == AppThemeMode.SYSTEM && isSystemDark)
-
-    if (showPlayerCustomizationBottomSheet) {
-        PlayerCustomizationBottomSheet(
-            prefs = prefs,
-            onDismiss = { showPlayerCustomizationBottomSheet = false },
-            onUpdated = {
-                playerProgressMode = prefs.getPlayerProgressMode()
-                waveformComments = prefs.getWaveformCommentsEnabled()
-                sliderStyle = prefs.getPlayerSliderStyle()
-            }
-        )
-    }
-
-    if (showSliderStyleDialog) {
-        SliderStyleDialog(
-            currentStyle = sliderStyle,
-            onStyleSelected = {
-                sliderStyle = it
-                prefs.setPlayerSliderStyle(it)
-            },
-            onDismiss = { showSliderStyleDialog = false }
-        )
-    }
 
     if (showPlayerStyleDialog) {
         AlertDialog(
@@ -191,62 +165,6 @@ fun AppearanceSettingsScreen(
                 TextButton(onClick = {
                     showPlayerStyleDialog = false
                 }) { Text(stringResource(R.string.btn_cancel)) }
-            }
-        )
-    }
-
-    if (showPlayerDesignDialog) {
-        AlertDialog(
-            onDismissRequest = { showPlayerDesignDialog = false },
-            title = { Text(stringResource(R.string.pref_player_design)) },
-            text = {
-                Column {
-                    PlayerDesignRadioButton(
-                        title = stringResource(R.string.player_design_pixel),
-                        description = stringResource(R.string.player_design_pixel_desc),
-                        design = PlayerDesign.PIXEL_PLAYER,
-                        selected = playerDesign
-                    ) {
-                        playerDesign = it
-                        prefs.setPlayerDesign(it)
-                        showPlayerDesignDialog = false
-                    }
-                    PlayerDesignRadioButton(
-                        title = stringResource(R.string.player_design_soundcloud),
-                        description = stringResource(R.string.player_design_soundcloud_desc),
-                        design = PlayerDesign.SOUNDCLOUD,
-                        selected = playerDesign
-                    ) {
-                        playerDesign = it
-                        prefs.setPlayerDesign(it)
-                        showPlayerDesignDialog = false
-                    }
-                    PlayerDesignRadioButton(
-                        title = stringResource(R.string.player_design_modern),
-                        description = stringResource(R.string.player_design_modern_desc),
-                        design = PlayerDesign.MODERN,
-                        selected = playerDesign
-                    ) {
-                        playerDesign = it
-                        prefs.setPlayerDesign(it)
-                        showPlayerDesignDialog = false
-                    }
-                    PlayerDesignRadioButton(
-                        title = stringResource(R.string.player_design_classic),
-                        description = stringResource(R.string.player_design_classic_desc),
-                        design = PlayerDesign.CLASSIC,
-                        selected = playerDesign
-                    ) {
-                        playerDesign = it
-                        prefs.setPlayerDesign(it)
-                        showPlayerDesignDialog = false
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showPlayerDesignDialog = false }) {
-                    Text(stringResource(R.string.btn_cancel))
-                }
             }
         )
     }
@@ -604,35 +522,6 @@ fun AppearanceSettingsScreen(
                         add { shape ->
                             SettingsItem(
                                 shape = shape,
-                                title = stringResource(R.string.pref_player_design),
-                                subtitle = when (playerDesign) {
-                                    PlayerDesign.PIXEL_PLAYER -> stringResource(R.string.player_design_pixel)
-                                    PlayerDesign.SOUNDCLOUD -> stringResource(R.string.player_design_soundcloud)
-                                    PlayerDesign.MODERN -> stringResource(R.string.player_design_modern)
-                                    PlayerDesign.CLASSIC -> stringResource(R.string.player_design_classic)
-                                },
-                                onClick = { showPlayerDesignDialog = true }
-                            )
-                        }
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.player_style_customization_title),
-                                subtitle = when (playerDesign) {
-                                    PlayerDesign.PIXEL_PLAYER -> stringResource(R.string.player_action_bar_pixel_desc)
-                                    PlayerDesign.SOUNDCLOUD -> stringResource(R.string.player_design_soundcloud_desc)
-                                    PlayerDesign.MODERN -> when (playerProgressMode) {
-                                        PlayerProgressMode.HYBRID_WAVEFORM -> stringResource(R.string.player_style_hybrid_desc)
-                                        else -> stringResource(R.string.player_style_classic_desc)
-                                    }
-                                    PlayerDesign.CLASSIC -> stringResource(R.string.player_style_classic_desc)
-                                },
-                                onClick = { onNavigateToPlayerCustomization() }
-                            )
-                        }
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
                                 title = stringResource(R.string.pref_player_bg_style),
                                 subtitle = when (playerStyle) {
                                     PlayerBackgroundStyle.THEME -> stringResource(R.string.style_theme)
@@ -653,47 +542,6 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     lyricsUnderCover = it
                                     prefs.setLyricsUnderCoverEnabled(it)
-                                }
-                            )
-                        }
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_animated_covers),
-                                subtitle = stringResource(R.string.pref_animated_covers_desc),
-                                hasSwitch = true,
-                                switchState = animatedCovers,
-                                onSwitchChange = {
-                                    animatedCovers = it
-                                    prefs.setAnimatedCoversEnabled(it)
-                                }
-                            )
-                        }
-                        if (animatedCovers) {
-                            add { shape ->
-                                SettingsItem(
-                                    shape = shape,
-                                    title = stringResource(R.string.pref_animated_covers_fade_ui),
-                                    subtitle = stringResource(R.string.pref_animated_covers_fade_ui_desc),
-                                    hasSwitch = true,
-                                    switchState = animatedCoversFadeUi,
-                                    onSwitchChange = {
-                                        animatedCoversFadeUi = it
-                                        prefs.setAnimatedCoversFadeUiEnabled(it)
-                                    }
-                                )
-                            }
-                        }
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_animated_artist_profiles),
-                                subtitle = stringResource(R.string.pref_animated_artist_profiles_desc),
-                                hasSwitch = true,
-                                switchState = animatedArtistProfiles,
-                                onSwitchChange = {
-                                    animatedArtistProfiles = it
-                                    prefs.setAnimatedArtistProfilesEnabled(it)
                                 }
                             )
                         }
@@ -797,34 +645,6 @@ private fun ThemeOption(
             style = MaterialTheme.typography.labelMedium,
             color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-fun PlayerDesignRadioButton(
-    title: String,
-    description: String,
-    design: PlayerDesign,
-    selected: PlayerDesign,
-    onSelect: (PlayerDesign) -> Unit
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable { onSelect(design) }
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(selected = (design == selected), onClick = null)
-        Spacer(Modifier.width(12.dp))
-        Column {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
     }
 }
 
@@ -934,609 +754,353 @@ fun getSlotIcon(slot: PlayerActionButtonSlot): ImageVector {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun PlayerCustomizationBottomSheet(
-    prefs: PlayerPreferences,
-    onDismiss: () -> Unit,
-    onUpdated: () -> Unit
+private fun MiniWaveformPreview(
+    mode: WaveformColorMode,
+    customColor: Int,
+    modifier: Modifier = Modifier
 ) {
-    var currentDesign by remember { mutableStateOf(prefs.getPlayerDesign()) }
-    var modernProgressMode by remember {
-        mutableStateOf(
-            if (prefs.getPlayerProgressMode() == PlayerProgressMode.SOUNDCLOUD)
-                PlayerProgressMode.CLASSIC_BAR
-            else
-                prefs.getPlayerProgressMode()
-        )
-    }
-    var sliderStyle by remember { mutableStateOf(prefs.getPlayerSliderStyle()) }
-    var commentsPopup by remember { mutableStateOf(prefs.getWaveformCommentsPopupEnabled()) }
-    var reactionsBar by remember { mutableStateOf(prefs.getSoundCloudReactionsBarEnabled()) }
-    var parallax by remember { mutableStateOf(prefs.getSoundCloudParallaxEnabled()) }
+    val context = LocalContext.current
+    val currentTrack = MusicManager.currentTrack
+    val trackId = currentTrack?.id
 
-    var waveformColorMode by remember { mutableStateOf(prefs.getWaveformColorMode()) }
-    var waveformCustomColor by remember { mutableIntStateOf(prefs.getWaveformCustomColor()) }
-    var showWaveformColorDialog by remember { mutableStateOf(false) }
-
-    var showSliderStyleDialog by remember { mutableStateOf(false) }
-
-    val slotCount = if (currentDesign == PlayerDesign.SOUNDCLOUD) 5 else 4
-
-    var slots by remember(currentDesign) {
-        mutableStateOf(List(slotCount) { i -> prefs.getSlotForDesign(currentDesign, i) })
+    var waveformSamples by remember(trackId) {
+        mutableStateOf(trackId?.let { WaveformRepository.getCachedWaveform(it) })
     }
 
-    var selectedSlotToEdit by remember { mutableStateOf<Int?>(null) }
-
-    var shareCardCodeMode by remember { mutableIntStateOf(prefs.getShareCardCodeMode()) }
-    var showShareCardCodeDialog by remember { mutableStateOf(false) }
-
-    if (showShareCardCodeDialog) {
-        val labels = listOf(
-            stringResource(R.string.share_card_code_auto) to stringResource(R.string.share_card_code_auto_desc),
-            stringResource(R.string.share_card_code_solid) to stringResource(R.string.share_card_code_solid_desc),
-            stringResource(R.string.share_card_code_halftone) to stringResource(R.string.share_card_code_halftone_desc),
-        )
-        AlertDialog(
-            onDismissRequest = { showShareCardCodeDialog = false },
-            title = { Text(stringResource(R.string.share_card_code_title)) },
-            text = {
-                Column {
-                    labels.forEachIndexed { index, (label, desc) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    shareCardCodeMode = index
-                                    prefs.setShareCardCodeMode(index)
-                                    showShareCardCodeDialog = false
-                                }
-                                .padding(vertical = 8.dp)
-                        ) {
-                            RadioButton(
-                                selected = shareCardCodeMode == index,
-                                onClick = {
-                                    shareCardCodeMode = index
-                                    prefs.setShareCardCodeMode(index)
-                                    showShareCardCodeDialog = false
-                                },
-                            )
-                            Column(modifier = Modifier.padding(start = 4.dp)) {
-                                Text(label, style = MaterialTheme.typography.bodyLarge)
-                                Text(
-                                    desc,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showShareCardCodeDialog = false },
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(stringResource(R.string.btn_cancel))
-                }
-            },
-        )
-    }
-
-    if (showWaveformColorDialog) {
-        WaveformColorDialog(
-            currentMode = waveformColorMode,
-            currentColor = waveformCustomColor,
-            onModeSelected = { mode ->
-                waveformColorMode = mode
-                prefs.setWaveformColorMode(mode)
-                onUpdated()
-            },
-            onColorSelected = { color ->
-                waveformCustomColor = color
-                prefs.setWaveformCustomColor(color)
-                waveformColorMode = WaveformColorMode.CUSTOM
-                prefs.setWaveformColorMode(WaveformColorMode.CUSTOM)
-                onUpdated()
-            },
-            onDismiss = { showWaveformColorDialog = false }
-        )
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-            )
+    LaunchedEffect(trackId) {
+        if (currentTrack != null && waveformSamples == null) {
+            val samples = withContext(Dispatchers.IO) {
+                WaveformRepository.getWaveform(context, currentTrack)
+            }
+            if (samples != null) {
+                waveformSamples = samples
+            }
         }
+    }
+
+    val fallbackBars = remember {
+        val rng = java.util.Random(13L)
+        FloatArray(200) { i ->
+            val base = (Math.sin(i * 0.08) * 0.3 + 0.55).toFloat()
+            val noise = (rng.nextFloat() - 0.5f) * 0.25f
+            (base + noise).coerceIn(0.08f, 0.95f)
+        }
+    }
+
+    val themePrimary = MaterialTheme.colorScheme.primary
+    val targetAccentColor = remember(mode, customColor, themePrimary, ThemeState.coverSeedColor) {
+        when (mode) {
+            WaveformColorMode.SOUNDCLOUD -> Color(0xFFFF5500)
+            WaveformColorMode.COVER_ART -> ThemeState.coverSeedColor?.let { Color(it) } ?: Color(0xFFE53935)
+            WaveformColorMode.APP_THEME -> themePrimary
+            WaveformColorMode.CUSTOM -> Color(customColor)
+        }
+    }
+    val accentColor by animateColorAsState(
+        targetValue = targetAccentColor,
+        animationSpec = tween(durationMillis = 300),
+        label = "miniWaveformAccentColor"
+    )
+    val inactiveBarColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+
+    var progressFrac by remember { mutableFloatStateOf(0.55f) }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 36.dp)
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.player_customization_title),
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = stringResource(R.string.player_customization_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                FilledTonalButton(
-                    onClick = {
-                        prefs.resetDesignCustomization(currentDesign)
-                        val newCount = if (currentDesign == PlayerDesign.SOUNDCLOUD) 5 else 4
-                        slots = List(newCount) { i -> prefs.getSlotForDesign(currentDesign, i) }
-                        commentsPopup = prefs.getWaveformCommentsPopupEnabled()
-                        reactionsBar = prefs.getSoundCloudReactionsBarEnabled()
-                        parallax = prefs.getSoundCloudParallaxEnabled()
-                        sliderStyle = prefs.getPlayerSliderStyle()
-                        modernProgressMode = prefs.getPlayerProgressMode()
-                        onUpdated()
-                    },
-                    shapes = ButtonDefaults.shapes()
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
                 ) {
-                    Icon(Icons.Rounded.RestartAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.btn_reset))
-                }
-            }
-
-            SettingsGroupTitle(stringResource(R.string.pref_player_design))
-
-            ExpressiveConnectedButtonGroup(
-                options = listOf(
-                    PlayerDesign.PIXEL_PLAYER,
-                    PlayerDesign.SOUNDCLOUD,
-                    PlayerDesign.MODERN,
-                    PlayerDesign.CLASSIC
-                ),
-                selectedOption = currentDesign,
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
-                onOptionSelected = {
-                    currentDesign = it
-                    prefs.setPlayerDesign(it)
-                    val newCount = if (it == PlayerDesign.SOUNDCLOUD) 5 else 4
-                    slots = List(newCount) { i -> prefs.getSlotForDesign(it, i) }
-                    sliderStyle = prefs.getPlayerSliderStyle()
-                    modernProgressMode = prefs.getPlayerProgressMode()
-                    onUpdated()
-                },
-                labelProvider = { option ->
-                    Text(
-                        text = when (option) {
-                            PlayerDesign.PIXEL_PLAYER -> stringResource(R.string.player_design_pixel)
-                            PlayerDesign.SOUNDCLOUD -> stringResource(R.string.player_design_soundcloud)
-                            PlayerDesign.MODERN -> stringResource(R.string.player_design_modern)
-                            PlayerDesign.CLASSIC -> stringResource(R.string.player_design_classic)
-                        },
-                        style = MaterialTheme.typography.labelMedium.copy(
+                    Icon(
+                        imageVector = Icons.Rounded.GraphicEq,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = accentColor
+                    )
+                    Column {
+                        Text(
+                            text = stringResource(R.string.waveform_preview_title),
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp
-                        ),
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                },
-                iconProvider = { option ->
-                    if (option == PlayerDesign.MODERN) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_kittytune_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                    } else {
-                        Icon(
-                            imageVector = when (option) {
-                                PlayerDesign.PIXEL_PLAYER -> Icons.Rounded.Smartphone
-                                PlayerDesign.SOUNDCLOUD -> Icons.Rounded.GraphicEq
-                                PlayerDesign.CLASSIC -> Icons.Rounded.LinearScale
-                                else -> Icons.Rounded.Waves
-                            },
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-            )
-
-            when (currentDesign) {
-                PlayerDesign.PIXEL_PLAYER -> {
-                    SettingsGroupTitle(stringResource(R.string.player_visual_options_group))
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        SettingsItem(
-                            shape = getSettingsShape(1, 0),
-                            title = stringResource(R.string.pref_slider_style),
-                            subtitle = when (sliderStyle) {
-                                PlayerSliderStyle.BAR -> stringResource(R.string.slider_style_bar)
-                                PlayerSliderStyle.WAVY -> stringResource(R.string.slider_style_wavy)
-                                PlayerSliderStyle.SLIM -> stringResource(R.string.slider_style_slim)
-                                PlayerSliderStyle.SQUIGGLY -> stringResource(R.string.slider_style_squiggly)
-                            },
-                            icon = Icons.Rounded.LinearScale,
-                            onClick = { showSliderStyleDialog = true }
-                        )
-                    }
-
-                    SettingsGroupTitle(stringResource(R.string.player_action_bar_pixel_title))
-
-                    Text(
-                        text = stringResource(R.string.player_action_bar_pixel_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-                    )
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        slots.forEachIndexed { index, slot ->
-                            SettingsItem(
-                                shape = getSettingsShape(slots.size, index),
-                                title = stringResource(R.string.player_slot_n, index + 1),
-                                subtitle = stringResource(slot.titleRes),
-                                icon = getSlotIcon(slot),
-                                trailingText = stringResource(R.string.player_slot_change),
-                                onClick = { selectedSlotToEdit = index }
-                            )
-                        }
-                    }
-                }
-
-                PlayerDesign.SOUNDCLOUD -> {
-                    SettingsGroupTitle(stringResource(R.string.player_visual_options_group))
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        SettingsItem(
-                            shape = getSettingsShape(4, 0),
-                            title = stringResource(R.string.pref_waveform_color_title),
-                            subtitle = when (waveformColorMode) {
-                                WaveformColorMode.SOUNDCLOUD -> stringResource(R.string.waveform_color_soundcloud)
-                                WaveformColorMode.COVER_ART -> stringResource(R.string.waveform_color_cover_art)
-                                WaveformColorMode.APP_THEME -> stringResource(R.string.waveform_color_app_theme)
-                                WaveformColorMode.CUSTOM -> stringResource(R.string.waveform_color_custom)
-                            },
-                            icon = Icons.Rounded.Palette,
-                            onClick = { showWaveformColorDialog = true }
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(4, 1),
-                            title = stringResource(R.string.player_opt_comment_bubbles_title),
-                            subtitle = stringResource(R.string.player_opt_comment_bubbles_subtitle),
-                            icon = Icons.Rounded.ChatBubbleOutline,
-                            hasSwitch = true,
-                            switchState = commentsPopup,
-                            onSwitchChange = {
-                                commentsPopup = it
-                                prefs.setWaveformCommentsPopupEnabled(it)
-                                onUpdated()
-                            }
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(4, 2),
-                            title = stringResource(R.string.player_opt_reactions_bar_title),
-                            subtitle = stringResource(R.string.player_opt_reactions_bar_subtitle),
-                            icon = Icons.Rounded.AddReaction,
-                            hasSwitch = true,
-                            switchState = reactionsBar,
-                            onSwitchChange = {
-                                reactionsBar = it
-                                prefs.setSoundCloudReactionsBarEnabled(it)
-                                onUpdated()
-                            }
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(4, 3),
-                            title = stringResource(R.string.player_opt_parallax_title),
-                            subtitle = stringResource(R.string.player_opt_parallax_subtitle),
-                            icon = Icons.Rounded.AutoAwesome,
-                            hasSwitch = true,
-                            switchState = parallax,
-                            onSwitchChange = {
-                                parallax = it
-                                prefs.setSoundCloudParallaxEnabled(it)
-                                onUpdated()
-                            }
-                        )
-                    }
-
-                    SettingsGroupTitle(stringResource(R.string.player_action_bar_5_title))
-
-                    Text(
-                        text = stringResource(R.string.player_action_bar_5_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-                    )
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        slots.forEachIndexed { index, slot ->
-                            SettingsItem(
-                                shape = getSettingsShape(slots.size, index),
-                                title = stringResource(R.string.player_slot_n, index + 1),
-                                subtitle = stringResource(slot.titleRes),
-                                icon = getSlotIcon(slot),
-                                trailingText = stringResource(R.string.player_slot_change),
-                                onClick = { selectedSlotToEdit = index }
-                            )
-                        }
-                    }
-                }
-
-                PlayerDesign.MODERN -> {
-                    SettingsGroupTitle(stringResource(R.string.player_style_group))
-
-                    ExpressiveConnectedButtonGroup(
-                        options = listOf(
-                            PlayerProgressMode.CLASSIC_BAR,
-                            PlayerProgressMode.HYBRID_WAVEFORM
-                        ),
-                        selectedOption = modernProgressMode,
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
-                        onOptionSelected = {
-                            modernProgressMode = it
-                            prefs.setPlayerProgressMode(it)
-                            onUpdated()
-                        },
-                        labelProvider = { option ->
+                        if (currentTrack != null && !currentTrack.title.isNullOrBlank()) {
                             Text(
-                                text = when (option) {
-                                    PlayerProgressMode.CLASSIC_BAR -> stringResource(R.string.player_mode_classic)
-                                    else -> stringResource(R.string.player_mode_hybrid)
-                                },
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp
-                                ),
+                                text = currentTrack.title,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                softWrap = false
-                            )
-                        },
-                        iconProvider = { option ->
-                            Icon(
-                                imageVector = when (option) {
-                                    PlayerProgressMode.CLASSIC_BAR -> Icons.Rounded.LinearScale
-                                    else -> Icons.Rounded.Waves
-                                },
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        }
-                    )
-
-                    SettingsGroupTitle(stringResource(R.string.player_visual_options_group))
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        if (modernProgressMode == PlayerProgressMode.HYBRID_WAVEFORM) {
-                            SettingsItem(
-                                shape = getSettingsShape(2, 0),
-                                title = stringResource(R.string.pref_waveform_color_title),
-                                subtitle = when (waveformColorMode) {
-                                    WaveformColorMode.SOUNDCLOUD -> stringResource(R.string.waveform_color_soundcloud)
-                                    WaveformColorMode.COVER_ART -> stringResource(R.string.waveform_color_cover_art)
-                                    WaveformColorMode.APP_THEME -> stringResource(R.string.waveform_color_app_theme)
-                                    WaveformColorMode.CUSTOM -> stringResource(R.string.waveform_color_custom)
-                                },
-                                icon = Icons.Rounded.Palette,
-                                onClick = { showWaveformColorDialog = true }
-                            )
-
-                            SettingsItem(
-                                shape = getSettingsShape(2, 1),
-                                title = stringResource(R.string.player_opt_comment_bubbles_title),
-                                subtitle = stringResource(R.string.player_opt_comment_bubbles_subtitle),
-                                icon = Icons.Rounded.ChatBubbleOutline,
-                                hasSwitch = true,
-                                switchState = commentsPopup,
-                                onSwitchChange = {
-                                    commentsPopup = it
-                                    prefs.setWaveformCommentsPopupEnabled(it)
-                                    onUpdated()
-                                }
-                            )
-                        } else {
-                            SettingsItem(
-                                shape = getSettingsShape(1, 0),
-                                title = stringResource(R.string.pref_slider_style),
-                                subtitle = when (sliderStyle) {
-                                    PlayerSliderStyle.BAR -> stringResource(R.string.slider_style_bar)
-                                    PlayerSliderStyle.WAVY -> stringResource(R.string.slider_style_wavy)
-                                    PlayerSliderStyle.SLIM -> stringResource(R.string.slider_style_slim)
-                                    PlayerSliderStyle.SQUIGGLY -> stringResource(R.string.slider_style_squiggly)
-                                },
-                                icon = Icons.Rounded.LinearScale,
-                                onClick = { showSliderStyleDialog = true }
-                            )
-                        }
-                    }
-
-                    SettingsGroupTitle(stringResource(R.string.player_action_bar_4_title))
-
-                    Text(
-                        text = stringResource(R.string.player_action_bar_4_desc),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-                    )
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        slots.forEachIndexed { index, slot ->
-                            SettingsItem(
-                                shape = getSettingsShape(slots.size, index),
-                                title = stringResource(R.string.player_slot_n, index + 1),
-                                subtitle = stringResource(slot.titleRes),
-                                icon = getSlotIcon(slot),
-                                trailingText = stringResource(R.string.player_slot_change),
-                                onClick = { selectedSlotToEdit = index }
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
                 }
 
-                PlayerDesign.CLASSIC -> {
-                    SettingsGroupTitle(stringResource(R.string.player_visual_options_group))
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        SettingsItem(
-                            shape = getSettingsShape(1, 0),
-                            title = stringResource(R.string.pref_slider_style),
-                            subtitle = when (sliderStyle) {
-                                PlayerSliderStyle.BAR -> stringResource(R.string.slider_style_bar)
-                                PlayerSliderStyle.WAVY -> stringResource(R.string.slider_style_wavy)
-                                PlayerSliderStyle.SLIM -> stringResource(R.string.slider_style_slim)
-                                PlayerSliderStyle.SQUIGGLY -> stringResource(R.string.slider_style_squiggly)
-                            },
-                            icon = Icons.Rounded.LinearScale,
-                            onClick = { showSliderStyleDialog = true }
-                        )
-                    }
-
-                    SettingsGroupTitle(stringResource(R.string.player_action_bar_4_title))
-
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                ) {
                     Text(
-                        text = stringResource(R.string.player_action_bar_4_desc),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = when (mode) {
+                            WaveformColorMode.SOUNDCLOUD -> "SoundCloud"
+                            WaveformColorMode.COVER_ART -> "Auto Match"
+                            WaveformColorMode.APP_THEME -> "App Theme"
+                            WaveformColorMode.CUSTOM -> String.format("#%06X", customColor and 0xFFFFFF)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
-
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        slots.forEachIndexed { index, slot ->
-                            SettingsItem(
-                                shape = getSettingsShape(slots.size, index),
-                                title = stringResource(R.string.player_slot_n, index + 1),
-                                subtitle = stringResource(slot.titleRes),
-                                icon = getSlotIcon(slot),
-                                trailingText = stringResource(R.string.player_slot_change),
-                                onClick = { selectedSlotToEdit = index }
-                            )
-                        }
-                    }
                 }
             }
 
-            SettingsGroupTitle(stringResource(R.string.share_card_settings_group))
-            val codeLabels = listOf(
-                stringResource(R.string.share_card_code_auto),
-                stringResource(R.string.share_card_code_solid),
-                stringResource(R.string.share_card_code_halftone),
-            )
-            SettingsItem(
-                shape = getSettingsShape(1, 0),
-                title = stringResource(R.string.share_card_code_title),
-                subtitle = stringResource(R.string.share_card_code_subtitle),
-                trailingText = codeLabels[shareCardCodeMode.coerceIn(0, 2)],
-                onClick = { showShareCardCodeDialog = true },
-            )
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp)
+            ) {
+                val density = LocalDensity.current
+                val canvasWidthPx = with(density) { maxWidth.toPx() }
+                val barWidthPx = with(density) { 2.2.dp.toPx() }
+                val gapPx = with(density) { 1.2.dp.toPx() }
+                val stepPx = barWidthPx + gapPx
+                val cornerRadius = CornerRadius(barWidthPx / 2f)
+
+                val targetBarCount = (canvasWidthPx / stepPx).toInt().coerceAtLeast(20)
+
+                val resampledBars = remember(waveformSamples, targetBarCount) {
+                    val raw = waveformSamples ?: fallbackBars
+                    val rawSize = raw.size
+                    val result = FloatArray(targetBarCount)
+                    for (j in 0 until targetBarCount) {
+                        val startIdx = (j.toLong() * rawSize / targetBarCount).toInt()
+                        val endIdx = (((j + 1).toLong() * rawSize / targetBarCount).toInt())
+                            .coerceAtMost(rawSize)
+                            .coerceAtLeast(startIdx + 1)
+                        var sum = 0f
+                        for (k in startIdx until endIdx) {
+                            sum += raw[k]
+                        }
+                        result[j] = (sum / (endIdx - startIdx)).coerceIn(0.04f, 1f)
+                    }
+                    result
+                }
+
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(canvasWidthPx) {
+                            detectTapGestures { offset ->
+                                progressFrac = (offset.x / size.width).coerceIn(0.05f, 0.95f)
+                            }
+                        }
+                        .pointerInput(canvasWidthPx) {
+                            detectHorizontalDragGestures { change, _ ->
+                                change.consume()
+                                progressFrac = (change.position.x / size.width).coerceIn(0.05f, 0.95f)
+                            }
+                        }
+                ) {
+                    val cH = size.height
+                    val baselineY = cH * 0.60f
+                    val reflectGap = 1.5.dp.toPx()
+
+                    val barsToDraw = resampledBars
+                    val barCount = barsToDraw.size
+                    val cutoffX = size.width * progressFrac
+
+                    for (i in 0 until barCount) {
+                        val x = i * stepPx
+                        if (x + barWidthPx < 0f || x > size.width) continue
+
+                        val h = barsToDraw[i]
+                        val isPlayed = (x + barWidthPx / 2f) <= cutoffX
+
+                        val topH = (baselineY * h * 0.92f).coerceAtLeast(3f)
+                        val botH = ((cH - baselineY - reflectGap) * h * 0.65f).coerceAtLeast(2f)
+
+                        val topColor = if (isPlayed) accentColor else inactiveBarColor
+                        val botColor = if (isPlayed) accentColor.copy(alpha = 0.50f) else inactiveBarColor.copy(alpha = 0.30f)
+
+                        drawRoundRect(
+                            color = topColor,
+                            topLeft = Offset(x, baselineY - topH),
+                            size = Size(barWidthPx, topH),
+                            cornerRadius = cornerRadius
+                        )
+                        drawRoundRect(
+                            color = botColor,
+                            topLeft = Offset(x, baselineY + reflectGap),
+                            size = Size(barWidthPx, botH),
+                            cornerRadius = cornerRadius
+                        )
+                    }
+                }
+            }
         }
     }
+}
 
-    if (showSliderStyleDialog) {
-        SliderStyleDialog(
-            currentStyle = sliderStyle,
-            onStyleSelected = {
-                sliderStyle = it
-                prefs.setPlayerSliderStyle(it)
-                onUpdated()
-            },
-            onDismiss = { showSliderStyleDialog = false }
-        )
-    }
-
-    selectedSlotToEdit?.let { slotIdx ->
-        val allSlots = PlayerActionButtonSlot.values().toList()
-        AlertDialog(
-            onDismissRequest = { selectedSlotToEdit = null },
-            title = {
-                Text(
-                    text = stringResource(R.string.player_slot_n, slotIdx + 1),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    items(allSlots.size) { idx ->
-                        val slotOption = allSlots[idx]
-                        val isSelected = slots[slotIdx] == slotOption
-                        SettingsItem(
-                            shape = getSettingsShape(allSlots.size, idx),
-                            title = stringResource(slotOption.titleRes),
-                            icon = getSlotIcon(slotOption),
-                            trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
-                            onClick = {
-                                prefs.setSlotForDesign(currentDesign, slotIdx, slotOption)
-                                val count = if (currentDesign == PlayerDesign.SOUNDCLOUD) 5 else 4
-                                slots = List(count) { i -> prefs.getSlotForDesign(currentDesign, i) }
-                                selectedSlotToEdit = null
-                                onUpdated()
-                            }
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { selectedSlotToEdit = null },
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(stringResource(R.string.btn_cancel))
-                }
+@Composable
+private fun WaveformModeCard(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    leadingContent: @Composable () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+        },
+        border = BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
             }
         )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            leadingContent()
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WaveformColorSlider(
+    label: String,
+    value: Float,
+    valueText: String,
+    valueRange: ClosedFloatingPointRange<Float>,
+    gradientBrush: Brush,
+    onValueChange: (Float) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(34.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(gradientBrush)
+                    .border(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        RoundedCornerShape(6.dp)
+                    )
+            )
+
+            Slider(
+                value = value,
+                onValueChange = onValueChange,
+                valueRange = valueRange,
+                colors = SliderDefaults.colors(
+                    activeTrackColor = Color.Transparent,
+                    inactiveTrackColor = Color.Transparent,
+                    activeTickColor = Color.Transparent,
+                    inactiveTickColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 }
 
@@ -1977,354 +1541,3 @@ fun WaveformColorDialog(
         }
     )
 }
-
-@Composable
-private fun MiniWaveformPreview(
-    mode: WaveformColorMode,
-    customColor: Int,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val currentTrack = MusicManager.currentTrack
-    val trackId = currentTrack?.id
-
-    var waveformSamples by remember(trackId) {
-        mutableStateOf(trackId?.let { WaveformRepository.getCachedWaveform(it) })
-    }
-
-    LaunchedEffect(trackId) {
-        if (currentTrack != null && waveformSamples == null) {
-            val samples = withContext(Dispatchers.IO) {
-                WaveformRepository.getWaveform(context, currentTrack)
-            }
-            if (samples != null) {
-                waveformSamples = samples
-            }
-        }
-    }
-
-    val fallbackBars = remember {
-        val rng = java.util.Random(13L)
-        FloatArray(200) { i ->
-            val base = (Math.sin(i * 0.08) * 0.3 + 0.55).toFloat()
-            val noise = (rng.nextFloat() - 0.5f) * 0.25f
-            (base + noise).coerceIn(0.08f, 0.95f)
-        }
-    }
-
-    val themePrimary = MaterialTheme.colorScheme.primary
-    val targetAccentColor = remember(mode, customColor, themePrimary, ThemeState.coverSeedColor) {
-        when (mode) {
-            WaveformColorMode.SOUNDCLOUD -> Color(0xFFFF5500)
-            WaveformColorMode.COVER_ART -> ThemeState.coverSeedColor?.let { Color(it) } ?: Color(0xFFE53935)
-            WaveformColorMode.APP_THEME -> themePrimary
-            WaveformColorMode.CUSTOM -> Color(customColor)
-        }
-    }
-    val accentColor by animateColorAsState(
-        targetValue = targetAccentColor,
-        animationSpec = tween(durationMillis = 300),
-        label = "miniWaveformAccentColor"
-    )
-    val inactiveBarColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-
-    var progressFrac by remember { mutableFloatStateOf(0.55f) }
-
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp)),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f))
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.weight(1f, fill = false)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.GraphicEq,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = accentColor
-                    )
-                    Column {
-                        Text(
-                            text = stringResource(R.string.waveform_preview_title),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        if (currentTrack != null && !currentTrack.title.isNullOrBlank()) {
-                            Text(
-                                text = currentTrack.title,
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                ) {
-                    Text(
-                        text = when (mode) {
-                            WaveformColorMode.SOUNDCLOUD -> "SoundCloud"
-                            WaveformColorMode.COVER_ART -> "Auto Match"
-                            WaveformColorMode.APP_THEME -> "App Theme"
-                            WaveformColorMode.CUSTOM -> String.format("#%06X", customColor and 0xFFFFFF)
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
-            }
-
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp)
-            ) {
-                val density = LocalDensity.current
-                val canvasWidthPx = with(density) { maxWidth.toPx() }
-                val barWidthPx = with(density) { 2.2.dp.toPx() }
-                val gapPx = with(density) { 1.2.dp.toPx() }
-                val stepPx = barWidthPx + gapPx
-                val cornerRadius = CornerRadius(barWidthPx / 2f)
-
-                val targetBarCount = (canvasWidthPx / stepPx).toInt().coerceAtLeast(20)
-
-                val resampledBars = remember(waveformSamples, targetBarCount) {
-                    val raw = waveformSamples ?: fallbackBars
-                    val rawSize = raw.size
-                    val result = FloatArray(targetBarCount)
-                    for (j in 0 until targetBarCount) {
-                        val startIdx = (j.toLong() * rawSize / targetBarCount).toInt()
-                        val endIdx = (((j + 1).toLong() * rawSize / targetBarCount).toInt())
-                            .coerceAtMost(rawSize)
-                            .coerceAtLeast(startIdx + 1)
-                        var sum = 0f
-                        for (k in startIdx until endIdx) {
-                            sum += raw[k]
-                        }
-                        result[j] = (sum / (endIdx - startIdx)).coerceIn(0.04f, 1f)
-                    }
-                    result
-                }
-
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(canvasWidthPx) {
-                            detectTapGestures { offset ->
-                                progressFrac = (offset.x / size.width).coerceIn(0.05f, 0.95f)
-                            }
-                        }
-                        .pointerInput(canvasWidthPx) {
-                            detectHorizontalDragGestures { change, _ ->
-                                change.consume()
-                                progressFrac = (change.position.x / size.width).coerceIn(0.05f, 0.95f)
-                            }
-                        }
-                ) {
-                    val cH = size.height
-                    val baselineY = cH * 0.60f
-                    val reflectGap = 1.5.dp.toPx()
-
-                    val barsToDraw = resampledBars
-                    val barCount = barsToDraw.size
-                    val cutoffX = size.width * progressFrac
-
-                    for (i in 0 until barCount) {
-                        val x = i * stepPx
-                        if (x + barWidthPx < 0f || x > size.width) continue
-
-                        val h = barsToDraw[i]
-                        val isPlayed = (x + barWidthPx / 2f) <= cutoffX
-
-                        val topH = (baselineY * h * 0.92f).coerceAtLeast(3f)
-                        val botH = ((cH - baselineY - reflectGap) * h * 0.65f).coerceAtLeast(2f)
-
-                        val topColor = if (isPlayed) accentColor else inactiveBarColor
-                        val botColor = if (isPlayed) accentColor.copy(alpha = 0.50f) else inactiveBarColor.copy(alpha = 0.30f)
-
-                        drawRoundRect(
-                            color = topColor,
-                            topLeft = Offset(x, baselineY - topH),
-                            size = Size(barWidthPx, topH),
-                            cornerRadius = cornerRadius
-                        )
-                        drawRoundRect(
-                            color = botColor,
-                            topLeft = Offset(x, baselineY + reflectGap),
-                            size = Size(barWidthPx, botH),
-                            cornerRadius = cornerRadius
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WaveformModeCard(
-    title: String,
-    subtitle: String,
-    isSelected: Boolean,
-    leadingContent: @Composable () -> Unit,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-        },
-        border = BorderStroke(
-            width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            }
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            leadingContent()
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Check,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(12.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WaveformColorSlider(
-    label: String,
-    value: Float,
-    valueText: String,
-    valueRange: ClosedFloatingPointRange<Float>,
-    gradientBrush: Brush,
-    onValueChange: (Float) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = valueText,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(34.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp)
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(gradientBrush)
-                    .border(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                        RoundedCornerShape(6.dp)
-                    )
-            )
-
-            Slider(
-                value = value,
-                onValueChange = onValueChange,
-                valueRange = valueRange,
-                colors = SliderDefaults.colors(
-                    activeTrackColor = Color.Transparent,
-                    inactiveTrackColor = Color.Transparent,
-                    activeTickColor = Color.Transparent,
-                    inactiveTickColor = Color.Transparent
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-
