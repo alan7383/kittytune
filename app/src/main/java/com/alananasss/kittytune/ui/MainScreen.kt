@@ -1052,6 +1052,8 @@ fun MainScreen(
                                 when {
                                     id == Screen.Upload.route || id == "upload" -> navController.navigate(Screen.Upload.route)
                                     id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
+                                    id == "notifications" -> navController.navigate("notifications")
+                                    id == "conversations" -> navController.navigate("conversations")
                                     id == "recognition_history" -> navController.navigate("recognition_history")
                                     id == "likes" -> navController.navigate("playlist_detail/likes")
                                     id == "downloads" -> navController.navigate("playlist_detail/downloads")

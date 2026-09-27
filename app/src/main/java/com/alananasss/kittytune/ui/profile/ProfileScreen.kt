@@ -38,7 +38,9 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.*
@@ -621,6 +623,30 @@ fun ProfileScreen(
                                         tint = contentColor
                                     )
                                 }
+                            }
+                            IconButton(
+                                onClick = { onNavigate("notifications") },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(
+                                        alpha = 0.3f
+                                    ),
+                                    contentColor = contentColor
+                                )
+                            ) {
+                                Icon(Icons.Rounded.Notifications, stringResource(R.string.profile_menu_notifications))
+                            }
+                            IconButton(
+                                onClick = { onNavigate("conversations") },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(
+                                        alpha = 0.3f
+                                    ),
+                                    contentColor = contentColor
+                                )
+                            ) {
+                                Icon(Icons.Rounded.Mail, stringResource(R.string.profile_menu_messages))
                             }
                             IconButton(
                                 onClick = { onNavigate("upload") },
