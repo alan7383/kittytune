@@ -714,6 +714,14 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <string name="settings_cat_interface_sub">Themes, the player and lyrics</string>
+    <string name="settings_cat_interface">Interface</string>
+    <string name="settings_cat_misc">Miscellaneous</string>
+    <string name="settings_page_themes">Themes</string>
+    <string name="settings_page_themes_sub">Colours, wallpaper and the font</string>
+    <string name="settings_page_player">Player</string>
+    <string name="settings_page_player_sub">Layout and controls</string>
+    <string name="settings_page_lyrics_sub">How lyrics look and behave</string>
     <string name="settings_title">Настройки</string>
     <string name="settings_cat_general">Общие</string>
     <string name="settings_cat_appearance">Оформление</string>
@@ -1555,6 +1563,8 @@
     <string name="pref_bottom_menu_fab_recognition">Распознавание музыки</string>
     <string name="pref_bottom_menu_blur">Эффект размытия</string>
     <string name="pref_bottom_menu_blur_sub">Применить темный эффект стекла</string>
+    <string name="pref_bottom_menu_tabs_reorder">Drag to reorder. The bar follows this order.</string>
+    <string name="reorder_handle">Reorder</string>
     <string name="pref_bottom_menu_tabs">Видимость вкладки</string>
     <string name="fab_settings_no_playlists">Плейлист не найден в вашей библиотеке.</string>
     <string name="fab_settings_hint">Совет: здесь появляются только списки воспроизведения, добавленные в вашу библиотеку. Вы можете использовать их в качестве ярлыков!</string>
@@ -1936,6 +1946,8 @@
     <string name="player_style_classic_desc">Classic standard mode (Flat bar)</string>
     <string name="player_customization_title">Player Customization</string>
     <string name="player_customization_subtitle">Styles, visual effects and action bar</string>
+    <string name="player_style_classic_short">Classic</string>
+    <string name="player_style_hybrid_short">Hybrid</string>
     <string name="player_style_group">PLAYER STYLE</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Hybrid</string>
