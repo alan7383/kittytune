@@ -975,6 +975,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         ) {
             super.onPositionDiscontinuity(oldPosition, newPosition, reason)
 
+            com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context)
+                .onPositionDiscontinuity(newPosition.positionMs)
+
             if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT) {
                 currentPosition = MusicManager.player.currentPosition
                 // The distance jumped over is not listening; what follows it is. Without this, dragging
@@ -987,6 +990,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
             if (mediaItem == null) return
+
+            com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context)
+                .onPositionDiscontinuity(0L)
 
             if (MusicManager.isCrossfadingOut) {
                 return
@@ -3634,6 +3640,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             return
         }
         haptics.clearTrackBeatGrid()
+        haptics.onPositionDiscontinuity(0L)
         viewModelScope.launch(Dispatchers.IO) {
             val info = try {
                 AppDatabase.getDatabase(context).beatInfoDao().getBeatInfo(track.id.toString())
@@ -4113,6 +4120,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         isScrubbing = false
         player.seekTo(position)
         currentPosition = position
+        com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context).onPositionDiscontinuity(position)
         SoundCloudTelemetryTracker.onTrackSeeked(position)
         saveStateAsync(saveQueue = false)
     }

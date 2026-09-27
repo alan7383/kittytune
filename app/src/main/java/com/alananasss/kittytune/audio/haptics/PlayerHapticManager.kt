@@ -321,7 +321,9 @@ class PlayerHapticManager private constructor(context: Context) {
         val wasEnabled = this.isHapticsEnabled
         this.isHapticsEnabled = enabled
 
-        if (!enabled && wasEnabled) {
+        if (enabled && !wasEnabled) {
+            onPositionDiscontinuity(audiblePositionMs)
+        } else if (!enabled && wasEnabled) {
             stopAllHaptics()
         }
     }
@@ -587,12 +589,23 @@ class PlayerHapticManager private constructor(context: Context) {
     fun supportsPrimitives(): Boolean = primitivePalette()?.isSupported == true
 
 
-    /** A seek or track change invalidates the written/audible pairing. */
-    fun onAudioPipelineReset() {
-        // The frame counter restarts here, so it needs the current media position as its origin.
-        writtenOriginMs = audiblePositionMs
+    /**
+     * Resets the alignment between written PCM audio frames and audible player position
+     * on a seek, track change, or stream discontinuity.
+     */
+    fun onPositionDiscontinuity(mediaPositionMs: Long) {
+        val target = mediaPositionMs.coerceAtLeast(0L)
+        writtenOriginMs = target
         writtenSinceFlushMs = 0
-        latencyEstimator.reset()
+        audiblePositionMs = target
+        audiblePositionStampMs = System.currentTimeMillis()
+        latencyEstimator.onDiscontinuity(target)
+        hapticHandler.removeCallbacksAndMessages(null)
+    }
+
+    /** A seek or track change flushes the ExoPlayer audio sink. */
+    fun onAudioPipelineReset() {
+        writtenSinceFlushMs = 0
         hapticHandler.removeCallbacksAndMessages(null)
     }
 
@@ -621,8 +634,8 @@ class PlayerHapticManager private constructor(context: Context) {
 
         var shaped = intensity
         val grid = beatGrid
+        val at = writtenMediaMs()
         if (grid != null && grid.isUsable) {
-            val at = writtenMediaMs()
             if (at > 0L) {
                 if (type == HapticType.KICK && !grid.isOnBeat(at)) return
                 shaped = (intensity * grid.emphasisAt(at)).coerceIn(0f, 1f)
@@ -635,15 +648,26 @@ class PlayerHapticManager private constructor(context: Context) {
         lastShapedBeatAt = nowForDynamics
         shaped = dynamics.shape(shaped, sinceLastBeat)
 
+        // Select the gesture at detection time using the current 'at' and dynamics trend
+        val gesture = HapticGestureSelector.select(
+            isKick = type == HapticType.KICK,
+            isDownbeat = grid?.isDownbeat(at),
+            intensity = shaped,
+            trend = dynamics.trend(),
+            atPhraseBoundary = grid?.let { g ->
+                g.isOnBeat(at) && g.beatInBar(at) == 1 && isPhraseLine(g, at)
+            } ?: false,
+        )
+
         val lead = latencyEstimator.leadMs(System.currentTimeMillis())
         if (lead <= 0L) {
-            triggerTransientHapticNow(shaped, type)
+            triggerTransientHapticNow(shaped, type, gesture)
             return
         }
-        hapticHandler.postDelayed({ triggerTransientHapticNow(shaped, type) }, lead)
+        hapticHandler.postDelayed({ triggerTransientHapticNow(shaped, type, gesture) }, lead)
     }
 
-    private fun triggerTransientHapticNow(intensity: Float, type: HapticType) {
+    private fun triggerTransientHapticNow(intensity: Float, type: HapticType, gesture: HapticGesture) {
         val now = System.currentTimeMillis()
         if (type == HapticType.KICK && now - lastTriggeredKickTime < 110) return
         if (type == HapticType.KICK) lastTriggeredKickTime = now
@@ -658,7 +682,7 @@ class PlayerHapticManager private constructor(context: Context) {
 
         when (deviceMode) {
             HapticMode.DUAL_MODE -> {
-                performVibrationTransient(type, intensity, userMultiplier)
+                performVibrationTransient(type, intensity, userMultiplier, gesture)
                 attachedViewRef?.get()?.let { v ->
                     if (v.isAttachedToWindow) {
                         v.post { performAndroidHaptic(v, type) }
@@ -672,7 +696,7 @@ class PlayerHapticManager private constructor(context: Context) {
                     }
                 }
             }
-            HapticMode.VIBRATION_ONLY -> performVibrationTransient(type, intensity, userMultiplier)
+            HapticMode.VIBRATION_ONLY -> performVibrationTransient(type, intensity, userMultiplier, gesture)
         }
     }
 
@@ -687,7 +711,7 @@ class PlayerHapticManager private constructor(context: Context) {
         } catch (_: Exception) {}
     }
 
-    private fun performVibrationTransient(type: HapticType, intensity: Float, multiplier: Float) {
+    private fun performVibrationTransient(type: HapticType, intensity: Float, multiplier: Float, gesture: HapticGesture) {
         binderController.markTransient(System.currentTimeMillis())
         val vibrator = getVibrator() ?: return
         if (!vibrator.hasVibrator()) return
@@ -695,18 +719,6 @@ class PlayerHapticManager private constructor(context: Context) {
         // Vendor-tuned primitives first. The motor's own model of a thump beats a rectangular
         // amplitude envelope, and the scale argument makes the strength actually follow the beat.
         val grid = beatGrid
-        val at = writtenMediaMs()
-        // Which gesture this is comes from what the engine already knows: bar position from the
-        // grid, direction from the dynamics, and which drum from the detector.
-        val gesture = HapticGestureSelector.select(
-            isKick = type == HapticType.KICK,
-            isDownbeat = grid?.isDownbeat(at),
-            intensity = intensity,
-            trend = dynamics.trend(),
-            atPhraseBoundary = grid?.let { g ->
-                g.isOnBeat(at) && g.beatInBar(at) == 1 && isPhraseLine(g, at)
-            } ?: false,
-        )
         val primitive = primitivePalette()?.build(
             gesture = gesture,
             amplitude = intensity * multiplier,

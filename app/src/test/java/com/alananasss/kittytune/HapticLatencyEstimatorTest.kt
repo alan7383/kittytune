@@ -104,4 +104,22 @@ class HapticLatencyEstimatorTest {
             lead / beatMs > 0.33,
         )
     }
+
+    @Test
+    fun `onDiscontinuity preserves learned latency and realigns position`() {
+        val e = estimator(writtenMs = 10_560, audibleMs = 10_000)
+        assertEquals(560L, e.leadMs(1_000L))
+        assertTrue(e.hasEstimate())
+
+        // Seek forward by 60 seconds
+        val now = System.currentTimeMillis()
+        e.onDiscontinuity(70_000L)
+        assertTrue("Learned hardware latency is preserved across seeks", e.hasEstimate())
+        assertEquals(560L, e.currentLeadMs())
+
+        // Audio continues to be written at seeked target
+        e.onAudioWritten(70_560L)
+        e.onAudiblePosition(70_000L, now)
+        assertEquals(560L, e.leadMs(now))
+    }
 }

@@ -81,6 +81,16 @@ class HapticLatencyEstimator {
     }
 
     /**
+     * Resets the position pairing on a seek or track transition without discarding the learned
+     * hardware latency estimate, since the physical audio buffer characteristics do not change.
+     */
+    fun onDiscontinuity(positionMs: Long) {
+        writtenPositionMs = positionMs
+        audiblePositionMs = positionMs
+        audibleStampMs = System.currentTimeMillis()
+    }
+
+    /**
      * How long to delay a vibration so it coincides with the sound that caused it.
      *
      * Returns 0 when there is no trustworthy reading — an uncompensated haptic is early, but a
