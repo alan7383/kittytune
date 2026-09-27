@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos,Grammar">
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos,Grammar,TypographyDashes">
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- APP & CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1553,6 +1553,10 @@
     <string name="pref_automix_indicator_title">Show automix indicator</string>
     <string name="pref_automix_indicator_desc">Display the countdown and \'Automixing\' badge on the player during DJ transitions</string>
     <string name="pref_bottom_menu_title">Панель навигации</string>
+    <string name="pref_explorer_grid_title">Explorer Grid View</string>
+    <string name="pref_explorer_grid_subtitle">Display explorer categories as square tiles in 2 columns</string>
+    <string name="pref_playlist_grid_title">Playlist Grid View</string>
+    <string name="pref_playlist_grid_subtitle">Display tracks in playlists and local files in 2 columns</string>
     <string name="pref_bottom_menu_subtitle">Настройка нижней панели и FAB</string>
     <string name="pref_bottom_menu_style">Стиль меню</string>
     <string name="pref_bottom_menu_style_modern">Модерн</string>
@@ -2560,4 +2564,24 @@
     <string name="pref_haptics_contrast_sub">How much the vibration follows contrast rather than loudness. Higher keeps build-ups light so the drop lands.</string>
     <string name="pref_haptics_contrast_off">Off</string>
     <string name="pref_haptics_contrast_full">Full</string>
+    <!-- App Logs & Diagnostics -->
+    <string name="logs_title">App Logs &amp; Diagnostics</string>
+    <string name="logs_subtitle">View, copy, or share logs to help troubleshoot issues</string>
+    <string name="logs_copy_all">Copy All</string>
+    <string name="logs_copy_summary">Copy Diagnostics</string>
+    <string name="logs_copy_logcat">Copy Logcat</string>
+    <string name="logs_share">Share Logs</string>
+    <string name="logs_copied_toast">Logs copied to clipboard!</string>
+    <string name="logs_tab_diagnostics">Diagnostics</string>
+    <string name="logs_tab_logcat">Logcat</string>
+    <string name="logs_tab_crash">Crash Report</string>
+    <string name="logs_no_crash">No crash recorded. The app is running smoothly!</string>
+    <string name="logs_clear_crash">Clear Crash Log</string>
+    <string name="logs_search_hint">Filter logs (e.g. error, exoplayer)&#8230;</string>
+    <string name="logs_sec_device">Device &amp; System</string>
+    <string name="logs_sec_app">Application</string>
+    <string name="logs_sec_memory">Memory &amp; Storage</string>
+    <string name="logs_sec_playback">Playback &amp; Audio</string>
+    <string name="logs_sec_network">Network &amp; Providers</string>
+    <string name="logs_refresh">Refresh</string>
 </resources>
