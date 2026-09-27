@@ -16,7 +16,10 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -1531,7 +1534,12 @@ fun MainScreen(
                 }
 
                 Column(
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .semantics { }
+                        .pointerInput(Unit) {
+                            detectTapGestures(onTap = {})
+                        },
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     androidx.compose.animation.AnimatedVisibility(

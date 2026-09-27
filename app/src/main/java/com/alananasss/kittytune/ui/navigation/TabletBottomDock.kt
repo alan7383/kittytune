@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,9 +19,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,6 +53,10 @@ fun TabletBottomDock(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
+            .semantics { }
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {})
+            }
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalArrangement = if (showMiniPlayer) Arrangement.spacedBy(16.dp) else Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
@@ -176,7 +184,9 @@ fun TabletBottomDock(
                         width = 1.dp,
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                     ),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clipToBounds()
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
                         Row(
