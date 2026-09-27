@@ -713,6 +713,14 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- SETTINGS                                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <string name="settings_cat_interface_sub">Themes, the player and lyrics</string>
+    <string name="settings_cat_interface">Interface</string>
+    <string name="settings_cat_misc">Miscellaneous</string>
+    <string name="settings_page_themes">Themes</string>
+    <string name="settings_page_themes_sub">Colours, wallpaper and the font</string>
+    <string name="settings_page_player">Player</string>
+    <string name="settings_page_player_sub">Layout and controls</string>
+    <string name="settings_page_lyrics_sub">How lyrics look and behave</string>
     <string name="settings_title">Beállítások</string>
     <string name="settings_cat_general">Általános</string>
     <string name="settings_cat_appearance">Megjelenés</string>
@@ -1554,6 +1562,8 @@
     <string name="pref_bottom_menu_fab_recognition">Music Recognition</string>
     <string name="pref_bottom_menu_blur">Blur Effect</string>
     <string name="pref_bottom_menu_blur_sub">Apply a frosted glass effect</string>
+    <string name="pref_bottom_menu_tabs_reorder">Drag to reorder. The bar follows this order.</string>
+    <string name="reorder_handle">Reorder</string>
     <string name="pref_bottom_menu_tabs">Visible Tabs</string>
     <string name="fab_settings_no_playlists">No playlist found in your library.</string>
     <string name="fab_settings_hint">Tip: only playlists added to your library appear here. Feel free to like playlists so you can use them as shortcuts!</string>
@@ -1935,6 +1945,8 @@
     <string name="player_style_classic_desc">Classic standard mode (Flat bar)</string>
     <string name="player_customization_title">Player Customization</string>
     <string name="player_customization_subtitle">Styles, visual effects and action bar</string>
+    <string name="player_style_classic_short">Classic</string>
+    <string name="player_style_hybrid_short">Hybrid</string>
     <string name="player_style_group">PLAYER STYLE</string>
     <string name="player_mode_soundcloud">SoundCloud</string>
     <string name="player_mode_hybrid">Hybrid</string>
