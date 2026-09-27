@@ -9,6 +9,8 @@ import android.view.HapticFeedbackConstants
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
+import android.os.Build
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
@@ -776,14 +778,7 @@ fun PlayerScreen(
         onDispose { viewModel.isDjBeatUiVisible = false }
     }
 
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .semantics { }
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = {})
-            }
-    ) {
+    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
         when (playerDesign) {
             com.alananasss.kittytune.data.local.PlayerDesign.PIXEL_PLAYER -> {
                 com.alananasss.kittytune.ui.player.pixel.PixelPlayerScreen(viewModel, onClose)
@@ -827,7 +822,51 @@ fun NewPlayerScreen(
     forceSoundCloud: Boolean? = null
 ) {
     val track = viewModel.currentTrack ?: return
-    BackHandler(enabled = !viewModel.showLyricsSheet, onBack = onClose)
+
+    val scope = rememberCoroutineScope()
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val screenHeightPx = remember(configuration, density) {
+        with(density) { configuration.screenHeightDp.dp.toPx() }
+    }
+    val dismissTargetY = remember(screenHeightPx) {
+        screenHeightPx * 0.88f
+    }
+    val dismissProgress = remember { Animatable(0f) }
+
+    val handleClose: () -> Unit = {
+        scope.launch {
+            dismissProgress.animateTo(
+                1f,
+                animationSpec = tween(150, easing = LinearEasing)
+            )
+            onClose()
+            dismissProgress.snapTo(0f)
+        }
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        PredictiveBackHandler(enabled = !viewModel.showLyricsSheet) { progressFlow ->
+            try {
+                progressFlow.collect { backEvent ->
+                    dismissProgress.snapTo(backEvent.progress)
+                }
+                handleClose()
+            } catch (e: Exception) {
+                scope.launch {
+                    dismissProgress.animateTo(
+                        0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            }
+        }
+    } else {
+        BackHandler(enabled = !viewModel.showLyricsSheet, onBack = handleClose)
+    }
 
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
@@ -885,7 +924,6 @@ fun NewPlayerScreen(
     )
     var showEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     val animatedColor by animateColorAsState(
         targetValue = viewModel.backgroundColor,
@@ -893,13 +931,67 @@ fun NewPlayerScreen(
         label = "backgroundColor"
     )
 
+    val pProgress = dismissProgress.value
+    val predictiveScaleX = 1f - (pProgress * 0.06f)
+    val predictiveScaleY = 1f - (pProgress * 0.04f)
+    val predictiveTranslationY = pProgress * dismissTargetY
+    val predictiveCorner = (pProgress * 32.dp.value).dp
+
+    val verticalDragModifier = Modifier.pointerInput(dismissTargetY) {
+        detectVerticalDragGestures(
+            onDragEnd = {
+                if (dismissProgress.value > 0.18f) {
+                    handleClose()
+                } else {
+                    scope.launch {
+                        dismissProgress.animateTo(
+                            0f,
+                            spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    }
+                }
+            },
+            onDragCancel = {
+                scope.launch {
+                    dismissProgress.animateTo(
+                        0f,
+                        spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            },
+            onVerticalDrag = { change, dragAmount ->
+                if (dragAmount > 0 || dismissProgress.value > 0f) {
+                    change.consume()
+                    val delta = dragAmount / dismissTargetY
+                    scope.launch {
+                        dismissProgress.snapTo(
+                            (dismissProgress.value + delta).coerceIn(0f, 1f)
+                        )
+                    }
+                }
+            }
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isBlurMode) Color.Black else MaterialTheme.colorScheme.background)
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = {})
+            .graphicsLayer {
+                scaleX = predictiveScaleX
+                scaleY = predictiveScaleY
+                translationY = predictiveTranslationY
+                transformOrigin = TransformOrigin(0.5f, 1.0f)
+                shape = RoundedCornerShape(predictiveCorner)
+                clip = pProgress > 0.001f
+                alpha = (1f - (pProgress * 0.15f)).coerceIn(0f, 1f)
             }
+            .background(if (isBlurMode) Color.Black else MaterialTheme.colorScheme.background)
     ) {
         when (backgroundStyle) {
             PlayerBackgroundStyle.BLUR -> {
@@ -988,7 +1080,7 @@ fun NewPlayerScreen(
             if (isPhoneLandscape) {
                 PhoneLandscapePlayerView(
                     viewModel = viewModel,
-                    onClose = onClose,
+                    onClose = handleClose,
                     onEffectsClick = { showEffectsSheet = true },
                     onQueueClick = { showQueueSheet = true },
                     mainContentColor = mainContentColor,
@@ -1017,7 +1109,7 @@ fun NewPlayerScreen(
             } else if (forceSoundCloud == true || (forceSoundCloud == null && playerProgressMode == PlayerProgressMode.SOUNDCLOUD)) {
                 SoundCloudPlayerView(
                     viewModel = viewModel,
-                    onClose = onClose,
+                    onClose = handleClose,
                     onEffectsClick = { showEffectsSheet = true },
                     onQueueClick = { showQueueSheet = true },
                     animatedColor = animatedColor
@@ -1027,9 +1119,13 @@ fun NewPlayerScreen(
                     modifier = Modifier.fillMaxSize().systemBarsPadding(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(modifier = Modifier.padding(horizontal = 24.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp)
+                            .then(verticalDragModifier)
+                    ) {
                         PlayerHeader(
-                            onClose = onClose,
+                            onClose = handleClose,
                             viewModel = viewModel,
                             contentColor = mainContentColor,
                             subContentColor = subContentColor,
@@ -1042,7 +1138,12 @@ fun NewPlayerScreen(
                             } else null
                         )
                     }
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .then(verticalDragModifier)
+                    )
 
                     val pagerState = androidx.compose.foundation.pager.rememberPagerState(
                         initialPage = viewModel.currentQueueIndex.coerceAtLeast(0),
@@ -1080,7 +1181,9 @@ fun NewPlayerScreen(
                     )
 
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(if (!showLyrics) verticalDragModifier else Modifier),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(modifier = Modifier.fillMaxWidth().alpha(coverAlpha).zIndex(if (showLyrics) 0f else 1f)) {

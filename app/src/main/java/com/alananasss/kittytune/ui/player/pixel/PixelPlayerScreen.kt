@@ -404,6 +404,48 @@ fun PixelPlayerScreen(
             }
         }
 
+        val verticalDragModifier = Modifier.pointerInput(sheetCollapsedTargetY) {
+            detectVerticalDragGestures(
+                onDragEnd = {
+                    if (predictiveBackProgress.value > 0.18f) {
+                        handleClose()
+                    } else {
+                        scope.launch {
+                            predictiveBackProgress.animateTo(
+                                0f,
+                                spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                        }
+                    }
+                },
+                onDragCancel = {
+                    scope.launch {
+                        predictiveBackProgress.animateTo(
+                            0f,
+                            spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    }
+                },
+                onVerticalDrag = { change, dragAmount ->
+                    if (dragAmount > 0 || predictiveBackProgress.value > 0f) {
+                        change.consume()
+                        val delta = dragAmount / sheetCollapsedTargetY
+                        scope.launch {
+                            predictiveBackProgress.snapTo(
+                                (predictiveBackProgress.value + delta).coerceIn(0f, 1f)
+                            )
+                        }
+                    }
+                }
+            )
+        }
+
         // Main Player Column Layout
         Column(
             modifier = Modifier
@@ -421,45 +463,7 @@ fun PixelPlayerScreen(
                     .fillMaxWidth()
                     .height(56.dp)
                     .padding(horizontal = 20.dp)
-                    .pointerInput(sheetCollapsedTargetY) {
-                        detectVerticalDragGestures(
-                            onDragEnd = {
-                                if (predictiveBackProgress.value > 0.18f) {
-                                    handleClose()
-                                } else {
-                                    scope.launch {
-                                        predictiveBackProgress.animateTo(
-                                            0f,
-                                            spring(
-                                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                                stiffness = Spring.StiffnessMediumLow
-                                            )
-                                        )
-                                    }
-                                }
-                            },
-                            onDragCancel = {
-                                scope.launch {
-                                    predictiveBackProgress.animateTo(
-                                        0f,
-                                        spring(
-                                            dampingRatio = Spring.DampingRatioLowBouncy,
-                                            stiffness = Spring.StiffnessMediumLow
-                                        )
-                                    )
-                                }
-                            },
-                            onVerticalDrag = { change, dragAmount ->
-                                change.consume()
-                                val delta = dragAmount / sheetCollapsedTargetY
-                                scope.launch {
-                                    predictiveBackProgress.snapTo(
-                                        (predictiveBackProgress.value + delta).coerceIn(0f, 1f)
-                                    )
-                                }
-                            }
-                        )
-                    },
+                    .then(verticalDragModifier),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -595,7 +599,8 @@ fun PixelPlayerScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f),
+                    .aspectRatio(1f)
+                    .then(if (!showLyrics) verticalDragModifier else Modifier),
                 contentAlignment = Alignment.Center
             ) {
                 // Cover Layer (Carousel with swipe animation)
