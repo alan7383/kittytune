@@ -143,8 +143,7 @@
                     MenuRowItem(
                         icon = Icons.Rounded.BarChart,
                         label = stringResource(R.string.profile_menu_listening_stats),
-                        onClick = { onDismiss(); onListeningStatsClick() },
-                        isNew = true
+                        onClick = { onDismiss(); onListeningStatsClick() }
                     )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
