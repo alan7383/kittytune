@@ -845,6 +845,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private val playerListener = object : Player.Listener {
+        override fun onEvents(player: Player, events: Player.Events) {
+            super.onEvents(player, events)
+            PlaybackService.updatePlayerState(player)
+        }
+
         override fun onPlayWhenReadyChanged(playWhenReadyState: Boolean, reason: Int) {
             playWhenReady = playWhenReadyState
         }
@@ -1028,40 +1033,53 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             val trackId = parseIdFromMediaId(mediaItem.mediaId)
 
-            val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
-            if (expectedTrackId != null && expectedTrackId != trackId) {
-                return
+            val confirmedTrack = _queue.find { it.id == trackId }
+                ?: MusicManager.currentTrack?.takeIf { it.id == trackId }
+                ?: run {
+                    val meta = mediaItem.mediaMetadata
+                    val source = if (mediaItem.mediaId.startsWith("yt_") || mediaItem.requestMetadata.mediaUri?.toString()
+                            ?.contains("youtube") == true
+                    ) "youtube" else "soundcloud"
+
+                    Track(
+                        id = trackId,
+                        title = meta.title?.toString() ?: "Unknown",
+                        durationMs = 0L,
+                        artworkUrl = meta.artworkUri?.toString(),
+                        user = User(0, meta.artist?.toString() ?: "Unknown", null),
+                        permalinkUrl = "",
+                        playbackCount = 0,
+                        likesCount = 0,
+                        repostsCount = 0,
+                        commentCount = 0,
+                        source = source
+                    )
+                }
+
+            val targetIndex = _queue.indexOfFirst { it.id == trackId }
+            if (targetIndex != -1) {
+                currentQueueIndex = targetIndex
             }
 
             if (currentTrack?.id != trackId) {
                 // Whatever was playing has ended, however it ended. The new track's session is opened by
                 // the progress loop, which knows the position it actually started from.
                 flushListenSession("TRACK_CHANGE")
-                loadTrimFor(MusicManager.currentTrack?.id)
+                loadTrimFor(trackId)
                 hasPushedRecentlyPlayed = false
             }
 
-            if (MusicManager.currentTrack?.id == trackId) {
-                currentTrack = MusicManager.currentTrack
-            } else if (currentTrack?.id != trackId) {
-                val meta = mediaItem.mediaMetadata
-                val source = if (mediaItem.mediaId.startsWith("yt_") || mediaItem.requestMetadata.mediaUri?.toString()
-                        ?.contains("youtube") == true
-                ) "youtube" else "soundcloud"
+            currentTrack = confirmedTrack
+            MusicManager.currentTrack = confirmedTrack
+            updatePlayerColors(confirmedTrack)
+            djFlowController.onTrackChanged(confirmedTrack)
+            feedHapticBeatGrid(confirmedTrack)
+            djFlowController.onQueueUpdated(_queue.toList(), currentQueueIndex)
 
-                currentTrack = Track(
-                    id = trackId,
-                    title = meta.title?.toString() ?: "Unknown",
-                    durationMs = 0L,
-                    artworkUrl = meta.artworkUri?.toString(),
-                    user = User(0, meta.artist?.toString() ?: "Unknown", null),
-                    permalinkUrl = "",
-                    playbackCount = 0,
-                    likesCount = 0,
-                    repostsCount = 0,
-                    commentCount = 0,
-                    source = source
-                )
+            viewModelScope.launch {
+                isLiked = LikeRepository.isTrackLiked(confirmedTrack.id)
+                loadLyrics(confirmedTrack)
+                AchievementManager.checkTrackNameSecret(confirmedTrack.title ?: "")
             }
         }
     }
@@ -1074,6 +1092,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         currentQueueIndex = -1
         currentTrack = null
         MusicManager.currentTrack = null
+        PlaybackService.resetPlayerState()
         currentContext = null
         _queue.clear()
         _originalQueue.clear()
@@ -1328,11 +1347,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             MusicManager.currentLyricsFlow.value = emptyList()
             rawPlainLyrics = null
 
-            val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
-            if (expectedTrackId != null && expectedTrackId != newTrack.id) {
-                return@trackChangeHandler
-            }
-
             var finalTrack = newTrack
 
             val currentMediaItem = MusicManager.player.currentMediaItem
@@ -1345,6 +1359,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             val foundInQueue = _queue.find { it.id == finalTrack.id }
             if (foundInQueue != null) {
                 finalTrack = foundInQueue
+                val queueIdx = _queue.indexOfFirst { it.id == finalTrack.id }
+                if (queueIdx != -1) {
+                    currentQueueIndex = queueIdx
+                }
             }
 
             currentTrack = finalTrack
@@ -1418,6 +1436,69 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 userPlaylists.addAll(sorted)
             }
         }
+
+        viewModelScope.launch {
+            PlaybackService.playerStateFlow.collect { playerState ->
+                val mediaItem = playerState.mediaItem ?: return@collect
+                val trackId = parseIdFromMediaId(mediaItem.mediaId)
+                if (trackId == 0L) return@collect
+
+                val matchedTrack = _queue.find { it.id == trackId }
+                    ?: MusicManager.currentTrack?.takeIf { it.id == trackId }
+                    ?: run {
+                        val meta = playerState.mediaMetadata
+                        val source = if (mediaItem.mediaId.startsWith("yt_") || mediaItem.requestMetadata.mediaUri?.toString()?.contains("youtube") == true) "youtube" else "soundcloud"
+                        Track(
+                            id = trackId,
+                            title = meta.title?.toString() ?: "Unknown",
+                            durationMs = playerState.durationMs,
+                            artworkUrl = meta.artworkUri?.toString(),
+                            user = User(0, meta.artist?.toString() ?: "Unknown", null),
+                            permalinkUrl = "",
+                            playbackCount = 0,
+                            likesCount = 0,
+                            repostsCount = 0,
+                            commentCount = 0,
+                            source = source
+                        )
+                    }
+
+                val targetIndex = _queue.indexOfFirst { it.id == trackId }
+                if (targetIndex != -1 && currentQueueIndex != targetIndex) {
+                    currentQueueIndex = targetIndex
+                }
+
+                if (currentTrack?.id != trackId) {
+                    flushListenSession("TRACK_CHANGE")
+                    loadTrimFor(trackId)
+                    hasPushedRecentlyPlayed = false
+                    currentTrack = matchedTrack
+                    MusicManager.currentTrack = matchedTrack
+                    updatePlayerColors(matchedTrack)
+                    djFlowController.onTrackChanged(matchedTrack)
+                    feedHapticBeatGrid(matchedTrack)
+                    djFlowController.onQueueUpdated(_queue.toList(), currentQueueIndex)
+
+                    viewModelScope.launch {
+                        isLiked = LikeRepository.isTrackLiked(matchedTrack.id)
+                        loadLyrics(matchedTrack)
+                        AchievementManager.checkTrackNameSecret(matchedTrack.title ?: "")
+                    }
+                }
+
+                isPlaying = playerState.isPlaying
+                playWhenReady = playerState.playWhenReady
+                if (playerState.durationMs > 0L) {
+                    duration = playerState.durationMs
+                }
+                if (playerState.playbackState == Player.STATE_READY) {
+                    isLoading = false
+                } else if (playerState.playbackState == Player.STATE_BUFFERING) {
+                    isLoading = true
+                }
+            }
+        }
+
         restoreSession()
         syncWithCurrentPlayback()
     }
@@ -1431,6 +1512,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val activePlayer = MusicManager.player
         activePlayer.addListener(playerListener)
         boundPlayer = activePlayer
+        PlaybackService.updatePlayerState(activePlayer)
 
         try {
             isPlaying = activePlayer.isPlaying
@@ -3536,12 +3618,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         loadTrimFor(trackToPlay.id)
         hasPushedRecentlyPlayed = false
 
-        currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
-        djFlowController.onTrackChanged(trackToPlay)
-        feedHapticBeatGrid(trackToPlay)
         djFlowController.onQueueUpdated(_queue.toList(), currentQueueIndex)
-        val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
-        startServiceSafe(context, intent)
 
         trackInitJob = viewModelScope.launch {
             var finalTrack = trackToPlay
@@ -3581,11 +3658,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
             }
+            if (!isActive || (currentTrack != null && currentTrack?.id != trackToPlay.id)) return@launch
 
-            if (!isActive || currentTrack?.id != trackToPlay.id) return@launch
-
-            currentTrack = finalTrack
-            MusicManager.currentTrack = finalTrack
+            if (currentTrack?.id == finalTrack.id || currentTrack == null) {
+                currentTrack = finalTrack
+                MusicManager.currentTrack = finalTrack
+            }
             isLiked = LikeRepository.isTrackLiked(finalTrack.id)
             loadLyrics(finalTrack)
             AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")

@@ -28,9 +28,23 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import android.app.PendingIntent
+
+data class ConsolidatedPlayerState(
+    val mediaItem: androidx.media3.common.MediaItem? = null,
+    val mediaItemIndex: Int = androidx.media3.common.C.INDEX_UNSET,
+    val playbackState: Int = Player.STATE_IDLE,
+    val isPlaying: Boolean = false,
+    val playWhenReady: Boolean = false,
+    val durationMs: Long = 0L,
+    val currentPositionMs: Long = 0L,
+    val mediaMetadata: androidx.media3.common.MediaMetadata = androidx.media3.common.MediaMetadata.EMPTY
+)
 
 class PlaybackService : MediaLibraryService() {
 
@@ -44,6 +58,42 @@ class PlaybackService : MediaLibraryService() {
         const val ACTION_WIDGET_LIKE = "com.alananasss.kittytune.ACTION_WIDGET_LIKE"
         const val CUSTOM_ACTION_LIKE = "com.alananasss.kittytune.CUSTOM_ACTION_LIKE"
         const val CUSTOM_ACTION_REPEAT = "com.alananasss.kittytune.CUSTOM_ACTION_REPEAT"
+
+        private val _playerStateFlow = MutableStateFlow(ConsolidatedPlayerState())
+        val playerStateFlow: StateFlow<ConsolidatedPlayerState> = _playerStateFlow.asStateFlow()
+
+        fun updatePlayerState(player: Player) {
+            val state = extractConsolidatedPlayerState(player)
+            if (state != null) {
+                _playerStateFlow.value = state
+            }
+        }
+
+        fun resetPlayerState() {
+            _playerStateFlow.value = ConsolidatedPlayerState()
+        }
+
+        fun extractConsolidatedPlayerState(player: Player): ConsolidatedPlayerState? {
+            val itemCount = player.mediaItemCount
+            val currentIndex = player.currentMediaItemIndex
+            val currentItem = player.currentMediaItem
+
+            // Intermediate State Guard: Filter out transient -1 / null indices during batch queue replacements
+            if (itemCount > 0 && (currentIndex < 0 || currentIndex >= itemCount || currentItem == null)) {
+                return null
+            }
+
+            return ConsolidatedPlayerState(
+                mediaItem = currentItem,
+                mediaItemIndex = currentIndex,
+                playbackState = player.playbackState,
+                isPlaying = player.isPlaying,
+                playWhenReady = player.playWhenReady,
+                durationMs = if (player.duration > 0) player.duration else 0L,
+                currentPositionMs = player.currentPosition.coerceAtLeast(0L),
+                mediaMetadata = currentItem?.mediaMetadata ?: player.mediaMetadata
+            )
+        }
     }
 
     private var mediaSession: MediaLibrarySession? = null
@@ -135,20 +185,35 @@ class PlaybackService : MediaLibraryService() {
             .build()
 
         val serviceListener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) { requestUpdate(delayed = true) }
-            override fun onIsPlayingChanged(isPlaying: Boolean) { requestUpdate(delayed = false) }
-            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) { requestUpdate(delayed = false) }
+            override fun onEvents(player: Player, events: Player.Events) {
+                updatePlayerState(player)
+            }
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                updatePlayerState(MusicManager.player)
+                requestUpdate(delayed = true)
+            }
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updatePlayerState(MusicManager.player)
+                requestUpdate(delayed = false)
+            }
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                updatePlayerState(MusicManager.player)
+                requestUpdate(delayed = false)
+            }
             override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
                 super.onPlaybackParametersChanged(playbackParameters)
+                updatePlayerState(MusicManager.player)
                 requestUpdate(delayed = false)
             }
             override fun onRepeatModeChanged(repeatMode: Int) {
                 super.onRepeatModeChanged(repeatMode)
+                updatePlayerState(MusicManager.player)
                 requestUpdate(delayed = false)
             }
         }
 
         MusicManager.player.addListener(serviceListener)
+        updatePlayerState(MusicManager.player)
 
         serviceScope.launch {
             MusicManager.onPlayerSwappedFlow.collect { swappedCount ->
@@ -156,6 +221,7 @@ class PlaybackService : MediaLibraryService() {
                     MusicManager.lastPlayer?.removeListener(serviceListener)
                     MusicManager.player.addListener(serviceListener)
                     mediaSession?.player = createForwardingPlayer()
+                    updatePlayerState(MusicManager.player)
                 }
             }
         }
@@ -306,6 +372,7 @@ class PlaybackService : MediaLibraryService() {
             player.stop()
             player.clearMediaItems()
             MusicManager.currentTrack = null
+            resetPlayerState()
             MusicWidget.update(this)
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             stopSelf()
