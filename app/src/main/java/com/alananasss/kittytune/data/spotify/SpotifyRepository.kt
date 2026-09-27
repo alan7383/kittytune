@@ -1046,11 +1046,15 @@ object SpotifyRepository {
             artistsList.addAll(parseArtistList(generalArtists))
         }
 
+        val distinctArtists = artistsList
+            .filter { it.name.isNotBlank() }
+            .distinctBy { (it.id.ifBlank { it.name }).trim().lowercase() }
+
         return SpotifyTrack(
             id = id,
             name = name,
             durationMs = durationMs,
-            artists = artistsList,
+            artists = distinctArtists,
             albumName = albumName,
             albumId = albumId,
             artworkUrl = artworkUrl,
@@ -1093,6 +1097,8 @@ object SpotifyRepository {
             }
         }
         return list
+            .filter { it.name.isNotBlank() }
+            .distinctBy { (it.id.ifBlank { it.name }).trim().lowercase() }
     }
 
     private fun extractCoverArt(coverArtNode: JSONObject?): String? {

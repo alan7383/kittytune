@@ -49,11 +49,25 @@ data class SpotifyTrack(
     val publisher: String? = null
 ) {
     val artistName: String
-        get() = artists.joinToString(", ") { it.name }.ifBlank { "Unknown Artist" }
+        get() = artists
+            .map { it.name.trim() }
+            .filter { it.isNotBlank() }
+            .flatMap { name ->
+                val deduped = com.alananasss.kittytune.domain.deduplicateArtistString(name)
+                if (deduped.contains(",")) {
+                    deduped.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                } else {
+                    listOf(deduped)
+                }
+            }
+            .distinctBy { it.lowercase() }
+            .joinToString(", ")
+            .ifBlank { "Unknown Artist" }
 
     fun toTrack(): Track {
         val stableId = abs(id.hashCode().toLong() shl 16 or (id.reversed().hashCode().toLong() and 0xFFFFL))
-        val firstArtist = artists.firstOrNull()
+        val distinctArtists = artists.filter { it.name.isNotBlank() }.distinctBy { it.name.trim().lowercase() }
+        val firstArtist = distinctArtists.firstOrNull() ?: artists.firstOrNull()
         return Track(
             id = stableId,
             title = name,
@@ -81,7 +95,7 @@ data class SpotifyTrack(
             streamable = isPlayable,
             playCount = playCount,
             playbackCount = (playCount?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt() ?: 0),
-            artists = artists
+            artists = distinctArtists.ifEmpty { artists }
         )
     }
 }
@@ -97,7 +111,20 @@ data class SpotifyAlbum(
     val tracks: List<SpotifyTrack> = emptyList()
 ) {
     val artistName: String
-        get() = artists.joinToString(", ") { it.name }.ifBlank { "Unknown Artist" }
+        get() = artists
+            .map { it.name.trim() }
+            .filter { it.isNotBlank() }
+            .flatMap { name ->
+                val deduped = com.alananasss.kittytune.domain.deduplicateArtistString(name)
+                if (deduped.contains(",")) {
+                    deduped.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                } else {
+                    listOf(deduped)
+                }
+            }
+            .distinctBy { it.lowercase() }
+            .joinToString(", ")
+            .ifBlank { "Unknown Artist" }
 
     val formattedSubtitle: String
         get() {

@@ -2310,7 +2310,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             UnifiedLyricResult(
                                 it.id.toString(),
                                 it.title ?: "",
-                                it.artist,
+                                com.alananasss.kittytune.domain.deduplicateArtistString(it.artist),
                                 it.releaseDate,
                                 0.0,
                                 false,
@@ -2325,7 +2325,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             UnifiedLyricResult(
                                 it.id.toString(),
                                 it.name,
-                                it.artistName,
+                                com.alananasss.kittytune.domain.deduplicateArtistString(it.artistName),
                                 it.albumName,
                                 it.duration,
                                 !it.syncedLyrics.isNullOrEmpty(),
@@ -2340,7 +2340,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             UnifiedLyricResult(
                                 it.trackId.toString(),
                                 it.trackName,
-                                it.artistName,
+                                com.alananasss.kittytune.domain.deduplicateArtistString(it.artistName),
                                 it.albumName,
                                 it.trackLength.toDouble(),
                                 it.hasSubtitles == 1,
@@ -2356,7 +2356,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             UnifiedLyricResult(
                                 id = vId,
                                 name = it.title ?: query,
-                                artistName = it.artist ?: "",
+                                artistName = com.alananasss.kittytune.domain.deduplicateArtistString(it.artist ?: ""),
                                 albumName = it.album,
                                 durationSec = (it.duration ?: 0).toDouble(),
                                 hasLineSync = true,
@@ -2401,7 +2401,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                     UnifiedLyricResult(
                                         id = query,
                                         name = matchedTitle,
-                                        artistName = matchedArtist.ifBlank { trackArtist },
+                                        artistName = com.alananasss.kittytune.domain.deduplicateArtistString(matchedArtist.ifBlank { trackArtist }),
                                         albumName = trackAlbum,
                                         durationSec = ((currentTrack?.actualDurationMs ?: 0L) / 1000.0),
                                         hasLineSync = raw.contains("[0") || raw.contains("[1") || raw.contains("begin="),

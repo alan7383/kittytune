@@ -662,7 +662,7 @@ object QobuzAudioProvider {
                 artists.optJSONObject(index)?.stringOrNull("name")?.let(names::add)
             }
         }
-        return names.distinct()
+        return names.map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }
     }
 
     private fun hasVersionMismatch(

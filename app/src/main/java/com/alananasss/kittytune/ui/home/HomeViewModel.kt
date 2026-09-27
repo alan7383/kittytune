@@ -510,7 +510,7 @@
                                     avatarUrl = matched.avatarUrl ?: a.avatarUrl
                                 )
                             } else a
-                        }
+                        }.filter { it.name.isNotBlank() }.distinctBy { (it.id.ifBlank { it.name }).trim().lowercase() }
                         val firstA = enrichedArtists.firstOrNull()
                         val baseTrack = track.copy(artists = enrichedArtists).toTrack()
                         if (firstA != null) {

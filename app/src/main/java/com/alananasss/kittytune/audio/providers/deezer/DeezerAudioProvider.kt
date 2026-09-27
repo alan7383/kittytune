@@ -1518,7 +1518,7 @@ object DeezerAudioProvider {
                 array.optJSONObject(index)?.stringOrNull("name")?.takeIf { it.isNotBlank() }?.let(names::add)
             }
         }
-        return names.distinct()
+        return names.map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }
     }
 
     private fun String?.normalized(): String =

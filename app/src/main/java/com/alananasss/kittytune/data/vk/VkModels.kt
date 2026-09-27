@@ -148,9 +148,10 @@ data class VkAudioItem(
 
     val displayArtists: String
         get() {
-            val names = (mainArtists.map { it.name } + featArtists.map { it.name })
+            val names = (mainArtists.map { it.name.trim() } + featArtists.map { it.name.trim() })
                 .filter { it.isNotBlank() }
-            return if (names.isEmpty()) performer else names.joinToString(", ")
+                .distinctBy { it.lowercase() }
+            return if (names.isEmpty()) com.alananasss.kittytune.domain.deduplicateArtistString(performer) else names.joinToString(", ")
         }
 
     fun toTrack(): Track {
@@ -176,7 +177,9 @@ data class VkAudioItem(
             )
         } ?: emptyList()
 
-        val allArtists = (mainArtists + featArtists).filter { it.name.isNotBlank() }
+        val allArtists = (mainArtists + featArtists)
+            .filter { it.name.isNotBlank() }
+            .distinctBy { (it.slug?.takeIf { s -> s.isNotBlank() } ?: it.name).trim().lowercase() }
         val mappedArtists = if (allArtists.isNotEmpty()) {
             allArtists.map { vkArt ->
                 com.alananasss.kittytune.data.spotify.SpotifyArtistRef(

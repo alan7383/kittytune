@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.ui.player.lyrics
 
 import androidx.activity.compose.BackHandler
+import com.alananasss.kittytune.domain.deduplicateArtistString
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -224,7 +225,7 @@ fun LyricsScreen(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = currentTrack.user?.username ?: "",
+                                            text = currentTrack.displayArtist.ifBlank { currentTrack.user?.username.orEmpty() },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = Color.White.copy(alpha = 0.7f),
                                             maxLines = 1,
@@ -1068,7 +1069,7 @@ fun SearchLyricsView(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(result.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(result.artistName, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(0.7f))
+                            Text(deduplicateArtistString(result.artistName), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(0.7f))
                             if (!result.albumName.isNullOrEmpty()) {
                                 Text(result.albumName, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(0.5f), maxLines = 1)
                             }

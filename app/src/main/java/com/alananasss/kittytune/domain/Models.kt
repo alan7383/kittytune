@@ -488,10 +488,7 @@ data class Track(
     val artists: List<com.alananasss.kittytune.data.spotify.SpotifyArtistRef>? = null
 ) {
     val displayArtist: String
-        get() = artists?.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.name }?.takeIf { it.isNotBlank() }
-            ?: publisherMetadata?.artist?.takeIf { it.isNotBlank() }
-            ?: user?.username?.takeIf { it.isNotBlank() }
-            ?: ""
+        get() = formatDeduplicatedArtists(artists, publisherMetadata?.artist, user?.username)
 
     val actualDurationMs: Long
         get() {
@@ -511,6 +508,120 @@ data class Track(
             if (user != null && user.avatarUrl != null) return user.avatarUrl.replace("large", "t500x500")
             return "https://picsum.photos/200"
         }
+}
+
+private val PRESERVED_ARTIST_NAMES_WITH_COMMA = setOf(
+    "tyler, the creator",
+    "earth, wind & fire",
+    "crosby, stills, nash & young",
+    "crosby, stills & nash",
+    "emerson, lake & palmer",
+    "bell biv devoe",
+    "blood, sweat & tears",
+    "spanky & our gang",
+    "peter, paul and mary",
+    "tony! toni! toné!",
+    "kool & the gang"
+)
+
+fun deduplicateArtistString(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isBlank()) return ""
+
+    if (PRESERVED_ARTIST_NAMES_WITH_COMMA.contains(trimmed.lowercase())) {
+        return trimmed
+    }
+
+    var protectedStr = trimmed
+    val replacements = mutableListOf<Pair<String, String>>()
+    for (preserved in PRESERVED_ARTIST_NAMES_WITH_COMMA) {
+        val regex = Regex(Regex.escape(preserved), RegexOption.IGNORE_CASE)
+        val match = regex.find(protectedStr)
+        if (match != null) {
+            val placeholder = "__PRESERVED_${replacements.size}__"
+            replacements.add(placeholder to match.value)
+            protectedStr = protectedStr.replace(regex, placeholder)
+        }
+    }
+
+    val delimiterRegex = Regex("""\s*[,;/]\s*""")
+    val parts = protectedStr.split(delimiterRegex).map { it.trim() }.filter { it.isNotBlank() }
+    if (parts.size > 1) {
+        val distinct = parts.distinctBy { it.lowercase() }
+        if (distinct.size < parts.size) {
+            val restored = distinct.joinToString(", ") { part ->
+                var res = part
+                for ((ph, orig) in replacements) {
+                    res = res.replace(ph, orig)
+                }
+                res
+            }
+            return restored
+        }
+    }
+
+    var restoredProtected = protectedStr
+    for ((ph, orig) in replacements) {
+        restoredProtected = restoredProtected.replace(ph, orig)
+    }
+
+    val collabRegex = Regex("""\s+(?:&|\+|x|feat\.?|ft\.?|featuring)\s+""", RegexOption.IGNORE_CASE)
+    val collabParts = restoredProtected.split(collabRegex).map { it.trim() }.filter { it.isNotBlank() }
+    if (collabParts.size > 1) {
+        val distinctCollab = collabParts.distinctBy { it.lowercase() }
+        if (distinctCollab.size == 1) {
+            return distinctCollab.first()
+        }
+    }
+
+    val dashRegex = Regex("""\s+[-–—]\s+""")
+    val dashParts = restoredProtected.split(dashRegex).map { it.trim() }.filter { it.isNotBlank() }
+    if (dashParts.size > 1) {
+        val distinctDash = dashParts.distinctBy { it.lowercase() }
+        if (distinctDash.size == 1) {
+            return distinctDash.first()
+        }
+    }
+
+    return trimmed
+}
+
+fun formatDeduplicatedArtists(
+    artists: List<com.alananasss.kittytune.data.spotify.SpotifyArtistRef>?,
+    publisherArtist: String?,
+    username: String?
+): String {
+    if (!artists.isNullOrEmpty()) {
+        val distinct = artists
+            .map { it.name.trim() }
+            .filter { it.isNotBlank() }
+            .flatMap { name ->
+                val deduped = deduplicateArtistString(name)
+                if (deduped.contains(",")) {
+                    deduped.split(",").map { it.trim() }.filter { it.isNotBlank() }
+                } else {
+                    listOf(deduped)
+                }
+            }
+            .distinctBy { it.lowercase() }
+        if (distinct.isNotEmpty()) {
+            return distinct.joinToString(", ")
+        }
+    }
+
+    val pub = publisherArtist?.trim()?.takeIf { it.isNotBlank() }
+    if (pub != null) {
+        val cleaned = deduplicateArtistString(pub)
+        if (cleaned.isNotBlank()) return cleaned
+    }
+
+    val u = username?.trim()?.takeIf { it.isNotBlank() }
+    if (u != null) {
+        val cleaned = deduplicateArtistString(u)
+        if (cleaned.isNotBlank()) return cleaned
+    }
+
+    return ""
 }
 
 data class TrackLikesResponse(val collection: List<TrackLikeItem>, val next_href: String?)

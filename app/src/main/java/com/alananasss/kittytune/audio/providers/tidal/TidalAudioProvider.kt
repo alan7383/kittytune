@@ -1961,7 +1961,7 @@ object TidalAudioProvider {
             }
         }
         optJSONObject("artist")?.stringOrNull("name")?.takeIf { it.isNotBlank() }?.let(names::add)
-        return names.distinct()
+        return names.map { it.trim() }.filter { it.isNotBlank() }.distinctBy { it.lowercase() }
     }
 
     private fun JSONObject.collectMediaTags(): Set<String> {

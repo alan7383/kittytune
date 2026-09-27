@@ -235,7 +235,7 @@ object ListeningStatsRepository {
                 restored = restored.replace(ph, original)
             }
             restored.takeIf { it.isNotBlank() }
-        }
+        }.distinctBy { it.lowercase() }
     }
 
     fun aggregateAndSplitTopArtists(raw: List<TopArtistResult>, limit: Int): List<TopArtistResult> {
