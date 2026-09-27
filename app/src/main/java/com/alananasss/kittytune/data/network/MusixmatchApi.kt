@@ -50,7 +50,10 @@ data class MxmSubtitleObj(@SerializedName("subtitle_body") val subtitleBody: Str
 data class MxmRichSyncBody(val richsync: MxmRichSyncObj?)
 data class MxmRichSyncObj(@SerializedName("richsync_body") val richsyncBody: String)
 data class MxmLyricsBody(val lyrics: MxmLyricsObj?)
-data class MxmLyricsObj(@SerializedName("lyrics_body") val lyricsBody: String)
+data class MxmLyricsObj(
+    @SerializedName("lyrics_body") val lyricsBody: String,
+    @SerializedName("lyrics_language") val lyricsLanguage: String? = null
+)
 
 data class MxmSubtitleLine(val time: MxmTime? = null, val text: String? = null)
 data class MxmTime(val total: Float = 0f)
@@ -276,6 +279,7 @@ object MusixmatchClient {
         val plainRes = try { api.getLyrics(trackId, token) } catch (e: Exception) { null }
 
         val plainText = plainRes?.message?.body?.lyrics?.lyricsBody?.replace("******* This Lyrics is NOT for Commercial use *******", "")?.trim()
+        val lyricsLang = plainRes?.message?.body?.lyrics?.lyricsLanguage
         val subtitleJson = subtitleRes?.message?.body?.subtitle?.subtitleBody
         val richSyncJson = richSyncRes?.message?.body?.richsync?.richsyncBody
 
@@ -304,12 +308,26 @@ object MusixmatchClient {
         }
         val uniqueOriginalLines = originalLines.distinct()
 
-        if (targetLang != null) {
+        // Check if the source language matches the target language, skip the translation
+        val isSameLanguage = when {
+            lyricsLang == null -> false
+            targetLang == null -> false
+            targetLang.equals(lyricsLang, ignoreCase = true) -> true
+            targetLang.length >= 2 && lyricsLang.length >= 2 &&
+                targetLang.take(2).equals(lyricsLang.take(2), ignoreCase = true) -> true
+            else -> false
+        }
+
+        if (targetLang != null && !isSameLanguage) {
             try {
                 val translationsRes = api.getTranslations(trackId = trackId, lang = targetLang, token = token)
                 translationsRes.message.body?.translationsList?.forEach { wrapper ->
                     wrapper.translation?.let { t ->
-                        translationMap[t.matchedLine.trim()] = t.description.trim()
+                        val orig = t.matchedLine.trim()
+                        val trans = t.description.trim()
+                        if (orig.isNotEmpty() && trans.isNotEmpty() && !orig.equals(trans, ignoreCase = true)) {
+                            translationMap[orig] = trans
+                        }
                     }
                 }
             } catch (e: Exception) { }

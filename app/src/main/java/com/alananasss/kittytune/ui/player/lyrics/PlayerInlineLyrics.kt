@@ -292,7 +292,7 @@ fun PlayerInlineLyrics(
                         )
                     }
 
-                    if (isTranslationEnabled && !cleanTranslation.isNullOrBlank()) {
+                    if (isTranslationEnabled && !cleanTranslation.isNullOrBlank() && !cleanTranslation.trim().equals(rawCleanText.trim(), ignoreCase = true)) {
                         Text(
                             text = cleanTranslation,
                             style = MaterialTheme.typography.bodySmall.copy(

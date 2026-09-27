@@ -8,11 +8,61 @@ object FreeTranslator {
     private val client: okhttp3.OkHttpClient
         get() = ProxyManager.getOkHttpClient()
 
+    /**
+     * Determines the script of the text for scripts with clear language mapping.
+     * Note: LATIN is deliberately omitted because English, French, Spanish, German,
+     * Italian, etc. all share the Latin alphabet and cannot be distinguished by script alone.
+     */
+    private fun detectScriptLanguage(text: String): String? {
+        if (text.isBlank()) return null
+        var cyrillic = 0; var cjk = 0; var arabic = 0
+        var hebrew = 0; var hangul = 0; var kana = 0; var devanagari = 0
+        var thai = 0; var greek = 0
+        for (c in text) {
+            when (Character.UnicodeScript.of(c.code)) {
+                Character.UnicodeScript.CYRILLIC -> cyrillic++
+                Character.UnicodeScript.HAN -> cjk++
+                Character.UnicodeScript.ARABIC -> arabic++
+                Character.UnicodeScript.HEBREW -> hebrew++
+                Character.UnicodeScript.HANGUL -> hangul++
+                Character.UnicodeScript.HIRAGANA,
+                Character.UnicodeScript.KATAKANA -> kana++
+                Character.UnicodeScript.DEVANAGARI -> devanagari++
+                Character.UnicodeScript.THAI -> thai++
+                Character.UnicodeScript.GREEK -> greek++
+                else -> {}
+            }
+        }
+        val candidates = listOf(
+            "ru" to cyrillic, "zh" to cjk, "ja" to kana,
+            "ko" to hangul, "ar" to arabic, "he" to hebrew,
+            "hi" to devanagari, "th" to thai, "el" to greek,
+        )
+        val total = candidates.sumOf { it.second }
+        if (total < 5) return null
+        val best = candidates.maxByOrNull { it.second } ?: return null
+        return if (best.second.toFloat() / total >= 0.6f) best.first else null
+    }
+
+    private fun normalizeLanguage(code: String?): String? {
+        if (code.isNullOrBlank()) return null
+        val trimmed = code.trim()
+        return if (trimmed.length >= 2) trimmed.take(2).lowercase() else null
+    }
+
     suspend fun translateMissing(
         linesToTranslate: List<String>,
         targetLang: String
     ): Map<String, String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         if (linesToTranslate.isEmpty()) return@withContext emptyMap()
+
+        // Quick check: if the non-Latin script of the text already matches target language, skip translation
+        val sample = linesToTranslate.joinToString(" ").take(2000)
+        val detectedScript = detectScriptLanguage(sample)
+        val normalizedTarget = normalizeLanguage(targetLang)
+        if (detectedScript != null && normalizedTarget != null && detectedScript == normalizedTarget) {
+            return@withContext emptyMap()
+        }
 
         val resultMap = mutableMapOf<String, String>()
 
@@ -37,6 +87,16 @@ object FreeTranslator {
             }
             if (body != null) {
                 val rootArray = com.google.gson.JsonParser.parseString(body).asJsonArray
+
+                // Check Google's detected source language (usually at index 2 of rootArray)
+                val detectedLang = if (rootArray.size() > 2 && rootArray.get(2).isJsonPrimitive) {
+                    normalizeLanguage(rootArray.get(2).asString)
+                } else null
+
+                if (detectedLang != null && normalizedTarget != null && detectedLang == normalizedTarget) {
+                    return@withContext emptyMap()
+                }
+
                 val textBlocks = rootArray.get(0).asJsonArray
 
                 val translatedFull = java.lang.StringBuilder()
@@ -49,7 +109,7 @@ object FreeTranslator {
                 for (i in 0 until minOf(linesToTranslate.size, translatedLines.size)) {
                     val original = linesToTranslate[i].trim()
                     val translated = translatedLines[i].trim()
-                    if (original.isNotEmpty() && translated.isNotEmpty()) {
+                    if (original.isNotEmpty() && translated.isNotEmpty() && !original.equals(translated, ignoreCase = true)) {
                         resultMap[original] = translated
                     }
                 }

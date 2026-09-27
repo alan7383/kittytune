@@ -1663,7 +1663,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 for (i in lyricsLines.indices) {
                     val oldLine = lyricsLines[i]
                     val newTranslation = translationMap[oldLine.text.trim()]
-                    if (newTranslation != null) {
+                    if (newTranslation != null && !newTranslation.trim().equals(oldLine.text.trim(), ignoreCase = true)) {
                         lyricsLines[i] = oldLine.copy(translation = newTranslation)
                     }
                 }
@@ -2205,9 +2205,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             emptyMap()
         }
         return lines.map { line ->
+            val trans = (line.translation ?: translations[line.text.trim()])
+                ?.takeIf { !it.trim().equals(line.text.trim(), ignoreCase = true) }
+            val rom = (line.romanization ?: romanizations[line.text.trim()])
+                ?.takeIf { !it.trim().equals(line.text.trim(), ignoreCase = true) }
             line.copy(
-                translation = line.translation ?: translations[line.text.trim()],
-                romanization = line.romanization ?: romanizations[line.text.trim()],
+                translation = trans,
+                romanization = rom,
             )
         }
     }

@@ -599,7 +599,9 @@ private fun buildSyncedLyrics(
 
             val cleanLineText = LyricsUtils.decodeHtmlEntities(line.text)
             val cleanTranslation = line.translation?.let(LyricsUtils::decodeHtmlEntities)
+                ?.takeIf { !it.trim().equals(cleanLineText.trim(), ignoreCase = true) }
             val cleanRomanization = line.romanization?.let(LyricsUtils::decodeHtmlEntities)
+                ?.takeIf { !it.trim().equals(cleanLineText.trim(), ignoreCase = true) }
 
             if (cleanRomanization != null) {
                 val syllables = buildWrappingKaraokeSyllables(

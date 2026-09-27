@@ -774,7 +774,9 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                         )
                     }
                     AnimatedVisibility(
-                        visible = viewModel.isLyricsTranslationEnabled && !line.translation.isNullOrBlank(),
+                        visible = viewModel.isLyricsTranslationEnabled
+                                && !line.translation.isNullOrBlank()
+                                && !line.translation.trim().equals(line.text.trim(), ignoreCase = true),
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
