@@ -1756,11 +1756,10 @@ fun MainScreen(
                             navController.navigate("profile/$it")
                         }
                     },
-                    onNotificationsClick = { navController.navigate("notifications") },
-                    onMessagesClick = { navController.navigate("conversations") },
                     onAchievementsClick = { navController.navigate("achievements") },
                     onListeningStatsClick = { navController.navigate("listening_stats") },
                     onSettingsClick = { navController.navigate("settings") },
+                    onAboutClick = { navController.navigate("about") },
                     onLogoutClick = {
                         if (isGuest) {
                             navController.navigate(Screen.Login.route)

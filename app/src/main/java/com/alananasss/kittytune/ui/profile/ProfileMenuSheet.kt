@@ -10,10 +10,8 @@
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.rounded.Logout
     import androidx.compose.material.icons.rounded.BarChart
-    import androidx.compose.material.icons.rounded.Close
     import androidx.compose.material.icons.rounded.EmojiEvents
-    import androidx.compose.material.icons.rounded.Notifications
-    import androidx.compose.material.icons.rounded.Mail
+    import androidx.compose.material.icons.rounded.Info
     import androidx.compose.material.icons.rounded.Settings
     import androidx.compose.material3.*
     import androidx.compose.runtime.Composable
@@ -34,11 +32,10 @@
         isGuest: Boolean,
         onDismiss: () -> Unit,
         onViewProfile: () -> Unit,
-        onNotificationsClick: () -> Unit,
-        onMessagesClick: () -> Unit,
         onAchievementsClick: () -> Unit,
         onListeningStatsClick: () -> Unit,
         onSettingsClick: () -> Unit,
+        onAboutClick: () -> Unit,
         onLogoutClick: () -> Unit
     ) {
         Column(
@@ -57,10 +54,16 @@
 
             Spacer(Modifier.height(16.dp))
 
+            // Profile card — tapping avatar or name opens the profile, logout button lives inside
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (!isGuest) Modifier.clickable { onDismiss(); onViewProfile() }
+                        else Modifier
+                    )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -78,7 +81,7 @@
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = if(isGuest) "G" else user?.username?.take(1)?.uppercase() ?: "U",
+                                    text = if (isGuest) "G" else user?.username?.take(1)?.uppercase() ?: "U",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -102,28 +105,20 @@
                             )
                         }
 
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Rounded.Close, stringResource(R.string.btn_close))
-                        }
-                    }
-
-                    Spacer(Modifier.height(16.dp))
-
-                    if (!isGuest) {
-                        OutlinedButton(
-                            onClick = { onDismiss(); onViewProfile() },
-                            modifier = Modifier.fillMaxWidth(),
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            Text(stringResource(R.string.profile_menu_manage_account))
-                        }
-                    } else {
-                        OutlinedButton(
-                            onClick = { onDismiss(); onLogoutClick() },
-                            modifier = Modifier.fillMaxWidth(),
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            Text(stringResource(R.string.profile_menu_login))
+                        // Logout button lives here — adaptive red that fits the current theme
+                        if (!isGuest) {
+                            IconButton(onClick = { onDismiss(); onLogoutClick() }) {
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.Logout,
+                                    contentDescription = stringResource(R.string.profile_menu_logout),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        } else {
+                            // Guest: show login button instead
+                            TextButton(onClick = { onDismiss(); onLogoutClick() }) {
+                                Text(stringResource(R.string.profile_menu_login))
+                            }
                         }
                     }
                 }
@@ -137,28 +132,6 @@
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
-                    if (!isGuest) {
-                        MenuRowItem(
-                            icon = Icons.Rounded.Notifications,
-                            label = stringResource(R.string.profile_menu_notifications),
-                            onClick = {
-                                onDismiss()
-                                onNotificationsClick()
-                            }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-                    }
-
-                    MenuRowItem(
-                        icon = Icons.Rounded.Mail,
-                        label = stringResource(R.string.profile_menu_messages),
-                        onClick = {
-                            onDismiss()
-                            onMessagesClick()
-                        }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
-
                     MenuRowItem(
                         icon = Icons.Rounded.EmojiEvents,
                         label = stringResource(R.string.profile_menu_achievements),
@@ -184,13 +157,11 @@
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
 
-                    if (!isGuest) {
-                        MenuRowItem(
-                            icon = Icons.AutoMirrored.Rounded.Logout,
-                            label = stringResource(R.string.profile_menu_logout),
-                            onClick = { onDismiss(); onLogoutClick() }
-                        )
-                    }
+                    MenuRowItem(
+                        icon = Icons.Rounded.Info,
+                        label = stringResource(R.string.profile_about),
+                        onClick = { onDismiss(); onAboutClick() }
+                    )
                 }
             }
         }
@@ -223,4 +194,3 @@
             }
         }
     }
-
