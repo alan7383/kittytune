@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.*
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
@@ -775,7 +776,14 @@ fun PlayerScreen(
         onDispose { viewModel.isDjBeatUiVisible = false }
     }
 
-    androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .semantics { }
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {})
+            }
+    ) {
         when (playerDesign) {
             com.alananasss.kittytune.data.local.PlayerDesign.PIXEL_PLAYER -> {
                 com.alananasss.kittytune.ui.player.pixel.PixelPlayerScreen(viewModel, onClose)

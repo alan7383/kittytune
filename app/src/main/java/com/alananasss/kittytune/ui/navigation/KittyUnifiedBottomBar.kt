@@ -8,6 +8,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.shape.CircleShape
@@ -21,8 +22,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -87,13 +91,19 @@ fun KittyUnifiedBottomBar(
 
     if (style == "classic") {
         Column(
-            modifier = modifier.fillMaxWidth()
+            modifier = modifier
+                .fillMaxWidth()
+                .semantics { }
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {})
+                }
         ) {
             if (track != null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(64.dp)
+                        .clipToBounds()
                         .systemGestureExclusion()
                         .graphicsLayer {
                             translationX = offsetAnimatable.value
@@ -205,6 +215,10 @@ fun KittyUnifiedBottomBar(
             modifier = modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .semantics { }
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {})
+                }
                 .padding(horizontal = 12.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -214,6 +228,7 @@ fun KittyUnifiedBottomBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(64.dp)
+                        .clipToBounds()
                         .systemGestureExclusion()
                         .graphicsLayer {
                             translationX = offsetAnimatable.value
