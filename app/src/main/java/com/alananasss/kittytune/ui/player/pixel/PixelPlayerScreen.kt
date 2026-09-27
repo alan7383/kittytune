@@ -168,7 +168,6 @@ fun PixelPlayerScreen(
                 animationSpec = tween(150, easing = LinearEasing)
             )
             onClose()
-            predictiveBackProgress.snapTo(0f)
         }
     }
 

@@ -834,6 +834,12 @@ fun NewPlayerScreen(
     }
     val dismissProgress = remember { Animatable(0f) }
 
+    LaunchedEffect(viewModel.isPlayerExpanded) {
+        if (viewModel.isPlayerExpanded) {
+            dismissProgress.snapTo(0f)
+        }
+    }
+
     val handleClose: () -> Unit = {
         scope.launch {
             dismissProgress.animateTo(
@@ -841,7 +847,6 @@ fun NewPlayerScreen(
                 animationSpec = tween(150, easing = LinearEasing)
             )
             onClose()
-            dismissProgress.snapTo(0f)
         }
     }
 
