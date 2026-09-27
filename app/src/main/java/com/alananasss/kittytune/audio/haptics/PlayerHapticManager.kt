@@ -101,6 +101,88 @@ class PlayerHapticManager private constructor(context: Context) {
     private val oemMapper = OEMHapticMapper()
     private val modeSelector = ContinuousModeSelector()
 
+    /**
+     * Output latency measurement. The processor analyses audio that is still queued, so a
+     * vibration fired at analysis time lands ahead of the sound it belongs to.
+     */
+    private val latencyEstimator = HapticLatencyEstimator()
+
+    /** Contrast shaping, so a drop lands instead of disappearing into constant buzzing. */
+    private val dynamics = HapticDynamics()
+
+    /** Vendor-tuned primitives where the motor supports them. Null until a vibrator exists. */
+    private var primitivesCache: HapticPrimitivePalette? = null
+
+    private fun primitivePalette(): HapticPrimitivePalette? {
+        primitivesCache?.let { return it }
+        val v = getVibrator() ?: return null
+        return HapticPrimitivePalette(v).also { primitivesCache = it }
+    }
+
+    private var lastShapedBeatAt: Long = 0
+
+    /**
+     * Analysed beat grid of the playing track, when one exists and was trusted.
+     *
+     * Null on unanalysed material, which is not a failure state: the energy detector alone is
+     * what shipped before, and it still runs. The grid only makes it stricter and better timed.
+     */
+    @Volatile
+    private var beatGrid: BeatHapticGrid? = null
+
+    /** Audible position, kept for asking the grid where we are. */
+    @Volatile
+    private var audiblePositionMs: Long = 0
+
+    @Volatile
+    private var audiblePositionStampMs: Long = 0
+
+    /**
+     * Media position of the audio currently being analysed.
+     *
+     * This, not the audible position, is where a detected transient actually lives: the
+     * processor reads audio roughly half a second before anyone hears it. Asking the beat grid
+     * about the audible position would check a point ~1.5 beats behind the transient, so the
+     * gate would pass and reject essentially at random.
+     */
+    @Volatile
+    private var writtenSinceFlushMs: Long = 0
+
+    /**
+     * Media position the processor's frame counter starts from.
+     *
+     * The counter resets on every flush - a seek, a track change - so on its own it says "how
+     * much audio since the flush", not "where in the track". Resuming at 2:00 would leave the
+     * counter at zero while the player reports 120000, and every comparison between them would
+     * be nonsense. Anchoring it to the position at flush time makes it a media position again.
+     */
+    @Volatile
+    private var writtenOriginMs: Long = 0
+
+    /**
+     * True on a 16-beat phrase line, which is where a build-up resolves. Counted from the grid's
+     * own anchor so it agrees with the engine's phrase boundaries.
+     */
+    private fun isPhraseLine(grid: BeatHapticGrid, positionMs: Long): Boolean {
+        if (!grid.isUsable) return false
+        val elapsed = (positionMs - grid.anchorMs).toDouble()
+        val beatIndex = Math.round(elapsed / grid.periodMs)
+        return Math.floorMod(beatIndex, BEATS_PER_PHRASE.toLong()) == 0L
+    }
+
+    /** Media position of the audio currently being analysed. */
+    private fun writtenMediaMs(): Long = writtenOriginMs + writtenSinceFlushMs
+
+    /** Delivers the delayed vibrations. One thread, so the order of transients is preserved. */
+    private val hapticScheduler by lazy {
+        android.os.HandlerThread("haptic-sched").apply { start() }
+    }
+    private val hapticHandler by lazy { android.os.Handler(hapticScheduler.looper) }
+
+    private val BEATS_PER_PHRASE = 16
+
+    private var lastLoggedLead: Long = -1
+
     private var lastTransientTime: Long = 0
     private var lastTriggeredKickTime: Long = 0
 
@@ -113,6 +195,11 @@ class PlayerHapticManager private constructor(context: Context) {
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
         when (key) {
+            PlayerPreferences.KEY_HAPTICS_CONTRAST -> {
+                dynamics.contrast = sharedPreferences.getFloat(
+                    PlayerPreferences.KEY_HAPTICS_CONTRAST, HapticDynamics.DEFAULT_CONTRAST
+                )
+            }
             PlayerPreferences.KEY_HAPTICS_ENABLED -> {
                 val enabled = sharedPreferences.getBoolean(PlayerPreferences.KEY_HAPTICS_ENABLED, false)
                 setHapticsEnabled(enabled)
@@ -166,6 +253,9 @@ class PlayerHapticManager private constructor(context: Context) {
             prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         }
         isHapticsEnabled = prefs?.getBoolean(PlayerPreferences.KEY_HAPTICS_ENABLED, false) ?: false
+        dynamics.contrast =
+            prefs?.getFloat(PlayerPreferences.KEY_HAPTICS_CONTRAST, HapticDynamics.DEFAULT_CONTRAST)
+                ?: HapticDynamics.DEFAULT_CONTRAST
         vibrationStrengthMultiplier = ((prefs?.getFloat(PlayerPreferences.KEY_HAPTICS_STRENGTH, 80f) ?: 80f) / 100f).coerceIn(0f, 1f)
         isHapticPlayPauseEnabled = prefs?.getBoolean(PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE, true) ?: true
         isHapticSeekEnabled = prefs?.getBoolean(PlayerPreferences.KEY_HAPTICS_SEEK, true) ?: true
@@ -389,7 +479,22 @@ class PlayerHapticManager private constructor(context: Context) {
         val userMultiplier = max(0f, min(1f, vibrationStrengthMultiplier))
         if (userMultiplier <= 0f) return
 
-        val clampedIntensity = (intensity * 3.0f).coerceIn(0f, 1f)
+        // With a known beat grid the drone is redundant and actively harmful: it is the constant
+        // vibration the drop has to stand out from. The impact setting decides how much of it
+        // survives - see ContinuousHapticPolicy.
+        val rumble = ContinuousHapticPolicy.rumbleScale(
+            hasTrustedGrid = beatGrid?.isUsable == true,
+            contrast = dynamics.contrast,
+        )
+        if (rumble <= 0f) {
+            if (currentMotorState == MotorState.CONTINUOUS) {
+                currentMotorState = MotorState.DECAY
+                getVibrator()?.cancel()
+            }
+            return
+        }
+
+        val clampedIntensity = (intensity * 3.0f * rumble).coerceIn(0f, 1f)
 
         if (isOreoOrLater && hasAmplitudeControl) {
             val targetAmplitudeBase = (clampedIntensity * CONTINUOUS_MAX_AMP).toInt()
@@ -440,7 +545,105 @@ class PlayerHapticManager private constructor(context: Context) {
         }
     }
 
+    /** Audio-thread hook: how much audio has been written into the sink. */
+    fun onAudioWritten(positionMs: Long) {
+        writtenSinceFlushMs = positionMs
+        latencyEstimator.onAudioWritten(writtenMediaMs())
+    }
+
+    /** Main-thread hook: the player's audible position, which already includes sink latency. */
+    fun onAudiblePosition(positionMs: Long) {
+        audiblePositionMs = positionMs
+        audiblePositionStampMs = System.currentTimeMillis()
+        latencyEstimator.onAudiblePosition(positionMs, audiblePositionStampMs)
+    }
+
+    /**
+     * Hands the analysed beat grid to the haptics.
+     *
+     * @param beatsPerBar 0 when the downbeat classification was not trusted, so bar position is
+     *   never claimed on evidence that does not support it.
+     */
+    fun onTrackBeatGrid(bpm: Float, anchorMs: Long, beatsPerBar: Int) {
+        beatGrid = if (bpm > 1f) {
+            BeatHapticGrid(periodMs = 60_000.0 / bpm, anchorMs = anchorMs, beatsPerBar = beatsPerBar)
+        } else null
+    }
+
+    fun clearTrackBeatGrid() {
+        beatGrid = null
+        // A new track's loudness says nothing about the last one's.
+        dynamics.reset()
+    }
+
+    /** 0 = raw intensity as before, 1 = full contrast. Persisted by the settings screen. */
+    fun setHapticContrast(value: Float) {
+        dynamics.contrast = value.coerceIn(0f, 1f)
+    }
+
+    fun hapticContrast(): Float = dynamics.contrast
+
+    /** True when the motor can play vendor-tuned primitives rather than raw amplitude. */
+    fun supportsPrimitives(): Boolean = primitivePalette()?.isSupported == true
+
+
+    /** A seek or track change invalidates the written/audible pairing. */
+    fun onAudioPipelineReset() {
+        // The frame counter restarts here, so it needs the current media position as its origin.
+        writtenOriginMs = audiblePositionMs
+        writtenSinceFlushMs = 0
+        latencyEstimator.reset()
+        hapticHandler.removeCallbacksAndMessages(null)
+    }
+
+    /** Current latency compensation in ms, for the settings screen to show. */
+    fun currentLatencyCompensationMs(): Long = latencyEstimator.currentLeadMs()
+
+    /**
+     * Fires a transient, delayed so it coincides with the sound that caused it.
+     *
+     * The guards below run immediately - they are rate limits on detection, which happens now -
+     * while only the vibration itself is postponed.
+     */
     fun triggerTransientHaptic(intensity: Float, type: HapticType) {
+        // Timing from the analysis, dynamics from the signal. The energy detector says there is
+        // something here; the grid says whether a beat is actually due. A transient that lands
+        // between beats is a fill, a vocal or a sample edge - real in the audio, but not what a
+        // listener is tapping their foot to.
+        val leadForLog = latencyEstimator.currentLeadMs()
+        if (leadForLog != lastLoggedLead) {
+            lastLoggedLead = leadForLog
+            android.util.Log.d(
+                "HapticLatency",
+                "lead=$leadForLog ms  grid=${if (beatGrid != null) "yes" else "no"}  written=${writtenMediaMs()}"
+            )
+        }
+
+        var shaped = intensity
+        val grid = beatGrid
+        if (grid != null && grid.isUsable) {
+            val at = writtenMediaMs()
+            if (at > 0L) {
+                if (type == HapticType.KICK && !grid.isOnBeat(at)) return
+                shaped = (intensity * grid.emphasisAt(at)).coerceIn(0f, 1f)
+            }
+        }
+
+        // Contrast last, so it shapes what actually survived gating and emphasis.
+        val nowForDynamics = System.currentTimeMillis()
+        val sinceLastBeat = if (lastShapedBeatAt == 0L) 0L else nowForDynamics - lastShapedBeatAt
+        lastShapedBeatAt = nowForDynamics
+        shaped = dynamics.shape(shaped, sinceLastBeat)
+
+        val lead = latencyEstimator.leadMs(System.currentTimeMillis())
+        if (lead <= 0L) {
+            triggerTransientHapticNow(shaped, type)
+            return
+        }
+        hapticHandler.postDelayed({ triggerTransientHapticNow(shaped, type) }, lead)
+    }
+
+    private fun triggerTransientHapticNow(intensity: Float, type: HapticType) {
         val now = System.currentTimeMillis()
         if (type == HapticType.KICK && now - lastTriggeredKickTime < 110) return
         if (type == HapticType.KICK) lastTriggeredKickTime = now
@@ -489,10 +692,43 @@ class PlayerHapticManager private constructor(context: Context) {
         val vibrator = getVibrator() ?: return
         if (!vibrator.hasVibrator()) return
 
+        // Vendor-tuned primitives first. The motor's own model of a thump beats a rectangular
+        // amplitude envelope, and the scale argument makes the strength actually follow the beat.
+        val grid = beatGrid
+        val at = writtenMediaMs()
+        // Which gesture this is comes from what the engine already knows: bar position from the
+        // grid, direction from the dynamics, and which drum from the detector.
+        val gesture = HapticGestureSelector.select(
+            isKick = type == HapticType.KICK,
+            isDownbeat = grid?.isDownbeat(at),
+            intensity = intensity,
+            trend = dynamics.trend(),
+            atPhraseBoundary = grid?.let { g ->
+                g.isOnBeat(at) && g.beatInBar(at) == 1 && isPhraseLine(g, at)
+            } ?: false,
+        )
+        val primitive = primitivePalette()?.build(
+            gesture = gesture,
+            amplitude = intensity * multiplier,
+            beatPeriodMs = grid?.periodMs ?: 0.0,
+        )
+        if (primitive != null) {
+            try {
+                vibrator.cancel()
+                vibrator.vibrate(primitive)
+                return
+            } catch (_: Exception) {
+                // Fall through to the amplitude path below.
+            }
+        }
+
         if (isOreoOrLater && hasAmplitudeControl) {
             try {
                 val effect = when (type) {
-                    HapticType.KICK -> cachedKickEffect ?: run {
+                    // Deliberately not the cached effect: a cached waveform has one fixed
+                    // amplitude, so every kick came out identical no matter how hard it hit.
+                    // Building per beat is what makes the dynamics audible at all.
+                    HapticType.KICK -> run {
                         val targetBaseAmp = min(255f, 180f + (75f * intensity)).toInt()
                         val peakAmp = normalizer.normalize(targetBaseAmp, deviceProfile, multiplier)
                         var timings = longArrayOf(0, 25, 60, 30)
@@ -504,7 +740,7 @@ class PlayerHapticManager private constructor(context: Context) {
                             VibrationEffect.createOneShot(timings[1] + timings[2], peakAmp)
                         }
                     }
-                    HapticType.SNARE -> cachedSnareEffect ?: run {
+                    HapticType.SNARE -> run {
                         val targetBaseAmp = min(200f, 140f + (60f * intensity)).toInt()
                         val targetAmp = normalizer.normalize(targetBaseAmp, deviceProfile, multiplier)
                         val duration = if (deviceProfile.isLikelyERM) 40L else 25L

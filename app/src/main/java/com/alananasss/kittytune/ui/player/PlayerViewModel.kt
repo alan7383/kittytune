@@ -37,12 +37,15 @@ import coil.request.SuccessResult
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.*
 import com.alananasss.kittytune.data.spotify.SpotifyArtistRef
+import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.LocalPlaylist
 import com.alananasss.kittytune.ui.common.AchievementNotificationManager
 import com.alananasss.kittytune.ui.common.AchievementNotification
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.LyricsDisplayState
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.local.gridTrust
+import com.alananasss.kittytune.data.local.trustedAnchorMs
 import com.alananasss.kittytune.data.network.LrcLibClient
 import com.alananasss.kittytune.data.ListeningStatsRepository
 import com.alananasss.kittytune.data.network.LrcLibResponse
@@ -3525,6 +3528,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
         djFlowController.onTrackChanged(trackToPlay)
+        feedHapticBeatGrid(trackToPlay)
         djFlowController.onQueueUpdated(_queue.toList(), currentQueueIndex)
         val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
         startServiceSafe(context, intent)
@@ -3614,6 +3618,43 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
      * broken. A second press while that blend is running means the listener wants out now, so it
      * falls through to a hard skip.
      */
+    /**
+     * Hands the analysed beat grid to the haptics, so the vibration follows the music's own beat
+     * rather than a second, independent transient detector guessing at it.
+     *
+     * Deliberately not routed through [DjFlowController]: haptics are a playback feature and
+     * must keep working for people who never switch DJ Flow on. The grid is read straight from
+     * the analysis cache, and the bar position is only passed on when the downbeat was actually
+     * trusted — a wrong "this is beat 1" drives the strongest pulse in the bar.
+     */
+    private fun feedHapticBeatGrid(track: Track?) {
+        val haptics = com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context)
+        if (track == null) {
+            haptics.clearTrackBeatGrid()
+            return
+        }
+        haptics.clearTrackBeatGrid()
+        viewModelScope.launch(Dispatchers.IO) {
+            val info = try {
+                AppDatabase.getDatabase(context).beatInfoDao().getBeatInfo(track.id.toString())
+            } catch (_: Exception) {
+                null
+            } ?: return@launch
+            if (info.bpm <= 1f) return@launch
+
+            val trust = info.gridTrust
+            withContext(Dispatchers.Main) {
+                haptics.onTrackBeatGrid(
+                    bpm = info.bpm,
+                    anchorMs = info.trustedAnchorMs,
+                    // Bar emphasis needs a real downbeat; below that the grid still fixes the
+                    // timing but the bar shape is left flat.
+                    beatsPerBar = if (trust == com.alananasss.kittytune.data.local.GridTrust.BEAT) 0 else 4,
+                )
+            }
+        }
+    }
+
     fun requestSkipNext() {
         val now = android.os.SystemClock.elapsedRealtime()
         val dj = djFlowController.flowState.value
@@ -4918,6 +4959,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 try {
                     if (!isScrubbing && !isLoading) {
                         currentPosition = MusicManager.player.currentPosition.coerceAtLeast(0L)
+                        // Feeds the haptic latency measurement. The player's position already
+                        // accounts for the sink's buffering, which is what makes it comparable
+                        // to how much audio the haptic processor has written.
+                        com.alananasss.kittytune.audio.haptics.PlayerHapticManager
+                            .getInstance(context).onAudiblePosition(currentPosition)
                         // Media milliseconds actually travelled, not seconds on the clock.
                         ensureListenSession()
                         listenSession?.onPosition(currentPosition)
