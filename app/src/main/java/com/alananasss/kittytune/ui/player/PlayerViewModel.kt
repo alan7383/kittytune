@@ -5711,7 +5711,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             .setTitle(track.title ?: getString(R.string.untitled_track))
             .setArtist(artist)
             .setSubtitle(artist)
+            .setIsPlayable(true)
+            .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
             .setArtworkUri(track.fullResArtwork.toUri())
+
+        track.publisherMetadata?.albumTitle?.takeIf { it.isNotBlank() }?.let { albumTitle ->
+            metadataBuilder.setAlbumTitle(albumTitle)
+        }
 
         if (bitmap != null) {
             val stream = ByteArrayOutputStream()

@@ -32,6 +32,7 @@
     
         <application
             android:name=".KittyTuneApp"
+            android:appCategory="audio"
             android:usesCleartextTraffic="true"
             android:largeHeap="true"
             android:allowBackup="true"
@@ -87,6 +88,11 @@
                     <action android:name="android.intent.action.MUSIC_PLAYER" />
                     <category android:name="android.intent.category.DEFAULT" />
                     <category android:name="android.intent.category.APP_MUSIC" />
+                </intent-filter>
+                <intent-filter>
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <data android:mimeType="audio/*" />
                 </intent-filter>
             </activity>
             <!-- App icon switcher: exactly one launcher alias is enabled at a time.
@@ -965,8 +971,10 @@
                 android:exported="true"
                 android:foregroundServiceType="mediaPlayback">
                 <intent-filter>
-                    <action android:name="androidx.media3.session.MediaLibraryService"/>
-                    <action android:name="android.media.browse.MediaBrowserService"/>
+                    <action android:name="androidx.media3.session.MediaSessionService" />
+                    <action android:name="androidx.media3.session.MediaLibraryService" />
+                    <action android:name="android.media.browse.MediaBrowserService" />
+                    <action android:name="android.intent.action.MEDIA_BUTTON" />
                 </intent-filter>
     
                 <meta-data

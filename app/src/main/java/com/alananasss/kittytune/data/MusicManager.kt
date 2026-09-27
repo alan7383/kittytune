@@ -276,7 +276,12 @@ object MusicManager {
                 .setTitle(updatedTrack.title ?: "Unknown")
                 .setArtist(artist)
                 .setSubtitle(artist)
+                .setIsPlayable(true)
+                .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
                 .setArtworkUri(if (updatedTrack.artworkUrl != null) android.net.Uri.parse(updatedTrack.artworkUrl) else null)
+                .apply {
+                    updatedTrack.publisherMetadata?.albumTitle?.takeIf { it.isNotBlank() }?.let { setAlbumTitle(it) }
+                }
                 .build()
             try {
                 player.currentMediaItem?.let { currentMediaItem ->
@@ -555,7 +560,13 @@ object MusicManager {
                         }
                     }
                 )
-                .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), false)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(C.USAGE_MEDIA)
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                        .build(),
+                    /* handleAudioFocus = */ true
+                )
                 .setHandleAudioBecomingNoisy(true)
                 .setWakeMode(C.WAKE_MODE_NETWORK)
                 .build()
@@ -1206,7 +1217,12 @@ object MusicManager {
             .setTitle(nextTrack.title ?: "Unknown")
             .setArtist(artist)
             .setSubtitle(artist)
+            .setIsPlayable(true)
+            .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
             .setArtworkUri(if (nextTrack.artworkUrl != null) android.net.Uri.parse(nextTrack.artworkUrl) else null)
+            .apply {
+                nextTrack.publisherMetadata?.albumTitle?.takeIf { it.isNotBlank() }?.let { setAlbumTitle(it) }
+            }
             .build()
 
         val mediaItem = MediaItem.Builder()
