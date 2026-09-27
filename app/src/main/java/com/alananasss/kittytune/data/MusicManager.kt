@@ -173,7 +173,8 @@ object MusicManager {
      * volume and the outgoing one would keep playing. No-op when no crossfade is running.
      */
     fun cancelCrossfade() {
-        if (!isCrossfadingOut) return
+        crossfadeRequestWatchdog?.cancel()
+        crossfadeRequestWatchdog = null
         transitionSeq++
         val incoming = activeCrossfadeIncoming
         val outgoing = activeCrossfadeOutgoing ?: fadingPlayer
@@ -185,10 +186,20 @@ object MusicManager {
             outgoing?.playWhenReady = false
             outgoing?.stop()
             outgoing?.clearMediaItems()
+            if (_player2 != null) {
+                val inactive = if (activePlayerIndex == 1) _player2 else _player1
+                if (inactive != null && inactive != player) {
+                    inactive.volume = 0f
+                    inactive.playWhenReady = false
+                    inactive.stop()
+                    inactive.clearMediaItems()
+                }
+            }
         } catch (_: Exception) {
         }
         fadingPlayer = null
         isCrossfadingOut = false
+        releasePrebuffered()
     }
 
     /**

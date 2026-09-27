@@ -3499,31 +3499,35 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         playWhenReady = autoPlay
         progressJob?.cancel()
+        playJob?.cancel()
+        playJob = null
+        trackInitJob?.cancel()
+        trackInitJob = null
+        queueChunkingJob?.cancel()
+        queueChunkingJob = null
         isLoading = true
         duration = trackToPlay.actualDurationMs
         currentPosition = 0L
         if (!isCrossfade) {
-            MusicManager.isCrossfadingOut = false
+            MusicManager.cancelCrossfade()
             try {
                 MusicManager.player.pause()
-                MusicManager.player.seekTo(0)
+                MusicManager.player.stop()
                 val artist = trackToPlay.displayArtist.ifBlank { getString(R.string.unknown_artist) }
                 val tempMetadata = MediaMetadata.Builder()
                     .setTitle(trackToPlay.title ?: getString(R.string.untitled_track))
                     .setArtist(artist)
                     .setSubtitle(artist)
+                    .setIsPlayable(true)
+                    .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
                     .setArtworkUri(trackToPlay.fullResArtwork.toUri())
                     .build()
-                if (MusicManager.player.mediaItemCount > 0) {
-                    val currentItem = MusicManager.player.getMediaItemAt(0)
-                    MusicManager.player.replaceMediaItem(
-                        0,
-                        currentItem.buildUpon().setMediaMetadata(tempMetadata).build()
-                    )
-                    if (MusicManager.player.mediaItemCount > 1) {
-                        MusicManager.player.removeMediaItem(1)
-                    }
-                }
+                val placeholderItem = MediaItem.Builder()
+                    .setMediaId(trackToPlay.id.toString())
+                    .setUri("soundtune://track/${trackToPlay.id}".toUri())
+                    .setMediaMetadata(tempMetadata)
+                    .build()
+                MusicManager.player.setMediaItem(placeholderItem)
             } catch (_: Exception) {}
         }
         beginListenSession(trackToPlay)
@@ -3539,14 +3543,25 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
         startServiceSafe(context, intent)
 
-        trackInitJob?.cancel()
         trackInitJob = viewModelScope.launch {
             var finalTrack = trackToPlay
-            if (finalTrack.source == "soundcloud" && trackToPlay.id > 0 && (trackToPlay.user?.id == 0L || trackToPlay.media == null || trackToPlay.playbackCount == 0)) {
+
+            val isLocalOrDownloaded = finalTrack.source == "local" ||
+                withContext(Dispatchers.IO) {
+                    try {
+                        val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
+                        db.getTrack(trackToPlay.id)?.localAudioPath?.isNotEmpty() == true
+                    } catch (_: Exception) { false }
+                }
+
+            if (!isLocalOrDownloaded && finalTrack.source == "soundcloud" && trackToPlay.id > 0 && (trackToPlay.user?.id == 0L || trackToPlay.media == null || trackToPlay.playbackCount == 0)) {
                 try {
                     val fullTrackList = api.getTracksByIds(trackToPlay.id.toString())
                     if (fullTrackList.isNotEmpty()) {
-                        finalTrack = fullTrackList[0]; _queue[index] = finalTrack
+                        finalTrack = fullTrackList[0]
+                        if (index in _queue.indices && _queue[index].id == trackToPlay.id) {
+                            _queue[index] = finalTrack
+                        }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -3561,11 +3576,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         permalink = firstArtist.id
                     )
                     finalTrack = finalTrack.copy(user = updatedUser)
-                    if (index in _queue.indices) {
+                    if (index in _queue.indices && _queue[index].id == trackToPlay.id) {
                         _queue[index] = finalTrack
                     }
                 }
             }
+
+            if (!isActive || currentTrack?.id != trackToPlay.id) return@launch
+
             currentTrack = finalTrack
             MusicManager.currentTrack = finalTrack
             isLiked = LikeRepository.isTrackLiked(finalTrack.id)
@@ -3594,7 +3612,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 startPositionMs = startPos
             )
 
-            playRobustly(index, autoPlay = autoPlay, startPosition = startPos, isCrossfade = isCrossfade)
+            playRobustly(index, autoPlay = autoPlay, startPosition = startPos, isCrossfade = isCrossfade, trackOverride = finalTrack)
 
             prefetchWaveformsForQueue(index)
 
@@ -5453,15 +5471,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         autoPlay: Boolean = true,
         startPosition: Long = 0L,
         allowSkipOnFailure: Boolean = true,
-        isCrossfade: Boolean = false
+        isCrossfade: Boolean = false,
+        trackOverride: Track? = null
     ) {
-        if (index !in _queue.indices) return
-
-        val trackToPlay = _queue[index]
+        val trackToPlay = trackOverride ?: _queue.getOrNull(index) ?: return
 
         if (isCrossfade && MusicManager.isPrebuffered(trackToPlay.id)) {
             val emptyItem = MediaItem.Builder().setMediaId(trackToPlay.id.toString()).build()
             viewModelScope.launch(Dispatchers.Main) {
+                if (currentTrack?.id != trackToPlay.id || !isActive) return@launch
                 try {
                     val djState = djFlowController.flowState.value
                     val isDjFlowOn = djState.isActive
@@ -5591,10 +5609,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             if (resolvedUrl == null) {
                 withContext(Dispatchers.Main) {
+                    if (currentTrack?.id != trackToPlay.id || !isActive) return@withContext
                     isLoading = false
                     isPlaying = false
                     try {
                         MusicManager.player.pause()
+                        MusicManager.player.stop()
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
@@ -5616,6 +5636,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             val newMediaItem = buildMediaItem(trackToPlay, bitmap, resolvedUrl, offlineKeySetId, resolvedMimeType)
 
             withContext(Dispatchers.Main) {
+                if (currentTrack?.id != trackToPlay.id || !isActive) {
+                    Log.d("PlayerViewModel", "Discarding stale stream resolution for track ${trackToPlay.id}, current track is ${currentTrack?.id}")
+                    return@withContext
+                }
                 try {
                     queueChunkingJob?.cancel()
 
