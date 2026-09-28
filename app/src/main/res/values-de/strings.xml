@@ -784,6 +784,7 @@
     <string name="settings_page_lyrics_sub">Wie Songtexte aussehen und sich verhalten</string>
     <string name="settings_title">Einstellungen</string>
     <string name="settings_cat_general">Allgemein</string>
+    <string name="settings_cat_general_sub">Sprache, Startbildschirm und Updates</string>
     <string name="settings_cat_appearance">Darstellung</string>
     <string name="settings_cat_typography">Typografie</string>
     <string name="settings_cat_playback">Wiedergabe</string>
@@ -2726,4 +2727,82 @@
     <string name="logs_sec_playback">Wiedergabe &amp; Audio</string>
     <string name="logs_sec_network">Netzwerk &amp; Anbieter</string>
     <string name="logs_refresh">Aktualisieren</string>
+    <string name="logs_save_all">In Datei speichern</string>
+    <string name="logs_save_logcat">Logcat speichern</string>
+    <string name="logs_saved_toast">Protokolle erfolgreich gespeichert!</string>
+    <string name="logs_save_failed_toast">Fehler beim Speichern der Protokolldatei.</string>
+    <!-- Settings Parity & Search -->
+    <string name="search_settings_hint">Einstellungen durchsuchen…</string>
+    <string name="settings_search_results">Suchergebnisse</string>
+    <string name="settings_search_no_results">Keine Einstellungen gefunden</string>
+
+    <!-- Theme Presets -->
+    <string name="theme_presets_title">Vorgefertigte Designs</string>
+    <string name="theme_preset_ocean">Ozean</string>
+    <string name="theme_preset_forest">Wald</string>
+    <string name="theme_preset_sunset">Sonnenuntergang</string>
+    <string name="theme_preset_rose">Rose</string>
+    <string name="theme_preset_lavender">Lavendel</string>
+    <string name="theme_preset_mint">Minze</string>
+    <string name="theme_preset_default">KittyTune</string>
+    <string name="theme_custom_short">Benutzerdefiniert</string>
+    <string name="theme_amoled">AMOLED</string>
+
+    <string name="pref_show_remaining_time">Verbleibende Zeit</string>
+    <string name="pref_show_remaining_time_desc">Verbleibende Zeit (-00:14) anstelle der Gesamtdauer in der Wiedergabeleiste anzeigen</string>
+    <string name="pref_volume_slider_title">Lautstärkeregler</string>
+    <string name="volume_horizontal">Horizontal</string>
+    <string name="volume_vertical">Vertikal</string>
+    <string name="volume_style_title">Lautstärkestil</string>
+    <string name="volume_style_same">Wie Fortschrittsbalken</string>
+    <string name="player_buttons_title">Player-Schaltflächen</string>
+    <string name="player_buttons_desc">Schaltflächen der Player-Leiste nach Ihren Wünschen ein- oder ausblenden</string>
+    <string name="player_button_like">Gefällt mir</string>
+    <string name="player_button_like_desc">Zeigt ein Herz neben dem Cover an, um den Titel zu liken</string>
+    <string name="player_button_lyrics">Songtext</string>
+    <string name="player_button_lyrics_desc">Öffnet sofort synchrone Songtexte</string>
+    <string name="player_button_miniplayer">Mini-Player</string>
+    <string name="player_button_miniplayer_desc">Zu schwebendem Bild-in-Bild-Fenster wechseln</string>
+    <string name="player_button_panel">Einstellungsbereich</string>
+    <string name="player_button_panel_desc">Öffnet die Seitenleiste mit Titeldetails, Songtexten und Effekten</string>
+    <string name="player_button_queue">Warteschlange</string>
+    <string name="player_button_queue_desc">Direkter Zugriff auf die Warteschlange der nächsten Titel</string>
+    <string name="player_button_shuffle">Zufallswiedergabe</string>
+    <string name="player_button_shuffle_desc">Zufallswiedergabe aktivieren oder deaktivieren</string>
+    <string name="player_button_repeat">Wiederholen</string>
+    <string name="player_button_repeat_desc">Aktuellen Titel oder Wiedergabeliste wiederholen</string>
+
+    <!-- Menu Tiles (3 dots sheet) -->
+    <string name="menu_tiles_title">Menü-Schaltflächen</string>
+    <string name="menu_tiles_desc">Halten Sie eine Schaltfläche im Titel- oder Wiedergabelistenmenü gedrückt, um sie zu verschieben, oder klicken Sie mit der rechten Maustaste, um sie auszublenden. Ausgeblendete Schaltflächen können hier wiederhergestellt werden.</string>
+    <string name="menu_tiles_reset">Reihenfolge zurücksetzen</string>
+    <string name="menu_tiles_track">Titelmenü</string>
+    <string name="menu_tiles_reorder_desc">Zum Neuanordnen ziehen. Das Titelmenü folgt dieser Reihenfolge.</string>
+    <string name="menu_tiles_playlist">Wiedergabelistenmenü</string>
+
+    <!-- Player Shape -->
+    <string name="player_shape_title">Player-Silhouette</string>
+    <string name="player_shape_desc">Wählen Sie das Gesamterscheinungsbild der Player-Leiste</string>
+    <string name="player_shape_default">Standard</string>
+    <string name="player_shape_default_desc">Dezente, nahtlose Leiste</string>
+    <string name="player_shape_rounded">Abgerundet</string>
+    <string name="player_shape_rounded_desc">Moderne, weiche Ecken</string>
+    <string name="player_shape_floating">Schwebendes Dock</string>
+    <string name="player_shape_floating_desc">Schwebende Kapselform</string>
+
+    <!-- Floating Bar Details -->
+    <string name="floating_bar_title">Schwebende Leiste</string>
+    <string name="floating_bar_corner">Eckenradius</string>
+    <string name="floating_bar_width">Breite</string>
+    <string name="floating_bar_margin">Abstand nach unten</string>
+    <string name="floating_bar_translucent">Halbtransparent</string>
+    <string name="floating_bar_translucent_sub">Bildschirminhalte scheinen sanft durch die Leiste hindurch</string>
+
+    <string name="settings_group_window">Fenster und Text</string>
+    <string name="settings_group_covers">Cover &amp; visuelle Elemente</string>
+    <string name="player_advanced_title">Steuerung &amp; Empfindlichkeit</string>
+    <string name="player_advanced_desc">Such-Empfindlichkeit und Verhalten</string>
+    <string name="pref_seek_wheel">Such-Empfindlichkeit</string>
+    <string name="pref_screensaver_title">Bei Inaktivität abdunkeln</string>
+    <string name="pref_screensaver_desc">Dunkelt die Wiedergabeansicht nach Inaktivität ab</string>
 </resources>

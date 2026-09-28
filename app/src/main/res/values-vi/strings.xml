@@ -708,6 +708,7 @@
     <string name="settings_page_lyrics_sub">Cách hiển thị lời bài hát</string>
     <string name="settings_title">Cài đặt</string>
     <string name="settings_cat_general">Chung</string>
+    <string name="settings_cat_general_sub">Ngôn ngữ, màn hình khởi đầu và cập nhật</string>
     <string name="settings_cat_appearance">Giao diện</string>
     <string name="settings_cat_typography">Phông chữ</string>
     <string name="settings_cat_playback">Phát lại</string>
@@ -2585,4 +2586,82 @@
     <string name="logs_sec_playback">Phát lại &amp; Âm thanh</string>
     <string name="logs_sec_network">Mạng &amp; Nhà cung cấp</string>
     <string name="logs_refresh">Làm mới</string>
+    <string name="logs_save_all">Lưu vào tệp</string>
+    <string name="logs_save_logcat">Lưu Logcat</string>
+    <string name="logs_saved_toast">Đã lưu nhật ký thành công!</string>
+    <string name="logs_save_failed_toast">Không thể lưu nhật ký vào tệp.</string>
+    <!-- Settings Parity & Search -->
+    <string name="search_settings_hint">Tìm kiếm cài đặt…</string>
+    <string name="settings_search_results">Kết quả tìm kiếm</string>
+    <string name="settings_search_no_results">Không tìm thấy cài đặt nào</string>
+
+    <!-- Theme Presets -->
+    <string name="theme_presets_title">Chủ đề có sẵn</string>
+    <string name="theme_preset_ocean">Đại dương</string>
+    <string name="theme_preset_forest">Rừng xanh</string>
+    <string name="theme_preset_sunset">Hoàng hôn</string>
+    <string name="theme_preset_rose">Hoa hồng</string>
+    <string name="theme_preset_lavender">Oải hương</string>
+    <string name="theme_preset_mint">Bạc hà</string>
+    <string name="theme_preset_default">KittyTune</string>
+    <string name="theme_custom_short">Tùy chỉnh</string>
+    <string name="theme_amoled">AMOLED</string>
+
+    <string name="pref_show_remaining_time">Thời gian còn lại</string>
+    <string name="pref_show_remaining_time_desc">Hiển thị thời gian còn lại (-00:14) thay vì tổng thời lượng trên thanh phát nhạc</string>
+    <string name="pref_volume_slider_title">Thanh trượt âm lượng</string>
+    <string name="volume_horizontal">Nằm ngang</string>
+    <string name="volume_vertical">Thẳng đứng</string>
+    <string name="volume_style_title">Kiểu âm lượng</string>
+    <string name="volume_style_same">Giống thanh tiến trình</string>
+    <string name="player_buttons_title">Các nút phát nhạc</string>
+    <string name="player_buttons_desc">Hiện hoặc ẩn các nút trên thanh phát nhạc theo sở thích của bạn</string>
+    <string name="player_button_like">Thích</string>
+    <string name="player_button_like_desc">Hiển thị trái tim bên cạnh ảnh bìa để thích bài hát</string>
+    <string name="player_button_lyrics">Lời bài hát</string>
+    <string name="player_button_lyrics_desc">Mở ngay lập tức lời bài hát đồng bộ</string>
+    <string name="player_button_miniplayer">Trình phát thu nhỏ</string>
+    <string name="player_button_miniplayer_desc">Chuyển sang cửa sổ nổi Hình-trong-hình (PiP)</string>
+    <string name="player_button_panel">Bảng cài đặt</string>
+    <string name="player_button_panel_desc">Mở bảng điều khiển bên hông với chi tiết bài hát, lời và hiệu ứng</string>
+    <string name="player_button_queue">Hàng đợi</string>
+    <string name="player_button_queue_desc">Truy cập trực tiếp vào hàng đợi các bài hát tiếp theo</string>
+    <string name="player_button_shuffle">Phát ngẫu nhiên</string>
+    <string name="player_button_shuffle_desc">Bật hoặc tắt tính năng phát ngẫu nhiên bài hát</string>
+    <string name="player_button_repeat">Lặp lại</string>
+    <string name="player_button_repeat_desc">Lặp lại bài hát hoặc danh sách phát hiện tại</string>
+
+    <!-- Menu Tiles (3 dots sheet) -->
+    <string name="menu_tiles_title">Các nút trong menu</string>
+    <string name="menu_tiles_desc">Nhấn giữ một nút trong menu bài hát hoặc danh sách phát để di chuyển, nhấp chuột phải để ẩn. Khôi phục các nút đã ẩn tại đây.</string>
+    <string name="menu_tiles_reset">Đặt lại thứ tự</string>
+    <string name="menu_tiles_track">Menu bài hát</string>
+    <string name="menu_tiles_reorder_desc">Kéo để sắp xếp lại. Menu bài hát sẽ theo thứ tự này.</string>
+    <string name="menu_tiles_playlist">Menu danh sách phát</string>
+
+    <!-- Player Shape -->
+    <string name="player_shape_title">Kiểu dáng trình phát</string>
+    <string name="player_shape_desc">Chọn giao diện tổng thể của thanh phát nhạc</string>
+    <string name="player_shape_default">Tiêu chuẩn</string>
+    <string name="player_shape_default_desc">Thanh liền mạch tinh tế</string>
+    <string name="player_shape_rounded">Bo tròn</string>
+    <string name="player_shape_rounded_desc">Các góc bo mềm mại hiện đại</string>
+    <string name="player_shape_floating">Thanh nổi</string>
+    <string name="player_shape_floating_desc">Viên con nhộng lơ lửng</string>
+
+    <!-- Floating Bar Details -->
+    <string name="floating_bar_title">Thanh nổi</string>
+    <string name="floating_bar_corner">Bán kính góc</string>
+    <string name="floating_bar_width">Chiều rộng</string>
+    <string name="floating_bar_margin">Khoảng cách đáy</string>
+    <string name="floating_bar_translucent">Trong mờ</string>
+    <string name="floating_bar_translucent_sub">Nội dung màn hình hiển thị mờ ảo qua thanh phát nhạc</string>
+
+    <string name="settings_group_window">Cửa sổ và văn bản</string>
+    <string name="settings_group_covers">Ảnh bìa &amp; Hình ảnh</string>
+    <string name="player_advanced_title">Điều khiển &amp; Độ nhạy</string>
+    <string name="player_advanced_desc">Độ nhạy và hành vi tua bài hát</string>
+    <string name="pref_seek_wheel">Độ nhạy tua</string>
+    <string name="pref_screensaver_title">Làm mờ khi không hoạt động</string>
+    <string name="pref_screensaver_desc">Làm mờ giao diện phát sau một thời gian không hoạt động</string>
 </resources>

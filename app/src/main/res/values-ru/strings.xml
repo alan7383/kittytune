@@ -557,6 +557,7 @@
     <string name="settings_page_lyrics_sub">Вид и поведение текстов песен</string>
     <string name="settings_title">Настройки</string>
     <string name="settings_cat_general">Общие</string>
+    <string name="settings_cat_general_sub">Язык, начальный экран и обновления</string>
     <string name="settings_cat_appearance">Оформление</string>
     <string name="settings_cat_typography">Оформление текста</string>
     <string name="settings_cat_playback">Воспроизведение</string>
@@ -2606,4 +2607,82 @@
     <string name="logs_sec_playback">Воспроизведение и звук</string>
     <string name="logs_sec_network">Сеть и источники</string>
     <string name="logs_refresh">Обновить</string>
+    <string name="logs_save_all">Сохранить в файл</string>
+    <string name="logs_save_logcat">Сохранить Logcat</string>
+    <string name="logs_saved_toast">Логи успешно сохранены!</string>
+    <string name="logs_save_failed_toast">Не удалось сохранить логи в файл.</string>
+    <!-- Settings Parity & Search -->
+    <string name="search_settings_hint">Поиск в настройках…</string>
+    <string name="settings_search_results">Результаты поиска</string>
+    <string name="settings_search_no_results">Настройки не найдены</string>
+
+    <!-- Theme Presets -->
+    <string name="theme_presets_title">Готовые темы</string>
+    <string name="theme_preset_ocean">Океан</string>
+    <string name="theme_preset_forest">Лес</string>
+    <string name="theme_preset_sunset">Закат</string>
+    <string name="theme_preset_rose">Роза</string>
+    <string name="theme_preset_lavender">Лаванда</string>
+    <string name="theme_preset_mint">Мята</string>
+    <string name="theme_preset_default">KittyTune</string>
+    <string name="theme_custom_short">Пользовательская</string>
+    <string name="theme_amoled">AMOLED</string>
+
+    <string name="pref_show_remaining_time">Оставшееся время</string>
+    <string name="pref_show_remaining_time_desc">Показывать оставшееся время (-00:14) вместо общей длительности на панели воспроизведения</string>
+    <string name="pref_volume_slider_title">Ползунок громкости</string>
+    <string name="volume_horizontal">Горизонтальный</string>
+    <string name="volume_vertical">Вертикальный</string>
+    <string name="volume_style_title">Стиль ползунка громкости</string>
+    <string name="volume_style_same">Как шкала прогресса</string>
+    <string name="player_buttons_title">Кнопки плеера</string>
+    <string name="player_buttons_desc">Показывайте или скрывайте кнопки панели плеера по вашему желанию</string>
+    <string name="player_button_like">Нравится</string>
+    <string name="player_button_like_desc">Отображает сердечко рядом с обложкой для добавления в любимые</string>
+    <string name="player_button_lyrics">Текст песни</string>
+    <string name="player_button_lyrics_desc">Мгновенно открывает синхронизированный текст песни</string>
+    <string name="player_button_miniplayer">Мини-плеер</string>
+    <string name="player_button_miniplayer_desc">Переключиться на плавающее окно «Картинка в картинке»</string>
+    <string name="player_button_panel">Панель настроек</string>
+    <string name="player_button_panel_desc">Открывает боковую панель с информацией о треке, текстом и эффектами</string>
+    <string name="player_button_queue">Очередь</string>
+    <string name="player_button_queue_desc">Прямой доступ к очереди предстоящих треков</string>
+    <string name="player_button_shuffle">Перемешать</string>
+    <string name="player_button_shuffle_desc">Включить или отключить перемешивание треков</string>
+    <string name="player_button_repeat">Повтор</string>
+    <string name="player_button_repeat_desc">Повторять текущую песню или плейлист</string>
+
+    <!-- Menu Tiles (3 dots sheet) -->
+    <string name="menu_tiles_title">Кнопки меню</string>
+    <string name="menu_tiles_desc">Удерживайте кнопку в меню трека или плейлиста для перемещения, нажмите правой кнопкой для скрытия. Скрытые кнопки можно вернуть здесь.</string>
+    <string name="menu_tiles_reset">Сбросить порядок</string>
+    <string name="menu_tiles_track">Меню трека</string>
+    <string name="menu_tiles_reorder_desc">Перетащите для изменения порядка. Меню трека следует этому порядку.</string>
+    <string name="menu_tiles_playlist">Меню плейлиста</string>
+
+    <!-- Player Shape -->
+    <string name="player_shape_title">Силуэт плеера</string>
+    <string name="player_shape_desc">Выберите общий вид панели плеера</string>
+    <string name="player_shape_default">Стандартная</string>
+    <string name="player_shape_default_desc">Неброская цельная панель</string>
+    <string name="player_shape_rounded">Скруглённая</string>
+    <string name="player_shape_rounded_desc">Современные мягкие углы</string>
+    <string name="player_shape_floating">Плавающая панель</string>
+    <string name="player_shape_floating_desc">Парящая капсула</string>
+
+    <!-- Floating Bar Details -->
+    <string name="floating_bar_title">Плавающая панель</string>
+    <string name="floating_bar_corner">Радиус скругления</string>
+    <string name="floating_bar_width">Ширина</string>
+    <string name="floating_bar_margin">Отступ снизу</string>
+    <string name="floating_bar_translucent">Полупрозрачность</string>
+    <string name="floating_bar_translucent_sub">Содержимое экрана мягко просвечивает сквозь панель</string>
+
+    <string name="settings_group_window">Окно и текст</string>
+    <string name="settings_group_covers">Обложки и оформление</string>
+    <string name="player_advanced_title">Управление и чувствительность</string>
+    <string name="player_advanced_desc">Чувствительность перемотки и поведение</string>
+    <string name="pref_seek_wheel">Чувствительность перемотки</string>
+    <string name="pref_screensaver_title">Затемнять при бездействии</string>
+    <string name="pref_screensaver_desc">Затемняет экран воспроизведения при отсутствии активности</string>
 </resources>

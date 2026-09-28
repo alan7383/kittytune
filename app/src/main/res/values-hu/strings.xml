@@ -549,6 +549,7 @@
     <string name="settings_page_lyrics_sub">A dalszövegek megjelenése és működése</string>
     <string name="settings_title">Beállítások</string>
     <string name="settings_cat_general">Általános</string>
+    <string name="settings_cat_general_sub">Nyelv, kezdőképernyő és frissítések</string>
     <string name="settings_cat_appearance">Megjelenés</string>
     <string name="settings_cat_typography">Tipográfia</string>
     <string name="settings_cat_playback">Lejátszás</string>
@@ -2613,4 +2614,82 @@
     <string name="logs_sec_playback">Lejátszás és hang</string>
     <string name="logs_sec_network">Hálózat és szolgáltatók</string>
     <string name="logs_refresh">Frissítés</string>
+    <string name="logs_save_all">Mentés fájlba</string>
+    <string name="logs_save_logcat">Logcat mentése</string>
+    <string name="logs_saved_toast">Naplók sikeresen mentve!</string>
+    <string name="logs_save_failed_toast">Nem sikerült menteni a naplókat a fájlba.</string>
+    <!-- Settings Parity & Search -->
+    <string name="search_settings_hint">Keresés a beállításokban…</string>
+    <string name="settings_search_results">Keresési eredmények</string>
+    <string name="settings_search_no_results">Nem találhatók beállítások</string>
+
+    <!-- Theme Presets -->
+    <string name="theme_presets_title">Kész témák</string>
+    <string name="theme_preset_ocean">Óceán</string>
+    <string name="theme_preset_forest">Erdő</string>
+    <string name="theme_preset_sunset">Naplemente</string>
+    <string name="theme_preset_rose">Rózsa</string>
+    <string name="theme_preset_lavender">Levendula</string>
+    <string name="theme_preset_mint">Menta</string>
+    <string name="theme_preset_default">KittyTune</string>
+    <string name="theme_custom_short">Egyéni</string>
+    <string name="theme_amoled">AMOLED</string>
+
+    <string name="pref_show_remaining_time">Hátralévő idő</string>
+    <string name="pref_show_remaining_time_desc">A hátralévő idő (-00:14) megjelenítése a teljes hossz helyett a lejátszási sávon</string>
+    <string name="pref_volume_slider_title">Hangerőcsúszka</string>
+    <string name="volume_horizontal">Vízszintes</string>
+    <string name="volume_vertical">Függőleges</string>
+    <string name="volume_style_title">Hangerő stílusa</string>
+    <string name="volume_style_same">Mint a folyamatjelző</string>
+    <string name="player_buttons_title">Lejátszó gombok</string>
+    <string name="player_buttons_desc">A lejátszósáv gombjainak megjelenítése vagy elrejtése ízlése szerint</string>
+    <string name="player_button_like">Tetszik</string>
+    <string name="player_button_like_desc">Szívecske megjelenítése a borító mellett a szám kedveléséhez</string>
+    <string name="player_button_lyrics">Dalszöveg</string>
+    <string name="player_button_lyrics_desc">Azonnal megnyitja a szinkronizált dalszöveget</string>
+    <string name="player_button_miniplayer">Mini-lejátszó</string>
+    <string name="player_button_miniplayer_desc">Váltás lebegő Kép a képben ablakra</string>
+    <string name="player_button_panel">Beállítások panel</string>
+    <string name="player_button_panel_desc">Megnyitja az oldalsó panelt a szám részleteivel, dalszöveggel és effektekkel</string>
+    <string name="player_button_queue">Lejátszási sor</string>
+    <string name="player_button_queue_desc">Közvetlen hozzáférés a következő számok lejátszási sorához</string>
+    <string name="player_button_shuffle">Véletlenszerű lejátszás</string>
+    <string name="player_button_shuffle_desc">Véletlenszerű lejátszás be- vagy kikapcsolása</string>
+    <string name="player_button_repeat">Ismétlés</string>
+    <string name="player_button_repeat_desc">Aktuális dal vagy lejátszási lista ismétlése</string>
+
+    <!-- Menu Tiles (3 dots sheet) -->
+    <string name="menu_tiles_title">Menügombok</string>
+    <string name="menu_tiles_desc">Tartsa lenyomva a gombot a szám vagy lejátszási lista menüjében a mozgatáshoz, kattintson jobb gombbal az elrejtéshez. Az elrejtett gombok itt állíthatók vissza.</string>
+    <string name="menu_tiles_reset">Sorrend visszaállítása</string>
+    <string name="menu_tiles_track">Szám menü</string>
+    <string name="menu_tiles_reorder_desc">Húzza az átrendezéshez. A szám menüje ezt a sorrendet követi.</string>
+    <string name="menu_tiles_playlist">Lejátszási lista menü</string>
+
+    <!-- Player Shape -->
+    <string name="player_shape_title">Lejátszó körvonala</string>
+    <string name="player_shape_desc">Válassza ki a lejátszósáv általános megjelenését</string>
+    <string name="player_shape_default">Normál</string>
+    <string name="player_shape_default_desc">Diszkrét, egybefüggő sáv</string>
+    <string name="player_shape_rounded">Lekerekített</string>
+    <string name="player_shape_rounded_desc">Modern, lágy sarkok</string>
+    <string name="player_shape_floating">Lebegő dokk</string>
+    <string name="player_shape_floating_desc">Lebegő kapszula forma</string>
+
+    <!-- Floating Bar Details -->
+    <string name="floating_bar_title">Lebegő sáv</string>
+    <string name="floating_bar_corner">Saroklekerekítés</string>
+    <string name="floating_bar_width">Szélesség</string>
+    <string name="floating_bar_margin">Alsó margó</string>
+    <string name="floating_bar_translucent">Félig áttetsző</string>
+    <string name="floating_bar_translucent_sub">A képernyő tartalma finoman áttetszik a sávon keresztül</string>
+
+    <string name="settings_group_window">Ablak és szöveg</string>
+    <string name="settings_group_covers">Borítók és látványelemek</string>
+    <string name="player_advanced_title">Vezérlés és érzékenység</string>
+    <string name="player_advanced_desc">Görgetési érzékenység és viselkedés</string>
+    <string name="pref_seek_wheel">Görgetési érzékenység</string>
+    <string name="pref_screensaver_title">Elsötétítés tétlenség esetén</string>
+    <string name="pref_screensaver_desc">Tétlenség esetén elsötétíti a lejátszási nézetet</string>
 </resources>
