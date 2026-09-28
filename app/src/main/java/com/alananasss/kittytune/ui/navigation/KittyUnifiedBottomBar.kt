@@ -124,7 +124,7 @@ fun KittyUnifiedBottomBar(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AsyncImage(
-                            model = track.fullResArtwork,
+                            model = track.thumbnailUrl,
                             contentDescription = null,
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                             modifier = Modifier
@@ -249,7 +249,7 @@ fun KittyUnifiedBottomBar(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         AsyncImage(
-                            model = track.fullResArtwork,
+                            model = track.thumbnailUrl,
                             contentDescription = null,
                             contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                             modifier = Modifier

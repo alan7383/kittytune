@@ -92,7 +92,7 @@
                     .padding(horizontal = 12.dp)
             ) {
                 AsyncImage(
-                    model = track.fullResArtwork,
+                    model = track.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

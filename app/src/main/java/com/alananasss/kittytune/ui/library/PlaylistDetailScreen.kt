@@ -2753,7 +2753,7 @@ fun TrackListItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(contentAlignment = Alignment.Center) {
-                val art = track.artworkUrl?.takeIf { it.isNotBlank() } ?: track.fullResArtwork
+                val art = track.thumbnailUrl
                 val imageModel: Any = remember(art) {
                     if (art.startsWith("/")) File(art) else art
                 }

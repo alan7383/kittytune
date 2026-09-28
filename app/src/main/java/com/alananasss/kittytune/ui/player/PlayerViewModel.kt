@@ -32,8 +32,10 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.palette.graphics.Palette
 import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import coil.size.Precision
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.*
 import com.alananasss.kittytune.data.spotify.SpotifyArtistRef
@@ -5355,9 +5357,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private suspend fun loadBitmap(url: String): Bitmap? {
         return try {
-            val loader = ImageLoader(context);
-            val request = ImageRequest.Builder(context).data(url).allowHardware(false)
-                .build(); (loader.execute(request) as? SuccessResult)?.drawable.let { (it as? BitmapDrawable)?.bitmap }
+            val request = ImageRequest.Builder(context)
+                .data(url)
+                .size(160, 160)
+                .precision(Precision.INEXACT)
+                .allowHardware(false)
+                .build()
+            (context.imageLoader.execute(request) as? SuccessResult)?.drawable?.let { (it as? BitmapDrawable)?.bitmap }
         } catch (_: Exception) {
             null
         }
@@ -5798,8 +5804,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         if (bitmap != null) {
+            val scaledBitmap = if (bitmap.width > 360 || bitmap.height > 360) {
+                val maxDim = maxOf(bitmap.width, bitmap.height)
+                val targetW = (bitmap.width * 360) / maxDim
+                val targetH = (bitmap.height * 360) / maxDim
+                Bitmap.createScaledBitmap(bitmap, targetW.coerceAtLeast(1), targetH.coerceAtLeast(1), true)
+            } else {
+                bitmap
+            }
             val stream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 75, stream)
             metadataBuilder.setArtworkData(stream.toByteArray(), MediaMetadata.PICTURE_TYPE_FRONT_COVER)
         }
 

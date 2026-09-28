@@ -2646,7 +2646,7 @@ fun UploadTrackGridCard(
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
-                model = track.fullResArtwork,
+                model = track.thumbnailUrl,
                 contentDescription = track.title,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
