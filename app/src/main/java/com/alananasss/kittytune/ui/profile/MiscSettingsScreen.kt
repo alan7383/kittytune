@@ -3,38 +3,31 @@ package com.alananasss.kittytune.ui.profile
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Forum
-import androidx.compose.material.icons.rounded.ImportExport
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Vibration
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import com.alananasss.kittytune.R
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.AppLanguage
-import com.alananasss.kittytune.data.local.StartDestination
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.local.StartDestination
 import com.alananasss.kittytune.ui.common.SettingsGroup
-import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
-import com.alananasss.kittytune.ui.common.getSettingsShape
 
 /**
  * The MISC category: everything that is not a colour, a sound, a source or a device.
@@ -101,7 +94,8 @@ fun MiscSettingsScreen(
     }
 
     SettingsScaffold(
-        title = stringResource(R.string.settings_cat_misc),
+        title = stringResource(R.string.settings_cat_general),
+        subtitle = stringResource(R.string.settings_cat_general_sub),
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(
@@ -156,54 +150,6 @@ fun MiscSettingsScreen(
                                     autoUpdate = it
                                     prefs.setAutoUpdateEnabled(it)
                                 }
-                            )
-                        }
-                    )
-                )
-            }
-
-            item {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.pref_discord_title))
-                    SettingsItem(
-                        shape = getSettingsShape(1, 0),
-                        title = stringResource(R.string.pref_discord_title),
-                        subtitle = stringResource(R.string.pref_discord_subtitle),
-                        icon = Icons.Rounded.Forum,
-                        onClick = { navController.navigate("discord_settings") }
-                    )
-                }
-            }
-
-            item {
-                SettingsGroup(
-                    title = stringResource(R.string.settings_cat_playback),
-                    items = listOf(
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_haptics_title),
-                                subtitle = stringResource(R.string.pref_haptics_subtitle),
-                                icon = Icons.Rounded.Vibration,
-                                onClick = { navController.navigate("haptic_settings") }
-                            )
-                        },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.music_import_title),
-                                subtitle = stringResource(R.string.music_import_settings_subtitle),
-                                icon = Icons.Rounded.ImportExport,
-                                onClick = { navController.navigate("music_import") }
-                            )
-                        },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_about_title),
-                                subtitle = stringResource(R.string.pref_about_subtitle),
-                                icon = Icons.Rounded.Info,
-                                onClick = { navController.navigate("about") }
                             )
                         }
                     )

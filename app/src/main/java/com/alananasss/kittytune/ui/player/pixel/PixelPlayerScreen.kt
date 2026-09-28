@@ -129,6 +129,7 @@ import com.alananasss.kittytune.ui.player.cover.AnimatedArtwork
 import com.alananasss.kittytune.ui.player.cover.CanvasVideo
 import com.alananasss.kittytune.ui.theme.GoogleSansRounded
 import com.alananasss.kittytune.utils.makeTimeString
+import com.alananasss.kittytune.utils.makeRemainingTimeString
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 private fun Context.findActivity(): Activity? = when (this) {
@@ -934,12 +935,17 @@ fun PixelPlayerScreen(
                             color = subTextColor
                         )
                     )
+                    val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
                     Text(
-                        text = makeTimeString(totalDuration),
+                        text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(effectivePositionState.value, totalDuration) else makeTimeString(totalDuration),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontFamily = GoogleSansRounded,
                             color = subTextColor
-                        )
+                        ),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { prefs.setShowRemainingTime(!showRemaining) }
+                            .padding(horizontal = 8.dp, vertical = 8.dp)
                     )
                 }
             }

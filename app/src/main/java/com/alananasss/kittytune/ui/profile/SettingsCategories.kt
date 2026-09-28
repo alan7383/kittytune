@@ -101,9 +101,9 @@ internal fun SettingsCategory.entriesFor(): List<SettingsEntry> = when (this) {
         SettingsEntry(R.string.pref_proxy_title, R.string.pref_proxy_subtitle, Icons.Rounded.Dns, "proxy_settings")
     )
     SettingsCategory.MISC -> listOf(
-        SettingsEntry(R.string.pref_language, R.string.pref_language_sub, Icons.Rounded.Tune, "misc_settings"),
-        SettingsEntry(R.string.pref_about_title, R.string.pref_about_subtitle, Icons.Rounded.Info, "about"),
-        SettingsEntry(R.string.music_import_title, R.string.music_import_settings_subtitle, Icons.Rounded.ImportExport, "music_import")
+        SettingsEntry(R.string.settings_cat_general, R.string.settings_cat_general_sub, Icons.Rounded.Tune, "misc_settings"),
+        SettingsEntry(R.string.music_import_title, R.string.music_import_settings_subtitle, Icons.Rounded.ImportExport, "music_import"),
+        SettingsEntry(R.string.pref_about_title, R.string.pref_about_subtitle, Icons.Rounded.Info, "about")
     )
 }
 

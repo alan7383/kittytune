@@ -1212,7 +1212,7 @@ fun NewPlayerScreen(
                                             )
                                             .clip(RoundedCornerShape(20.dp))
                                             .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    ) {
+                                     ) {
                                         AnimatedArtwork(
                                             artworkUrl = pageTrack.fullResArtwork,
                                             animatedCoverUrl = if (pageTrack.id == track.id) viewModel.currentAnimatedCoverUrl else null,
@@ -1976,6 +1976,7 @@ fun SocialProofBanner(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MenuSheetContent(viewModel: PlayerViewModel) {
     val track = viewModel.trackForMenu ?: viewModel.currentTrack ?: return
@@ -2211,7 +2212,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 DockOptionItem(
                     Icons.Outlined.PhotoLibrary,
                     stringResource(R.string.share_card_title),
-                    id = "share"
+                    id = "share_card"
                 ) { viewModel.openShareCard(track) })
         }
         if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId != -2L) {
@@ -2252,24 +2253,30 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     })
             }
         }
-        add(
-            DockOptionItem(
-                if (isDownloaded) Icons.Rounded.FileDownloadDone else Icons.Outlined.FileDownload,
-                if (isDownloaded) stringResource(R.string.btn_downloaded) else stringResource(R.string.btn_download),
-                id = "download"
-            ) {
-                if (isDownloaded) {
-                    showDeleteDialog = true
-                } else {
-                    DownloadManager.downloadTrack(track)
+        if (!isLocalFile) {
+            val trackId = track.id
+            val isDownloading = DownloadManager.isTrackDownloading(trackId)
+            add(
+                DockOptionItem(
+                    if (isDownloaded) Icons.Default.Delete else if (isDownloading) Icons.Outlined.Cancel else Icons.Rounded.Download,
+                    if (isDownloaded) stringResource(R.string.btn_delete) else if (isDownloading) stringResource(R.string.btn_cancel) else stringResource(R.string.btn_download),
+                    id = "download"
+                ) {
+                    if (isDownloaded) {
+                        showDeleteDialog = true
+                    } else if (isDownloading) {
+                        DownloadManager.cancelDownload(trackId)
+                    } else {
+                        viewModel.downloadTrack(track)
+                    }
                 }
-            }
-        )
+            )
+        }
     }
 
     val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
-    val hiddenMenuTiles = remember { menuPrefs.getHiddenMenuTiles(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
-    val menuOrder = remember { menuPrefs.getMenuTileOrder(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
+    val hiddenMenuTiles = remember(viewModel.showMenuSheet) { menuPrefs.getHiddenMenuTiles(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
+    val menuOrder = remember(viewModel.showMenuSheet) { menuPrefs.getMenuTileOrder(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
     val arrangedGridItems = remember(gridItems, hiddenMenuTiles, menuOrder) {
         com.alananasss.kittytune.ui.player.MenuTiles.arrange(gridItems, menuOrder, hiddenMenuTiles) { it.id }
     }
@@ -2356,10 +2363,38 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 tint = activeColor
                 text = viewModel.formatSleepTimerRemaining()
             }
+            if (item.id == "download" && isDownloaded) {
+                tint = MaterialTheme.colorScheme.error
+            }
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable { item.onClick() }) {
-                Icon(item.icon, null, modifier = Modifier.size(32.dp), tint = tint)
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { item.onClick() }
+                    .padding(vertical = 4.dp, horizontal = 2.dp)
+            ) {
+                if (item.id == "download") {
+                    val trackId = track.id
+                    val isDownloading = DownloadManager.isTrackDownloading(trackId)
+                    val downloadProgressVal = downloadProgress[trackId]
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(32.dp)) {
+                        if (isDownloading) {
+                            val animatedProgress by animateFloatAsState(
+                                targetValue = (downloadProgressVal ?: 0) / 100f,
+                                label = "downloadProgress"
+                            )
+                            CircularWavyProgressIndicator(
+                                progress = { animatedProgress },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Icon(Icons.Outlined.Cancel, null, modifier = Modifier.size(18.dp))
+                        } else {
+                            Icon(item.icon, null, modifier = Modifier.fillMaxSize(), tint = tint)
+                        }
+                    }
+                } else {
+                    Icon(item.icon, null, modifier = Modifier.size(32.dp), tint = tint)
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = text,
@@ -2369,50 +2404,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 )
             }
         }
-        if (!isLocalFile) {
-            item {
-                val trackId = track.id
-                val isDownloading = DownloadManager.isTrackDownloading(trackId)
-                val downloadProgressVal = downloadProgress[trackId]
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable {
-                    if (isDownloaded) showDeleteDialog = true else if (isDownloading) DownloadManager.cancelDownload(
-                        trackId
-                    ) else viewModel.downloadTrack(track)
-                }) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(32.dp)) {
-                        if (isDownloading) {
-                            val animatedProgress by animateFloatAsState(
-                                targetValue = (downloadProgressVal ?: 0) / 100f,
-                                label = "progress"
-                            )
-                            CircularWavyProgressIndicator(
-                                progress = { animatedProgress },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            Icon(Icons.Outlined.Cancel, null, modifier = Modifier.size(18.dp))
-                        } else {
-                            val icon = if (isDownloaded) Icons.Default.Delete else Icons.Rounded.Download
-                            val tint =
-                                if (isDownloaded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                            Icon(icon, null, modifier = Modifier.fillMaxSize(), tint = tint)
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    val textLabel =
-                        if (isDownloaded) stringResource(R.string.btn_delete) else if (isDownloading) stringResource(R.string.btn_cancel) else stringResource(
-                            R.string.btn_download
-                        )
-                    val textColor =
-                        if (isDownloaded) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                    Text(
-                        textLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        textAlign = TextAlign.Center,
-                        color = textColor
-                    )
-                }
-            }
-        }
+
     }
 }
 
@@ -3782,12 +3774,18 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                 style = MaterialTheme.typography.labelSmall,
                 color = textColor.copy(alpha = 0.7f)
             )
-            val showRemaining = remember { com.alananasss.kittytune.data.local.PlayerPreferences().getShowRemainingTime() }
+            val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
             val curPos = if (isDragging) dragPosition.toLong() else progressState.value.toLong()
             Text(
                 text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(curPos, totalDuration.toLong()) else makeTimeString(totalDuration.toLong()),
                 style = MaterialTheme.typography.labelSmall,
-                color = textColor.copy(alpha = 0.7f)
+                color = textColor.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        prefs.setShowRemainingTime(!showRemaining)
+                    }
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
             )
         }
     }
@@ -4230,6 +4228,12 @@ fun WaveformPlayerProgress(
             }
             if (!isDragging) {
                 val badgeOffsetY = with(density) { (134.dp.toPx() * 0.60f - 11.dp.toPx()).toDp() }
+                val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
+                val durStr = if (showRemaining) {
+                    com.alananasss.kittytune.utils.makeRemainingTimeString(currentPositionMs.toLong(), totalDuration.toLong())
+                } else {
+                    makeTimeString(totalDuration.toLong())
+                }
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
@@ -4238,10 +4242,14 @@ fun WaveformPlayerProgress(
                             color = Color(0xDD000000),
                             shape = RoundedCornerShape(3.dp)
                         )
+                        .clip(RoundedCornerShape(3.dp))
+                        .clickable {
+                            prefs.setShowRemainingTime(!showRemaining)
+                        }
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = "${makeTimeString(currentPositionMs.toLong())}  |  ${makeTimeString(totalDuration.toLong())}",
+                        text = "${makeTimeString(currentPositionMs.toLong())}  |  $durStr",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
@@ -11605,11 +11613,18 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
                 style = MaterialTheme.typography.labelSmall,
                 color = textColor.copy(alpha = 0.7f)
             )
-            com.alananasss.kittytune.ui.player.automix.AutomixBadge(textColor = textColor)
+            val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
+            val curPos = if (isDragging) dragPosition.toLong() else progressState.value.toLong()
             Text(
-                text = makeTimeString(totalDuration.toLong()),
+                text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(curPos, totalDuration.toLong()) else makeTimeString(totalDuration.toLong()),
                 style = MaterialTheme.typography.labelSmall,
-                color = textColor.copy(alpha = 0.7f)
+                color = textColor.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        prefs.setShowRemainingTime(!showRemaining)
+                    }
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
             )
         }
     }
@@ -12672,14 +12687,18 @@ fun SoundCloudPlayerView(
                                 ),
                                 color = Color.White.copy(alpha = 0.65f)
                             )
+                            val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
                             Text(
-                                text = makeTimeString(totalDuration.toLong()),
+                                text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(currentPosition.toLong(), totalDuration.toLong()) else makeTimeString(totalDuration.toLong()),
                                 style = MaterialTheme.typography.displayMedium.copy(
                                     fontSize = 38.sp,
                                     fontWeight = FontWeight.Normal,
                                     letterSpacing = (-0.5).sp
                                 ),
-                                color = Color.White
+                                color = Color.White,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { prefs.setShowRemainingTime(!showRemaining) }
                             )
                         }
                     }

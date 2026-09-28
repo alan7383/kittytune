@@ -194,33 +194,10 @@ fun SettingsItem(
             }
 
             if (hasSwitch && onSwitchChange != null) {
-                Switch(
+                SettingsSwitch(
                     checked = switchState,
                     onCheckedChange = { onSwitchChange(it) },
-                    interactionSource = interactionSource,
-                    thumbContent = {
-                        if (switchState) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(SwitchDefaults.IconSize),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(SwitchDefaults.IconSize),
-                                tint = MaterialTheme.colorScheme.surfaceContainerHighest
-                            )
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
+                    interactionSource = interactionSource
                 )
             } else if (onClick != null) {
                 Icon(
@@ -232,6 +209,47 @@ fun SettingsItem(
             }
         }
     }
+}
+
+@Composable
+fun SettingsSwitch(
+    checked: Boolean,
+    onCheckedChange: ((Boolean) -> Unit)?,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource? = null,
+) {
+    Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        modifier = modifier,
+        thumbContent = {
+            if (checked) {
+                Icon(
+                    imageVector = Icons.Rounded.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(SwitchDefaults.IconSize),
+                    tint = MaterialTheme.colorScheme.surfaceContainerHighest
+                )
+            }
+        },
+        colors = SwitchDefaults.colors(
+            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+            checkedTrackColor = MaterialTheme.colorScheme.primary,
+            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            uncheckedBorderColor = MaterialTheme.colorScheme.outlineVariant
+        )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)

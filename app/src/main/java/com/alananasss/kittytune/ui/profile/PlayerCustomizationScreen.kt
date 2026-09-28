@@ -20,6 +20,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.zIndex
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.rounded.DragHandle
+import com.alananasss.kittytune.ui.common.SettingsSwitch
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyListState
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -65,7 +76,6 @@ fun PlayerCustomizationScreen(
     }
     var sliderStyle by remember { mutableStateOf(prefs.getPlayerSliderStyle()) }
     var showRemainingTime by remember { mutableStateOf(prefs.getShowRemainingTime()) }
-    var seekWheelSeconds by remember { mutableFloatStateOf(prefs.getSeekWheelSeconds()) }
 
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
@@ -87,19 +97,55 @@ fun PlayerCustomizationScreen(
     var previewSliderProgress by remember { mutableFloatStateOf(0.42f) }
     var isPreviewPlaying by remember { mutableStateOf(true) }
 
+    val view = LocalView.current
+    val listState = rememberLazyListState()
+
+    val catalogue = remember { MenuTiles.catalogue(PlayerPreferences.MENU_TRACK) }
+    val initialOrder = remember {
+        val stored = prefs.getMenuTileOrder(PlayerPreferences.MENU_TRACK)
+        if (stored.isEmpty()) {
+            catalogue.map { it.id }
+        } else {
+            stored.filter { id -> catalogue.any { it.id == id } } +
+                catalogue.map { it.id }.filter { it !in stored }
+        }
+    }
+    val tileOrder = remember { mutableStateListOf<String>().apply { addAll(initialOrder) } }
+    var hiddenTiles by remember { mutableStateOf(prefs.getHiddenMenuTiles(PlayerPreferences.MENU_TRACK)) }
+
+    fun persistTileOrder() {
+        prefs.setMenuTileOrder(PlayerPreferences.MENU_TRACK, tileOrder.toList())
+        onUpdated()
+    }
+
+    val reorderState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        onMove = { from, to ->
+            val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
+            val toKey = to.key as? String ?: return@rememberReorderableLazyListState
+            val fromIndex = tileOrder.indexOf(fromKey)
+            val toIndex = tileOrder.indexOf(toKey)
+            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
+                val moved = tileOrder.removeAt(fromIndex)
+                tileOrder.add(toIndex, moved)
+                persistTileOrder()
+                view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+            }
+        }
+    )
+
     SettingsScaffold(
         title = stringResource(R.string.pref_player_design),
         subtitle = stringResource(R.string.settings_page_player_sub),
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 180.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(bottom = 180.dp)
         ) {
-            // 1. Player Design Selection (2x2 Cards Grid)
             item {
                 Column(
                     modifier = Modifier
@@ -123,15 +169,13 @@ fun PlayerCustomizationScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            // 2x2 Grid of Player Designs
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    PlayerDesignOptionCard(
+                                    PlayerDesignButton(
                                         title = stringResource(R.string.setup_player_design_pixel),
-                                        subtitle = stringResource(R.string.player_design_pixel_desc),
                                         icon = Icons.Rounded.Smartphone,
                                         isSelected = currentDesign == PlayerDesign.PIXEL_PLAYER,
                                         modifier = Modifier.weight(1f),
@@ -144,9 +188,8 @@ fun PlayerCustomizationScreen(
                                         }
                                     )
 
-                                    PlayerDesignOptionCard(
+                                    PlayerDesignButton(
                                         title = stringResource(R.string.setup_player_design_soundcloud),
-                                        subtitle = stringResource(R.string.player_design_soundcloud_desc),
                                         icon = Icons.Rounded.GraphicEq,
                                         isSelected = currentDesign == PlayerDesign.SOUNDCLOUD,
                                         modifier = Modifier.weight(1f),
@@ -163,9 +206,8 @@ fun PlayerCustomizationScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    PlayerDesignOptionCard(
+                                    PlayerDesignButton(
                                         title = stringResource(R.string.setup_player_design_modern),
-                                        subtitle = stringResource(R.string.player_design_modern_desc),
                                         icon = Icons.Rounded.AutoAwesome,
                                         isSelected = currentDesign == PlayerDesign.MODERN,
                                         modifier = Modifier.weight(1f),
@@ -179,9 +221,8 @@ fun PlayerCustomizationScreen(
                                         }
                                     )
 
-                                    PlayerDesignOptionCard(
+                                    PlayerDesignButton(
                                         title = stringResource(R.string.setup_player_design_classic),
-                                        subtitle = stringResource(R.string.player_design_classic_desc),
                                         icon = Icons.Rounded.LinearScale,
                                         isSelected = currentDesign == PlayerDesign.CLASSIC,
                                         modifier = Modifier.weight(1f),
@@ -196,7 +237,6 @@ fun PlayerCustomizationScreen(
                                 }
                             }
 
-                            // Sub-selector: Progress Mode for Modern Player
                             AnimatedVisibility(visible = currentDesign == PlayerDesign.MODERN) {
                                 Column(
                                     modifier = Modifier.padding(top = 4.dp),
@@ -237,7 +277,6 @@ fun PlayerCustomizationScreen(
                 }
             }
 
-            // 2. Slider Style Section (Uncompressed, wide 2x2 grid + Live Interactive Hero Preview)
             item {
                 Column(
                     modifier = Modifier
@@ -261,7 +300,6 @@ fun PlayerCustomizationScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            // Hero Live Preview Container
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(18.dp),
@@ -368,7 +406,6 @@ fun PlayerCustomizationScreen(
                                 }
                             }
 
-                            // 2x2 Grid of Slider Styles (spacious, wide preview cards)
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -433,7 +470,6 @@ fun PlayerCustomizationScreen(
                 }
             }
 
-            // 3. Playback Controls & Sensitivity (M3 Grouped Settings)
             item {
                 SettingsGroup(
                     title = stringResource(R.string.player_advanced_title),
@@ -452,29 +488,11 @@ fun PlayerCustomizationScreen(
                                     onUpdated()
                                 }
                             )
-                        },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_seek_wheel),
-                                subtitle = stringResource(R.string.player_advanced_desc),
-                                trailingText = "${seekWheelSeconds.roundToInt()}s",
-                                icon = Icons.Rounded.Timelapse,
-                                hasSlider = true,
-                                sliderValue = seekWheelSeconds,
-                                sliderRange = 1f..30f,
-                                onSliderChange = {
-                                    seekWheelSeconds = it
-                                    prefs.setSeekWheelSeconds(it)
-                                    onUpdated()
-                                }
-                            )
                         }
                     )
                 )
             }
 
-            // 4. Display & Visual Effects (M3 Grouped Settings)
             item {
                 val visualItems = buildList<@Composable (androidx.compose.ui.graphics.Shape) -> Unit> {
                     add { shape ->
@@ -596,7 +614,6 @@ fun PlayerCustomizationScreen(
                 )
             }
 
-            // 5. Action Buttons Configuration (Slots) (M3 Grouped Settings)
             item {
                 val barTitle = if (slotCount == 5) {
                     stringResource(R.string.player_action_bar_5_title)
@@ -645,19 +662,131 @@ fun PlayerCustomizationScreen(
                 )
             }
 
-            // 6. Track Menu Sheet Tiles (M3 Grouped Settings)
-            item {
-                MenuTilesGroup(
-                    title = stringResource(R.string.menu_tiles_track),
-                    menu = PlayerPreferences.MENU_TRACK,
-                    catalogue = MenuTiles.TRACK,
-                    prefs = prefs
-                )
+            // 6. Track Menu Sheet Tiles (Draggable M3 Grouped Settings)
+            item(key = "menu_tiles_header") {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.menu_tiles_track))
+                    Text(
+                        text = stringResource(R.string.menu_tiles_reorder_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
+                    )
+                }
+            }
+
+            itemsIndexed(tileOrder, key = { _, id -> id }) { index, tileId ->
+                val tile = catalogue.firstOrNull { it.id == tileId }
+                if (tile != null) {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 1.dp)) {
+                        ReorderableItem(state = reorderState, key = tileId) { isDragging ->
+                            val elevation by animateDpAsState(
+                                if (isDragging) 8.dp else 0.dp,
+                                label = "tileElevation"
+                            )
+                            val isEnabled = tileId !in hiddenTiles
+
+                            Surface(
+                                shape = if (isDragging) RoundedCornerShape(16.dp) else getSettingsShape(tileOrder.size, index),
+                                color = if (isDragging) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                shadowElevation = elevation,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .zIndex(if (isDragging) 1f else 0f)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 60.dp)
+                                        .padding(start = 4.dp, end = 16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .draggableHandle(
+                                                onDragStarted = {
+                                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                },
+                                                onDragStopped = {
+                                                    view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                                }
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.DragHandle,
+                                            contentDescription = stringResource(R.string.reorder_handle),
+                                            tint = if (isDragging) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    Icon(
+                                        imageVector = MenuTiles.tileIcon(tile.id),
+                                        contentDescription = null,
+                                        tint = if (isEnabled) MaterialTheme.colorScheme.onSurfaceVariant
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                                        modifier = Modifier.size(22.dp)
+                                    )
+
+                                    Spacer(Modifier.width(16.dp))
+
+                                    Text(
+                                        text = stringResource(tile.labelRes),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium,
+                                        color = if (isEnabled) MaterialTheme.colorScheme.onSurface
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
+                                    SettingsSwitch(
+                                        checked = isEnabled,
+                                        onCheckedChange = { on ->
+                                            val nextHidden = if (on) hiddenTiles - tile.id else hiddenTiles + tile.id
+                                            hiddenTiles = nextHidden
+                                            prefs.setHiddenMenuTiles(PlayerPreferences.MENU_TRACK, nextHidden)
+                                            view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                                            onUpdated()
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item(key = "menu_tiles_reset") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 14.dp, bottom = 8.dp)
+                ) {
+                    SettingsItem(
+                        shape = RoundedCornerShape(24.dp),
+                        title = stringResource(R.string.menu_tiles_reset),
+                        subtitle = stringResource(R.string.menu_tiles_desc),
+                        icon = Icons.Rounded.RestartAlt,
+                        onClick = {
+                            prefs.resetMenuTiles(PlayerPreferences.MENU_TRACK)
+                            hiddenTiles = prefs.getHiddenMenuTiles(PlayerPreferences.MENU_TRACK)
+                            tileOrder.clear()
+                            tileOrder.addAll(catalogue.map { it.id })
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            onUpdated()
+                        }
+                    )
+                }
             }
         }
     }
 
-    // Dialog: Edit Button Slot
     if (selectedSlotToEdit >= 0) {
         val allSlots = PlayerActionButtonSlot.entries
         AlertDialog(
@@ -702,7 +831,6 @@ fun PlayerCustomizationScreen(
         )
     }
 
-    // Dialog: Waveform Color Mode
     if (showWaveformColorDialog) {
         val modes = WaveformColorMode.entries
         AlertDialog(
@@ -747,95 +875,52 @@ fun PlayerCustomizationScreen(
     }
 }
 
-/**
- * 2x2 Selection Card for Player Designs
- */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PlayerDesignOptionCard(
+private fun PlayerDesignButton(
     title: String,
-    subtitle: String,
     icon: ImageVector,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val containerColor by animateColorAsState(
-        if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        else MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-        label = "designCardContainer"
-    )
-
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(130.dp),
-        shape = RoundedCornerShape(18.dp),
-        color = containerColor,
-        border = BorderStroke(
-            width = if (isSelected) 2.dp else 1.dp,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+    if (isSelected) {
+        Button(
+            onClick = onClick,
+            modifier = modifier.height(48.dp),
+            shapes = ButtonDefaults.shapes(),
+            contentPadding = PaddingValues(horizontal = 12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.size(34.dp)
-                ) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Rounded.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    fontSize = 11.sp,
-                    lineHeight = 14.sp
-                )
-            }
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    } else {
+        FilledTonalButton(
+            onClick = onClick,
+            modifier = modifier.height(48.dp),
+            shapes = ButtonDefaults.shapes(),
+            contentPadding = PaddingValues(horizontal = 12.dp)
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
 
-/**
- * Visual Interactive Slider Preview Card
- */
 @Composable
 private fun SliderOptionCard(
     title: String,
@@ -917,55 +1002,7 @@ private fun SliderOptionCard(
     }
 }
 
-/**
- * Menu des morceaux (3-dots sheet menu)
- */
-@Composable
-private fun MenuTilesGroup(
-    title: String,
-    menu: String,
-    catalogue: List<MenuTiles.Tile>,
-    prefs: PlayerPreferences
-) {
-    var hidden by remember(menu) { mutableStateOf(prefs.getHiddenMenuTiles(menu)) }
 
-    val menuItems = buildList<@Composable (androidx.compose.ui.graphics.Shape) -> Unit> {
-        catalogue.forEach { tile ->
-            val isEnabled = tile.id !in hidden
-            add { shape ->
-                SettingsItem(
-                    shape = shape,
-                    title = stringResource(tile.labelRes),
-                    icon = MenuTiles.tileIcon(tile.id),
-                    hasSwitch = true,
-                    switchState = isEnabled,
-                    onSwitchChange = { on ->
-                        val nextHidden = if (on) hidden - tile.id else hidden + tile.id
-                        hidden = nextHidden
-                        prefs.setHiddenMenuTiles(menu, nextHidden)
-                    }
-                )
-            }
-        }
-        add { shape ->
-            SettingsItem(
-                shape = shape,
-                title = stringResource(R.string.menu_tiles_reset),
-                subtitle = stringResource(R.string.menu_tiles_desc),
-                icon = Icons.Rounded.RestartAlt,
-                onClick = {
-                    prefs.resetMenuTiles(menu)
-                    hidden = emptySet()
-                }
-            )
-        }
-    }
-
-    SettingsGroup(
-        title = title,
-        items = menuItems
-    )
-}
 
 private fun getSlotIcon(slot: PlayerActionButtonSlot): ImageVector = when (slot) {
     PlayerActionButtonSlot.LIKE -> Icons.Rounded.Favorite

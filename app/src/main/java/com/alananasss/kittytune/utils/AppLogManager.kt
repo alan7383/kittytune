@@ -8,7 +8,11 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import androidx.media3.common.Player
 import com.alananasss.kittytune.BuildConfig
 import com.alananasss.kittytune.R
@@ -116,13 +120,38 @@ object AppLogManager {
         } catch (e: Exception) { -1L }
 
         val currentTrack = MusicManager.currentTrack
-        val isPlaying = MusicManager.player.isPlaying
-        val playbackState = when (MusicManager.player.playbackState) {
-            Player.STATE_IDLE -> "IDLE"
-            Player.STATE_BUFFERING -> "BUFFERING"
-            Player.STATE_READY -> "READY"
-            Player.STATE_ENDED -> "ENDED"
-            else -> "UNKNOWN"
+        var isPlaying = false
+        var playbackState = "UNKNOWN"
+        var currentPosition = 0L
+
+        fun readPlayerState() {
+            runCatching {
+                isPlaying = MusicManager.player.isPlaying
+                playbackState = when (MusicManager.player.playbackState) {
+                    Player.STATE_IDLE -> "IDLE"
+                    Player.STATE_BUFFERING -> "BUFFERING"
+                    Player.STATE_READY -> "READY"
+                    Player.STATE_ENDED -> "ENDED"
+                    else -> "UNKNOWN"
+                }
+                currentPosition = MusicManager.player.currentPosition
+            }
+        }
+
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            readPlayerState()
+        } else {
+            val latch = CountDownLatch(1)
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    readPlayerState()
+                } finally {
+                    latch.countDown()
+                }
+            }
+            try {
+                latch.await(300, TimeUnit.MILLISECONDS)
+            } catch (_: Exception) {}
         }
 
         val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -169,7 +198,7 @@ object AppLogManager {
             context.getString(R.string.logs_sec_playback) to listOf(
                 "Player State" to "$playbackState (Playing: $isPlaying)",
                 "Current Track" to (currentTrack?.let { "${it.title} - ${it.displayArtist} [id: ${it.id}]" } ?: "None"),
-                "Track Duration / Pos" to (currentTrack?.let { "${it.durationMs}ms / ${MusicManager.player.currentPosition}ms" } ?: "N/A"),
+                "Track Duration / Pos" to (currentTrack?.let { "${it.durationMs}ms / ${currentPosition}ms" } ?: "N/A"),
                 "Crossfade" to if (prefs.getCrossfadeEnabled()) "Enabled (${prefs.getCrossfadeDuration()}s)" else "Disabled"
             ),
             context.getString(R.string.logs_sec_network) to listOf(
@@ -201,7 +230,7 @@ object AppLogManager {
         }
     }
 
-    suspend fun getLogcat(maxLines: Int = 1200): String = withContext(Dispatchers.IO) {
+    suspend fun getLogcatLines(maxLines: Int = 1200): List<String> = withContext(Dispatchers.IO) {
         val pid = Process.myPid()
         val lines = mutableListOf<String>()
 
@@ -239,17 +268,21 @@ object AppLogManager {
                 reader.close()
                 p2.destroy()
             } catch (e: Exception) {
-                return@withContext "Error reading logcat: ${e.message}"
+                return@withContext listOf("Error reading logcat: ${e.message}")
             }
         }
 
         if (lines.isEmpty()) {
-            "No logcat entries available for process PID $pid."
+            listOf("No logcat entries available for process PID $pid.")
         } else if (lines.size > maxLines) {
-            lines.takeLast(maxLines).joinToString("\n")
+            lines.takeLast(maxLines)
         } else {
-            lines.joinToString("\n")
+            lines
         }
+    }
+
+    suspend fun getLogcat(maxLines: Int = 1200): String {
+        return getLogcatLines(maxLines).joinToString("\n")
     }
 
     suspend fun getFullReport(context: Context): String = withContext(Dispatchers.IO) {

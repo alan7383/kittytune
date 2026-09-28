@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.utils.AppLogManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -45,16 +47,16 @@ fun AppLogsSheet(
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var isLoadingLogcat by remember { mutableStateOf(true) }
-    var rawLogcat by remember { mutableStateOf("") }
+    var rawLogcatLines by remember { mutableStateOf<List<String>>(emptyList()) }
     var lastCrash by remember { mutableStateOf<String?>(null) }
     var diagnosticsMap by remember { mutableStateOf<Map<String, List<Pair<String, String>>>>(emptyMap()) }
 
     fun refreshData() {
         isLoadingLogcat = true
-        diagnosticsMap = AppLogManager.getDiagnosticsMap(context)
-        lastCrash = AppLogManager.getLastCrash(context)
         scope.launch {
-            rawLogcat = AppLogManager.getLogcat(maxLines = 1500)
+            diagnosticsMap = AppLogManager.getDiagnosticsMap(context)
+            lastCrash = AppLogManager.getLastCrash(context)
+            rawLogcatLines = AppLogManager.getLogcatLines(maxLines = 1500)
             isLoadingLogcat = false
         }
     }
@@ -63,13 +65,11 @@ fun AppLogsSheet(
         refreshData()
     }
 
-    val filteredLogcat = remember(rawLogcat, searchQuery) {
+    val filteredLogcatLines = remember(rawLogcatLines, searchQuery) {
         if (searchQuery.isBlank()) {
-            rawLogcat
+            rawLogcatLines
         } else {
-            rawLogcat.lineSequence()
-                .filter { it.contains(searchQuery, ignoreCase = true) }
-                .joinToString("\n")
+            rawLogcatLines.filter { it.contains(searchQuery, ignoreCase = true) }
         }
     }
 
@@ -292,13 +292,13 @@ fun AppLogsSheet(
                     }
                 )
                 1 -> LogcatTabContent(
-                    logcatText = filteredLogcat,
+                    logcatLines = filteredLogcatLines,
                     searchQuery = searchQuery,
                     isLoading = isLoadingLogcat,
                     onSearchQueryChange = { searchQuery = it },
                     onCopyLogcat = {
                         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        AppLogManager.copyToClipboard(context, filteredLogcat, "KittyTune Logcat")
+                        AppLogManager.copyToClipboard(context, filteredLogcatLines.joinToString("\n"), "KittyTune Logcat")
                         Toast.makeText(
                             context,
                             context.getString(R.string.logs_copied_toast),
@@ -420,7 +420,7 @@ private fun DiagnosticsTabContent(
 
 @Composable
 private fun LogcatTabContent(
-    logcatText: String,
+    logcatLines: List<String>,
     searchQuery: String,
     isLoading: Boolean,
     onSearchQueryChange: (String) -> Unit,
@@ -485,6 +485,19 @@ private fun LogcatTabContent(
             ) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
+        } else if (logcatLines.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "No logs matched your filter.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         } else {
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -504,13 +517,30 @@ private fun LogcatTabContent(
                             .fillMaxSize()
                             .horizontalScroll(horizontalScroll)
                     ) {
-                        item {
+                        items(
+                            count = logcatLines.size,
+                            key = { index -> index },
+                            contentType = { "logcat_line" }
+                        ) { index ->
+                            val line = logcatLines[index]
+                            val textColor = when {
+                                line.contains(" E ") || line.contains("E/") || line.contains("Exception") || line.contains("Error") ->
+                                    MaterialTheme.colorScheme.error
+                                line.contains(" W ") || line.contains("W/") || line.contains("Warning") ->
+                                    Color(0xFFFFA726)
+                                line.contains(" I ") || line.contains("I/") ->
+                                    MaterialTheme.colorScheme.primary
+                                else ->
+                                    MaterialTheme.colorScheme.onSurface
+                            }
                             Text(
-                                text = logcatText.ifBlank { "No logs matched your filter." },
+                                text = line,
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 11.sp,
-                                lineHeight = 16.sp,
-                                color = MaterialTheme.colorScheme.onSurface
+                                lineHeight = 15.sp,
+                                color = textColor,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -599,6 +629,7 @@ private fun CrashTabContent(
                 modifier = Modifier.fillMaxSize()
             ) {
                 val horizontalScroll = rememberScrollState()
+                val crashLines = remember(crashReport) { crashReport.lines() }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -609,13 +640,19 @@ private fun CrashTabContent(
                             .fillMaxSize()
                             .horizontalScroll(horizontalScroll)
                     ) {
-                        item {
+                        items(
+                            count = crashLines.size,
+                            key = { index -> index },
+                            contentType = { "crash_line" }
+                        ) { index ->
                             Text(
-                                text = crashReport,
+                                text = crashLines[index],
                                 fontFamily = FontFamily.Monospace,
                                 fontSize = 11.sp,
                                 lineHeight = 16.sp,
-                                color = MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }

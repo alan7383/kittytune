@@ -111,6 +111,34 @@ class PlayerPreferences(context: Context) {
     companion object {
         const val MENU_TRACK = "track"
         const val MENU_PLAYLIST = "playlist"
+        val DEFAULT_ACTIVE_TRACK_TILES = setOf(
+            "like",
+            "shuffle",
+            "repeat",
+            "play_next",
+            "add_queue",
+            "comments",
+            "repost",
+            "details",
+            "lyrics",
+            "add_playlist",
+            "go_album",
+            "go_artist",
+            "edit_track",
+            "track_radio",
+            "share",
+            "remove_from_playlist",
+            "sleep_timer",
+            "download"
+        )
+        val DEFAULT_HIDDEN_TRACK_TILES = setOf(
+            "trim",
+            "duet_lyrics_blacklist",
+            "share_card",
+            "dj_flow"
+        )
+        fun defaultHiddenMenuTiles(menu: String): Set<String> =
+            if (menu == MENU_TRACK) DEFAULT_HIDDEN_TRACK_TILES else emptySet()
         const val KEY_SHOW_REMAINING_TIME = "show_remaining_time"
         const val KEY_VERTICAL_VOLUME_SLIDER = "vertical_volume_slider"
         const val KEY_VOLUME_SLIDER_STYLE = "volume_slider_style"
@@ -282,6 +310,7 @@ class PlayerPreferences(context: Context) {
 
         private const val KEY_BOTTOM_MENU_STYLE = "bottom_menu_style"
         private const val KEY_BOTTOM_MENU_ITEMS = "bottom_menu_items_csv"
+        private const val KEY_BOTTOM_MENU_ORDER = "bottom_menu_order_csv"
         private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
         private const val KEY_STOP_ON_TASK_CLEAR = "stop_on_task_clear"
@@ -886,6 +915,33 @@ class PlayerPreferences(context: Context) {
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         trySend(getBottomMenuItems())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getBottomMenuOrder(): List<String> {
+        val allTabKeys = listOf("home", "search", "genres", "library")
+        val csv = prefs.getString(KEY_BOTTOM_MENU_ORDER, null)
+        if (csv.isNullOrBlank()) {
+            val currentItems = getBottomMenuItems()
+            return if (currentItems.size == allTabKeys.size) {
+                (currentItems.filter { it in allTabKeys } + allTabKeys.filter { it !in currentItems }).distinct()
+            } else {
+                allTabKeys
+            }
+        }
+        val stored = csv.split(",").map { it.trim() }.filter { it.isNotBlank() && it in allTabKeys }
+        return (stored + allTabKeys.filter { it !in stored }).distinct()
+    }
+
+    fun setBottomMenuOrder(order: List<String>) =
+        prefs.edit { putString(KEY_BOTTOM_MENU_ORDER, order.joinToString(",")) }
+
+    fun bottomMenuOrderFlow(): kotlinx.coroutines.flow.Flow<List<String>> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_BOTTOM_MENU_ORDER) trySend(getBottomMenuOrder())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getBottomMenuOrder())
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 
@@ -1612,6 +1668,17 @@ class PlayerPreferences(context: Context) {
     fun getShowRemainingTime(): Boolean = prefs.getBoolean(KEY_SHOW_REMAINING_TIME, false)
     fun setShowRemainingTime(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_REMAINING_TIME, enabled) }
 
+    fun getShowRemainingTimeFlow(): Flow<Boolean> = callbackFlow {
+        trySend(getShowRemainingTime())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_SHOW_REMAINING_TIME) {
+                trySend(getShowRemainingTime())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     fun getVerticalVolumeSlider(): Boolean = prefs.getBoolean(KEY_VERTICAL_VOLUME_SLIDER, false)
     fun setVerticalVolumeSlider(enabled: Boolean) = prefs.edit { putBoolean(KEY_VERTICAL_VOLUME_SLIDER, enabled) }
 
@@ -1643,7 +1710,14 @@ class PlayerPreferences(context: Context) {
     fun setSeekWheelSeconds(seconds: Float) = prefs.edit { putFloat(KEY_SEEK_WHEEL_SECONDS, seconds) }
 
     fun getHiddenMenuTiles(menu: String): Set<String> {
-        val raw = prefs.getString("menu_tiles_hidden_$menu", null) ?: return emptySet()
+        val key = "menu_tiles_hidden_$menu"
+        if (!prefs.getBoolean("menu_tiles_defaults_init_v6", false)) {
+            prefs.edit {
+                putBoolean("menu_tiles_defaults_init_v6", true)
+                remove(key)
+            }
+        }
+        val raw = prefs.getString(key, null) ?: return defaultHiddenMenuTiles(menu)
         return raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
     }
     fun setHiddenMenuTiles(menu: String, tiles: Set<String>) = prefs.edit { putString("menu_tiles_hidden_$menu", tiles.joinToString(",")) }

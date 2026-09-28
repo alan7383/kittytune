@@ -713,6 +713,7 @@
     <string name="settings_page_lyrics_sub">Apparence et comportement des paroles</string>
     <string name="settings_title">Paramètres</string>
     <string name="settings_cat_general">Général</string>
+    <string name="settings_cat_general_sub">Langue, écran de démarrage et mises à jour</string>
     <string name="settings_cat_appearance">Apparence</string>
     <string name="settings_cat_typography">Typographie</string>
     <string name="settings_cat_playback">Lecture</string>
@@ -2679,6 +2680,7 @@
     <string name="menu_tiles_desc">Maintenez un bouton du menu d\'un morceau ou d\'une playlist pour le déplacer, clic droit pour le masquer. Les boutons masqués se réactivent ici.</string>
     <string name="menu_tiles_reset">Réinitialiser l\'ordre</string>
     <string name="menu_tiles_track">Menu du morceau</string>
+    <string name="menu_tiles_reorder_desc">Glissez pour réorganiser. Le menu du morceau suivra cet ordre.</string>
     <string name="menu_tiles_playlist">Menu de la playlist</string>
 
     <!-- Player Shape -->

@@ -495,16 +495,13 @@ fun MainScreen(
             }
         ) { _ ->
             val allTabKeys = listOf("home", "search", "genres", "library")
-            val bottomNavItemsKeys = prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems()).value
+            val bottomNavItemsKeys by prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems())
+            val bottomNavOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
 
-            // The bar follows the stored order, not the order of allTabKeys. It used to be built
-            // from that hardcoded list and the stored keys only decided visibility, so the reorder
-            // setting could not change anything. Keys stored but no longer known are dropped, and
-            // any known key missing from the store is appended, so a tab can never go missing
-            // because of a stale preference.
-            val orderedTabKeys = remember(bottomNavItemsKeys) {
-                (bottomNavItemsKeys.filter { it in allTabKeys } +
-                    allTabKeys.filter { it !in bottomNavItemsKeys }).distinct()
+            // The bar follows the persistent user-reordered tab order, while bottomNavItemsKeys decides visibility.
+            val orderedTabKeys = remember(bottomNavOrder) {
+                (bottomNavOrder.filter { it in allTabKeys } +
+                    allTabKeys.filter { it !in bottomNavOrder }).distinct()
             }
 
             val tabs = orderedTabKeys.mapNotNull { key ->
