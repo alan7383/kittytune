@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.ImportExport
 import androidx.compose.material.icons.rounded.Info
@@ -23,6 +24,10 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +60,38 @@ fun MiscSettingsScreen(
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showStartDialog by remember { mutableStateOf(false) }
+    var aiBlockAll by remember { mutableStateOf(prefs.getAiBlockAllEnabled()) }
+    var showAiBlockWarning by remember { mutableStateOf(false) }
+
+    // Switching the block on skips music without asking, so the listener reads what can go wrong first.
+    if (showAiBlockWarning) {
+        AlertDialog(
+            onDismissRequest = { showAiBlockWarning = false },
+            icon = { Icon(Icons.Rounded.Block, contentDescription = null) },
+            title = { Text(stringResource(R.string.ai_block_all_warning_title)) },
+            text = {
+                Text(
+                    text = stringResource(R.string.ai_block_all_warning_text),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    aiBlockAll = true
+                    prefs.setAiBlockAllEnabled(true)
+                    showAiBlockWarning = false
+                }) {
+                    Text(stringResource(R.string.ai_block_all_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAiBlockWarning = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
 
     if (showLanguageDialog) {
         AlertDialog(
@@ -173,6 +210,32 @@ fun MiscSettingsScreen(
                         onClick = { navController.navigate("discord_settings") }
                     )
                 }
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.ai_settings_group),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.ai_block_all_title),
+                                subtitle = stringResource(R.string.ai_block_all_subtitle),
+                                icon = Icons.Rounded.Block,
+                                hasSwitch = true,
+                                switchState = aiBlockAll,
+                                onSwitchChange = { enabled ->
+                                    if (enabled) {
+                                        showAiBlockWarning = true
+                                    } else {
+                                        aiBlockAll = false
+                                        prefs.setAiBlockAllEnabled(false)
+                                    }
+                                }
+                            )
+                        }
+                    )
+                )
             }
 
             item {

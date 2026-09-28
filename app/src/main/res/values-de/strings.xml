@@ -14,6 +14,23 @@
     <string name="no_results">Keine Ergebnisse gefunden</string>
     <string name="unknown">Unbekannt</string>
 
+    <!-- AI Detection & Blocking -->
+    <string name="ai_detected_badge">KI erkannt</string>
+    <string name="ai_dialog_title">KI-Musik erkannt</string>
+    <string name="ai_dialog_message">Dieser Track zeigt Anzeichen generativer KI (Suno, Udio &amp; Co.) in Metadaten, Uploader-Verhalten, Hörer-Kommentaren, der Waveform oder dem Klang. Wie möchtest du verfahren?</string>
+    <string name="ai_dialog_score">Erkennungswert: %d%%</string>
+    <string name="ai_dialog_btn_block">Dauerhaft sperren</string>
+    <string name="ai_dialog_btn_allow">Dauerhaft erlauben</string>
+    <string name="ai_dialog_btn_dismiss">Dieses Mal belassen</string>
+    <string name="ai_settings_group">KI-Musik</string>
+    <string name="ai_block_all_title">KI-Musik komplett blockieren</string>
+    <string name="ai_block_all_subtitle">Jeden Track, den die KI-Prüfung markiert, ohne Nachfrage überspringen</string>
+    <string name="ai_block_all_warning_title">KI-Musik komplett blockieren?</string>
+    <string name="ai_block_all_warning_text">kittytune überspringt dann jeden Track, den die KI-Prüfung als generiert einstuft (ab 60 Prozent), ohne nachzufragen, und lässt solche Tracks auch in Autoplay und Radio weg.\n\nDie Prüfung ist nicht perfekt. Sie wägt Indizien ab, keine Beweise: Metadaten, das Verhalten des Uploaders, seine anderen Uploads, Hörer-Kommentare, die Waveform und einen Audio-Fingerabdruck. Deshalb kann auch menschliche Musik fälschlich erkannt werden, zum Beispiel:\n• DJ-Mixe und Remixe von Accounts, die auch KI-Musik hochladen\n• sehr laut gemasterte Tracks ohne leise Passagen\n• Songs über KI oder mit „KI“ bzw. „AI“ im Namen\n• Künstler, die KI nur für das Cover oder das Mastering genutzt haben\n• neue Accounts, die viel auf einmal hochladen\n\nUmgekehrt kann gut gemachte KI-Musik ohne Kennzeichnung trotzdem durchrutschen.\n\nWird ein Track übersprungen, erscheint ein Hinweis mit „Trotzdem abspielen“ – damit erlaubst du ihn dauerhaft. Du kannst die Blockierung hier jederzeit wieder ausschalten.</string>
+    <string name="ai_block_all_confirm">KI-Musik blockieren</string>
+    <string name="ai_skip_message">KI-Musik übersprungen: %1$s (%2$d %%)</string>
+    <string name="ai_skip_play_anyway">Trotzdem abspielen</string>
+
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- BUTTONS & ACTIONS                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->

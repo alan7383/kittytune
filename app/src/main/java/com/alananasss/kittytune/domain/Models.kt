@@ -508,6 +508,13 @@ data class Track(
             if (user != null && user.avatarUrl != null) return user.avatarUrl.replace("large", "t500x500")
             return "https://picsum.photos/200"
         }
+
+}
+
+fun normalizeTrackTitle(title: String): String {
+    if (title.isBlank()) return ""
+    val modifierRegex = Regex("""(?i)\s*[-–—]?\s*[\(\[]?\s*(slowed(\s*\+\s*reverb)?|sped\s*up|nightcore|hardstyle\s*edit)\s*[\)\]]?""")
+    return title.replace(modifierRegex, "").trim().removeSuffix("-").removeSuffix("–").removeSuffix("—").trim()
 }
 
 private val PRESERVED_ARTIST_NAMES_WITH_COMMA = setOf(

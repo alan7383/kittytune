@@ -410,6 +410,21 @@ fun PixelPlayerScreen(
                         handleClose()
                     } else {
                         scope.launch {
+                            try {
+                                predictiveBackProgress.animateTo(
+                                    0f,
+                                    spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                )
+                            } catch (_: kotlinx.coroutines.CancellationException) {}
+                        }
+                    }
+                },
+                onDragCancel = {
+                    scope.launch {
+                        try {
                             predictiveBackProgress.animateTo(
                                 0f,
                                 spring(
@@ -417,28 +432,22 @@ fun PixelPlayerScreen(
                                     stiffness = Spring.StiffnessMediumLow
                                 )
                             )
-                        }
-                    }
-                },
-                onDragCancel = {
-                    scope.launch {
-                        predictiveBackProgress.animateTo(
-                            0f,
-                            spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        )
+                        } catch (_: kotlinx.coroutines.CancellationException) {}
                     }
                 },
                 onVerticalDrag = { change, dragAmount ->
                     if (dragAmount > 0 || predictiveBackProgress.value > 0f) {
                         change.consume()
-                        val delta = dragAmount / sheetCollapsedTargetY
-                        scope.launch {
-                            predictiveBackProgress.snapTo(
-                                (predictiveBackProgress.value + delta).coerceIn(0f, 1f)
-                            )
+                        val targetY = if (sheetCollapsedTargetY <= 0f) 1f else sheetCollapsedTargetY
+                        val delta = if (dragAmount.isNaN() || dragAmount.isInfinite()) 0f else dragAmount / targetY
+                        if (!delta.isNaN() && !delta.isInfinite()) {
+                            scope.launch {
+                                try {
+                                    predictiveBackProgress.snapTo(
+                                        (predictiveBackProgress.value + delta).coerceIn(0f, 1f)
+                                    )
+                                } catch (_: kotlinx.coroutines.CancellationException) {}
+                            }
                         }
                     }
                 }
@@ -483,15 +492,20 @@ fun PixelPlayerScreen(
                     )
                 }
 
-                // Center "Now Playing" title
-                Text(
-                    text = stringResource(R.string.player_now_playing),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontFamily = GoogleSansRounded,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = mainTextColor
-                )
+                // Center "Now Playing" title or AI badge
+                val aiState by viewModel.aiDetectionState.collectAsState()
+                if (aiState.isAiDetected) {
+                    com.alananasss.kittytune.ui.player.AiDetectedBadge(onClick = { viewModel.reopenAiDialog() })
+                } else {
+                    Text(
+                        text = stringResource(R.string.player_now_playing),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = GoogleSansRounded,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = mainTextColor
+                    )
+                }
 
                 // Right connected buttons: Lyrics + Queue
                 Row(

@@ -359,6 +359,10 @@ object MusicManager {
         com.alananasss.kittytune.audio.automix.DjStemAudioProcessor(),
         com.alananasss.kittytune.audio.automix.DjStemAudioProcessor()
     )
+    private val aiFingerprintProcessors = listOf(
+        com.alananasss.kittytune.audio.AiFingerprintAudioProcessor(0),
+        com.alananasss.kittytune.audio.AiFingerprintAudioProcessor(1)
+    )
     private var hapticProcessors: List<com.alananasss.kittytune.audio.haptics.HapticAudioProcessor>? = null
     private var appContext: Context? = null
 
@@ -377,6 +381,9 @@ object MusicManager {
             com.alananasss.kittytune.audio.haptics.HapticAudioProcessor(context.applicationContext)
         )
         hapticProcessors = haptics
+        com.alananasss.kittytune.data.filter.AiAudioProbe.init(context.applicationContext) {
+            if (activePlayerIndex == 1) 0 else 1
+        }
 
         rainPlayer = RainPlayer(context.applicationContext)
 
@@ -564,7 +571,7 @@ object MusicManager {
                             val duckProc = automixDuckProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor()
                             val stemProc = djStemProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.DjStemAudioProcessor()
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(hapticProc, duckProc, stemProc, equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
+                                .setAudioProcessors(arrayOf(aiFingerprintProcessors[index], hapticProc, duckProc, stemProc, equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()

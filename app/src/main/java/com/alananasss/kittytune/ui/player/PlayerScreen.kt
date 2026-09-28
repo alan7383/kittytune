@@ -811,6 +811,16 @@ fun PlayerScreen(
                 onMixNow = { viewModel.djFlowController.triggerTransition() },
             )
         }
+
+        val aiState by viewModel.aiDetectionState.collectAsState()
+        if (aiState.showDialog) {
+            AiTrackDecisionDialog(
+                score = aiState.detectionScore,
+                onBlock = { viewModel.blockCurrentTrackPermanently() },
+                onAllow = { viewModel.allowCurrentTrackPermanently() },
+                onDismiss = { viewModel.dismissAiDialog() }
+            )
+        }
     }
 
 }
@@ -950,6 +960,21 @@ fun NewPlayerScreen(
                     handleClose()
                 } else {
                     scope.launch {
+                        try {
+                            dismissProgress.animateTo(
+                                0f,
+                                spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                        } catch (_: kotlinx.coroutines.CancellationException) {}
+                    }
+                }
+            },
+            onDragCancel = {
+                scope.launch {
+                    try {
                         dismissProgress.animateTo(
                             0f,
                             spring(
@@ -957,28 +982,22 @@ fun NewPlayerScreen(
                                 stiffness = Spring.StiffnessMediumLow
                             )
                         )
-                    }
-                }
-            },
-            onDragCancel = {
-                scope.launch {
-                    dismissProgress.animateTo(
-                        0f,
-                        spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
+                    } catch (_: kotlinx.coroutines.CancellationException) {}
                 }
             },
             onVerticalDrag = { change, dragAmount ->
                 if (dragAmount > 0 || dismissProgress.value > 0f) {
                     change.consume()
-                    val delta = dragAmount / dismissTargetY
-                    scope.launch {
-                        dismissProgress.snapTo(
-                            (dismissProgress.value + delta).coerceIn(0f, 1f)
-                        )
+                    val targetY = if (dismissTargetY <= 0f) 1f else dismissTargetY
+                    val delta = if (dragAmount.isNaN() || dragAmount.isInfinite()) 0f else dragAmount / targetY
+                    if (!delta.isNaN() && !delta.isInfinite()) {
+                        scope.launch {
+                            try {
+                                dismissProgress.snapTo(
+                                    (dismissProgress.value + delta).coerceIn(0f, 1f)
+                                )
+                            } catch (_: kotlinx.coroutines.CancellationException) {}
+                        }
                     }
                 }
             }
@@ -1546,15 +1565,20 @@ fun PlayerHeader(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
         ) {
-            Text(
-                stringResource(R.string.player_playing_now),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    shadow = textShadow
-                ),
-                color = subContentColor
-            )
+            val aiState by viewModel.aiDetectionState.collectAsState()
+            if (aiState.isAiDetected) {
+                AiDetectedBadge(onClick = { viewModel.reopenAiDialog() })
+            } else {
+                Text(
+                    stringResource(R.string.player_playing_now),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        shadow = textShadow
+                    ),
+                    color = subContentColor
+                )
+            }
 
             if (context != null) {
                 PremiumMarqueeText(
@@ -2095,6 +2119,15 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     stringResource(R.string.menu_add_queue)
                 ) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
         }
+        add(
+            DockOptionItem(
+                Icons.Rounded.AutoAwesome,
+                stringResource(R.string.ai_dialog_btn_block)
+            ) {
+                viewModel.blockCurrentTrackPermanently()
+                viewModel.showMenuSheet = false
+            }
+        )
         if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
             add(
                 DockOptionItem(
@@ -10864,6 +10897,21 @@ fun OldPlayerScreen(
                     handleClose()
                 } else {
                     scope.launch {
+                        try {
+                            dismissProgress.animateTo(
+                                0f,
+                                spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                        } catch (_: kotlinx.coroutines.CancellationException) {}
+                    }
+                }
+            },
+            onDragCancel = {
+                scope.launch {
+                    try {
                         dismissProgress.animateTo(
                             0f,
                             spring(
@@ -10871,28 +10919,22 @@ fun OldPlayerScreen(
                                 stiffness = Spring.StiffnessMediumLow
                             )
                         )
-                    }
-                }
-            },
-            onDragCancel = {
-                scope.launch {
-                    dismissProgress.animateTo(
-                        0f,
-                        spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
+                    } catch (_: kotlinx.coroutines.CancellationException) {}
                 }
             },
             onVerticalDrag = { change, dragAmount ->
                 if (dragAmount > 0 || dismissProgress.value > 0f) {
                     change.consume()
-                    val delta = dragAmount / dismissTargetY
-                    scope.launch {
-                        dismissProgress.snapTo(
-                            (dismissProgress.value + delta).coerceIn(0f, 1f)
-                        )
+                    val targetY = if (dismissTargetY <= 0f) 1f else dismissTargetY
+                    val delta = if (dragAmount.isNaN() || dragAmount.isInfinite()) 0f else dragAmount / targetY
+                    if (!delta.isNaN() && !delta.isInfinite()) {
+                        scope.launch {
+                            try {
+                                dismissProgress.snapTo(
+                                    (dismissProgress.value + delta).coerceIn(0f, 1f)
+                                )
+                            } catch (_: kotlinx.coroutines.CancellationException) {}
+                        }
                     }
                 }
             }
@@ -12523,6 +12565,13 @@ fun SoundCloudPlayerView(
                                 )
                             }
                         }
+                    }
+                    val aiState by viewModel.aiDetectionState.collectAsState()
+                    if (aiState.isAiDetected && isCurrentPage) {
+                        AiDetectedBadge(
+                            onClick = { viewModel.reopenAiDialog() },
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
                     }
                     if (!isSpotifyTrack && pageTrack.source != "youtube") {
                         Surface(

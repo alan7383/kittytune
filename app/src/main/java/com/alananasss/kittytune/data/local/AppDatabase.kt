@@ -10,7 +10,11 @@
     import androidx.room.RoomDatabase
     import androidx.room.Transaction
     import androidx.room.Update
+    import androidx.room.TypeConverters
     import androidx.room.migration.Migration
+    import com.alananasss.kittytune.data.local.db.AiTrackFilterEntity
+    import com.alananasss.kittytune.data.local.db.AiTrackFilterDao
+    import com.alananasss.kittytune.data.local.db.AiTrackFilterConverters
     import com.alananasss.kittytune.data.stats.StatsSql
     import androidx.sqlite.db.SupportSQLiteDatabase
     import kotlinx.coroutines.flow.Flow
@@ -489,16 +493,19 @@
             LibraryFolder::class,
             LibraryItemMeta::class,
             TrackTrimRow::class,
-            BeatInfoEntity::class
+            BeatInfoEntity::class,
+            AiTrackFilterEntity::class
         ],
-        version = 24,
+        version = 25,
         exportSchema = false
     )
+    @TypeConverters(AiTrackFilterConverters::class)
     abstract class AppDatabase : RoomDatabase() {
         abstract fun downloadDao(): DownloadDao
         abstract fun recognitionHistoryDao(): RecognitionHistoryDao
         abstract fun folderDao(): FolderDao
         abstract fun beatInfoDao(): BeatInfoDao
+        abstract fun aiTrackFilterDao(): AiTrackFilterDao
 
         companion object {
             val MIGRATION_16_17 = object : Migration(16, 17) {
@@ -606,6 +613,21 @@
                 }
             }
 
+            val MIGRATION_24_25 = object : Migration(24, 25) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS ai_track_filters (" +
+                            "trackId TEXT NOT NULL PRIMARY KEY, " +
+                            "title TEXT NOT NULL, " +
+                            "artist TEXT NOT NULL, " +
+                            "decision TEXT NOT NULL, " +
+                            "detectionScore INTEGER NOT NULL, " +
+                            "detectionReason TEXT NOT NULL, " +
+                            "timestamp INTEGER NOT NULL)"
+                    )
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -614,7 +636,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

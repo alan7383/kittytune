@@ -32,8 +32,10 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.palette.graphics.Palette
 import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import coil.size.Precision
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.*
 import com.alananasss.kittytune.data.spotify.SpotifyArtistRef
@@ -75,6 +77,13 @@ import kotlin.time.Duration.Companion.milliseconds
 import com.alananasss.kittytune.data.lyrics.providers.*
 import com.alananasss.kittytune.data.lyrics.clients.*
 import com.alananasss.kittytune.KittyTuneApp
+import com.alananasss.kittytune.data.filter.SoundCloudAiScorer
+import com.alananasss.kittytune.data.filter.AiAudioProbe
+import com.alananasss.kittytune.data.local.db.AiTrackDecision
+import com.alananasss.kittytune.data.local.db.AiTrackFilterEntity
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 enum class CommentSort(val value: String, @param:StringRes val labelResId: Int) {
     NEWEST("newest", R.string.sort_newest),
@@ -83,6 +92,14 @@ enum class CommentSort(val value: String, @param:StringRes val labelResId: Int) 
 }
 
 enum class LyricsMode { SYNCED, PLAIN }
+
+data class AiDetectionUiState(
+    val isAiDetected: Boolean = false,
+    val currentTrack: Track? = null,
+    val detectionScore: Int = 0,
+    val showDialog: Boolean = false,
+    val reason: String = ""
+)
 
 data class UnifiedLyricResult(
     val id: String,
@@ -103,6 +120,201 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private val context get() = getApplication<Application>().applicationContext
     private val playerPrefs = PlayerPreferences(context)
     private val tokenManager = TokenManager(context)
+    val aiTrackFilterDao by lazy { AppDatabase.getDatabase(context).aiTrackFilterDao() }
+
+    private val _aiDetectionState = MutableStateFlow(AiDetectionUiState())
+    val aiDetectionState: StateFlow<AiDetectionUiState> = _aiDetectionState.asStateFlow()
+
+    private var aiCheckJob: Job? = null
+
+    /** The track the AI dialog was already offered for, so a later, higher score does not ask twice. */
+    private var aiDialogOfferedFor: Long? = null
+
+    /** A track the complete AI block skipped, for the notice that offers to play it anyway. */
+    data class AiSkipEvent(val track: Track, val score: Int)
+
+    private val _aiSkipEvents = MutableSharedFlow<AiSkipEvent>(extraBufferCapacity = 4)
+    val aiSkipEvents = _aiSkipEvents.asSharedFlow()
+
+    /**
+     * Judges [track] when it starts, and again once [AiAudioProbe] has heard its first seconds. Tracks the
+     * listener blocked are skipped and allowed ones left alone; with "block AI music completely" on, anything
+     * the check flags is skipped without asking.
+     */
+    fun checkAndEvaluateAiTrack(track: Track) {
+        aiCheckJob?.cancel()
+        aiCheckJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val trackId = track.id.toString()
+                val existingDecision = aiTrackFilterDao.getDecisionSync(trackId)
+                if (existingDecision == AiTrackDecision.BLOCKED) {
+                    withContext(Dispatchers.Main) {
+                        _aiDetectionState.value = AiDetectionUiState(
+                            isAiDetected = true,
+                            currentTrack = track,
+                            detectionScore = 100,
+                            showDialog = false,
+                            reason = "BLOCKED"
+                        )
+                        playNext(manual = false)
+                    }
+                    return@launch
+                } else if (existingDecision == AiTrackDecision.ALLOWED) {
+                    withContext(Dispatchers.Main) {
+                        _aiDetectionState.value = AiDetectionUiState(
+                            isAiDetected = false,
+                            currentTrack = track
+                        )
+                    }
+                    return@launch
+                }
+
+                AiAudioProbe.listenTo(track.id)
+                val scoreResult = SoundCloudAiScorer.scoreTrack(
+                    track,
+                    context = context,
+                    api = api,
+                    audioAiProbability = AiAudioProbe.probability(track.id)
+                )
+                android.util.Log.d("PlayerViewModel", "checkAndEvaluateAiTrack: '${track.title}' by '${track.displayArtist}' -> score=${scoreResult.score}, isAi=${scoreResult.isAi}, reason=${scoreResult.reason}")
+
+                withContext(Dispatchers.Main) {
+                    // The check may finish after the listener has moved on.
+                    if (currentTrack?.id != track.id) return@withContext
+                    if (scoreResult.isAi && playerPrefs.getAiBlockAllEnabled()) {
+                        skipAiTrack(track, scoreResult.score)
+                        return@withContext
+                    }
+                    val previous = _aiDetectionState.value
+                    val stillOpen = previous.showDialog && previous.currentTrack?.id == track.id
+                    val offer = scoreResult.isAi && aiDialogOfferedFor != track.id
+                    if (offer) aiDialogOfferedFor = track.id
+                    _aiDetectionState.value = AiDetectionUiState(
+                        isAiDetected = scoreResult.isAi,
+                        currentTrack = track,
+                        detectionScore = scoreResult.score,
+                        showDialog = scoreResult.isAi && (offer || stillOpen),
+                        reason = scoreResult.reason
+                    )
+                }
+
+                if (scoreResult.isAi && existingDecision == null) {
+                    aiTrackFilterDao.saveDecision(
+                        AiTrackFilterEntity(
+                            trackId = trackId,
+                            title = track.title ?: "",
+                            artist = track.displayArtist,
+                            decision = AiTrackDecision.PENDING,
+                            detectionScore = scoreResult.score,
+                            detectionReason = scoreResult.reason
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                if (e !is CancellationException) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    /** The complete AI block: move on without asking, and let the notice offer the track anyway. */
+    private fun skipAiTrack(track: Track, score: Int) {
+        _aiDetectionState.value = AiDetectionUiState()
+        _aiSkipEvents.tryEmit(AiSkipEvent(track, score))
+        playNext(manual = false)
+    }
+
+    /** "Play anyway" from the skip notice: allows the track for good and goes back to it. */
+    fun playSkippedAiTrack(track: Track, score: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            aiTrackFilterDao.saveDecision(
+                AiTrackFilterEntity(
+                    trackId = track.id.toString(),
+                    title = track.title ?: "",
+                    artist = track.displayArtist,
+                    decision = AiTrackDecision.ALLOWED,
+                    detectionScore = score,
+                    detectionReason = "USER_PLAY_ANYWAY"
+                )
+            )
+            withContext(Dispatchers.Main) {
+                val index = _queue.indexOfFirst { it.id == track.id }
+                if (index >= 0) playTrackAtIndex(index) else playPlaylist(listOf(track), 0)
+            }
+        }
+    }
+
+    fun blockCurrentTrackPermanently() {
+        val track = currentTrack ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            aiTrackFilterDao.saveDecision(
+                AiTrackFilterEntity(
+                    trackId = track.id.toString(),
+                    title = track.title ?: "",
+                    artist = track.displayArtist,
+                    decision = AiTrackDecision.BLOCKED,
+                    detectionScore = _aiDetectionState.value.detectionScore.coerceAtLeast(100),
+                    detectionReason = "USER_MANUAL"
+                )
+            )
+            withContext(Dispatchers.Main) {
+                _aiDetectionState.value = AiDetectionUiState(isAiDetected = false, showDialog = false)
+                playNext(manual = true)
+            }
+        }
+    }
+
+    fun allowCurrentTrackPermanently() {
+        val track = currentTrack ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            aiTrackFilterDao.saveDecision(
+                AiTrackFilterEntity(
+                    trackId = track.id.toString(),
+                    title = track.title ?: "",
+                    artist = track.displayArtist,
+                    decision = AiTrackDecision.ALLOWED,
+                    detectionScore = _aiDetectionState.value.detectionScore,
+                    detectionReason = "USER_MANUAL"
+                )
+            )
+            withContext(Dispatchers.Main) {
+                _aiDetectionState.value = AiDetectionUiState(isAiDetected = false, showDialog = false)
+            }
+        }
+    }
+
+    /**
+     * Autoplay and radio pick tracks on the listener's behalf, so they leave out blocked tracks and tracks whose
+     * metadata declares them AI, unless the listener allowed that track. With the complete AI block on they also
+     * leave out whatever the offline check flags.
+     */
+    private suspend fun isExcludedFromAutoplayAsAi(track: Track): Boolean {
+        val decision = try {
+            aiTrackFilterDao.getDecisionSync(track.id.toString())
+        } catch (_: Exception) {
+            null
+        }
+        return when (decision) {
+            AiTrackDecision.BLOCKED -> true
+            AiTrackDecision.ALLOWED -> false
+            else -> if (playerPrefs.getAiBlockAllEnabled()) {
+                SoundCloudAiScorer.scoreOffline(track, AiAudioProbe.probability(track.id)).isAi
+            } else {
+                SoundCloudAiScorer.isExplicitlyLabeledAi(track)
+            }
+        }
+    }
+
+    fun dismissAiDialog() {
+        _aiDetectionState.value = _aiDetectionState.value.copy(showDialog = false)
+    }
+
+    fun reopenAiDialog() {
+        if (_aiDetectionState.value.isAiDetected) {
+            _aiDetectionState.value = _aiDetectionState.value.copy(showDialog = true)
+        }
+    }
 
     suspend fun getWaveformForTrack(track: Track): FloatArray? {
         return com.alananasss.kittytune.data.WaveformRepository.getWaveform(context, track, api)
@@ -1028,45 +1240,62 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             val trackId = parseIdFromMediaId(mediaItem.mediaId)
 
-            val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
-            if (expectedTrackId != null && expectedTrackId != trackId) {
-                return
+            val confirmedTrack = _queue.find { it.id == trackId }
+                ?: MusicManager.currentTrack?.takeIf { it.id == trackId }
+                ?: run {
+                    val meta = mediaItem.mediaMetadata
+                    val source = if (mediaItem.mediaId.startsWith("yt_") || mediaItem.requestMetadata.mediaUri?.toString()
+                            ?.contains("youtube") == true
+                    ) "youtube" else "soundcloud"
+
+                    Track(
+                        id = trackId,
+                        title = meta.title?.toString() ?: "Unknown",
+                        durationMs = 0L,
+                        artworkUrl = meta.artworkUri?.toString(),
+                        user = User(0, meta.artist?.toString() ?: "Unknown", null),
+                        permalinkUrl = "",
+                        playbackCount = 0,
+                        likesCount = 0,
+                        repostsCount = 0,
+                        commentCount = 0,
+                        source = source
+                    )
+                }
+
+            val targetIndex = _queue.indexOfFirst { it.id == trackId }
+            if (targetIndex != -1) {
+                currentQueueIndex = targetIndex
             }
 
             if (currentTrack?.id != trackId) {
                 // Whatever was playing has ended, however it ended. The new track's session is opened by
                 // the progress loop, which knows the position it actually started from.
                 flushListenSession("TRACK_CHANGE")
-                loadTrimFor(MusicManager.currentTrack?.id)
+                loadTrimFor(trackId)
                 hasPushedRecentlyPlayed = false
             }
 
-            if (MusicManager.currentTrack?.id == trackId) {
-                currentTrack = MusicManager.currentTrack
-            } else if (currentTrack?.id != trackId) {
-                val meta = mediaItem.mediaMetadata
-                val source = if (mediaItem.mediaId.startsWith("yt_") || mediaItem.requestMetadata.mediaUri?.toString()
-                        ?.contains("youtube") == true
-                ) "youtube" else "soundcloud"
+            currentTrack = confirmedTrack
+            MusicManager.currentTrack = confirmedTrack
+            updatePlayerColors(confirmedTrack)
+            djFlowController.onTrackChanged(confirmedTrack)
+            feedHapticBeatGrid(confirmedTrack)
+            djFlowController.onQueueUpdated(_queue.toList(), currentQueueIndex)
 
-                currentTrack = Track(
-                    id = trackId,
-                    title = meta.title?.toString() ?: "Unknown",
-                    durationMs = 0L,
-                    artworkUrl = meta.artworkUri?.toString(),
-                    user = User(0, meta.artist?.toString() ?: "Unknown", null),
-                    permalinkUrl = "",
-                    playbackCount = 0,
-                    likesCount = 0,
-                    repostsCount = 0,
-                    commentCount = 0,
-                    source = source
-                )
+            viewModelScope.launch {
+                isLiked = LikeRepository.isTrackLiked(confirmedTrack.id)
+                loadLyrics(confirmedTrack)
+                AchievementManager.checkTrackNameSecret(confirmedTrack.title ?: "")
+                checkAndEvaluateAiTrack(confirmedTrack)
             }
         }
     }
 
     fun resetPlaybackState(closePlayer: Boolean = true) {
+        aiCheckJob?.cancel()
+        AiAudioProbe.stopListening()
+        _aiDetectionState.value = AiDetectionUiState()
         playJob?.cancel()
         isLoading = false
         isPlaying = false
@@ -1199,6 +1428,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         SoundCloudTelemetryTracker.init(context)
         MusicManager.init(context)
+        viewModelScope.launch {
+            // The audio verdict arrives about 20 seconds into the track; judge the track again with it.
+            AiAudioProbe.analyzed.collect { trackId ->
+                currentTrack?.takeIf { it.id == trackId }?.let { checkAndEvaluateAiTrack(it) }
+            }
+        }
         bindToActivePlayer()
         MusicManager.applyEffects(effectsState)
         MusicManager.applyEqualizer(equalizerState)
@@ -1328,11 +1563,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             MusicManager.currentLyricsFlow.value = emptyList()
             rawPlainLyrics = null
 
-            val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
-            if (expectedTrackId != null && expectedTrackId != newTrack.id) {
-                return@trackChangeHandler
-            }
-
             var finalTrack = newTrack
 
             val currentMediaItem = MusicManager.player.currentMediaItem
@@ -1345,6 +1575,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             val foundInQueue = _queue.find { it.id == finalTrack.id }
             if (foundInQueue != null) {
                 finalTrack = foundInQueue
+                val queueIdx = _queue.indexOfFirst { it.id == finalTrack.id }
+                if (queueIdx != -1) {
+                    currentQueueIndex = queueIdx
+                }
             }
 
             currentTrack = finalTrack
@@ -1418,6 +1652,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 userPlaylists.addAll(sorted)
             }
         }
+
         restoreSession()
         syncWithCurrentPlayback()
     }
@@ -1663,7 +1898,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 for (i in lyricsLines.indices) {
                     val oldLine = lyricsLines[i]
                     val newTranslation = translationMap[oldLine.text.trim()]
-                    if (newTranslation != null && !newTranslation.trim().equals(oldLine.text.trim(), ignoreCase = true)) {
+                    if (newTranslation != null) {
                         lyricsLines[i] = oldLine.copy(translation = newTranslation)
                     }
                 }
@@ -2205,13 +2440,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             emptyMap()
         }
         return lines.map { line ->
-            val trans = (line.translation ?: translations[line.text.trim()])
-                ?.takeIf { !it.trim().equals(line.text.trim(), ignoreCase = true) }
-            val rom = (line.romanization ?: romanizations[line.text.trim()])
-                ?.takeIf { !it.trim().equals(line.text.trim(), ignoreCase = true) }
             line.copy(
-                translation = trans,
-                romanization = rom,
+                translation = line.translation ?: translations[line.text.trim()],
+                romanization = line.romanization ?: romanizations[line.text.trim()],
             )
         }
     }
@@ -3540,14 +3771,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         loadTrimFor(trackToPlay.id)
         hasPushedRecentlyPlayed = false
 
-        currentTrack = trackToPlay; MusicManager.currentTrack = trackToPlay
-        djFlowController.onTrackChanged(trackToPlay)
-        feedHapticBeatGrid(trackToPlay)
         djFlowController.onQueueUpdated(_queue.toList(), currentQueueIndex)
-        val intent = Intent(context, PlaybackService::class.java).apply { action = PlaybackService.ACTION_FORCE_UPDATE }
-        startServiceSafe(context, intent)
 
         trackInitJob = viewModelScope.launch {
+            val isBlocked = withContext(Dispatchers.IO) {
+                try {
+                    aiTrackFilterDao.isTrackBlocked(trackToPlay.id.toString())
+                } catch (_: Exception) { false }
+            }
+            if (isBlocked) {
+                playNext(manual = false)
+                return@launch
+            }
+
             var finalTrack = trackToPlay
 
             val isLocalOrDownloaded = finalTrack.source == "local" ||
@@ -3585,14 +3821,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
             }
+            if (!isActive || (currentTrack != null && currentTrack?.id != trackToPlay.id)) return@launch
 
-            if (!isActive || currentTrack?.id != trackToPlay.id) return@launch
-
-            currentTrack = finalTrack
-            MusicManager.currentTrack = finalTrack
+            if (currentTrack?.id == finalTrack.id || currentTrack == null) {
+                currentTrack = finalTrack
+                MusicManager.currentTrack = finalTrack
+            }
             isLiked = LikeRepository.isTrackLiked(finalTrack.id)
             loadLyrics(finalTrack)
             AchievementManager.checkTrackNameSecret(finalTrack.title ?: "")
+            checkAndEvaluateAiTrack(finalTrack)
             saveStateAsync(saveQueue = false)
 
             val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
@@ -3839,7 +4077,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             if (radioTracks.isNotEmpty()) {
-                val newTracks = radioTracks.filter { track -> _queue.none { it.id == track.id } }
+                val existingNormalized = _queue.map { normalizeTrackTitle(it.title ?: "") }.toSet()
+                val newTracks = radioTracks.filter { track ->
+                    _queue.none { it.id == track.id } &&
+                    normalizeTrackTitle(track.title ?: "") !in existingNormalized &&
+                    !isExcludedFromAutoplayAsAi(track)
+                }
 
                 _queue.addAll(newTracks)
                 _originalQueue.addAll(newTracks)
@@ -3859,11 +4102,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             val station = api.getTrackStation(lastTrack.id)
             val partialTracks = station.tracks
             if (!partialTracks.isNullOrEmpty()) {
+                val existingNormalized = _queue.map { normalizeTrackTitle(it.title ?: "") }.toSet()
                 val newTrackIds = partialTracks.map { it.id }.filter { trackId -> _queue.none { it.id == trackId } }
                 if (newTrackIds.isNotEmpty()) {
                     val unorderedFullTracks = api.getTracksByIds(newTrackIds.joinToString(","))
                     val trackMap = unorderedFullTracks.associateBy { it.id }
                     val orderedFullTracks = newTrackIds.mapNotNull { id -> trackMap[id] }
+                        .filter { track ->
+                            val norm = normalizeTrackTitle(track.title ?: "")
+                            norm !in existingNormalized && !isExcludedFromAutoplayAsAi(track)
+                        }
                     _queue.addAll(orderedFullTracks); _originalQueue.addAll(orderedFullTracks); updateQueueState()
                 }
                 if (currentContext == null) {
@@ -3901,8 +4149,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     spotifyId
                 )
 
+            val existingNormalized = _queue.map { normalizeTrackTitle(it.title ?: "") }.toSet()
             val tracksToAdd =
-                rawTracks.drop(1).map { it.toTrack() }.filter { track -> _queue.none { it.id == track.id } }
+                rawTracks.drop(1).map { it.toTrack() }.filter { track ->
+                    _queue.none { it.id == track.id } &&
+                    normalizeTrackTitle(track.title ?: "") !in existingNormalized &&
+                    !isExcludedFromAutoplayAsAi(track)
+                }
 
             if (tracksToAdd.isNotEmpty()) {
                 _queue.addAll(tracksToAdd)

@@ -14,6 +14,23 @@
     <string name="no_results">No results found</string>
     <string name="unknown">Unknown</string>
 
+    <!-- AI Detection & Blocking -->
+    <string name="ai_detected_badge">AI detected</string>
+    <string name="ai_dialog_title">AI Music Detected</string>
+    <string name="ai_dialog_message">This track shows signs of generative AI (Suno, Udio &amp; co.) in its metadata, uploader activity, listener comments, waveform or sound. How would you like to handle it?</string>
+    <string name="ai_dialog_score">Confidence score: %d%%</string>
+    <string name="ai_dialog_btn_block">Block permanently</string>
+    <string name="ai_dialog_btn_allow">Allow permanently</string>
+    <string name="ai_dialog_btn_dismiss">Keep for now</string>
+    <string name="ai_settings_group">AI music</string>
+    <string name="ai_block_all_title">Block AI music completely</string>
+    <string name="ai_block_all_subtitle">Skip every track the AI check flags, without asking</string>
+    <string name="ai_block_all_warning_title">Block AI music completely?</string>
+    <string name="ai_block_all_warning_text">kittytune will then skip every track the AI check rates as generated (60 percent or more), without asking, and leave such tracks out of autoplay and radio.\n\nThe check is not perfect. It weighs clues, not proof: metadata, how the uploader behaves, their other uploads, listener comments, the waveform and an audio fingerprint. Human music can be flagged by mistake, for example:\n• DJ mixes and remixes from accounts that also post AI music\n• very loud masters with hardly any quiet passages\n• songs about AI or with “AI” in the name\n• artists who used AI only for the cover art or the mastering\n• new accounts that upload a lot at once\n\nThe other way round, well-made AI music without a label can still slip through.\n\nWhen a track is skipped, a notice with “Play anyway” appears; that allows the track for good. You can switch the block off here at any time.</string>
+    <string name="ai_block_all_confirm">Block AI music</string>
+    <string name="ai_skip_message">Skipped AI music: %1$s (%2$d%%)</string>
+    <string name="ai_skip_play_anyway">Play anyway</string>
+
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- BUTTONS & ACTIONS                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->

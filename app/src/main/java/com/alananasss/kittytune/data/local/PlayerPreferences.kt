@@ -131,6 +131,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_ACHIEVEMENT_POPUPS = "achievement_popups_enabled"
         private const val KEY_PRECISE_SPEED = "precise_speed_enabled"
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
+        private const val KEY_AI_BLOCK_ALL = "ai_block_all_enabled"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
         private const val KEY_SC_GO_PLUS = "soundcloud_go_plus_active"
         private const val KEY_SHARE_CARD_CODE = "share_card_code_mode"
@@ -505,6 +506,10 @@ class PlayerPreferences(context: Context) {
 
     fun getAutoUpdateEnabled(): Boolean = prefs.getBoolean(KEY_AUTO_UPDATE, true)
     fun setAutoUpdateEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTO_UPDATE, enabled) }
+
+    /** Skip every track the AI check flags instead of asking; off by default because the check can be wrong. */
+    fun getAiBlockAllEnabled(): Boolean = prefs.getBoolean(KEY_AI_BLOCK_ALL, false)
+    fun setAiBlockAllEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AI_BLOCK_ALL, enabled) }
 
     fun getAchievementPopupsEnabled(): Boolean = prefs.getBoolean(KEY_ACHIEVEMENT_POPUPS, false)
     fun setAchievementPopupsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ACHIEVEMENT_POPUPS, enabled) }

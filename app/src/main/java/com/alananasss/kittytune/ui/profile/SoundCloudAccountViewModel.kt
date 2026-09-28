@@ -54,6 +54,8 @@ class SoundCloudAccountViewModel(application: Application) : AndroidViewModel(ap
             return
         }
 
+        if (isLoading || isRefreshing) return
+
         viewModelScope.launch {
             if (forceRefresh) {
                 isRefreshing = true

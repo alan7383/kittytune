@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui
 
+import kotlinx.coroutines.flow.collectLatest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
@@ -431,6 +432,18 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         playerViewModel.uiEvent.collect { message ->
             snackbarHostState.showSnackbar(message)
+        }
+    }
+    LaunchedEffect(Unit) {
+        // Only the latest skip matters; a queue full of AI tracks must not stack up notices.
+        playerViewModel.aiSkipEvents.collectLatest { event ->
+            snackbarHostState.currentSnackbarData?.dismiss()
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.ai_skip_message, event.track.title.orEmpty(), event.score),
+                actionLabel = context.getString(R.string.ai_skip_play_anyway),
+                duration = SnackbarDuration.Long
+            )
+            if (result == SnackbarResult.ActionPerformed) playerViewModel.playSkippedAiTrack(event.track, event.score)
         }
     }
 
