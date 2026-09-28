@@ -145,7 +145,7 @@ fun KittyNavigationRail(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AsyncImage(
-                    model = track.fullResArtwork,
+                    model = track.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

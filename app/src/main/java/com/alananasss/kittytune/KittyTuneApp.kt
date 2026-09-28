@@ -57,6 +57,7 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
                     if (data.startsWith("/") && !data.startsWith("http")) File(data) else null
                 })
             }
+            .allowRgb565(true)
             .crossfade(true)
             .build()
     }

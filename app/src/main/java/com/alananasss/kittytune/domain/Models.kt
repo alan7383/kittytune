@@ -508,6 +508,46 @@ data class Track(
             if (user != null && user.avatarUrl != null) return user.avatarUrl.replace("large", "t500x500")
             return "https://picsum.photos/200"
         }
+
+    val thumbnailUrl: String
+        get() {
+            val base = artworkUrl?.takeIf { it.isNotBlank() }
+                ?: user?.avatarUrl?.takeIf { it.isNotBlank() }
+            return resolveThumbnailUrl(base)
+        }
+}
+
+fun resolveThumbnailUrl(rawUrl: String?): String {
+    val base = rawUrl?.takeIf { it.isNotBlank() } ?: return "https://picsum.photos/200"
+    if (base.startsWith("/") || base.startsWith("file://") || base.startsWith("content://")) {
+        return base
+    }
+    return when {
+        base.contains("googleusercontent.com") -> {
+            if (base.contains("=w") || base.contains("=s")) {
+                base.replace(Regex("=w\\d+-h\\d+.*"), "=w300-h300")
+                    .replace(Regex("=s\\d+.*"), "=s300")
+            } else {
+                "$base=w300-h300"
+            }
+        }
+        base.contains("i.ytimg.com") -> {
+            base.replace("maxresdefault.jpg", "hqdefault.jpg")
+                .replace("sddefault.jpg", "hqdefault.jpg")
+        }
+        base.contains("sndcdn.com") -> {
+            if (base.contains("default_avatar")) {
+                base
+            } else {
+                base.replace(Regex("-(?:t500x500|crop|original|large)(\\.[a-zA-Z0-9]+)"), "-t300x300$1")
+            }
+        }
+        base.contains("i.scdn.co") -> {
+            base.replace("ab67616d0000b273", "ab67616d00001e02")
+                .replace("ab6761610000e5eb", "ab67616100005174")
+        }
+        else -> base
+    }
 }
 
 private val PRESERVED_ARTIST_NAMES_WITH_COMMA = setOf(
@@ -682,6 +722,14 @@ data class SystemPlaylist(
             if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.replace("large", "t500x500")
             return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200"
         }
+
+    val thumbnailUrl: String
+        get() {
+            val base = artworkUrl?.takeIf { it.isNotBlank() }
+                ?: calculatedArtworkUrl?.takeIf { it.isNotBlank() }
+                ?: user?.avatarUrl?.takeIf { it.isNotBlank() }
+            return resolveThumbnailUrl(base)
+        }
 }
 
 data class UpdateProfileRequest(
@@ -788,6 +836,17 @@ data class Playlist(
                 if (!firstTrackArt.contains("picsum")) return firstTrackArt
             }
             return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200"
+        }
+
+    val thumbnailUrl: String
+        get() {
+            if (!artworkUrl.isNullOrEmpty()) return resolveThumbnailUrl(artworkUrl)
+            if (!calculatedArtworkUrl.isNullOrEmpty()) return resolveThumbnailUrl(calculatedArtworkUrl)
+            if (!tracks.isNullOrEmpty()) {
+                val firstTrackThumb = tracks[0].thumbnailUrl
+                if (!firstTrackThumb.contains("picsum")) return firstTrackThumb
+            }
+            return resolveThumbnailUrl(user?.avatarUrl)
         }
 }
 

@@ -1435,7 +1435,7 @@ fun StationCardLarge(playlist: Playlist, onClick: () -> Unit) {
                     .fillMaxWidth()
             ) {
                 AsyncImage(
-                    model = playlist.fullResArtwork,
+                    model = playlist.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -1486,7 +1486,7 @@ fun TrackCardModern(track: Track, onClick: () -> Unit) {
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             AsyncImage(
-                model = track.fullResArtwork,
+                model = track.thumbnailUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(160.dp)
