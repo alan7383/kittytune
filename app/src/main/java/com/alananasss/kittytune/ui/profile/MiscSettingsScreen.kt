@@ -1,10 +1,9 @@
 package com.alananasss.kittytune.ui.profile
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.ImportExport
@@ -23,6 +22,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -210,5 +210,45 @@ fun MiscSettingsScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+internal fun LanguageRadioButton(
+    text: String,
+    lang: AppLanguage,
+    selected: AppLanguage,
+    onSelect: (AppLanguage) -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { onSelect(lang) }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = (lang == selected), onClick = null)
+        Spacer(Modifier.width(8.dp))
+        Text(text)
+    }
+}
+
+@Composable
+internal fun StartDestRadioButton(
+    text: String,
+    dest: StartDestination,
+    selected: StartDestination,
+    onSelect: (StartDestination) -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable { onSelect(dest) }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = (dest == selected), onClick = null)
+        Spacer(Modifier.width(8.dp))
+        Text(text)
     }
 }

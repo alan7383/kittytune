@@ -17,3 +17,9 @@
         }
     }
 
+    fun makeRemainingTimeString(position: Long, duration: Long): String {
+        val remaining = (duration - position).coerceAtLeast(0L)
+        return "-" + makeTimeString(remaining)
+    }
+
+
