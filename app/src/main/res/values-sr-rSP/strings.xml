@@ -723,6 +723,7 @@
     <string name="settings_page_lyrics_sub">How lyrics look and behave</string>
     <string name="settings_title">Settings</string>
     <string name="settings_cat_general">General</string>
+    <string name="settings_cat_general_sub">Language, start screen and updates</string>
     <string name="settings_cat_appearance">Appearance</string>
     <string name="settings_cat_typography">Typography</string>
     <string name="settings_cat_playback">Playback</string>
@@ -2626,6 +2627,7 @@
     <string name="menu_tiles_desc">Hold a button in the track or playlist menu to move it, right-click to hide it. Bring hidden ones back here.</string>
     <string name="menu_tiles_reset">Reset order</string>
     <string name="menu_tiles_track">Track menu</string>
+    <string name="menu_tiles_reorder_desc">Drag to reorder. The track menu follows this order.</string>
     <string name="menu_tiles_playlist">Playlist menu</string>
     <!-- Player Shape -->
     <string name="player_shape_title">Player silhouette</string>
