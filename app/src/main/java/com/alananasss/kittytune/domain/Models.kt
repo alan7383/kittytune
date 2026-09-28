@@ -536,9 +536,11 @@ fun resolveThumbnailUrl(rawUrl: String?): String {
                 .replace("sddefault.jpg", "hqdefault.jpg")
         }
         base.contains("sndcdn.com") -> {
-            base.replace("t500x500", "large")
-                .replace("crop", "large")
-                .replace("original", "large")
+            if (base.contains("default_avatar")) {
+                base
+            } else {
+                base.replace(Regex("-(?:t500x500|crop|original|large)(\\.[a-zA-Z0-9]+)"), "-t300x300$1")
+            }
         }
         base.contains("i.scdn.co") -> {
             base.replace("ab67616d0000b273", "ab67616d00001e02")

@@ -1435,7 +1435,7 @@ fun StationCardLarge(playlist: Playlist, onClick: () -> Unit) {
                     .fillMaxWidth()
             ) {
                 AsyncImage(
-                    model = playlist.fullResArtwork,
+                    model = playlist.thumbnailUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

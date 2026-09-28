@@ -63,7 +63,7 @@ class ArtworkOptimizationTest {
     }
 
     @Test
-    fun soundcloud_artwork_usesLargeOrT300InsteadOfT500() {
+    fun soundcloud_artwork_usesT300InsteadOfT500OrLarge() {
         val scTrack = createTrack(
             id = 10L,
             title = "Test SC",
@@ -71,19 +71,52 @@ class ArtworkOptimizationTest {
             source = "soundcloud"
         )
         assertEquals(
-            "https://i1.sndcdn.com/artworks-000123-large.jpg",
+            "https://i1.sndcdn.com/artworks-000123-t300x300.jpg",
             scTrack.thumbnailUrl
         )
 
-        val scOriginal = createTrack(
+        val scLarge = createTrack(
             id = 11L,
+            title = "Test SC Large",
+            artworkUrl = "https://i1.sndcdn.com/artworks-000123-large.jpg",
+            source = "soundcloud"
+        )
+        assertEquals(
+            "https://i1.sndcdn.com/artworks-000123-t300x300.jpg",
+            scLarge.thumbnailUrl
+        )
+
+        val scOriginal = createTrack(
+            id = 12L,
             title = "Test SC Original",
             artworkUrl = "https://i1.sndcdn.com/artworks-000123-original.jpg",
             source = "soundcloud"
         )
         assertEquals(
-            "https://i1.sndcdn.com/artworks-000123-large.jpg",
+            "https://i1.sndcdn.com/artworks-000123-t300x300.jpg",
             scOriginal.thumbnailUrl
+        )
+
+        val scLabs = createTrack(
+            id = 13L,
+            title = "Test SC Labs",
+            artworkUrl = "https://al.sndcdn.com/labs-123-0-t500x500.jpg?q=xyz",
+            source = "soundcloud"
+        )
+        assertEquals(
+            "https://al.sndcdn.com/labs-123-0-t300x300.jpg?q=xyz",
+            scLabs.thumbnailUrl
+        )
+
+        val scDefaultAvatar = createTrack(
+            id = 14L,
+            title = "Test SC Default Avatar",
+            artworkUrl = "https://a1.sndcdn.com/images/default_avatar_large.png",
+            source = "soundcloud"
+        )
+        assertEquals(
+            "https://a1.sndcdn.com/images/default_avatar_large.png",
+            scDefaultAvatar.thumbnailUrl
         )
     }
 
@@ -157,7 +190,7 @@ class ArtworkOptimizationTest {
             user = null
         )
         assertEquals(
-            "https://i1.sndcdn.com/artworks-999-large.jpg",
+            "https://i1.sndcdn.com/artworks-999-t300x300.jpg",
             playlist.thumbnailUrl
         )
     }
