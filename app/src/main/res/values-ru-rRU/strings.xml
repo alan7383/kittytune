@@ -2567,12 +2567,16 @@
     <string name="pref_haptics_contrast_full">Full</string>
     <!-- App Logs & Diagnostics -->
     <string name="logs_title">App Logs &amp; Diagnostics</string>
-    <string name="logs_subtitle">View, copy, or share logs to help troubleshoot issues</string>
+    <string name="logs_subtitle">View, export, or share logs to help troubleshoot issues</string>
+    <string name="logs_save_all">Save to File</string>
+    <string name="logs_save_logcat">Save Logcat</string>
     <string name="logs_copy_all">Copy All</string>
     <string name="logs_copy_summary">Copy Diagnostics</string>
     <string name="logs_copy_logcat">Copy Logcat</string>
     <string name="logs_share">Share Logs</string>
     <string name="logs_copied_toast">Logs copied to clipboard!</string>
+    <string name="logs_saved_toast">Logs saved successfully!</string>
+    <string name="logs_save_failed_toast">Failed to save logs to file.</string>
     <string name="logs_tab_diagnostics">Diagnostics</string>
     <string name="logs_tab_logcat">Logcat</string>
     <string name="logs_tab_crash">Crash Report</string>
