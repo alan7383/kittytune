@@ -87,13 +87,56 @@ enum class TrackRemovalMethod {
     MENU_ONLY
 }
 
+enum class PlayerBarStyle { DEFAULT, ROUNDED, FLOATING }
+
+data class FloatingBarLook(
+    val cornerDp: Int,
+    val widthPercent: Int,
+    val marginDp: Int,
+    val isTranslucent: Boolean
+) {
+    companion object {
+        val DEFAULT = FloatingBarLook(cornerDp = 20, widthPercent = 94, marginDp = 12, isTranslucent = true)
+    }
+}
+
 class PlayerPreferences(context: Context) {
+    constructor() : this(com.alananasss.kittytune.KittyTuneApp.instance)
+
     private val context: Context = context
     private val prefs: SharedPreferences = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
     private val gson = com.alananasss.kittytune.utils.AppUtils.gson
     private val queueFile = File(context.filesDir, "queue_cache.json")
 
     companion object {
+        const val MENU_TRACK = "track"
+        const val MENU_PLAYLIST = "playlist"
+        const val KEY_SHOW_REMAINING_TIME = "show_remaining_time"
+        const val KEY_VERTICAL_VOLUME_SLIDER = "vertical_volume_slider"
+        const val KEY_VOLUME_SLIDER_STYLE = "volume_slider_style"
+        const val KEY_PLAYER_BAR_BUTTONS = "player_bar_buttons"
+        const val KEY_PLAYER_BAR_STYLE = "player_bar_style"
+        const val KEY_FLOATING_BAR_LOOK = "floating_bar_look"
+        const val KEY_SEEK_WHEEL_SECONDS = "seek_wheel_seconds"
+
+        const val PLAYER_BAR_BUTTON_LIKE = "like"
+        const val PLAYER_BAR_BUTTON_LYRICS = "lyrics"
+        const val PLAYER_BAR_BUTTON_MINIPLAYER = "miniplayer"
+        const val PLAYER_BAR_BUTTON_PANEL = "panel"
+        const val PLAYER_BAR_BUTTON_QUEUE = "queue"
+        const val PLAYER_BAR_BUTTON_SHUFFLE = "shuffle"
+        const val PLAYER_BAR_BUTTON_REPEAT = "repeat"
+
+        val DEFAULT_PLAYER_BAR_BUTTONS = setOf(
+            PLAYER_BAR_BUTTON_LIKE,
+            PLAYER_BAR_BUTTON_LYRICS,
+            PLAYER_BAR_BUTTON_MINIPLAYER,
+            PLAYER_BAR_BUTTON_PANEL,
+            PLAYER_BAR_BUTTON_QUEUE,
+            PLAYER_BAR_BUTTON_SHUFFLE,
+            PLAYER_BAR_BUTTON_REPEAT
+        )
+
         const val KEY_PLAYER_PROGRESS_MODE = "player_progress_mode"
         const val KEY_PLAYER_SLIDER_STYLE = "player_slider_style"
         const val KEY_WAVEFORM_COMMENTS_POPUP = "waveform_comments_popup_enabled"
@@ -1570,4 +1613,57 @@ class PlayerPreferences(context: Context) {
         // Condition: at least 5-10 tracks played OR at least 2 days of usage (with at least 1 track played)
         return hasPlayedEnoughTracks || (isUsedForTwoDays && totalTracks >= 1)
     }
+
+    fun getShowRemainingTime(): Boolean = prefs.getBoolean(KEY_SHOW_REMAINING_TIME, false)
+    fun setShowRemainingTime(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_REMAINING_TIME, enabled) }
+
+    fun getVerticalVolumeSlider(): Boolean = prefs.getBoolean(KEY_VERTICAL_VOLUME_SLIDER, false)
+    fun setVerticalVolumeSlider(enabled: Boolean) = prefs.edit { putBoolean(KEY_VERTICAL_VOLUME_SLIDER, enabled) }
+
+    fun getVolumeSliderStyle(): PlayerSliderStyle? {
+        val raw = prefs.getString(KEY_VOLUME_SLIDER_STYLE, null) ?: return null
+        return runCatching { PlayerSliderStyle.valueOf(raw) }.getOrNull()
+    }
+    fun setVolumeSliderStyle(style: PlayerSliderStyle?) = prefs.edit { putString(KEY_VOLUME_SLIDER_STYLE, style?.name) }
+
+    fun getPlayerBarButtons(): Set<String> {
+        val raw = prefs.getString(KEY_PLAYER_BAR_BUTTONS, null) ?: return DEFAULT_PLAYER_BAR_BUTTONS
+        return raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    }
+    fun setPlayerBarButtons(buttons: Set<String>) = prefs.edit { putString(KEY_PLAYER_BAR_BUTTONS, buttons.joinToString(",")) }
+
+    fun getPlayerBarStyle(): PlayerBarStyle {
+        val raw = prefs.getString(KEY_PLAYER_BAR_STYLE, null) ?: return PlayerBarStyle.DEFAULT
+        return runCatching { PlayerBarStyle.valueOf(raw) }.getOrDefault(PlayerBarStyle.DEFAULT)
+    }
+    fun setPlayerBarStyle(style: PlayerBarStyle) = prefs.edit { putString(KEY_PLAYER_BAR_STYLE, style.name) }
+
+    fun getFloatingBarLook(): FloatingBarLook {
+        val raw = prefs.getString(KEY_FLOATING_BAR_LOOK, null) ?: return FloatingBarLook.DEFAULT
+        return runCatching { gson.fromJson(raw, FloatingBarLook::class.java) }.getOrDefault(FloatingBarLook.DEFAULT)
+    }
+    fun setFloatingBarLook(look: FloatingBarLook) = prefs.edit { putString(KEY_FLOATING_BAR_LOOK, gson.toJson(look)) }
+
+    fun getSeekWheelSeconds(): Float = prefs.getFloat(KEY_SEEK_WHEEL_SECONDS, 5f)
+    fun setSeekWheelSeconds(seconds: Float) = prefs.edit { putFloat(KEY_SEEK_WHEEL_SECONDS, seconds) }
+
+    fun getHiddenMenuTiles(menu: String): Set<String> {
+        val raw = prefs.getString("menu_tiles_hidden_$menu", null) ?: return emptySet()
+        return raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+    }
+    fun setHiddenMenuTiles(menu: String, tiles: Set<String>) = prefs.edit { putString("menu_tiles_hidden_$menu", tiles.joinToString(",")) }
+
+    fun getMenuTileOrder(menu: String): List<String> {
+        val raw = prefs.getString("menu_tile_order_$menu", null) ?: return emptyList()
+        return raw.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    }
+    fun setMenuTileOrder(menu: String, order: List<String>) = prefs.edit { putString("menu_tile_order_$menu", order.joinToString(",")) }
+
+    fun resetMenuTiles(menu: String) {
+        prefs.edit {
+            remove("menu_tiles_hidden_$menu")
+            remove("menu_tile_order_$menu")
+        }
+    }
 }
+

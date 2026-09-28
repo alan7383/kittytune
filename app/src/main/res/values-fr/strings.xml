@@ -2632,4 +2632,79 @@
     <string name="logs_sec_playback">Lecture &amp; Moteur audio</string>
     <string name="logs_sec_network">Réseau &amp; Fournisseurs</string>
     <string name="logs_refresh">Actualiser</string>
+    <!-- Settings Parity & Search -->
+    <string name="search_settings_hint">Rechercher dans les paramètres…</string>
+    <string name="settings_search_results">Résultats de recherche</string>
+    <string name="settings_search_no_results">Aucun paramètre trouvé</string>
+
+    <!-- Theme Presets -->
+    <string name="theme_presets_title">Thèmes prêts</string>
+    <string name="theme_preset_ocean">Océan</string>
+    <string name="theme_preset_forest">Forêt</string>
+    <string name="theme_preset_sunset">Coucher de soleil</string>
+    <string name="theme_preset_rose">Rose</string>
+    <string name="theme_preset_lavender">Lavande</string>
+    <string name="theme_preset_mint">Menthe</string>
+    <string name="theme_preset_default">KittyTune</string>
+    <string name="theme_custom_short">Personnalisé</string>
+    <string name="theme_amoled">AMOLED</string>
+
+
+    <string name="pref_show_remaining_time">Temps restant</string>
+    <string name="pref_show_remaining_time_desc">Afficher le temps restant (-00:14) au lieu de la durée totale sur la barre de lecture</string>
+    <string name="pref_volume_slider_title">Curseur de volume</string>
+    <string name="volume_horizontal">Horizontal</string>
+    <string name="volume_vertical">Vertical</string>
+    <string name="volume_style_title">Style du volume</string>
+    <string name="volume_style_same">Comme la barre</string>
+    <string name="player_buttons_title">Boutons du lecteur</string>
+    <string name="player_buttons_desc">Affichez ou masquez les boutons du lecteur selon vos envies</string>
+    <string name="player_button_like">J\'aime</string>
+    <string name="player_button_like_desc">Affiche le cœur à côté de la pochette pour aimer le morceau</string>
+    <string name="player_button_lyrics">Paroles</string>
+    <string name="player_button_lyrics_desc">Ouvre instantanément les paroles synchronisées</string>
+    <string name="player_button_miniplayer">Mini-lecteur</string>
+    <string name="player_button_miniplayer_desc">Basculer vers la fenêtre flottante Picture-in-Picture</string>
+    <string name="player_button_panel">Panneau de réglages</string>
+    <string name="player_button_panel_desc">Ouvre le volet latéral avec détails, paroles et effets</string>
+    <string name="player_button_queue">File d\'attente</string>
+    <string name="player_button_queue_desc">Accès direct à la liste des morceaux suivants</string>
+    <string name="player_button_shuffle">Lecture aléatoire</string>
+    <string name="player_button_shuffle_desc">Activer ou désactiver le mélange des titres</string>
+    <string name="player_button_repeat">Répétition</string>
+    <string name="player_button_repeat_desc">Répéter un morceau ou la liste de lecture</string>
+
+    <!-- Menu Tiles (3 dots sheet) -->
+    <string name="menu_tiles_title">Boutons des menus</string>
+    <string name="menu_tiles_desc">Maintenez un bouton du menu d\'un morceau ou d\'une playlist pour le déplacer, clic droit pour le masquer. Les boutons masqués se réactivent ici.</string>
+    <string name="menu_tiles_reset">Réinitialiser l\'ordre</string>
+    <string name="menu_tiles_track">Menu du morceau</string>
+    <string name="menu_tiles_playlist">Menu de la playlist</string>
+
+    <!-- Player Shape -->
+    <string name="player_shape_title">Forme du lecteur</string>
+    <string name="player_shape_desc">Choisissez l\'allure générale du lecteur</string>
+    <string name="player_shape_default">Standard</string>
+    <string name="player_shape_default_desc">Barre continue discrète</string>
+    <string name="player_shape_rounded">Arrondi</string>
+    <string name="player_shape_rounded_desc">Angles doux modernes</string>
+    <string name="player_shape_floating">Dock flottant</string>
+    <string name="player_shape_floating_desc">Capsule en lévitation</string>
+
+    <!-- Floating Bar Details -->
+    <string name="floating_bar_title">Barre flottante</string>
+    <string name="floating_bar_corner">Coins</string>
+    <string name="floating_bar_width">Largeur</string>
+    <string name="floating_bar_margin">Distance du bas</string>
+    <string name="floating_bar_translucent">Transparence</string>
+    <string name="floating_bar_translucent_sub">La page apparaît à travers</string>
+
+    <string name="settings_group_window">Fenêtre et texte</string>
+    <string name="settings_group_covers">Pochettes</string>
+    <string name="player_advanced_title">Commandes et précision</string>
+    <string name="player_advanced_desc">Sensibilité de défilement et comportement</string>
+    <string name="pref_seek_wheel">Sensibilité du défilement</string>
+    <string name="pref_screensaver_title">Écran de veille</string>
+    <string name="pref_screensaver_desc">Assombrit le lecteur en cas d\'inactivité</string>
 </resources>
+

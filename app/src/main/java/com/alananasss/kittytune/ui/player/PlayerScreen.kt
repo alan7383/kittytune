@@ -1601,7 +1601,7 @@ fun PlayerHeader(
     }
 }
 
-data class DockOptionItem(val icon: ImageVector, val text: String, val onClick: () -> Unit)
+data class DockOptionItem(val icon: ImageVector, val text: String, val id: String = "", val onClick: () -> Unit)
 
 @Composable
 fun SelectArtistDialog(viewModel: PlayerViewModel) {
@@ -2089,7 +2089,8 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             add(
                 DockOptionItem(
                     if (isTrackLiked) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
-                    if (isTrackLiked) stringResource(R.string.action_unlike) else stringResource(R.string.player_like_action)
+                    if (isTrackLiked) stringResource(R.string.action_unlike) else stringResource(R.string.player_like_action),
+                    id = "like"
                 ) {
                     viewModel.toggleTrackLike(track)
                 }
@@ -2099,24 +2100,28 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Shuffle,
-                    stringResource(R.string.menu_shuffle)
+                    stringResource(R.string.menu_shuffle),
+                    id = "shuffle"
                 ) { viewModel.toggleShuffle() })
             add(
                 DockOptionItem(
                     Icons.Rounded.Repeat,
-                    stringResource(R.string.menu_repeat)
+                    stringResource(R.string.menu_repeat),
+                    id = "repeat"
                 ) { viewModel.toggleRepeatMode() })
         }
         if (!viewModel.isMenuContextFromPlayer) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.PlaylistPlay,
-                    stringResource(R.string.menu_play_next)
+                    stringResource(R.string.menu_play_next),
+                    id = "play_next"
                 ) { viewModel.insertNext(listOf(track)); viewModel.showMenuSheet = false })
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.QueueMusic,
-                    stringResource(R.string.menu_add_queue)
+                    stringResource(R.string.menu_add_queue),
+                    id = "add_queue"
                 ) { viewModel.addToQueue(listOf(track)); viewModel.showMenuSheet = false })
         }
         add(
@@ -2132,7 +2137,8 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             add(
                 DockOptionItem(
                     Icons.AutoMirrored.Rounded.Comment,
-                    stringResource(R.string.menu_comments)
+                    stringResource(R.string.menu_comments),
+                    id = "comments"
                 ) { viewModel.openComments(track) })
         }
         if (!isOfflineMode && track.source != "youtube" && !isSpotify) {
@@ -2140,16 +2146,17 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 add(
                     DockOptionItem(
                         Icons.Rounded.Repeat,
-                        stringResource(R.string.menu_reposted)
+                        stringResource(R.string.menu_reposted),
+                        id = "repost"
                     ) { showDeleteRepostConfirm = true })
             } else {
-                add(DockOptionItem(Icons.Rounded.Repeat, stringResource(R.string.menu_repost)) {
+                add(DockOptionItem(Icons.Rounded.Repeat, stringResource(R.string.menu_repost), id = "repost") {
                     showRepostDialog = true
                 })
             }
         }
         if (!isOfflineMode && track.source != "youtube") {
-            add(DockOptionItem(Icons.Rounded.Info, stringResource(R.string.menu_details)) {
+            add(DockOptionItem(Icons.Rounded.Info, stringResource(R.string.menu_details), id = "details") {
                 viewModel.openTrackDetails(
                     track
                 )
@@ -2164,13 +2171,14 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Edit,
-                    stringResource(R.string.menu_edit_track)
+                    stringResource(R.string.menu_edit_track),
+                    id = "edit_track"
                 ) {
                     viewModel.navigateToEditTrack(track)
                 }
             )
         }
-        add(DockOptionItem(Icons.Rounded.Description, stringResource(R.string.player_lyrics)) {
+        add(DockOptionItem(Icons.Rounded.Description, stringResource(R.string.player_lyrics), id = "lyrics") {
             viewModel.openLyrics(
                 track,
                 forceSheet = true
@@ -2180,12 +2188,13 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         add(
             DockOptionItem(
                 if (isDuetBlacklisted) Icons.Rounded.MicOff else Icons.Rounded.RecordVoiceOver,
-                if (isDuetBlacklisted) stringResource(R.string.menu_enable_duet_lyrics) else stringResource(R.string.menu_disable_duet_lyrics)
+                if (isDuetBlacklisted) stringResource(R.string.menu_enable_duet_lyrics) else stringResource(R.string.menu_disable_duet_lyrics),
+                id = "duet_lyrics_blacklist"
             ) {
                 viewModel.toggleTrackDuetBlacklist(track.id)
             }
         )
-        add(DockOptionItem(Icons.Default.Add, stringResource(R.string.menu_add_playlist)) {
+        add(DockOptionItem(Icons.Default.Add, stringResource(R.string.menu_add_playlist), id = "add_playlist") {
             viewModel.showMenuSheet = false; viewModel.showAddToPlaylistSheet = true
         })
 
@@ -2194,7 +2203,8 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Album,
-                    stringResource(R.string.menu_go_album)
+                    stringResource(R.string.menu_go_album),
+                    id = "go_album"
                 ) {
                     viewModel.showMenuSheet = false
                     viewModel.navigateToAlbum(albumId)
@@ -2206,7 +2216,8 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             add(
                 DockOptionItem(
                     Icons.Default.Person,
-                    stringResource(R.string.menu_go_artist)
+                    stringResource(R.string.menu_go_artist),
+                    id = "go_artist"
                 ) {
                     viewModel.showMenuSheet = false
                     viewModel.navigateToTrackArtist(track)
@@ -2214,7 +2225,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             )
         }
         if (!isOfflineMode) {
-            add(DockOptionItem(Icons.Rounded.Radio, stringResource(R.string.menu_track_radio)) {
+            add(DockOptionItem(Icons.Rounded.Radio, stringResource(R.string.menu_track_radio), id = "track_radio") {
                 if (track.source == "youtube") {
                     viewModel.startYoutubeRadio(track)
                 } else {
@@ -2226,33 +2237,38 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             add(
                 DockOptionItem(
                     Icons.Outlined.Share,
-                    stringResource(R.string.btn_share)
+                    stringResource(R.string.btn_share),
+                    id = "share"
                 ) { viewModel.shareTrack(track) })
             add(
                 DockOptionItem(
                     Icons.Outlined.PhotoLibrary,
-                    stringResource(R.string.share_card_title)
+                    stringResource(R.string.share_card_title),
+                    id = "share"
                 ) { viewModel.openShareCard(track) })
         }
         if (viewModel.menuContextPlaylistId != null && viewModel.menuContextPlaylistId != -2L) {
             add(
                 DockOptionItem(
                     Icons.Outlined.Delete,
-                    stringResource(R.string.menu_remove)
+                    stringResource(R.string.menu_remove),
+                    id = "remove_from_playlist"
                 ) { viewModel.removeFromContextPlaylist(viewModel.menuContextPlaylistId!!, track) })
         }
         if (viewModel.isMenuContextFromPlayer) {
             add(
                 DockOptionItem(
                     Icons.Rounded.Bedtime,
-                    stringResource(R.string.sleep_timer_title)
+                    stringResource(R.string.sleep_timer_title),
+                    id = "sleep_timer"
                 ) { viewModel.showSleepTimerDialog = true })
             // Only for the track that is playing: the editor's whole method is "listen, mark here", so it
             // needs a playhead to mark from (issue #33).
             add(
                 DockOptionItem(
                     Icons.Rounded.ContentCut,
-                    stringResource(R.string.trim_title)
+                    stringResource(R.string.trim_title),
+                    id = "trim"
                 ) {
                     viewModel.showMenuSheet = false
                     viewModel.showTrimDialog = true
@@ -2261,13 +2277,34 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 add(
                     DockOptionItem(
                         Icons.Rounded.GraphicEq,
-                        stringResource(R.string.dj_flow_title)
+                        stringResource(R.string.dj_flow_title),
+                        id = "dj_flow"
                     ) {
                         viewModel.showMenuSheet = false
                         viewModel.showDjDebugSheet = true
                     })
             }
         }
+        add(
+            DockOptionItem(
+                if (isDownloaded) Icons.Rounded.FileDownloadDone else Icons.Outlined.FileDownload,
+                if (isDownloaded) stringResource(R.string.btn_downloaded) else stringResource(R.string.btn_download),
+                id = "download"
+            ) {
+                if (isDownloaded) {
+                    showDeleteDialog = true
+                } else {
+                    DownloadManager.downloadTrack(track)
+                }
+            }
+        )
+    }
+
+    val menuPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
+    val hiddenMenuTiles = remember { menuPrefs.getHiddenMenuTiles(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
+    val menuOrder = remember { menuPrefs.getMenuTileOrder(com.alananasss.kittytune.data.local.PlayerPreferences.MENU_TRACK) }
+    val arrangedGridItems = remember(gridItems, hiddenMenuTiles, menuOrder) {
+        com.alananasss.kittytune.ui.player.MenuTiles.arrange(gridItems, menuOrder, hiddenMenuTiles) { it.id }
     }
 
     LazyVerticalGrid(
@@ -2330,7 +2367,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                 }
             }
         }
-        items(gridItems) { item ->
+        items(arrangedGridItems) { item ->
             val activeColor = MaterialTheme.colorScheme.primary
             val inactiveColor = MaterialTheme.colorScheme.onSurface
             var tint = inactiveColor
@@ -3778,9 +3815,10 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                 style = MaterialTheme.typography.labelSmall,
                 color = textColor.copy(alpha = 0.7f)
             )
-            com.alananasss.kittytune.ui.player.automix.AutomixBadge(textColor = textColor)
+            val showRemaining = remember { com.alananasss.kittytune.data.local.PlayerPreferences().getShowRemainingTime() }
+            val curPos = if (isDragging) dragPosition.toLong() else progressState.value.toLong()
             Text(
-                text = makeTimeString(totalDuration.toLong()),
+                text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(curPos, totalDuration.toLong()) else makeTimeString(totalDuration.toLong()),
                 style = MaterialTheme.typography.labelSmall,
                 color = textColor.copy(alpha = 0.7f)
             )

@@ -30,6 +30,7 @@ fun <T> ExpressiveConnectedButtonGroup(
     onOptionSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+    iconSpacing: androidx.compose.ui.unit.Dp = 4.dp,
     labelProvider: @Composable (T) -> Unit,
     iconProvider: (@Composable (T) -> Unit)? = null
 ) {
@@ -79,7 +80,7 @@ fun <T> ExpressiveConnectedButtonGroup(
                 ) {
                     if (iconProvider != null) {
                         iconProvider(option)
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(iconSpacing))
                     }
                     labelProvider(option)
                 }

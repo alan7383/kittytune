@@ -2746,5 +2746,80 @@
     <string name="logs_sec_memory">Memory &amp; Storage</string>
     <string name="logs_sec_playback">Playback &amp; Audio</string>
     <string name="logs_sec_network">Network &amp; Providers</string>
+    <!-- Settings Parity & Search -->
+    <string name="search_settings_hint">Search settings…</string>
+    <string name="settings_search_results">Search results</string>
+    <string name="settings_search_no_results">No settings found</string>
+
+    <!-- Theme Presets -->
+    <string name="theme_presets_title">Ready-made themes</string>
+    <string name="theme_preset_ocean">Ocean</string>
+    <string name="theme_preset_forest">Forest</string>
+    <string name="theme_preset_sunset">Sunset</string>
+    <string name="theme_preset_rose">Rose</string>
+    <string name="theme_preset_lavender">Lavender</string>
+    <string name="theme_preset_mint">Mint</string>
+    <string name="theme_preset_default">KittyTune</string>
+    <string name="theme_custom_short">Custom</string>
+    <string name="theme_amoled">AMOLED</string>
     <string name="logs_refresh">Refresh</string>
+
+
+    <string name="pref_show_remaining_time">Remaining time</string>
+    <string name="pref_show_remaining_time_desc">Show remaining time (-00:14) instead of total duration on playback bar</string>
+    <string name="pref_volume_slider_title">Volume slider</string>
+    <string name="volume_horizontal">Horizontal</string>
+    <string name="volume_vertical">Vertical</string>
+    <string name="volume_style_title">Volume style</string>
+    <string name="volume_style_same">Match progress bar</string>
+    <string name="player_buttons_title">Player buttons</string>
+    <string name="player_buttons_desc">Show or hide player bar buttons according to your preferences</string>
+    <string name="player_button_like">Like</string>
+    <string name="player_button_like_desc">Displays heart next to artwork to like track</string>
+    <string name="player_button_lyrics">Lyrics</string>
+    <string name="player_button_lyrics_desc">Instantly opens synchronized lyrics</string>
+    <string name="player_button_miniplayer">Mini-player</string>
+    <string name="player_button_miniplayer_desc">Switch to floating Picture-in-Picture window</string>
+    <string name="player_button_panel">Settings panel</string>
+    <string name="player_button_panel_desc">Opens side panel with track details, lyrics and effects</string>
+    <string name="player_button_queue">Queue</string>
+    <string name="player_button_queue_desc">Direct access to the upcoming tracks queue</string>
+    <string name="player_button_shuffle">Shuffle</string>
+    <string name="player_button_shuffle_desc">Enable or disable track shuffle</string>
+    <string name="player_button_repeat">Repeat</string>
+    <string name="player_button_repeat_desc">Repeat current song or playlist</string>
+
+    <!-- Menu Tiles (3 dots sheet) -->
+    <string name="menu_tiles_title">Menu buttons</string>
+    <string name="menu_tiles_desc">Hold a button in the track or playlist menu to move it, right-click to hide it. Bring hidden ones back here.</string>
+    <string name="menu_tiles_reset">Reset order</string>
+    <string name="menu_tiles_track">Track menu</string>
+    <string name="menu_tiles_playlist">Playlist menu</string>
+
+    <!-- Player Shape -->
+    <string name="player_shape_title">Player silhouette</string>
+    <string name="player_shape_desc">Choose overall player bar appearance</string>
+    <string name="player_shape_default">Standard</string>
+    <string name="player_shape_default_desc">Discrete seamless bar</string>
+    <string name="player_shape_rounded">Rounded</string>
+    <string name="player_shape_rounded_desc">Modern soft corners</string>
+    <string name="player_shape_floating">Floating dock</string>
+    <string name="player_shape_floating_desc">Levitating pill container</string>
+
+    <!-- Floating Bar Details -->
+    <string name="floating_bar_title">Floating bar</string>
+    <string name="floating_bar_corner">Corner radius</string>
+    <string name="floating_bar_width">Width</string>
+    <string name="floating_bar_margin">Bottom spacing</string>
+    <string name="floating_bar_translucent">Translucent</string>
+    <string name="floating_bar_translucent_sub">Screen content shows softly through the bar</string>
+
+    <string name="settings_group_window">Window and text</string>
+    <string name="settings_group_covers">Covers &amp; Visuals</string>
+    <string name="player_advanced_title">Controls &amp; Sensitivity</string>
+    <string name="player_advanced_desc">Scrubbing sensitivity and behavior</string>
+    <string name="pref_seek_wheel">Scrubbing sensitivity</string>
+    <string name="pref_screensaver_title">Dim on inactivity</string>
+    <string name="pref_screensaver_desc">Dims playback view after inactivity</string>
 </resources>
+

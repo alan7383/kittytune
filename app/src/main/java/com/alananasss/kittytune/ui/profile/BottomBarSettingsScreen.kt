@@ -110,12 +110,30 @@ fun BottomBarSettingsScreen(
         )
     }
 
+    val ordered = remember(items) { items.toMutableList() }
+    val reorderState = rememberReorderableLazyListState(
+        lazyListState = listState,
+        onMove = { from, to ->
+            val fromKey = from.key as? String ?: return@rememberReorderableLazyListState
+            val toKey = to.key as? String ?: return@rememberReorderableLazyListState
+            val fromIndex = ordered.indexOf(fromKey)
+            val toIndex = ordered.indexOf(toKey)
+            if (fromIndex != -1 && toIndex != -1 && fromIndex != toIndex) {
+                val moved = ordered.removeAt(fromIndex)
+                ordered.add(toIndex, moved)
+                prefs.setBottomMenuItems(ordered)
+                view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+            }
+        }
+    )
+
     SettingsScaffold(
         title = stringResource(R.string.pref_bottom_menu_title),
         onBackClick = onBackClick
     ) { padding ->
         val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = padding.calculateTopPadding()),
@@ -124,10 +142,13 @@ fun BottomBarSettingsScreen(
                 top = 8.dp
             )
         ) {
-            item {
+            item(key = "general_section") {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.settings_cat_general))
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(
+                        modifier = Modifier.clip(RoundedCornerShape(24.dp)),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
                         val totalItems = if (style == "modern") 3 else 1
 
                         SettingsItem(
@@ -174,7 +195,7 @@ fun BottomBarSettingsScreen(
                     }
                 }
             }
-            item {
+            item(key = "tabs_header") {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.pref_bottom_menu_tabs))
                     Text(
@@ -183,79 +204,64 @@ fun BottomBarSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    // The stored order used to be rewritten in availableTabs order on every
-                    // toggle, and MainScreen rebuilt the bar from a hardcoded list, so this list
-                    // could not be reordered at all. It is the same list the bar reads now, so the
-                    // order it is dragged into is the order the bar shows.
-                    val ordered = remember(items) { items.toMutableList() }
-                    val reorderState = rememberReorderableLazyListState(
-                        lazyListState = listState,
-                        onMove = { from, to ->
-                            if (to.index !in ordered.indices) return@rememberReorderableLazyListState
-                            val moved = ordered.removeAt(from.index)
-                            ordered.add(to.index, moved)
-                            prefs.setBottomMenuItems(ordered)
-                            view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
-                        }
-                    )
-                    LazyColumn(state = listState) {
-                        itemsIndexed(ordered, key = { _, key -> key }) { index, tabKey ->
-                            ReorderableItem(state = reorderState, key = tabKey) { isDragging ->
-                                val elevation by animateDpAsState(
-                                    if (isDragging) 6.dp else 0.dp,
-                                    label = "tabElevation"
-                                )
-                                val isChecked = items.contains(tabKey)
-                                SettingsItem(
+                }
+            }
+            itemsIndexed(ordered, key = { _, key -> key }) { index, tabKey ->
+                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 1.dp)) {
+                    ReorderableItem(state = reorderState, key = tabKey) { isDragging ->
+                        val elevation by animateDpAsState(
+                            if (isDragging) 6.dp else 0.dp,
+                            label = "tabElevation"
+                        )
+                        val isChecked = items.contains(tabKey)
+                        SettingsItem(
+                            modifier = Modifier
+                                .shadow(elevation, RoundedCornerShape(0.dp))
+                                .zIndex(if (isDragging) 1f else 0f),
+                            shape = getSettingsShape(ordered.size, index),
+                            title = when (tabKey) {
+                                "home" -> stringResource(R.string.nav_home)
+                                "search" -> stringResource(R.string.nav_search)
+                                "genres" -> stringResource(R.string.explorer_title)
+                                "library" -> stringResource(R.string.nav_library)
+                                else -> tabKey
+                            },
+                            hasSwitch = true,
+                            switchState = isChecked,
+                            onSwitchChange = { checked ->
+                                val newItems = items.toMutableList()
+                                if (checked) {
+                                    // Appended at the end, so turning one back on does not
+                                    // silently reshuffle the rest.
+                                    if (!newItems.contains(tabKey)) newItems.add(tabKey)
+                                } else {
+                                    if (newItems.size > 1) newItems.remove(tabKey)
+                                }
+                                prefs.setBottomMenuItems(newItems)
+                            },
+                            trailingContent = {
+                                Icon(
+                                    imageVector = Icons.Rounded.DragHandle,
+                                    contentDescription = stringResource(R.string.reorder_handle),
+                                    tint = if (isDragging) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier
-                                        .shadow(elevation, RoundedCornerShape(0.dp))
-                                        .zIndex(if (isDragging) 1f else 0f),
-                                    shape = getSettingsShape(ordered.size, index),
-                                    title = when (tabKey) {
-                                        "home" -> stringResource(R.string.nav_home)
-                                        "search" -> stringResource(R.string.nav_search)
-                                        "genres" -> stringResource(R.string.explorer_title)
-                                        "library" -> stringResource(R.string.nav_library)
-                                        else -> tabKey
-                                    },
-                                    hasSwitch = true,
-                                    switchState = isChecked,
-                                    onSwitchChange = { checked ->
-                                        val newItems = items.toMutableList()
-                                        if (checked) {
-                                            // Appended at the end, so turning one back on does not
-                                            // silently reshuffle the rest.
-                                            if (!newItems.contains(tabKey)) newItems.add(tabKey)
-                                        } else {
-                                            if (newItems.size > 1) newItems.remove(tabKey)
-                                        }
-                                        prefs.setBottomMenuItems(newItems)
-                                    },
-                                    trailingContent = {
-                                        Icon(
-                                            imageVector = Icons.Rounded.DragHandle,
-                                            contentDescription = stringResource(R.string.reorder_handle),
-                                            tint = if (isDragging) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier
-                                                .size(24.dp)
-                                                .draggableHandle(
-                                                    onDragStarted = {
-                                                        view.performHapticFeedback(
-                                                            HapticFeedbackConstants.LONG_PRESS
-                                                        )
-                                                    },
-                                                    onDragStopped = {
-                                                        view.performHapticFeedback(
-                                                            HapticFeedbackConstants.GESTURE_END
-                                                        )
-                                                    }
+                                        .size(24.dp)
+                                        .draggableHandle(
+                                            onDragStarted = {
+                                                view.performHapticFeedback(
+                                                    HapticFeedbackConstants.LONG_PRESS
                                                 )
+                                            },
+                                            onDragStopped = {
+                                                view.performHapticFeedback(
+                                                    HapticFeedbackConstants.GESTURE_END
+                                                )
+                                            }
                                         )
-                                    }
                                 )
                             }
-                        }
+                        )
                     }
                 }
             }

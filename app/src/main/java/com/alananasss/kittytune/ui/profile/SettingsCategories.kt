@@ -8,6 +8,7 @@ import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.ImportExport
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lyrics
@@ -48,18 +49,15 @@ internal enum class SettingsSubPage(
 ) {
     THEMES(R.string.settings_page_themes, R.string.settings_page_themes_sub, Icons.Rounded.ColorLens),
     PLAYER(R.string.settings_page_player, R.string.settings_page_player_sub, Icons.Rounded.PlayCircle),
+    BOTTOM_BAR(R.string.pref_bottom_menu_title, R.string.pref_bottom_menu_subtitle, Icons.Rounded.Home),
     LYRICS(R.string.pref_lyrics_title, R.string.settings_page_lyrics_sub, Icons.Rounded.Lyrics),
     ;
 
     companion object {
         /**
          * The Interface category's pages, in the desktop's order.
-         *
-         * The desktop also lists Left panel, Right panel and Mini player here. Those describe a
-         * resizable desktop window and have no phone equivalent, so they are not offered rather
-         * than offered as rows that go nowhere.
          */
-        val interfacePages: List<SettingsSubPage> = listOf(THEMES, PLAYER, LYRICS)
+        val interfacePages: List<SettingsSubPage> = listOf(THEMES, PLAYER, BOTTOM_BAR, LYRICS)
     }
 }
 
@@ -114,5 +112,6 @@ internal val SettingsSubPage.route: String
     get() = when (this) {
         SettingsSubPage.THEMES -> "appearance_settings"
         SettingsSubPage.PLAYER -> "player_design_settings"
+        SettingsSubPage.BOTTOM_BAR -> "bottom_bar_settings"
         SettingsSubPage.LYRICS -> "lyrics_settings"
     }
