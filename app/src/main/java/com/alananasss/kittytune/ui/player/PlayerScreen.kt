@@ -938,10 +938,11 @@ fun NewPlayerScreen(
     )
 
     val pProgress = dismissProgress.value
-    val predictiveScaleX = 1f - (pProgress * 0.06f)
-    val predictiveScaleY = 1f - (pProgress * 0.04f)
-    val predictiveTranslationY = pProgress * dismissTargetY
-    val predictiveCorner = (pProgress * 32.dp.value).dp
+    val clampedProgress = if (pProgress.isFinite()) pProgress.coerceIn(0f, 1f) else 0f
+    val predictiveScaleX = if (pProgress.isFinite()) (1f - (clampedProgress * 0.06f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveScaleY = if (pProgress.isFinite()) (1f - (clampedProgress * 0.04f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveTranslationY = if (pProgress.isFinite()) (pProgress.coerceAtLeast(0f) * dismissTargetY) else 0f
+    val predictiveCorner = (clampedProgress * 32.dp.value).coerceAtLeast(0f).dp
 
     val verticalDragModifier = Modifier.pointerInput(dismissTargetY) {
         detectVerticalDragGestures(
@@ -994,8 +995,8 @@ fun NewPlayerScreen(
                 translationY = predictiveTranslationY
                 transformOrigin = TransformOrigin(0.5f, 1.0f)
                 shape = RoundedCornerShape(predictiveCorner)
-                clip = pProgress > 0.001f
-                alpha = (1f - (pProgress * 0.15f)).coerceIn(0f, 1f)
+                clip = clampedProgress > 0.001f
+                alpha = (1f - (clampedProgress * 0.15f)).coerceIn(0f, 1f)
             }
             .background(if (isBlurMode) Color.Black else MaterialTheme.colorScheme.background)
     ) {
@@ -10890,10 +10891,11 @@ fun OldPlayerScreen(
     )
 
     val pProgress = dismissProgress.value
-    val predictiveScaleX = 1f - (pProgress * 0.06f)
-    val predictiveScaleY = 1f - (pProgress * 0.04f)
-    val predictiveTranslationY = pProgress * dismissTargetY
-    val predictiveCorner = (pProgress * 32.dp.value).dp
+    val clampedProgress = if (pProgress.isFinite()) pProgress.coerceIn(0f, 1f) else 0f
+    val predictiveScaleX = if (pProgress.isFinite()) (1f - (clampedProgress * 0.06f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveScaleY = if (pProgress.isFinite()) (1f - (clampedProgress * 0.04f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveTranslationY = if (pProgress.isFinite()) (pProgress.coerceAtLeast(0f) * dismissTargetY) else 0f
+    val predictiveCorner = (clampedProgress * 32.dp.value).coerceAtLeast(0f).dp
 
     val verticalDragModifier = Modifier.pointerInput(dismissTargetY) {
         detectVerticalDragGestures(
@@ -10941,7 +10943,7 @@ fun OldPlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .then(
-                if (pProgress > 0f) {
+                if (clampedProgress > 0f) {
                     Modifier
                         .graphicsLayer {
                             scaleX = predictiveScaleX
@@ -10950,7 +10952,7 @@ fun OldPlayerScreen(
                             transformOrigin = TransformOrigin(0.5f, 1.0f)
                             shape = RoundedCornerShape(predictiveCorner)
                             clip = true
-                            alpha = (1f - (pProgress * 0.15f)).coerceIn(0f, 1f)
+                            alpha = (1f - (clampedProgress * 0.15f)).coerceIn(0f, 1f)
                         }
                 } else Modifier
             )
