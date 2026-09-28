@@ -2615,12 +2615,16 @@
 
     <!-- App Logs & Diagnostics -->
     <string name="logs_title">Journaux &amp; Diagnostics</string>
-    <string name="logs_subtitle">Consulter, copier ou partager les logs pour aider à résoudre les problèmes</string>
+    <string name="logs_subtitle">Consulter, enregistrer ou partager les logs pour aider à résoudre les problèmes</string>
+    <string name="logs_save_all">Enregistrer</string>
+    <string name="logs_save_logcat">Enregistrer</string>
     <string name="logs_copy_all">Tout copier</string>
     <string name="logs_copy_summary">Copier le diagnostic</string>
     <string name="logs_copy_logcat">Copier le logcat</string>
     <string name="logs_share">Partager</string>
     <string name="logs_copied_toast">Journaux copiés dans le presse-papiers !</string>
+    <string name="logs_saved_toast">Logs enregistrés avec succès !</string>
+    <string name="logs_save_failed_toast">Impossible d\'enregistrer le fichier.</string>
     <string name="logs_tab_diagnostics">Diagnostics</string>
     <string name="logs_tab_logcat">Logcat</string>
     <string name="logs_tab_crash">Rapport de crash</string>

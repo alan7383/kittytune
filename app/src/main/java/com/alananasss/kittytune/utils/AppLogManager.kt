@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
+import androidx.core.content.FileProvider
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -316,13 +318,83 @@ object AppLogManager {
         return sanitized
     }
 
-    fun copyToClipboard(context: Context, text: String, label: String = "KittyTune Logs") {
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText(label, text)
-        clipboard.setPrimaryClip(clip)
+    fun copyToClipboard(context: Context, text: String, label: String = "KittyTune Logs"): Boolean {
+        return try {
+            // Android Binder IPC has a 1MB limit for the entire process.
+            // Putting > 150KB into a ClipData parcel risks TransactionTooLargeException.
+            val maxClipboardChars = 150_000
+            val safeText = if (text.length > maxClipboardChars) {
+                text.take(maxClipboardChars) + "\n\n... [TRUNCATED: Log exceeded clipboard limit (${text.length} chars). Please save to a file instead.] ..."
+            } else {
+                text
+            }
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText(label, safeText)
+            clipboard.setPrimaryClip(clip)
+            true
+        } catch (t: Throwable) {
+            android.util.Log.e("AppLogManager", "Failed to copy to clipboard", t)
+            false
+        }
+    }
+
+    fun saveToUri(context: Context, uri: Uri, content: String): Boolean {
+        return try {
+            context.contentResolver.openOutputStream(uri)?.use { os ->
+                os.bufferedWriter(Charsets.UTF_8).use { writer ->
+                    writer.write(content)
+                    writer.flush()
+                }
+            }
+            true
+        } catch (t: Throwable) {
+            android.util.Log.e("AppLogManager", "Failed to save logs to URI: $uri", t)
+            false
+        }
+    }
+
+    fun shareLogs(
+        context: Context,
+        text: String,
+        title: String = "KittyTune Logs",
+        filename: String = "kittytune_logs.txt"
+    ) {
+        try {
+            val logsDir = File(context.cacheDir, "logs").apply { mkdirs() }
+            val file = File(logsDir, filename)
+            file.writeText(text, Charsets.UTF_8)
+
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, title)
+                putExtra(Intent.EXTRA_STREAM, uri)
+                clipData = ClipData.newRawUri(title, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooserIntent = Intent.createChooser(sendIntent, title).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(chooserIntent)
+        } catch (e: Throwable) {
+            android.util.Log.e("AppLogManager", "Failed to share logs via FileProvider", e)
+            if (text.length < 50_000) {
+                shareText(context, text, title)
+            }
+        }
     }
 
     fun shareText(context: Context, text: String, title: String = "KittyTune Logs") {
+        if (text.length > 50_000) {
+            shareLogs(context, text, title)
+            return
+        }
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, title)

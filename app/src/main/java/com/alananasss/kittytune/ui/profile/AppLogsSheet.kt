@@ -1,7 +1,10 @@
 package com.alananasss.kittytune.ui.profile
 
+import android.net.Uri
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -33,6 +36,9 @@ import com.alananasss.kittytune.utils.AppLogManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -50,6 +56,47 @@ fun AppLogsSheet(
     var rawLogcatLines by remember { mutableStateOf<List<String>>(emptyList()) }
     var lastCrash by remember { mutableStateOf<String?>(null) }
     var diagnosticsMap by remember { mutableStateOf<Map<String, List<Pair<String, String>>>>(emptyMap()) }
+    var pendingSaveContent by remember { mutableStateOf<String?>(null) }
+
+    val saveFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri: Uri? ->
+        val content = pendingSaveContent
+        pendingSaveContent = null
+        if (uri != null && content != null) {
+            scope.launch(Dispatchers.IO) {
+                val success = AppLogManager.saveToUri(context, uri, content)
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.logs_saved_toast),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.logs_save_failed_toast),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun requestSaveFile(filename: String, content: String) {
+        pendingSaveContent = content
+        try {
+            saveFileLauncher.launch(filename)
+        } catch (_: Exception) {
+            Toast.makeText(
+                context,
+                context.getString(R.string.logs_save_failed_toast),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     fun refreshData() {
         isLoadingLogcat = true
@@ -157,12 +204,8 @@ fun AppLogsSheet(
                         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         scope.launch {
                             val fullReport = AppLogManager.getFullReport(context)
-                            AppLogManager.copyToClipboard(context, fullReport)
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.logs_copied_toast),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                            requestSaveFile("kittytune_logs_$timestamp.txt", fullReport)
                         }
                     },
                     shapes = ButtonDefaults.shapes(),
@@ -173,13 +216,13 @@ fun AppLogsSheet(
                     modifier = Modifier.weight(1f).height(46.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.ContentCopy,
+                        imageVector = Icons.Rounded.Save,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = stringResource(R.string.logs_copy_all),
+                        text = stringResource(R.string.logs_save_all),
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1
                     )
@@ -190,10 +233,12 @@ fun AppLogsSheet(
                         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         scope.launch {
                             val fullReport = AppLogManager.getFullReport(context)
-                            AppLogManager.shareText(
+                            val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                            AppLogManager.shareLogs(
                                 context,
                                 fullReport,
-                                context.getString(R.string.logs_title)
+                                context.getString(R.string.logs_title),
+                                "kittytune_logs_$timestamp.txt"
                             )
                         }
                     },
@@ -283,12 +328,14 @@ fun AppLogsSheet(
                     onCopySummary = {
                         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         val summary = AppLogManager.getDiagnosticsSummary(context)
-                        AppLogManager.copyToClipboard(context, summary, "KittyTune Diagnostics")
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.logs_copied_toast),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        val copied = AppLogManager.copyToClipboard(context, summary, "KittyTune Diagnostics")
+                        if (copied) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.logs_copied_toast),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 )
                 1 -> LogcatTabContent(
@@ -296,14 +343,13 @@ fun AppLogsSheet(
                     searchQuery = searchQuery,
                     isLoading = isLoadingLogcat,
                     onSearchQueryChange = { searchQuery = it },
-                    onCopyLogcat = {
+                    onSaveLogcat = {
                         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        AppLogManager.copyToClipboard(context, filteredLogcatLines.joinToString("\n"), "KittyTune Logcat")
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.logs_copied_toast),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                        requestSaveFile(
+                            "kittytune_logcat_$timestamp.txt",
+                            filteredLogcatLines.joinToString("\n")
+                        )
                     }
                 )
                 2 -> CrashTabContent(
@@ -316,12 +362,14 @@ fun AppLogsSheet(
                     onCopyCrash = {
                         view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         lastCrash?.let {
-                            AppLogManager.copyToClipboard(context, it, "KittyTune Crash")
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.logs_copied_toast),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            val copied = AppLogManager.copyToClipboard(context, it, "KittyTune Crash")
+                            if (copied) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.logs_copied_toast),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         }
                     }
                 )
@@ -424,7 +472,7 @@ private fun LogcatTabContent(
     searchQuery: String,
     isLoading: Boolean,
     onSearchQueryChange: (String) -> Unit,
-    onCopyLogcat: () -> Unit
+    onSaveLogcat: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -464,13 +512,13 @@ private fun LogcatTabContent(
             )
 
             OutlinedButton(
-                onClick = onCopyLogcat,
+                onClick = onSaveLogcat,
                 shapes = ButtonDefaults.shapes(),
                 modifier = Modifier.height(50.dp)
             ) {
-                Icon(Icons.Rounded.ContentCopy, null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Rounded.Save, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.logs_copy_logcat), style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.logs_save_logcat), style = MaterialTheme.typography.labelMedium)
             }
         }
 
