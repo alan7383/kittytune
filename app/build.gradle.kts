@@ -143,7 +143,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
@@ -151,6 +150,9 @@ dependencies {
     implementation(libs.accompanist.drawablepainter)
     implementation(libs.lottie.compose)
     implementation(libs.zxing.core)
+
+    // AI music detector — on-device ONNX inference (model: 15 KB)
+    implementation(libs.onnxruntime)
 
     // Scanning the desktop's pairing QR. zxing above already does the decoding; these are only
     // the camera frames to hand it (issue #33).
@@ -160,7 +162,7 @@ dependencies {
     implementation(libs.camera.view)
     implementation(libs.accompanist.lyrics.ui)
     implementation(libs.accompanist.lyrics.core)
-    implementation("com.github.racra:smooth-corner-rect-android-compose:v1.0.0")
+    implementation(libs.smooth.corner.rect)
     implementation(libs.material)
     implementation(libs.androidx.ui.text.google.fonts)
 }

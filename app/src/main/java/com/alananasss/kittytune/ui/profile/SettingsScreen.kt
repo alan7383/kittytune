@@ -33,42 +33,7 @@ import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 
-private val DIACRITICS_REGEX = "\\p{M}+".toRegex()
-private val WHITESPACE_REGEX = "\\s+".toRegex()
 
-private fun normalizeSearchText(input: String): String {
-    val nfd = Normalizer.normalize(input, Normalizer.Form.NFD)
-    return DIACRITICS_REGEX.replace(nfd, "").lowercase().trim()
-}
-
-/**
- * One searchable item representation with direct action or route.
- * Keywords and searchCorpus are normalized at construction time to make
- * keystroke filtering completely zero-allocation and instant.
- */
-private data class SearchSettingEntry(
-    val title: String,
-    val subtitle: String? = null,
-    val categoryName: String,
-    val icon: ImageVector? = null,
-    val iconRes: Int? = null,
-    val route: String? = null,
-    val keywords: List<String> = emptyList(),
-    val hasSwitch: Boolean = false,
-    val switchState: Boolean = false,
-    val onSwitchChange: ((Boolean) -> Unit)? = null,
-    val onClick: (() -> Unit)? = null,
-    val normTitle: String = normalizeSearchText(title),
-    val normKeywords: List<String> = keywords.map { normalizeSearchText(it) },
-    val searchCorpus: String = buildString {
-        append(normTitle).append(' ')
-        subtitle?.let { append(normalizeSearchText(it)).append(' ') }
-        append(normalizeSearchText(categoryName)).append(' ')
-        for (nkw in normKeywords) {
-            append(nkw).append(' ')
-        }
-    }
-)
 
 /**
  * The settings screen, structured exactly like KittyTune Desktop:
@@ -109,6 +74,7 @@ fun SettingsScreen(
     var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
     var explorerGridLayout by remember { mutableStateOf(prefs.getExplorerGridLayout()) }
     var playlistGridLayout by remember { mutableStateOf(prefs.getPlaylistGridLayout()) }
+    var preferenceVersion by remember { mutableStateOf(0) }
 
     val catInterface = stringResource(R.string.settings_cat_interface)
     val catAudio = stringResource(R.string.settings_cat_audio)
@@ -127,9 +93,10 @@ fun SettingsScreen(
         youtubeFallback, discordRpc, achievementPopups, autoUpdate, customFontEnabled,
         explorerGridLayout, playlistGridLayout,
         playerViewModel.isHapticsEnabled, playerViewModel.equalizerState.isEnabled,
-        playerViewModel.effectsState.isNormalizationEnabled, playerViewModel.effectsState.isMonoEnabled
+        playerViewModel.effectsState.isNormalizationEnabled, playerViewModel.effectsState.isMonoEnabled,
+        preferenceVersion, searchQuery
     ) {
-        listOf(
+        val staticItems = listOf(
             // INTERFACE
             SearchSettingEntry(
                 title = context.getString(R.string.settings_page_themes),
@@ -707,14 +674,6 @@ fun SettingsScreen(
                 }
             ),
             SearchSettingEntry(
-                title = context.getString(R.string.music_import_title),
-                subtitle = context.getString(R.string.music_import_settings_subtitle),
-                categoryName = catMisc,
-                icon = Icons.Rounded.ImportExport,
-                route = "music_import",
-                keywords = listOf("import", "importer", "playlist import", "spotify import")
-            ),
-            SearchSettingEntry(
                 title = context.getString(R.string.pref_about_title),
                 subtitle = context.getString(R.string.pref_about_subtitle),
                 categoryName = catMisc,
@@ -723,6 +682,13 @@ fun SettingsScreen(
                 keywords = listOf("a propos", "about", "version", "developpeur", "credits", "licences", "github", "check update", "mise a jour", "maj", "update", "rechercher mise a jour")
             )
         )
+
+        val dynamicItems = SettingsRegistry.allDefinitions.map { def ->
+            def.toSearchSettingEntry(context, prefs, navController) {
+                preferenceVersion++
+            }
+        }
+        staticItems + dynamicItems
     }
 
     BackHandler(enabled = searchQuery.isNotEmpty()) {

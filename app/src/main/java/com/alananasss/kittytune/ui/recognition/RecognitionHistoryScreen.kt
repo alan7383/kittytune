@@ -233,6 +233,11 @@ fun HistoryItemRow(
     onClick: () -> Unit,
     onOptionsClick: () -> Unit
 ) {
+    if (item.trackId != null) {
+        val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+        if (item.trackId in blockedTrackIds) return
+    }
+
     val timeFormatted = remember(item.timestamp) {
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(item.timestamp)
     }

@@ -42,13 +42,14 @@ import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 @Composable
 fun DismissUndoBar(
     modifier: Modifier = Modifier,
+    text: String = stringResource(R.string.player_dismissed_message),
     onUndo: () -> Unit,
     onClose: () -> Unit,
     durationMillis: Long = 4000L
 ) {
     val progress = remember { Animatable(1f) }
 
-    LaunchedEffect(key1 = onUndo) {
+    LaunchedEffect(key1 = onUndo, key2 = text) {
         progress.snapTo(1f)
         progress.animateTo(
             targetValue = 0f,
@@ -104,12 +105,16 @@ fun DismissUndoBar(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    modifier = Modifier.padding(start = 6.dp),
-                    text = stringResource(R.string.player_dismissed_message),
+                    modifier = Modifier
+                        .padding(start = 6.dp)
+                        .weight(1f, fill = false),
+                    text = text,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontFamily = GoogleSansRounded
                     ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Button(

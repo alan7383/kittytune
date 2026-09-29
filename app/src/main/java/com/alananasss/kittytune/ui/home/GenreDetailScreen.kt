@@ -257,6 +257,12 @@
         onClick: () -> Unit,
         onOptionClick: () -> Unit
     ) {
+        val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+        val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+        if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) {
+            return
+        }
+
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 

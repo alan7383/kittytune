@@ -489,9 +489,10 @@
             LibraryFolder::class,
             LibraryItemMeta::class,
             TrackTrimRow::class,
-            BeatInfoEntity::class
+            BeatInfoEntity::class,
+            BlockedContent::class
         ],
-        version = 24,
+        version = 25,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
@@ -499,6 +500,7 @@
         abstract fun recognitionHistoryDao(): RecognitionHistoryDao
         abstract fun folderDao(): FolderDao
         abstract fun beatInfoDao(): BeatInfoDao
+        abstract fun blockedContentDao(): BlockedContentDao
 
         companion object {
             val MIGRATION_16_17 = object : Migration(16, 17) {
@@ -606,6 +608,30 @@
                 }
             }
 
+            /**
+             * Blocked tracks and artists for content filtering (issue #41).
+             * Also stores AI-generated auto-blocks from ArtifactNet.
+             */
+            val MIGRATION_24_25 = object : Migration(24, 25) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "CREATE TABLE IF NOT EXISTS blocked_content (" +
+                            "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "trackId INTEGER, " +
+                            "trackTitle TEXT, " +
+                            "trackArtworkUrl TEXT, " +
+                            "artistId INTEGER, " +
+                            "artistName TEXT, " +
+                            "artistAvatarUrl TEXT, " +
+                            "source TEXT NOT NULL DEFAULT 'soundcloud', " +
+                            "reason TEXT NOT NULL DEFAULT 'MANUAL', " +
+                            "blockedAt INTEGER NOT NULL DEFAULT 0)"
+                    )
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_blocked_content_trackId ON blocked_content(trackId)")
+                    db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_blocked_content_artistId ON blocked_content(artistId)")
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -614,7 +640,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

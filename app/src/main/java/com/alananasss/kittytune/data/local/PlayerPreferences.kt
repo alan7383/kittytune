@@ -343,6 +343,14 @@ class PlayerPreferences(context: Context) {
         const val KEY_DEEZER_USE_ACCOUNT = "deezer_use_account"
         const val KEY_PLAYLIST_GRID_LAYOUT = "playlist_grid_layout"
         const val KEY_EXPLORER_GRID_LAYOUT = "explorer_grid_layout"
+
+        // AI music detection
+        private const val KEY_AI_AUTO_SKIP = "ai_auto_skip_enabled"
+        private const val KEY_AI_AUTO_BLOCK = "ai_auto_block_enabled"
+        private const val KEY_AI_SPARE_FAVORITES = "ai_spare_favorites"
+        private const val KEY_AI_SCORE_THRESHOLD = "ai_score_threshold"
+        const val KEY_AI_SHOW_BADGE = "ai_show_badge"
+        const val KEY_AI_SHOW_HUMAN_BADGE = "ai_show_human_badge"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -373,6 +381,41 @@ class PlayerPreferences(context: Context) {
 
     fun getExplorerGridLayout(): Boolean = prefs.getBoolean(KEY_EXPLORER_GRID_LAYOUT, true)
     fun setExplorerGridLayout(enabled: Boolean) = prefs.edit { putBoolean(KEY_EXPLORER_GRID_LAYOUT, enabled) }
+
+    // ─── AI music detection prefs ─────────────────────────────────────────────
+
+    /** Auto-skip tracks detected as AI-generated (P(AI) ≥ threshold). Default: off. */
+    var aiAutoSkip: Boolean
+        get() = prefs.getBoolean(KEY_AI_AUTO_SKIP, false)
+        set(value) = prefs.edit { putBoolean(KEY_AI_AUTO_SKIP, value) }
+
+    /**
+     * When [aiAutoSkip] is true, also add the track to the block list so it
+     * never reappears in queues or recommendations. Default: false.
+     */
+    var aiAutoBlock: Boolean
+        get() = prefs.getBoolean(KEY_AI_AUTO_BLOCK, false)
+        set(value) = prefs.edit { putBoolean(KEY_AI_AUTO_BLOCK, value) }
+
+    /** Never auto-skip tracks that the user has liked / saved to favorites. Default: true. */
+    var aiSpareFavorites: Boolean
+        get() = prefs.getBoolean(KEY_AI_SPARE_FAVORITES, true)
+        set(value) = prefs.edit { putBoolean(KEY_AI_SPARE_FAVORITES, value) }
+
+    /** P(AI) threshold above which a track is considered AI-generated. Range [0.5, 0.95]. */
+    var aiScoreThreshold: Float
+        get() = getSafeFloat(KEY_AI_SCORE_THRESHOLD, 0.5f).coerceIn(0.5f, 0.95f)
+        set(value) = prefs.edit { putFloat(KEY_AI_SCORE_THRESHOLD, value.coerceIn(0.5f, 0.95f)) }
+
+    /** Show AI detection badge in the player during playback. Default: true. */
+    var aiShowBadge: Boolean
+        get() = prefs.getBoolean(KEY_AI_SHOW_BADGE, true)
+        set(value) = prefs.edit { putBoolean(KEY_AI_SHOW_BADGE, value) }
+
+    /** Also show the badge when track is classified as human music. Default: false. */
+    var aiShowHumanBadge: Boolean
+        get() = prefs.getBoolean(KEY_AI_SHOW_HUMAN_BADGE, false)
+        set(value) = prefs.edit { putBoolean(KEY_AI_SHOW_HUMAN_BADGE, value) }
 
     fun getCrossfadeDuration(): Int = prefs.getInt(KEY_CROSSFADE_DURATION, 5)
     fun setCrossfadeDuration(seconds: Int) = prefs.edit { putInt(KEY_CROSSFADE_DURATION, seconds.coerceIn(1, 12)) }

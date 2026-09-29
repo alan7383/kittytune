@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.rounded.Backup
+import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Dns
@@ -102,6 +103,7 @@ internal fun SettingsCategory.entriesFor(): List<SettingsEntry> = when (this) {
     )
     SettingsCategory.MISC -> listOf(
         SettingsEntry(R.string.settings_cat_general, R.string.settings_cat_general_sub, Icons.Rounded.Tune, "misc_settings"),
+        SettingsEntry(R.string.pref_content_filter_title, R.string.pref_content_filter_subtitle, Icons.Rounded.Block, "content_filter_settings"),
         SettingsEntry(R.string.music_import_title, R.string.music_import_settings_subtitle, Icons.Rounded.ImportExport, "music_import"),
         SettingsEntry(R.string.pref_about_title, R.string.pref_about_subtitle, Icons.Rounded.Info, "about")
     )

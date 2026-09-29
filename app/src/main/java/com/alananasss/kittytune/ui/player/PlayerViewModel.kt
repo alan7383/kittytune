@@ -77,6 +77,10 @@ import kotlin.time.Duration.Companion.milliseconds
 import com.alananasss.kittytune.data.lyrics.providers.*
 import com.alananasss.kittytune.data.lyrics.clients.*
 import com.alananasss.kittytune.KittyTuneApp
+import com.alananasss.kittytune.data.BlockManager
+import com.alananasss.kittytune.audio.ai.AiDetectionManager
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.filter
 
 enum class CommentSort(val value: String, @param:StringRes val labelResId: Int) {
     NEWEST("newest", R.string.sort_newest),
@@ -220,7 +224,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var showDismissUndoBar by mutableStateOf(false)
     var isMiniPlayerDismissing by mutableStateOf(false)
 
+    var showAiSkipUndoBar by mutableStateOf(false)
+    var aiSkippedTrack by mutableStateOf<Track?>(null)
+    private var aiSkippedQueueIndex = -1
+    private var aiSkippedWasBlocked = false
+    val whitelistedAiTrackIds = mutableSetOf<Long>()
+
     var showMenuSheet by mutableStateOf(false)
+    var showAiDetectionSheet by mutableStateOf(false)
 
     /**
      * The track whose share card is being composed, or null while no card is open.
@@ -1029,6 +1040,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             val trackId = parseIdFromMediaId(mediaItem.mediaId)
+            if (trackId != 0L && BlockManager.isTrackBlocked(trackId)) {
+                playNext(manual = false)
+                return
+            }
 
             val expectedTrackId = _queue.getOrNull(currentQueueIndex)?.id
             if (expectedTrackId != null && expectedTrackId != trackId) {
@@ -1136,6 +1151,36 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         dismissedTrack = null
     }
 
+    fun onAiTrackSkipped(track: Track, queueIndex: Int, wasBlocked: Boolean) {
+        aiSkippedTrack = track
+        aiSkippedQueueIndex = queueIndex
+        aiSkippedWasBlocked = wasBlocked
+        showAiSkipUndoBar = true
+    }
+
+    fun undoAiSkip() {
+        val track = aiSkippedTrack ?: return
+        val queueIdx = aiSkippedQueueIndex
+        showAiSkipUndoBar = false
+        whitelistedAiTrackIds.add(track.id)
+        viewModelScope.launch {
+            if (aiSkippedWasBlocked) {
+                BlockManager.unblockTrack(track.id)
+            }
+            if (queueIdx in 0 until _queue.size && _queue[queueIdx].id == track.id) {
+                skipToQueueItem(queueIdx)
+            } else {
+                playTrackAtPosition(track, 0L)
+            }
+        }
+        aiSkippedTrack = null
+    }
+
+    fun hideAiSkipUndoBar() {
+        showAiSkipUndoBar = false
+        aiSkippedTrack = null
+    }
+
     /**
      * Seeds the app's palette from the cover that is playing (issue #33).
      *
@@ -1201,6 +1246,81 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         SoundCloudTelemetryTracker.init(context)
         MusicManager.init(context)
+        BlockManager.init(context)
+
+        // Auto-skip when the current track is blocked
+        BlockManager.onCurrentTrackBlocked = {
+            viewModelScope.launch(Dispatchers.Main) {
+                djFlowController.cancelTransition()
+                playNext(manual = false, isCrossfade = false, ignoreRepeatOne = true)
+            }
+        }
+
+        BlockManager.onTrackBlocked = { blockedTrackId ->
+            viewModelScope.launch(Dispatchers.Main) {
+                if (currentTrack?.id == blockedTrackId) {
+                    djFlowController.cancelTransition()
+                    playNext(manual = false, isCrossfade = false, ignoreRepeatOne = true)
+                }
+                val removed = _queue.removeAll { it.id == blockedTrackId }
+                if (removed) {
+                    queueState = _queue.toList()
+                }
+            }
+        }
+
+        BlockManager.onArtistBlocked = { blockedArtistId ->
+            viewModelScope.launch(Dispatchers.Main) {
+                if (currentTrack?.user?.id == blockedArtistId) {
+                    djFlowController.cancelTransition()
+                    playNext(manual = false, isCrossfade = false, ignoreRepeatOne = true)
+                }
+                val removed = _queue.removeAll { it.user?.id == blockedArtistId }
+                if (removed) {
+                    queueState = _queue.toList()
+                }
+            }
+        }
+
+        // Observe ArtifactNet results: auto-skip + block if user enabled it
+        viewModelScope.launch {
+            AiDetectionManager.result
+                .filterNotNull()
+                .filter { it.status == AiDetectionManager.Status.DONE }
+                .collect { result ->
+                    val prefs = PlayerPreferences(context)
+                    val isAi = result.score >= prefs.aiScoreThreshold
+                    if (isAi && prefs.aiAutoSkip) {
+                        val track = currentTrack ?: return@collect
+                        // Check if whitelisted for this session (e.g. user previously clicked Undo)
+                        if (whitelistedAiTrackIds.contains(track.id)) {
+                            return@collect
+                        }
+                        // Requirement 1: Spare favorite / liked tracks (default true)
+                        if (prefs.aiSpareFavorites && (isLiked || LikeRepository.likedTracks.value.any { it.id == track.id })) {
+                            android.util.Log.d("PlayerViewModel", "Track '${track.title}' is liked; sparing from AI auto-skip")
+                            return@collect
+                        }
+
+                        val skippedTrack = track
+                        val queueIdx = currentQueueIndex
+                        val wasBlocked = prefs.aiAutoBlock
+                        if (wasBlocked) {
+                            BlockManager.blockTrack(
+                                skippedTrack,
+                                reason = BlockManager.REASON_AI_GENERATED,
+                                skipIfCurrent = true,
+                                currentlyPlayingId = skippedTrack.id
+                            )
+                        } else {
+                            djFlowController.cancelTransition()
+                            playNext(manual = false, isCrossfade = false, ignoreRepeatOne = true)
+                        }
+                        // Requirement 2: Show Undo Bar with exact UI
+                        onAiTrackSkipped(skippedTrack, queueIdx, wasBlocked)
+                    }
+                }
+        }
         bindToActivePlayer()
         MusicManager.applyEffects(effectsState)
         MusicManager.applyEqualizer(equalizerState)
@@ -1479,25 +1599,27 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val lastTrack = playerPrefs.getLastTrack()
             val lastQueue = playerPrefs.getLastQueue()
+            val cleanQueue = BlockManager.filterBlocked(lastQueue)
+            val cleanTrack = if (lastTrack != null && !BlockManager.isBlocked(lastTrack)) lastTrack else null
             val lastContext = playerPrefs.getLastContext()
             val lastShuffle = playerPrefs.getLastShuffleEnabled()
             val lastRepeat = playerPrefs.getLastRepeatMode()
 
             _queue.clear()
-            _queue.addAll(lastQueue)
+            _queue.addAll(cleanQueue)
             _originalQueue.clear()
-            _originalQueue.addAll(lastQueue)
+            _originalQueue.addAll(cleanQueue)
             updateQueueState()
 
-            currentTrack = lastTrack
+            currentTrack = cleanTrack
             currentContext = lastContext
             shuffleEnabled = lastShuffle
             repeatMode = lastRepeat
             applyRepeatMode()
 
-            if (lastTrack != null) {
-                isLiked = LikeRepository.isTrackLiked(lastTrack.id)
-                currentQueueIndex = _queue.indexOfFirst { it.id == lastTrack.id }.coerceAtLeast(0)
+            if (cleanTrack != null) {
+                isLiked = LikeRepository.isTrackLiked(cleanTrack.id)
+                currentQueueIndex = _queue.indexOfFirst { it.id == cleanTrack.id }.coerceAtLeast(0)
             }
 
             try {
@@ -3413,30 +3535,32 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         context: PlaybackContext? = null,
         maintainPlayerState: Boolean = false
     ) {
-        if (tracks.isEmpty()) return
+        val cleanTracks = BlockManager.filterBlocked(tracks)
+        if (cleanTracks.isEmpty()) return
         if (!maintainPlayerState) {
             isPlayerExpanded = false
         }
         SoundCloudTelemetryTracker.onQueueReset()
-        _originalQueue.clear(); _originalQueue.addAll(tracks)
+        _originalQueue.clear(); _originalQueue.addAll(cleanTracks)
         _queue.clear()
         this.currentContext = context
         MusicManager.updateContext(context)
 
-        val effectiveStartIndex = if (startIndex in tracks.indices) startIndex else 0
+        val targetTrack = tracks.getOrNull(startIndex)
+        val effectiveStartIndex = cleanTracks.indexOfFirst { it.id == targetTrack?.id }.takeIf { it != -1 } ?: (if (startIndex in cleanTracks.indices) startIndex else 0)
 
         val isHistoryContext =
             context?.navigationId == "history" || context?.navigationId?.startsWith("history") == true
 
         if (shuffleEnabled) {
-            val clickedTrack = tracks[effectiveStartIndex]
+            val clickedTrack = cleanTracks[effectiveStartIndex]
             val rest =
-                tracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
+                cleanTracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
             _queue.add(clickedTrack)
             _queue.addAll(rest)
             playTrackAtIndex(0, addToHistory = (context == null || isHistoryContext), autoPlay = true)
         } else {
-            _queue.addAll(tracks)
+            _queue.addAll(cleanTracks)
             playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null || isHistoryContext), autoPlay = true)
         }
 
@@ -3499,6 +3623,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         if (index < 0 || index >= _queue.size) {
             currentContext = null; return
+        }
+        val candidate = _queue[index]
+        if (BlockManager.isBlocked(candidate)) {
+            _queue.removeAt(index)
+            _originalQueue.removeAll { it.id == candidate.id }
+            updateQueueState()
+            playTrackAtIndex(index, addToHistory, isCrossfade, autoPlay)
+            return
         }
         currentQueueIndex = index
         val trackToPlay = _queue[index]
@@ -3841,7 +3973,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             if (radioTracks.isNotEmpty()) {
-                val newTracks = radioTracks.filter { track -> _queue.none { it.id == track.id } }
+                val newTracks = radioTracks.filter { track -> _queue.none { it.id == track.id } && !BlockManager.isBlocked(track) }
 
                 _queue.addAll(newTracks)
                 _originalQueue.addAll(newTracks)
@@ -3865,7 +3997,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 if (newTrackIds.isNotEmpty()) {
                     val unorderedFullTracks = api.getTracksByIds(newTrackIds.joinToString(","))
                     val trackMap = unorderedFullTracks.associateBy { it.id }
-                    val orderedFullTracks = newTrackIds.mapNotNull { id -> trackMap[id] }
+                    val orderedFullTracks = newTrackIds.mapNotNull { id -> trackMap[id] }.filter { !BlockManager.isBlocked(it) }
                     _queue.addAll(orderedFullTracks); _originalQueue.addAll(orderedFullTracks); updateQueueState()
                 }
                 if (currentContext == null) {
@@ -3904,7 +4036,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 )
 
             val tracksToAdd =
-                rawTracks.drop(1).map { it.toTrack() }.filter { track -> _queue.none { it.id == track.id } }
+                rawTracks.drop(1).map { it.toTrack() }.filter { track -> _queue.none { it.id == track.id } && !BlockManager.isBlocked(track) }
 
             if (tracksToAdd.isNotEmpty()) {
                 _queue.addAll(tracksToAdd)
@@ -4089,10 +4221,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun insertNext(tracks: List<Track>) {
-        if (tracks.isEmpty()) return
+        val cleanTracks = BlockManager.filterBlocked(tracks)
+        if (cleanTracks.isEmpty()) return
         val insertIndex = currentQueueIndex + 1
 
-        val uniqueTracks = tracks.map { it.copy() }
+        val uniqueTracks = cleanTracks.map { it.copy() }
 
         _queue.addAll(insertIndex, uniqueTracks)
         _originalQueue.addAll(insertIndex, uniqueTracks)
@@ -4911,9 +5044,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun addToQueue(tracks: List<Track>) {
-        if (tracks.isEmpty()) return
+        val cleanTracks = BlockManager.filterBlocked(tracks)
+        if (cleanTracks.isEmpty()) return
 
-        val uniqueTracks = tracks.map { it.copy() }
+        val uniqueTracks = cleanTracks.map { it.copy() }
 
         val mediaItems = uniqueTracks.map { track ->
             buildMediaItem(track, null, null)
@@ -5261,42 +5395,44 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val lastQueue = playerPrefs.getLastQueue()
+                val cleanQueue = BlockManager.filterBlocked(lastQueue)
                 val lastTrack = playerPrefs.getLastTrack()
+                val cleanTrack = if (lastTrack != null && !BlockManager.isBlocked(lastTrack)) lastTrack else null
                 val lastPosition = playerPrefs.getLastPosition()
                 val lastContext = playerPrefs.getLastContext()
                 val lastShuffle = playerPrefs.getLastShuffleEnabled()
                 val lastRepeat = playerPrefs.getLastRepeatMode()
                 withContext(Dispatchers.Main) {
-                    if (lastQueue.isNotEmpty()) {
-                        _queue.clear(); _queue.addAll(lastQueue); _originalQueue.clear(); _originalQueue.addAll(
-                            lastQueue
+                    if (cleanQueue.isNotEmpty()) {
+                        _queue.clear(); _queue.addAll(cleanQueue); _originalQueue.clear(); _originalQueue.addAll(
+                            cleanQueue
                         ); updateQueueState()
                     }
-                    if (lastTrack != null) {
+                    if (cleanTrack != null) {
                         shuffleEnabled = lastShuffle; repeatMode = lastRepeat; currentContext = lastContext
                         MusicManager.updateContext(lastContext)
 
-                        currentTrack = lastTrack
-                        MusicManager.currentTrack = lastTrack; isLiked =
-                            LikeRepository.isTrackLiked(lastTrack.id); loadLyrics(lastTrack)
-                        currentQueueIndex = _queue.indexOfFirst { it.id == lastTrack.id }
+                        currentTrack = cleanTrack
+                        MusicManager.currentTrack = cleanTrack; isLiked =
+                            LikeRepository.isTrackLiked(cleanTrack.id); loadLyrics(cleanTrack)
+                        currentQueueIndex = _queue.indexOfFirst { it.id == cleanTrack.id }
                         if (currentQueueIndex == -1) {
-                            _queue.add(0, lastTrack); _originalQueue.add(
+                            _queue.add(0, cleanTrack); _originalQueue.add(
                                 0,
-                                lastTrack
+                                cleanTrack
                             ); updateQueueState(); currentQueueIndex = 0
                         }
                         val currentPlayerMediaId = MusicManager.player.currentMediaItem?.mediaId
-                        if (currentPlayerMediaId == lastTrack.id.toString()) {
+                        if (currentPlayerMediaId == cleanTrack.id.toString()) {
                             isPlaying = MusicManager.player.isPlaying; duration =
                                 MusicManager.player.duration.coerceAtLeast(
-                                    lastTrack.actualDurationMs
+                                    cleanTrack.actualDurationMs
                                 ); currentPosition = MusicManager.player.currentPosition; MusicManager.applyEffects(
                                 effectsState
                             )
                         } else {
                             currentPosition = lastPosition
-                            duration = lastTrack.actualDurationMs
+                            duration = cleanTrack.actualDurationMs
                             if (currentQueueIndex >= 0) {
                                 playRobustly(currentQueueIndex, autoPlay = false, startPosition = lastPosition)
                             }
@@ -5336,18 +5472,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             withContext(Dispatchers.IO) {
                 val savedQueue = playerPrefs.getLastQueue()
+                val cleanQueue = BlockManager.filterBlocked(savedQueue)
                 val savedContext = playerPrefs.getLastContext()
 
                 withContext(Dispatchers.Main) {
-                    if (savedQueue.isNotEmpty()) {
+                    if (cleanQueue.isNotEmpty()) {
                         _queue.clear()
-                        _queue.addAll(savedQueue)
+                        _queue.addAll(cleanQueue)
                         _originalQueue.clear()
-                        _originalQueue.addAll(savedQueue)
+                        _originalQueue.addAll(cleanQueue)
                         updateQueueState()
 
                         if (currentTrack != null) {
-                            currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack!!.id }.coerceAtLeast(0)
+                            if (BlockManager.isBlocked(currentTrack!!)) {
+                                playNext(manual = false)
+                            } else {
+                                currentQueueIndex = _queue.indexOfFirst { it.id == currentTrack!!.id }.coerceAtLeast(0)
+                            }
                         }
                     }
                     if (savedContext != null) {
@@ -5730,6 +5871,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         } else nextIndex
 
         val nextTrack = _queue[targetIndex]
+        if (BlockManager.isBlocked(nextTrack)) return
 
         viewModelScope.launch(Dispatchers.IO) {
             try {

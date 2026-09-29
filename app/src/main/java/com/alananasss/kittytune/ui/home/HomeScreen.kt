@@ -849,6 +849,10 @@ fun LazyListScope.RenderHomeSection(
 
 @Composable
 fun HighlightTrackCard(track: Track, onClick: () -> Unit) {
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) return
+
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -1066,8 +1070,16 @@ fun QuickHistorySection(
     history: List<HistoryItem>,
     onItemClick: (HistoryItem) -> Unit
 ) {
-    val cleanList = remember(history) {
-        history.filter { it.id != "playlist:0" && !it.title.equals("history", ignoreCase = true) }
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    val cleanList = remember(history, blockedTrackIds, blockedArtistIds) {
+        history.filter {
+            it.id != "playlist:0" &&
+            !it.title.equals("history", ignoreCase = true) &&
+            !(it.type == "track" && it.numericId in blockedTrackIds) &&
+            !(it.type == "artist" && it.numericId in blockedArtistIds) &&
+            !(it.numericId in blockedTrackIds)
+        }
     }
     if (cleanList.isEmpty()) return
 
@@ -1103,6 +1115,10 @@ fun QuickHistorySection(
 
 @Composable
 fun QuickHistoryTile(item: HistoryItem, onClick: () -> Unit) {
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    if (item.numericId in blockedTrackIds || (item.type == "artist" && item.numericId in blockedArtistIds)) return
+
     Column(
         modifier = Modifier
             .width(110.dp)
@@ -1239,7 +1255,14 @@ fun DiscoverySectionCarousel(
     tracks: List<Track>,
     onTrackClick: (Track) -> Unit
 ) {
-    val pagerState = rememberPagerState(pageCount = { minOf(tracks.size, 8) })
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    val cleanTracks = remember(tracks, blockedTrackIds, blockedArtistIds) {
+        tracks.filter { it.id !in blockedTrackIds && (it.user?.id == null || it.user.id !in blockedArtistIds) }
+    }
+    if (cleanTracks.isEmpty()) return
+
+    val pagerState = rememberPagerState(pageCount = { minOf(cleanTracks.size, 8) })
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1278,7 +1301,7 @@ fun DiscoverySectionCarousel(
                 .fillMaxWidth()
                 .height(320.dp)
         ) { page ->
-            val track = tracks[page]
+            val track = cleanTracks[page]
 
             val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
             val scaleFactor = lerp(
@@ -1309,6 +1332,10 @@ fun DiscoveryBigCard(
     alpha: Float,
     onClick: () -> Unit
 ) {
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) return
+
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -1476,6 +1503,10 @@ fun StationCardLarge(playlist: Playlist, onClick: () -> Unit) {
 
 @Composable
 fun TrackCardModern(track: Track, onClick: () -> Unit) {
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) return
+
     Column(
         modifier = Modifier
             .width(160.dp)
@@ -2775,6 +2806,9 @@ fun getCategoryGradient(seedColor: Color): Brush {
 
 @Composable
 fun ArtistCircle(user: User, onClick: () -> Unit) {
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    if (user.id in blockedArtistIds) return
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
             .width(120.dp)
@@ -2854,6 +2888,10 @@ fun HistoryCard(
     item: HistoryItem,
     onClick: () -> Unit
 ) {
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    if (item.numericId in blockedTrackIds || (item.type == "artist" && item.numericId in blockedArtistIds)) return
+
     Card(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),

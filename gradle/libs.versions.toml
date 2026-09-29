@@ -42,6 +42,8 @@ brotli = "0.1.2"
 opencc4j = "1.14.0"
 zxing = "3.5.4"
 material = "1.14.0"
+onnxruntime = "1.30.0"
+smooth-corner-rect = "v1.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -110,6 +112,8 @@ camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", versi
 camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 accompanist-lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", version = "1.0.19" }
 accompanist-lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version = "0.4.7" }
+onnxruntime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
+smooth-corner-rect = { module = "com.github.racra:smooth-corner-rect-android-compose", version.ref = "smooth-corner-rect" }
 
 
 [plugins]

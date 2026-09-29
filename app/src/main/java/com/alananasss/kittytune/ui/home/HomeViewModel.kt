@@ -18,6 +18,7 @@
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.User
+    import com.alananasss.kittytune.data.BlockManager
     import com.alananasss.kittytune.data.SessionManager
     import com.google.gson.Gson
     import com.google.gson.reflect.TypeToken
@@ -165,6 +166,33 @@
             viewModelScope.launch {
                 LikeRepository.likedTracks.collect {
                     generatePersonalizedCategories()
+                }
+            }
+            viewModelScope.launch {
+                com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collect { blockedIds ->
+                    if (blockedIds.isNotEmpty()) {
+                        searchResultsTracks.removeAll { it.id in blockedIds }
+                        searchResultsYoutube.removeAll { it.id in blockedIds }
+                        searchResultsVk.removeAll { it.id in blockedIds }
+                        searchResultsSpotify.removeAll { it.id in blockedIds }
+                        searchResultsDeezerTracks.removeAll { it.id in blockedIds }
+                        searchResultsTidalTracks.removeAll { it.id in blockedIds }
+                        searchResultsQobuzTracks.removeAll { it.id in blockedIds }
+                    }
+                }
+            }
+            viewModelScope.launch {
+                com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collect { blockedArtists ->
+                    if (blockedArtists.isNotEmpty()) {
+                        searchResultsTracks.removeAll { it.user?.id in blockedArtists }
+                        searchResultsArtists.removeAll { it.id in blockedArtists }
+                        searchResultsYoutube.removeAll { it.user?.id in blockedArtists }
+                        searchResultsVk.removeAll { it.user?.id in blockedArtists }
+                        searchResultsSpotify.removeAll { it.user?.id in blockedArtists }
+                        searchResultsDeezerTracks.removeAll { it.user?.id in blockedArtists }
+                        searchResultsTidalTracks.removeAll { it.user?.id in blockedArtists }
+                        searchResultsQobuzTracks.removeAll { it.user?.id in blockedArtists }
+                    }
                 }
             }
         }
@@ -427,13 +455,13 @@
                     val result = com.alananasss.kittytune.data.deezer.DeezerSearchRepository.search(query, limit = 50)
                     withContext(Dispatchers.Main) {
                         searchResultsDeezerTracks.clear()
-                        searchResultsDeezerTracks.addAll(result.tracks)
+                        searchResultsDeezerTracks.addAll(BlockManager.filterBlocked(result.tracks))
                         searchResultsDeezerAlbums.clear()
                         searchResultsDeezerAlbums.addAll(result.albums)
                         searchResultsDeezerPlaylists.clear()
                         searchResultsDeezerPlaylists.addAll(result.playlists)
                         searchResultsDeezerArtists.clear()
-                        searchResultsDeezerArtists.addAll(result.artists)
+                        searchResultsDeezerArtists.addAll(result.artists.filter { it.id !in BlockManager.blockedArtistIdsFlow.value })
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -447,13 +475,13 @@
                     val result = com.alananasss.kittytune.data.tidal.TidalSearchRepository.search(getApplication(), query, limit = 50)
                     withContext(Dispatchers.Main) {
                         searchResultsTidalTracks.clear()
-                        searchResultsTidalTracks.addAll(result.tracks)
+                        searchResultsTidalTracks.addAll(BlockManager.filterBlocked(result.tracks))
                         searchResultsTidalAlbums.clear()
                         searchResultsTidalAlbums.addAll(result.albums)
                         searchResultsTidalPlaylists.clear()
                         searchResultsTidalPlaylists.addAll(result.playlists)
                         searchResultsTidalArtists.clear()
-                        searchResultsTidalArtists.addAll(result.artists)
+                        searchResultsTidalArtists.addAll(result.artists.filter { it.id !in BlockManager.blockedArtistIdsFlow.value })
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -467,13 +495,13 @@
                     val result = com.alananasss.kittytune.data.qobuz.QobuzSearchRepository.search(getApplication(), query, limit = 50)
                     withContext(Dispatchers.Main) {
                         searchResultsQobuzTracks.clear()
-                        searchResultsQobuzTracks.addAll(result.tracks)
+                        searchResultsQobuzTracks.addAll(BlockManager.filterBlocked(result.tracks))
                         searchResultsQobuzAlbums.clear()
                         searchResultsQobuzAlbums.addAll(result.albums)
                         searchResultsQobuzPlaylists.clear()
                         searchResultsQobuzPlaylists.addAll(result.playlists)
                         searchResultsQobuzArtists.clear()
-                        searchResultsQobuzArtists.addAll(result.artists)
+                        searchResultsQobuzArtists.addAll(result.artists.filter { it.id !in BlockManager.blockedArtistIdsFlow.value })
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -488,7 +516,7 @@
                     val results = vkApi.searchAudios(query)
                     withContext(Dispatchers.Main) {
                         searchResultsVk.clear()
-                        searchResultsVk.addAll(results.tracks)
+                        searchResultsVk.addAll(BlockManager.filterBlocked(results.tracks))
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -527,7 +555,7 @@
                     }
                     withContext(Dispatchers.Main) {
                         searchResultsSpotify.clear()
-                        searchResultsSpotify.addAll(mappedTracks)
+                        searchResultsSpotify.addAll(BlockManager.filterBlocked(mappedTracks))
                         searchResultsSpotifyAlbums.clear()
                         searchResultsSpotifyAlbums.addAll(results.albums)
                         searchResultsSpotifyPlaylists.clear()
@@ -634,7 +662,7 @@
 
                     withContext(Dispatchers.Main) {
                         searchResultsYoutube.clear()
-                        searchResultsYoutube.addAll(mappedTracks)
+                        searchResultsYoutube.addAll(BlockManager.filterBlocked(mappedTracks))
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -649,15 +677,15 @@
                         val usersDef = async { try { api.searchUsers(query, limit = 5) } catch (e: Exception) { null } }
                         val playlistsDef = async { try { api.searchPlaylists(query, limit = 5) } catch (e: Exception) { null } }
 
-                        tracksDef.await()?.let { searchResultsTracks.addAll(it.collection); tracksNextUrl = it.next_href }
-                        usersDef.await()?.let { searchResultsArtists.addAll(it.collection); artistsNextUrl = it.next_href }
+                        tracksDef.await()?.let { searchResultsTracks.addAll(BlockManager.filterBlocked(it.collection)); tracksNextUrl = it.next_href }
+                        usersDef.await()?.let { searchResultsArtists.addAll(it.collection.filter { artist -> artist.id !in BlockManager.blockedArtistIdsFlow.value }); artistsNextUrl = it.next_href }
                         playlistsDef.await()?.let { searchResultsPlaylists.addAll(it.collection); playlistsNextUrl = it.next_href }
                     }
                     SearchFilter.TRACKS -> {
-                        val response = api.searchTracks(query, limit = 30); searchResultsTracks.addAll(response.collection); tracksNextUrl = response.next_href
+                        val response = api.searchTracks(query, limit = 30); searchResultsTracks.addAll(BlockManager.filterBlocked(response.collection)); tracksNextUrl = response.next_href
                     }
                     SearchFilter.ARTISTS -> {
-                        val response = api.searchUsers(query, limit = 30); searchResultsArtists.addAll(response.collection); artistsNextUrl = response.next_href
+                        val response = api.searchUsers(query, limit = 30); searchResultsArtists.addAll(response.collection.filter { artist -> artist.id !in BlockManager.blockedArtistIdsFlow.value }); artistsNextUrl = response.next_href
                     }
                     SearchFilter.PLAYLISTS -> {
                         val response = api.searchPlaylists(query, limit = 30); searchResultsPlaylists.addAll(response.collection); playlistsNextUrl = response.next_href
@@ -677,7 +705,7 @@
                             val vkApi = com.alananasss.kittytune.data.vk.VkApi(getApplication())
                             val results = vkApi.searchAudios(searchQuery, offset = currentCount)
                             if (results.tracks.isNotEmpty()) {
-                                val newTracks = results.tracks.filter { nt -> searchResultsVk.none { it.id == nt.id && it.user?.id == nt.user?.id } }
+                                val newTracks = BlockManager.filterBlocked(results.tracks.filter { nt -> searchResultsVk.none { it.id == nt.id && it.user?.id == nt.user?.id } })
                                 searchResultsVk.addAll(newTracks)
                             }
                         }
@@ -685,12 +713,12 @@
                         when (activeFilter) {
                             SearchFilter.TRACKS -> {
                                 if (tracksNextUrl != null) {
-                                    val response = api.getSearchTracksNextPage(tracksNextUrl!!); searchResultsTracks.addAll(response.collection); tracksNextUrl = response.next_href
+                                    val response = api.getSearchTracksNextPage(tracksNextUrl!!); searchResultsTracks.addAll(BlockManager.filterBlocked(response.collection)); tracksNextUrl = response.next_href
                                 }
                             }
                             SearchFilter.ARTISTS -> {
                                 if (artistsNextUrl != null) {
-                                    val response = api.getSearchUsersNextPage(artistsNextUrl!!); searchResultsArtists.addAll(response.collection); artistsNextUrl = response.next_href
+                                    val response = api.getSearchUsersNextPage(artistsNextUrl!!); searchResultsArtists.addAll(response.collection.filter { artist -> artist.id !in BlockManager.blockedArtistIdsFlow.value }); artistsNextUrl = response.next_href
                                 }
                             }
                             SearchFilter.PLAYLISTS -> {

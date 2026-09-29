@@ -1338,6 +1338,12 @@ fun MainScreen(
                         )
                     }
 
+                    clippedComposable("content_filter_settings") {
+                        com.alananasss.kittytune.ui.profile.BlockedContentSettingsScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
                     clippedComposable("drm_explanation") {
                         DrmExplanationScreen(
                             onBackClick = { navController.popBackStack() }
@@ -1542,15 +1548,26 @@ fun MainScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = playerViewModel.showDismissUndoBar && showBottomUi && !isFullScreenRoute,
+                        visible = (playerViewModel.showDismissUndoBar || playerViewModel.showAiSkipUndoBar) && showBottomUi && !isFullScreenRoute,
                         enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                         exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
-                        com.alananasss.kittytune.ui.player.pixel.DismissUndoBar(
-                            onUndo = { playerViewModel.undoDismissMiniPlayer() },
-                            onClose = { playerViewModel.hideDismissUndoBar() }
-                        )
+                        if (playerViewModel.showAiSkipUndoBar) {
+                            val trackTitle = playerViewModel.aiSkippedTrack?.title
+                            val baseMsg = stringResource(R.string.ai_skip_undo_message)
+                            val displayText = if (!trackTitle.isNullOrBlank()) "$baseMsg • $trackTitle" else baseMsg
+                            com.alananasss.kittytune.ui.player.pixel.DismissUndoBar(
+                                text = displayText,
+                                onUndo = { playerViewModel.undoAiSkip() },
+                                onClose = { playerViewModel.hideAiSkipUndoBar() }
+                            )
+                        } else {
+                            com.alananasss.kittytune.ui.player.pixel.DismissUndoBar(
+                                onUndo = { playerViewModel.undoDismissMiniPlayer() },
+                                onClose = { playerViewModel.hideDismissUndoBar() }
+                            )
+                        }
                     }
 
                     androidx.compose.animation.AnimatedVisibility(
@@ -1684,6 +1701,17 @@ fun MainScreen(
                 MenuSheetContent(playerViewModel)
                 Spacer(Modifier.height(32.dp))
             }
+        }
+
+        if (playerViewModel.showAiDetectionSheet) {
+            com.alananasss.kittytune.ui.player.ai.AiDetectionBottomSheet(
+                viewModel = playerViewModel,
+                onDismissRequest = { playerViewModel.showAiDetectionSheet = false },
+                onOpenSettings = {
+                    playerViewModel.showAiDetectionSheet = false
+                    navController.navigate("content_filter_settings")
+                }
+            )
         }
 
         playerViewModel.shareCardTrack?.let { cardTrack ->

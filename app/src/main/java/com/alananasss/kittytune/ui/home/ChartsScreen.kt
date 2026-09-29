@@ -352,9 +352,10 @@
                         }
 
                         item {
-                            // split list into chunks of 4 for the vertical columns
-                            val chunkedArtists = remember(viewModel.topArtists) {
-                                viewModel.topArtists.chunked(4)
+                            val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+                            // split list into chunks of 4 for the vertical columns, excluding blocked artists
+                            val chunkedArtists = remember(viewModel.topArtists, blockedArtistIds) {
+                                viewModel.topArtists.filter { it.user.id !in blockedArtistIds }.chunked(4)
                             }
 
                             LazyRow(
@@ -389,6 +390,9 @@
         onClick: () -> Unit,
         onMenuClick: () -> Unit
     ) {
+        val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+        if (ranking.user.id in blockedArtistIds) return
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()

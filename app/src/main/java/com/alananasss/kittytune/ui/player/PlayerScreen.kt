@@ -811,6 +811,26 @@ fun PlayerScreen(
                 onMixNow = { viewModel.djFlowController.triggerTransition() },
             )
         }
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = viewModel.showAiSkipUndoBar,
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(horizontal = 14.dp, vertical = 16.dp)
+                .zIndex(20f),
+            enter = androidx.compose.animation.slideInVertically { it } + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.slideOutVertically { it } + androidx.compose.animation.fadeOut(),
+        ) {
+            val trackTitle = viewModel.aiSkippedTrack?.title
+            val baseMsg = stringResource(R.string.ai_skip_undo_message)
+            val displayText = if (!trackTitle.isNullOrBlank()) "$baseMsg • $trackTitle" else baseMsg
+            com.alananasss.kittytune.ui.player.pixel.DismissUndoBar(
+                text = displayText,
+                onUndo = { viewModel.undoAiSkip() },
+                onClose = { viewModel.hideAiSkipUndoBar() }
+            )
+        }
     }
 
 }
@@ -1318,30 +1338,45 @@ fun NewPlayerScreen(
 
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                modifier = Modifier.clickable {
-                                                    viewModel.navigateToTrackArtist(track)
-                                                }
+                                                modifier = Modifier.fillMaxWidth()
                                             ) {
-                                                PremiumMarqueeText(
-                                                    text = track.displayArtist.ifBlank {
-                                                        stringResource(R.string.unknown_artist)
-                                                    },
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    color = subContentColor,
-                                                    edgeGradientWidth = 16.dp,
-                                                    modifier = Modifier.weight(1f, fill = false)
-                                                )
-
-                                                val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
-                                                if (isAnyVerified) {
-                                                    Spacer(Modifier.width(4.dp))
-                                                    Icon(
-                                                        imageVector = Icons.Rounded.Verified,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(16.dp)
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .weight(1f, fill = false)
+                                                        .clickable {
+                                                            viewModel.navigateToTrackArtist(track)
+                                                        }
+                                                ) {
+                                                    PremiumMarqueeText(
+                                                        text = track.displayArtist.ifBlank {
+                                                            stringResource(R.string.unknown_artist)
+                                                        },
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        color = subContentColor,
+                                                        edgeGradientWidth = 16.dp,
+                                                        modifier = Modifier.weight(1f, fill = false)
                                                     )
+
+                                                    val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
+                                                    if (isAnyVerified) {
+                                                        Spacer(Modifier.width(4.dp))
+                                                        Icon(
+                                                            imageVector = Icons.Rounded.Verified,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                    }
                                                 }
+
+                                                val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
+                                                com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
+                                                    result = aiResult,
+                                                    textColor = mainContentColor,
+                                                    onClick = { viewModel.showAiDetectionSheet = true },
+                                                    modifier = Modifier.padding(start = 8.dp)
+                                                )
                                             }
                                         }
                                     }
@@ -2256,6 +2291,55 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
         }
         if (!isLocalFile) {
             val trackId = track.id
+            val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+            val isTrackBlocked = track.id in blockedTrackIds
+            val artistId = track.user?.id
+            val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+            val isArtistBlocked = artistId?.let { it in blockedArtistIds } ?: false
+            val context = LocalContext.current
+            add(
+                DockOptionItem(
+                    if (isTrackBlocked) Icons.Rounded.VisibilityOff else Icons.Rounded.Block,
+                    if (isTrackBlocked) stringResource(R.string.menu_unblock_track) else stringResource(R.string.menu_block_track),
+                    id = "block_track"
+                ) {
+                    if (isTrackBlocked) {
+                        com.alananasss.kittytune.data.BlockManager.unblockTrack(track.id)
+                        Toast.makeText(context, context.getString(R.string.track_unhidden_toast), Toast.LENGTH_SHORT).show()
+                    } else {
+                        com.alananasss.kittytune.data.BlockManager.blockTrack(
+                            track,
+                            currentlyPlayingId = viewModel.currentTrack?.id
+                        )
+                        Toast.makeText(context, context.getString(R.string.track_hidden_toast), Toast.LENGTH_SHORT).show()
+                    }
+                    viewModel.showMenuSheet = false
+                }
+            )
+            if (artistId != null && track.user?.username != null) {
+                add(
+                    DockOptionItem(
+                        if (isArtistBlocked) Icons.Rounded.PersonAdd else Icons.Rounded.PersonOff,
+                        if (isArtistBlocked) stringResource(R.string.menu_unblock_artist) else stringResource(R.string.menu_block_artist),
+                        id = "block_artist"
+                    ) {
+                        if (isArtistBlocked) {
+                            com.alananasss.kittytune.data.BlockManager.unblockArtist(artistId)
+                            Toast.makeText(context, context.getString(R.string.artist_unblocked_toast), Toast.LENGTH_SHORT).show()
+                        } else {
+                            com.alananasss.kittytune.data.BlockManager.blockArtist(
+                                artistId = artistId,
+                                artistName = track.user!!.username ?: "",
+                                avatarUrl = track.user.avatarUrl,
+                                source = track.source ?: "soundcloud",
+                                currentlyPlayingTrack = viewModel.currentTrack
+                            )
+                            Toast.makeText(context, context.getString(R.string.artist_blocked_toast), Toast.LENGTH_SHORT).show()
+                        }
+                        viewModel.showMenuSheet = false
+                    }
+                )
+            }
             val isDownloading = DownloadManager.isTrackDownloading(trackId)
             add(
                 DockOptionItem(
@@ -11789,13 +11873,27 @@ fun LandscapePlayerView(
                     edgeGradientWidth = 16.dp,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text(
-                    text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = subContentColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                ) {
+                    Text(
+                        text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = subContentColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
+                    com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
+                        result = aiResult,
+                        textColor = mainContentColor,
+                        onClick = { viewModel.showAiDetectionSheet = true },
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
             }
 
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {

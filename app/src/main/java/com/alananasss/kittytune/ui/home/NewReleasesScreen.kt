@@ -15,6 +15,9 @@
     import androidx.compose.material3.*
     import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
     import androidx.compose.runtime.Composable
+    import androidx.compose.runtime.collectAsState
+    import androidx.compose.runtime.getValue
+    import androidx.compose.runtime.remember
     import androidx.compose.ui.Alignment
     import androidx.compose.ui.Modifier
     import androidx.compose.ui.draw.clip
@@ -117,6 +120,12 @@
                     Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
+                val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+                val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+                val unblockedTracks = remember(viewModel.popularTracks, blockedTrackIds, blockedArtistIds) {
+                    viewModel.popularTracks.filter { it.id !in blockedTrackIds && (it.user?.id == null || it.user.id !in blockedArtistIds) }
+                }
+
                 // main content in a vertically scrollable column
                 LazyColumn(
                     modifier = Modifier.padding(innerPadding),
@@ -149,7 +158,7 @@
                     }
 
                     // popular tracks section with horizontal swiping by groups of 5
-                    if (viewModel.popularTracks.isNotEmpty()) {
+                    if (unblockedTracks.isNotEmpty()) {
                         item {
                             Text(
                                 text = stringResource(R.string.new_releases_popular_tracks),
@@ -160,7 +169,7 @@
                         }
 
                         // split the list into pages of 5 tracks
-                        val pages = viewModel.popularTracks.chunked(5)
+                        val pages = unblockedTracks.chunked(5)
                         item {
                             LazyRow(
                                 contentPadding = PaddingValues(horizontal = 16.dp),
@@ -178,7 +187,7 @@
                                                 track = track,
                                                 rank = absoluteIndex + 1,
                                                 currentlyPlayingTrack = playerViewModel.currentTrack,
-                                                onClick = { playerViewModel.playPlaylist(viewModel.popularTracks, absoluteIndex) },
+                                                onClick = { playerViewModel.playPlaylist(unblockedTracks, absoluteIndex) },
                                                 onOptionClick = { playerViewModel.showTrackOptions(track) }
                                             )
                                         }
@@ -201,6 +210,12 @@
         onClick: () -> Unit,
         onOptionClick: () -> Unit
     ) {
+        val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+        val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+        if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) {
+            return
+        }
+
         val isCurrent = currentlyPlayingTrack?.id == track.id
         val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 

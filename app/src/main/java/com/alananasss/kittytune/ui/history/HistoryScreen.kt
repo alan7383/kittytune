@@ -471,6 +471,10 @@ fun HistoryTrackRow(
     onMoreClick: () -> Unit
 ) {
     val track = item.track
+    val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
+    val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
+    if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) return
+
     val timeStr = remember(item.playedAt) {
         val millis = if (item.playedAt in 1..99_999_999_999L) item.playedAt * 1000L else item.playedAt
         SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(millis))

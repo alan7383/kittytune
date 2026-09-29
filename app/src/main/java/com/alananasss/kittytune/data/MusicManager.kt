@@ -69,6 +69,8 @@ import com.alananasss.kittytune.ui.player.audio.AsmrVocalAudioProcessor
 import com.alananasss.kittytune.ui.player.audio.NightDriveAudioProcessor
 import com.alananasss.kittytune.ui.player.EqualizerState
 import com.alananasss.kittytune.ui.player.audio.EqualizerAudioProcessor
+import com.alananasss.kittytune.audio.ai.AiDetectionAudioProcessor
+import com.alananasss.kittytune.audio.ai.AiDetectionManager
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -318,6 +320,9 @@ object MusicManager {
 
     private var preloadedTrack: Track? = null
 
+    /** PCM tap processors for on-device AI music detection (one per ExoPlayer instance). */
+    private val aiDetectionProcessors = listOf(AiDetectionAudioProcessor(), AiDetectionAudioProcessor())
+
     private val eightDProcessors = listOf(EightDAudioProcessor(), EightDAudioProcessor())
     private val fxProcessors = listOf(FxAudioProcessor(), FxAudioProcessor())
     private val reverbProcessors = listOf(ReverbAudioProcessor(), ReverbAudioProcessor())
@@ -371,6 +376,7 @@ object MusicManager {
         if (_player1 != null) return
 
         appContext = context.applicationContext
+        AiDetectionManager.init(context.applicationContext)
         com.alananasss.kittytune.audio.automix.AutomixManager.init(context)
         val haptics = listOf(
             com.alananasss.kittytune.audio.haptics.HapticAudioProcessor(context.applicationContext),
@@ -564,7 +570,7 @@ object MusicManager {
                             val duckProc = automixDuckProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor()
                             val stemProc = djStemProcessors.getOrNull(index) ?: com.alananasss.kittytune.audio.automix.DjStemAudioProcessor()
                             return DefaultAudioSink.Builder(context)
-                                .setAudioProcessors(arrayOf(hapticProc, duckProc, stemProc, equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
+                                .setAudioProcessors(arrayOf(hapticProc, duckProc, stemProc, aiDetectionProcessors[index], equalizerProcessors[index], vocalRemoverProcessors[index], vocalBoostProcessors[index], tapeSaturationProcessors[index], subOctaverProcessors[index], chorusProcessors[index], flangerProcessors[index], phaserProcessors[index], rotarySpeakerProcessors[index], robotVocoderProcessors[index], tranceGateProcessors[index], underwaterProcessors[index], partyNextDoorProcessors[index], emptyMallProcessors[index], superWideProcessors[index], pingPongDelayProcessors[index], reverseEchoProcessors[index], fxProcessors[index], reverbProcessors[index], shimmerReverbProcessors[index], eightDProcessors[index], earrapeProcessors[index], monoProcessors[index], normalizerProcessors[index], vinylLoFiProcessors[index], gramophoneProcessors[index], megaphoneProcessors[index], chiptuneProcessors[index], vintageMp3Processors[index]))
                                 .setEnableFloatOutput(enableFloatOutput)
                                 .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
                                 .build()
@@ -605,6 +611,9 @@ object MusicManager {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
                 appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
+                // Reset AI detection state for the new track
+                aiDetectionProcessors.forEach { it.resetForNewTrack() }
+                AiDetectionManager.resetResult()
                 if (mediaItem == null) return
 
                 if (isCrossfadingOut && fadingPlayer != null) {
