@@ -288,10 +288,11 @@ fun PixelPlayerScreen(
     var showEffectsSheet by remember { mutableStateOf(false) }
 
     val pProgress = predictiveBackProgress.value
-    val predictiveScaleX = 1f - (pProgress * 0.06f)
-    val predictiveScaleY = 1f - (pProgress * 0.04f)
-    val predictiveTranslationY = pProgress * sheetCollapsedTargetY
-    val predictiveCorner = (pProgress * 32.dp.value).dp
+    val clampedProgress = if (pProgress.isFinite()) pProgress.coerceIn(0f, 1f) else 0f
+    val predictiveScaleX = if (pProgress.isFinite()) (1f - (clampedProgress * 0.06f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveScaleY = if (pProgress.isFinite()) (1f - (clampedProgress * 0.04f)).coerceIn(0.8f, 1f) else 1f
+    val predictiveTranslationY = if (pProgress.isFinite()) (pProgress.coerceAtLeast(0f) * sheetCollapsedTargetY) else 0f
+    val predictiveCorner = (clampedProgress * 32.dp.value).coerceAtLeast(0f).dp
 
     Box(
         modifier = Modifier
@@ -302,8 +303,8 @@ fun PixelPlayerScreen(
                 translationY = predictiveTranslationY
                 transformOrigin = TransformOrigin(0.5f, 1.0f)
                 shape = AbsoluteSmoothCornerShape(predictiveCorner, 60)
-                clip = pProgress > 0.001f
-                alpha = (1f - (pProgress * 0.15f)).coerceIn(0f, 1f)
+                clip = clampedProgress > 0.001f
+                alpha = (1f - (clampedProgress * 0.15f)).coerceIn(0f, 1f)
             }
             .background(if (isBlurMode) Color.Black else colorScheme.surface)
             .pointerInput(Unit) {
