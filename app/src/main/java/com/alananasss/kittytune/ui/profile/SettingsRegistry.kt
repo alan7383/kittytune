@@ -4,6 +4,8 @@ import android.content.Context
 import java.text.Normalizer
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
 import com.alananasss.kittytune.data.local.PlayerPreferences
@@ -201,6 +203,26 @@ internal fun SettingDefinition.toSearchSettingEntry(
     }
 }
 
+internal val PlayerCustomizationSettingDefinitions: List<SettingDefinition> = listOf(
+    SettingDefinition.Navigation(
+        id = "player_design_page",
+        titleRes = com.alananasss.kittytune.R.string.pref_player_design,
+        subtitleRes = com.alananasss.kittytune.R.string.settings_page_player_sub,
+        category = SettingsCategory.INTERFACE,
+        route = "player_design_settings",
+        icon = Icons.Rounded.PlayCircle
+    ),
+    SettingDefinition.Action(
+        id = "notif_player_extra_button",
+        titleRes = com.alananasss.kittytune.R.string.pref_notif_extra_button_title,
+        subtitleRes = com.alananasss.kittytune.R.string.pref_notif_extra_button_subtitle,
+        category = SettingsCategory.INTERFACE,
+        route = "player_design_settings",
+        iconRes = com.alananasss.kittytune.R.drawable.ic_heart_broken,
+        keywords = listOf("notification", "dislike", "like", "block", "extra", "button", "player", "notif")
+    )
+)
+
 /**
  * Central registry gathering declarative definitions across the app.
  */
@@ -212,5 +234,7 @@ internal object SettingsRegistry {
     val allDefinitions: List<SettingDefinition>
         get() = buildList {
             addAll(ContentFilterSettingDefinitions)
+            addAll(PlayerCustomizationSettingDefinitions)
         }
 }
+

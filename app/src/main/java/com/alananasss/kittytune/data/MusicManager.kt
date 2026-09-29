@@ -369,6 +369,7 @@ object MusicManager {
 
     var onNextClick: (() -> Unit)? = null
     var onPreviousClick: (() -> Unit)? = null
+    var onShuffleClick: (() -> Unit)? = null
     private var rainPlayer: RainPlayer? = null
     private val scope = CoroutineScope(Dispatchers.Main)
 

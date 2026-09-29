@@ -2742,4 +2742,26 @@
     <string name="block_ai_spare_favorites">Bỏ qua bài hát yêu thích</string>
     <string name="block_ai_spare_favorites_sub">Không bao giờ tự động bỏ qua các bài hát bạn đã thích</string>
     <string name="ai_skip_undo_message">Đã bỏ qua bài hát AI</string>
+    <string name="pref_notif_extra_button_title">Nút bổ sung thông báo</string>
+    <string name="pref_notif_extra_button_subtitle">Hành động tùy chỉnh hiển thị bên phải trình phát thông báo</string>
+    <string name="notif_player_options_group">Trình phát thông báo</string>
+    <string name="notif_btn_dislike">Không thích &amp; bỏ qua</string>
+    <string name="notif_btn_dislike_sub">Chặn bài hát và chuyển ngay sang bài tiếp theo</string>
+    <string name="notif_btn_shuffle">Trộn bài</string>
+    <string name="notif_btn_shuffle_sub">Bật hoặc tắt chế độ trộn bài</string>
+    <string name="notif_btn_repeat">Lặp lại</string>
+    <string name="notif_btn_repeat_sub">Chuyển đổi chế độ lặp lại</string>
+    <string name="notif_btn_add_playlist">Thêm vào danh sách phát gần nhất</string>
+    <string name="notif_btn_add_playlist_sub">Thêm nhanh bài hát hiện tại vào danh sách phát đã dùng gần nhất</string>
+    <string name="notif_btn_haptics">Rung theo nhạc</string>
+    <string name="notif_btn_haptics_sub">Bật hoặc tắt rung theo nhịp</string>
+    <string name="notif_btn_share">Chia sẻ</string>
+    <string name="notif_btn_share_sub">Chia sẻ liên kết bài hát</string>
+    <string name="notif_btn_download">Tải xuống</string>
+    <string name="notif_btn_download_sub">Lưu bài hát để nghe ngoại tuyến</string>
+    <string name="notif_btn_off">Đã tắt</string>
+    <string name="notif_btn_off_sub">Không hiển thị nút bổ sung</string>
+    <string name="notif_dislike_toast">Đã chặn bài hát và bỏ qua</string>
+    <string name="notif_added_to_playlist">Đã thêm vào \"%s\"</string>
+    <string name="notif_no_playlist_available">Chưa có danh sách phát nào</string>
 </resources>

@@ -2883,4 +2883,26 @@
     <string name="block_ai_spare_favorites">Favoriten verschonen</string>
     <string name="block_ai_spare_favorites_sub">Titel, die Ihnen gefallen, niemals automatisch überspringen</string>
     <string name="ai_skip_undo_message">KI-Titel übersprungen</string>
+    <string name="pref_notif_extra_button_title">Zusätzliche Benachrichtigungsschaltfläche</string>
+    <string name="pref_notif_extra_button_subtitle">Benutzerdefinierte Aktion rechts im Benachrichtigungs-Player</string>
+    <string name="notif_player_options_group">Benachrichtigungs-Player</string>
+    <string name="notif_btn_dislike">Dislike &amp; überspringen</string>
+    <string name="notif_btn_dislike_sub">Titel blockieren und sofort zum nächsten springen</string>
+    <string name="notif_btn_shuffle">Zufallswiedergabe</string>
+    <string name="notif_btn_shuffle_sub">Zufallswiedergabe umschalten</string>
+    <string name="notif_btn_repeat">Wiederholen</string>
+    <string name="notif_btn_repeat_sub">Wiederholungsmodus wechseln</string>
+    <string name="notif_btn_add_playlist">Zu letzter Playlist hinzufügen</string>
+    <string name="notif_btn_add_playlist_sub">Titel schnell zur zuletzt genutzten Playlist hinzufügen</string>
+    <string name="notif_btn_haptics">Musik-Haptik</string>
+    <string name="notif_btn_haptics_sub">Rhythmische Vibrationen umschalten</string>
+    <string name="notif_btn_share">Teilen</string>
+    <string name="notif_btn_share_sub">Aktuellen Titellink teilen</string>
+    <string name="notif_btn_download">Herunterladen</string>
+    <string name="notif_btn_download_sub">Titel für Offline-Wiedergabe speichern</string>
+    <string name="notif_btn_off">Deaktiviert</string>
+    <string name="notif_btn_off_sub">Keine zusätzliche Schaltfläche anzeigen</string>
+    <string name="notif_dislike_toast">Titel blockiert und übersprungen</string>
+    <string name="notif_added_to_playlist">Zu \"%s\" hinzugefügt</string>
+    <string name="notif_no_playlist_available">Noch keine Playlist verfügbar</string>
 </resources>

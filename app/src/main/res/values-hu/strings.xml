@@ -2770,4 +2770,26 @@
     <string name="block_ai_spare_favorites">Kedvencek megkímélése</string>
     <string name="block_ai_spare_favorites_sub">Soha ne ugorja át automatikusan a kedvelt számokat</string>
     <string name="ai_skip_undo_message">MI-szám átugorva</string>
+    <string name="pref_notif_extra_button_title">Értesítés extra gomb</string>
+    <string name="pref_notif_extra_button_subtitle">Egyéni művelet az értesítési sáv jobb oldalán</string>
+    <string name="notif_player_options_group">Értesítési lejátszó</string>
+    <string name="notif_btn_dislike">Nem tetszik &amp; kihagyás</string>
+    <string name="notif_btn_dislike_sub">Szám letiltása és azonnali ugrás a következőre</string>
+    <string name="notif_btn_shuffle">Véletlenszerű lejátszás</string>
+    <string name="notif_btn_shuffle_sub">Véletlenszerű lejátszás ki/be</string>
+    <string name="notif_btn_repeat">Ismétlés</string>
+    <string name="notif_btn_repeat_sub">Ismétlési mód váltása</string>
+    <string name="notif_btn_add_playlist">Hozzáadás az utolsó lejátszási listához</string>
+    <string name="notif_btn_add_playlist_sub">A szám azonnali hozzáadása a legutóbb használt listához</string>
+    <string name="notif_btn_haptics">Zenei rezgés</string>
+    <string name="notif_btn_haptics_sub">Ritmikus rezgések ki/be</string>
+    <string name="notif_btn_share">Megosztás</string>
+    <string name="notif_btn_share_sub">A zeneszám hivatkozásának megosztása</string>
+    <string name="notif_btn_download">Letöltés</string>
+    <string name="notif_btn_download_sub">Mentés offline hallgatáshoz</string>
+    <string name="notif_btn_off">Kikapcsolva</string>
+    <string name="notif_btn_off_sub">Ne jelenjen meg extra gomb</string>
+    <string name="notif_dislike_toast">Szám letiltva és átugorva</string>
+    <string name="notif_added_to_playlist">Hozzáadva a következőhöz: \"%s\"</string>
+    <string name="notif_no_playlist_available">Még nincs lejátszási lista</string>
 </resources>

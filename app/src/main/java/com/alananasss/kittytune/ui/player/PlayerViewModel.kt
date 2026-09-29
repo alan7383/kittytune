@@ -1432,6 +1432,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         MusicManager.onNextClick = { requestSkipNext() }
         MusicManager.onPreviousClick = { smartPrevious() }
+        MusicManager.onShuffleClick = { toggleShuffle() }
 
         MusicManager.onTrackChange = trackChangeHandler@{ newTrack ->
             if (sleepTimerEndOfTrack) {
@@ -4980,6 +4981,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun addToPlaylist(playlistId: Long, track: Track) {
+        playerPrefs.setLastUsedPlaylistId(playlistId)
         DownloadManager.addTrackToPlaylist(playlistId, track)
         showAddToPlaylistSheet = false
         targetPlaylistForBulkAdd = null
@@ -4987,6 +4989,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun addTracksToPlaylist(playlistId: Long, tracks: List<Track>, playlistTitle: String? = null) {
+        playerPrefs.setLastUsedPlaylistId(playlistId)
+        if (!playlistTitle.isNullOrBlank()) playerPrefs.setLastUsedPlaylistTitle(playlistTitle)
         DownloadManager.addTracksToPlaylistBulk(playlistId, tracks)
         viewModelScope.launch {
             showAddToPlaylistSheet = false

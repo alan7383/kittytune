@@ -72,6 +72,27 @@ enum class PlayerActionButtonSlot(@StringRes val titleRes: Int) {
     NONE(R.string.slot_none)
 }
 
+enum class NotificationExtraButton(
+    val id: String,
+    @StringRes val titleRes: Int,
+    @StringRes val subtitleRes: Int
+) {
+    DISLIKE("dislike", R.string.notif_btn_dislike, R.string.notif_btn_dislike_sub),
+    SHUFFLE("shuffle", R.string.notif_btn_shuffle, R.string.notif_btn_shuffle_sub),
+    REPEAT("repeat", R.string.notif_btn_repeat, R.string.notif_btn_repeat_sub),
+    ADD_TO_LAST_PLAYLIST("add_to_playlist", R.string.notif_btn_add_playlist, R.string.notif_btn_add_playlist_sub),
+    HAPTICS("haptics", R.string.notif_btn_haptics, R.string.notif_btn_haptics_sub),
+    SHARE("share", R.string.notif_btn_share, R.string.notif_btn_share_sub),
+    DOWNLOAD("download", R.string.notif_btn_download, R.string.notif_btn_download_sub),
+    OFF("off", R.string.notif_btn_off, R.string.notif_btn_off_sub);
+
+    companion object {
+        fun fromId(id: String?): NotificationExtraButton {
+            return entries.firstOrNull { it.id == id } ?: OFF
+        }
+    }
+}
+
 enum class AppLanguage(val code: String) {
     SYSTEM("system"),
     FRENCH("fr"),
@@ -273,6 +294,9 @@ class PlayerPreferences(context: Context) {
         private const val KEY_DJ_FLOW_AUTONOMOUS_ENABLED = "dj_flow_autonomous_enabled"
         private const val KEY_DJ_FLOW_CONSTANT_ENERGY = "dj_flow_constant_energy"
         private const val KEY_DJ_FLOW_AUTO_REORDER = "dj_flow_auto_reorder"
+        private const val KEY_NOTIF_EXTRA_BUTTON = "notification_extra_button_action"
+        private const val KEY_LAST_USED_PLAYLIST_ID = "last_used_playlist_id"
+        private const val KEY_LAST_USED_PLAYLIST_TITLE = "last_used_playlist_title"
         private const val KEY_DJ_FLOW_LOOP_EXTENSION = "dj_flow_loop_extension"
         private const val KEY_DJ_FLOW_LOOP_BEATS = "dj_flow_loop_beats"
         private const val KEY_DJ_FLOW_INFINITE_STREAM = "dj_flow_infinite_stream"
@@ -1776,6 +1800,25 @@ class PlayerPreferences(context: Context) {
             remove("menu_tiles_hidden_$menu")
             remove("menu_tile_order_$menu")
         }
+    }
+
+    fun getNotificationExtraButton(): NotificationExtraButton {
+        val raw = prefs.getString(KEY_NOTIF_EXTRA_BUTTON, NotificationExtraButton.OFF.id)
+        return NotificationExtraButton.fromId(raw)
+    }
+
+    fun setNotificationExtraButton(button: NotificationExtraButton) {
+        prefs.edit { putString(KEY_NOTIF_EXTRA_BUTTON, button.id) }
+    }
+
+    fun getLastUsedPlaylistId(): Long = prefs.getLong(KEY_LAST_USED_PLAYLIST_ID, -1L)
+    fun setLastUsedPlaylistId(id: Long) {
+        prefs.edit { putLong(KEY_LAST_USED_PLAYLIST_ID, id) }
+    }
+
+    fun getLastUsedPlaylistTitle(): String? = prefs.getString(KEY_LAST_USED_PLAYLIST_TITLE, null)
+    fun setLastUsedPlaylistTitle(title: String?) {
+        prefs.edit { putString(KEY_LAST_USED_PLAYLIST_TITLE, title) }
     }
 }
 

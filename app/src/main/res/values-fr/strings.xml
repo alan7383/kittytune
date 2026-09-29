@@ -2790,5 +2790,27 @@
     <string name="block_ai_spare_favorites">Épargner mes favoris</string>
     <string name="block_ai_spare_favorites_sub">Ne jamais passer automatiquement les morceaux que vous avez likés</string>
     <string name="ai_skip_undo_message">Titre IA passé</string>
+    <string name="pref_notif_extra_button_title">Bouton supplémentaire notification</string>
+    <string name="pref_notif_extra_button_subtitle">Action personnalisée affichée à droite du lecteur de notification</string>
+    <string name="notif_player_options_group">Lecteur de notification</string>
+    <string name="notif_btn_dislike">Dislike &amp; passer</string>
+    <string name="notif_btn_dislike_sub">Masque le titre et passe immédiatement au suivant</string>
+    <string name="notif_btn_shuffle">Lecture aléatoire</string>
+    <string name="notif_btn_shuffle_sub">Activer ou désactiver la lecture aléatoire</string>
+    <string name="notif_btn_repeat">Répéter</string>
+    <string name="notif_btn_repeat_sub">Basculer le mode de répétition</string>
+    <string name="notif_btn_add_playlist">Ajouter à la dernière playlist</string>
+    <string name="notif_btn_add_playlist_sub">Ajoute le morceau à la dernière playlist utilisée</string>
+    <string name="notif_btn_haptics">Retours haptiques</string>
+    <string name="notif_btn_haptics_sub">Activer ou couper les vibrations au rythme</string>
+    <string name="notif_btn_share">Partager</string>
+    <string name="notif_btn_share_sub">Partager le lien du morceau en cours</string>
+    <string name="notif_btn_download">Télécharger</string>
+    <string name="notif_btn_download_sub">Enregistrer le morceau hors-ligne</string>
+    <string name="notif_btn_off">Désactivé</string>
+    <string name="notif_btn_off_sub">Ne pas afficher de bouton supplémentaire</string>
+    <string name="notif_dislike_toast">Titre masqué et passé</string>
+    <string name="notif_added_to_playlist">Ajouté à \"%s\"</string>
+    <string name="notif_no_playlist_available">Aucune playlist disponible</string>
 </resources>
 

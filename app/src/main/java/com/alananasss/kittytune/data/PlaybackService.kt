@@ -19,6 +19,7 @@ import com.alananasss.kittytune.MainActivity
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.widget.MusicWidget
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.local.NotificationExtraButton
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.google.common.collect.ImmutableList
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +45,12 @@ class PlaybackService : MediaLibraryService() {
         const val ACTION_WIDGET_LIKE = "com.alananasss.kittytune.ACTION_WIDGET_LIKE"
         const val CUSTOM_ACTION_LIKE = "com.alananasss.kittytune.CUSTOM_ACTION_LIKE"
         const val CUSTOM_ACTION_REPEAT = "com.alananasss.kittytune.CUSTOM_ACTION_REPEAT"
+        const val CUSTOM_ACTION_DISLIKE = "com.alananasss.kittytune.CUSTOM_ACTION_DISLIKE"
+        const val CUSTOM_ACTION_SHUFFLE = "com.alananasss.kittytune.CUSTOM_ACTION_SHUFFLE"
+        const val CUSTOM_ACTION_ADD_TO_PLAYLIST = "com.alananasss.kittytune.CUSTOM_ACTION_ADD_TO_PLAYLIST"
+        const val CUSTOM_ACTION_HAPTICS = "com.alananasss.kittytune.CUSTOM_ACTION_HAPTICS"
+        const val CUSTOM_ACTION_SHARE = "com.alananasss.kittytune.CUSTOM_ACTION_SHARE"
+        const val CUSTOM_ACTION_DOWNLOAD = "com.alananasss.kittytune.CUSTOM_ACTION_DOWNLOAD"
     }
 
     private var mediaSession: MediaLibrarySession? = null
@@ -68,6 +75,7 @@ class PlaybackService : MediaLibraryService() {
         com.alananasss.kittytune.data.RecognitionHistoryRepository.init(this)
         RepostRepository.init(this)
         DownloadManager.init(this)
+        BlockManager.init(this)
 
         // Use DefaultMediaNotificationProvider — pure Media3, no compat hacks
         val defaultNotificationProvider = DefaultMediaNotificationProvider(
@@ -285,7 +293,67 @@ class PlaybackService : MediaLibraryService() {
             .setEnabled(true)
             .build()
 
-        val defaultLayout = ImmutableList.of(likeButton)
+        val extraSetting = prefs.getNotificationExtraButton()
+        val extraButton: CommandButton? = when (extraSetting) {
+            NotificationExtraButton.DISLIKE -> {
+                CommandButton.Builder()
+                    .setDisplayName(getString(R.string.notif_btn_dislike))
+                    .setIconResId(R.drawable.ic_heart_broken)
+                    .setSessionCommand(SessionCommand(CUSTOM_ACTION_DISLIKE, Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+            }
+            NotificationExtraButton.SHUFFLE -> {
+                CommandButton.Builder()
+                    .setDisplayName(getString(R.string.notif_btn_shuffle))
+                    .setIconResId(R.drawable.rounded_shuffle_24)
+                    .setSessionCommand(SessionCommand(CUSTOM_ACTION_SHUFFLE, Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+            }
+            NotificationExtraButton.REPEAT -> {
+                repeatButton
+            }
+            NotificationExtraButton.ADD_TO_LAST_PLAYLIST -> {
+                CommandButton.Builder()
+                    .setDisplayName(getString(R.string.notif_btn_add_playlist))
+                    .setIconResId(R.drawable.ic_playlist_add)
+                    .setSessionCommand(SessionCommand(CUSTOM_ACTION_ADD_TO_PLAYLIST, Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+            }
+            NotificationExtraButton.HAPTICS -> {
+                CommandButton.Builder()
+                    .setDisplayName(getString(R.string.notif_btn_haptics))
+                    .setIconResId(R.drawable.ic_vibration)
+                    .setSessionCommand(SessionCommand(CUSTOM_ACTION_HAPTICS, Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+            }
+            NotificationExtraButton.SHARE -> {
+                CommandButton.Builder()
+                    .setDisplayName(getString(R.string.notif_btn_share))
+                    .setIconResId(R.drawable.ic_share)
+                    .setSessionCommand(SessionCommand(CUSTOM_ACTION_SHARE, Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+            }
+            NotificationExtraButton.DOWNLOAD -> {
+                CommandButton.Builder()
+                    .setDisplayName(getString(R.string.notif_btn_download))
+                    .setIconResId(R.drawable.ic_download)
+                    .setSessionCommand(SessionCommand(CUSTOM_ACTION_DOWNLOAD, Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+            }
+            NotificationExtraButton.OFF -> null
+        }
+
+        val defaultLayout = if (extraButton != null) {
+            ImmutableList.of(likeButton, extraButton)
+        } else {
+            ImmutableList.of(likeButton)
+        }
         val autoLayout = ImmutableList.of(likeButton, repeatButton)
 
         session.setCustomLayout(defaultLayout)

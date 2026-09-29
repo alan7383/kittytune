@@ -38,7 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.PlaybackService
+import com.alananasss.kittytune.data.local.NotificationExtraButton
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.data.local.PlayerDesign
 import com.alananasss.kittytune.data.local.PlayerPreferences
@@ -93,6 +96,9 @@ fun PlayerCustomizationScreen(
 
     var selectedSlotToEdit by remember { mutableIntStateOf(-1) }
     var showWaveformColorDialog by remember { mutableStateOf(false) }
+
+    var notifExtraButton by remember { mutableStateOf(prefs.getNotificationExtraButton()) }
+    var showNotifExtraButtonDialog by remember { mutableStateOf(false) }
 
     var previewSliderProgress by remember { mutableFloatStateOf(0.42f) }
     var isPreviewPlaying by remember { mutableStateOf(true) }
@@ -662,6 +668,25 @@ fun PlayerCustomizationScreen(
                 )
             }
 
+            item {
+                val notifItems = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit> { shape ->
+                    SettingsItem(
+                        shape = shape,
+                        title = stringResource(R.string.pref_notif_extra_button_title),
+                        subtitle = stringResource(notifExtraButton.titleRes),
+                        icon = getNotifButtonVector(notifExtraButton),
+                        iconRes = getNotifButtonIconRes(notifExtraButton),
+                        trailingText = stringResource(R.string.player_slot_change),
+                        onClick = { showNotifExtraButtonDialog = true }
+                    )
+                }
+
+                SettingsGroup(
+                    title = stringResource(R.string.notif_player_options_group),
+                    items = notifItems
+                )
+            }
+
             // 6. Track Menu Sheet Tiles (Draggable M3 Grouped Settings)
             item(key = "menu_tiles_header") {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -873,6 +898,54 @@ fun PlayerCustomizationScreen(
             }
         )
     }
+
+    if (showNotifExtraButtonDialog) {
+        val allOptions = NotificationExtraButton.entries
+        AlertDialog(
+            onDismissRequest = { showNotifExtraButtonDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_notif_extra_button_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    items(allOptions.size) { idx ->
+                        val option = allOptions[idx]
+                        val isSelected = notifExtraButton == option
+                        SettingsItem(
+                            shape = getSettingsShape(allOptions.size, idx),
+                            title = stringResource(option.titleRes),
+                            subtitle = stringResource(option.subtitleRes),
+                            icon = getNotifButtonVector(option),
+                            iconRes = getNotifButtonIconRes(option),
+                            trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
+                            onClick = {
+                                notifExtraButton = option
+                                prefs.setNotificationExtraButton(option)
+                                val intent = Intent(context, PlaybackService::class.java).apply {
+                                    action = PlaybackService.ACTION_FORCE_UPDATE
+                                }
+                                context.startService(intent)
+                                showNotifExtraButtonDialog = false
+                                onUpdated()
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNotifExtraButtonDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -1018,4 +1091,20 @@ private fun getSlotIcon(slot: PlayerActionButtonSlot): ImageVector = when (slot)
     PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
     PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
     PlayerActionButtonSlot.NONE -> Icons.Rounded.Block
+}
+
+private fun getNotifButtonIconRes(button: NotificationExtraButton): Int? = when (button) {
+    NotificationExtraButton.DISLIKE -> R.drawable.ic_heart_broken
+    NotificationExtraButton.SHUFFLE -> R.drawable.rounded_shuffle_24
+    NotificationExtraButton.REPEAT -> R.drawable.ic_repeat
+    NotificationExtraButton.ADD_TO_LAST_PLAYLIST -> R.drawable.ic_playlist_add
+    NotificationExtraButton.HAPTICS -> R.drawable.ic_vibration
+    NotificationExtraButton.SHARE -> R.drawable.ic_share
+    NotificationExtraButton.DOWNLOAD -> R.drawable.ic_download
+    NotificationExtraButton.OFF -> null
+}
+
+private fun getNotifButtonVector(button: NotificationExtraButton): ImageVector? = when (button) {
+    NotificationExtraButton.OFF -> Icons.Rounded.Block
+    else -> null
 }

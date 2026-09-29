@@ -97,6 +97,12 @@
                 .buildUpon()
                 .add(SessionCommand(PlaybackService.CUSTOM_ACTION_LIKE, Bundle.EMPTY))
                 .add(SessionCommand(PlaybackService.CUSTOM_ACTION_REPEAT, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_DISLIKE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_SHUFFLE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_ADD_TO_PLAYLIST, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_HAPTICS, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_SHARE, Bundle.EMPTY))
+                .add(SessionCommand(PlaybackService.CUSTOM_ACTION_DOWNLOAD, Bundle.EMPTY))
                 .build()
 
             val connectionResult = MediaSession.ConnectionResult.accept(
@@ -140,26 +146,122 @@
             customCommand: SessionCommand,
             args: Bundle
         ): ListenableFuture<SessionResult> {
-            if (customCommand.customAction == PlaybackService.CUSTOM_ACTION_LIKE) {
-                val currentTrack = MusicManager.currentTrack
-                if (currentTrack != null) {
-                    if (likeRepository.isTrackLiked(currentTrack.id)) {
-                        likeRepository.removeLike(currentTrack.id)
-                    } else {
-                        likeRepository.addLike(currentTrack)
+            when (customCommand.customAction) {
+                PlaybackService.CUSTOM_ACTION_LIKE -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        if (likeRepository.isTrackLiked(currentTrack.id)) {
+                            likeRepository.removeLike(currentTrack.id)
+                        } else {
+                            likeRepository.addLike(currentTrack)
+                        }
                     }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
-                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
-            }
-            if (customCommand.customAction == PlaybackService.CUSTOM_ACTION_REPEAT) {
-                val player = MusicManager.player
-                val nextMode = when (player.repeatMode) {
-                    androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
-                    androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
-                    else -> androidx.media3.common.Player.REPEAT_MODE_OFF
+                PlaybackService.CUSTOM_ACTION_REPEAT -> {
+                    val player = MusicManager.player
+                    val nextMode = when (player.repeatMode) {
+                        androidx.media3.common.Player.REPEAT_MODE_OFF -> androidx.media3.common.Player.REPEAT_MODE_ALL
+                        androidx.media3.common.Player.REPEAT_MODE_ALL -> androidx.media3.common.Player.REPEAT_MODE_ONE
+                        else -> androidx.media3.common.Player.REPEAT_MODE_OFF
+                    }
+                    player.repeatMode = nextMode
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
                 }
-                player.repeatMode = nextMode
-                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                PlaybackService.CUSTOM_ACTION_DISLIKE -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        serviceScope.launch(Dispatchers.Main) {
+                            if (BlockManager.onCurrentTrackBlocked != null) {
+                                BlockManager.blockTrack(currentTrack, skipIfCurrent = true, currentlyPlayingId = currentTrack.id)
+                            } else {
+                                BlockManager.blockTrack(currentTrack, skipIfCurrent = false)
+                                MusicManager.onNextClick?.invoke() ?: run {
+                                    if (MusicManager.player.hasNextMediaItem()) {
+                                        MusicManager.player.seekToNextMediaItem()
+                                    }
+                                }
+                            }
+                            android.widget.Toast.makeText(
+                                context,
+                                context.getString(R.string.notif_dislike_toast, currentTrack.title ?: ""),
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_SHUFFLE -> {
+                    serviceScope.launch(Dispatchers.Main) {
+                        if (MusicManager.onShuffleClick != null) {
+                            MusicManager.onShuffleClick?.invoke()
+                        } else {
+                            val player = MusicManager.player
+                            player.shuffleModeEnabled = !player.shuffleModeEnabled
+                        }
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_ADD_TO_PLAYLIST -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        val playerPrefs = PlayerPreferences(context)
+                        val playlistId = playerPrefs.getLastUsedPlaylistId()
+                        val playlistTitle = playerPrefs.getLastUsedPlaylistTitle()
+                        if (playlistId != -1L && !playlistTitle.isNullOrBlank()) {
+                            DownloadManager.addTrackToPlaylist(playlistId, currentTrack)
+                            serviceScope.launch(Dispatchers.Main) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    context.getString(R.string.notif_added_to_playlist, currentTrack.title ?: "", playlistTitle),
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } else {
+                            serviceScope.launch(Dispatchers.Main) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    context.getString(R.string.notif_no_playlist_available),
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_HAPTICS -> {
+                    val playerPrefs = PlayerPreferences(context)
+                    val newHaptics = !playerPrefs.getHapticsEnabled()
+                    playerPrefs.setHapticsEnabled(newHaptics)
+                    val updateIntent = Intent(context, PlaybackService::class.java).apply {
+                        action = PlaybackService.ACTION_FORCE_UPDATE
+                    }
+                    context.startService(updateIntent)
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_SHARE -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        val urlToShare = currentTrack.permalinkUrl ?: "https://soundcloud.com/tracks/${currentTrack.id}"
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, urlToShare)
+                            type = "text/plain"
+                        }
+                        val shareIntent = Intent.createChooser(sendIntent, context.getString(R.string.share_via)).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(shareIntent)
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
+                PlaybackService.CUSTOM_ACTION_DOWNLOAD -> {
+                    val currentTrack = MusicManager.currentTrack
+                    if (currentTrack != null) {
+                        DownloadManager.downloadTrack(currentTrack)
+                    }
+                    return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+                }
             }
             return super.onCustomCommand(session, controller, customCommand, args)
         }

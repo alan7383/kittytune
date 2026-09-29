@@ -2763,4 +2763,26 @@
     <string name="block_ai_spare_favorites">Не пропускать избранное</string>
     <string name="block_ai_spare_favorites_sub">Никогда не пропускать понравившиеся треки</string>
     <string name="ai_skip_undo_message">Пропущен трек ИИ</string>
+    <string name="pref_notif_extra_button_title">Доп. кнопка в уведомлении</string>
+    <string name="pref_notif_extra_button_subtitle">Пользовательское действие справа в уведомлении плеера</string>
+    <string name="notif_player_options_group">Плеер в уведомлениях</string>
+    <string name="notif_btn_dislike">Дизлайк и пропуск</string>
+    <string name="notif_btn_dislike_sub">Заблокировать трек и сразу перейти к следующему</string>
+    <string name="notif_btn_shuffle">Перемешать</string>
+    <string name="notif_btn_shuffle_sub">Переключить случайный порядок</string>
+    <string name="notif_btn_repeat">Повтор</string>
+    <string name="notif_btn_repeat_sub">Сменить режим повтора</string>
+    <string name="notif_btn_add_playlist">В последний плейлист</string>
+    <string name="notif_btn_add_playlist_sub">Быстро добавить трек в последний использованный плейлист</string>
+    <string name="notif_btn_haptics">Тактильный отклик</string>
+    <string name="notif_btn_haptics_sub">Переключить вибрации в такт музыке</string>
+    <string name="notif_btn_share">Поделиться</string>
+    <string name="notif_btn_share_sub">Поделиться ссылкой на трек</string>
+    <string name="notif_btn_download">Скачать</string>
+    <string name="notif_btn_download_sub">Сохранить трек для прослушивания офлайн</string>
+    <string name="notif_btn_off">Отключено</string>
+    <string name="notif_btn_off_sub">Не показывать дополнительную кнопку</string>
+    <string name="notif_dislike_toast">Трек заблокирован и пропущен</string>
+    <string name="notif_added_to_playlist">Добавлено в \"%s\"</string>
+    <string name="notif_no_playlist_available">Плейлисты пока отсутствуют</string>
 </resources>
