@@ -39,6 +39,8 @@ object MenuTiles {
         Tile("sleep_timer", R.string.sleep_timer_title),
         Tile("trim", R.string.trim_title),
         Tile("dj_flow", R.string.dj_flow_title),
+        Tile("block_track", R.string.menu_block_track),
+        Tile("block_artist", R.string.menu_block_artist),
         Tile("download", R.string.btn_download),
     )
 
@@ -102,6 +104,8 @@ object MenuTiles {
         "download" -> Icons.Rounded.Download
         "share_card" -> Icons.Outlined.PhotoLibrary
         "dj_flow" -> Icons.Rounded.GraphicEq
+        "block_track" -> Icons.Rounded.Block
+        "block_artist" -> Icons.Rounded.PersonOff
         "play" -> Icons.Rounded.PlayArrow
         else -> Icons.Rounded.Apps
     }

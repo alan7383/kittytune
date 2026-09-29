@@ -542,6 +542,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var pendingSeekPosition: Long? = null
     private var saveQueueJob: Job? = null
     private companion object {
+        val STATION_STEM_REGEX = Regex("""(?i)\s*([\(\[\-]\s*(slowed(\s*\+\s*reverb)?|sped\s*up|nightcore|hardstyle\s*edit)\s*[\)\]]?)""")
+        fun normalizeStationTitle(title: String?): String {
+            if (title.isNullOrBlank()) return ""
+            return STATION_STEM_REGEX.replace(title, "").trim().lowercase()
+        }
 
         /**
          * How often the trim watcher looks at the clock (issue #33).
@@ -3975,9 +3980,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             if (radioTracks.isNotEmpty()) {
                 val newTracks = radioTracks.filter { track -> _queue.none { it.id == track.id } && !BlockManager.isBlocked(track) }
+                val existingSignatures = _queue.map { "${normalizeStationTitle(it.title)}|${it.displayArtist.lowercase().trim()}" }.toMutableSet()
+                val dedupedTracks = newTracks.filter { track ->
+                    val norm = normalizeStationTitle(track.title)
+                    if (norm.isBlank()) true
+                    else existingSignatures.add("$norm|${track.displayArtist.lowercase().trim()}")
+                }
 
-                _queue.addAll(newTracks)
-                _originalQueue.addAll(newTracks)
+                _queue.addAll(dedupedTracks)
+                _originalQueue.addAll(dedupedTracks)
                 updateQueueState()
             }
         } catch (e: Exception) {
@@ -3999,7 +4010,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     val unorderedFullTracks = api.getTracksByIds(newTrackIds.joinToString(","))
                     val trackMap = unorderedFullTracks.associateBy { it.id }
                     val orderedFullTracks = newTrackIds.mapNotNull { id -> trackMap[id] }.filter { !BlockManager.isBlocked(it) }
-                    _queue.addAll(orderedFullTracks); _originalQueue.addAll(orderedFullTracks); updateQueueState()
+                    val existingSignatures = _queue.map { "${normalizeStationTitle(it.title)}|${it.displayArtist.lowercase().trim()}" }.toMutableSet()
+                    val dedupedTracks = orderedFullTracks.filter { track ->
+                        val norm = normalizeStationTitle(track.title)
+                        if (norm.isBlank()) true
+                        else existingSignatures.add("$norm|${track.displayArtist.lowercase().trim()}")
+                    }
+                    _queue.addAll(dedupedTracks); _originalQueue.addAll(dedupedTracks); updateQueueState()
                 }
                 if (currentContext == null) {
                     val ctx = PlaybackContext(
@@ -4040,8 +4057,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 rawTracks.drop(1).map { it.toTrack() }.filter { track -> _queue.none { it.id == track.id } && !BlockManager.isBlocked(track) }
 
             if (tracksToAdd.isNotEmpty()) {
-                _queue.addAll(tracksToAdd)
-                _originalQueue.addAll(tracksToAdd)
+                val existingSignatures = _queue.map { "${normalizeStationTitle(it.title)}|${it.displayArtist.lowercase().trim()}" }.toMutableSet()
+                val dedupedTracks = tracksToAdd.filter { track ->
+                    val norm = normalizeStationTitle(track.title)
+                    if (norm.isBlank()) true
+                    else existingSignatures.add("$norm|${track.displayArtist.lowercase().trim()}")
+                }
+                _queue.addAll(dedupedTracks)
+                _originalQueue.addAll(dedupedTracks)
                 updateQueueState()
             }
             if (currentContext == null) {
