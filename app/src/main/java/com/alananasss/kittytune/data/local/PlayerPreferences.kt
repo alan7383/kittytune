@@ -283,6 +283,8 @@ class PlayerPreferences(context: Context) {
         private const val KEY_ACHIEVEMENT_POPUPS = "achievement_popups_enabled"
         private const val KEY_PRECISE_SPEED = "precise_speed_enabled"
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
+        private const val KEY_REMEMBER_SEARCH_FILTER = "remember_search_filter"
+        private const val KEY_LAST_SEARCH_FILTER = "last_search_filter"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
         private const val KEY_SC_GO_PLUS = "soundcloud_go_plus_active"
         private const val KEY_SHARE_CARD_CODE = "share_card_code_mode"
@@ -437,6 +439,10 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AI_DETECTION_WINDOW = "ai_detection_window"
         const val KEY_AI_SHOW_BADGE = "ai_show_badge"
         const val KEY_AI_SHOW_HUMAN_BADGE = "ai_show_human_badge"
+
+        // Settings search history
+        private const val KEY_SETTINGS_RECENT_SEARCHES = "settings_recent_searches_json"
+        const val SETTINGS_RECENT_SEARCHES_MAX = 10
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -734,6 +740,12 @@ class PlayerPreferences(context: Context) {
 
     fun getPreciseSpeedEnabled(): Boolean = prefs.getBoolean(KEY_PRECISE_SPEED, false)
     fun setPreciseSpeedEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_PRECISE_SPEED, enabled) }
+
+    fun getRememberSearchFilter(): Boolean = prefs.getBoolean(KEY_REMEMBER_SEARCH_FILTER, false)
+    fun setRememberSearchFilter(enabled: Boolean) = prefs.edit { putBoolean(KEY_REMEMBER_SEARCH_FILTER, enabled) }
+
+    fun getLastSearchFilter(): String = prefs.getString(KEY_LAST_SEARCH_FILTER, "ALL") ?: "ALL"
+    fun setLastSearchFilter(filterName: String) = prefs.edit { putString(KEY_LAST_SEARCH_FILTER, filterName) }
 
     fun getAppLanguage(): AppLanguage {
         val code = prefs.getString(KEY_APP_LANGUAGE, AppLanguage.SYSTEM.code)
@@ -1918,6 +1930,55 @@ class PlayerPreferences(context: Context) {
     fun getLastUsedPlaylistTitle(): String? = prefs.getString(KEY_LAST_USED_PLAYLIST_TITLE, null)
     fun setLastUsedPlaylistTitle(title: String?) {
         prefs.edit { putString(KEY_LAST_USED_PLAYLIST_TITLE, title) }
+    }
+
+    // ─── Settings search history ──────────────────────────────────────────────
+
+    /**
+     * Persisted representation of a single recently-accessed setting item.
+     * Stored as a JSON array in SharedPreferences.
+     */
+    data class RecentSettingsEntry(
+        val title: String,
+        val subtitle: String? = null,
+        val categoryName: String,
+        val route: String? = null,
+        val highlightKey: String? = null,
+        val iconRes: Int? = null
+    )
+
+    fun getSettingsRecentSearches(): List<RecentSettingsEntry> {
+        val json = prefs.getString(KEY_SETTINGS_RECENT_SEARCHES, null) ?: return emptyList()
+        return try {
+            val type = object : TypeToken<List<RecentSettingsEntry>>() {}.type
+            gson.fromJson<List<RecentSettingsEntry>>(json, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * Prepends [entry] to the recent-searches list, deduplicates by [title], and caps at
+     * [SETTINGS_RECENT_SEARCHES_MAX] entries.
+     */
+    fun addSettingsRecentSearch(entry: RecentSettingsEntry) {
+        val current = getSettingsRecentSearches().toMutableList()
+        current.removeAll { it.title == entry.title }
+        current.add(0, entry)
+        if (current.size > SETTINGS_RECENT_SEARCHES_MAX) {
+            current.subList(SETTINGS_RECENT_SEARCHES_MAX, current.size).clear()
+        }
+        prefs.edit { putString(KEY_SETTINGS_RECENT_SEARCHES, gson.toJson(current)) }
+    }
+
+    fun removeSettingsRecentSearch(title: String) {
+        val current = getSettingsRecentSearches().toMutableList()
+        current.removeAll { it.title == title }
+        prefs.edit { putString(KEY_SETTINGS_RECENT_SEARCHES, gson.toJson(current)) }
+    }
+
+    fun clearSettingsRecentSearches() {
+        prefs.edit { remove(KEY_SETTINGS_RECENT_SEARCHES) }
     }
 }
 

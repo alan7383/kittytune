@@ -1190,6 +1190,8 @@
     <string name="update_check_manual">Vérifier les mises à jour</string>
     <string name="pref_auto_update">Mise à jour auto</string>
     <string name="pref_auto_update_sub">Vérifier au démarrage de l\'app</string>
+    <string name="pref_remember_search_filter">Mémoriser le filtre de recherche</string>
+    <string name="pref_remember_search_filter_sub">Conserver le dernier filtre sélectionné (Artistes, Playlists…) lors de l\'ouverture de la recherche</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -2648,9 +2650,16 @@
     <string name="logs_sec_network">Réseau &amp; Fournisseurs</string>
     <string name="logs_refresh">Actualiser</string>
     <!-- Settings Parity & Search -->
+    <string name="homepage_search">Rechercher dans les paramètres</string>
     <string name="search_settings_hint">Rechercher dans les paramètres…</string>
     <string name="settings_search_results">Résultats de recherche</string>
     <string name="settings_search_no_results">Aucun paramètre trouvé</string>
+    <string name="search_no_recent_results">Aucun résultat de recherche récent</string>
+    <string name="search_no_results">Aucun résultat</string>
+    <string name="search_suggestion_no_match">Aucun résultat pour \"%1$s\"</string>
+    <string name="settings_search_recent_header">Recherches récentes</string>
+    <string name="settings_search_clear_recent">Effacer</string>
+    <string name="settings_search_clear_history">Effacer l\'historique</string>
 
     <!-- Theme Presets -->
     <string name="theme_presets_title">Thèmes prêts</string>

@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
@@ -48,6 +49,7 @@ fun MiscSettingsScreen(
     var appLanguage by remember { mutableStateOf(prefs.getAppLanguage()) }
     var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
+    var rememberSearchFilter by remember { mutableStateOf(prefs.getRememberSearchFilter()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showStartDialog by remember { mutableStateOf(false) }
 
@@ -102,7 +104,8 @@ fun MiscSettingsScreen(
         keyToIndex = mapOf(
             "pref_language" to 0,
             "pref_start_screen" to 0,
-            "pref_auto_update" to 0
+            "pref_auto_update" to 0,
+            "pref_remember_search_filter" to 0
         )
     )
 
@@ -167,6 +170,21 @@ fun MiscSettingsScreen(
                                     prefs.setAutoUpdateEnabled(it)
                                 },
                                 highlightKey = "pref_auto_update"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_remember_search_filter),
+                                subtitle = stringResource(R.string.pref_remember_search_filter_sub),
+                                icon = Icons.Rounded.FilterList,
+                                hasSwitch = true,
+                                switchState = rememberSearchFilter,
+                                onSwitchChange = {
+                                    rememberSearchFilter = it
+                                    prefs.setRememberSearchFilter(it)
+                                },
+                                highlightKey = "pref_remember_search_filter"
                             )
                         }
                     )

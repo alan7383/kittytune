@@ -99,6 +99,8 @@
         private fun getString(resId: Int): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId)
         private fun getString(resId: Int, vararg args: Any): String = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()).getString(resId, *args)
 
+        private val playerPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(application)
+
         var userProfile by mutableStateOf<User?>(null)
 
         val homeSections = mutableStateListOf<HomeSection>()
@@ -106,7 +108,17 @@
 
         var isSearching by mutableStateOf(false)
         var searchQuery by mutableStateOf("")
-        var activeFilter by mutableStateOf(SearchFilter.ALL)
+        var activeFilter by mutableStateOf(
+            if (playerPrefs.getRememberSearchFilter()) {
+                try {
+                    SearchFilter.valueOf(playerPrefs.getLastSearchFilter())
+                } catch (_: Exception) {
+                    SearchFilter.ALL
+                }
+            } else {
+                SearchFilter.ALL
+            }
+        )
         var isSearchLoading by mutableStateOf(false)
         var activeSearchSource by mutableStateOf(SearchSource.SOUNDCLOUD)
 
@@ -407,9 +419,37 @@
         }
 
         var searchTrigger by mutableStateOf(0)
-        fun activateSearch() { isSearching = true; searchTrigger++ }
-        fun clearSearch() { searchQuery = ""; isSearching = false; clearSearchResults() }
-        fun onFilterChanged(filter: SearchFilter) { activeFilter = filter; if (searchQuery.isNotBlank()) { searchJob?.cancel(); searchJob = viewModelScope.launch { performSearch(searchQuery) } } }
+        fun activateSearch() {
+            if (!playerPrefs.getRememberSearchFilter()) {
+                activeFilter = SearchFilter.ALL
+            } else {
+                try {
+                    activeFilter = SearchFilter.valueOf(playerPrefs.getLastSearchFilter())
+                } catch (_: Exception) {
+                    activeFilter = SearchFilter.ALL
+                }
+            }
+            isSearching = true
+            searchTrigger++
+        }
+        fun clearSearch() {
+            searchQuery = ""
+            isSearching = false
+            if (!playerPrefs.getRememberSearchFilter()) {
+                activeFilter = SearchFilter.ALL
+            }
+            clearSearchResults()
+        }
+        fun onFilterChanged(filter: SearchFilter) {
+            activeFilter = filter
+            if (playerPrefs.getRememberSearchFilter()) {
+                playerPrefs.setLastSearchFilter(filter.name)
+            }
+            if (searchQuery.isNotBlank()) {
+                searchJob?.cancel()
+                searchJob = viewModelScope.launch { performSearch(searchQuery) }
+            }
+        }
 
         fun onSearchSourceChanged(source: SearchSource) {
             if (activeSearchSource == source) return

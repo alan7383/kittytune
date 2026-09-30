@@ -89,6 +89,11 @@ fun getDynamicTypography(
         titleLarge = Typography.titleLarge.copy(fontFamily = customFamilyRounded),
         titleMedium = Typography.titleMedium.copy(fontFamily = customFamilyRounded),
         titleSmall = Typography.titleSmall.copy(fontFamily = customFamilyRounded),
+        // The settings app bar's two titles use the emphasized variants, so they have to follow
+        // the custom font too - otherwise the large title stays on the system face the moment the
+        // custom font option is turned on.
+        displaySmallEmphasized = Typography.displaySmallEmphasized.copy(fontFamily = customFamilyRounded),
+        titleLargeEmphasized = Typography.titleLargeEmphasized.copy(fontFamily = customFamilyRounded),
         bodyLarge = Typography.bodyLarge.copy(fontFamily = customFamily),
         bodyMedium = Typography.bodyMedium.copy(fontFamily = customFamily),
         bodySmall = Typography.bodySmall.copy(fontFamily = customFamily),

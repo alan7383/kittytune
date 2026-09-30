@@ -1274,6 +1274,14 @@ fun MainScreen(
                         SettingsScreen(navController, { navController.popBackStack() }, playerViewModel)
                     }
 
+                    clippedComposable("settings_search") {
+                        SettingsSearchScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() },
+                            playerViewModel = playerViewModel
+                        )
+                    }
+
                     clippedComposable(Screen.Upload.route) {
                         UploadScreen(
                             onBackClick = {
