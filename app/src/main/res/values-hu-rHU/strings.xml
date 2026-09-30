@@ -1309,6 +1309,8 @@
     <string name="update_check_manual">Frissítések keresése</string>
     <string name="pref_auto_update">Auto Frissítés</string>
     <string name="pref_auto_update_sub">Verzióellenőrzés indításkor</string>
+    <string name="pref_remember_search_filter">Remember search filter</string>
+    <string name="pref_remember_search_filter_sub">Keep the last selected filter (Artists, Playlists…) when opening search</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -2704,9 +2706,16 @@
     <string name="logs_sec_playback">Playback &amp; Audio</string>
     <string name="logs_sec_network">Network &amp; Providers</string>
     <!-- Settings Parity & Search -->
+    <string name="homepage_search">Search settings</string>
     <string name="search_settings_hint">Search settings…</string>
     <string name="settings_search_results">Search results</string>
     <string name="settings_search_no_results">No settings found</string>
+    <string name="search_no_recent_results">No recent search results</string>
+    <string name="search_no_results">No results</string>
+    <string name="search_suggestion_no_match">No results for \"%1$s\"</string>
+    <string name="settings_search_recent_header">Recent search results</string>
+    <string name="settings_search_clear_recent">Clear</string>
+    <string name="settings_search_clear_history">Clear history</string>
     <!-- Theme Presets -->
     <string name="theme_presets_title">Ready-made themes</string>
     <string name="theme_preset_ocean">Ocean</string>
