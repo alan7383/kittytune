@@ -64,22 +64,51 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     if (trackToUnblock != null) {
         AlertDialog(
             onDismissRequest = { trackToUnblock = null },
-            icon = { Icon(Icons.Rounded.VisibilityOff, null) },
-            title = { Text(stringResource(R.string.block_unblock_track_title)) },
-            text = { Text(stringResource(R.string.block_unblock_track_body, trackToUnblock!!.trackTitle ?: "")) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.VisibilityOff,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.block_unblock_track_title),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.block_unblock_track_body, trackToUnblock!!.trackTitle ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         BlockManager.unblockTrack(trackToUnblock!!.trackId!!)
                         trackToUnblock = null
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.block_restore)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { trackToUnblock = null },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -88,22 +117,51 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     if (artistToUnblock != null) {
         AlertDialog(
             onDismissRequest = { artistToUnblock = null },
-            icon = { Icon(Icons.Rounded.PersonAdd, null) },
-            title = { Text(stringResource(R.string.block_unblock_artist_title)) },
-            text = { Text(stringResource(R.string.block_unblock_artist_body, artistToUnblock!!.artistName ?: "")) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.PersonAdd,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.block_unblock_artist_title),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.block_unblock_artist_body, artistToUnblock!!.artistName ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         BlockManager.unblockArtist(artistToUnblock!!.artistId!!)
                         artistToUnblock = null
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.block_restore)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { artistToUnblock = null },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -112,9 +170,38 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     if (showClearAllDialog) {
         AlertDialog(
             onDismissRequest = { showClearAllDialog = false },
-            icon = { Icon(Icons.Rounded.DeleteSweep, null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text(stringResource(R.string.block_clear_all_title)) },
-            text = { Text(stringResource(R.string.block_clear_all_body)) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.DeleteSweep,
+                            null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.block_clear_all_title),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.block_clear_all_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -122,14 +209,14 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         blockedArtists.forEach { it.artistId?.let { id -> BlockManager.unblockArtist(id) } }
                         showClearAllDialog = false
                     },
-                    shapes = ButtonDefaults.shapes(),
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) { Text(stringResource(R.string.block_clear_all_confirm)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showClearAllDialog = false },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -138,22 +225,51 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     if (showDownloadPromptDialog) {
         AlertDialog(
             onDismissRequest = { showDownloadPromptDialog = false },
-            icon = { Icon(Icons.Rounded.CloudDownload, null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text(stringResource(R.string.block_model_download_prompt_title)) },
-            text = { Text(stringResource(R.string.block_model_download_prompt_body)) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.CloudDownload,
+                            null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.block_model_download_prompt_title),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.block_model_download_prompt_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         showDownloadPromptDialog = false
                         com.alananasss.kittytune.audio.ai.AiDetectionManager.downloadModel(context)
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.block_model_download_btn)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDownloadPromptDialog = false },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -162,9 +278,38 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     if (showDeleteModelDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteModelDialog = false },
-            icon = { Icon(Icons.Rounded.DeleteOutline, null) },
-            title = { Text(stringResource(R.string.block_model_delete_title)) },
-            text = { Text(stringResource(R.string.block_model_delete_body)) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.DeleteOutline,
+                            null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            },
+            title = {
+                Text(
+                    text = stringResource(R.string.block_model_delete_title),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.block_model_delete_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -175,13 +320,14 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         prefs.aiAutoBlock = false
                         showDeleteModelDialog = false
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) { Text(stringResource(R.string.block_model_delete_btn)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteModelDialog = false },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -190,10 +336,28 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     if (showAiWindowDialog) {
         AlertDialog(
             onDismissRequest = { showAiWindowDialog = false },
-            icon = { Icon(Icons.Rounded.Speed, null, tint = MaterialTheme.colorScheme.primary) },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            icon = {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Rounded.Speed,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+            },
             title = {
                 Text(
                     text = stringResource(R.string.block_ai_window_dialog_title),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -201,53 +365,67 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     for (option in AiDetectionWindow.entries) {
                         val isSelected = aiWindow == option
+                        val containerColor by animateColorAsState(
+                            targetValue = if (isSelected)
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            else
+                                MaterialTheme.colorScheme.surfaceContainerLow,
+                            label = "aiWindowContainer"
+                        )
+                        val borderColor by animateColorAsState(
+                            targetValue = if (isSelected)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f),
+                            label = "aiWindowBorder"
+                        )
+
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clip(RoundedCornerShape(20.dp))
                                 .clickable {
                                     aiWindow = option
                                     prefs.aiDetectionWindow = option
                                     showAiWindowDialog = false
                                 },
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (isSelected)
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                            border = if (isSelected)
-                                BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                            else
-                                null
+                            shape = RoundedCornerShape(20.dp),
+                            color = containerColor,
+                            border = BorderStroke(if (isSelected) 2.dp else 1.dp, borderColor)
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(14.dp),
+                                    .padding(16.dp),
                                 verticalAlignment = Alignment.Top
                             ) {
                                 RadioButton(
                                     selected = isSelected,
                                     onClick = null,
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MaterialTheme.colorScheme.primary,
+                                        unselectedColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                    ),
                                     modifier = Modifier.padding(top = 2.dp)
                                 )
-                                Spacer(Modifier.width(10.dp))
-                                Column {
+                                Spacer(Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                         text = stringResource(option.titleRes),
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Spacer(Modifier.height(4.dp))
+                                    Spacer(Modifier.height(6.dp))
                                     Text(
                                         text = stringResource(option.descRes),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        lineHeight = 16.sp
+                                        lineHeight = 18.sp
                                     )
                                 }
                             }
@@ -258,9 +436,12 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             confirmButton = {
                 TextButton(
                     onClick = { showAiWindowDialog = false },
-                    shapes = ButtonDefaults.shapes()
+                    shape = CircleShape
                 ) {
-                    Text(stringResource(R.string.btn_cancel))
+                    Text(
+                        text = stringResource(R.string.btn_cancel),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
             }
         )
@@ -631,11 +812,11 @@ private fun AiModelDownloadCard(
     onDelete: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -646,21 +827,30 @@ private fun AiModelDownloadCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_huggingface),
-                    contentDescription = null,
-                    modifier = Modifier.size(44.dp)
-                )
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                    modifier = Modifier.size(52.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_huggingface),
+                            contentDescription = null,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.block_model_card_title),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(3.dp))
                     Text(
                         text = stringResource(R.string.block_model_card_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -668,93 +858,188 @@ private fun AiModelDownloadCard(
 
             Text(
                 text = stringResource(R.string.block_model_desc_what),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 18.sp
+                lineHeight = 20.sp
             )
 
+            // Features chips
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
+                val features = listOf(
+                    Icons.Rounded.Lock to R.string.block_model_feat_privacy,
+                    Icons.Rounded.SignalWifiOff to R.string.block_model_feat_offline,
+                    Icons.Rounded.SkipNext to R.string.block_model_feat_autoskip
                 )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = stringResource(R.string.block_model_disclaimer),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp
-                )
+                features.forEach { (icon, textRes) ->
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = stringResource(textRes),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Disclaimer callout
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text = stringResource(R.string.block_model_disclaimer),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp
+                    )
+                }
             }
 
             when (downloadState) {
                 is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Ready -> {
-                    FilledTonalButton(
-                        onClick = onDelete,
-                        shapes = ButtonDefaults.shapes(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.DeleteOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.block_model_delete_btn),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
-                        )
-                    }
-                }
-                is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Downloading -> {
-                    Column(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.weight(1f).height(48.dp)
                         ) {
                             Row(
+                                modifier = Modifier.padding(horizontal = 16.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary
+                                Icon(
+                                    imageVector = Icons.Rounded.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = stringResource(R.string.block_model_downloading, (downloadState.progress * 100).toInt()),
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary
+                                    text = stringResource(R.string.block_model_status_ready),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
+                        }
+
+                        FilledTonalButton(
+                            onClick = onDelete,
+                            shape = CircleShape,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                            modifier = Modifier.height(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.DeleteOutline,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "${downloadState.downloadedBytes / (1024 * 1024)} / 17 MB",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = stringResource(R.string.block_model_delete_btn),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                             )
                         }
-                        LinearProgressIndicator(
-                            progress = { downloadState.progress },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(CircleShape)
-                        )
+                    }
+                }
+                is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Downloading -> {
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    CircularWavyProgressIndicator(
+                                        progress = { downloadState.progress.coerceIn(0.01f, 1f) },
+                                        modifier = Modifier.size(22.dp),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.block_model_downloading, (downloadState.progress * 100).toInt()),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                val mbDownloaded = String.format(java.util.Locale.US, "%.1f", downloadState.downloadedBytes / (1024f * 1024f))
+                                Text(
+                                    text = "$mbDownloaded / 17.2 MB",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // MATERIAL 3 EXPRESSIVE WAVY PROGRESS BAR
+                            LinearWavyProgressIndicator(
+                                progress = { downloadState.progress.coerceIn(0f, 1f) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(10.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                        }
                     }
                 }
                 is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.NotDownloaded,
@@ -764,28 +1049,39 @@ private fun AiModelDownloadCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (downloadState is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Error) {
-                            Text(
-                                text = "Error: ${downloadState.message}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Error: ${downloadState.message}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
                         }
                         Button(
                             onClick = onDownload,
-                            shapes = ButtonDefaults.shapes(),
+                            shape = CircleShape,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(54.dp)
+                                .height(52.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.CloudDownload,
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp)
                             )
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(10.dp))
                             Text(
                                 text = stringResource(R.string.block_model_download_btn),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
