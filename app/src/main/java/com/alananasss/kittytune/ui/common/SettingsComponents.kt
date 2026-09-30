@@ -119,12 +119,23 @@ fun SettingsItem(
     val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
     val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
 
+    val density = androidx.compose.ui.platform.LocalDensity.current
     LaunchedEffect(isHighlighted) {
         if (isHighlighted) {
             delay(350)
             try {
-                bringIntoViewRequester.bringIntoView()
+                val extraPx = with(density) { 140.dp.toPx() }
+                bringIntoViewRequester.bringIntoView(
+                    androidx.compose.ui.geometry.Rect(
+                        left = 0f,
+                        top = -extraPx / 2f,
+                        right = 1000f,
+                        bottom = extraPx
+                    )
+                )
             } catch (_: Exception) {}
+
+            delay(250)
 
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
             highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
@@ -405,12 +416,23 @@ fun SplitSettingsItem(
     val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
     val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
 
+    val density = androidx.compose.ui.platform.LocalDensity.current
     LaunchedEffect(isHighlighted) {
         if (isHighlighted) {
             delay(350)
             try {
-                bringIntoViewRequester.bringIntoView()
+                val extraPx = with(density) { 140.dp.toPx() }
+                bringIntoViewRequester.bringIntoView(
+                    androidx.compose.ui.geometry.Rect(
+                        left = 0f,
+                        top = -extraPx / 2f,
+                        right = 1000f,
+                        bottom = extraPx
+                    )
+                )
             } catch (_: Exception) {}
+
+            delay(250)
 
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
             highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))

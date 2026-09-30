@@ -11,6 +11,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -98,7 +99,17 @@ fun MiscSettingsScreen(
         subtitle = stringResource(R.string.settings_cat_general_sub),
         onBackClick = onBackClick
     ) { innerPadding ->
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
+        LaunchedEffect(highlightKey) {
+            if (highlightKey == "pref_auto_update") {
+                kotlinx.coroutines.delay(300)
+                listState.animateScrollToItem(0, scrollOffset = 250)
+            }
+        }
+
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(top = innerPadding.calculateTopPadding())
                 .fillMaxSize(),

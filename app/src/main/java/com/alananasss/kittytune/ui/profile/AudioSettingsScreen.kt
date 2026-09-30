@@ -410,7 +410,26 @@ fun AudioSettingsScreen(
         title = stringResource(R.string.pref_audio_title),
         onBackClick = onBackClick
     ) { innerPadding ->
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
+        LaunchedEffect(highlightKey) {
+            if (highlightKey != null) {
+                val targetIndex = when (highlightKey) {
+                    "equalizer", "pref_audio_mono", "pref_norm", "pref_haptics" -> 1
+                    "sleep_timer_fade" -> 2
+                    "pref_crossfade" -> 3
+                    "pref_automix" -> 4
+                    else -> 0
+                }
+                if (targetIndex > 0) {
+                    kotlinx.coroutines.delay(300)
+                    listState.animateScrollToItem(targetIndex)
+                }
+            }
+        }
+
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),

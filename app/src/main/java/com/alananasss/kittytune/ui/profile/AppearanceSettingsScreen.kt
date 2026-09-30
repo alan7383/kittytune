@@ -271,7 +271,26 @@ fun AppearanceSettingsScreen(
         title = stringResource(R.string.pref_appearance_title),
         onBackClick = onBackClick
     ) { innerPadding ->
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
+        LaunchedEffect(highlightKey) {
+            if (highlightKey != null) {
+                val targetIndex = when (highlightKey) {
+                    "pref_theme_dynamic" -> 0
+                    "pref_font_custom", "pref_font_variations", "pref_app_icon" -> 2
+                    "pref_animated_covers", "pref_animated_covers_fade_ui", "pref_animated_artist_profiles", "pref_lyrics_under_cover" -> 3
+                    "pref_explorer_grid", "pref_library_category_layout", "pref_achievement_popups" -> 4
+                    else -> 0
+                }
+                if (targetIndex > 0) {
+                    kotlinx.coroutines.delay(300)
+                    listState.animateScrollToItem(targetIndex)
+                }
+            }
+        }
+
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),

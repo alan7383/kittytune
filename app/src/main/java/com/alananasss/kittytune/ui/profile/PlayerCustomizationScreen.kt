@@ -147,6 +147,21 @@ fun PlayerCustomizationScreen(
         subtitle = stringResource(R.string.settings_page_player_sub),
         onBackClick = onBackClick
     ) { innerPadding ->
+        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
+        LaunchedEffect(highlightKey) {
+            if (highlightKey != null) {
+                val targetIndex = when (highlightKey) {
+                    "notif_player_extra_button" -> 1
+                    "mini_player_swipe_action" -> 2
+                    else -> 0
+                }
+                if (targetIndex > 0) {
+                    kotlinx.coroutines.delay(300)
+                    listState.animateScrollToItem(targetIndex)
+                }
+            }
+        }
+
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -679,7 +694,8 @@ fun PlayerCustomizationScreen(
                         icon = getNotifButtonVector(notifExtraButton),
                         iconRes = getNotifButtonIconRes(notifExtraButton),
                         trailingText = stringResource(R.string.player_slot_change),
-                        onClick = { showNotifExtraButtonDialog = true }
+                        onClick = { showNotifExtraButtonDialog = true },
+                        highlightKey = "notif_player_extra_button"
                     )
                 }
 
@@ -701,7 +717,8 @@ fun PlayerCustomizationScreen(
                                 stringResource(R.string.pref_mini_player_swipe_action_dismiss)
                         },
                         trailingText = stringResource(R.string.player_slot_change),
-                        onClick = { showMiniPlayerSwipeActionDialog = true }
+                        onClick = { showMiniPlayerSwipeActionDialog = true },
+                        highlightKey = "mini_player_swipe_action"
                     )
                 }
 

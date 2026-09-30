@@ -74,6 +74,14 @@ fun BottomBarSettingsScreen(
         }
     }
 
+    val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
+    LaunchedEffect(highlightKey) {
+        if (highlightKey == "mini_player_swipe_action") {
+            kotlinx.coroutines.delay(300)
+            listState.animateScrollToItem(1)
+        }
+    }
+
     fun persistOrder() {
         val list = currentOrder.toList()
         prefs.setBottomMenuOrder(list)
@@ -288,7 +296,8 @@ fun BottomBarSettingsScreen(
                                 com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS ->
                                     stringResource(R.string.pref_mini_player_swipe_action_dismiss)
                             },
-                            onClick = { showSwipeActionDialog = true }
+                            onClick = { showSwipeActionDialog = true },
+                            highlightKey = "mini_player_swipe_action"
                         )
                     }
                 }
