@@ -1879,5 +1879,10 @@ class PlayerPreferences(context: Context) {
     fun setLastUsedPlaylistTitle(title: String?) {
         prefs.edit { putString(KEY_LAST_USED_PLAYLIST_TITLE, title) }
     }
+
+    fun getRecognitionAudioSource(): String = prefs.getString("recognition_audio_source", "MIC") ?: "MIC"
+    fun setRecognitionAudioSource(source: String) {
+        prefs.edit { putString("recognition_audio_source", source) }
+    }
 }
 

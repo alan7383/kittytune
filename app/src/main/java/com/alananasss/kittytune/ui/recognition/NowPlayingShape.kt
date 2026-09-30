@@ -3,12 +3,20 @@ package com.alananasss.kittytune.ui.recognition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,7 +35,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.math.min
 
 /**
@@ -58,80 +65,94 @@ private val EmphasizedDecelerate: Easing = CubicBezierEasing(0.1f, 0.7f, 0.1f, 1
 /** `motionEasingStandardAccelerate`: cubic(0.3, 0.0, 1.0, 1.0). */
 private val StandardAccelerate: Easing = CubicBezierEasing(0.3f, 0f, 1f, 1f)
 
-/** `button_pulse_scale_interpolator`: cubic(0, 0, 0, 1), an almost instant departure. */
-private val PulseEasing: Easing = CubicBezierEasing(0f, 0f, 0f, 1f)
-
 private const val SQUASH_SCALE = 0.95f
 private const val SQUASH_MS = 200
 private const val BLOOM_DELAY_MS = 83L
 private const val BLOOM_SCALE = 1.3111111f
 private const val BLOOM_MS = 300
 
-private const val PULSE_START_DELAY_MS = 100L
-private const val PULSE_SCALE_TO = 1.818f
-private const val PULSE_SCALE_MS = 1150
-private const val PULSE_FADE_IN_MS = 500
-private const val PULSE_FADE_OUT_MS = 450
-private const val PULSE_PEAK_ALPHA = 0.15f
-
-/** The 12 ms no-op the app plays after each pulse before the listener restarts it. */
-private const val PULSE_TAIL_MS = 12L
-
 /**
  * The listen button's shape and its tap animation.
  *
+ * Reconstructed directly from Pixel Now Playing's Compose implementation (hac.java lines 18576-19060
+ * and gow.java):
+ *  - Idle: 180 dp circular button (colorSecondary) with onSecondary note icon.
+ *  - Searching: Bloomed to 236 dp (scale 1.3111x) with 10-lobed scalloped active background
+ *    (colorOnPrimaryContainer) and primaryContainer searching bars icon.
+ *  - Behind it, the aura / halo performs a continuous breathing "battement" (heartbeat) animation:
+ *    oscillating between 220 dp (scale 0.70x, tucked behind the button) and 314 dp (scale 1.00x,
+ *    expanding outward) with RepeatMode.Reverse over a 1500 ms cycle, while alpha peaks at 0.20
+ *    mid-expansion and fades to 0.
+ *
  * @param active true while the app is listening: the button wears the scalloped shape, sits at its
- *   bloomed size, and the halo behind it pulses.
- * @param color the fill for both the button and its halo.
- * @param content centred on the button. It scales with the shape, because in the app the scale is
- *   set on the `ImageButton` itself and a View's scale carries its `src` along with its background.
+ *   bloomed size, and the halo behind it pulses with the heartbeat animation.
+ * @param color the fill for the button.
+ * @param haloColor the fill for the pulsing halo (defaults to color).
+ * @param content centred on the button. It scales with the shape.
  */
 @Composable
 fun NowPlayingListenButton(
     active: Boolean,
     color: Color,
     modifier: Modifier = Modifier,
+    haloColor: Color = color,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val buttonScale = remember { Animatable(1f) }
-    val pulseScale = remember { Animatable(1f) }
-    val pulseAlpha = remember { Animatable(0f) }
-    // The swap happens on the squash's first frame rather than at the end, so the shape has already
-    // changed while the button is still shrinking.
     val wearingBlob = remember { Animatable(0f) }
 
     LaunchedEffect(active) {
         if (!active) {
-            buttonScale.snapTo(1f)
-            pulseScale.snapTo(1f)
-            pulseAlpha.snapTo(0f)
+            buttonScale.animateTo(1f, tween(300, easing = EmphasizedDecelerate))
             wearingBlob.snapTo(0f)
             return@LaunchedEffect
         }
 
-        launch {
-            while (true) {
-                delay(PULSE_START_DELAY_MS)
-                pulseScale.snapTo(1f)
-                pulseAlpha.snapTo(0f)
-                launch {
-                    pulseScale.animateTo(
-                        PULSE_SCALE_TO,
-                        tween(PULSE_SCALE_MS, easing = PulseEasing),
-                    )
-                }
-                // Fades all the way in, then all the way back out, while the scale keeps going.
-                pulseAlpha.animateTo(PULSE_PEAK_ALPHA, tween(PULSE_FADE_IN_MS, easing = LinearEasing))
-                pulseAlpha.animateTo(0f, tween(PULSE_FADE_OUT_MS, easing = LinearEasing))
-                delay(PULSE_TAIL_MS)
-            }
-        }
-
+        // Tap squish & bloom: scale to 0.95 over 200ms on emphasized-decelerate while swapping to
+        // scalloped blob on first frame, then bloom to 1.3111x (236dp) over 300ms on standard-accelerate.
         wearingBlob.snapTo(1f)
         buttonScale.animateTo(SQUASH_SCALE, tween(SQUASH_MS, easing = EmphasizedDecelerate))
         delay(BLOOM_DELAY_MS)
         buttonScale.animateTo(BLOOM_SCALE, tween(BLOOM_MS, easing = StandardAccelerate))
     }
+
+    // Heartbeat / breathing pulse animation from hac.java bv() lines 18576-18664:
+    // Scale oscillates continuously between 0.70f and 1.0f with RepeatMode.Reverse over 1500ms
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse_transition")
+    val pulseScaleRaw by infiniteTransition.animateFloat(
+        initialValue = 0.70f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_scale"
+    )
+
+    // Alpha peaks at 0.20f at mid-cycle (750ms) and fades to 0f at 0 and 1500ms
+    val pulseAlphaRaw by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = 1500
+                0.0f at 0 using LinearEasing
+                0.20f at 750 using FastOutSlowInEasing
+                0.0f at 1500 using LinearEasing
+            },
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "pulse_alpha"
+    )
+
+    val haloAlpha by animateFloatAsState(
+        targetValue = if (active) pulseAlphaRaw else 0f,
+        animationSpec = tween(300),
+        label = "halo_alpha"
+    )
+
+    // In hac.java, the 314dp aura container maps to 314/180 = 1.7444 scale factor at peak (1.0f)
+    val haloScale = pulseScaleRaw * 1.7444f
 
     val blobPath = remember { PathParser().parsePathString(ACTIVE_BLOB_PATH_DATA).toPath() }
     val haloPath = remember { PathParser().parsePathString(PULSE_HALO_PATH_DATA).toPath() }
@@ -139,13 +160,10 @@ fun NowPlayingListenButton(
     val matrix = remember { Matrix() }
 
     Box(
-        // The halo is a sibling of the button in the app, constrained to its bounds, so it pulses on
-        // its own scale rather than inheriting the button's.
         modifier = modifier.drawBehind {
-            val alpha = pulseAlpha.value
-            if (alpha <= 0f) return@drawBehind
-            scale(pulseScale.value) {
-                drawFitted(haloPath, PULSE_HALO_VIEWPORT, scratch, matrix, color, alpha)
+            if (haloAlpha <= 0f) return@drawBehind
+            scale(haloScale) {
+                drawFitted(haloPath, PULSE_HALO_VIEWPORT, scratch, matrix, haloColor, haloAlpha)
             }
         },
         contentAlignment = Alignment.Center,

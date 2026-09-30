@@ -3,6 +3,7 @@ package com.alananasss.kittytune.ui.common
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ToggleButton
@@ -20,6 +20,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -30,7 +32,12 @@ fun <T> ExpressiveConnectedButtonGroup(
     onOptionSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-    iconSpacing: androidx.compose.ui.unit.Dp = 4.dp,
+    iconSpacing: Dp = 4.dp,
+    checkedContainerColor: Color = MaterialTheme.colorScheme.primary,
+    uncheckedContainerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    checkedContentColor: Color = MaterialTheme.colorScheme.onPrimary,
+    uncheckedContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    border: BorderStroke? = null,
     labelProvider: @Composable (T) -> Unit,
     iconProvider: (@Composable (T) -> Unit)? = null
 ) {
@@ -44,12 +51,12 @@ fun <T> ExpressiveConnectedButtonGroup(
         options.forEachIndexed { index, option ->
             val isChecked = selectedOption != null && selectedOption == option
             val containerColor by animateColorAsState(
-                targetValue = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+                targetValue = if (isChecked) checkedContainerColor else uncheckedContainerColor,
                 animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
                 label = "toggle_container_color"
             )
             val contentColor by animateColorAsState(
-                targetValue = if (isChecked) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                targetValue = if (isChecked) checkedContentColor else uncheckedContentColor,
                 animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing),
                 label = "toggle_content_color"
             )
@@ -62,6 +69,7 @@ fun <T> ExpressiveConnectedButtonGroup(
                 },
                 modifier = Modifier.weight(1f),
                 contentPadding = contentPadding,
+                border = border,
                 colors = ToggleButtonDefaults.colors(
                     containerColor = containerColor,
                     contentColor = contentColor,
