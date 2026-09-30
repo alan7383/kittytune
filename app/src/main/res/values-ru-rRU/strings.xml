@@ -1674,6 +1674,12 @@
     <string name="pref_bottom_menu_fab_recognition">Распознавание музыки</string>
     <string name="pref_bottom_menu_blur">Эффект размытия</string>
     <string name="pref_bottom_menu_blur_sub">Применить темный эффект стекла</string>
+    <string name="pref_mini_player_title">Mini player</string>
+    <string name="pref_mini_player_swipe_action_title">Swipe gesture</string>
+    <string name="pref_mini_player_swipe_action_change_track">Change track</string>
+    <string name="pref_mini_player_swipe_action_change_track_desc">Swipe left for next track, right for previous track</string>
+    <string name="pref_mini_player_swipe_action_dismiss">Dismiss player</string>
+    <string name="pref_mini_player_swipe_action_dismiss_desc">Swipe horizontally to close the mini player</string>
     <string name="pref_bottom_menu_tabs_reorder">Drag to reorder. The bar follows this order.</string>
     <string name="reorder_handle">Reorder</string>
     <string name="pref_bottom_menu_tabs">Видимость вкладки</string>
