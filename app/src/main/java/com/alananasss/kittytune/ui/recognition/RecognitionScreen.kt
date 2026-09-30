@@ -1,11 +1,18 @@
 package com.alananasss.kittytune.ui.recognition
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
+import android.media.projection.MediaProjectionManager
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,12 +22,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,34 +40,36 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
-import com.alananasss.kittytune.R
-import com.alananasss.kittytune.ui.player.PlayerViewModel
-import com.alananasss.kittytune.music.recognition.RecognitionViewModel
-import com.alananasss.kittytune.music.recognition.RecognitionState
+import com.airbnb.lottie.LottieProperty
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.alananasss.kittytune.data.LikeRepository
-import com.alananasss.kittytune.data.AchievementManager
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.History
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
-import com.airbnb.lottie.LottieProperty
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
+import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.AchievementManager
+import com.alananasss.kittytune.data.LikeRepository
+import com.alananasss.kittytune.music.recognition.AudioCaptureManager
+import com.alananasss.kittytune.music.recognition.RecognitionAudioSource
+import com.alananasss.kittytune.music.recognition.RecognitionState
+import com.alananasss.kittytune.music.recognition.RecognitionViewModel
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
+import com.alananasss.kittytune.ui.player.PlayerViewModel
 
 @Composable
 fun RecognitionScreen(
@@ -73,6 +87,15 @@ fun RecognitionScreen(
         }
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val audioSource by viewModel.audioSource.collectAsStateWithLifecycle()
+
+    BackHandler {
+        if (state is RecognitionState.Searching) {
+            viewModel.cancelRecognition()
+        } else {
+            onBackClick()
+        }
+    }
 
     var hasPermission by remember {
         mutableStateOf(
@@ -86,14 +109,71 @@ fun RecognitionScreen(
         hasPermission = isGranted
         if (isGranted) {
             viewModel.startRecognition()
+        }
+    }
+
+    val mediaProjectionManager = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            context.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as? MediaProjectionManager
+        } else null
+    }
+
+    val screenCaptureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            AudioCaptureManager.startCapture(
+                context = context,
+                resultCode = result.resultCode,
+                data = result.data!!,
+                onReady = { projection ->
+                    viewModel.startRecognition(mediaProjection = projection)
+                },
+                onError = { errorMsg ->
+                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+
+    val startListening = {
+        if (audioSource == RecognitionAudioSource.MIC) {
+            if (hasPermission) {
+                viewModel.startRecognition()
+            } else {
+                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
         } else {
-            // Permission denied logic could go here
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.recognition_device_not_supported),
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                val captureIntent = mediaProjectionManager?.createScreenCaptureIntent()
+                if (captureIntent != null) {
+                    screenCaptureLauncher.launch(captureIntent)
+                } else {
+                    Toast.makeText(context, "MediaProjection not available", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
     val isErrorOrSuccess = state is RecognitionState.Error || state is RecognitionState.Success
-    val bgColor = if (isErrorOrSuccess) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.secondaryContainer
-    val animatedBgColor by animateColorAsState(targetValue = bgColor, label = "bg_color")
+    val isSearching = state is RecognitionState.Searching
+    // Matches original: idle = secondaryContainer, searching = primaryContainer, result = surface
+    val bgColor = when {
+        isErrorOrSuccess -> MaterialTheme.colorScheme.surface
+        isSearching -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
+    val animatedBgColor by animateColorAsState(
+        targetValue = bgColor,
+        animationSpec = tween(1000),
+        label = "bg_color"
+    )
 
     Box(
         modifier = Modifier
@@ -101,13 +181,61 @@ fun RecognitionScreen(
             .background(animatedBgColor)
     ) {
         val bgComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.background_animation))
-        val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
+        // Original HomeFragment.java: lottie scales 1→5 on motionEasingEmphasizedDecelerate over 1000ms when listening starts.
+        val lottieScale = remember { androidx.compose.animation.core.Animatable(1f) }
+        LaunchedEffect(isSearching) {
+            if (isSearching) {
+                lottieScale.animateTo(
+                    5f,
+                    tween(1000, easing = androidx.compose.animation.core.CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f))
+                )
+            } else {
+                lottieScale.snapTo(1f)
+            }
+        }
+        // From HomeFragment.java lines 89-149 (exact reverse-engineered code):
+        //   private static final fdy aw = new fdy("**", ".primary", "**");    → COLOR + OPACITY 95
+        //   private static final fdy ax = new fdy("**", ".secondary", "**");  → COLOR + OPACITY 95
+        //   private static final fdy ay = new fdy("**", ".tertiary", "**");   → COLOR + OPACITY 90
+        //   fav.a = 1 = LottieProperty.COLOR; fav.d = 4 = LottieProperty.OPACITY
+        //   Colors: colorPrimary, colorSecondary, colorTertiary
+        val lottiePrimary   = MaterialTheme.colorScheme.primary.copy(alpha = 1f).toArgb()
+        val lottieSecondary = MaterialTheme.colorScheme.secondary.copy(alpha = 1f).toArgb()
+        val lottieTertiary  = MaterialTheme.colorScheme.tertiary.copy(alpha = 1f).toArgb()
         val bgDynamicProps = rememberLottieDynamicProperties(
+            // .primary layers: colorPrimary fill, 95% opacity
             rememberLottieDynamicProperty(
-                property = LottieProperty.COLOR_FILTER,
-                value = PorterDuffColorFilter(primaryContainerColor, PorterDuff.Mode.SRC_ATOP),
-                keyPath = arrayOf("**")
-            )
+                property = LottieProperty.COLOR,
+                value = lottiePrimary,
+                keyPath = arrayOf("**", ".primary", "**"),
+            ),
+            rememberLottieDynamicProperty(
+                property = LottieProperty.OPACITY,
+                value = 95,
+                keyPath = arrayOf("**", ".primary", "**"),
+            ),
+            // .secondary layers: colorSecondary fill, 95% opacity
+            rememberLottieDynamicProperty(
+                property = LottieProperty.COLOR,
+                value = lottieSecondary,
+                keyPath = arrayOf("**", ".secondary", "**"),
+            ),
+            rememberLottieDynamicProperty(
+                property = LottieProperty.OPACITY,
+                value = 95,
+                keyPath = arrayOf("**", ".secondary", "**"),
+            ),
+            // .tertiary layer: colorTertiary fill, 90% opacity
+            rememberLottieDynamicProperty(
+                property = LottieProperty.COLOR,
+                value = lottieTertiary,
+                keyPath = arrayOf("**", ".tertiary", "**"),
+            ),
+            rememberLottieDynamicProperty(
+                property = LottieProperty.OPACITY,
+                value = 90,
+                keyPath = arrayOf("**", ".tertiary", "**"),
+            ),
         )
 
         AnimatedVisibility(
@@ -119,7 +247,12 @@ fun RecognitionScreen(
                 composition = bgComposition,
                 iterations = LottieConstants.IterateForever,
                 dynamicProperties = bgDynamicProps,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = lottieScale.value
+                        scaleY = lottieScale.value
+                    },
                 contentScale = ContentScale.Crop
             )
         }
@@ -139,7 +272,13 @@ fun RecognitionScreen(
         }
 
         FilledTonalIconButton(
-            onClick = onBackClick,
+            onClick = {
+                if (state is RecognitionState.Searching) {
+                    viewModel.cancelRecognition()
+                } else {
+                    onBackClick()
+                }
+            },
             shapes = IconButtonDefaults.shapes(),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -174,8 +313,14 @@ fun RecognitionScreen(
             )
         }
 
+        val currentPage = when (val s = state) {
+            is RecognitionState.Idle, is RecognitionState.Searching -> RecognitionUiPage.Main
+            is RecognitionState.Success -> RecognitionUiPage.Success(s)
+            is RecognitionState.Error -> RecognitionUiPage.Error(s.message)
+        }
+
         AnimatedContent(
-            targetState = state,
+            targetState = currentPage,
             transitionSpec = {
                 (fadeIn(animationSpec = tween(400)) + 
                         slideInVertically(animationSpec = tween(400), initialOffsetY = { it / 16 })) togetherWith
@@ -184,30 +329,29 @@ fun RecognitionScreen(
             },
             label = "state_content",
             modifier = Modifier.fillMaxSize()
-        ) { currentState ->
+        ) { page ->
             Box(modifier = Modifier.fillMaxSize()) {
-                when (currentState) {
-                    is RecognitionState.Idle -> IdleView(
-                        onTap = {
-                            if (hasPermission) viewModel.startRecognition()
-                            else permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
+                when (page) {
+                    is RecognitionUiPage.Main -> RecognitionHomeView(
+                        isSearching = isSearching,
+                        audioSource = audioSource,
+                        onSourceChange = { viewModel.setAudioSource(it) },
+                        onTap = startListening,
+                        onCancel = { viewModel.cancelRecognition() }
                     )
-                    is RecognitionState.Recording  -> ListeningView()
-                    is RecognitionState.Processing -> ProcessingView()
-                    is RecognitionState.Success -> SuccessView(
-                        state = currentState,
+                    is RecognitionUiPage.Success -> SuccessView(
+                        state = page.state,
                         onPlayClick = {
-                            currentState.soundcloudTrack?.let { track ->
+                            page.state.soundcloudTrack?.let { track ->
                                 playerViewModel.playPlaylist(listOf(track), 0)
                                 onBackClick()
                             }
                         },
-                        onRetry = { viewModel.startRecognition() }
+                        onRetry = startListening
                     )
-                    is RecognitionState.Error -> ErrorView(
-                        error = currentState.message,
-                        onRetry = { viewModel.startRecognition() }
+                    is RecognitionUiPage.Error -> ErrorView(
+                        error = page.message,
+                        onRetry = startListening
                     )
                 }
             }
@@ -215,134 +359,224 @@ fun RecognitionScreen(
     }
 }
 
+private sealed class RecognitionUiPage {
+    object Main : RecognitionUiPage()
+    data class Success(val state: RecognitionState.Success) : RecognitionUiPage()
+    data class Error(val message: String) : RecognitionUiPage()
+}
+
 @Composable
-private fun IdleView(onTap: () -> Unit) {
+private fun RecognitionHomeView(
+    isSearching: Boolean,
+    audioSource: RecognitionAudioSource,
+    onSourceChange: (RecognitionAudioSource) -> Unit,
+    onTap: () -> Unit,
+    onCancel: () -> Unit
+) {
+    val context = LocalContext.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    val btnScale by animateFloatAsState(targetValue = if (isPressed) 0.92f else 1f, label = "scale")
+    val btnScale by animateFloatAsState(targetValue = if (isPressed && !isSearching) 0.92f else 1f, label = "scale")
+
+    val buttonColor = if (isSearching)
+        MaterialTheme.colorScheme.onPrimaryContainer  // dark blob on primaryContainer bg
+    else
+        MaterialTheme.colorScheme.secondary           // circle on secondaryContainer bg
+    val iconTint = if (isSearching)
+        MaterialTheme.colorScheme.primaryContainer    // light icon on dark blob
+    else
+        MaterialTheme.colorScheme.onSecondary         // icon on secondary circle
+
+    val labelColor by animateColorAsState(
+        targetValue = if (isSearching)
+            MaterialTheme.colorScheme.onPrimaryContainer
+        else
+            MaterialTheme.colorScheme.onSecondaryContainer,
+        animationSpec = tween(300),
+        label = "label_color"
+    )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
-        Spacer(modifier = Modifier.weight(0.417f))
+        Spacer(modifier = Modifier.weight(1f))
 
-        // A plain circle at rest, exactly as the Pixel listener is; tapping it squashes and blooms into
-        // the scalloped shape. See [NowPlayingListenButton] (issue #33).
         NowPlayingListenButton(
-            active = false,
-            color = MaterialTheme.colorScheme.primaryContainer,
+            active = isSearching,
+            color = buttonColor,
+            haloColor = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier
                 .size(180.dp)
                 .scale(btnScale)
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = onTap
+                    onClick = {
+                        if (isSearching) {
+                            onCancel()
+                        } else {
+                            onTap()
+                        }
+                    }
                 ),
         ) {
-            Icon(
-                imageVector = NowPlayingNote,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            // Original: button src = avd_nowplaying_searching (animated 3-bar icon) when searching,
+            // or gs_mic_off_64 (mic-off icon, which is the music note) when idle.
+            if (isSearching) {
+                SearchingBarsIcon(
+                    color = iconTint,
+                    modifier = Modifier.size(56.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = NowPlayingNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(56.dp),
+                    tint = iconTint
+                )
+            }
         }
 
-        Spacer(Modifier.height(36.dp))
-
-        Text(
-            text = stringResource(R.string.recognition_tap_to_identify),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp)
+        // Official Pixel Now Playing label animation (gow.java lines 1331-1336 & 1580-1586):
+        // HomeLabelTopPadding oscillates between -31dp (idle) and +21dp (searching), sliding 52dp down
+        // over 1000ms with CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f) as the button blooms.
+        val homeLabelTopPadding by animateDpAsState(
+            targetValue = if (isSearching) 21.dp else (-31).dp,
+            animationSpec = tween(1000, easing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)),
+            label = "HomeLabelTopPadding"
         )
 
-        Spacer(modifier = Modifier.weight(0.583f))
-    }
-}
+        Spacer(Modifier.height(67.dp))
 
-@Composable
-private fun ListeningView() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Spacer(modifier = Modifier.weight(0.417f))
-
-        // The scalloped shape, with the bloom pulsing behind it for as long as the app is listening.
-        NowPlayingListenButton(
-            active = true,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(180.dp),
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.offset { IntOffset(x = 0, y = homeLabelTopPadding.roundToPx()) }
         ) {
-            Icon(
-                imageVector = NowPlayingNote,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onPrimary
+            // Title: fades smoothly matching official 300ms transition (ggp.java case 13)
+            AnimatedContent(
+                targetState = if (isSearching) {
+                    stringResource(R.string.recognition_listening)
+                } else if (audioSource == RecognitionAudioSource.MIC) {
+                    stringResource(R.string.recognition_tap_to_identify)
+                } else {
+                    stringResource(R.string.recognition_tap_to_identify_device)
+                },
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+                },
+                label = "title_crossfade"
+            ) { titleText ->
+                Text(
+                    text = titleText,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = labelColor,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+            }
+
+            // Subtitle: fades smoothly via alpha so layout height remains stable with zero reflow
+            val subtitleAlpha by animateFloatAsState(
+                targetValue = if (isSearching) 0f else 1f,
+                animationSpec = tween(250),
+                label = "subtitle_alpha"
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(
+                    if (audioSource == RecognitionAudioSource.MIC) R.string.recognition_listening_desc
+                    else R.string.recognition_listening_device_desc
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f * subtitleAlpha),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .padding(horizontal = 32.dp)
+                    .graphicsLayer { alpha = subtitleAlpha }
             )
         }
 
-        Spacer(Modifier.height(36.dp))
-
-        Text(
-            text = stringResource(R.string.recognition_listening),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            textAlign = TextAlign.Center
+        // Connected buttons right under the text: fades out and slightly slides down via graphicsLayer,
+        // preserving its layout height so the Column NEVER collapses and the top items NEVER jump!
+        val controlsAlpha by animateFloatAsState(
+            targetValue = if (isSearching) 0f else 1f,
+            animationSpec = tween(250, easing = FastOutSlowInEasing),
+            label = "controls_alpha"
         )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.recognition_listening_desc),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            textAlign = TextAlign.Center
+        val controlsSlideY by animateFloatAsState(
+            targetValue = if (isSearching) 24f else 0f,
+            animationSpec = tween(250, easing = FastOutSlowInEasing),
+            label = "controls_slide"
         )
 
-        Spacer(modifier = Modifier.weight(0.583f))
-    }
-}
-
-@Composable
-private fun ProcessingView() {
-    val infiniteTransition = rememberInfiniteTransition(label = "processing")
-    val rotation by infiniteTransition.animateFloat(
-        0f, 360f,
-        infiniteRepeatable(tween(2000, easing = LinearEasing)),
-        label = "rot"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Spacer(modifier = Modifier.weight(0.417f))
+        Spacer(Modifier.height(24.dp))
 
         Box(
             modifier = Modifier
-                .size(180.dp)
-                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .graphicsLayer {
+                    alpha = controlsAlpha
+                    translationY = controlsSlideY
+                }
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(80.dp),
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                strokeWidth = 6.dp
+            ExpressiveConnectedButtonGroup(
+                options = listOf(RecognitionAudioSource.MIC, RecognitionAudioSource.DEVICE),
+                selectedOption = audioSource,
+                onOptionSelected = { source ->
+                    if (!isSearching) {
+                        if (source == RecognitionAudioSource.DEVICE && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.recognition_device_not_supported),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            onSourceChange(source)
+                        }
+                    }
+                },
+                checkedContainerColor = MaterialTheme.colorScheme.primary,
+                uncheckedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                checkedContentColor = MaterialTheme.colorScheme.onPrimary,
+                uncheckedContentColor = MaterialTheme.colorScheme.onSurface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                iconSpacing = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp),
+                iconProvider = { source ->
+                    Icon(
+                        imageVector = when (source) {
+                            RecognitionAudioSource.MIC -> Icons.Rounded.Mic
+                            RecognitionAudioSource.DEVICE -> Icons.Rounded.PhoneAndroid
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                labelProvider = { source ->
+                    Text(
+                        text = stringResource(
+                            when (source) {
+                                RecognitionAudioSource.MIC -> R.string.recognition_source_mic
+                                RecognitionAudioSource.DEVICE -> R.string.recognition_source_device
+                            }
+                        ),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (audioSource == source) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             )
         }
 
-        Spacer(Modifier.height(36.dp))
-
-        Text(
-            text = stringResource(R.string.recognition_processing),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.weight(0.583f))
+        Spacer(modifier = Modifier.weight(1f))
     }
 }
 
@@ -533,15 +767,20 @@ private fun ErrorView(error: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Rounded.MusicNote,
-            contentDescription = null,
+        // Faithful reproduction of home_not_found_illustration from Google Pixel Now Playing
+        Box(
             modifier = Modifier
-                .size(120.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
-                .padding(24.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+                .size(72.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.ErrorOutline,
+                contentDescription = null,
+                modifier = Modifier.size(36.dp),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
 
@@ -549,20 +788,24 @@ private fun ErrorView(error: String, onRetry: () -> Unit) {
             text = stringResource(R.string.recognition_track_not_found),
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 24.dp)
         )
 
         Spacer(Modifier.height(48.dp))
 
-        Button(
+        FilledTonalButton(
             onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            ),
-            shapes = ButtonDefaults.shapes()
+            shapes = ButtonDefaults.shapes(),
+            modifier = Modifier
+                .height(56.dp)
+                .defaultMinSize(minWidth = 0.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
         ) {
-            Text(stringResource(R.string.btn_retry))
+            Text(
+                text = stringResource(R.string.btn_retry),
+                style = MaterialTheme.typography.titleMedium
+            )
         }
     }
 }

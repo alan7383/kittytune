@@ -1830,12 +1830,22 @@
     <string name="date_today">Today</string>
     <string name="date_yesterday">Yesterday</string>
     <string name="recognition_tap_to_identify">Tap to identify music</string>
-    <string name="recognition_listening">Listening&#8230;</string>
+    <string name="recognition_listening">Identifying song&#8230;</string>
+    <string name="recognition_processing">Identifying song&#8230;</string>
     <string name="recognition_listening_desc">Listen to music around you</string>
-    <string name="recognition_processing">Analyzing&#8230;</string>
     <string name="recognition_listen_on_kittytune">Listen on KittyTune</string>
-    <string name="btn_retry">Retry</string>
-    <string name="recognition_track_not_found">Track not found</string>
+    <string name="btn_retry">Try again</string>
+    <string name="recognition_track_not_found">Couldn\'t identify song</string>
+    <string name="recognition_tap_to_identify_device">Tap to identify from apps</string>
+    <string name="recognition_listening_device_desc">Listen to music from apps on this device</string>
+    <string name="recognition_source_mic">Microphone</string>
+    <string name="recognition_source_device">This device</string>
+    <string name="recognition_device_not_supported">Internal audio capture requires Android 10 or later</string>
+    <string name="recognition_notif_listening_device">Listening to device audio&#8230;</string>
+    <string name="recognition_notif_channel">Music Recognition</string>
+    <string name="recognition_notif_channel_desc">Used during internal audio recognition</string>
+    <string name="recognition_notif_stop">Stop</string>
+    <string name="recognition_notif_track_found">Found: %1$s - %2$s</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">Support KittyTune</string>
     <string name="about_kofi_desc">This project is entirely free and open-source. If you enjoy my work, please consider supporting its development by buying me a coffee on Ko-fi!</string>

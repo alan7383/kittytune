@@ -34,7 +34,18 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.graphics.shapes.CornerRounding
+import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.circle
+import androidx.graphics.shapes.star
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.min
 
 /**
@@ -68,6 +79,7 @@ private val StandardAccelerate: Easing = CubicBezierEasing(0.3f, 0f, 1f, 1f)
 private const val SQUASH_SCALE = 0.95f
 private const val SQUASH_MS = 200
 private const val BLOOM_DELAY_MS = 83L
+/** 180dp × 1.3111111 = 236dp — the scalloped vector's authored viewport size (gam.java:121). */
 private const val BLOOM_SCALE = 1.3111111f
 private const val BLOOM_MS = 300
 
@@ -98,72 +110,122 @@ fun NowPlayingListenButton(
     haloColor: Color = color,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val buttonScale = remember { Animatable(1f) }
-    val wearingBlob = remember { Animatable(0f) }
+    val buttonScale = remember { Animatable(if (active) BLOOM_SCALE else 1f) }
+    val morphProgress = remember { Animatable(if (active) 1f else 0f) }
+    val breathingOffset = remember { Animatable(0f) }
+    var isFirstComposition by remember { mutableStateOf(true) }
 
     LaunchedEffect(active) {
         if (!active) {
-            buttonScale.animateTo(1f, tween(300, easing = EmphasizedDecelerate))
-            wearingBlob.snapTo(0f)
+            if (isFirstComposition) {
+                isFirstComposition = false
+                morphProgress.snapTo(0f)
+                buttonScale.snapTo(1f)
+                breathingOffset.snapTo(0f)
+                return@LaunchedEffect
+            }
+            // Exit: smoothly return breathing to 0 (250ms), morph scalloped shape -> circle (350ms), squish & return to 1.0
+            launch {
+                breathingOffset.animateTo(0f, tween(250, easing = FastOutSlowInEasing))
+            }
+            launch {
+                morphProgress.animateTo(0f, tween(350, easing = FastOutSlowInEasing))
+            }
+            buttonScale.animateTo(SQUASH_SCALE, tween(150, easing = EmphasizedDecelerate))
+            delay(50L)
+            buttonScale.animateTo(1.0f, tween(250, easing = StandardAccelerate))
             return@LaunchedEffect
         }
 
-        // Tap squish & bloom: scale to 0.95 over 200ms on emphasized-decelerate while swapping to
-        // scalloped blob on first frame, then bloom to 1.3111x (236dp) over 300ms on standard-accelerate.
-        wearingBlob.snapTo(1f)
-        buttonScale.animateTo(SQUASH_SCALE, tween(SQUASH_MS, easing = EmphasizedDecelerate))
-        delay(BLOOM_DELAY_MS)
-        buttonScale.animateTo(BLOOM_SCALE, tween(BLOOM_MS, easing = StandardAccelerate))
+        // Active state (listening / searching)
+        if (isFirstComposition) {
+            isFirstComposition = false
+            morphProgress.snapTo(1f)
+            buttonScale.snapTo(BLOOM_SCALE)
+        } else {
+            // Tap squish & bloom entry: morph circle -> scalloped shape while squishing and springing back
+            launch {
+                morphProgress.animateTo(1f, tween(400, easing = FastOutSlowInEasing))
+            }
+            buttonScale.animateTo(SQUASH_SCALE, tween(SQUASH_MS, easing = EmphasizedDecelerate))
+            delay(BLOOM_DELAY_MS)
+            buttonScale.animateTo(BLOOM_SCALE, tween(BLOOM_MS, easing = StandardAccelerate))
+        }
+
+        // Official Now Playing breathing pulse (fid.smali / hac.java lines 18803-18870):
+        // 1000ms delay after listening begins (0x3e8 in fid.smali)
+        delay(1000L)
+        // Initial rise to +8dp in 750ms with LinearOutSlowInEasing (vl.b / 0x2ee in fid.smali)
+        breathingOffset.animateTo(
+            targetValue = 8f,
+            animationSpec = tween(750, easing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f))
+        )
+        // Continuous breathing loop: oscillates between -8dp and +8dp over 1500ms with FastOutSlowInEasing (vl.a / 0x5dc in fid.smali)
+        while (true) {
+            breathingOffset.animateTo(
+                targetValue = -8f,
+                animationSpec = tween(1500, easing = FastOutSlowInEasing)
+            )
+            breathingOffset.animateTo(
+                targetValue = 8f,
+                animationSpec = tween(1500, easing = FastOutSlowInEasing)
+            )
+        }
     }
 
-    // Heartbeat / breathing pulse animation from hac.java bv() lines 18576-18664:
-    // Scale oscillates continuously between 0.70f and 1.0f with RepeatMode.Reverse over 1500ms
+    // Heartbeat / breathing aura animation from hac.java bv() lines 18803-18870:
+    // Scale radiates continuously outward from 0.70f (220dp, tucked behind button)
+    // to 1.0f (314dp, expanding past the 236dp button) with RepeatMode.Restart (always expanding outward, never reversing)
     val infiniteTransition = rememberInfiniteTransition(label = "pulse_transition")
     val pulseScaleRaw by infiniteTransition.animateFloat(
         initialValue = 0.70f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(1500, easing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)),
+            repeatMode = RepeatMode.Restart
         ),
         label = "pulse_scale"
     )
 
-    // Alpha peaks at 0.20f at mid-cycle (750ms) and fades to 0f at 0 and 1500ms
+    // Alpha peaks at 0.25f at mid-cycle (750ms) and fades to 0f at 0 and 1500ms (ggp.java case 12)
     val pulseAlphaRaw by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 0f,
         animationSpec = infiniteRepeatable(
             animation = keyframes {
                 durationMillis = 1500
-                0.0f at 0 using LinearEasing
-                0.20f at 750 using FastOutSlowInEasing
-                0.0f at 1500 using LinearEasing
+                0.0f at 0 using CubicBezierEasing(0.4f, 0.0f, 1.0f, 1.0f)
+                0.25f at 750 using CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
+                0.0f at 1500
             },
             repeatMode = RepeatMode.Restart
         ),
         label = "pulse_alpha"
     )
 
-    val haloAlpha by animateFloatAsState(
-        targetValue = if (active) pulseAlphaRaw else 0f,
+    val haloFade by animateFloatAsState(
+        targetValue = if (active) 1f else 0f,
         animationSpec = tween(300),
-        label = "halo_alpha"
+        label = "halo_fade"
     )
+    val haloAlpha = pulseAlphaRaw * haloFade
 
-    // In hac.java, the 314dp aura container maps to 314/180 = 1.7444 scale factor at peak (1.0f)
-    val haloScale = pulseScaleRaw * 1.7444f
-
-    val blobPath = remember { PathParser().parsePathString(ACTIVE_BLOB_PATH_DATA).toPath() }
-    val haloPath = remember { PathParser().parsePathString(PULSE_HALO_PATH_DATA).toPath() }
-    val scratch = remember { Path() }
-    val matrix = remember { Matrix() }
+    val haloPath = remember { Path().also { ButtonMorph.toComposePath(1f, it) } }
+    val buttonScratch = remember { Path() }
 
     Box(
         modifier = modifier.drawBehind {
             if (haloAlpha <= 0f) return@drawBehind
-            scale(haloScale) {
-                drawFitted(haloPath, PULSE_HALO_VIEWPORT, scratch, matrix, haloColor, haloAlpha)
+            // Official Now Playing halo viewport: 314dp (hac.java:18839 / amn.m598g(..., 314.0f))
+            // At scale 0.70x: 220dp (tucked behind the 236dp bloomed button).
+            // At scale 1.00x: 314dp (emerging generously 39dp past each edge of the 236dp bloomed button).
+            val radius = (314.dp.toPx() / 2f) * pulseScaleRaw
+            translate(left = size.center.x, top = size.center.y) {
+                scale(scaleX = radius, scaleY = radius, pivot = Offset.Zero) {
+                    rotate(degrees = -90f, pivot = Offset.Zero) {
+                        drawPath(path = haloPath, color = haloColor, alpha = haloAlpha, style = Fill)
+                    }
+                }
             }
         },
         contentAlignment = Alignment.Center,
@@ -176,17 +238,48 @@ fun NowPlayingListenButton(
                     scaleY = buttonScale.value
                 }
                 .drawBehind {
-                    if (wearingBlob.value > 0f) {
-                        drawFitted(blobPath, ACTIVE_BLOB_VIEWPORT, scratch, matrix, color, 1f)
-                    } else {
-                        val diameter = min(size.width, size.height)
-                        drawCircle(color = color, radius = diameter / 2f, center = size.center)
+                    val baseRadius = min(size.width, size.height) / 2f
+                    val radius = baseRadius + (breathingOffset.value.dp.toPx() / 2f)
+                    ButtonMorph.toComposePath(morphProgress.value, buttonScratch)
+                    translate(left = size.center.x, top = size.center.y) {
+                        scale(scaleX = radius, scaleY = radius, pivot = Offset.Zero) {
+                            rotate(degrees = -90f, pivot = Offset.Zero) {
+                                drawPath(path = buttonScratch, color = color, style = Fill)
+                            }
+                        }
                     }
                 },
             contentAlignment = Alignment.Center,
             content = content,
         )
     }
+}
+
+private val CircleShape = RoundedPolygon.circle(numVertices = 10, radius = 1f)
+private val BlobShape = RoundedPolygon.star(
+    numVerticesPerRadius = 10,
+    radius = 1f,
+    innerRadius = 0.8f,
+    rounding = CornerRounding(0.33333334f)
+)
+private val ButtonMorph = Morph(CircleShape, BlobShape)
+
+private fun Morph.toComposePath(progress: Float, path: Path): Path {
+    path.reset()
+    var isFirst = true
+    forEachCubic(progress) { cubic ->
+        if (isFirst) {
+            path.moveTo(cubic.anchor0X, cubic.anchor0Y)
+            isFirst = false
+        }
+        path.cubicTo(
+            cubic.control0X, cubic.control0Y,
+            cubic.control1X, cubic.control1Y,
+            cubic.anchor1X, cubic.anchor1Y
+        )
+    }
+    path.close()
+    return path
 }
 
 /**

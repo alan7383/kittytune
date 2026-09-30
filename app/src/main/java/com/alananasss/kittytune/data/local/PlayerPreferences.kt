@@ -285,6 +285,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUTO_UPDATE = "auto_update_enabled"
         private const val KEY_REMEMBER_SEARCH_FILTER = "remember_search_filter"
         private const val KEY_LAST_SEARCH_FILTER = "last_search_filter"
+        private const val KEY_RECOGNITION_AUDIO_SOURCE = "recognition_audio_source"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
         private const val KEY_SC_GO_PLUS = "soundcloud_go_plus_active"
         private const val KEY_SHARE_CARD_CODE = "share_card_code_mode"
@@ -746,6 +747,9 @@ class PlayerPreferences(context: Context) {
 
     fun getLastSearchFilter(): String = prefs.getString(KEY_LAST_SEARCH_FILTER, "ALL") ?: "ALL"
     fun setLastSearchFilter(filterName: String) = prefs.edit { putString(KEY_LAST_SEARCH_FILTER, filterName) }
+
+    fun getRecognitionAudioSource(): String = prefs.getString(KEY_RECOGNITION_AUDIO_SOURCE, "MIC") ?: "MIC"
+    fun setRecognitionAudioSource(source: String) = prefs.edit { putString(KEY_RECOGNITION_AUDIO_SOURCE, source) }
 
     fun getAppLanguage(): AppLanguage {
         val code = prefs.getString(KEY_APP_LANGUAGE, AppLanguage.SYSTEM.code)

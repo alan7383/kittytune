@@ -1594,6 +1594,16 @@
     <string name="recognition_listen_on_kittytune">Nghe trên KittyTune</string>
     <string name="btn_retry">Thử lại</string>
     <string name="recognition_track_not_found">Không tìm thấy bài hát</string>
+    <string name="recognition_tap_to_identify_device">Chạm để nhận diện từ ứng dụng</string>
+    <string name="recognition_listening_device_desc">Nghe nhạc phát từ các ứng dụng trên thiết bị này</string>
+    <string name="recognition_source_mic">Microphone</string>
+    <string name="recognition_source_device">Thiết bị này</string>
+    <string name="recognition_device_not_supported">Ghi âm nội bộ yêu cầu Android 10 trở lên</string>
+    <string name="recognition_notif_listening_device">Đang nghe âm thanh thiết bị&#8230;</string>
+    <string name="recognition_notif_channel">Nhận diện bài hát</string>
+    <string name="recognition_notif_channel_desc">Được dùng khi nhận diện âm thanh nội bộ thiết bị</string>
+    <string name="recognition_notif_stop">Dừng</string>
+    <string name="recognition_notif_track_found">Đã tìm thấy: %1$s - %2$s</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">Ủng hộ KittyTune</string>
     <string name="about_kofi_desc">Dự án này hoàn toàn miễn phí và có mã nguồn mở. Nếu bạn yêu thích sản phẩm, hãy cân nhắc ủng hộ sự phát triển bằng cách mời tôi một ly cà phê trên Ko-fi!</string>
