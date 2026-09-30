@@ -211,6 +211,15 @@ fun SettingsItem(
     }
 }
 
+/**
+ * The settings' switch: a check or a cross in the thumb, so its state reads without relying on colour.
+ *
+ * [enabled] is separate from [onCheckedChange] on purpose. A Material `Switch` derives its enabled
+ * state from whether it has a callback, so a switch that is *shown* but whose row owns the click
+ * would render greyed out. Passing `enabled = true` alongside a null callback is how a row keeps a
+ * live-looking switch while the row stays the single click target — which is the Material pattern
+ * for a list item that toggles, and the only arrangement in which a click cannot fire twice.
+ */
 @Composable
 fun SettingsSwitch(
     checked: Boolean,
@@ -270,7 +279,7 @@ fun SettingsScaffold(
             LargeTopAppBar(
                 title = {
                     Column {
-                        Text(title, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text(title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         // What the page is for, under its name - the desktop's settings pages all
                         // carry one, and it is the fastest way to tell two similarly-named pages apart.
                         if (subtitle != null) {

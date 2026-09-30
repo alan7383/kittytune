@@ -1396,7 +1396,8 @@ fun DiscoveryBigCard(
                         text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) },
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White.copy(alpha = 0.9f),
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     if (track.user?.verified == true) {
                         Spacer(Modifier.width(6.dp))
@@ -1534,7 +1535,8 @@ fun TrackCardModern(track: Track, onClick: () -> Unit) {
             text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.unknown_artist) },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

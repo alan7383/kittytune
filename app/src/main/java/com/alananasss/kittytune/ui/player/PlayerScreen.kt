@@ -3583,14 +3583,16 @@ fun QueueContent(
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.generic_artist) },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 if (track.user?.verified == true) {
                                     Spacer(Modifier.width(4.dp))
