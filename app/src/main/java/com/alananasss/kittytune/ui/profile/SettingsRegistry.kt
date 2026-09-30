@@ -30,6 +30,7 @@ internal data class SearchSettingEntry(
     val icon: ImageVector? = null,
     @DrawableRes val iconRes: Int? = null,
     val route: String? = null,
+    val highlightKey: String? = null,
     val keywords: List<String> = emptyList(),
     val hasSwitch: Boolean = false,
     val switchState: Boolean = false,
@@ -153,6 +154,7 @@ internal fun SettingDefinition.toSearchSettingEntry(
                 icon = icon,
                 iconRes = iconRes,
                 route = route,
+                highlightKey = id,
                 keywords = keywords,
                 hasSwitch = true,
                 switchState = get(prefs),
@@ -179,6 +181,7 @@ internal fun SettingDefinition.toSearchSettingEntry(
                 icon = icon,
                 iconRes = iconRes,
                 route = route,
+                highlightKey = id,
                 keywords = keywords
             )
         }
@@ -190,8 +193,10 @@ internal fun SettingDefinition.toSearchSettingEntry(
                 icon = icon,
                 iconRes = iconRes,
                 route = route,
+                highlightKey = id,
                 keywords = keywords,
                 onClick = {
+                    com.alananasss.kittytune.ui.common.SettingsHighlightManager.setHighlightKey(id)
                     if (onClick != null) {
                         onClick.invoke(context) { dest -> navController.navigate(dest) }
                     } else {

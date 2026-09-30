@@ -435,7 +435,8 @@ fun AppearanceSettingsScreen(
                                 title = stringResource(R.string.pref_font_variations_title),
                                 subtitle = stringResource(R.string.pref_font_variations_subtitle),
                                 icon = Icons.Rounded.Tune,
-                                onClick = { showFontConfigDialog = true }
+                                onClick = { showFontConfigDialog = true },
+                                highlightKey = "pref_font_variations"
                             )
                         },
                         { shape ->
@@ -545,7 +546,8 @@ fun AppearanceSettingsScreen(
                                 title = stringResource(R.string.pref_library_category_layout_title),
                                 subtitle = stringResource(libraryCategoryLayout.titleRes),
                                 icon = Icons.Rounded.FilterList,
-                                onClick = { showCategoryLayoutDialog = true }
+                                onClick = { showCategoryLayoutDialog = true },
+                                highlightKey = "pref_library_category_layout"
                             )
                         },
 

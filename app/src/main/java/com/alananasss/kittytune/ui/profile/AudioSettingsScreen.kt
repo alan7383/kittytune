@@ -521,7 +521,8 @@ fun AudioSettingsScreen(
                             },
                             onClick = { showEqualizerSheet = true },
                             switchState = playerViewModel.equalizerState.isEnabled,
-                            onSwitchChange = { playerViewModel.toggleEqualizer() }
+                            onSwitchChange = { playerViewModel.toggleEqualizer() },
+                            highlightKey = "equalizer"
                         )
 
                         SettingsItem(
@@ -539,7 +540,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_norm_sub),
                             onClick = { showNormalizationDialog = true },
                             switchState = playerViewModel.effectsState.isNormalizationEnabled,
-                            onSwitchChange = { playerViewModel.toggleNormalization() }
+                            onSwitchChange = { playerViewModel.toggleNormalization() },
+                            highlightKey = "pref_norm"
                         )
 
                         SettingsItem(
@@ -578,7 +580,8 @@ fun AudioSettingsScreen(
                             onSwitchChange = { 
                                 fadeEnabled = it
                                 prefs.setSleepTimerFadeEnabled(it)
-                            }
+                            },
+                            highlightKey = "sleep_timer_fade"
                         )
 
                         AnimatedVisibility(

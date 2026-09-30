@@ -122,7 +122,8 @@ fun MiscSettingsScreen(
                                     AppLanguage.VIETNAMESE -> stringResource(R.string.lang_vietnamese)
                                 },
                                 icon = Icons.Rounded.Translate,
-                                onClick = { showLanguageDialog = true }
+                                onClick = { showLanguageDialog = true },
+                                highlightKey = "pref_language"
                             )
                         },
                         { shape ->
@@ -135,7 +136,8 @@ fun MiscSettingsScreen(
                                     stringResource(R.string.nav_library)
                                 },
                                 icon = Icons.Rounded.Home,
-                                onClick = { showStartDialog = true }
+                                onClick = { showStartDialog = true },
+                                highlightKey = "pref_start_screen"
                             )
                         },
                         { shape ->
@@ -149,7 +151,8 @@ fun MiscSettingsScreen(
                                 onSwitchChange = {
                                     autoUpdate = it
                                     prefs.setAutoUpdateEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_auto_update"
                             )
                         }
                     )

@@ -29,6 +29,7 @@ import androidx.navigation.NavController
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.SettingsGroup
+import com.alananasss.kittytune.ui.common.SettingsHighlightManager
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -289,6 +290,7 @@ fun SettingsScreen(
                 categoryName = catInterface,
                 icon = Icons.Rounded.Tune,
                 route = "appearance_settings",
+                highlightKey = "pref_font_variations",
                 keywords = listOf("variations de police", "font variations", "epaisseur", "weight", "slant", "round", "graisse")
             ),
             SearchSettingEntry(
@@ -310,6 +312,7 @@ fun SettingsScreen(
                 categoryName = catInterface,
                 icon = Icons.Rounded.FilterList,
                 route = "appearance_settings",
+                highlightKey = "pref_library_category_layout",
                 keywords = listOf("bibliotheque", "library", "filtres", "filtre", "categories", "layout", "disposition", "desktop", "bureau", "bouton", "playlists", "albums", "artistes", "stations", "all", "tout")
             ),
             SearchSettingEntry(
@@ -349,6 +352,7 @@ fun SettingsScreen(
                 categoryName = catAudio,
                 icon = Icons.Rounded.GraphicEq,
                 route = "audio_settings",
+                highlightKey = "pref_quality",
                 keywords = listOf("qualite", "qualite audio", "stream quality", "audio quality", "bitrate", "high", "low", "haute qualite", "debit")
             ),
             SearchSettingEntry(
@@ -361,6 +365,7 @@ fun SettingsScreen(
                 categoryName = catAudio,
                 icon = Icons.Rounded.Equalizer,
                 route = "audio_settings",
+                highlightKey = "equalizer",
                 keywords = listOf("equalizer", "egaliseur", "eq", "preamp", "preset", "bass", "treble", "frequence", "son", "16-band")
             ),
             SearchSettingEntry(
@@ -369,6 +374,7 @@ fun SettingsScreen(
                 categoryName = catAudio,
                 icon = Icons.AutoMirrored.Rounded.VolumeUp,
                 route = "audio_settings",
+                highlightKey = "pref_norm",
                 keywords = listOf("normalisation", "volume", "replaygain", "lufs", "gain", "loudness", "egalisation volume")
             ),
             SearchSettingEntry(
@@ -483,6 +489,7 @@ fun SettingsScreen(
                 categoryName = catAudio,
                 icon = Icons.Rounded.Bedtime,
                 route = "audio_settings",
+                highlightKey = "sleep_timer_fade",
                 keywords = listOf("minuteur de sommeil", "sleep timer", "fondu sommeil", "minuterie", "fade")
             ),
 
@@ -639,6 +646,7 @@ fun SettingsScreen(
                 categoryName = catMisc,
                 icon = Icons.Rounded.Translate,
                 route = "misc_settings",
+                highlightKey = "pref_language",
                 keywords = listOf("langue", "language", "francais", "english", "anglais", "deutsch", "allemand", "russe", "traduction", "systeme")
             ),
             SearchSettingEntry(
@@ -647,6 +655,7 @@ fun SettingsScreen(
                 categoryName = catMisc,
                 icon = Icons.Rounded.Home,
                 route = "misc_settings",
+                highlightKey = "pref_start_screen",
                 keywords = listOf("ecran de demarrage", "start screen", "accueil", "bibliotheque", "home", "library", "demarrage")
             ),
             SearchSettingEntry(
@@ -654,6 +663,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_auto_update_sub),
                 categoryName = catMisc,
                 icon = Icons.Rounded.SystemUpdate,
+                route = "misc_settings",
+                highlightKey = "pref_auto_update",
                 keywords = listOf(
                     "auto check update", "auto check", "check update", "auto update",
                     "mise a jour auto", "maj auto", "update", "mise a jour", "maj",
@@ -898,6 +909,9 @@ private fun SettingsSearchResults(
                                     switchState = searchItem.switchState,
                                     onSwitchChange = searchItem.onSwitchChange,
                                     onClick = {
+                                        if (searchItem.highlightKey != null) {
+                                            SettingsHighlightManager.setHighlightKey(searchItem.highlightKey)
+                                        }
                                         if (searchItem.onClick != null) {
                                             searchItem.onClick.invoke()
                                         } else if (searchItem.route != null) {

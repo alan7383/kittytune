@@ -22,12 +22,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import kotlinx.coroutines.delay
 
 // Removed getSettingsShape
 
@@ -96,12 +105,46 @@ fun SettingsItem(
     titleColor: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier,
     /** Sits after the switch, for anything a row needs on its right that is not a value. */
-    trailingContent: (@Composable () -> Unit)? = null
+    trailingContent: (@Composable () -> Unit)? = null,
+    highlightKey: String? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
+    val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val highlightAlpha = remember { Animatable(0f) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
+    val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
+
+    LaunchedEffect(isHighlighted) {
+        if (isHighlighted) {
+            delay(350)
+            try {
+                bringIntoViewRequester.bringIntoView()
+            } catch (_: Exception) {}
+
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            delay(1200)
+            highlightAlpha.animateTo(0f, tween(500, easing = LinearEasing))
+            SettingsHighlightManager.clearHighlight(highlightKey)
+        }
+    }
+
+    val animatedContainerColor = if (highlightAlpha.value > 0f) {
+        lerp(baseColor, highlightedBaseColor, highlightAlpha.value)
+    } else {
+        baseColor
+    }
+
     val onToggleOrClick = {
-        if (hasSwitch && onSwitchChange != null) {
+        if (hasSwitch && onSwitchChange != null && onClick == null) {
             onSwitchChange(!switchState)
         } else {
             onClick?.invoke()
@@ -111,9 +154,11 @@ fun SettingsItem(
     Card(
         onClick = { onToggleOrClick() },
         enabled = onClick != null || hasSwitch,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = animatedContainerColor),
         shape = shape,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoViewRequester),
         interactionSource = interactionSource
     ) {
         Row(
@@ -346,15 +391,51 @@ fun SplitSettingsItem(
     onClick: () -> Unit,
     switchState: Boolean,
     onSwitchChange: (Boolean) -> Unit,
-    titleColor: Color = MaterialTheme.colorScheme.onSurface
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
+    highlightKey: String? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
 
+    val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val highlightAlpha = remember { Animatable(0f) }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
+    val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
+
+    LaunchedEffect(isHighlighted) {
+        if (isHighlighted) {
+            delay(350)
+            try {
+                bringIntoViewRequester.bringIntoView()
+            } catch (_: Exception) {}
+
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
+            highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
+            delay(1200)
+            highlightAlpha.animateTo(0f, tween(500, easing = LinearEasing))
+            SettingsHighlightManager.clearHighlight(highlightKey)
+        }
+    }
+
+    val animatedContainerColor = if (highlightAlpha.value > 0f) {
+        lerp(baseColor, highlightedBaseColor, highlightAlpha.value)
+    } else {
+        baseColor
+    }
+
     Card(
         onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = animatedContainerColor),
         shape = shape,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(bringIntoViewRequester)
     ) {
         Row(
             modifier = Modifier
