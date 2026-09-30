@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
@@ -66,19 +67,18 @@ fun BottomBarSettingsScreen(
     val view = LocalView.current
     val listState = rememberLazyListState()
 
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "mini_player_swipe_action" to 1
+        )
+    )
+
     val currentOrder = remember { mutableStateListOf<String>() }
     LaunchedEffect(storedOrder) {
         if (currentOrder.isEmpty() || currentOrder.toSet() != storedOrder.toSet()) {
             currentOrder.clear()
             currentOrder.addAll(storedOrder)
-        }
-    }
-
-    val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
-    LaunchedEffect(highlightKey) {
-        if (highlightKey == "mini_player_swipe_action") {
-            kotlinx.coroutines.delay(300)
-            listState.animateScrollToItem(1)
         }
     }
 

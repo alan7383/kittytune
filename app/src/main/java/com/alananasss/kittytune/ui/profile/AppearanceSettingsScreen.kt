@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -45,6 +46,7 @@ import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.StartDestination
 import com.alananasss.kittytune.data.local.TrackRemovalMethod
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
@@ -267,28 +269,31 @@ fun AppearanceSettingsScreen(
         )
     }
 
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_theme_dynamic" to 0,
+            "pref_theme_track_dynamic" to 0,
+            "settings_page_themes" to 1,
+            "pref_font_custom" to 2,
+            "pref_font_variations" to 2,
+            "pref_app_icon" to 2,
+            "pref_animated_covers" to 3,
+            "pref_animated_covers_fade_ui" to 3,
+            "pref_animated_artist_profiles" to 3,
+            "pref_lyrics_under_cover" to 3,
+            "pref_explorer_grid" to 4,
+            "pref_library_category_layout" to 4,
+            "pref_achievement_popups" to 4
+        )
+    )
+
     SettingsScaffold(
         title = stringResource(R.string.pref_appearance_title),
         onBackClick = onBackClick
     ) { innerPadding ->
-        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
-        LaunchedEffect(highlightKey) {
-            if (highlightKey != null) {
-                val targetIndex = when (highlightKey) {
-                    "pref_theme_dynamic" -> 0
-                    "pref_font_custom", "pref_font_variations", "pref_app_icon" -> 2
-                    "pref_animated_covers", "pref_animated_covers_fade_ui", "pref_animated_artist_profiles", "pref_lyrics_under_cover" -> 3
-                    "pref_explorer_grid", "pref_library_category_layout", "pref_achievement_popups" -> 4
-                    else -> 0
-                }
-                if (targetIndex > 0) {
-                    kotlinx.coroutines.delay(300)
-                    listState.animateScrollToItem(targetIndex)
-                }
-            }
-        }
-
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -316,7 +321,8 @@ fun AppearanceSettingsScreen(
                                         trackDynamicTheme = false
                                         prefs.setTrackDynamicTheme(false)
                                     }
-                                }
+                                },
+                                highlightKey = "pref_theme_dynamic"
                             )
                         },
                         { shape ->
@@ -334,7 +340,8 @@ fun AppearanceSettingsScreen(
                                         dynamicTheme = false
                                         prefs.setDynamicTheme(false)
                                     }
-                                }
+                                },
+                                highlightKey = "pref_theme_track_dynamic"
                             )
                         }
                     )
@@ -445,7 +452,8 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     customFontEnabled = it
                                     prefs.setCustomFontEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_font_custom"
                             )
                         },
                         { shape ->
@@ -465,7 +473,8 @@ fun AppearanceSettingsScreen(
                                 subtitle = stringResource(R.string.pref_app_icon_subtitle),
                                 trailingText = getAppIconDisplayName(context, appIcon),
                                 icon = Icons.Rounded.Apps,
-                                onClick = onNavigateToAppIconSettings
+                                onClick = onNavigateToAppIconSettings,
+                                highlightKey = "pref_app_icon"
                             )
                         }
                     )
@@ -488,7 +497,8 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     animatedCovers = it
                                     prefs.setAnimatedCoversEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_animated_covers"
                             )
                         }
                         if (animatedCovers) {
@@ -503,7 +513,8 @@ fun AppearanceSettingsScreen(
                                     onSwitchChange = {
                                         animatedCoversFadeUi = it
                                         prefs.setAnimatedCoversFadeUiEnabled(it)
-                                    }
+                                    },
+                                    highlightKey = "pref_animated_covers_fade_ui"
                                 )
                             }
                         }
@@ -518,7 +529,8 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     animatedArtistProfiles = it
                                     prefs.setAnimatedArtistProfilesEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_animated_artist_profiles"
                             )
                         }
                         add { shape ->
@@ -532,7 +544,8 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     lyricsUnderCover = it
                                     prefs.setLyricsUnderCoverEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_lyrics_under_cover"
                             )
                         }
                     }
@@ -555,7 +568,8 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     explorerGridLayout = it
                                     prefs.setExplorerGridLayout(it)
-                                }
+                                },
+                                highlightKey = "pref_explorer_grid"
                             )
                         },
 
@@ -581,7 +595,8 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = {
                                     achievementPopupsEnabled = it
                                     prefs.setAchievementPopupsEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_achievement_popups"
                             )
                         }
                     )

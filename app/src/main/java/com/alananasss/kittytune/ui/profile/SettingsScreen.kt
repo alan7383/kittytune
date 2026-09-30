@@ -159,6 +159,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_theme_dynamic_sub),
                 categoryName = catInterface,
                 icon = Icons.Rounded.AutoAwesome,
+                route = "appearance_settings",
+                highlightKey = "pref_theme_dynamic",
                 keywords = listOf("dynamic", "couleurs dynamiques", "papier peint", "wallpaper", "monet", "material you"),
                 hasSwitch = true,
                 switchState = dynamicTheme,
@@ -172,6 +174,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_theme_track_dynamic_sub),
                 categoryName = catInterface,
                 icon = Icons.Rounded.Album,
+                route = "appearance_settings",
+                highlightKey = "pref_theme_track_dynamic",
                 keywords = listOf("pochette", "album art", "cover color", "track dynamic", "couleur morceau"),
                 hasSwitch = true,
                 switchState = trackDynamicTheme,
@@ -185,6 +189,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_theme_pure_black_sub),
                 categoryName = catInterface,
                 icon = Icons.Rounded.Contrast,
+                route = "appearance_settings",
+                highlightKey = "settings_page_themes",
                 keywords = listOf("noir pur", "pure black", "amoled", "oled", "true black"),
                 hasSwitch = true,
                 switchState = pureBlack,
@@ -198,6 +204,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_show_remaining_time_desc),
                 categoryName = catInterface,
                 icon = Icons.Rounded.Timer,
+                route = "player_design_settings",
+                highlightKey = "pref_show_remaining_time",
                 keywords = listOf("temps restant", "remaining time", "countdown", "-00:14", "duree", "decompte"),
                 hasSwitch = true,
                 switchState = showRemainingTime,
@@ -224,6 +232,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_animated_covers_desc),
                 categoryName = catInterface,
                 icon = Icons.Rounded.PlayCircle,
+                route = "appearance_settings",
+                highlightKey = "pref_animated_covers",
                 keywords = listOf("pochettes animees", "animated covers", "video cover", "pochette video"),
                 hasSwitch = true,
                 switchState = animatedCovers,
@@ -237,6 +247,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_animated_covers_fade_ui_desc),
                 categoryName = catInterface,
                 icon = Icons.Rounded.Opacity,
+                route = "appearance_settings",
+                highlightKey = "pref_animated_covers_fade_ui",
                 keywords = listOf("fondu", "fade ui", "masquer controles", "interface fondu"),
                 hasSwitch = true,
                 switchState = animatedCoversFadeUi,
@@ -250,6 +262,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_animated_artist_profiles_desc),
                 categoryName = catInterface,
                 icon = Icons.Rounded.AccountCircle,
+                route = "appearance_settings",
+                highlightKey = "pref_animated_artist_profiles",
                 keywords = listOf("profils artistes", "artiste anime", "artist video", "banniere animee"),
                 hasSwitch = true,
                 switchState = animatedArtistProfiles,
@@ -263,6 +277,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_lyrics_under_cover_sub),
                 categoryName = catInterface,
                 icon = Icons.Rounded.Lyrics,
+                route = "appearance_settings",
+                highlightKey = "pref_lyrics_under_cover",
                 keywords = listOf("paroles sous la pochette", "lyrics under cover", "paroles lecteur"),
                 hasSwitch = true,
                 switchState = lyricsUnderCover,
@@ -276,6 +292,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_font_custom_subtitle),
                 categoryName = catInterface,
                 icon = Icons.Rounded.TextFields,
+                route = "appearance_settings",
+                highlightKey = "pref_font_custom",
                 keywords = listOf("police", "font", "typographie", "custom font", "texte", "police personnalisee"),
                 hasSwitch = true,
                 switchState = customFontEnabled,
@@ -298,6 +316,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_explorer_grid_subtitle),
                 categoryName = catInterface,
                 icon = Icons.Rounded.GridView,
+                route = "appearance_settings",
+                highlightKey = "pref_explorer_grid",
                 keywords = listOf("explorer grille", "grille exploration", "explorer grid", "affichage grille"),
                 hasSwitch = true,
                 switchState = explorerGridLayout,
@@ -320,6 +340,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_achievement_popups_sub),
                 categoryName = catInterface,
                 icon = Icons.Rounded.EmojiEvents,
+                route = "appearance_settings",
+                highlightKey = "pref_achievement_popups",
                 keywords = listOf("succes", "achievement", "popups", "trophees", "notifications de succes"),
                 hasSwitch = true,
                 switchState = achievementPopups,
@@ -382,6 +404,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_audio_mono_sub),
                 categoryName = catAudio,
                 icon = Icons.AutoMirrored.Rounded.VolumeDown,
+                route = "audio_settings",
+                highlightKey = "pref_audio_mono",
                 keywords = listOf("mono", "audio mono", "stereo", "canaux"),
                 hasSwitch = true,
                 switchState = playerViewModel.effectsState.isMonoEnabled,
@@ -400,6 +424,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_haptics_enable_sub),
                 categoryName = catAudio,
                 icon = Icons.Rounded.Vibration,
+                route = "audio_settings",
+                highlightKey = "pref_haptics",
                 keywords = listOf("haptique", "vibrations", "music haptics", "retour haptique", "activer haptique"),
                 hasSwitch = true,
                 switchState = playerViewModel.isHapticsEnabled,
@@ -410,6 +436,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_crossfade_sub),
                 categoryName = catAudio,
                 icon = Icons.Rounded.LinearScale,
+                route = "audio_settings",
+                highlightKey = "pref_crossfade",
                 keywords = listOf("crossfade", "fondu enchaine", "transition", "fondu"),
                 hasSwitch = true,
                 switchState = crossfade,
@@ -423,6 +451,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_autoplay_sub),
                 categoryName = catAudio,
                 icon = Icons.Rounded.PlayArrow,
+                route = "audio_settings",
+                highlightKey = "pref_autoplay",
                 keywords = listOf("autoplay", "lecture automatique", "suite", "recommandation"),
                 hasSwitch = true,
                 switchState = autoplay,
@@ -436,6 +466,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.automix_desc),
                 categoryName = catAudio,
                 icon = Icons.Rounded.AutoMode,
+                route = "audio_settings",
+                highlightKey = "pref_automix",
                 keywords = listOf("automix", "enchainement", "dj", "dj flow", "flow", "mix", "transition", "tempo", "smart mix"),
                 hasSwitch = true,
                 switchState = automix,
@@ -449,6 +481,8 @@ fun SettingsScreen(
                 subtitle = null,
                 categoryName = catAudio,
                 icon = Icons.Rounded.Cancel,
+                route = "audio_settings",
+                highlightKey = "pref_stop_on_task_clear",
                 keywords = listOf("arreter", "fermeture", "stop on task clear", "quitter", "tache", "kill", "arreter musique a la fermeture", "app close"),
                 hasSwitch = true,
                 switchState = stopOnTaskClear,
@@ -462,6 +496,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_persist_queue_sub),
                 categoryName = catAudio,
                 icon = Icons.AutoMirrored.Rounded.QueueMusic,
+                route = "audio_settings",
+                highlightKey = "pref_persist_queue",
                 keywords = listOf("file d'attente", "queue", "memoriser file", "persist queue"),
                 hasSwitch = true,
                 switchState = persistentQueue,
@@ -475,6 +511,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_save_position_sub),
                 categoryName = catAudio,
                 icon = Icons.Rounded.Restore,
+                route = "audio_settings",
+                highlightKey = "pref_save_position",
                 keywords = listOf("reprendre lecture", "position de lecture", "save position", "memoriser position", "resume", "reprise"),
                 hasSwitch = true,
                 switchState = savePosition,
@@ -507,7 +545,8 @@ fun SettingsScreen(
                 subtitle = null,
                 categoryName = catSources,
                 iconRes = R.drawable.ic_soundcloud,
-                route = "soundcloud_account_settings",
+                route = "accounts_settings",
+                highlightKey = "pref_account_soundcloud",
                 keywords = listOf("soundcloud", "sc", "compte soundcloud", "stream", "login")
             ),
             SearchSettingEntry(
@@ -515,7 +554,8 @@ fun SettingsScreen(
                 subtitle = null,
                 categoryName = catSources,
                 iconRes = R.drawable.ic_vk,
-                route = "vk_account_settings",
+                route = "accounts_settings",
+                highlightKey = "pref_account_vk",
                 keywords = listOf("vk", "vkontakte", "vk music", "compte vk", "login")
             ),
             SearchSettingEntry(
@@ -523,7 +563,8 @@ fun SettingsScreen(
                 subtitle = null,
                 categoryName = catSources,
                 iconRes = R.drawable.ic_discord,
-                route = "discord_settings",
+                route = "accounts_settings",
+                highlightKey = "pref_discord",
                 keywords = listOf("discord", "rpc", "presence", "rich presence", "statut", "compte discord")
             ),
             SearchSettingEntry(
@@ -531,7 +572,8 @@ fun SettingsScreen(
                 subtitle = null,
                 categoryName = catSources,
                 iconRes = R.drawable.ic_logo_qobuz,
-                route = "qobuz_settings",
+                route = "accounts_settings",
+                highlightKey = "pref_qobuz",
                 keywords = listOf("qobuz", "flac", "hi-res", "source qobuz", "haute resolution")
             ),
             SearchSettingEntry(
@@ -539,7 +581,8 @@ fun SettingsScreen(
                 subtitle = null,
                 categoryName = catSources,
                 iconRes = R.drawable.ic_logo_tidal,
-                route = "tidal_settings",
+                route = "accounts_settings",
+                highlightKey = "pref_tidal",
                 keywords = listOf("tidal", "hifi", "lossless", "master", "source tidal")
             ),
             SearchSettingEntry(
@@ -547,7 +590,8 @@ fun SettingsScreen(
                 subtitle = null,
                 categoryName = catSources,
                 iconRes = R.drawable.ic_logo_deezer,
-                route = "deezer_settings",
+                route = "accounts_settings",
+                highlightKey = "pref_deezer",
                 keywords = listOf("deezer", "mp3", "flac", "source deezer")
             ),
             SearchSettingEntry(
@@ -555,7 +599,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_accounts_subtitle),
                 categoryName = catSources,
                 icon = Icons.Rounded.Tune,
-                route = "provider_order_settings",
+                route = "accounts_settings",
+                highlightKey = "pref_provider_order",
                 keywords = listOf("ordre sources", "fournisseurs", "priorite", "stream", "provider order")
             ),
             SearchSettingEntry(
@@ -563,6 +608,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.pref_youtube_fallback_sub),
                 categoryName = catSources,
                 icon = Icons.Rounded.SmartDisplay,
+                route = "audio_settings",
+                highlightKey = "pref_youtube_fallback",
                 keywords = listOf("youtube fallback", "repli youtube", "secours", "youtube"),
                 hasSwitch = true,
                 switchState = youtubeFallback,
@@ -576,6 +623,8 @@ fun SettingsScreen(
                 subtitle = context.getString(R.string.discord_enable_rpc_desc),
                 categoryName = catSources,
                 icon = Icons.AutoMirrored.Rounded.Chat,
+                route = "accounts_settings",
+                highlightKey = "pref_discord",
                 keywords = listOf("discord", "presence", "rpc", "statut", "rich presence"),
                 hasSwitch = true,
                 switchState = discordRpc,
@@ -899,6 +948,7 @@ private fun SettingsSearchResults(
                         title = catName,
                         items = itemsInCat.map { searchItem ->
                             { shape ->
+                                val hasAction = searchItem.onClick != null || searchItem.route != null
                                 SettingsItem(
                                     shape = shape,
                                     title = searchItem.title,
@@ -908,16 +958,18 @@ private fun SettingsSearchResults(
                                     hasSwitch = searchItem.hasSwitch,
                                     switchState = searchItem.switchState,
                                     onSwitchChange = searchItem.onSwitchChange,
-                                    onClick = {
-                                        if (searchItem.highlightKey != null) {
-                                            SettingsHighlightManager.setHighlightKey(searchItem.highlightKey)
+                                    onClick = if (hasAction) {
+                                        {
+                                            if (searchItem.highlightKey != null) {
+                                                SettingsHighlightManager.setHighlightKey(searchItem.highlightKey)
+                                            }
+                                            if (searchItem.onClick != null) {
+                                                searchItem.onClick.invoke()
+                                            } else if (searchItem.route != null) {
+                                                navController.navigate(searchItem.route)
+                                            }
                                         }
-                                        if (searchItem.onClick != null) {
-                                            searchItem.onClick.invoke()
-                                        } else if (searchItem.route != null) {
-                                            navController.navigate(searchItem.route)
-                                        }
-                                    }
+                                    } else null
                                 )
                             }
                         }

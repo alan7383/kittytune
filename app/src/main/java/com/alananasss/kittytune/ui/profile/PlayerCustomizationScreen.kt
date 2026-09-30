@@ -48,6 +48,7 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.PlayerProgressMode
 import com.alananasss.kittytune.data.local.PlayerSliderStyle
 import com.alananasss.kittytune.data.local.WaveformColorMode
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
@@ -142,26 +143,24 @@ fun PlayerCustomizationScreen(
         }
     )
 
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "player_design_page" to 0,
+            "pref_show_remaining_time" to 1,
+            "pref_animated_covers" to 2,
+            "pref_animated_covers_fade_ui" to 2,
+            "pref_animated_artist_profiles" to 2,
+            "notif_player_extra_button" to 4,
+            "mini_player_swipe_action" to 5
+        )
+    )
+
     SettingsScaffold(
         title = stringResource(R.string.pref_player_design),
         subtitle = stringResource(R.string.settings_page_player_sub),
         onBackClick = onBackClick
     ) { innerPadding ->
-        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
-        LaunchedEffect(highlightKey) {
-            if (highlightKey != null) {
-                val targetIndex = when (highlightKey) {
-                    "notif_player_extra_button" -> 1
-                    "mini_player_swipe_action" -> 2
-                    else -> 0
-                }
-                if (targetIndex > 0) {
-                    kotlinx.coroutines.delay(300)
-                    listState.animateScrollToItem(targetIndex)
-                }
-            }
-        }
-
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -509,7 +508,8 @@ fun PlayerCustomizationScreen(
                                     showRemainingTime = it
                                     prefs.setShowRemainingTime(it)
                                     onUpdated()
-                                }
+                                },
+                                highlightKey = "pref_show_remaining_time"
                             )
                         }
                     )

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,6 +30,7 @@ import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
@@ -406,28 +408,34 @@ fun AudioSettingsScreen(
         )
     }
 
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_autoplay" to 0,
+            "pref_stop_on_task_clear" to 0,
+            "pref_persist_queue" to 0,
+            "pref_save_position" to 0,
+            "pref_youtube_fallback" to 0,
+            "pref_download_drm" to 0,
+            "pref_precise_speed" to 0,
+            "pref_sc_sync" to 0,
+            "equalizer" to 1,
+            "pref_audio_mono" to 1,
+            "pref_norm" to 1,
+            "pref_haptics" to 1,
+            "sleep_timer_fade" to 2,
+            "pref_crossfade" to 3,
+            "pref_automix" to 4,
+            "pref_quality" to 5
+        )
+    )
+
     SettingsScaffold(
         title = stringResource(R.string.pref_audio_title),
         onBackClick = onBackClick
     ) { innerPadding ->
-        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
-        LaunchedEffect(highlightKey) {
-            if (highlightKey != null) {
-                val targetIndex = when (highlightKey) {
-                    "equalizer", "pref_audio_mono", "pref_norm", "pref_haptics" -> 1
-                    "sleep_timer_fade" -> 2
-                    "pref_crossfade" -> 3
-                    "pref_automix" -> 4
-                    else -> 0
-                }
-                if (targetIndex > 0) {
-                    kotlinx.coroutines.delay(300)
-                    listState.animateScrollToItem(targetIndex)
-                }
-            }
-        }
-
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -449,7 +457,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_autoplay_sub),
                             hasSwitch = true,
                             switchState = autoplayEnabled,
-                            onSwitchChange = { autoplayEnabled = it; prefs.setAutoplayEnabled(it) }
+                            onSwitchChange = { autoplayEnabled = it; prefs.setAutoplayEnabled(it) },
+                            highlightKey = "pref_autoplay"
                         )
 
                         SettingsItem(
@@ -457,7 +466,8 @@ fun AudioSettingsScreen(
                             title = stringResource(R.string.pref_stop_on_task_clear),
                             hasSwitch = true,
                             switchState = stopOnTaskClear,
-                            onSwitchChange = { stopOnTaskClear = it; prefs.setStopOnTaskClear(it) }
+                            onSwitchChange = { stopOnTaskClear = it; prefs.setStopOnTaskClear(it) },
+                            highlightKey = "pref_stop_on_task_clear"
                         )
 
                         SettingsItem(
@@ -466,7 +476,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_persist_queue_sub),
                             hasSwitch = true,
                             switchState = persistentQueueEnabled,
-                            onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) }
+                            onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) },
+                            highlightKey = "pref_persist_queue"
                         )
 
                         var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
@@ -476,7 +487,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_save_position_sub),
                             hasSwitch = true,
                             switchState = savePositionEnabled,
-                            onSwitchChange = { savePositionEnabled = it; prefs.setSavePositionEnabled(it) }
+                            onSwitchChange = { savePositionEnabled = it; prefs.setSavePositionEnabled(it) },
+                            highlightKey = "pref_save_position"
                         )
 
                         SettingsItem(
@@ -485,7 +497,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_youtube_fallback_sub),
                             hasSwitch = true,
                             switchState = youtubeFallbackEnabled,
-                            onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) }
+                            onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) },
+                            highlightKey = "pref_youtube_fallback"
                         )
 
                         SplitSettingsItem(
@@ -494,7 +507,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_download_drm_sub),
                             onClick = onNavigateToDrmExplanation,
                             switchState = downloadDrmEnabled,
-                            onSwitchChange = { downloadDrmEnabled = it; prefs.setDownloadDrmStreamsEnabled(it) }
+                            onSwitchChange = { downloadDrmEnabled = it; prefs.setDownloadDrmStreamsEnabled(it) },
+                            highlightKey = "pref_download_drm"
                         )
 
                         SettingsItem(
@@ -503,7 +517,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
                             switchState = playerViewModel.isPreciseSpeedEnabled,
-                            onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
+                            onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) },
+                            highlightKey = "pref_precise_speed"
                         )
 
                         if (!isGuest) {
@@ -516,7 +531,8 @@ fun AudioSettingsScreen(
                                 onSwitchChange = {
                                     scHistorySyncEnabled = it
                                     prefs.setSoundCloudHistorySyncEnabled(it)
-                                }
+                                },
+                                highlightKey = "pref_sc_sync"
                             )
                         }
                     }
@@ -550,7 +566,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_audio_mono_sub),
                             hasSwitch = true,
                             switchState = playerViewModel.effectsState.isMonoEnabled,
-                            onSwitchChange = { playerViewModel.toggleMono() }
+                            onSwitchChange = { playerViewModel.toggleMono() },
+                            highlightKey = "pref_audio_mono"
                         )
 
                         SplitSettingsItem(
@@ -569,7 +586,8 @@ fun AudioSettingsScreen(
                             subtitle = stringResource(R.string.pref_haptics_subtitle),
                             hasSwitch = true,
                             switchState = playerViewModel.isHapticsEnabled,
-                            onSwitchChange = { playerViewModel.toggleHaptics(it) }
+                            onSwitchChange = { playerViewModel.toggleHaptics(it) },
+                            highlightKey = "pref_haptics"
                         )
                     }
                 }
@@ -648,7 +666,8 @@ fun AudioSettingsScreen(
                             onSwitchChange = { 
                                 crossfadeEnabled = it
                                 prefs.setCrossfadeEnabled(it)
-                            }
+                            },
+                            highlightKey = "pref_crossfade"
                         )
 
                         AnimatedVisibility(
@@ -733,7 +752,8 @@ fun AudioSettingsScreen(
                             onSwitchChange = { 
                                 automixEnabled = it
                                 prefs.setAutomixEnabled(it)
-                            }
+                            },
+                            highlightKey = "pref_automix"
                         )
 
                         AnimatedVisibility(
@@ -840,7 +860,8 @@ fun AudioSettingsScreen(
                                 shape = shape,
                                 title = stringResource(R.string.pref_quality),
                                 subtitle = if (audioQuality == "HIGH") stringResource(R.string.quality_high) else stringResource(R.string.quality_low),
-                                onClick = { showQualityDialog = true }
+                                onClick = { showQualityDialog = true },
+                                highlightKey = "pref_quality"
                             )
                         }
                     )

@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -119,23 +120,18 @@ fun SettingsItem(
     val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
     val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
 
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    LaunchedEffect(isHighlighted) {
-        if (isHighlighted) {
-            delay(350)
-            try {
-                val extraPx = with(density) { 140.dp.toPx() }
-                bringIntoViewRequester.bringIntoView(
-                    androidx.compose.ui.geometry.Rect(
-                        left = 0f,
-                        top = -extraPx / 2f,
-                        right = 1000f,
-                        bottom = extraPx
-                    )
-                )
-            } catch (_: Exception) {}
+    val isScrolling = SettingsHighlightManager.isScrollingToTarget
 
-            delay(250)
+    LaunchedEffect(isHighlighted, isScrolling) {
+        if (isHighlighted) {
+            if (isScrolling) {
+                delay(900)
+                SettingsHighlightManager.isScrollingToTarget = false
+            }
+            delay(150)
+            try {
+                bringIntoViewRequester.bringIntoView()
+            } catch (_: Exception) {}
 
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
             highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
@@ -143,7 +139,7 @@ fun SettingsItem(
             highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
             delay(1200)
-            highlightAlpha.animateTo(0f, tween(500, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(500, easing = FastOutSlowInEasing))
             SettingsHighlightManager.clearHighlight(highlightKey)
         }
     }
@@ -416,23 +412,18 @@ fun SplitSettingsItem(
     val highlightOverlay = remember(primaryColor) { primaryColor.copy(alpha = 0.26f) }
     val highlightedBaseColor = remember(highlightOverlay, baseColor) { highlightOverlay.compositeOver(baseColor) }
 
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    LaunchedEffect(isHighlighted) {
-        if (isHighlighted) {
-            delay(350)
-            try {
-                val extraPx = with(density) { 140.dp.toPx() }
-                bringIntoViewRequester.bringIntoView(
-                    androidx.compose.ui.geometry.Rect(
-                        left = 0f,
-                        top = -extraPx / 2f,
-                        right = 1000f,
-                        bottom = extraPx
-                    )
-                )
-            } catch (_: Exception) {}
+    val isScrolling = SettingsHighlightManager.isScrollingToTarget
 
-            delay(250)
+    LaunchedEffect(isHighlighted, isScrolling) {
+        if (isHighlighted) {
+            if (isScrolling) {
+                delay(900)
+                SettingsHighlightManager.isScrollingToTarget = false
+            }
+            delay(150)
+            try {
+                bringIntoViewRequester.bringIntoView()
+            } catch (_: Exception) {}
 
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
             highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
@@ -440,7 +431,7 @@ fun SplitSettingsItem(
             highlightAlpha.animateTo(0f, tween(200, easing = LinearEasing))
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
             delay(1200)
-            highlightAlpha.animateTo(0f, tween(500, easing = LinearEasing))
+            highlightAlpha.animateTo(0f, tween(500, easing = FastOutSlowInEasing))
             SettingsHighlightManager.clearHighlight(highlightKey)
         }
     }

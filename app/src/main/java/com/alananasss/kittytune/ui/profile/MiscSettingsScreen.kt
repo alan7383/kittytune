@@ -11,7 +11,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +25,8 @@ import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.StartDestination
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
@@ -94,20 +95,22 @@ fun MiscSettingsScreen(
         )
     }
 
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_language" to 0,
+            "pref_start_screen" to 0,
+            "pref_auto_update" to 0
+        )
+    )
+
     SettingsScaffold(
         title = stringResource(R.string.settings_cat_general),
         subtitle = stringResource(R.string.settings_cat_general_sub),
         onBackClick = onBackClick
     ) { innerPadding ->
-        val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-        val highlightKey = com.alananasss.kittytune.ui.common.SettingsHighlightManager.highlightKey
-        LaunchedEffect(highlightKey) {
-            if (highlightKey == "pref_auto_update") {
-                kotlinx.coroutines.delay(300)
-                listState.animateScrollToItem(0, scrollOffset = 250)
-            }
-        }
-
         LazyColumn(
             state = listState,
             modifier = Modifier

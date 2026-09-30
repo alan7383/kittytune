@@ -2,6 +2,7 @@ package com.alananasss.kittytune.ui.profile
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material3.*
@@ -19,6 +20,7 @@ import com.alananasss.kittytune.audio.providers.tidal.TidalAudioQuality
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
@@ -99,11 +101,27 @@ fun AccountsSettingsScreen(
         DeezerAudioQuality.MP3_128 -> stringResource(R.string.deezer_quality_mp3_128)
     }
 
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_account_soundcloud" to 0,
+            "pref_account_vk" to 0,
+            "pref_discord" to 0,
+            "pref_provider_order" to 1,
+            "pref_qobuz" to 1,
+            "pref_tidal" to 1,
+            "pref_deezer" to 1
+        )
+    )
+
     SettingsScaffold(
         title = stringResource(R.string.accounts_screen_title),
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
@@ -119,7 +137,8 @@ fun AccountsSettingsScreen(
                                 title = stringResource(R.string.pref_account_soundcloud_title),
                                 subtitle = scSubtitle,
                                 iconRes = R.drawable.ic_soundcloud,
-                                onClick = onNavigateToSoundCloud
+                                onClick = onNavigateToSoundCloud,
+                                highlightKey = "pref_account_soundcloud"
                             )
                         },
                         { shape ->
@@ -128,7 +147,8 @@ fun AccountsSettingsScreen(
                                 title = stringResource(R.string.pref_account_vk_title),
                                 subtitle = vkSubtitle,
                                 iconRes = R.drawable.ic_vk,
-                                onClick = onNavigateToVk
+                                onClick = onNavigateToVk,
+                                highlightKey = "pref_account_vk"
                             )
                         },
                         { shape ->
@@ -146,7 +166,8 @@ fun AccountsSettingsScreen(
                                     stringResource(R.string.discord_not_connected)
                                 },
                                 iconRes = R.drawable.ic_discord,
-                                onClick = onNavigateToDiscord
+                                onClick = onNavigateToDiscord,
+                                highlightKey = "pref_discord"
                             )
                         }
                     )
@@ -164,7 +185,8 @@ fun AccountsSettingsScreen(
                                 title = stringResource(R.string.provider_order),
                                 subtitle = orderSummary,
                                 icon = Icons.Rounded.SwapVert,
-                                onClick = onNavigateToProviderOrder
+                                onClick = onNavigateToProviderOrder,
+                                highlightKey = "pref_provider_order"
                             )
                         },
                         { shape ->
@@ -173,7 +195,8 @@ fun AccountsSettingsScreen(
                                 title = stringResource(R.string.qobuz_integration),
                                 subtitle = qobuzSubtitle,
                                 iconRes = R.drawable.ic_logo_qobuz,
-                                onClick = onNavigateToQobuz
+                                onClick = onNavigateToQobuz,
+                                highlightKey = "pref_qobuz"
                             )
                         },
                         { shape ->
@@ -182,7 +205,8 @@ fun AccountsSettingsScreen(
                                 title = stringResource(R.string.tidal_integration),
                                 subtitle = tidalSubtitle,
                                 iconRes = R.drawable.ic_logo_tidal,
-                                onClick = onNavigateToTidal
+                                onClick = onNavigateToTidal,
+                                highlightKey = "pref_tidal"
                             )
                         },
                         { shape ->
@@ -191,7 +215,8 @@ fun AccountsSettingsScreen(
                                 title = stringResource(R.string.deezer_integration),
                                 subtitle = deezerSubtitle,
                                 iconRes = R.drawable.ic_logo_deezer,
-                                onClick = onNavigateToDeezer
+                                onClick = onNavigateToDeezer,
+                                highlightKey = "pref_deezer"
                             )
                         }
                     )
