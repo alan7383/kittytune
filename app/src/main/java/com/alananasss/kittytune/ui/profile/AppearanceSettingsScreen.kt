@@ -543,8 +543,7 @@ fun AppearanceSettingsScreen(
                             SettingsItem(
                                 shape = shape,
                                 title = stringResource(R.string.pref_library_category_layout_title),
-                                subtitle = stringResource(R.string.pref_library_category_layout_subtitle),
-                                trailingText = stringResource(libraryCategoryLayout.titleRes),
+                                subtitle = stringResource(libraryCategoryLayout.titleRes),
                                 icon = Icons.Rounded.FilterList,
                                 onClick = { showCategoryLayoutDialog = true }
                             )
