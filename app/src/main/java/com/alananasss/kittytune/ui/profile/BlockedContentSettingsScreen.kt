@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,12 +24,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.BlockManager
+import com.alananasss.kittytune.data.local.AiDetectionWindow
 import com.alananasss.kittytune.data.local.BlockedContent
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.*
@@ -46,6 +49,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     var aiThreshold by remember { mutableStateOf(prefs.aiScoreThreshold) }
     var aiShowBadge by remember { mutableStateOf(prefs.aiShowBadge) }
     var aiShowHumanBadge by remember { mutableStateOf(prefs.aiShowHumanBadge) }
+    var aiWindow by remember { mutableStateOf(prefs.aiDetectionWindow) }
+    var showAiWindowDialog by remember { mutableStateOf(false) }
     var showDownloadPromptDialog by remember { mutableStateOf(false) }
     var showDeleteModelDialog by remember { mutableStateOf(false) }
     val blockedTracks by (BlockManager.observeBlockedTracks() ?: emptyFlow())
@@ -182,6 +187,85 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
         )
     }
 
+    if (showAiWindowDialog) {
+        AlertDialog(
+            onDismissRequest = { showAiWindowDialog = false },
+            icon = { Icon(Icons.Rounded.Speed, null, tint = MaterialTheme.colorScheme.primary) },
+            title = {
+                Text(
+                    text = stringResource(R.string.block_ai_window_dialog_title),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    for (option in AiDetectionWindow.entries) {
+                        val isSelected = aiWindow == option
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    aiWindow = option
+                                    prefs.aiDetectionWindow = option
+                                    showAiWindowDialog = false
+                                },
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (isSelected)
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            border = if (isSelected)
+                                BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                            else
+                                null
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = null,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                )
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(option.titleRes),
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = stringResource(option.descRes),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 16.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showAiWindowDialog = false },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
     SettingsScaffold(
         title = stringResource(R.string.pref_content_filter_title),
         onBackClick = onBackClick,
@@ -311,7 +395,16 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         }
                     }
 
-                    // Block 2: Badges group with animated corner radius
+                    // Block 2: AI Analysis window selector
+                    SettingsItem(
+                        shape = RoundedCornerShape(24.dp),
+                        title = stringResource(R.string.block_ai_window_title),
+                        subtitle = stringResource(aiWindow.titleRes),
+                        icon = Icons.Rounded.Speed,
+                        onClick = { showAiWindowDialog = true }
+                    )
+
+                    // Block 3: Badges group with animated corner radius
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val badgeBottomRadius by animateDpAsState(
                             targetValue = if (aiShowBadge) 4.dp else 24.dp,

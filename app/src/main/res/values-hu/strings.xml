@@ -2769,6 +2769,13 @@
     <string name="ai_sheet_open_settings">Szűrési és MI-beállítások</string>
     <string name="block_ai_spare_favorites">Kedvencek megkímélése</string>
     <string name="block_ai_spare_favorites_sub">Soha ne ugorja át automatikusan a kedvelt számokat</string>
+    <string name="block_ai_window_title">Elemzési időablak</string>
+    <string name="block_ai_window_sub">A döntés előtt elemzett hanganyag időtartama</string>
+    <string name="block_ai_window_dialog_title">MI-elemzési időablak</string>
+    <string name="block_ai_window_4s_title">4 másodperc (Ajánlott)</string>
+    <string name="block_ai_window_4s_desc">Előnyök: Maximális pontosság, natív folyamatos elemzés mesterséges ismétlés nélkül.\nHátrányok: Észlelés kb. 4 mp után (enyhe késleltetés a kihagyás előtt).</string>
+    <string name="block_ai_window_1s_title">1 másodperc (Rendkívül gyors)</string>
+    <string name="block_ai_window_1s_desc">Előnyök: Szinte azonnali kihagyás (~1 mp), azonnali reagálás.\nHátrányok: Rövid hanganyag simítással ismételve, érzékenyebb lehet a szokatlan intrókra.</string>
     <string name="ai_skip_undo_message">MI-szám átugorva</string>
     <string name="pref_notif_extra_button_title">Értesítés extra gomb</string>
     <string name="pref_notif_extra_button_subtitle">Egyéni művelet az értesítési sáv jobb oldalán</string>

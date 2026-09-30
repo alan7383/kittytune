@@ -110,6 +110,31 @@ enum class TrackRemovalMethod {
 
 enum class PlayerBarStyle { DEFAULT, ROUNDED, FLOATING }
 
+enum class AiDetectionWindow(
+    val id: String,
+    val seconds: Int,
+    @StringRes val titleRes: Int,
+    @StringRes val descRes: Int
+) {
+    ACCURATE(
+        id = "4s",
+        seconds = 4,
+        titleRes = R.string.block_ai_window_4s_title,
+        descRes = R.string.block_ai_window_4s_desc
+    ),
+    FAST(
+        id = "1s",
+        seconds = 1,
+        titleRes = R.string.block_ai_window_1s_title,
+        descRes = R.string.block_ai_window_1s_desc
+    );
+
+    companion object {
+        fun fromId(id: String?): AiDetectionWindow =
+            entries.firstOrNull { it.id == id } ?: ACCURATE
+    }
+}
+
 data class FloatingBarLook(
     val cornerDp: Int,
     val widthPercent: Int,
@@ -373,6 +398,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AI_AUTO_BLOCK = "ai_auto_block_enabled"
         private const val KEY_AI_SPARE_FAVORITES = "ai_spare_favorites"
         private const val KEY_AI_SCORE_THRESHOLD = "ai_score_threshold"
+        private const val KEY_AI_DETECTION_WINDOW = "ai_detection_window"
         const val KEY_AI_SHOW_BADGE = "ai_show_badge"
         const val KEY_AI_SHOW_HUMAN_BADGE = "ai_show_human_badge"
     }
@@ -440,6 +466,11 @@ class PlayerPreferences(context: Context) {
     var aiShowHumanBadge: Boolean
         get() = prefs.getBoolean(KEY_AI_SHOW_HUMAN_BADGE, false)
         set(value) = prefs.edit { putBoolean(KEY_AI_SHOW_HUMAN_BADGE, value) }
+
+    /** Audio duration analyzed before classifying AI music (1s or 4s). Default: ACCURATE (4s). */
+    var aiDetectionWindow: AiDetectionWindow
+        get() = AiDetectionWindow.fromId(prefs.getString(KEY_AI_DETECTION_WINDOW, AiDetectionWindow.ACCURATE.id))
+        set(value) = prefs.edit { putString(KEY_AI_DETECTION_WINDOW, value.id) }
 
     fun getCrossfadeDuration(): Int = prefs.getInt(KEY_CROSSFADE_DURATION, 5)
     fun setCrossfadeDuration(seconds: Int) = prefs.edit { putInt(KEY_CROSSFADE_DURATION, seconds.coerceIn(1, 12)) }

@@ -2789,6 +2789,13 @@
     <string name="ai_sheet_open_settings">Paramètres de filtrage et IA</string>
     <string name="block_ai_spare_favorites">Épargner mes favoris</string>
     <string name="block_ai_spare_favorites_sub">Ne jamais passer automatiquement les morceaux que vous avez likés</string>
+    <string name="block_ai_window_title">Fenêtre d\'analyse</string>
+    <string name="block_ai_window_sub">Durée analysée avant prise de décision</string>
+    <string name="block_ai_window_dialog_title">Fenêtre d\'analyse IA</string>
+    <string name="block_ai_window_4s_title">4 secondes (Recommandé)</string>
+    <string name="block_ai_window_4s_desc">Avantages : Précision maximale, analyse native continue sans répétition artificielle.\nInconvénients : Détection après ~4 s d\'écoute (léger délai avant le passage).</string>
+    <string name="block_ai_window_1s_title">1 seconde (Ultra-rapide)</string>
+    <string name="block_ai_window_1s_desc">Avantages : Zappe le morceau quasi-instantanément (~1 s), réactivité immédiate.\nInconvénients : Segment audio bouclé avec lissage, un peu plus sensible aux intros calmes.</string>
     <string name="ai_skip_undo_message">Titre IA passé</string>
     <string name="pref_notif_extra_button_title">Bouton supplémentaire notification</string>
     <string name="pref_notif_extra_button_subtitle">Action personnalisée affichée à droite du lecteur de notification</string>

@@ -1303,6 +1303,13 @@
     <string name="ai_sheet_open_settings">Filter &amp; AI Settings</string>
     <string name="block_ai_spare_favorites">Spare favorite tracks</string>
     <string name="block_ai_spare_favorites_sub">Never auto-skip tracks that you have liked</string>
+    <string name="block_ai_window_title">Analysis window</string>
+    <string name="block_ai_window_sub">Duration analyzed before making a decision</string>
+    <string name="block_ai_window_dialog_title">AI Analysis Window</string>
+    <string name="block_ai_window_4s_title">4 seconds (Recommended)</string>
+    <string name="block_ai_window_4s_desc">Pros: Maximum accuracy, native continuous analysis without repetition.\nCons: Detection takes ~4s of playback (slight delay before skip).</string>
+    <string name="block_ai_window_1s_title">1 second (Ultra-fast)</string>
+    <string name="block_ai_window_1s_desc">Pros: Skips AI tracks almost immediately (~1s), instant responsiveness.\nCons: Audio snippet is looped with crossfade, slightly more sensitive to atypical intros.</string>
     <string name="ai_skip_undo_message">AI track skipped</string>
     <string name="pref_notif_extra_button_title">Notification extra button</string>
     <string name="pref_notif_extra_button_subtitle">Action button shown on the right side of the media notification</string>

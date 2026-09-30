@@ -296,10 +296,27 @@ object AiDetectionManager {
         val inputSamples: FloatArray
         val numChunks: Int
         if (resampled.size < CHUNK_SAMPLES) {
-            // Fast-path: tile short audio (e.g. ~1.0s) up to CHUNK_SAMPLES for ultra-fast skip detection (~1s)
+            // Fast mode: short audio (~1.0s) tiled up to CHUNK_SAMPLES with smooth loop crossfading
+            // to completely eliminate boundary step discontinuities / click transients.
             val n = resampled.size
-            inputSamples = FloatArray(CHUNK_SAMPLES) { i ->
-                resampled[i % n]
+            val fadeLen = minOf(882, n / 10) // ~20 ms crossfade window at 44.1 kHz
+            if (fadeLen > 1 && n > fadeLen) {
+                val loopLen = n - fadeLen
+                val loopable = FloatArray(loopLen)
+                for (k in 0 until fadeLen) {
+                    val alpha = k.toFloat() / fadeLen
+                    loopable[k] = alpha * resampled[k] + (1f - alpha) * resampled[n - fadeLen + k]
+                }
+                for (k in fadeLen until loopLen) {
+                    loopable[k] = resampled[k]
+                }
+                inputSamples = FloatArray(CHUNK_SAMPLES) { i ->
+                    loopable[i % loopLen]
+                }
+            } else {
+                inputSamples = FloatArray(CHUNK_SAMPLES) { i ->
+                    resampled[i % n]
+                }
             }
             numChunks = 1
         } else {

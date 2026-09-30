@@ -2882,6 +2882,13 @@
     <string name="ai_sheet_open_settings">Filter- &amp; KI-Einstellungen</string>
     <string name="block_ai_spare_favorites">Favoriten verschonen</string>
     <string name="block_ai_spare_favorites_sub">Titel, die Ihnen gefallen, niemals automatisch überspringen</string>
+    <string name="block_ai_window_title">Analysefenster</string>
+    <string name="block_ai_window_sub">Analysedauer vor der Entscheidung</string>
+    <string name="block_ai_window_dialog_title">KI-Analysefenster</string>
+    <string name="block_ai_window_4s_title">4 Sekunden (Empfohlen)</string>
+    <string name="block_ai_window_4s_desc">Vorteile: Maximale Genauigkeit, native kontinuierliche Analyse ohne künstliche Wiederholung.\nNachteile: Erkennung nach ca. 4 s (leichte Verzögerung vor dem Überspringen).</string>
+    <string name="block_ai_window_1s_title">1 Sekunde (Ultraschnell)</string>
+    <string name="block_ai_window_1s_desc">Vorteile: Überspringt KI-Titel fast sofort (~1 s), unmittelbare Reaktion.\nNachteile: Kurzer Audioschnipsel mit Überblendung wiederholt, sensibler bei leisen Intros.</string>
     <string name="ai_skip_undo_message">KI-Titel übersprungen</string>
     <string name="pref_notif_extra_button_title">Zusätzliche Benachrichtigungsschaltfläche</string>
     <string name="pref_notif_extra_button_subtitle">Benutzerdefinierte Aktion rechts im Benachrichtigungs-Player</string>

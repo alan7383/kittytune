@@ -1,8 +1,10 @@
 package com.alananasss.kittytune.audio.ai
 
-import android.util.Log
-import androidx.media3.common.audio.BaseAudioProcessor
+import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.BaseAudioProcessor
+import com.alananasss.kittytune.data.local.AiDetectionWindow
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import java.nio.ByteBuffer
 
 /**
@@ -10,53 +12,55 @@ import java.nio.ByteBuffer
  * and feeds it to [AiDetectionManager] for ArtifactNet AI music detection.
  *
  * Completely transparent — never modifies audio data.
- * Multi-stage progressive analysis:
- * - Stage 1 (~1.0s @ 176k bytes): Ultra-fast skip for obvious AI tracks (tiled inference)
- * - Stage 2 (~2.5s @ 441k bytes): Fast check if intro had lower energy
- * - Stage 3 (~4.0s @ 705k bytes): Full authentic chunk without tiling
- * - Stage 4 (~12s @ 2.1M bytes): Multi-chunk median for non-AI tracks, then releases buffer
+ * Zero-allocation during playback via pre-allocated PCM buffer.
+ * Configurable analysis window:
+ * - 4 seconds (Accurate, Recommended): Full native 4.0s ArtifactNet segment without tiling
+ * - 1 second (Ultra-fast): ~1.0s segment tiled with loop crossfading for immediate skips
  */
-class AiDetectionAudioProcessor : BaseAudioProcessor() {
+class AiDetectionAudioProcessor(
+    private var preferences: PlayerPreferences? = null
+) : BaseAudioProcessor() {
 
     companion object {
         private const val TAG = "AiDetectionAudioProc"
-        // Stage 1: Ultra-fast early detection at ~1.0 s stereo @ 44.1 kHz (176,400 bytes)
-        private const val FAST_ANALYSIS_BYTES = 176_400
-        // Stage 2: Second check at ~2.5 s (441,000 bytes) if intro started slowly
-        private const val MEDIUM_ANALYSIS_BYTES = 441_000
-        // Stage 3: Full 4.0-second chunk (705,600 bytes)
-        private const val FULL_CHUNK_BYTES = 705_600
-        // Stage 4: Multi-chunk median cap at ~12 s (2,116,800 bytes)
-        private const val MAX_COLLECT_BYTES = 2_116_800
+        // Maximum collection buffer: 4.0 seconds @ 48 kHz stereo 16-bit = 768,000 bytes
+        private const val MAX_BUFFER_BYTES = 800_000
     }
 
-    private val pcmBuffer = ArrayList<ByteArray>(64)
+    private val preallocatedBuffer = ByteArray(MAX_BUFFER_BYTES)
     private var totalCollected = 0
-    private var fastTriggered = false
-    private var mediumTriggered = false
-    private var fullChunkTriggered = false
-    @Volatile private var fullAnalysisTriggered = false
+    @Volatile private var analysisTriggered = false
 
-    /** Called by [MusicManager] when a new track starts. */
+    fun setPreferences(prefs: PlayerPreferences) {
+        this.preferences = prefs
+    }
+
+    /** Called by [com.alananasss.kittytune.data.MusicManager] when a new track starts. */
     fun resetForNewTrack() {
         synchronized(this) {
-            pcmBuffer.clear()
-            pcmBuffer.trimToSize()
             totalCollected = 0
-            fastTriggered = false
-            mediumTriggered = false
-            fullChunkTriggered = false
-            fullAnalysisTriggered = false
+            analysisTriggered = false
         }
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
+            return AudioProcessor.AudioFormat.NOT_SET
+        }
         return inputAudioFormat
     }
 
     @Deprecated("Deprecated in supertype but required override")
     override fun onFlush() {
-        // Don't clear on seek/flush — we want continuous collection
+        // Reset collection on seek/flush so pre-seek and post-seek audio are not concatenated.
+        // If analysis has already completed for this track, remain in fast pass-through mode.
+        val isDone = AiDetectionManager.result.value?.status == AiDetectionManager.Status.DONE
+        synchronized(this) {
+            if (!isDone) {
+                totalCollected = 0
+                analysisTriggered = false
+            }
+        }
     }
 
     override fun onReset() {
@@ -68,49 +72,46 @@ class AiDetectionAudioProcessor : BaseAudioProcessor() {
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
-        // Pass through unmodified
+        // Always pass audio to output buffer
         val output = replaceOutputBuffer(remaining)
 
         // Fast path: if analysis already finished or model is not loaded,
-        // do a direct native buffer transfer without ANY heap allocation!
-        if (fullAnalysisTriggered || !AiDetectionManager.isModelLoaded()) {
+        // direct native buffer transfer with zero heap allocation!
+        if (analysisTriggered || !AiDetectionManager.isModelLoaded()) {
             output.put(inputBuffer)
             output.flip()
             return
         }
 
-        // Pass through and copy for analysis
-        val data = ByteArray(remaining)
-        inputBuffer.get(data)
-        output.put(data)
-        output.flip()
+        val window = preferences?.aiDetectionWindow ?: AiDetectionWindow.ACCURATE
+        val targetSeconds = window.seconds // 1 or 4
+        val fmt = inputAudioFormat
+        val bytesPerSec = fmt.sampleRate * fmt.channelCount * 2 // 16-bit PCM = 2 bytes per sample
+        val targetBytes = (targetSeconds * bytesPerSec).coerceIn(176_400, preallocatedBuffer.size)
 
         var snapshotToAnalyze: ByteArray? = null
-        val fmt = inputAudioFormat
 
         synchronized(this) {
-            if (fullAnalysisTriggered) return
-
-            val toAdd = minOf(data.size, MAX_COLLECT_BYTES - totalCollected)
-            if (toAdd > 0) {
-                pcmBuffer.add(data.copyOf(toAdd))
-                totalCollected += toAdd
+            if (analysisTriggered) {
+                output.put(inputBuffer)
+                output.flip()
+                return
             }
 
-            if (!fastTriggered && totalCollected >= FAST_ANALYSIS_BYTES) {
-                fastTriggered = true
-                snapshotToAnalyze = buildSnapshotLocked()
-            } else if (!mediumTriggered && totalCollected >= MEDIUM_ANALYSIS_BYTES) {
-                mediumTriggered = true
-                snapshotToAnalyze = buildSnapshotLocked()
-            } else if (!fullChunkTriggered && totalCollected >= FULL_CHUNK_BYTES) {
-                fullChunkTriggered = true
-                snapshotToAnalyze = buildSnapshotLocked()
-            } else if (!fullAnalysisTriggered && totalCollected >= MAX_COLLECT_BYTES) {
-                fullAnalysisTriggered = true
-                snapshotToAnalyze = buildSnapshotLocked()
-                pcmBuffer.clear()
-                pcmBuffer.trimToSize()
+            val toCollect = minOf(remaining, targetBytes - totalCollected)
+            if (toCollect > 0) {
+                inputBuffer.get(preallocatedBuffer, totalCollected, toCollect)
+                totalCollected += toCollect
+                output.put(preallocatedBuffer, totalCollected - toCollect, toCollect)
+            }
+            if (inputBuffer.hasRemaining()) {
+                output.put(inputBuffer)
+            }
+            output.flip()
+
+            if (totalCollected >= targetBytes) {
+                analysisTriggered = true
+                snapshotToAnalyze = preallocatedBuffer.copyOf(totalCollected)
             }
         }
 
@@ -120,26 +121,6 @@ class AiDetectionAudioProcessor : BaseAudioProcessor() {
                 sampleRate = fmt.sampleRate,
                 channelCount = fmt.channelCount
             )
-        }
-    }
-
-    private fun buildSnapshotLocked(): ByteArray? {
-        return try {
-            val result = ByteArray(totalCollected)
-            var offset = 0
-            for (chunk in pcmBuffer) {
-                val len = minOf(chunk.size, result.size - offset)
-                if (len <= 0) break
-                chunk.copyInto(result, offset, 0, len)
-                offset += len
-            }
-            result
-        } catch (e: OutOfMemoryError) {
-            Log.e(TAG, "OOM while allocating snapshot ($totalCollected bytes)", e)
-            pcmBuffer.clear()
-            pcmBuffer.trimToSize()
-            fullAnalysisTriggered = true
-            null
         }
     }
 }

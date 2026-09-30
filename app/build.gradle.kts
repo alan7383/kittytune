@@ -151,7 +151,7 @@ dependencies {
     implementation(libs.lottie.compose)
     implementation(libs.zxing.core)
 
-    // AI music detector — on-device ONNX inference (model: 15 KB)
+    // AI music detector — on-device ONNX inference (ArtifactNet, ~17.2 MB on-demand)
     implementation(libs.onnxruntime)
 
     // Scanning the desktop's pairing QR. zxing above already does the decoding; these are only

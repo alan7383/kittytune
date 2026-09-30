@@ -2741,6 +2741,13 @@
     <string name="ai_sheet_open_settings">Cài đặt bộ lọc &amp; AI</string>
     <string name="block_ai_spare_favorites">Bỏ qua bài hát yêu thích</string>
     <string name="block_ai_spare_favorites_sub">Không bao giờ tự động bỏ qua các bài hát bạn đã thích</string>
+    <string name="block_ai_window_title">Cửa sổ phân tích</string>
+    <string name="block_ai_window_sub">Thời lượng âm thanh phân tích trước khi quyết định</string>
+    <string name="block_ai_window_dialog_title">Cửa sổ phân tích AI</string>
+    <string name="block_ai_window_4s_title">4 giây (Khuyến nghị)</string>
+    <string name="block_ai_window_4s_desc">Ưu điểm: Độ chính xác tối đa, phân tích liên tục không lặp lại nhân tạo.\nNhược điểm: Phát hiện sau ~4 giây phát (có độ trễ nhẹ trước khi bỏ qua).</string>
+    <string name="block_ai_window_1s_title">1 giây (Siêu nhanh)</string>
+    <string name="block_ai_window_1s_desc">Ưu điểm: Bỏ qua bài hát AI gần như ngay lập tức (~1 giây), phản hồi tức thì.\nNhược điểm: Đoạn âm thanh được lặp lại có làm mờ biên, nhạy hơn với đoạn dạo đầu bất thường.</string>
     <string name="ai_skip_undo_message">Đã bỏ qua bài hát AI</string>
     <string name="pref_notif_extra_button_title">Nút bổ sung thông báo</string>
     <string name="pref_notif_extra_button_subtitle">Hành động tùy chỉnh hiển thị bên phải trình phát thông báo</string>

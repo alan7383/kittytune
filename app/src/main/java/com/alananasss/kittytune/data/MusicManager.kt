@@ -388,6 +388,7 @@ object MusicManager {
         rainPlayer = RainPlayer(context.applicationContext)
 
         val prefs = PlayerPreferences(context)
+        aiDetectionProcessors.forEach { it.setPreferences(prefs) }
         val lastContext = prefs.getLastContext()
         _contextFlow.value = lastContext
 

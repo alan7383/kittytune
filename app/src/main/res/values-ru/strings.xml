@@ -2762,6 +2762,13 @@
     <string name="ai_sheet_open_settings">Параметры фильтрации и ИИ</string>
     <string name="block_ai_spare_favorites">Не пропускать избранное</string>
     <string name="block_ai_spare_favorites_sub">Никогда не пропускать понравившиеся треки</string>
+    <string name="block_ai_window_title">Окно анализа</string>
+    <string name="block_ai_window_sub">Длительность фрагмента перед принятием решения</string>
+    <string name="block_ai_window_dialog_title">Окно анализа ИИ</string>
+    <string name="block_ai_window_4s_title">4 секунды (Рекомендуется)</string>
+    <string name="block_ai_window_4s_desc">Плюсы: Максимальная точность, непрерывный анализ без искусственных повторов.\nМинусы: Определение через ~4 сек (небольшая задержка перед пропуском).</string>
+    <string name="block_ai_window_1s_title">1 секунда (Сверхбыстро)</string>
+    <string name="block_ai_window_1s_desc">Плюсы: Пропуск трека почти мгновенно (~1 сек), высокая отзывчивость.\nМинусы: Аудиофрагмент зацикливается со сглаживанием, чуть чувствительнее к тихим интро.</string>
     <string name="ai_skip_undo_message">Пропущен трек ИИ</string>
     <string name="pref_notif_extra_button_title">Доп. кнопка в уведомлении</string>
     <string name="pref_notif_extra_button_subtitle">Пользовательское действие справа в уведомлении плеера</string>
