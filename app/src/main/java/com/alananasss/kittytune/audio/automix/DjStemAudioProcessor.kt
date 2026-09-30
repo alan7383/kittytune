@@ -130,7 +130,7 @@ class DjStemAudioProcessor : BaseAudioProcessor() {
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
         if (inputAudioFormat.encoding != androidx.media3.common.C.ENCODING_PCM_16BIT) {
-            throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
+            return AudioProcessor.AudioFormat.NOT_SET
         }
         setupFilters(inputAudioFormat.sampleRate)
         return inputAudioFormat

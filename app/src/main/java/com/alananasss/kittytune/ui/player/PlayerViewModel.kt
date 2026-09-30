@@ -939,7 +939,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     MusicManager.player.seekTo(0)
                     MusicManager.player.play()
                 } else {
-                    if (!MusicManager.isCrossfadingOut) {
+                    if (MusicManager.isTransitionRunning()) {
+                        Log.d("PlayerViewModel", "STATE_ENDED ignored: crossfade transition is actively executing")
+                    } else if (trackInitJob?.isActive == true || playJob?.isActive == true) {
+                        Log.d("PlayerViewModel", "STATE_ENDED while next track is loading; awaiting resolution completion")
+                    } else {
+                        MusicManager.cancelCrossfade()
                         playNext(manual = false, isCrossfade = playerPrefs.getCrossfadeEnabled())
                     }
                 }
@@ -3628,7 +3633,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         autoPlay: Boolean = true
     ) {
         if (index < 0 || index >= _queue.size) {
-            currentContext = null; return
+            MusicManager.cancelCrossfade()
+            currentContext = null
+            return
         }
         val candidate = _queue[index]
         if (BlockManager.isBlocked(candidate)) {
@@ -3921,12 +3928,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                 autoPlay = true
                             )
                         } else {
+                            MusicManager.cancelCrossfade()
                             MusicManager.player.pause()
                             MusicManager.player.seekTo(0)
                             saveStateAsync()
                         }
                     }
                 } else {
+                    MusicManager.cancelCrossfade()
                     MusicManager.player.pause()
                     MusicManager.player.seekTo(0)
                 }
@@ -5148,6 +5157,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             var automixEnabledCached = false
             var crossfadeMsCached = 0L
             var gaplessCached = false
+            var endOfTrackStallTicks = 0
             while (isActive && isPlaying) {
                 try {
                     if (!isScrubbing && !isLoading) {
@@ -5277,6 +5287,25 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             }
                         } else {
                             com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
+                        }
+
+                        // AudioSink EOS deadlock & stall fallback:
+                        // If track has reached 100% (final 100ms or past dur) and playback stalled without ExoPlayer firing STATE_ENDED:
+                        if (dur > 2000L && currentPosition >= (dur - 100L)) {
+                            if (!MusicManager.isTransitionRunning() && trackInitJob?.isActive != true && playJob?.isActive != true) {
+                                endOfTrackStallTicks++
+                                val threshold = if (djFlowController.flowState.value.isActive && (isDjBeatUiVisible || showDjDebugSheet)) 30 else 5
+                                if (endOfTrackStallTicks >= threshold) {
+                                    Log.w("PlayerViewModel", "Detected end-of-track EOS stall ($currentPosition / $dur ms). Forcing queue advance.")
+                                    endOfTrackStallTicks = 0
+                                    MusicManager.cancelCrossfade()
+                                    playNext(manual = false, isCrossfade = false)
+                                }
+                            } else {
+                                endOfTrackStallTicks = 0
+                            }
+                        } else {
+                            endOfTrackStallTicks = 0
                         }
                     }
                     // Credit whole seconds of wall time, independent of the tick rate. Each
@@ -5709,8 +5738,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     preloadNextTrack(index + 1)
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    MusicManager.cancelCrossfade()
                     isLoading = false
                     isPlaying = false
+                    if (allowSkipOnFailure && currentQueueIndex + 1 < _queue.size) {
+                        playNext(manual = false, isCrossfade = false)
+                    }
                 }
             }
             return
@@ -5787,9 +5820,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             if (resolvedUrl == null) {
                 withContext(Dispatchers.Main) {
-                    if (currentTrack?.id != trackToPlay.id || !isActive) return@withContext
+                    if (currentTrack?.id != trackToPlay.id || !isActive) {
+                        MusicManager.cancelCrossfade()
+                        return@withContext
+                    }
                     isLoading = false
                     isPlaying = false
+                    MusicManager.cancelCrossfade()
                     try {
                         MusicManager.player.pause()
                         MusicManager.player.stop()
@@ -5807,6 +5844,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         context.getString(R.string.network_playback_error)
                     }
                     android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+
+                    if (allowSkipOnFailure && currentQueueIndex + 1 < _queue.size) {
+                        Log.i("PlayerViewModel", "Skipping to next track after stream resolution failure for ${trackToPlay.id}")
+                        playNext(manual = false, isCrossfade = false)
+                    }
                 }
                 return@launch
             }
@@ -5881,8 +5923,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     preloadNextTrack(index + 1)
                 } catch (e: Exception) {
                     e.printStackTrace()
+                    MusicManager.cancelCrossfade()
                     isLoading = false
                     isPlaying = false
+                    if (allowSkipOnFailure && currentQueueIndex + 1 < _queue.size) {
+                        Log.i("PlayerViewModel", "Skipping to next track after error for ${trackToPlay.id}")
+                        playNext(manual = false, isCrossfade = false)
+                    }
                 }
             }
         }

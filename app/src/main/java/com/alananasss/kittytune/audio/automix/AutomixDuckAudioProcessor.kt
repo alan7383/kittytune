@@ -2,9 +2,9 @@ package com.alananasss.kittytune.audio.automix
 
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.common.util.UnstableApi
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
@@ -14,6 +14,9 @@ import kotlin.math.sqrt
 /**
  * Low-shelf ducking processor used during AutoMix DJ-blend crossfades, so two full
  * basslines don't sum into mud during the overlap.
+ *
+ * Extends [BaseAudioProcessor] to comply with ExoPlayer / Media3 AudioSink pipeline invariants,
+ * buffer lifecycle, and End-of-Stream (EOS) draining.
  *
  * The shelf filter's coefficients are fixed once at configure time and never change again —
  * changing an IIR filter's coefficients on the fly while its delay-line memory carries state
@@ -26,16 +29,10 @@ import kotlin.math.sqrt
 class AutomixDuckAudioProcessor(
     private val shelfFrequencyHz: Double = 150.0,
     private val maxDuckDb: Double = -10.0,
-) : AudioProcessor {
+) : BaseAudioProcessor() {
 
     private var sampleRate = 0
     private var channelCount = 0
-    private var encoding = C.ENCODING_INVALID
-    private var isActive = false
-
-    private var inputBuffer: ByteBuffer = EMPTY_BUFFER
-    private var outputBuffer: ByteBuffer = EMPTY_BUFFER
-    private var inputEnded = false
 
     /** Target blend, 0=dry (no duck) .. 1=fully filtered (maxDuckDb). Set from the fade loop. */
     @Volatile
@@ -60,7 +57,6 @@ class AutomixDuckAudioProcessor(
     private var y2R = 0.0
 
     companion object {
-        private val EMPTY_BUFFER: ByteBuffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
         // Time constant for the per-sample mix ease, independent of sample rate.
         private const val MIX_EASE_MS = 15.0
     }
@@ -75,6 +71,7 @@ class AutomixDuckAudioProcessor(
     }
 
     private fun computeShelfCoefficients() {
+        if (sampleRate <= 0) return
         val A = sqrt(10.0.pow(maxDuckDb / 20.0))
         val omega = 2.0 * PI * shelfFrequencyHz / sampleRate
         val sinOmega = sin(omega)
@@ -96,41 +93,31 @@ class AutomixDuckAudioProcessor(
         b0 = rb0; b1 = rb1; b2 = rb2; a1 = ra1; a2 = ra2
     }
 
-    override fun configure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
+        if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT || inputAudioFormat.channelCount > 2) {
+            return AudioProcessor.AudioFormat.NOT_SET
+        }
         sampleRate = inputAudioFormat.sampleRate
         channelCount = inputAudioFormat.channelCount
-        encoding = inputAudioFormat.encoding
-
-        if (encoding != C.ENCODING_PCM_16BIT || channelCount > 2) {
-            throw AudioProcessor.UnhandledAudioFormatException(inputAudioFormat)
-        }
-
         computeShelfCoefficients()
-        isActive = true
         return inputAudioFormat
     }
 
-    override fun isActive(): Boolean = isActive
-
     override fun queueInput(inputBuffer: ByteBuffer) {
-        val inputSize = inputBuffer.remaining()
-        if (inputSize == 0) return
+        val remaining = inputBuffer.remaining()
+        if (remaining == 0) return
 
-        if (outputBuffer.capacity() < inputSize) {
-            outputBuffer = ByteBuffer.allocateDirect(inputSize).order(ByteOrder.nativeOrder())
-        } else {
-            outputBuffer.clear()
-        }
+        val outputBuffer = replaceOutputBuffer(remaining)
 
         // Per-sample ease toward targetMix: at 44.1-48kHz this settles in a few ms, fast
         // enough to track the fade loop's ~15ms updates while never stepping abruptly.
-        val easePerSample = (1000.0 / (MIX_EASE_MS * sampleRate)).toFloat().coerceIn(0f, 1f)
+        val easePerSample = if (sampleRate > 0) (1000.0 / (MIX_EASE_MS * sampleRate)).toFloat().coerceIn(0f, 1f) else 1f
 
-        val sampleCount = inputSize / 2
+        val sampleCount = remaining / 2
         when (channelCount) {
             1 -> repeat(sampleCount) {
                 currentMix += (targetMix - currentMix) * easePerSample
-                val input = inputBuffer.getShort().toDouble() / 32768.0
+                val input = inputBuffer.short.toDouble() / 32768.0
                 val filtered = b0 * input + b1 * x1L + b2 * x2L - a1 * y1L - a2 * y2L
                 x2L = x1L; x1L = input; y2L = y1L; y1L = filtered
                 val output = input + (filtered - input) * currentMix
@@ -138,14 +125,14 @@ class AutomixDuckAudioProcessor(
             }
             2 -> repeat(sampleCount / 2) {
                 currentMix += (targetMix - currentMix) * easePerSample
-                val inL = inputBuffer.getShort().toDouble() / 32768.0
-                val inR = inputBuffer.getShort().toDouble() / 32768.0
+                val inL = inputBuffer.short.toDouble() / 32768.0
+                val inR = inputBuffer.short.toDouble() / 32768.0
 
                 val filteredL = b0 * inL + b1 * x1L + b2 * x2L - a1 * y1L - a2 * y2L
                 x2L = x1L; x1L = inL; y2L = y1L; y1L = filteredL
 
                 val filteredR = b0 * inR + b1 * x1R + b2 * x2R - a1 * y1R - a2 * y2R
-                x2R = x1R; x1R = inR; y2R = y1R; y1R = filteredR
+                x2R = x1R; x1R = inR; y2R = y1R; y2R = filteredR
 
                 val outL = inL + (filteredL - inL) * currentMix
                 val outR = inR + (filteredR - inR) * currentMix
@@ -153,43 +140,25 @@ class AutomixDuckAudioProcessor(
                 outputBuffer.putShort((outL * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
                 outputBuffer.putShort((outR * 32768.0).coerceIn(-32768.0, 32767.0).toInt().toShort())
             }
-            else -> repeat(sampleCount) {
-                outputBuffer.putShort(inputBuffer.getShort())
+            else -> {
+                outputBuffer.put(inputBuffer)
             }
         }
 
         outputBuffer.flip()
     }
 
-    override fun getOutput(): ByteBuffer {
-        val buffer = outputBuffer
-        outputBuffer = EMPTY_BUFFER
-        return buffer
-    }
-
-    override fun isEnded(): Boolean = inputEnded && outputBuffer.remaining() == 0
-
     @Deprecated("Deprecated in Java")
-    override fun flush() {
-        outputBuffer = EMPTY_BUFFER
-        inputEnded = false
+    override fun onFlush() {
         x1L = 0.0; x2L = 0.0; y1L = 0.0; y2L = 0.0
         x1R = 0.0; x2R = 0.0; y1R = 0.0; y2R = 0.0
     }
 
-    override fun reset() {
-        @Suppress("DEPRECATION")
-        flush()
-        inputBuffer = EMPTY_BUFFER
+    override fun onReset() {
+        onFlush()
         sampleRate = 0
         channelCount = 0
-        encoding = C.ENCODING_INVALID
-        isActive = false
         currentMix = 0f
         targetMix = 0f
-    }
-
-    override fun queueEndOfStream() {
-        inputEnded = true
     }
 }

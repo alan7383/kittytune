@@ -5,6 +5,7 @@ import androidx.media3.common.audio.AudioProcessor
 import com.alananasss.kittytune.audio.automix.AutomixDuckAudioProcessor
 import com.alananasss.kittytune.audio.automix.BeatAnalyzer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -201,6 +202,30 @@ class AutomixTest {
         processor.flush()
         processor.reset()
         assertEquals(false, processor.isActive)
+    }
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    @Test
+    fun testAutomixDuckAudioProcessorEndOfStream() {
+        val processor = AutomixDuckAudioProcessor()
+        val format = AudioProcessor.AudioFormat(44100, 2, C.ENCODING_PCM_16BIT)
+        processor.configure(format)
+        assertFalse(processor.isEnded)
+
+        // Queue input
+        val inputBuffer = ByteBuffer.allocateDirect(1024).order(ByteOrder.nativeOrder())
+        inputBuffer.put(ByteArray(1024))
+        inputBuffer.flip()
+        processor.queueInput(inputBuffer)
+
+        // Drain output
+        val out1 = processor.output
+        assertTrue(out1.hasRemaining())
+        assertFalse(processor.isEnded)
+
+        // Signal EOS
+        processor.queueEndOfStream()
+        assertTrue("Processor must report isEnded after queueEndOfStream and draining output", processor.isEnded)
     }
 
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)

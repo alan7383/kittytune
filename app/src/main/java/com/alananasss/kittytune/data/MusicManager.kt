@@ -96,7 +96,7 @@ object MusicManager {
      * Generous enough to cover stream resolution including its two retries (~3.6s of
      * backoff plus the requests themselves) on a slow connection.
      */
-    private const val CROSSFADE_REQUEST_TIMEOUT_MS = 20_000L
+    private const val CROSSFADE_REQUEST_TIMEOUT_MS = 5_000L
 
     /** How long the crossfade ramp waits on an incoming player that is trying, but not playing. */
     private const val CROSSFADE_STALL_TIMEOUT_MS = 10_000L
@@ -163,6 +163,9 @@ object MusicManager {
     private var transitionSeq = 0L
     private var liveTransitions = 0
 
+    /** Returns true if a crossfade transition is actively executing audio between decks. */
+    fun isTransitionRunning(): Boolean = liveTransitions > 0
+
     /** Decks of the crossfade currently in flight, so it can be torn down from the outside. */
     private var activeCrossfadeIncoming: ExoPlayer? = null
     private var activeCrossfadeOutgoing: ExoPlayer? = null
@@ -200,6 +203,7 @@ object MusicManager {
         } catch (_: Exception) {
         }
         fadingPlayer = null
+        liveTransitions = 0
         isCrossfadingOut = false
         releasePrebuffered()
     }
@@ -227,6 +231,11 @@ object MusicManager {
                     "Crossfade request timed out after ${CROSSFADE_REQUEST_TIMEOUT_MS}ms without a transition; clearing latch"
                 )
                 _isCrossfadingOut.value = false
+                val active = try { player } catch (_: Exception) { null }
+                if (active != null && (active.playbackState == Player.STATE_ENDED || (active.duration > 0L && active.currentPosition >= active.duration - 200L))) {
+                    Log.i("MusicManager", "Active player reached end of track during request timeout; triggering onNextClick recovery")
+                    onNextClick?.invoke()
+                }
             }
             crossfadeRequestWatchdog = null
         }
