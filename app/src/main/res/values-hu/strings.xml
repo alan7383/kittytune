@@ -1365,6 +1365,16 @@
     <string name="recognition_listen_on_kittytune">Hallgatás a KittyTune-on</string>
     <string name="btn_retry">Újra</string>
     <string name="recognition_track_not_found">A zeneszám nem található</string>
+    <string name="recognition_tap_to_identify_device">Koppintson az alkalmazásokból való azonosításhoz</string>
+    <string name="recognition_listening_device_desc">Zene hallgatása az eszközön futó alkalmazásokból</string>
+    <string name="recognition_source_mic">Mikrofon</string>
+    <string name="recognition_source_device">Ez az eszköz</string>
+    <string name="recognition_device_not_supported">A belső hangrögzítéshez Android 10 vagy újabb verzió szükséges</string>
+    <string name="recognition_notif_listening_device">Eszköz hangjának hallgatása&#8230;</string>
+    <string name="recognition_notif_channel">Zene felismerése</string>
+    <string name="recognition_notif_channel_desc">A belső hangfelismerés során használatos</string>
+    <string name="recognition_notif_stop">Leállítás</string>
+    <string name="recognition_notif_track_found">Találat: %1$s - %2$s</string>
     <string name="cover_copy_link">Hivatkozás másolása</string>
     <string name="cover_saved">Kép mentve</string>
     <string name="cover_save_error">Hiba a kép mentésekor</string>
