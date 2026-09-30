@@ -421,7 +421,9 @@ fun ProfileScreen(
                                                     Text(
                                                         text = stringResource(labelRes),
                                                         fontWeight = FontWeight.Bold,
-                                                        style = MaterialTheme.typography.labelLarge
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        maxLines = 1,
+                                                        softWrap = false
                                                     )
                                                 }
                                             } else {
@@ -438,7 +440,9 @@ fun ProfileScreen(
                                                     Text(
                                                         text = stringResource(labelRes),
                                                         fontWeight = FontWeight.Normal,
-                                                        style = MaterialTheme.typography.labelLarge
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        maxLines = 1,
+                                                        softWrap = false
                                                     )
                                                 }
                                             }
@@ -1379,7 +1383,12 @@ fun ModernProfileHeader(
                     ) {
                         Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.profile_edit), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            stringResource(R.string.profile_edit),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
 
                     FilledTonalButton(
@@ -1395,7 +1404,12 @@ fun ModernProfileHeader(
                     ) {
                         Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.history_title), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            stringResource(R.string.history_title),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             } else {
@@ -1886,24 +1900,37 @@ fun FullListScreen(
                         ) {
                             Button(
                                 onClick = { playerViewModel.playPlaylist(tracks, context = context) },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
                                 shapes = ButtonDefaults.shapes(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
                             ) {
-                                Icon(
-                                    Icons.Default.PlayArrow,
-                                    null
-                                ); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_play))
+                                Icon(Icons.Default.PlayArrow, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(R.string.btn_play),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                             FilledTonalButton(
                                 onClick = { playerViewModel.playPlaylist(tracks.shuffled(), context = context) },
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
                                 shapes = ButtonDefaults.shapes()
                             ) {
-                                Icon(
-                                    Icons.Default.Shuffle,
-                                    null
-                                ); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.btn_shuffle))
+                                Icon(Icons.Default.Shuffle, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(R.string.btn_shuffle),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
                             }
                         }
                     }
@@ -2015,7 +2042,9 @@ fun FullDiscographyScreen(
                                     Text(
                                         text = stringResource(labelRes),
                                         fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = MaterialTheme.typography.labelLarge,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             } else {
@@ -2032,7 +2061,9 @@ fun FullDiscographyScreen(
                                     Text(
                                         text = stringResource(labelRes),
                                         fontWeight = FontWeight.Normal,
-                                        style = MaterialTheme.typography.labelLarge
+                                        style = MaterialTheme.typography.labelLarge,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -2108,13 +2139,24 @@ fun SectionTitle(title: String, showMore: Boolean = false, onMoreClick: () -> Un
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false)
+        )
         if (showMore) {
             TextButton(
                 onClick = onMoreClick,
                 shapes = ButtonDefaults.shapes()
             ) {
-                Text(stringResource(R.string.btn_see_all), fontWeight = FontWeight.Bold)
+                Text(
+                    stringResource(R.string.btn_see_all),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
+                )
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(16.dp))
             }
         }

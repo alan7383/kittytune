@@ -1763,11 +1763,17 @@ fun PlaylistDetailScreen(
                                             text = stringResource(R.string.lib_playlists),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
                                         if (downloadedPlaylists.size > 4) {
                                             TextButton(onClick = { showAllPlaylists = true }) {
-                                                Text(stringResource(R.string.btn_see_all))
+                                                Text(
+                                                    stringResource(R.string.btn_see_all),
+                                                    maxLines = 1,
+                                                    softWrap = false
+                                                )
                                             }
                                         }
                                     }
@@ -1866,7 +1872,9 @@ fun PlaylistDetailScreen(
                                                         Text(
                                                             stringResource(R.string.btn_play),
                                                             style = MaterialTheme.typography.titleMedium,
-                                                            fontWeight = FontWeight.Bold
+                                                            fontWeight = FontWeight.Bold,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
                                                     }
                                                     FilledTonalButton(
@@ -1888,7 +1896,9 @@ fun PlaylistDetailScreen(
                                                         Text(
                                                             stringResource(R.string.btn_shuffle),
                                                             style = MaterialTheme.typography.titleMedium,
-                                                            fontWeight = FontWeight.Bold
+                                                            fontWeight = FontWeight.Bold,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
                                                         )
                                                     }
                                                 }
