@@ -1315,6 +1315,12 @@
     <string name="pref_bottom_menu_title">Navigációs sáv</string>
     <string name="pref_explorer_grid_title">Felfedező rács nézet</string>
     <string name="pref_explorer_grid_subtitle">Felfedező kategóriák megjelenítése 2 oszlopos négyzetes csempékben</string>
+    <string name="pref_library_category_layout_title">Könyvtár kategóriák elrendezése</string>
+    <string name="pref_library_category_layout_subtitle">Válassz a kapcsolt gombok és az asztali stílusú legördülő gomb között</string>
+    <string name="pref_library_category_layout_connected">Kapcsolt gombok</string>
+    <string name="pref_library_category_layout_connected_desc">Minden szakasz megjelenítése egymás mellett (Lejátszási listák, Albumok, Előadók, Állomások)</string>
+    <string name="pref_library_category_layout_dropdown">Egyetlen gomb (Asztali stílus)</string>
+    <string name="pref_library_category_layout_dropdown_desc">Nyomd meg a „Mind” gombot a menü megnyitásához és egy szakasz kiválasztásához</string>
     <string name="pref_bottom_menu_subtitle">Alsó sáv és FAB testreszabása</string>
     <string name="pref_bottom_menu_style">Menü stílusa</string>
     <string name="pref_bottom_menu_style_modern">Modern</string>

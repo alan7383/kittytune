@@ -1668,6 +1668,12 @@
     <string name="pref_bottom_menu_title">Navigationsleiste</string>
     <string name="pref_explorer_grid_title">Entdecker-Rasteransicht</string>
     <string name="pref_explorer_grid_subtitle">Entdecker-Kategorien als quadratische Kacheln in 2 Spalten anzeigen</string>
+    <string name="pref_library_category_layout_title">Layout der Mediathek-Kategorien</string>
+    <string name="pref_library_category_layout_subtitle">Wählen Sie zwischen verbundenen Schaltflächen und einem Desktop-Dropdown-Menü</string>
+    <string name="pref_library_category_layout_connected">Verbundene Schaltflächen</string>
+    <string name="pref_library_category_layout_connected_desc">Alle Abschnitte nebeneinander anzeigen (Playlists, Alben, Künstler, Sender)</string>
+    <string name="pref_library_category_layout_dropdown">Einzelne Schaltfläche (Desktop-Stil)</string>
+    <string name="pref_library_category_layout_dropdown_desc">Auf „Alle“ tippen, um ein Menü zu öffnen und einen Abschnitt auszuwählen</string>
     <string name="pref_bottom_menu_subtitle">Untere Leiste und FAB anpassen</string>
     <string name="pref_bottom_menu_style">Menüstil</string>
     <string name="pref_bottom_menu_style_modern">Modern</string>

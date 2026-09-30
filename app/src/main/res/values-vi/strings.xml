@@ -1540,6 +1540,12 @@
     <string name="pref_bottom_menu_title">Thanh điều hướng</string>
     <string name="pref_explorer_grid_title">Chế độ lưới khám phá</string>
     <string name="pref_explorer_grid_subtitle">Hiển thị danh mục khám phá dưới dạng ô vuông thành 2 cột</string>
+    <string name="pref_library_category_layout_title">Bố cục danh mục thư viện</string>
+    <string name="pref_library_category_layout_subtitle">Chọn giữa các nút liên kết và một nút thả xuống kiểu máy tính</string>
+    <string name="pref_library_category_layout_connected">Các nút liên kết</string>
+    <string name="pref_library_category_layout_connected_desc">Hiển thị tất cả các mục cạnh nhau (Danh sách phát, Album, Nghệ sĩ, Trạm)</string>
+    <string name="pref_library_category_layout_dropdown">Nút đơn (Kiểu máy tính)</string>
+    <string name="pref_library_category_layout_dropdown_desc">Nhấn \"Tất cả\" để mở menu thả xuống và chọn mục bất kỳ</string>
     <string name="pref_bottom_menu_subtitle">Tùy chỉnh thanh dưới cùng và nút nổi (FAB)</string>
     <string name="pref_bottom_menu_style">Kiểu thanh menu</string>
     <string name="pref_bottom_menu_style_modern">Hiện đại</string>

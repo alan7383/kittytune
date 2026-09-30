@@ -1544,6 +1544,12 @@
     <string name="pref_bottom_menu_title">Barre de navigation</string>
     <string name="pref_explorer_grid_title">Grille de l\'explorateur</string>
     <string name="pref_explorer_grid_subtitle">Afficher les catégories sous forme de tuiles carrées sur 2 colonnes</string>
+    <string name="pref_library_category_layout_title">Disposition des catégories de la bibliothèque</string>
+    <string name="pref_library_category_layout_subtitle">Choisir entre les boutons connectés et un bouton unique déroulant (style bureau)</string>
+    <string name="pref_library_category_layout_connected">Boutons connectés</string>
+    <string name="pref_library_category_layout_connected_desc">Afficher toutes les sections côte à côte (Playlists, Albums, Artistes, Stations)</string>
+    <string name="pref_library_category_layout_dropdown">Bouton unique (Style bureau)</string>
+    <string name="pref_library_category_layout_dropdown_desc">Appuyez sur « Tout » pour ouvrir un menu et choisir une section</string>
     <string name="pref_bottom_menu_subtitle">Personnaliser la barre du bas et le FAB</string>
     <string name="pref_bottom_menu_style">Style du menu</string>
     <string name="pref_bottom_menu_style_modern">Moderne</string>

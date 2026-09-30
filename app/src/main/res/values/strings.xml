@@ -1780,6 +1780,12 @@
     <string name="pref_bottom_menu_title">Navigation Bar</string>
     <string name="pref_explorer_grid_title">Explorer Grid View</string>
     <string name="pref_explorer_grid_subtitle">Display explorer categories as square tiles in 2 columns</string>
+    <string name="pref_library_category_layout_title">Library category layout</string>
+    <string name="pref_library_category_layout_subtitle">Choose between connected buttons and a single desktop-style dropdown button</string>
+    <string name="pref_library_category_layout_connected">Connected buttons</string>
+    <string name="pref_library_category_layout_connected_desc">Show all sections side by side (Playlists, Albums, Artists, Stations)</string>
+    <string name="pref_library_category_layout_dropdown">Single button (Desktop style)</string>
+    <string name="pref_library_category_layout_dropdown_desc">Press \"All\" to open a dropdown and choose any section</string>
     <string name="pref_bottom_menu_subtitle">Customize the bottom bar and FAB</string>
     <string name="pref_bottom_menu_style">Menu Style</string>
     <string name="pref_bottom_menu_style_modern">Modern</string>

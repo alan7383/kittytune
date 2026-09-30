@@ -77,7 +77,9 @@ import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.LibraryFolder
+import com.alananasss.kittytune.data.local.LibraryCategoryLayout
 import com.alananasss.kittytune.data.local.LocalArtist
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
@@ -113,6 +115,8 @@ fun LibraryScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val isGuest = TokenManager(context).isGuestMode()
+    val prefs = remember { PlayerPreferences(context) }
+    val libraryCategoryLayout by prefs.libraryCategoryLayoutFlow().collectAsState(initial = prefs.getLibraryCategoryLayout())
 
     val listState = rememberLazyGridState()
 
@@ -1635,7 +1639,7 @@ fun LibraryScreen(
                             )
 
                             if (libraryViewModel.activeLibrarySource == LibrarySource.SOUNDCLOUD) {
-                                FilterChipsRow(libraryViewModel)
+                                FilterChipsRow(libraryViewModel, libraryCategoryLayout)
                             }
                         }
                     }
@@ -2326,8 +2330,12 @@ fun SearchBarHeader(
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun FilterChipsRow(viewModel: LibraryViewModel) {
+fun FilterChipsRow(
+    viewModel: LibraryViewModel,
+    layout: LibraryCategoryLayout = LibraryCategoryLayout.CONNECTED
+) {
     val filters = remember(viewModel.uploadedTracks.size) {
         if (viewModel.uploadedTracks.isNotEmpty()) {
             listOf(
@@ -2347,27 +2355,183 @@ fun FilterChipsRow(viewModel: LibraryViewModel) {
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-    ) {
-        ExpressiveConnectedButtonGroup(
-            options = filters,
-            selectedOption = viewModel.selectedFilter,
-            onOptionSelected = { filter ->
-                viewModel.selectedFilter = if (viewModel.selectedFilter == filter) null else filter
-            },
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-            labelProvider = { filter ->
-                Text(
-                    text = stringResource(filter.stringRes),
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+    if (layout == LibraryCategoryLayout.CONNECTED) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
+        ) {
+            ExpressiveConnectedButtonGroup(
+                options = filters,
+                selectedOption = viewModel.selectedFilter,
+                onOptionSelected = { filter ->
+                    viewModel.selectedFilter = if (viewModel.selectedFilter == filter) null else filter
+                },
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                labelProvider = { filter ->
+                    Text(
+                        text = stringResource(filter.stringRes),
+                        style = MaterialTheme.typography.labelMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            )
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)
+        ) {
+            var isMenuExpanded by remember { mutableStateOf(false) }
+            val arrowRotation by animateFloatAsState(
+                targetValue = if (isMenuExpanded) 180f else 0f,
+                animationSpec = tween(durationMillis = 200),
+                label = "FilterDropdownArrow"
+            )
+            val isFiltered = viewModel.selectedFilter != null
+
+            Box {
+                FilledTonalButton(
+                    onClick = { isMenuExpanded = true },
+                    shapes = ButtonDefaults.shapes(),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (isFiltered) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        contentColor = if (isFiltered) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+                    ),
+                    contentPadding = PaddingValues(start = 14.dp, end = 10.dp, top = 6.dp, bottom = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = when (viewModel.selectedFilter) {
+                            LibraryFilter.PLAYLISTS -> Icons.AutoMirrored.Rounded.PlaylistPlay
+                            LibraryFilter.ALBUMS -> Icons.Rounded.Album
+                            LibraryFilter.ARTISTS -> Icons.Rounded.Person
+                            LibraryFilter.STATIONS -> Icons.Rounded.Radio
+                            LibraryFilter.UPLOADS -> Icons.Rounded.CloudUpload
+                            null -> Icons.Rounded.FilterList
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = viewModel.selectedFilter?.let { stringResource(it.stringRes) }
+                            ?: stringResource(R.string.filter_all),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    if (isFiltered) {
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .clickable { viewModel.selectedFilter = null },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = stringResource(R.string.btn_clear),
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ArrowDropDown,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(arrowRotation)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = isMenuExpanded,
+                    onDismissRequest = { isMenuExpanded = false },
+                    shape = RoundedCornerShape(16.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = stringResource(R.string.filter_all),
+                                fontWeight = if (viewModel.selectedFilter == null) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.AllInclusive,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = if (viewModel.selectedFilter == null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        trailingIcon = if (viewModel.selectedFilter == null) {
+                            {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        } else null,
+                        onClick = {
+                            viewModel.selectedFilter = null
+                            isMenuExpanded = false
+                        }
+                    )
+
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+
+                    filters.forEach { filter ->
+                        val isSelected = viewModel.selectedFilter == filter
+                        val icon = when (filter) {
+                            LibraryFilter.PLAYLISTS -> Icons.AutoMirrored.Rounded.PlaylistPlay
+                            LibraryFilter.ALBUMS -> Icons.Rounded.Album
+                            LibraryFilter.ARTISTS -> Icons.Rounded.Person
+                            LibraryFilter.STATIONS -> Icons.Rounded.Radio
+                            LibraryFilter.UPLOADS -> Icons.Rounded.CloudUpload
+                        }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = stringResource(filter.stringRes),
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp),
+                                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            trailingIcon = if (isSelected) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            } else null,
+                            onClick = {
+                                viewModel.selectedFilter = if (isSelected) null else filter
+                                isMenuExpanded = false
+                            }
+                        )
+                    }
+                }
             }
-        )
+        }
     }
 }
 

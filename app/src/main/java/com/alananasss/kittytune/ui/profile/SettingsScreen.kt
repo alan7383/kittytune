@@ -305,6 +305,14 @@ fun SettingsScreen(
                 }
             ),
             SearchSettingEntry(
+                title = context.getString(R.string.pref_library_category_layout_title),
+                subtitle = context.getString(R.string.pref_library_category_layout_subtitle),
+                categoryName = catInterface,
+                icon = Icons.Rounded.FilterList,
+                route = "appearance_settings",
+                keywords = listOf("bibliotheque", "library", "filtres", "filtre", "categories", "layout", "disposition", "desktop", "bureau", "bouton", "playlists", "albums", "artistes", "stations", "all", "tout")
+            ),
+            SearchSettingEntry(
                 title = context.getString(R.string.pref_achievement_popups),
                 subtitle = context.getString(R.string.pref_achievement_popups_sub),
                 categoryName = catInterface,

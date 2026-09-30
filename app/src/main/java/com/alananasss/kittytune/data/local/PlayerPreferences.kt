@@ -64,6 +64,29 @@ enum class MiniPlayerSwipeAction {
         }
     }
 }
+
+enum class LibraryCategoryLayout(
+    @StringRes val titleRes: Int,
+    @StringRes val descRes: Int
+) {
+    CONNECTED(
+        R.string.pref_library_category_layout_connected,
+        R.string.pref_library_category_layout_connected_desc
+    ),
+    DESKTOP_DROPDOWN(
+        R.string.pref_library_category_layout_dropdown,
+        R.string.pref_library_category_layout_dropdown_desc
+    );
+
+    companion object {
+        fun fromString(name: String?): LibraryCategoryLayout = when (name) {
+            "DESKTOP_DROPDOWN" -> DESKTOP_DROPDOWN
+            "CONNECTED" -> CONNECTED
+            else -> CONNECTED
+        }
+    }
+}
+
 enum class LyricsUnderCoverPlacement { REPLACE_TITLE_ARTIST, ABOVE_TITLE_ARTIST }
 enum class LyricsDisplayState { OFF, UNDER_COVER, COVER_REPLACED }
 enum class WaveformColorMode { SOUNDCLOUD, COVER_ART, APP_THEME, CUSTOM }
@@ -404,6 +427,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_DEEZER_COOKIE = "deezer_cookie"
         const val KEY_DEEZER_USE_ACCOUNT = "deezer_use_account"
         const val KEY_EXPLORER_GRID_LAYOUT = "explorer_grid_layout"
+        const val KEY_LIBRARY_CATEGORY_LAYOUT = "library_category_layout"
 
         // AI music detection
         private const val KEY_AI_AUTO_SKIP = "ai_auto_skip_enabled"
@@ -440,6 +464,26 @@ class PlayerPreferences(context: Context) {
 
     fun getExplorerGridLayout(): Boolean = prefs.getBoolean(KEY_EXPLORER_GRID_LAYOUT, true)
     fun setExplorerGridLayout(enabled: Boolean) = prefs.edit { putBoolean(KEY_EXPLORER_GRID_LAYOUT, enabled) }
+
+    fun getLibraryCategoryLayout(): LibraryCategoryLayout {
+        val raw = prefs.getString(KEY_LIBRARY_CATEGORY_LAYOUT, null)
+        return LibraryCategoryLayout.fromString(raw)
+    }
+
+    fun setLibraryCategoryLayout(layout: LibraryCategoryLayout) {
+        prefs.edit { putString(KEY_LIBRARY_CATEGORY_LAYOUT, layout.name) }
+    }
+
+    fun libraryCategoryLayoutFlow(): Flow<LibraryCategoryLayout> = callbackFlow {
+        trySend(getLibraryCategoryLayout())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_LIBRARY_CATEGORY_LAYOUT) {
+                trySend(getLibraryCategoryLayout())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     // ─── AI music detection prefs ─────────────────────────────────────────────
 

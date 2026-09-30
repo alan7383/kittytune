@@ -1313,6 +1313,12 @@
     <string name="pref_bottom_menu_title">Панель навигации</string>
     <string name="pref_explorer_grid_title">Сетка проводника</string>
     <string name="pref_explorer_grid_subtitle">Отображать жанры плитками по 2 в ряд</string>
+    <string name="pref_library_category_layout_title">Отображение категорий медиатеки</string>
+    <string name="pref_library_category_layout_subtitle">Выбор между связанными кнопками и единой кнопкой с выпадающим меню в стиле ПК</string>
+    <string name="pref_library_category_layout_connected">Связанные кнопки</string>
+    <string name="pref_library_category_layout_connected_desc">Показывать все разделы рядом (Плейлисты, Альбомы, Артисты, Станции)</string>
+    <string name="pref_library_category_layout_dropdown">Единая кнопка (Стиль ПК)</string>
+    <string name="pref_library_category_layout_dropdown_desc">Нажмите «Все», чтобы открыть меню и выбрать любой раздел</string>
     <string name="pref_bottom_menu_subtitle">Настройка нижней панели и FAB</string>
     <string name="pref_bottom_menu_style">Стиль меню</string>
     <string name="pref_bottom_menu_style_modern">Модерн</string>

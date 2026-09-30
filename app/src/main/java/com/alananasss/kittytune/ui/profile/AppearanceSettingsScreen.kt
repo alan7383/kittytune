@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.AppThemeMode
+import com.alananasss.kittytune.data.local.LibraryCategoryLayout
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
@@ -107,9 +108,11 @@ fun AppearanceSettingsScreen(
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var explorerGridLayout by remember { mutableStateOf(prefs.getExplorerGridLayout()) }
+    var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
+    var showCategoryLayoutDialog by remember { mutableStateOf(false) }
 
     val look = remember(themeMode, pureBlack) {
         when {
@@ -204,6 +207,61 @@ fun AppearanceSettingsScreen(
             dismissButton = {
                 TextButton(onClick = { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) }) {
                     Text(stringResource(R.string.btn_reset))
+                }
+            }
+        )
+    }
+
+    if (showCategoryLayoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showCategoryLayoutDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_library_category_layout_title),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LibraryCategoryLayout.entries.forEach { layoutOption ->
+                        val isSelected = libraryCategoryLayout == layoutOption
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    libraryCategoryLayout = layoutOption
+                                    prefs.setLibraryCategoryLayout(layoutOption)
+                                    showCategoryLayoutDialog = false
+                                }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = stringResource(layoutOption.titleRes),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = stringResource(layoutOption.descRes),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCategoryLayoutDialog = false }) {
+                    Text(stringResource(R.string.btn_close))
                 }
             }
         )
@@ -478,6 +536,17 @@ fun AppearanceSettingsScreen(
                                     explorerGridLayout = it
                                     prefs.setExplorerGridLayout(it)
                                 }
+                            )
+                        },
+
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_library_category_layout_title),
+                                subtitle = stringResource(R.string.pref_library_category_layout_subtitle),
+                                trailingText = stringResource(libraryCategoryLayout.titleRes),
+                                icon = Icons.Rounded.FilterList,
+                                onClick = { showCategoryLayoutDialog = true }
                             )
                         },
 
