@@ -175,14 +175,14 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             icon = {
                 Surface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(52.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Rounded.DeleteSweep,
                             null,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -209,8 +209,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         blockedArtists.forEach { it.artistId?.let { id -> BlockManager.unblockArtist(id) } }
                         showClearAllDialog = false
                     },
-                    shapes = ButtonDefaults.shapes(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.block_clear_all_confirm)) }
             },
             dismissButton = {
@@ -283,14 +282,14 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             icon = {
                 Surface(
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.errorContainer,
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     modifier = Modifier.size(52.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             Icons.Rounded.DeleteOutline,
                             null,
-                            tint = MaterialTheme.colorScheme.error,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(26.dp)
                         )
                     }
@@ -320,8 +319,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         prefs.aiAutoBlock = false
                         showDeleteModelDialog = false
                     },
-                    shapes = ButtonDefaults.shapes(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.block_model_delete_btn)) }
             },
             dismissButton = {
@@ -867,10 +865,6 @@ private fun AiModelDownloadCard(
                     FilledTonalButton(
                         onClick = onDelete,
                         shapes = ButtonDefaults.shapes(),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
