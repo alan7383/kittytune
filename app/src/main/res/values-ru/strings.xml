@@ -1313,8 +1313,6 @@
     <string name="pref_bottom_menu_title">Панель навигации</string>
     <string name="pref_explorer_grid_title">Сетка проводника</string>
     <string name="pref_explorer_grid_subtitle">Отображать жанры плитками по 2 в ряд</string>
-    <string name="pref_playlist_grid_title">Сетка треков в плейлистах</string>
-    <string name="pref_playlist_grid_subtitle">Отображать треки в плейлистах и локальных файлах по 2 в ряд</string>
     <string name="pref_bottom_menu_subtitle">Настройка нижней панели и FAB</string>
     <string name="pref_bottom_menu_style">Стиль меню</string>
     <string name="pref_bottom_menu_style_modern">Модерн</string>
@@ -1363,16 +1361,6 @@
     <string name="recognition_listen_on_kittytune">Слушать на KittyTune</string>
     <string name="btn_retry">Повторить</string>
     <string name="recognition_track_not_found">Трек не найден</string>
-    <string name="recognition_tap_to_identify_device">Коснитесь, чтобы распознать из приложений</string>
-    <string name="recognition_listening_device_desc">Распознавание музыки из приложений на этом устройстве</string>
-    <string name="recognition_source_mic">Микрофон</string>
-    <string name="recognition_source_device">Это устройство</string>
-    <string name="recognition_device_not_supported">Захват звука устройства требует Android 10 или новее</string>
-    <string name="recognition_notif_listening_device">Запись звука устройства&#8230;</string>
-    <string name="recognition_notif_channel">Распознавание музыки</string>
-    <string name="recognition_notif_channel_desc">Используется во время распознавания звука устройства</string>
-    <string name="recognition_notif_stop">Остановить</string>
-    <string name="recognition_notif_track_found">Найдено: %1$s - %2$s</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">Поддержка KittyTune</string>
     <string name="about_kofi_desc">Этот проект совершенно бесплатный и имеет открытый исходный код. Если вам понравится моя работа, пожалуйста, поддержите его развитие, купив мне кофе на Ko-fi!</string>

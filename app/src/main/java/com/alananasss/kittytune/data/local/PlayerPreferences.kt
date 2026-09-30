@@ -403,7 +403,6 @@ class PlayerPreferences(context: Context) {
         const val KEY_DEEZER_PROXY_URL = "deezer_proxy_url"
         const val KEY_DEEZER_COOKIE = "deezer_cookie"
         const val KEY_DEEZER_USE_ACCOUNT = "deezer_use_account"
-        const val KEY_PLAYLIST_GRID_LAYOUT = "playlist_grid_layout"
         const val KEY_EXPLORER_GRID_LAYOUT = "explorer_grid_layout"
 
         // AI music detection
@@ -438,9 +437,6 @@ class PlayerPreferences(context: Context) {
 
     fun getCrossfadeEnabled(): Boolean = prefs.getBoolean(KEY_CROSSFADE_ENABLED, false)
     fun setCrossfadeEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CROSSFADE_ENABLED, enabled) }
-
-    fun getPlaylistGridLayout(): Boolean = prefs.getBoolean(KEY_PLAYLIST_GRID_LAYOUT, false)
-    fun setPlaylistGridLayout(enabled: Boolean) = prefs.edit { putBoolean(KEY_PLAYLIST_GRID_LAYOUT, enabled) }
 
     fun getExplorerGridLayout(): Boolean = prefs.getBoolean(KEY_EXPLORER_GRID_LAYOUT, true)
     fun setExplorerGridLayout(enabled: Boolean) = prefs.edit { putBoolean(KEY_EXPLORER_GRID_LAYOUT, enabled) }
@@ -1878,11 +1874,6 @@ class PlayerPreferences(context: Context) {
     fun getLastUsedPlaylistTitle(): String? = prefs.getString(KEY_LAST_USED_PLAYLIST_TITLE, null)
     fun setLastUsedPlaylistTitle(title: String?) {
         prefs.edit { putString(KEY_LAST_USED_PLAYLIST_TITLE, title) }
-    }
-
-    fun getRecognitionAudioSource(): String = prefs.getString("recognition_audio_source", "MIC") ?: "MIC"
-    fun setRecognitionAudioSource(source: String) {
-        prefs.edit { putString("recognition_audio_source", source) }
     }
 }
 

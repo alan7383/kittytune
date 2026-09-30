@@ -20,12 +20,9 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -35,7 +32,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.filled.*
@@ -149,7 +145,6 @@ fun PlaylistDetailScreen(
     val downloadedIds by DownloadManager.downloadedIds.collectAsState()
 
     var showAllPlaylists by remember { mutableStateOf(false) }
-    var isPlaylistGridLayout by remember { mutableStateOf(prefs.getPlaylistGridLayout()) }
 
     BackHandler(enabled = showAllPlaylists) {
         showAllPlaylists = false
@@ -490,7 +485,6 @@ fun PlaylistDetailScreen(
         }
     }
 
-    val chunkedTracks = remember(tracksToDisplay) { tracksToDisplay.chunked(2) }
 
     val downloadedCount = remember(tracks.size, tracksToDisplay.size, downloadedIds) {
         if (tracksToDisplay.isEmpty()) 0
@@ -1958,25 +1952,6 @@ fun PlaylistDetailScreen(
                                                         ) {
                                                             Icon(Icons.Rounded.Sort, "Sort")
                                                         }
-                                                        Spacer(Modifier.width(12.dp))
-                                                        IconButton(
-                                                            onClick = {
-                                                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                                                val next = !isPlaylistGridLayout
-                                                                isPlaylistGridLayout = next
-                                                                prefs.setPlaylistGridLayout(next)
-                                                            },
-                                                            shapes = IconButtonDefaults.shapes(),
-                                                            colors = IconButtonDefaults.iconButtonColors(
-                                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                                            )
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = if (isPlaylistGridLayout) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                                                                contentDescription = stringResource(R.string.btn_options)
-                                                            )
-                                                        }
                                                     }
                                                 }
                                             }
@@ -2035,50 +2010,7 @@ fun PlaylistDetailScreen(
                                         }
                                     }
 
-                                    if (isPlaylistGridLayout) {
-                                        items(items = chunkedTracks, key = { chunk -> "grid_" + chunk.map { it.id }.joinToString("_") }) { rowTracks ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 20.dp, vertical = 6.dp),
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                            ) {
-                                                for (track in rowTracks) {
-                                                    val progress = downloadProgress[track.id]
-                                                    val isDownloading = progress != null
-                                                    val isDownloaded = downloadedIds.contains(track.id)
-                                                    val trackIndex = tracksToDisplay.indexOf(track)
-                                                    val safeIndex = if (trackIndex >= 0) trackIndex else 0
-
-                                                    Box(modifier = Modifier.weight(1f)) {
-                                                        TrackGridCard(
-                                                            track = track,
-                                                            currentlyPlayingTrack = playerViewModel.currentTrack,
-                                                            isDownloading = isDownloading,
-                                                            isDownloaded = isDownloaded,
-                                                            downloadProgress = progress ?: 0,
-                                                            onClick = {
-                                                                playerViewModel.playPlaylist(
-                                                                    tracksToDisplay.toList(),
-                                                                    safeIndex,
-                                                                    playbackContext
-                                                                )
-                                                            },
-                                                            onOptionClick = {
-                                                                val contextId =
-                                                                    if (isUserCreated || isDownloadedView) stableId else null
-                                                                playerViewModel.showTrackOptions(track, contextId)
-                                                            }
-                                                        )
-                                                    }
-                                                }
-                                                if (rowTracks.size == 1) {
-                                                    Spacer(modifier = Modifier.weight(1f))
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        itemsIndexed(items = tracksToDisplay, key = { _, t -> t.id }) { index, track ->
+                                    itemsIndexed(items = tracksToDisplay, key = { _, t -> t.id }) { index, track ->
                                         if (index >= tracksToDisplay.size - 5 && playlistId.startsWith("yt_radio:")) {
                                             LaunchedEffect(Unit) {
                                                 youtubeRadioViewModel.loadMore()
@@ -2265,7 +2197,6 @@ fun PlaylistDetailScreen(
                                             )
                                         }
                                     }
-                                }
                                     if (playlistId.startsWith("yt_radio:") && youtubeRadioViewModel.isLoadingMore) {
                                         item {
                                             Box(
@@ -3023,110 +2954,4 @@ fun EmptyPlaylistView(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun TrackGridCard(
-    track: Track,
-    currentlyPlayingTrack: Track? = null,
-    isDownloading: Boolean,
-    isDownloaded: Boolean,
-    downloadProgress: Int,
-    onClick: () -> Unit,
-    onOptionClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val isCurrent = currentlyPlayingTrack?.id == track.id
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onOptionClick
-            )
-            .fillMaxWidth()
-            .padding(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            val art = track.artworkUrl?.takeIf { it.isNotBlank() } ?: track.fullResArtwork
-            val imageModel: Any = remember(art) {
-                if (art.startsWith("/")) File(art) else art
-            }
-            AsyncImage(
-                model = imageModel,
-                contentDescription = track.title,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .alpha(if (isDownloading) 0.3f else 1f),
-                contentScale = ContentScale.Crop
-            )
-
-            if (isDownloading) {
-                CircularWavyProgressIndicator(
-                    progress = { downloadProgress / 100f },
-                    modifier = Modifier.size(28.dp),
-                    color = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.3f)
-                )
-            }
-
-            if (isCurrent && !isDownloading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.GraphicEq,
-                        contentDescription = "Playing",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = onOptionClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(28.dp)
-                    .background(Color.Black.copy(alpha = 0.4f), CircleShape)
-            ) {
-                Icon(
-                    Icons.Default.MoreVert,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = track.title ?: stringResource(R.string.untitled_track),
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold,
-            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        Text(
-            text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
 

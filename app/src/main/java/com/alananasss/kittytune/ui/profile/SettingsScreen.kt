@@ -73,7 +73,6 @@ fun SettingsScreen(
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
     var customFontEnabled by remember { mutableStateOf(prefs.getCustomFontEnabled()) }
     var explorerGridLayout by remember { mutableStateOf(prefs.getExplorerGridLayout()) }
-    var playlistGridLayout by remember { mutableStateOf(prefs.getPlaylistGridLayout()) }
     var preferenceVersion by remember { mutableStateOf(0) }
 
     val catInterface = stringResource(R.string.settings_cat_interface)
@@ -91,7 +90,7 @@ fun SettingsScreen(
         animatedArtistProfiles, lyricsUnderCover, showRemainingTime, verticalVolume,
         crossfade, automix, autoplay, stopOnTaskClear, persistentQueue, savePosition,
         youtubeFallback, discordRpc, achievementPopups, autoUpdate, customFontEnabled,
-        explorerGridLayout, playlistGridLayout,
+        explorerGridLayout,
         playerViewModel.isHapticsEnabled, playerViewModel.equalizerState.isEnabled,
         playerViewModel.effectsState.isNormalizationEnabled, playerViewModel.effectsState.isMonoEnabled,
         preferenceVersion, searchQuery
@@ -303,19 +302,6 @@ fun SettingsScreen(
                 onSwitchChange = {
                     explorerGridLayout = it
                     prefs.setExplorerGridLayout(it)
-                }
-            ),
-            SearchSettingEntry(
-                title = context.getString(R.string.pref_playlist_grid_title),
-                subtitle = context.getString(R.string.pref_playlist_grid_subtitle),
-                categoryName = catInterface,
-                icon = Icons.Rounded.ViewModule,
-                keywords = listOf("playlists grille", "grille playlists", "playlist grid", "affichage grille"),
-                hasSwitch = true,
-                switchState = playlistGridLayout,
-                onSwitchChange = {
-                    playlistGridLayout = it
-                    prefs.setPlaylistGridLayout(it)
                 }
             ),
             SearchSettingEntry(

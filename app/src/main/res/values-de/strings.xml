@@ -1668,8 +1668,6 @@
     <string name="pref_bottom_menu_title">Navigationsleiste</string>
     <string name="pref_explorer_grid_title">Entdecker-Rasteransicht</string>
     <string name="pref_explorer_grid_subtitle">Entdecker-Kategorien als quadratische Kacheln in 2 Spalten anzeigen</string>
-    <string name="pref_playlist_grid_title">Playlist-Rasteransicht</string>
-    <string name="pref_playlist_grid_subtitle">Titel in Playlists und lokalen Dateien in 2 Spalten anzeigen</string>
     <string name="pref_bottom_menu_subtitle">Untere Leiste und FAB anpassen</string>
     <string name="pref_bottom_menu_style">Menüstil</string>
     <string name="pref_bottom_menu_style_modern">Modern</string>
@@ -1719,16 +1717,6 @@
     <string name="recognition_listen_on_kittytune">Auf KittyTune anhören</string>
     <string name="btn_retry">Erneut versuchen</string>
     <string name="recognition_track_not_found">Titel nicht gefunden</string>
-    <string name="recognition_tap_to_identify_device">Tippen, um aus Apps zu erkennen</string>
-    <string name="recognition_listening_device_desc">Musik aus Apps auf diesem Gerät erkennen</string>
-    <string name="recognition_source_mic">Mikrofon</string>
-    <string name="recognition_source_device">Dieses Gerät</string>
-    <string name="recognition_device_not_supported">Interne Audioaufnahme erfordert Android 10 oder neuer</string>
-    <string name="recognition_notif_listening_device">Geräte-Audio wird aufgenommen&#8230;</string>
-    <string name="recognition_notif_channel">Musikerkennung</string>
-    <string name="recognition_notif_channel_desc">Wird während der internen Audioerkennung verwendet</string>
-    <string name="recognition_notif_stop">Stopp</string>
-    <string name="recognition_notif_track_found">Gefunden: %1$s - %2$s</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">KittyTune unterstützen</string>
     <string name="about_kofi_desc">Dieses Projekt ist vollständig kostenlos und quelloffen. Wenn dir meine Arbeit gefällt, unterstütze ihre Entwicklung gerne mit einem Kaffee auf Ko-fi!</string>

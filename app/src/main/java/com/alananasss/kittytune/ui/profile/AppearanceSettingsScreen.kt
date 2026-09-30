@@ -107,7 +107,6 @@ fun AppearanceSettingsScreen(
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
     var explorerGridLayout by remember { mutableStateOf(prefs.getExplorerGridLayout()) }
-    var playlistGridLayout by remember { mutableStateOf(prefs.getPlaylistGridLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
@@ -481,20 +480,7 @@ fun AppearanceSettingsScreen(
                                 }
                             )
                         },
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_playlist_grid_title),
-                                subtitle = stringResource(R.string.pref_playlist_grid_subtitle),
-                                icon = Icons.Rounded.ViewModule,
-                                hasSwitch = true,
-                                switchState = playlistGridLayout,
-                                onSwitchChange = {
-                                    playlistGridLayout = it
-                                    prefs.setPlaylistGridLayout(it)
-                                }
-                            )
-                        },
+
                         { shape ->
                             SettingsItem(
                                 shape = shape,
