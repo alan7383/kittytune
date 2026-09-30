@@ -102,13 +102,13 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         BlockManager.unblockTrack(trackToUnblock!!.trackId!!)
                         trackToUnblock = null
                     },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.block_restore)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { trackToUnblock = null },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -155,13 +155,13 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         BlockManager.unblockArtist(artistToUnblock!!.artistId!!)
                         artistToUnblock = null
                     },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.block_restore)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { artistToUnblock = null },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -209,14 +209,14 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         blockedArtists.forEach { it.artistId?.let { id -> BlockManager.unblockArtist(id) } }
                         showClearAllDialog = false
                     },
-                    shape = CircleShape,
+                    shapes = ButtonDefaults.shapes(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) { Text(stringResource(R.string.block_clear_all_confirm)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showClearAllDialog = false },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -263,13 +263,13 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         showDownloadPromptDialog = false
                         com.alananasss.kittytune.audio.ai.AiDetectionManager.downloadModel(context)
                     },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.block_model_download_btn)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDownloadPromptDialog = false },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -320,14 +320,14 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         prefs.aiAutoBlock = false
                         showDeleteModelDialog = false
                     },
-                    shape = CircleShape,
+                    shapes = ButtonDefaults.shapes(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) { Text(stringResource(R.string.block_model_delete_btn)) }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showDeleteModelDialog = false },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
         )
@@ -436,7 +436,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             confirmButton = {
                 TextButton(
                     onClick = { showAiWindowDialog = false },
-                    shape = CircleShape
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(
                         text = stringResource(R.string.btn_cancel),
@@ -812,234 +812,111 @@ private fun AiModelDownloadCard(
     onDelete: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                    modifier = Modifier.size(52.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_huggingface),
-                            contentDescription = null,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                }
+                Image(
+                    painter = painterResource(R.drawable.ic_huggingface),
+                    contentDescription = null,
+                    modifier = Modifier.size(44.dp)
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.block_model_card_title),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(Modifier.height(3.dp))
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        text = stringResource(R.string.block_model_card_subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = if (downloadState is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Ready) {
+                            stringResource(R.string.block_model_status_ready)
+                        } else {
+                            stringResource(R.string.block_model_card_subtitle)
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (downloadState is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Ready) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 }
             }
 
             Text(
                 text = stringResource(R.string.block_model_desc_what),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 20.sp
+                lineHeight = 18.sp
             )
-
-            // Features chips
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val features = listOf(
-                    Icons.Rounded.Lock to R.string.block_model_feat_privacy,
-                    Icons.Rounded.SignalWifiOff to R.string.block_model_feat_offline,
-                    Icons.Rounded.SkipNext to R.string.block_model_feat_autoskip
-                )
-                features.forEach { (icon, textRes) ->
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = stringResource(textRes),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Disclaimer callout
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Rounded.Info,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.size(15.dp)
-                            )
-                        }
-                    }
-                    Text(
-                        text = stringResource(R.string.block_model_disclaimer),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
 
             when (downloadState) {
                 is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Ready -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    FilledTonalButton(
+                        onClick = onDelete,
+                        shapes = ButtonDefaults.shapes(),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.weight(1f).height(48.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Text(
-                                    text = stringResource(R.string.block_model_status_ready),
-                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-
-                        FilledTonalButton(
-                            onClick = onDelete,
-                            shape = CircleShape,
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                                contentColor = MaterialTheme.colorScheme.error
-                            ),
-                            modifier = Modifier.height(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DeleteOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = stringResource(R.string.block_model_delete_btn),
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Rounded.DeleteOutline,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.block_model_delete_btn),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
+                        )
                     }
                 }
                 is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Downloading -> {
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-                        modifier = Modifier.fillMaxWidth()
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    CircularWavyProgressIndicator(
-                                        progress = { downloadState.progress.coerceIn(0.01f, 1f) },
-                                        modifier = Modifier.size(22.dp),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.block_model_downloading, (downloadState.progress * 100).toInt()),
-                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                val mbDownloaded = String.format(java.util.Locale.US, "%.1f", downloadState.downloadedBytes / (1024f * 1024f))
-                                Text(
-                                    text = "$mbDownloaded / 17.2 MB",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            // MATERIAL 3 EXPRESSIVE WAVY PROGRESS BAR
-                            LinearWavyProgressIndicator(
-                                progress = { downloadState.progress.coerceIn(0f, 1f) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(10.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            Text(
+                                text = stringResource(R.string.block_model_downloading, (downloadState.progress * 100).toInt()),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            val mbDownloaded = String.format(java.util.Locale.US, "%.1f", downloadState.downloadedBytes / (1024f * 1024f))
+                            Text(
+                                text = "$mbDownloaded / 17.2 MB",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        LinearWavyProgressIndicator(
+                            progress = { downloadState.progress.coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(10.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
                     }
                 }
                 is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.NotDownloaded,
@@ -1049,26 +926,15 @@ private fun AiModelDownloadCard(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         if (downloadState is com.alananasss.kittytune.audio.ai.AiDetectionManager.ModelDownloadState.Error) {
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = "Error: ${downloadState.message}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(12.dp)
-                                )
-                            }
+                            Text(
+                                text = "Error: ${downloadState.message}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                         Button(
                             onClick = onDownload,
-                            shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
+                            shapes = ButtonDefaults.shapes(),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp)
@@ -1078,10 +944,10 @@ private fun AiModelDownloadCard(
                                 contentDescription = null,
                                 modifier = Modifier.size(20.dp)
                             )
-                            Spacer(Modifier.width(10.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 text = stringResource(R.string.block_model_download_btn),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
                             )
                         }
                     }
