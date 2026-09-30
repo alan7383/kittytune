@@ -1556,6 +1556,12 @@
     <string name="pref_bottom_menu_fab_recognition">Reconnaissance musicale</string>
     <string name="pref_bottom_menu_blur">Effet de flou</string>
     <string name="pref_bottom_menu_blur_sub">Appliquer un effet verre dépoli</string>
+    <string name="pref_mini_player_title">Mini-lecteur</string>
+    <string name="pref_mini_player_swipe_action_title">Geste de balayage</string>
+    <string name="pref_mini_player_swipe_action_change_track">Changer de morceau</string>
+    <string name="pref_mini_player_swipe_action_change_track_desc">Glisser vers la gauche pour le suivant, droite pour le précédent</string>
+    <string name="pref_mini_player_swipe_action_dismiss">Fermer le lecteur</string>
+    <string name="pref_mini_player_swipe_action_dismiss_desc">Glisser horizontalement pour masquer le mini-lecteur</string>
     <string name="pref_bottom_menu_tabs_reorder">Faites glisser pour réorganiser. La barre suit cet ordre.</string>
     <string name="reorder_handle">Réorganiser</string>
     <string name="pref_bottom_menu_tabs">Onglets visibles</string>

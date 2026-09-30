@@ -1327,6 +1327,12 @@
     <string name="pref_bottom_menu_fab_recognition">Zeneazonosítás</string>
     <string name="pref_bottom_menu_blur">Elmosódás</string>
     <string name="pref_bottom_menu_blur_sub">Homályos üveg hatás</string>
+    <string name="pref_mini_player_title">Mini lejátszó</string>
+    <string name="pref_mini_player_swipe_action_title">Legyintés mozdulat</string>
+    <string name="pref_mini_player_swipe_action_change_track">Szám váltása</string>
+    <string name="pref_mini_player_swipe_action_change_track_desc">Balra a következő, jobbra az előző számhoz</string>
+    <string name="pref_mini_player_swipe_action_dismiss">Lejátszó bezárása</string>
+    <string name="pref_mini_player_swipe_action_dismiss_desc">Vízszintes húzás a mini lejátszó bezárásához</string>
     <string name="pref_bottom_menu_tabs_reorder">Húzd az átrendezéshez. A sáv ezt a sorrendet követi.</string>
     <string name="reorder_handle">Átrendezés</string>
     <string name="pref_bottom_menu_tabs">Látható lapok</string>

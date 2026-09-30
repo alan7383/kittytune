@@ -1325,6 +1325,12 @@
     <string name="pref_bottom_menu_fab_recognition">Распознавание музыки</string>
     <string name="pref_bottom_menu_blur">Эффект размытия</string>
     <string name="pref_bottom_menu_blur_sub">Эффект матового стекла</string>
+    <string name="pref_mini_player_title">Мини-плеер</string>
+    <string name="pref_mini_player_swipe_action_title">Жест свайпа</string>
+    <string name="pref_mini_player_swipe_action_change_track">Переключение трека</string>
+    <string name="pref_mini_player_swipe_action_change_track_desc">Свайп влево — следующий, вправо — предыдущий трек</string>
+    <string name="pref_mini_player_swipe_action_dismiss">Закрыть плеер</string>
+    <string name="pref_mini_player_swipe_action_dismiss_desc">Смахнуть по горизонтали, чтобы закрыть мини-плеер</string>
     <string name="pref_bottom_menu_tabs_reorder">Перетащите, чтобы изменить порядок. Панель следует ему.</string>
     <string name="reorder_handle">Изменить порядок</string>
     <string name="pref_bottom_menu_tabs">Отображаемые вкладки</string>

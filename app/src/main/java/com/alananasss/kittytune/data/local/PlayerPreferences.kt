@@ -52,6 +52,18 @@ enum class DiscordStatusDisplay { ACTIVITY, SOUNDCLOUD, ARTIST, SONG }
 enum class PlayerProgressMode { SOUNDCLOUD, HYBRID_WAVEFORM, CLASSIC_BAR }
 enum class PlayerSliderStyle { BAR, WAVY, SLIM, SQUIGGLY }
 enum class PlayerDesign { PIXEL_PLAYER, SOUNDCLOUD, MODERN, CLASSIC }
+
+enum class MiniPlayerSwipeAction {
+    CHANGE_TRACK,
+    DISMISS;
+
+    companion object {
+        fun fromString(name: String?): MiniPlayerSwipeAction = when (name) {
+            "DISMISS" -> DISMISS
+            else -> CHANGE_TRACK
+        }
+    }
+}
 enum class LyricsUnderCoverPlacement { REPLACE_TITLE_ARTIST, ABOVE_TITLE_ARTIST }
 enum class LyricsDisplayState { OFF, UNDER_COVER, COVER_REPLACED }
 enum class WaveformColorMode { SOUNDCLOUD, COVER_ART, APP_THEME, CUSTOM }
@@ -362,6 +374,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_BOTTOM_MENU_ORDER = "bottom_menu_order_csv"
         private const val KEY_BOTTOM_MENU_FAB = "bottom_menu_fab"
         private const val KEY_BOTTOM_MENU_BLUR = "bottom_menu_blur_enabled"
+        const val KEY_MINI_PLAYER_SWIPE_ACTION = "mini_player_swipe_action"
         private const val KEY_STOP_ON_TASK_CLEAR = "stop_on_task_clear"
         private const val KEY_NEW_PLAYER_DESIGN = "new_player_design_enabled"
         const val KEY_PLAYER_DESIGN = "player_design"
@@ -995,6 +1008,21 @@ class PlayerPreferences(context: Context) {
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)
         trySend(getBottomMenuStyle())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getMiniPlayerSwipeAction(): MiniPlayerSwipeAction =
+        MiniPlayerSwipeAction.fromString(prefs.getString(KEY_MINI_PLAYER_SWIPE_ACTION, MiniPlayerSwipeAction.CHANGE_TRACK.name))
+
+    fun setMiniPlayerSwipeAction(action: MiniPlayerSwipeAction) =
+        prefs.edit { putString(KEY_MINI_PLAYER_SWIPE_ACTION, action.name) }
+
+    fun miniPlayerSwipeActionFlow(): kotlinx.coroutines.flow.Flow<MiniPlayerSwipeAction> = kotlinx.coroutines.flow.callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_MINI_PLAYER_SWIPE_ACTION) trySend(getMiniPlayerSwipeAction())
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(getMiniPlayerSwipeAction())
         awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 

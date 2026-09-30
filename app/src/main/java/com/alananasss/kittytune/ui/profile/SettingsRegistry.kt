@@ -220,6 +220,15 @@ internal val PlayerCustomizationSettingDefinitions: List<SettingDefinition> = li
         route = "player_design_settings",
         iconRes = com.alananasss.kittytune.R.drawable.ic_heart_broken,
         keywords = listOf("notification", "dislike", "like", "block", "extra", "button", "player", "notif")
+    ),
+    SettingDefinition.Action(
+        id = "mini_player_swipe_action",
+        titleRes = com.alananasss.kittytune.R.string.pref_mini_player_swipe_action_title,
+        subtitleRes = com.alananasss.kittytune.R.string.pref_mini_player_title,
+        category = SettingsCategory.INTERFACE,
+        route = "bottom_bar_settings",
+        icon = Icons.Rounded.PlayCircle,
+        keywords = listOf("mini", "player", "swipe", "gesture", "track", "skip", "next", "previous", "dismiss", "chanson", "morceau", "balayage")
     )
 )
 

@@ -37,9 +37,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.local.MiniPlayerSwipeAction
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.pixel.miniPlayerDismissHorizontalGesture
 import com.alananasss.kittytune.ui.player.pixel.rememberMiniPlayerDismissGestureHandler
+import androidx.compose.ui.platform.LocalContext
 import kotlin.math.abs
 
 data class KittyTab(
@@ -75,17 +78,28 @@ fun KittyUnifiedBottomBar(
     }
     val offsetAnimatable = remember { Animatable(0f) }
 
+    val context = LocalContext.current
+    val playerPrefs = remember { PlayerPreferences(context) }
+    val swipeAction by playerPrefs.miniPlayerSwipeActionFlow().collectAsState(initial = playerPrefs.getMiniPlayerSwipeAction())
+
     val miniDismissGestureHandler = rememberMiniPlayerDismissGestureHandler(
         scope = coroutineScope,
         density = density,
         hapticFeedback = hapticFeedback,
         offsetAnimatable = offsetAnimatable,
         screenWidthPx = screenWidthPx,
+        swipeAction = swipeAction,
         onDismiss = {
             playerViewModel.dismissMiniPlayerAndShowUndo()
         },
         onDismissStarted = {
             playerViewModel.isMiniPlayerDismissing = true
+        },
+        onSwipeNext = {
+            playerViewModel.requestSkipNext()
+        },
+        onSwipePrevious = {
+            playerViewModel.smartPrevious()
         }
     )
 
@@ -107,7 +121,11 @@ fun KittyUnifiedBottomBar(
                         .systemGestureExclusion()
                         .graphicsLayer {
                             translationX = offsetAnimatable.value
-                            alpha = (1f - (abs(offsetAnimatable.value) / (screenWidthPx * 0.85f))).coerceIn(0f, 1f)
+                            alpha = if (swipeAction == MiniPlayerSwipeAction.DISMISS) {
+                                (1f - (abs(offsetAnimatable.value) / (screenWidthPx * 0.85f))).coerceIn(0f, 1f)
+                            } else {
+                                (1f - (abs(offsetAnimatable.value) / screenWidthPx) * 0.35f).coerceIn(0.65f, 1f)
+                            }
                         }
                         .miniPlayerDismissHorizontalGesture(
                             enabled = true,
@@ -232,7 +250,11 @@ fun KittyUnifiedBottomBar(
                         .systemGestureExclusion()
                         .graphicsLayer {
                             translationX = offsetAnimatable.value
-                            alpha = (1f - (abs(offsetAnimatable.value) / (screenWidthPx * 0.85f))).coerceIn(0f, 1f)
+                            alpha = if (swipeAction == MiniPlayerSwipeAction.DISMISS) {
+                                (1f - (abs(offsetAnimatable.value) / (screenWidthPx * 0.85f))).coerceIn(0f, 1f)
+                            } else {
+                                (1f - (abs(offsetAnimatable.value) / screenWidthPx) * 0.35f).coerceIn(0.65f, 1f)
+                            }
                         }
                         .miniPlayerDismissHorizontalGesture(
                             enabled = true,

@@ -60,6 +60,8 @@ fun BottomBarSettingsScreen(
     val storedOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
 
     var showStyleDialog by remember { mutableStateOf(false) }
+    val miniPlayerSwipeAction by prefs.miniPlayerSwipeActionFlow().collectAsState(initial = prefs.getMiniPlayerSwipeAction())
+    var showSwipeActionDialog by remember { mutableStateOf(false) }
 
     val view = LocalView.current
     val listState = rememberLazyListState()
@@ -128,6 +130,80 @@ fun BottomBarSettingsScreen(
         )
     }
 
+    if (showSwipeActionDialog) {
+        AlertDialog(
+            onDismissRequest = { showSwipeActionDialog = false },
+            title = { Text(stringResource(R.string.pref_mini_player_swipe_action_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK)
+                                showSwipeActionDialog = false
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS)
+                                showSwipeActionDialog = false
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSwipeActionDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
     SettingsScaffold(
         title = stringResource(R.string.pref_bottom_menu_title),
         onBackClick = onBackClick
@@ -193,6 +269,27 @@ fun BottomBarSettingsScreen(
                                 )
                             }
                         }
+                    }
+                }
+            }
+            item(key = "mini_player_section") {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.pref_mini_player_title))
+                    Column(
+                        modifier = Modifier.clip(RoundedCornerShape(24.dp)),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        SettingsItem(
+                            shape = RoundedCornerShape(24.dp),
+                            title = stringResource(R.string.pref_mini_player_swipe_action_title),
+                            subtitle = when (miniPlayerSwipeAction) {
+                                com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK ->
+                                    stringResource(R.string.pref_mini_player_swipe_action_change_track)
+                                com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS ->
+                                    stringResource(R.string.pref_mini_player_swipe_action_dismiss)
+                            },
+                            onClick = { showSwipeActionDialog = true }
+                        )
                     }
                 }
             }

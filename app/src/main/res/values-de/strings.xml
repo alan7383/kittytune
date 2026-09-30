@@ -1680,6 +1680,12 @@
     <string name="pref_bottom_menu_fab_recognition">Musikerkennung</string>
     <string name="pref_bottom_menu_blur">Weichzeichner-Effekt</string>
     <string name="pref_bottom_menu_blur_sub">Einen Milchglas-Effekt anwenden</string>
+    <string name="pref_mini_player_title">Miniplayer</string>
+    <string name="pref_mini_player_swipe_action_title">Wischgeste</string>
+    <string name="pref_mini_player_swipe_action_change_track">Titel wechseln</string>
+    <string name="pref_mini_player_swipe_action_change_track_desc">Nach links für nächsten, nach rechts für vorherigen Titel wischen</string>
+    <string name="pref_mini_player_swipe_action_dismiss">Player schließen</string>
+    <string name="pref_mini_player_swipe_action_dismiss_desc">Horizontal wischen, um den Miniplayer zu schließen</string>
     <string name="pref_bottom_menu_tabs_reorder">Ziehen zum Ändern. Die Leiste folgt dieser Reihenfolge.</string>
     <string name="reorder_handle">Reihenfolge ändern</string>
     <string name="pref_bottom_menu_tabs">Sichtbare Tabs</string>

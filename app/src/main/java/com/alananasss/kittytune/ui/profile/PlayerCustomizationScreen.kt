@@ -99,6 +99,8 @@ fun PlayerCustomizationScreen(
 
     var notifExtraButton by remember { mutableStateOf(prefs.getNotificationExtraButton()) }
     var showNotifExtraButtonDialog by remember { mutableStateOf(false) }
+    var miniPlayerSwipeAction by remember { mutableStateOf(prefs.getMiniPlayerSwipeAction()) }
+    var showMiniPlayerSwipeActionDialog by remember { mutableStateOf(false) }
 
     var previewSliderProgress by remember { mutableFloatStateOf(0.42f) }
     var isPreviewPlaying by remember { mutableStateOf(true) }
@@ -687,6 +689,28 @@ fun PlayerCustomizationScreen(
                 )
             }
 
+            item(key = "mini_player_swipe_settings") {
+                val miniItems = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit> { shape ->
+                    SettingsItem(
+                        shape = shape,
+                        title = stringResource(R.string.pref_mini_player_swipe_action_title),
+                        subtitle = when (miniPlayerSwipeAction) {
+                            com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK ->
+                                stringResource(R.string.pref_mini_player_swipe_action_change_track)
+                            com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS ->
+                                stringResource(R.string.pref_mini_player_swipe_action_dismiss)
+                        },
+                        trailingText = stringResource(R.string.player_slot_change),
+                        onClick = { showMiniPlayerSwipeActionDialog = true }
+                    )
+                }
+
+                SettingsGroup(
+                    title = stringResource(R.string.pref_mini_player_title),
+                    items = miniItems
+                )
+            }
+
             // 6. Track Menu Sheet Tiles (Draggable M3 Grouped Settings)
             item(key = "menu_tiles_header") {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -941,6 +965,90 @@ fun PlayerCustomizationScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showNotifExtraButtonDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showMiniPlayerSwipeActionDialog) {
+        AlertDialog(
+            onDismissRequest = { showMiniPlayerSwipeActionDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_mini_player_swipe_action_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK)
+                                miniPlayerSwipeAction = com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK
+                                showMiniPlayerSwipeActionDialog = false
+                                onUpdated()
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS)
+                                miniPlayerSwipeAction = com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS
+                                showMiniPlayerSwipeActionDialog = false
+                                onUpdated()
+                            }
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS,
+                            onClick = null
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showMiniPlayerSwipeActionDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
