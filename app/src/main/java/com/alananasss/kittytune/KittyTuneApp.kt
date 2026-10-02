@@ -73,6 +73,24 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
                 } else {
                     add(GifDecoder.Factory())
                 }
+                // Data saver choke point for artwork: every image request in the app goes
+                // through this interceptor, so a single URL rewrite here lightens covers in
+                // lists, players, playlists and widgets at once — no UI call site touched.
+                add(object : coil.intercept.Interceptor {
+                    override suspend fun intercept(chain: coil.intercept.Interceptor.Chain): coil.request.ImageResult {
+                        if (!com.alananasss.kittytune.data.DataSaver.isActive(this@KittyTuneApp)) {
+                            return chain.proceed(chain.request)
+                        }
+                        val data = chain.request.data
+                        if (data is String) {
+                            val light = com.alananasss.kittytune.data.DataSaver.lightArtwork(data)
+                            if (light != null && light != data) {
+                                return chain.proceed(chain.request.newBuilder().data(light).build())
+                            }
+                        }
+                        return chain.proceed(chain.request)
+                    }
+                })
             }
             .diskCache {
                 coil.disk.DiskCache.Builder()

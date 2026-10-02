@@ -903,9 +903,9 @@
     <string name="pref_persist_queue_sub">Restaurer la lecture après redémarrage</string>
     <string name="pref_quality">Qualité Stream</string>
     <string name="quality_high">Haute (Défaut)</string>
-    <string name="quality_low">Éco (Données mobiles)</string>
+    <string name="quality_low">Éco</string>
     <string name="quality_high_sub">Meilleure qualité (128kbps+)</string>
-    <string name="quality_low_sub">Idéal pour économiser la data</string>
+    <string name="quality_low_sub">Débit minimal sur chaque source</string>
     <string name="pref_youtube_fallback">Débloquer les titres restreints</string>
     <string name="pref_youtube_fallback_sub">Via NewPipe Extractor pour les titres Go+</string>
     <string name="pref_hide_youtube_videos">Masquer les vidéos et Shorts</string>
@@ -3028,4 +3028,17 @@
     <string name="yearly_playback_error_title">Impossible de charger le Playback</string>
     <string name="yearly_playback_error_desc">Veuillez vérifier votre connexion réseau ou réessayer plus tard.</string>
     <string name="yearly_playback_explore_detailed_stats">Explorer les statistiques détaillées</string>
+
+    <!-- ECO MODE / DATA SAVER -->
+    <string name="quality_data_section">Qualité et données</string>
+    <string name="data_saver_title">Économiseur de données</string>
+    <string name="data_saver_sub">Un seul bouton pour tout le trafic : débit minimal sur chaque source, pochettes légères, aucune jaquette animée. S\'applique à SoundCloud, YouTube Music, Qobuz, TIDAL et Deezer.</string>
+    <string name="data_saver_metered_only">Uniquement sur le réseau mobile</string>
+    <string name="data_saver_metered_only_sub">En Wi-Fi, tout revient à la qualité que vous avez choisie</string>
+    <string name="data_saver_forced_eco">Éco — imposé par l\'économiseur</string>
+    <string name="provider_data_saver_title">Désactiver sur données mobiles</string>
+    <string name="provider_data_saver_sub">Qobuz, TIDAL et Deezer ne seront pas utilisés sur le réseau mobile — uniquement SoundCloud et YouTube. Connectez-vous au Wi-Fi pour retrouver la Hi-Res.</string>
+    <string name="provider_enabled_hint">SoundCloud et YouTube Music sont les sources de base et restent toujours disponibles.</string>
+    <string name="provider_disabled_suffix">(désactivé)</string>
+    <string name="keywords_data_saver">economiseur de donnees, trafic, donnees mobiles, eco, economie, bande passante, reseau, 4g, 5g</string>
 </resources>

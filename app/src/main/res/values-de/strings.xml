@@ -979,9 +979,9 @@
     <string name="pref_persist_queue_sub">Wiedergabe nach Neustart fortsetzen</string>
     <string name="pref_quality">Streaming-Qualität</string>
     <string name="quality_high">Hoch (Standard)</string>
-    <string name="quality_low">Eco (Datensparmodus)</string>
+    <string name="quality_low">Eco</string>
     <string name="quality_high_sub">Beste Qualität (128 kbit/s+)</string>
-    <string name="quality_low_sub">Spart Daten im Mobilfunknetz</string>
+    <string name="quality_low_sub">Niedrigste Bitrate bei jeder Quelle</string>
     <string name="pref_youtube_fallback">Eingeschränkte Titel freischalten</string>
     <string name="pref_youtube_fallback_sub">Über NewPipe Extractor für Go+-Titel</string>
     <string name="pref_hide_youtube_videos">Videos &amp; Shorts ausblenden</string>
@@ -3127,4 +3127,17 @@
     <string name="yearly_playback_error_title">Playback konnte nicht geladen werden</string>
     <string name="yearly_playback_error_desc">Bitte überprüfe deine Netzwerkverbindung oder versuche es später erneut.</string>
     <string name="yearly_playback_explore_detailed_stats">Detaillierte Statistiken anzeigen</string>
+
+    <!-- ECO MODE / DATA SAVER -->
+    <string name="quality_data_section">Qualität &amp; Daten</string>
+    <string name="data_saver_title">Datensparmodus</string>
+    <string name="data_saver_sub">Ein Schalter für den gesamten Datenverkehr: niedrigste Bitrate bei jeder Quelle, leichte Cover, keine animierten Cover. Gilt für SoundCloud, YouTube Music, Qobuz, TIDAL und Deezer.</string>
+    <string name="data_saver_metered_only">Nur im Mobilfunknetz</string>
+    <string name="data_saver_metered_only_sub">Im WLAN kehrt alles zu Ihrer gewählten Qualität zurück</string>
+    <string name="data_saver_forced_eco">Eco — durch Datensparmodus erzwungen</string>
+    <string name="provider_data_saver_title">Über mobile Daten deaktivieren</string>
+    <string name="provider_data_saver_sub">Qobuz, TIDAL und Deezer werden im Mobilfunknetz nicht verwendet — nur SoundCloud und YouTube. Verbinden Sie sich mit WLAN, um Hi-Res wieder zu genießen.</string>
+    <string name="provider_enabled_hint">SoundCloud und YouTube Music sind die Basisquellen und immer verfügbar.</string>
+    <string name="provider_disabled_suffix">(aus)</string>
+    <string name="keywords_data_saver">datensparmodus, traffic, mobile daten, eco, sparen, bandbreite, netzwerk, mobilfunk</string>
 </resources>

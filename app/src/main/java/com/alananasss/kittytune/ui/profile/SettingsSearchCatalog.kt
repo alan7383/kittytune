@@ -56,6 +56,7 @@ internal fun rememberSettingsSearchCatalog(
         var youtubeFallback = prefs.getYouTubeFallbackEnabled()
         var hideYoutubeVideos = prefs.getHideYoutubeVideos()
         var discordRpc = prefs.getDiscordRpcEnabled()
+        var dataSaver = prefs.getDataSaverEnabled()
         var achievementPopups = prefs.getAchievementPopupsEnabled()
         var autoUpdate = prefs.getAutoUpdateEnabled()
         var rememberSearchFilter = prefs.getRememberSearchFilter()
@@ -454,18 +455,6 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
-                titleRes = R.string.pref_quality,
-                subtitleRes = R.string.quality_high_sub,
-                categoryName = catAudio,
-                icon = Icons.Rounded.HighQuality,
-                route = "audio_settings",
-                highlightKey = "pref_quality",
-                keywordsRes = R.string.keywords_audio,
-                keywords = listOf("bitrate", "flac", "stream")
-            ),
-            createSearchEntry(
-                context = context,
-                englishContext = englishContext,
                 titleRes = R.string.equalizer_title,
                 subtitleRes = R.string.equalizer_subtitle,
                 categoryName = catAudio,
@@ -785,6 +774,37 @@ internal fun rememberSettingsSearchCatalog(
                     prefs.setDiscordRpcEnabled(it)
                     onPreferenceChange()
                 }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.data_saver_title,
+                subtitleRes = R.string.data_saver_sub,
+                categoryName = catSources,
+                icon = Icons.Rounded.DataSaverOn,
+                route = "accounts_settings",
+                highlightKey = "pref_data_saver",
+                keywordsRes = R.string.keywords_data_saver,
+                keywords = listOf("eco", "data", "saver", "traffic", "metered"),
+                hasSwitch = true,
+                switchState = dataSaver,
+                onSwitchChange = {
+                    dataSaver = it
+                    prefs.setDataSaverEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_quality,
+                subtitleRes = R.string.quality_high_sub,
+                categoryName = catSources,
+                icon = Icons.Rounded.HighQuality,
+                route = "accounts_settings",
+                highlightKey = "pref_quality",
+                keywordsRes = R.string.keywords_audio,
+                keywords = listOf("bitrate", "flac", "stream", "quality")
             ),
 
             // STORAGE

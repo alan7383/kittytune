@@ -744,9 +744,9 @@
     <string name="pref_persist_queue_sub">Восстановление воспроизведения после перезапуска</string>
     <string name="pref_quality">Качество потока</string>
     <string name="quality_high">Высокий (по умолчанию)</string>
-    <string name="quality_low">Эко (экономия данных)</string>
+    <string name="quality_low">Эко</string>
     <string name="quality_high_sub">Лучшее качество (128 kbps+)</string>
-    <string name="quality_low_sub">Сохраняет данные в мобильной сети</string>
+    <string name="quality_low_sub">Минимальный битрейт во всех источниках</string>
     <string name="pref_youtube_fallback">Разблокировать запрещенные треки</string>
     <string name="pref_youtube_fallback_sub">Через NewPipe Extractor для треков Go+</string>
     <string name="pref_hide_youtube_videos">Скрыть видео и Shorts</string>
@@ -3007,4 +3007,17 @@
     <string name="yearly_playback_error_title">Не удалось загрузить Playback</string>
     <string name="yearly_playback_error_desc">Пожалуйста, проверьте подключение к сети или повторите попытку позже.</string>
     <string name="yearly_playback_explore_detailed_stats">Смотреть подробную статистику</string>
+
+    <!-- ECO MODE / DATA SAVER -->
+    <string name="quality_data_section">Качество и трафик</string>
+    <string name="data_saver_title">Экономия трафика</string>
+    <string name="data_saver_sub">Один переключатель для всего трафика: минимальный битрейт во всех источниках, облегченные обложки, отключение анимированных обложек. Действует для SoundCloud, YouTube Music, Qobuz, TIDAL и Deezer.</string>
+    <string name="data_saver_metered_only">Только в мобильной сети</string>
+    <string name="data_saver_metered_only_sub">При подключении к Wi-Fi вернется выбранное вами качество</string>
+    <string name="data_saver_forced_eco">Эко — включено режимом экономии</string>
+    <string name="provider_data_saver_title">Отключать при мобильном интернете</string>
+    <string name="provider_data_saver_sub">Qobuz, TIDAL и Deezer не будут использоваться в мобильной сети — только SoundCloud и YouTube. Подключитесь к Wi-Fi для доступа к Hi-Res.</string>
+    <string name="provider_enabled_hint">SoundCloud и YouTube Music являются базовыми источниками и доступны всегда.</string>
+    <string name="provider_disabled_suffix">(откл.)</string>
+    <string name="keywords_data_saver">экономия трафика, трафик, мобильный интернет, эко, экономия данных, лимит, сеть</string>
 </resources>

@@ -896,9 +896,9 @@
     <string name="pref_persist_queue_sub">Khôi phục danh sách phát sau khi khởi động lại</string>
     <string name="pref_quality">Chất lượng phát trực tuyến</string>
     <string name="quality_high">Cao (Mặc định)</string>
-    <string name="quality_low">Tiết kiệm (Dữ liệu mạng)</string>
+    <string name="quality_low">Tiết kiệm</string>
     <string name="quality_high_sub">Chất lượng tốt nhất (128kbps+)</string>
-    <string name="quality_low_sub">Tiết kiệm dung lượng trên mạng di động</string>
+    <string name="quality_low_sub">Bitrate thấp nhất trên mọi nguồn</string>
     <string name="pref_youtube_fallback">Mở khóa bài hát bị giới hạn</string>
     <string name="pref_youtube_fallback_sub">Qua NewPipe Extractor cho các bài hát gói Go+</string>
     <string name="pref_hide_youtube_videos">Ẩn video và Shorts</string>
@@ -2986,4 +2986,17 @@
     <string name="yearly_playback_error_title">Không thể tải Playback</string>
     <string name="yearly_playback_error_desc">Vui lòng kiểm tra kết nối mạng hoặc thử lại sau.</string>
     <string name="yearly_playback_explore_detailed_stats">Khám phá thống kê chi tiết</string>
+
+    <!-- ECO MODE / DATA SAVER -->
+    <string name="quality_data_section">Chất lượng &amp; Dữ liệu</string>
+    <string name="data_saver_title">Tiết kiệm dữ liệu</string>
+    <string name="data_saver_sub">Một nút gạt cho toàn bộ dữ liệu: bitrate thấp nhất trên mọi nguồn, ảnh bìa nhẹ, tắt bìa động. Áp dụng cho SoundCloud, YouTube Music, Qobuz, TIDAL và Deezer.</string>
+    <string name="data_saver_metered_only">Chỉ khi dùng mạng di động</string>
+    <string name="data_saver_metered_only_sub">Khi dùng Wi-Fi, mọi thứ sẽ trở lại chất lượng bạn đã chọn</string>
+    <string name="data_saver_forced_eco">Tiết kiệm — bắt buộc bởi Trình tiết kiệm</string>
+    <string name="provider_data_saver_title">Tắt khi dùng dữ liệu di động</string>
+    <string name="provider_data_saver_sub">Qobuz, TIDAL và Deezer sẽ không được dùng trên mạng di động — chỉ SoundCloud và YouTube. Kết nối Wi-Fi để nghe lại Hi-Res.</string>
+    <string name="provider_enabled_hint">SoundCloud và YouTube Music là các nguồn cơ bản và luôn khả dụng.</string>
+    <string name="provider_disabled_suffix">(tắt)</string>
+    <string name="keywords_data_saver">tiet kiem du lieu, traffic, mang di dong, 4g, 5g, tiet kiem, bang thong, mang</string>
 </resources>

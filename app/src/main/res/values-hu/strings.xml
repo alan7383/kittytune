@@ -739,9 +739,9 @@
     <string name="pref_persist_queue_sub">Lejátszás visszaállítása újraindításkor</string>
     <string name="pref_quality">Stream minőség</string>
     <string name="quality_high">Magas (Alap)</string>
-    <string name="quality_low">Eco (Mobilnet)</string>
+    <string name="quality_low">Eco</string>
     <string name="quality_high_sub">Legjobb minőség (128kbps+)</string>
-    <string name="quality_low_sub">Adatspórolós mód</string>
+    <string name="quality_low_sub">Legalacsonyabb bitráta minden forráson</string>
     <string name="pref_youtube_fallback">Korlátozott számok feloldása</string>
     <string name="pref_youtube_fallback_sub">NewPipe Extractor használata Go+ számokhoz</string>
     <string name="pref_hide_youtube_videos">Videók és Shorts elrejtése</string>
@@ -3014,4 +3014,17 @@
     <string name="yearly_playback_error_title">A Playback betöltése sikertelen</string>
     <string name="yearly_playback_error_desc">Kérjük, ellenőrizd a hálózati kapcsolatot, vagy próbáld újra később.</string>
     <string name="yearly_playback_explore_detailed_stats">Részletes statisztikák felfedezése</string>
+
+    <!-- ECO MODE / DATA SAVER -->
+    <string name="quality_data_section">Minőség és adatforgalom</string>
+    <string name="data_saver_title">Adatforgalom-csökkentő</string>
+    <string name="data_saver_sub">Egyetlen kapcsoló a teljes forgalomhoz: a legalacsonyabb bitráta minden forráson, könnyített borítók, animált borítók mellőzése. Érvényes a SoundCloud, YouTube Music, Qobuz, TIDAL és Deezer forrásokra.</string>
+    <string name="data_saver_metered_only">Csak mobilhálózaton</string>
+    <string name="data_saver_metered_only_sub">Wi-Fi-n minden visszaáll az Ön által választott minőségre</string>
+    <string name="data_saver_forced_eco">Eco — az adatcsökkentő kényszerítette</string>
+    <string name="provider_data_saver_title">Kikapcsolás mobilneten</string>
+    <string name="provider_data_saver_sub">A Qobuz, TIDAL és Deezer nem lesz használatban mobilhálózaton — csak a SoundCloud és a YouTube. Csatlakozzon Wi-Fi-re a Hi-Res eléréséhez.</string>
+    <string name="provider_enabled_hint">A SoundCloud és a YouTube Music alapvető források, mindig elérhetőek maradnak.</string>
+    <string name="provider_disabled_suffix">(kikapcsolva)</string>
+    <string name="keywords_data_saver">adatforgalom csokkento, adatmentes, mobilnet, eco, sporolas, savszelesseg, halozat</string>
 </resources>

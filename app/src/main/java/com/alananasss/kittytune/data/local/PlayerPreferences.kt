@@ -422,6 +422,10 @@ class PlayerPreferences(context: Context) {
         const val KEY_HAPTICS_QUEUE = "haptics_queue"
 
         const val KEY_AUDIO_PROVIDER_ORDER = "audio_provider_order"
+        const val KEY_DISABLED_AUDIO_PROVIDERS = "disabled_audio_providers"
+        const val KEY_DISABLE_PROVIDERS_ON_METERED = "disable_providers_on_metered"
+        const val KEY_DATA_SAVER = "data_saver_enabled"
+        const val KEY_DATA_SAVER_METERED_ONLY = "data_saver_metered_only"
         const val KEY_QOBUZ_COUNTRY = "qobuz_country"
         const val KEY_QOBUZ_CUSTOM_INSTANCES = "qobuz_custom_instances"
         const val KEY_QOBUZ_QUALITY = "qobuz_quality"
@@ -1744,6 +1748,38 @@ class PlayerPreferences(context: Context) {
     fun setAudioProviderOrder(order: List<com.alananasss.kittytune.audio.providers.AudioProviderOrderItem>) {
         prefs.edit { putString(KEY_AUDIO_PROVIDER_ORDER, com.alananasss.kittytune.audio.providers.AudioProviderOrder.serialize(order)) }
     }
+
+    // Disabled audio providers (traffic saver for Qobuz / TIDAL / Deezer)
+    fun getDisabledAudioProviders(): Set<com.alananasss.kittytune.audio.providers.AudioProviderOrderItem> {
+        val raw = prefs.getString(KEY_DISABLED_AUDIO_PROVIDERS, null)
+        return com.alananasss.kittytune.audio.providers.AudioProviderOrder.deserializeDisabled(raw)
+    }
+
+    fun isAudioProviderDisabled(provider: com.alananasss.kittytune.audio.providers.AudioProviderOrderItem): Boolean {
+        return provider.isDisableable() && provider in getDisabledAudioProviders()
+    }
+
+    fun setAudioProviderDisabled(provider: com.alananasss.kittytune.audio.providers.AudioProviderOrderItem, disabled: Boolean) {
+        if (!provider.isDisableable()) return
+        val current = getDisabledAudioProviders().toMutableSet()
+        if (disabled) current.add(provider) else current.remove(provider)
+        prefs.edit { putString(KEY_DISABLED_AUDIO_PROVIDERS, com.alananasss.kittytune.audio.providers.AudioProviderOrder.serializeDisabled(current)) }
+    }
+
+    /** When true, Qobuz / TIDAL / Deezer are skipped automatically while on a metered (mobile) network. */
+    fun getDisableProvidersOnMetered(): Boolean = prefs.getBoolean(KEY_DISABLE_PROVIDERS_ON_METERED, false)
+
+    fun setDisableProvidersOnMetered(enabled: Boolean) = prefs.edit { putBoolean(KEY_DISABLE_PROVIDERS_ON_METERED, enabled) }
+
+    /** Master traffic switch: eco streams, light covers and no animated artwork on every source at once. */
+    fun getDataSaverEnabled(): Boolean = prefs.getBoolean(KEY_DATA_SAVER, false)
+
+    fun setDataSaverEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_DATA_SAVER, enabled) }
+
+    /** When true, the data saver only bites while the device is on a metered (mobile) network. */
+    fun getDataSaverMeteredOnly(): Boolean = prefs.getBoolean(KEY_DATA_SAVER_METERED_ONLY, false)
+
+    fun setDataSaverMeteredOnly(enabled: Boolean) = prefs.edit { putBoolean(KEY_DATA_SAVER_METERED_ONLY, enabled) }
 
     // Qobuz
     fun getQobuzCountry(): String = prefs.getString(KEY_QOBUZ_COUNTRY, "US") ?: "US"

@@ -206,7 +206,17 @@ object AppLogManager {
             context.getString(R.string.logs_sec_network) to listOf(
                 "Connection Type" to netType,
                 "Proxy Enabled" to "${prefs.getProxyEnabled()} (${prefs.getProxyHost()}:${prefs.getProxyPort()})",
-                "Audio Providers" to prefs.getAudioProviderOrder().joinToString(", ") { it.name },
+                "Audio Providers" to buildString {
+                    append(prefs.getAudioProviderOrder().joinToString(", ") { it.name })
+                    val disabled = prefs.getDisabledAudioProviders()
+                    if (disabled.isNotEmpty()) append(" | Disabled: ${disabled.joinToString(", ") { it.name }}")
+                    if (prefs.getDisableProvidersOnMetered()) append(" | Data saver on mobile: ON")
+                    if (prefs.getDataSaverEnabled()) {
+                        append(" | Data saver: ")
+                        append(if (com.alananasss.kittytune.data.DataSaver.isActive(context)) "ACTIVE" else "paused (Wi-Fi)")
+                    }
+                    append(" | Stream quality: ${prefs.getAudioQuality()}")
+                },
                 "Tidal Quality" to prefs.getTidalAudioQuality().name,
                 "Deezer Quality" to prefs.getDeezerAudioQuality().name
             )

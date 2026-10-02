@@ -47,7 +47,6 @@ fun AudioSettingsScreen(
     var autoplayEnabled by remember { mutableStateOf(prefs.getAutoplayEnabled()) }
     var stopOnTaskClear by remember { mutableStateOf(prefs.getStopOnTaskClear()) }
     var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
-    var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
 
     val tokenManager = remember { TokenManager(context) }
     val isGuest = remember { tokenManager.isGuestMode() }
@@ -75,8 +74,6 @@ fun AudioSettingsScreen(
     var automixIndicator by remember { mutableStateOf(prefs.getAutomixIndicatorEnabled()) }
     var showAutomixOverlapDialog by remember { mutableStateOf(false) }
     var showAutomixStartOffsetDialog by remember { mutableStateOf(false) }
-
-    var showQualityDialog by remember { mutableStateOf(false) }
     var showFadeDurationDialog by remember { mutableStateOf(false) }
     var showCrossfadeDurationDialog by remember { mutableStateOf(false) }
     var showNormalizationDialog by remember { mutableStateOf(false) }
@@ -269,33 +266,6 @@ fun AudioSettingsScreen(
         )
     }
 
-    if (showQualityDialog) {
-        AlertDialog(
-            onDismissRequest = { showQualityDialog = false },
-            title = { Text(stringResource(R.string.pref_quality)) },
-            text = {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { audioQuality = "HIGH"; prefs.setAudioQuality("HIGH"); showQualityDialog = false }.padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = audioQuality == "HIGH", onClick = null)
-                        Spacer(Modifier.width(8.dp))
-                        Column { Text(stringResource(R.string.quality_high), fontWeight = FontWeight.SemiBold); Text(stringResource(R.string.quality_high_sub), style = MaterialTheme.typography.bodySmall) }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().clickable { audioQuality = "LOW"; prefs.setAudioQuality("LOW"); showQualityDialog = false }.padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = audioQuality == "LOW", onClick = null)
-                        Spacer(Modifier.width(8.dp))
-                        Column { Text(stringResource(R.string.quality_low), fontWeight = FontWeight.SemiBold); Text(stringResource(R.string.quality_low_sub), style = MaterialTheme.typography.bodySmall) }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showQualityDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
-        )
-    }
 
     if (showNormalizationDialog) {
         AlertDialog(
@@ -428,8 +398,7 @@ fun AudioSettingsScreen(
             "pref_haptics" to 1,
             "sleep_timer_fade" to 2,
             "pref_crossfade" to 3,
-            "pref_automix" to 4,
-            "pref_quality" to 5
+            "pref_automix" to 4
         )
     )
 
@@ -864,23 +833,6 @@ fun AudioSettingsScreen(
                         }
                     }
                 }
-            }
-
-            item {
-                SettingsGroup(
-                    title = stringResource(R.string.settings_cat_audio),
-                    items = listOf(
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_quality),
-                                subtitle = if (audioQuality == "HIGH") stringResource(R.string.quality_high) else stringResource(R.string.quality_low),
-                                onClick = { showQualityDialog = true },
-                                highlightKey = "pref_quality"
-                            )
-                        }
-                    )
-                )
             }
         }
     }

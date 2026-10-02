@@ -1256,7 +1256,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 Log.d("PlayerViewModel", "observeAnimatedCovers triggered: enabled=$enabled, track=${track?.title} by ${track?.displayArtist}")
                 currentAnimatedCoverUrl = null
                 currentAnimatedCoverTallUrl = null
-                if (!enabled || track == null) return@collectLatest
+                if (!enabled || track == null || com.alananasss.kittytune.data.DataSaver.isActive(getApplication())) return@collectLatest
 
                 val title = track.title?.trim().orEmpty()
                 val artist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }.trim()
