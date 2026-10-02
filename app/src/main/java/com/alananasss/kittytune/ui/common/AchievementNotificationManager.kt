@@ -1,13 +1,15 @@
     package com.alananasss.kittytune.ui.common
 
+    import androidx.compose.ui.graphics.vector.ImageVector
     import kotlinx.coroutines.flow.MutableSharedFlow
     import kotlinx.coroutines.flow.asSharedFlow
 
     data class AchievementNotification(
         val title: String,
         val subtitle: String,
-        val iconEmoji: String?,
-        val xpReward: Int? = null
+        val iconEmoji: String? = null,
+        val xpReward: Int? = null,
+        val iconVector: ImageVector? = null
     )
 
     object AchievementNotificationManager {
@@ -18,4 +20,3 @@
             _notifications.emit(notification)
         }
     }
-

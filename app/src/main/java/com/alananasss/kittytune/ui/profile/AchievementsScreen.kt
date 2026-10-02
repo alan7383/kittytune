@@ -386,7 +386,6 @@
 
         val containerColor = MaterialTheme.colorScheme.surfaceContainer
         val titleColor = MaterialTheme.colorScheme.onSurface
-        val alpha = if (isUnlocked) 1f else 0.4f
         val iconColor = if (isUnlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
         val borderStroke = if (isUnlocked) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)) else null
@@ -411,11 +410,24 @@
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Top
                 ) {
-                    Text(
-                        text = def.iconEmoji,
-                        fontSize = 32.sp,
-                        modifier = Modifier.alpha(alpha)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = if (isUnlocked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                                else MaterialTheme.colorScheme.surfaceContainerHighest,
+                                shape = RoundedCornerShape(14.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = def.icon,
+                            contentDescription = null,
+                            tint = if (isUnlocked) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
 
                     if (isUnlocked) {
                         Icon(

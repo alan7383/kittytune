@@ -5,6 +5,7 @@
     import androidx.compose.foundation.shape.CircleShape
     import androidx.compose.material3.Card
     import androidx.compose.material3.CardDefaults
+    import androidx.compose.material3.Icon
     import androidx.compose.material3.MaterialTheme
     import androidx.compose.material3.Text
     import androidx.compose.runtime.Composable
@@ -40,7 +41,14 @@
                             style = Stroke(width = 6f)
                         )
                     }
-                    if(notification.iconEmoji != null) {
+                    if (notification.iconVector != null) {
+                        Icon(
+                            imageVector = notification.iconVector,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else if (notification.iconEmoji != null) {
                         Text(text = notification.iconEmoji, fontSize = 16.sp)
                     }
                 }
@@ -78,4 +86,3 @@
             }
         }
     }
-
