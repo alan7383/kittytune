@@ -1,18 +1,36 @@
 package com.alananasss.kittytune.data.spotify
 
 import android.util.Log
+import com.alananasss.kittytune.KittyTuneApp
 import com.alananasss.kittytune.data.network.ProxyManager
+import com.alananasss.kittytune.utils.NetworkUtils
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 object SpotifyRepository {
 
     private const val TAG = "SpotifyRepository"
+    private val gson = Gson()
+    private val albumCache = ConcurrentHashMap<String, SpotifyAlbum>()
+    private val playlistCache = ConcurrentHashMap<String, SpotifyPlaylist>()
+
+    private fun getAlbumCacheFile(id: String): File {
+        val dir = File(KittyTuneApp.instance.filesDir, "spotify_albums").apply { mkdirs() }
+        return File(dir, "$id.json")
+    }
+
+    private fun getPlaylistCacheFile(id: String): File {
+        val dir = File(KittyTuneApp.instance.filesDir, "spotify_playlists").apply { mkdirs() }
+        return File(dir, "$id.json")
+    }
 
     private val baseClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -115,7 +133,21 @@ object SpotifyRepository {
 
     suspend fun getAlbum(albumId: String): SpotifyAlbum? = withContext(Dispatchers.IO) {
         val cleanId = extractId(albumId)
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null
+        albumCache[cleanId]?.let { return@withContext it }
+        try {
+            val file = getAlbumCacheFile(cleanId)
+            if (file.exists()) {
+                val cached = gson.fromJson(file.readText(), SpotifyAlbum::class.java)
+                if (cached != null) {
+                    albumCache[cleanId] = cached
+                    if (!NetworkUtils.isInternetAvailable(KittyTuneApp.instance)) {
+                        return@withContext cached
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext albumCache[cleanId]
         val url = SpotifyPathfinderApi.buildAlbumUrl(cleanId)
 
         try {
@@ -132,13 +164,13 @@ object SpotifyRepository {
             client.newCall(request).execute().use { response ->
                 if (response.code == 401) {
                     SpotifyTokenManager.invalidateToken()
-                    return@withContext null
+                    return@withContext albumCache[cleanId]
                 }
-                if (!response.isSuccessful) return@withContext null
-                val bodyStr = response.body?.string() ?: return@withContext null
+                if (!response.isSuccessful) return@withContext albumCache[cleanId]
+                val bodyStr = response.body?.string() ?: return@withContext albumCache[cleanId]
                 val json = JSONObject(bodyStr)
-                val data = json.optJSONObject("data") ?: return@withContext null
-                val albumUnion = data.optJSONObject("albumUnion") ?: return@withContext null
+                val data = json.optJSONObject("data") ?: return@withContext albumCache[cleanId]
+                val albumUnion = data.optJSONObject("albumUnion") ?: return@withContext albumCache[cleanId]
 
                 val name = albumUnion.optString("name", "Unknown Album")
                 val coverUrl = extractCoverArt(albumUnion.optJSONObject("coverArt"))
@@ -189,7 +221,7 @@ object SpotifyRepository {
                     }
                 }
 
-                return@withContext SpotifyAlbum(
+                val album = SpotifyAlbum(
                     id = cleanId,
                     name = name,
                     artists = artists,
@@ -198,16 +230,38 @@ object SpotifyRepository {
                     totalTracks = if (totalCount > 0) totalCount else tracksList.size,
                     tracks = tracksList
                 )
+                albumCache[cleanId] = album
+                try {
+                    getAlbumCacheFile(cleanId).writeText(gson.toJson(album))
+                } catch (_: Exception) {}
+                return@withContext album
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch Spotify album $albumId: ${e.message}")
-            null
+            albumCache[cleanId] ?: try {
+                val file = getAlbumCacheFile(cleanId)
+                if (file.exists()) gson.fromJson(file.readText(), SpotifyAlbum::class.java) else null
+            } catch (_: Exception) { null }
         }
     }
 
     suspend fun getPlaylist(playlistId: String, maxTracks: Int = 1000): SpotifyPlaylist? = withContext(Dispatchers.IO) {
         val cleanId = extractId(playlistId)
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null
+        playlistCache[cleanId]?.let { return@withContext it }
+        try {
+            val file = getPlaylistCacheFile(cleanId)
+            if (file.exists()) {
+                val cached = gson.fromJson(file.readText(), SpotifyPlaylist::class.java)
+                if (cached != null) {
+                    playlistCache[cleanId] = cached
+                    if (!NetworkUtils.isInternetAvailable(KittyTuneApp.instance)) {
+                        return@withContext cached
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext playlistCache[cleanId]
         val url = SpotifyPathfinderApi.buildPlaylistUrl(cleanId, offset = 0, limit = 100)
 
         try {
@@ -224,13 +278,13 @@ object SpotifyRepository {
             client.newCall(request).execute().use { response ->
                 if (response.code == 401) {
                     SpotifyTokenManager.invalidateToken()
-                    return@withContext null
+                    return@withContext playlistCache[cleanId]
                 }
-                if (!response.isSuccessful) return@withContext null
-                val bodyStr = response.body?.string() ?: return@withContext null
+                if (!response.isSuccessful) return@withContext playlistCache[cleanId]
+                val bodyStr = response.body?.string() ?: return@withContext playlistCache[cleanId]
                 val json = JSONObject(bodyStr)
-                val data = json.optJSONObject("data") ?: return@withContext null
-                val playlistV2 = data.optJSONObject("playlistV2") ?: return@withContext null
+                val data = json.optJSONObject("data") ?: return@withContext playlistCache[cleanId]
+                val playlistV2 = data.optJSONObject("playlistV2") ?: return@withContext playlistCache[cleanId]
 
                 val name = playlistV2.optString("name", "Spotify Playlist")
                 val description = playlistV2.optString("description").ifBlank { null }
@@ -295,7 +349,7 @@ object SpotifyRepository {
                     }
                 }
 
-                return@withContext SpotifyPlaylist(
+                val playlist = SpotifyPlaylist(
                     id = cleanId,
                     name = name,
                     description = description,
@@ -307,10 +361,18 @@ object SpotifyRepository {
                     followersCount = followersCount,
                     tracks = tracksList
                 )
+                playlistCache[cleanId] = playlist
+                try {
+                    getPlaylistCacheFile(cleanId).writeText(gson.toJson(playlist))
+                } catch (_: Exception) {}
+                return@withContext playlist
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch Spotify playlist $playlistId: ${e.message}")
-            null
+            playlistCache[cleanId] ?: try {
+                val file = getPlaylistCacheFile(cleanId)
+                if (file.exists()) gson.fromJson(file.readText(), SpotifyPlaylist::class.java) else null
+            } catch (_: Exception) { null }
         }
     }
 
