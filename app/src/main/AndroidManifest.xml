@@ -86,15 +86,42 @@
                     <category android:name="android.intent.category.BROWSABLE" />
                     <data android:scheme="https" android:host="soundcloud.com" android:pathPrefix="/auth_mobile_callback" />
                 </intent-filter>
+                <!-- Music App Discovery & Launch (AOSP Default Music App & Category) -->
                 <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
                     <action android:name="android.intent.action.MUSIC_PLAYER" />
                     <category android:name="android.intent.category.DEFAULT" />
                     <category android:name="android.intent.category.APP_MUSIC" />
+                </intent-filter>
+
+                <!-- Voice Assistants (Google Assistant, Gemini), Search & Auto Playback -->
+                <intent-filter>
+                    <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                    <action android:name="android.intent.action.MEDIA_SEARCH" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                </intent-filter>
+
+                <!-- Audio File Associations (File Managers, Downloads, Browsers) -->
+                <intent-filter>
+                    <action android:name="android.intent.action.VIEW" />
+                    <category android:name="android.intent.category.DEFAULT" />
+                    <category android:name="android.intent.category.BROWSABLE" />
+                    <data android:scheme="content" />
+                    <data android:scheme="file" />
+                    <data android:mimeType="audio/*" />
+                    <data android:mimeType="application/ogg" />
+                    <data android:mimeType="application/x-ogg" />
+                    <data android:mimeType="application/opus" />
+                    <data android:mimeType="application/x-flac" />
                 </intent-filter>
                 <intent-filter>
                     <action android:name="android.intent.action.VIEW" />
                     <category android:name="android.intent.category.DEFAULT" />
                     <data android:mimeType="audio/*" />
+                    <data android:mimeType="application/ogg" />
+                    <data android:mimeType="application/x-ogg" />
+                    <data android:mimeType="application/opus" />
+                    <data android:mimeType="application/x-flac" />
                 </intent-filter>
             </activity>
             <!-- App icon switcher: exactly one launcher alias is enabled at a time.
@@ -110,6 +137,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -124,6 +153,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -138,6 +169,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -152,6 +185,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -166,6 +201,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -180,6 +217,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -194,6 +233,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -208,6 +249,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -222,6 +265,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -236,6 +281,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -250,6 +297,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -264,6 +313,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -278,6 +329,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -292,6 +345,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -306,6 +361,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -320,6 +377,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -334,6 +393,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -348,6 +409,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -362,6 +425,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -376,6 +441,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -390,6 +457,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -404,6 +473,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -418,6 +489,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -432,6 +505,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -446,6 +521,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -460,6 +537,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -474,6 +553,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -488,6 +569,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -502,6 +585,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -516,6 +601,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -530,6 +617,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -544,6 +633,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -558,6 +649,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -572,6 +665,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -586,6 +681,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -600,6 +697,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -614,6 +713,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -628,6 +729,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -642,6 +745,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -656,6 +761,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -670,6 +777,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -684,6 +793,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -698,6 +809,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -712,6 +825,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -726,6 +841,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -740,6 +857,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -754,6 +873,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -768,6 +889,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -782,6 +905,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -796,6 +921,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -810,6 +937,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -824,6 +953,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -838,6 +969,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -852,6 +985,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -866,6 +1001,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -880,6 +1017,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -894,6 +1033,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -908,6 +1049,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -922,6 +1065,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -936,6 +1081,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -950,6 +1097,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -964,6 +1113,8 @@
                 <intent-filter>
                     <action android:name="android.intent.action.MAIN" />
                     <category android:name="android.intent.category.LAUNCHER" />
+                    <category android:name="android.intent.category.APP_MUSIC" />
+                    <category android:name="android.intent.category.DEFAULT" />
                 </intent-filter>
             </activity-alias>
 
@@ -1059,6 +1210,21 @@
         <queries>
             <intent>
                 <action android:name="android.media.browse.MediaBrowserService" />
+            </intent>
+            <package android:name="com.instagram.android" />
+            <package android:name="com.facebook.katana" />
+            <package android:name="com.facebook.lite" />
+            <package android:name="com.whatsapp" />
+            <package android:name="com.twitter.android" />
+            <package android:name="org.joinmastodon.android" />
+            <package android:name="xyz.blueskyweb.app" />
+            <package android:name="com.instagram.barcelona" />
+            <package android:name="org.telegram.messenger" />
+            <package android:name="com.snapchat.android" />
+            <package android:name="com.google.android.apps.messaging" />
+            <intent>
+                <action android:name="android.intent.action.SEND" />
+                <data android:mimeType="image/png" />
             </intent>
         </queries>
     

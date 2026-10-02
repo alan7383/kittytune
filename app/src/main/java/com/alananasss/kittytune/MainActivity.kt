@@ -1,10 +1,12 @@
 package com.alananasss.kittytune
 
+import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -24,6 +26,7 @@ import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.HistoryRepository
 import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.data.ListeningStatsRepository
+import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.RepostRepository
 import com.alananasss.kittytune.data.SessionManager
 import com.alananasss.kittytune.data.TokenManager
@@ -67,6 +70,8 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
         private val _shouldOpenSearch = MutableStateFlow(false)
         private val shouldOpenSearch = _shouldOpenSearch.asStateFlow()
+        private val _initialSearchQuery = MutableStateFlow<String?>(null)
+        private val initialSearchQuery = _initialSearchQuery.asStateFlow()
         private var showPopups by mutableStateOf(false)
         private var customFontEnabledState by mutableStateOf(false)
         private var fontWghtState by mutableIntStateOf(400)
@@ -132,6 +137,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
             setContent {
                 val openSearchState by shouldOpenSearch.collectAsState()
+                val initialQueryState by initialSearchQuery.collectAsState()
                 val scope = rememberCoroutineScope()
                 val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -190,7 +196,11 @@ import com.zionhuang.innertube.models.YouTubeLocale
                     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         MainScreen(
                             shouldOpenSearch = openSearchState,
-                            onSearchHandled = { _shouldOpenSearch.value = false }
+                            initialSearchQuery = initialQueryState,
+                            onSearchHandled = {
+                                _shouldOpenSearch.value = false
+                                _initialSearchQuery.value = null
+                            }
                         )
                         com.alananasss.kittytune.ui.common.CoverViewerOverlay()
                     }
@@ -205,14 +215,31 @@ import com.zionhuang.innertube.models.YouTubeLocale
         }
 
         private fun handleIntent(intent: Intent?) {
-            val openSearch = intent?.getBooleanExtra("open_search", false) ?: false
+            if (intent == null) return
+
+            val action = intent.action
+
+            // 1. Voice search / Media play from search (Google Assistant, Android Auto, Gemini)
+            val isMediaPlayFromSearch = action == MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH ||
+                    action == "android.media.action.MEDIA_PLAY_FROM_SEARCH" ||
+                    action == "android.intent.action.MEDIA_SEARCH"
+
+            val queryFromSearch = intent.getStringExtra(SearchManager.QUERY)
+                ?: intent.getStringExtra("query")
+                ?: intent.getStringExtra(MediaStore.EXTRA_MEDIA_TITLE)
+                ?: intent.getStringExtra(MediaStore.EXTRA_MEDIA_ARTIST)
+
+            val openSearch = intent.getBooleanExtra("open_search", false) || isMediaPlayFromSearch
             if (openSearch) {
+                if (!queryFromSearch.isNullOrBlank()) {
+                    _initialSearchQuery.value = queryFromSearch
+                }
                 _shouldOpenSearch.value = true
                 intent.removeExtra("open_search")
             }
 
-            // Capture SoundCloud OAuth callback redirects
-            val data = intent?.data
+            // 2. Capture SoundCloud OAuth callback redirects & gem imports
+            val data = intent.data
             if (data != null) {
                 val code = data.getQueryParameter("code")
                 if (code != null) {
@@ -224,6 +251,35 @@ import com.zionhuang.innertube.models.YouTubeLocale
                     data.getQueryParameter("data64")?.let { data64 ->
                         com.alananasss.kittytune.data.musicimport.MusicApiAuth.fromData64(data64)?.let { auth ->
                             com.alananasss.kittytune.data.musicimport.MusicImportCoordinator.deliverAuth(auth)
+                        }
+                    }
+                }
+
+                // 3. Audio file playback from file managers / external apps
+                if (action == Intent.ACTION_VIEW) {
+                    val mimeType = intent.type ?: contentResolver.getType(data)
+                    val isAudio = mimeType?.startsWith("audio/") == true ||
+                            mimeType == "application/ogg" ||
+                            mimeType == "application/x-ogg" ||
+                            mimeType == "application/opus" ||
+                            mimeType == "application/x-flac" ||
+                            data.scheme == "content" ||
+                            data.scheme == "file"
+                    if (isAudio && data.scheme != "sc" && data.scheme != "soundcloud" && data.scheme != "https") {
+                        try {
+                            val mediaItem = androidx.media3.common.MediaItem.Builder()
+                                .setUri(data)
+                                .setMediaMetadata(
+                                    androidx.media3.common.MediaMetadata.Builder()
+                                        .setTitle(data.lastPathSegment?.substringAfterLast('/') ?: "Audio")
+                                        .build()
+                                )
+                                .build()
+                            MusicManager.player.setMediaItem(mediaItem)
+                            MusicManager.player.prepare()
+                            MusicManager.player.play()
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                         }
                     }
                 }
