@@ -1392,6 +1392,21 @@ fun TabletFullScreenPlayerView(
                                 modifier = Modifier.size(28.dp)
                             )
                         }
+
+                        if (viewModel.isYourMixActive) {
+                            Spacer(Modifier.width(4.dp))
+                            IconButton(
+                                onClick = { viewModel.dislikeCurrentTrackInMix() },
+                                shapes = IconButtonDefaults.shapes()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.ThumbDown,
+                                    contentDescription = stringResource(R.string.mix_dislike),
+                                    tint = iconTint,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -1658,7 +1673,13 @@ private fun TabletQueueList(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { viewModel.skipToQueueItem(index) }
+                                .combinedClickable(
+                                    onClick = { viewModel.skipToQueueItem(index) },
+                                    onLongClick = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                        viewModel.showTrackOptions(trackItem, fromPlayer = true)
+                                    }
+                                )
                         ) {
                             Row(
                                 modifier = Modifier

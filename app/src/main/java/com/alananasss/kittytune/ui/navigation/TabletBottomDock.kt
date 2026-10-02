@@ -14,6 +14,7 @@ import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.ThumbDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -240,6 +241,21 @@ fun TabletBottomDock(
                                     tint = if (playerViewModel.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(22.dp)
                                 )
+                            }
+
+                            if (playerViewModel.isYourMixActive) {
+                                IconButton(
+                                    onClick = { playerViewModel.dislikeCurrentTrackInMix() },
+                                    shapes = IconButtonDefaults.shapes(),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.ThumbDown,
+                                        contentDescription = stringResource(R.string.mix_dislike),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
 
                             // Bouton Lecture / Pause

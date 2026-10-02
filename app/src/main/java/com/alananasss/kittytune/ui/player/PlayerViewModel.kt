@@ -502,6 +502,27 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         listenSession?.onPlaying(currentPosition)
     }
 
+    // --- Cumulative Session Stats (since app start / listening session) ---
+    private var _sessionListenMs = mutableLongStateOf(0L)
+    private var _sessionPlaysCount = mutableIntStateOf(0)
+
+    /** Total media ms heard during this app session (including current track's progress). */
+    val sessionTotalListenMs: Long
+        get() = _sessionListenMs.longValue + (listenSession?.listenedMs ?: 0L)
+
+    /** Whether the current track has accumulated enough listen time to count as a play. */
+    val currentTrackCountsAsPlay: Boolean
+        get() = currentTrack?.let {
+            com.alananasss.kittytune.data.stats.ListenRules.countsAsPlay(
+                listenSession?.listenedMs ?: 0L,
+                it.durationMs ?: 0L
+            )
+        } ?: false
+
+    /** Total tracks that reached a valid play during this app session. */
+    val effectiveSessionPlays: Int
+        get() = _sessionPlaysCount.intValue + if (currentTrackCountsAsPlay) 1 else 0
+
     /**
      * Writes the listen in progress, if any of it was heard, and clears it.
      *
@@ -516,7 +537,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val track = listenSessionTrack
         listenSession = null
         listenSessionTrack = null
-        if (track == null || !playerPrefs.getListeningStatsEnabled()) return
+        if (track == null) return
+
+        val wasPlay = com.alananasss.kittytune.data.stats.ListenRules.countsAsPlay(session.listenedMs, track.durationMs ?: 0L)
+        if (wasPlay) {
+            _sessionPlaysCount.intValue += 1
+        }
+        _sessionListenMs.longValue += session.listenedMs
+
+        if (!playerPrefs.getListeningStatsEnabled()) return
 
         // Nothing heard at all is not a listen and not a skip — it is a track that was loaded. Recording it
         // would put a row in the table that every aggregate then has to exclude, and would make the skip
@@ -3578,7 +3607,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         updateQueueState(); saveStateAsync(saveQueue = true)
         prefetchWaveformsForQueue(effectiveStartIndex)
 
-        if (context != null && !isHistoryContext) {
+        if (context != null && !isHistoryContext && context.navigationId != "your_mix" && !context.navigationId.contains("your_mix")) {
             val isStation =
                 context.navigationId.contains("station") || context.navigationId.contains("yt_radio") || context.navigationId.contains("spotify_radio")
             val isProfile = context.navigationId.contains("profile") || context.navigationId.contains("spotify_artist")
@@ -4301,6 +4330,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun pause() {
+        if (player.isPlaying || playWhenReady) {
+            playWhenReady = false
+            player.pause()
+            saveStateAsync(savePositionOnly = true)
+        }
+    }
+
     fun seekTo(position: Long) {
         MusicManager.releasePrebuffered()
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
@@ -4341,6 +4378,25 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             AchievementManager.increment("liker_5000")
         } else {
             LikeRepository.removeLike(t.id)
+        }
+    }
+
+    val isYourMixActive: Boolean
+        get() = currentContext?.navigationId == "your_mix"
+
+    fun dislikeCurrentTrackInMix() {
+        val track = currentTrack ?: return
+        playerPrefs.addMixDislikedTrack(track.id)
+        if (isLiked) {
+            isLiked = false
+            LikeRepository.removeLike(track.id)
+        }
+        val currentIndex = currentQueueIndex
+        if (_queue.size > 1 && currentIndex in _queue.indices) {
+            playNext(manual = true)
+            removeTrackFromQueue(currentIndex)
+        } else {
+            playNext(manual = true)
         }
     }
 
@@ -5634,7 +5690,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 var offlineKeySetId: ByteArray? = null
 
                 val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
-                val localTrack = db.getTrack(nextTrack.id)
+                var localTrack = db.getTrack(nextTrack.id)
+                if (localTrack == null || localTrack.localAudioPath.isEmpty()) {
+                    val fallbackTitle = nextTrack.title ?: ""
+                    val fallbackArtist = nextTrack.user?.username ?: ""
+                    if (fallbackTitle.isNotBlank()) {
+                        localTrack = db.findDownloadedTrack(fallbackTitle, fallbackArtist)
+                    }
+                }
                 if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
                     if (localTrack.localAudioPath.startsWith("exo_cache://")) {
                         val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)
@@ -5762,7 +5825,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             try {
                 val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(context).downloadDao()
-                val localTrack = db.getTrack(trackToPlay.id)
+                var localTrack = db.getTrack(trackToPlay.id)
+                if (localTrack == null || localTrack.localAudioPath.isEmpty()) {
+                    val fallbackTitle = trackToPlay.title ?: ""
+                    val fallbackArtist = trackToPlay.user?.username ?: ""
+                    if (fallbackTitle.isNotBlank()) {
+                        localTrack = db.findDownloadedTrack(fallbackTitle, fallbackArtist)
+                    }
+                }
                 if (localTrack != null && localTrack.localAudioPath.isNotEmpty()) {
                     if (localTrack.localAudioPath.startsWith("exo_cache://")) {
                         val parts = localTrack.localAudioPath.removePrefix("exo_cache://").split("::", limit = 3)

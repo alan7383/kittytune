@@ -1467,6 +1467,24 @@ fun NewPlayerScreen(
                                         )
                                     }
                                 }
+
+                                if (viewModel.isYourMixActive) {
+                                    Spacer(Modifier.width(4.dp))
+                                    IconButton(
+                                        onClick = {
+                                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                            viewModel.dislikeCurrentTrackInMix()
+                                        },
+                                        modifier = Modifier.size(44.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.ThumbDown,
+                                            contentDescription = stringResource(R.string.mix_dislike),
+                                            tint = iconTint.copy(alpha = 0.8f),
+                                            modifier = Modifier.size(26.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -3563,7 +3581,13 @@ fun QueueContent(
                             .height(72.dp)
                             .shadow(elevation)
                             .background(backgroundColor)
-                            .clickable { viewModel.skipToQueueItem(index) }
+                            .combinedClickable(
+                                onClick = { viewModel.skipToQueueItem(index) },
+                                onLongClick = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    viewModel.showTrackOptions(track, fromPlayer = true)
+                                }
+                            )
                             .padding(horizontal = 24.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -11427,6 +11451,24 @@ fun OldPlayerScreen(
                                         contentDescription = stringResource(R.string.player_like_action),
                                         tint = heartColor,
                                         modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
+
+                            if (viewModel.isYourMixActive) {
+                                Spacer(Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                        viewModel.dislikeCurrentTrackInMix()
+                                    },
+                                    modifier = Modifier.size(44.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ThumbDown,
+                                        contentDescription = stringResource(R.string.mix_dislike),
+                                        tint = iconTint,
+                                        modifier = Modifier.size(28.dp)
                                     )
                                 }
                             }

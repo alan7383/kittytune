@@ -30,6 +30,17 @@
         @Query("DELETE FROM downloaded_tracks WHERE id = :trackId")
         suspend fun deleteTrack(trackId: Long)
 
+        @Query("""
+            SELECT * FROM downloaded_tracks 
+            WHERE localAudioPath != '' 
+              AND (
+                  (LOWER(TRIM(title)) = LOWER(TRIM(:title)) AND LOWER(TRIM(artist)) = LOWER(TRIM(:artist)))
+                  OR (LOWER(TRIM(title)) = LOWER(TRIM(:title)) AND (:artist = '' OR artist = ''))
+              )
+            LIMIT 1
+        """)
+        suspend fun findDownloadedTrack(title: String, artist: String): LocalTrack?
+
         @Query("SELECT * FROM downloaded_tracks WHERE localAudioPath != '' ORDER BY downloadedAt DESC")
         fun getAllTracks(): Flow<List<LocalTrack>>
 
@@ -196,6 +207,9 @@
 
         @Query("DELETE FROM play_history WHERE type != 'TRACK'")
         suspend fun clearContextsHistory()
+
+        @Query("DELETE FROM play_history WHERE originalUrl = 'your_mix' OR originalUrl LIKE '%your_mix%' OR id = 'your_mix' OR id LIKE '%your_mix%'")
+        suspend fun deleteMixHistory()
 
         // listening stats
         //
