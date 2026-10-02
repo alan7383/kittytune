@@ -17,6 +17,7 @@
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
+    import com.alananasss.kittytune.domain.TrackPublisherMetadata
     import com.alananasss.kittytune.domain.User
     import com.alananasss.kittytune.data.BlockManager
     import com.alananasss.kittytune.data.SessionManager
@@ -45,6 +46,13 @@
     import kotlinx.coroutines.awaitAll
     import com.zionhuang.innertube.models.WatchEndpoint
     import com.alananasss.kittytune.utils.NetworkUtils
+    import com.alananasss.kittytune.data.ArtistProfileCache
+    import com.alananasss.kittytune.data.local.AppDatabase
+    import com.alananasss.kittytune.data.local.LocalPlaylist
+    import com.alananasss.kittytune.data.local.LocalTrack
+    import com.alananasss.kittytune.data.local.LocalArtist
+    import com.alananasss.kittytune.data.local.toTrack
+    import kotlinx.coroutines.flow.firstOrNull
 
     data class HomeSection(
         val title: String,
@@ -245,6 +253,12 @@
             if (!NetworkUtils.isInternetAvailable(getApplication())) {
                 isOfflineMode = true
                 isRefreshing = false
+                if (homeSections.isEmpty()) {
+                    loadFromCache()
+                    if (homeSections.isEmpty()) {
+                        loadOfflineFallbackSections()
+                    }
+                }
                 return
             }
 
@@ -468,10 +482,17 @@
             searchResultsTidalTracks.clear(); searchResultsTidalAlbums.clear(); searchResultsTidalPlaylists.clear(); searchResultsTidalArtists.clear()
             searchResultsQobuzTracks.clear(); searchResultsQobuzAlbums.clear(); searchResultsQobuzPlaylists.clear(); searchResultsQobuzArtists.clear()
             tracksNextUrl = null; artistsNextUrl = null; playlistsNextUrl = null
+            youtubeContinuation = null
         }
 
         private suspend fun performSearch(query: String) {
             isSearchLoading = true; clearSearchResults()
+            val isOffline = !NetworkUtils.isInternetAvailable(getApplication())
+            if (isOffline) {
+                performOfflineSearch(query)
+                isSearchLoading = false
+                return
+            }
             try {
                 when (activeSearchSource) {
                     SearchSource.SOUNDCLOUD -> performSoundCloudSearch(query)
@@ -482,10 +503,182 @@
                     SearchSource.TIDAL -> performTidalSearch(query)
                     SearchSource.QOBUZ -> performQobuzSearch(query)
                 }
+                if (searchResultsTracks.isEmpty() && searchResultsArtists.isEmpty() && searchResultsPlaylists.isEmpty()) {
+                    performOfflineSearch(query)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
+                performOfflineSearch(query)
             } finally {
                 isSearchLoading = false
+            }
+        }
+
+        suspend fun performOfflineSearch(query: String) {
+            val cleanQuery = query.trim().lowercase()
+            if (cleanQuery.isBlank()) {
+                clearSearchResults()
+                return
+            }
+
+            withContext(Dispatchers.IO) {
+                val db = AppDatabase.getDatabase(getApplication()).downloadDao()
+
+                // 1. Downloaded tracks
+                val downloadedTracks: List<Track> = try {
+                    db.getAllTracksList().filter {
+                        it.localAudioPath.isNotEmpty() && (
+                            it.title.lowercase().contains(cleanQuery) ||
+                            it.artist.lowercase().contains(cleanQuery)
+                        )
+                    }.map {
+                        it.toTrack(
+                            artworkOverride = it.localArtworkPath.ifEmpty { it.artworkUrl },
+                            isLiked = true
+                        )
+                    }
+                } catch (e: Exception) {
+                    emptyList<Track>()
+                }
+
+                // 2. Liked tracks
+                val likedTracks: List<Track> = try {
+                    LikeRepository.likedTracks.value.filter {
+                        it.title?.lowercase()?.contains(cleanQuery) == true ||
+                        (it.user?.username?.lowercase()?.contains(cleanQuery) == true)
+                    }
+                } catch (e: Exception) {
+                    emptyList<Track>()
+                }
+
+                // 3. Cached Home & Mix tracks
+                val homeTracks: List<Track> = try {
+                    homeSections.flatMap { it.content.filterIsInstance<Track>() }.filter {
+                        it.title?.lowercase()?.contains(cleanQuery) == true ||
+                        (it.user?.username?.lowercase()?.contains(cleanQuery) == true)
+                    }
+                } catch (e: Exception) {
+                    emptyList<Track>()
+                }
+
+                // 4. History tracks
+                val historyTracks: List<Track> = try {
+                    db.getHistory().first().filter {
+                        it.title.lowercase().contains(cleanQuery) ||
+                        it.subtitle.lowercase().contains(cleanQuery)
+                    }.map {
+                        Track(
+                            id = it.numericId.takeIf { nid -> nid != 0L } ?: kotlin.math.abs(it.id.hashCode().toLong()),
+                            title = it.title,
+                            user = User(0L, it.subtitle, null),
+                            artworkUrl = it.imageUrl,
+                            durationMs = 0L,
+                            permalinkUrl = it.originalUrl ?: "",
+                            source = it.source
+                        )
+                    }
+                } catch (e: Exception) {
+                    emptyList<Track>()
+                }
+
+                val allMatchedTracks: List<Track> = (downloadedTracks + likedTracks + homeTracks + historyTracks)
+                    .distinctBy { it.id }
+                    .filter { it.user?.id !in BlockManager.blockedArtistIdsFlow.value }
+
+                // 5. Saved Artists, Cached Artists & Artists from downloaded tracks
+                val savedArtistsUsers: List<User> = try {
+                    db.getAllSavedArtists().first().filter {
+                        it.username.lowercase().contains(cleanQuery)
+                    }.map {
+                        User(
+                            id = it.id,
+                            username = it.username,
+                            avatarUrl = it.avatarUrl,
+                            trackCount = it.trackCount
+                        )
+                    }
+                } catch (e: Exception) {
+                    emptyList<User>()
+                }
+
+                val cachedArtistsUsers: List<User> = try {
+                    ArtistProfileCache.getAllCachedArtists().filter {
+                        it.username?.lowercase()?.contains(cleanQuery) == true
+                    }
+                } catch (e: Exception) {
+                    emptyList<User>()
+                }
+
+                val downloadedArtists: List<User> = try {
+                    db.getAllTracksList().filter {
+                        it.localAudioPath.isNotEmpty() && it.artist.lowercase().contains(cleanQuery)
+                    }.map {
+                        User(
+                            id = kotlin.math.abs(it.artist.hashCode().toLong()),
+                            username = it.artist,
+                            avatarUrl = it.localArtworkPath.ifEmpty { it.artworkUrl }
+                        )
+                    }
+                } catch (e: Exception) {
+                    emptyList<User>()
+                }
+
+                val allMatchedArtists: List<User> = (savedArtistsUsers + cachedArtistsUsers + downloadedArtists)
+                    .distinctBy { it.username?.lowercase()?.trim() }
+                    .filter { it.id !in BlockManager.blockedArtistIdsFlow.value }
+
+                // 6. Downloaded Playlists & Home Playlists
+                val downloadedPlaylists: List<Playlist> = try {
+                    db.getDownloadedPlaylists().first().filter {
+                        it.title.lowercase().contains(cleanQuery) ||
+                        it.artist.lowercase().contains(cleanQuery)
+                    }.map { local ->
+                        Playlist(
+                            id = local.id,
+                            title = local.title,
+                            artworkUrl = local.localCoverPath ?: local.artworkUrl,
+                            calculatedArtworkUrl = local.localCoverPath,
+                            trackCount = 0,
+                            user = User(0, local.artist, null)
+                        )
+                    }
+                } catch (e: Exception) {
+                    emptyList<Playlist>()
+                }
+
+                val homePlaylists: List<Playlist> = try {
+                    homeSections.flatMap { it.content.filterIsInstance<Playlist>() }.filter {
+                        it.title?.lowercase()?.contains(cleanQuery) == true ||
+                        (it.user?.username?.lowercase()?.contains(cleanQuery) == true)
+                    }
+                } catch (e: Exception) {
+                    emptyList<Playlist>()
+                }
+
+                val allMatchedPlaylists: List<Playlist> = (downloadedPlaylists + homePlaylists).distinctBy { it.id }
+
+                withContext(Dispatchers.Main) {
+                    searchResultsTracks.clear()
+                    searchResultsArtists.clear()
+                    searchResultsPlaylists.clear()
+
+                    when (activeFilter) {
+                        SearchFilter.ALL -> {
+                            searchResultsTracks.addAll(allMatchedTracks)
+                            searchResultsArtists.addAll(allMatchedArtists)
+                            searchResultsPlaylists.addAll(allMatchedPlaylists)
+                        }
+                        SearchFilter.TRACKS -> {
+                            searchResultsTracks.addAll(allMatchedTracks)
+                        }
+                        SearchFilter.ARTISTS -> {
+                            searchResultsArtists.addAll(allMatchedArtists)
+                        }
+                        SearchFilter.PLAYLISTS -> {
+                            searchResultsPlaylists.addAll(allMatchedPlaylists)
+                        }
+                    }
+                }
             }
         }
 
@@ -616,16 +809,24 @@
                     val artistName = seedTrack.user?.username ?: ""
                     val query = "$cleanTitle $artistName audio"
 
-                    val result = YouTube.search(query, YouTube.SearchFilter.FILTER_VIDEO).getOrNull()
+                    val hideVideos = playerPrefs.getHideYoutubeVideos()
+                    val searchFilter = if (hideVideos) YouTube.SearchFilter.FILTER_SONG else YouTube.SearchFilter.FILTER_VIDEO
+                    val result = YouTube.search(query, searchFilter).getOrNull()
                     result?.items?.mapNotNull { item ->
                         if (item is SongItem) {
+                            val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
                             Track(
                                 id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
-                                user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
+                                user = User(0L, displayArtist, null),
                                 artworkUrl = item.thumbnail,
                                 durationMs = (item.duration ?: 0) * 1000L,
                                 permalinkUrl = "https://youtube.com/watch?v=${item.id}",
+                                publisherMetadata = TrackPublisherMetadata(
+                                    albumTitle = item.album?.name,
+                                    artist = displayArtist,
+                                    explicit = item.explicit
+                                ),
                                 source = "youtube"
                             )
                         } else {
@@ -641,7 +842,7 @@
                                 Track(
                                     id = kotlin.math.abs(id.hashCode().toLong()),
                                     title = title,
-                                    user = User(0L, "YouTube", null),
+                                    user = User(0L, "YouTube Music", null),
                                     artworkUrl = null,
                                     durationMs = 0L,
                                     permalinkUrl = "https://youtube.com/watch?v=$id",
@@ -659,20 +860,31 @@
             }
         }
 
+        private var youtubeContinuation: String? = null
+
         private suspend fun performYoutubeSearch(query: String) {
             withContext(Dispatchers.IO) {
                 try {
-                    val result = YouTube.search(query, YouTube.SearchFilter.FILTER_VIDEO).getOrNull()
+                    val hideVideos = playerPrefs.getHideYoutubeVideos()
+                    val searchFilter = if (hideVideos) YouTube.SearchFilter.FILTER_SONG else YouTube.SearchFilter.FILTER_VIDEO
+                    val result = YouTube.search(query, searchFilter).getOrNull()
+                    youtubeContinuation = result?.continuation
 
                     val mappedTracks = result?.items?.mapNotNull { item ->
                         if (item is SongItem) {
+                            val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
                             Track(
                                 id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
-                                user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
+                                user = User(0L, displayArtist, null),
                                 artworkUrl = item.thumbnail,
                                 durationMs = (item.duration ?: 0) * 1000L,
                                 permalinkUrl = "https://youtube.com/watch?v=${item.id}",
+                                publisherMetadata = TrackPublisherMetadata(
+                                    albumTitle = item.album?.name,
+                                    artist = displayArtist,
+                                    explicit = item.explicit
+                                ),
                                 source = "youtube"
                             )
                         } else {
@@ -688,7 +900,7 @@
                                 Track(
                                     id = kotlin.math.abs(id.hashCode().toLong()),
                                     title = title,
-                                    user = User(0L, "YouTube", null),
+                                    user = User(0L, "YouTube Music", null),
                                     artworkUrl = null,
                                     durationMs = 0L,
                                     permalinkUrl = "https://youtube.com/watch?v=$id",
@@ -747,6 +959,36 @@
                             if (results.tracks.isNotEmpty()) {
                                 val newTracks = BlockManager.filterBlocked(results.tracks.filter { nt -> searchResultsVk.none { it.id == nt.id && it.user?.id == nt.user?.id } })
                                 searchResultsVk.addAll(newTracks)
+                            }
+                        }
+                    } else if (activeSearchSource == SearchSource.YOUTUBE) {
+                        val continuation = youtubeContinuation
+                        if (continuation != null) {
+                            val contResult = withContext(Dispatchers.IO) {
+                                YouTube.searchContinuation(continuation).getOrNull()
+                            }
+                            youtubeContinuation = contResult?.continuation
+                            val newTracks = contResult?.items?.mapNotNull { item ->
+                                if (item is SongItem) {
+                                    val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
+                                    Track(
+                                        id = kotlin.math.abs(item.id.hashCode().toLong()),
+                                        title = item.title,
+                                        user = User(0L, displayArtist, null),
+                                        artworkUrl = item.thumbnail,
+                                        durationMs = (item.duration ?: 0) * 1000L,
+                                        permalinkUrl = "https://youtube.com/watch?v=${item.id}",
+                                        publisherMetadata = TrackPublisherMetadata(
+                                            albumTitle = item.album?.name,
+                                            artist = displayArtist,
+                                            explicit = item.explicit
+                                        ),
+                                        source = "youtube"
+                                    )
+                                } else null
+                            } ?: emptyList()
+                            if (newTracks.isNotEmpty()) {
+                                searchResultsYoutube.addAll(BlockManager.filterBlocked(newTracks.filter { nt -> searchResultsYoutube.none { it.id == nt.id } }))
                             }
                         }
                     } else {
@@ -877,6 +1119,12 @@
             if (!NetworkUtils.isInternetAvailable(getApplication())) {
                 isOfflineMode = true
                 isLoading = false
+                if (homeSections.isEmpty()) {
+                    loadFromCache()
+                    if (homeSections.isEmpty()) {
+                        loadOfflineFallbackSections()
+                    }
+                }
                 return
             }
             isOfflineMode = false
@@ -884,6 +1132,83 @@
             viewModelScope.launch {
                 val token = tokenManager.getAccessToken()
                 if (token.isNullOrEmpty()) loadGuestData() else loadAuthenticatedData()
+            }
+        }
+
+        fun loadOfflineFallbackSections() {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val db = AppDatabase.getDatabase(getApplication()).downloadDao()
+                    val downloadedTracks = db.getAllTracksList().filter { it.localAudioPath.isNotEmpty() }
+                    val downloadedPlaylists = db.getDownloadedPlaylists().firstOrNull() ?: emptyList<LocalPlaylist>()
+                    val savedArtists = db.getAllSavedArtists().firstOrNull() ?: emptyList<LocalArtist>()
+
+                    val sections = mutableListOf<HomeSection>()
+
+                    if (downloadedTracks.isNotEmpty()) {
+                        val tracks = downloadedTracks.map { it.toTrack(artworkOverride = it.localArtworkPath.ifEmpty { it.artworkUrl }, isLiked = true) }
+                        sections.add(
+                            HomeSection(
+                                title = getApplication<Application>().getString(R.string.lib_downloads),
+                                subtitle = getApplication<Application>().getString(R.string.lib_downloads_subtitle),
+                                content = tracks,
+                                type = SectionType.TRACKS_ROW,
+                                id = "offline_downloads_tracks"
+                            )
+                        )
+                    }
+
+                    if (downloadedPlaylists.isNotEmpty()) {
+                        val playlists = downloadedPlaylists.map { local ->
+                            Playlist(
+                                id = local.id,
+                                title = local.title,
+                                artworkUrl = local.localCoverPath ?: local.artworkUrl,
+                                calculatedArtworkUrl = local.localCoverPath,
+                                trackCount = 0,
+                                user = User(0, local.artist, null)
+                            )
+                        }
+                        sections.add(
+                            HomeSection(
+                                title = getApplication<Application>().getString(R.string.lib_playlists),
+                                subtitle = getApplication<Application>().getString(R.string.lib_downloads_subtitle),
+                                content = playlists,
+                                type = SectionType.STATIONS_ROW,
+                                id = "offline_downloads_playlists"
+                            )
+                        )
+                    }
+
+                    if (savedArtists.isNotEmpty()) {
+                        val artists = savedArtists.map {
+                            User(
+                                id = it.id,
+                                username = it.username,
+                                avatarUrl = it.avatarUrl,
+                                trackCount = it.trackCount
+                            )
+                        }
+                        sections.add(
+                            HomeSection(
+                                title = getApplication<Application>().getString(R.string.lib_artists),
+                                subtitle = "",
+                                content = artists,
+                                type = SectionType.ARTISTS_ROW,
+                                id = "offline_saved_artists"
+                            )
+                        )
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        if (sections.isNotEmpty()) {
+                            homeSections.clear()
+                            homeSections.addAll(sections)
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
 

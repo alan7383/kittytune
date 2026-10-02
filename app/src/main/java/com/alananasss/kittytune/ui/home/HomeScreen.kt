@@ -576,6 +576,8 @@ fun HomeContent(
     val historyCount = remember { history.count { it.type == "TRACK" } }
     val isBannerEligible = remember { prefs.shouldShowSupportBanner(historyCount) }
     var isSupportBannerVisible by remember { mutableStateOf(isBannerEligible) }
+    val showHomeYourMix by prefs.getShowHomeYourMixFlow().collectAsState(initial = prefs.getShowHomeYourMix())
+    val showHomeListeningStats by prefs.getShowHomeListeningStatsFlow().collectAsState(initial = prefs.getShowHomeListeningStats())
 
     val scrollState = rememberLazyListState()
     val allSections = homeViewModel.homeSections
@@ -686,6 +688,10 @@ fun HomeContent(
                                 when {
                                     historyItem.id == "likes" -> onNavigate("likes")
                                     historyItem.id == "downloads" -> onNavigate("downloads")
+                                    historyItem.id.startsWith("system_playlist:") -> onNavigate(historyItem.id)
+                                    historyItem.id.startsWith("soundcloud:system-playlists:") -> onNavigate("system_playlist:${historyItem.id}")
+                                    historyItem.originalUrl?.startsWith("system_playlist:") == true -> onNavigate(historyItem.originalUrl)
+                                    historyItem.originalUrl?.startsWith("soundcloud:system-playlists:") == true -> onNavigate("system_playlist:${historyItem.originalUrl}")
                                     historyItem.id.startsWith("yt_radio:") -> onNavigate(historyItem.id)
                                     historyItem.id.startsWith("spotify_artist:") -> onNavigate(historyItem.id)
                                     historyItem.id.startsWith("spotify_radio:") -> onNavigate(historyItem.id)
@@ -709,12 +715,29 @@ fun HomeContent(
                                         }
                                     }
                                     historyItem.type == "STATION" -> onNavigate(historyItem.id)
-                                    historyItem.type == "PLAYLIST" -> onNavigate(
-                                        historyItem.id.replace(
-                                            "playlist:",
-                                            ""
-                                        )
-                                    )
+                                    historyItem.type == "PLAYLIST" -> {
+                                        val clean = historyItem.id.removePrefix("playlist:")
+                                        if (clean.startsWith("system_playlist:") || clean.startsWith("soundcloud:system-playlists:")) {
+                                            val target = if (clean.startsWith("system_playlist:")) clean else "system_playlist:$clean"
+                                            onNavigate(target)
+                                        } else if (historyItem.originalUrl?.contains("system-playlists") == true || historyItem.originalUrl?.contains("your-playback") == true) {
+                                            val url = historyItem.originalUrl
+                                            val target = if (url.startsWith("system_playlist:")) url else "system_playlist:$url"
+                                            onNavigate(target)
+                                        } else if (historyItem.title.contains("Playback", ignoreCase = true) || historyItem.title.contains("Wrapped", ignoreCase = true)) {
+                                            val yr = Regex("\\b(20\\d\\d)\\b").find(historyItem.title)?.value ?: "2025"
+                                            val cachedUserId = com.alananasss.kittytune.data.local.PlayerPreferences(context).getCachedUserId().takeIf { it != 0L }
+                                                ?: playerViewModel.currentUserId.takeIf { it != 0L }
+                                                ?: 0L
+                                            if (cachedUserId != 0L) {
+                                                onNavigate("system_playlist:soundcloud:system-playlists:your-playback:$cachedUserId:$yr")
+                                            } else {
+                                                onNavigate(clean)
+                                            }
+                                        } else {
+                                            onNavigate(clean)
+                                        }
+                                    }
 
                                     historyItem.type == "TRACK" -> {
                                         val trackToPlay = Track(
@@ -733,6 +756,25 @@ fun HomeContent(
                         )
                     }
                 }
+            }
+        }
+
+        if (showHomeYourMix) {
+            item {
+                StartMixingCard(
+                    playerViewModel = playerViewModel,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+            }
+        }
+
+        if (showHomeListeningStats) {
+            item {
+                ListeningStatsCard(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    onNavigateToStats = { onNavigate("listening_stats") },
+                    onNavigateToYearlyPlayback = { onNavigate("yearly_playback") }
+                )
             }
         }
 
@@ -1560,7 +1602,7 @@ fun SearchSourceSelector(
         ) {
             val iconRes = when (selectedSource) {
                 SearchSource.SOUNDCLOUD -> R.drawable.ic_soundcloud
-                SearchSource.YOUTUBE -> R.drawable.ic_logo_youtube
+                SearchSource.YOUTUBE -> R.drawable.ic_logo_youtube_music
                 SearchSource.SPOTIFY -> R.drawable.ic_logo_spotify
                 SearchSource.VK -> R.drawable.ic_vk
                 SearchSource.DEEZER -> R.drawable.ic_logo_deezer
@@ -1597,7 +1639,7 @@ fun SearchSourceSelector(
                 text = { Text(stringResource(R.string.search_source_youtube)) },
                 leadingIcon = {
                     Icon(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_youtube),
+                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_youtube_music),
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
@@ -1693,7 +1735,10 @@ fun getStationNavId(playlist: Playlist): String {
     val isTrackStation = playlist.permalinkUrl == "track_station_marker"
     val isYoutubeRadio = playlist.permalinkUrl?.startsWith("yt_radio:") == true
     val isSpotifyRadio = playlist.permalinkUrl?.startsWith("spotify_radio:") == true || playlist.permalinkUrl?.startsWith("spotify:") == true
-    val isSystemPlaylist = playlist.urn?.startsWith("soundcloud:system-playlists:") == true
+    val isSystemPlaylist = playlist.urn?.startsWith("soundcloud:system-playlists:") == true ||
+            playlist.permalinkUrl?.contains("discover/sets/") == true ||
+            playlist.permalinkUrl?.contains("system-playlists") == true ||
+            playlist.permalinkUrl?.contains("your-playback") == true
 
     return when {
         playlist.urn?.startsWith("deezer:") == true -> playlist.urn!!
@@ -1702,7 +1747,13 @@ fun getStationNavId(playlist: Playlist): String {
         playlist.permalinkUrl?.startsWith("deezer:") == true -> playlist.permalinkUrl!!
         playlist.permalinkUrl?.startsWith("tidal:") == true -> playlist.permalinkUrl!!
         playlist.permalinkUrl?.startsWith("qobuz:") == true -> playlist.permalinkUrl!!
-        isSystemPlaylist -> "system_playlist:${playlist.urn}"
+        isSystemPlaylist -> {
+            if (playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
+                "system_playlist:${playlist.urn}"
+            } else {
+                "system_playlist:${android.net.Uri.encode(playlist.permalinkUrl ?: playlist.id.toString())}"
+            }
+        }
         isLikedBy -> "liked_by:${playlist.id}"
         isArtistStation -> "station_artist:${playlist.id}"
         isYoutubeRadio -> playlist.permalinkUrl ?: playlist.id.toString()
@@ -1872,6 +1923,18 @@ fun SearchResultsList(
     when (homeViewModel.activeSearchSource) {
         SearchSource.YOUTUBE -> {
             val listState = rememberLazyListState()
+            val shouldLoadMore = remember {
+                derivedStateOf {
+                    val totalItems = listState.layoutInfo.totalItemsCount
+                    val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                    totalItems > 0 && lastVisibleItem >= totalItems - 5
+                }
+            }
+            LaunchedEffect(shouldLoadMore.value) {
+                if (shouldLoadMore.value && !homeViewModel.isSearchLoadingMore) {
+                    homeViewModel.loadMoreSearchResults()
+                }
+            }
             if (homeViewModel.searchResultsYoutube.isEmpty()) Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
