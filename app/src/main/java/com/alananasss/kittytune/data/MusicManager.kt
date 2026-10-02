@@ -242,7 +242,6 @@ object MusicManager {
     }
 
     private var exoPlayerFactory: ((Int) -> ExoPlayer)? = null
-    private var playerListener: Player.Listener? = null
 
     val player: ExoPlayer
         get() = if (activePlayerIndex == 1) _player1!! else getOrInitPlayer2()
@@ -251,7 +250,7 @@ object MusicManager {
         if (_player2 == null) {
             _player2 = exoPlayerFactory?.invoke(1)
             _player2?.setSeekParameters(SeekParameters.EXACT)
-            playerListener?.let { _player2?.addListener(it) }
+            _player2?.addListener(createPlayerListener(1))
         }
         return _player2!!
     }
@@ -603,71 +602,76 @@ object MusicManager {
         this.exoPlayerFactory = createExoPlayer
         _player1 = createExoPlayer(0)
         _player1?.setSeekParameters(SeekParameters.EXACT)
+        _player1?.addListener(createPlayerListener(0))
+    }
 
-        val listener = object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                super.onIsPlayingChanged(isPlaying)
-                if (!isPlaying) {
-                    appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
-                }
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                super.onPlaybackStateChanged(playbackState)
-                if (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) {
-                    appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
-                }
-            }
-
-            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                super.onMediaItemTransition(mediaItem, reason)
+    private fun createPlayerListener(playerIndex: Int) = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            super.onIsPlayingChanged(isPlaying)
+            val isActivePlayer = (activePlayerIndex == 1 && playerIndex == 0) || (activePlayerIndex == 2 && playerIndex == 1)
+            if (isActivePlayer && !isPlaying && !isCrossfadingOut) {
                 appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
-                // Reset AI detection state for the new track
-                aiDetectionProcessors.forEach { it.resetForNewTrack() }
-                AiDetectionManager.resetResult()
-                if (mediaItem == null) return
-
-                if (isCrossfadingOut && fadingPlayer != null) {
-                    if (player.currentMediaItem != mediaItem) {
-                        return
-                    }
-                }
-
-                val rawId = mediaItem.mediaId
-                val cleanIdString = if (rawId.contains(":")) rawId.substringBefore(":") else rawId
-                val trackId = cleanIdString.toLongOrNull() ?: rawId.hashCode().toLong()
-
-                if (preloadedTrack != null && preloadedTrack?.id == trackId) {
-                    currentTrack = preloadedTrack
-                } else if (currentTrack?.id != trackId) {
-                    val meta = mediaItem.mediaMetadata
-                    val source = if (mediaItem.mediaId.startsWith("yt_") || mediaItem.requestMetadata.mediaUri?.toString()?.contains("youtube") == true) "youtube" else "soundcloud"
-
-                    currentTrack = Track(
-                        id = trackId,
-                        title = meta.title?.toString() ?: "Unknown",
-                        durationMs = 0L,
-                        artworkUrl = meta.artworkUri?.toString(),
-                        user = User(0, meta.artist?.toString() ?: "Unknown", null),
-                        permalinkUrl = "",
-                        playbackCount = 0,
-                        likesCount = 0,
-                        repostsCount = 0,
-                        commentCount = 0,
-                        source = source
-                    )
-                }
-
-                currentTrack?.let { track ->
-                    scope.launch {
-                        onTrackChange?.invoke(track)
-                    }
-                }
             }
         }
 
-        _player1?.addListener(listener)
-        this.playerListener = listener
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            super.onPlaybackStateChanged(playbackState)
+            val isActivePlayer = (activePlayerIndex == 1 && playerIndex == 0) || (activePlayerIndex == 2 && playerIndex == 1)
+            if (isActivePlayer && (playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE) && !isCrossfadingOut) {
+                appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
+            }
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            super.onMediaItemTransition(mediaItem, reason)
+            val isActivePlayer = (activePlayerIndex == 1 && playerIndex == 0) || (activePlayerIndex == 2 && playerIndex == 1)
+            if (!isActivePlayer) {
+                // Ignore events from an inactive player (e.g. background prebuffering)
+                return
+            }
+            appContext?.let { com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(it).stopAllHaptics() }
+            // Reset AI detection state for the new track
+            aiDetectionProcessors.forEach { it.resetForNewTrack() }
+            AiDetectionManager.resetResult()
+            if (mediaItem == null) return
+
+            if (isCrossfadingOut && fadingPlayer != null) {
+                if (player.currentMediaItem != mediaItem) {
+                    return
+                }
+            }
+
+            val rawId = mediaItem.mediaId
+            val cleanIdString = if (rawId.contains(":")) rawId.substringBefore(":") else rawId
+            val trackId = cleanIdString.toLongOrNull() ?: rawId.hashCode().toLong()
+
+            if (preloadedTrack != null && preloadedTrack?.id == trackId) {
+                currentTrack = preloadedTrack
+            } else if (currentTrack?.id != trackId) {
+                val meta = mediaItem.mediaMetadata
+                val source = if (mediaItem.mediaId.startsWith("yt_") || mediaItem.requestMetadata.mediaUri?.toString()?.contains("youtube") == true) "youtube" else "soundcloud"
+
+                currentTrack = Track(
+                    id = trackId,
+                    title = meta.title?.toString() ?: "Unknown",
+                    durationMs = 0L,
+                    artworkUrl = meta.artworkUri?.toString(),
+                    user = User(0, meta.artist?.toString() ?: "Unknown", null),
+                    permalinkUrl = "",
+                    playbackCount = 0,
+                    likesCount = 0,
+                    repostsCount = 0,
+                    commentCount = 0,
+                    source = source
+                )
+            }
+
+            currentTrack?.let { track ->
+                scope.launch {
+                    onTrackChange?.invoke(track)
+                }
+            }
+        }
     }
 
     fun setRepeatMode(mode: Int) {
@@ -821,6 +825,9 @@ object MusicManager {
             isAdopted = true
             basePlaybackParams = pb.basePlaybackParams
             prebuffered = null
+            // Reset AI detection state for the adopted new track
+            aiDetectionProcessors.forEach { it.resetForNewTrack() }
+            AiDetectionManager.resetResult()
             val djDrivesStartPosition = djFlowActive && (djPhaseOffsetMs != 0L || effectiveTempoRatio != 1.0f)
             if (djFlowActive && effectiveTempoRatio != 1.0f) {
                 val adjSpeed = (basePlaybackParams.speed * effectiveTempoRatio).coerceIn(0.85f, 1.15f)

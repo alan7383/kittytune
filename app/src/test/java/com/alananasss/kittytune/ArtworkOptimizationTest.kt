@@ -197,17 +197,17 @@ class ArtworkOptimizationTest {
 
     @Test
     fun binderArtworkScaling_keepsPayloadUnderSafeThreshold() {
-        // Simulates 1080p source bitmap downscaling to max 360x360 @ 75% JPEG
+        // Simulates 1080p source bitmap downscaling to max 720x720 @ 85% JPEG
         val originalWidth = 1920
         val originalHeight = 1080
 
         val maxDim = maxOf(originalWidth, originalHeight)
-        val targetW = (originalWidth * 360) / maxDim
-        val targetH = (originalHeight * 360) / maxDim
+        val targetW = (originalWidth * 720) / maxDim
+        val targetH = (originalHeight * 720) / maxDim
 
-        assertEquals(360, targetW)
-        assertEquals(202, targetH)
-        assertTrue("Width must be <= 360", targetW <= 360)
-        assertTrue("Height must be <= 360", targetH <= 360)
+        assertEquals(720, targetW)
+        assertEquals(405, targetH)
+        assertTrue("Width must be <= 720", targetW <= 720)
+        assertTrue("Height must be <= 720", targetH <= 720)
     }
 }
