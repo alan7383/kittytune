@@ -65,6 +65,24 @@ enum class MiniPlayerSwipeAction {
     }
 }
 
+enum class TrackSourceBadgeStyle(
+    @StringRes val titleRes: Int
+) {
+    ICON_AND_TEXT(R.string.pref_track_source_badge_both),
+    ICON_ONLY(R.string.pref_track_source_badge_icon),
+    TEXT_ONLY(R.string.pref_track_source_badge_text),
+    HIDDEN(R.string.pref_track_source_badge_hidden);
+
+    companion object {
+        fun fromString(name: String?): TrackSourceBadgeStyle = when (name) {
+            "ICON_AND_TEXT" -> ICON_AND_TEXT
+            "TEXT_ONLY" -> TEXT_ONLY
+            "HIDDEN" -> HIDDEN
+            else -> ICON_ONLY
+        }
+    }
+}
+
 enum class LibraryCategoryLayout(
     @StringRes val titleRes: Int,
     @StringRes val descRes: Int
@@ -456,6 +474,8 @@ class PlayerPreferences(context: Context) {
         const val SETTINGS_RECENT_SEARCHES_MAX = 10
 
         const val KEY_SHOW_PLAYLIST_TOTAL_DURATION = "show_playlist_total_duration"
+        const val KEY_FULL_PLAYER_SOURCE_INDICATOR_ENABLED = "full_player_source_indicator_enabled"
+        const val KEY_TRACK_SOURCE_BADGE_STYLE = "track_source_badge_style"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -2099,6 +2119,35 @@ class PlayerPreferences(context: Context) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_SHOW_PLAYLIST_TOTAL_DURATION) {
                 trySend(getShowPlaylistTotalDuration())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getFullPlayerSourceIndicatorEnabled(): Boolean = prefs.getBoolean(KEY_FULL_PLAYER_SOURCE_INDICATOR_ENABLED, false)
+    fun setFullPlayerSourceIndicatorEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_FULL_PLAYER_SOURCE_INDICATOR_ENABLED, enabled) }
+
+    fun getFullPlayerSourceIndicatorEnabledFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
+        trySend(getFullPlayerSourceIndicatorEnabled())
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_FULL_PLAYER_SOURCE_INDICATOR_ENABLED) {
+                trySend(getFullPlayerSourceIndicatorEnabled())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getTrackSourceBadgeStyle(): TrackSourceBadgeStyle =
+        TrackSourceBadgeStyle.fromString(prefs.getString(KEY_TRACK_SOURCE_BADGE_STYLE, "ICON_ONLY"))
+    fun setTrackSourceBadgeStyle(style: TrackSourceBadgeStyle) = prefs.edit { putString(KEY_TRACK_SOURCE_BADGE_STYLE, style.name) }
+
+    fun getTrackSourceBadgeStyleFlow(): kotlinx.coroutines.flow.Flow<TrackSourceBadgeStyle> = kotlinx.coroutines.flow.callbackFlow {
+        trySend(getTrackSourceBadgeStyle())
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_TRACK_SOURCE_BADGE_STYLE) {
+                trySend(getTrackSourceBadgeStyle())
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)

@@ -118,7 +118,8 @@
     <string name="new_releases_popular_tracks">Népszerű Számok</string>
     <string name="new_releases_all_playlists">Összes Playlist</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube Music</string>
+    <string name="search_source_youtube">YouTube</string>
+    <string name="search_source_youtube_music">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">VKontakte (VK)</string>
     <string name="search_source_deezer">Deezer</string>
@@ -3039,4 +3040,17 @@
     <string name="provider_enabled_hint">A SoundCloud és a YouTube Music alapvető források, mindig elérhetőek maradnak.</string>
     <string name="provider_disabled_suffix">(kikapcsolva)</string>
     <string name="keywords_data_saver">adatforgalom csokkento, adatmentes, mobilnet, eco, sporolas, savszelesseg, halozat</string>
+    <string name="lyrics_searching">Dalszöveg keresése…</string>
+    <string name="lyrics_auto_found_title">Dalszöveg automatikusan megtalálva</string>
+    <string name="lyrics_auto_found_desc">A számhoz automatikusan találtunk dalszöveget.</string>
+    <string name="lyrics_auto_found_use">Megtekintés</string>
+    <string name="pref_track_source_badge_title">Hangforrás jelző</string>
+    <string name="pref_track_source_badge_desc">Platform jelvény (YouTube, SoundCloud stb.) megjelenítése az éppen játszott számnál</string>
+    <string name="pref_track_source_badge_both">Ikon és szöveg</string>
+    <string name="pref_track_source_badge_icon">Csak ikon</string>
+    <string name="pref_track_source_badge_text">Csak szöveg</string>
+    <string name="pref_track_source_badge_hidden">Kikapcsolva</string>
+    <string name="pref_full_player_source_title">Hangforrás jelző</string>
+    <string name="pref_full_player_source_desc">A platform logójának megjelenítése (YouTube, SoundCloud stb.) a lejátszott számnál</string>
+    <string name="audio_source_tooltip">Audió forrása: %s</string>
 </resources>

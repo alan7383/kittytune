@@ -124,7 +124,8 @@
     <string name="new_releases_popular_tracks">Популярные треки</string>
     <string name="new_releases_all_playlists">Все плейлисты</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube Music</string>
+    <string name="search_source_youtube">YouTube</string>
+    <string name="search_source_youtube_music">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">ВКонтакте (VK)</string>
     <string name="search_source_deezer">Deezer</string>
@@ -3032,4 +3033,17 @@
     <string name="provider_enabled_hint">SoundCloud и YouTube Music являются базовыми источниками и доступны всегда.</string>
     <string name="provider_disabled_suffix">(откл.)</string>
     <string name="keywords_data_saver">экономия трафика, трафик, мобильный интернет, эко, экономия данных, лимит, сеть</string>
+    <string name="lyrics_searching">Поиск текста песни…</string>
+    <string name="lyrics_auto_found_title">Текст найден автоматически</string>
+    <string name="lyrics_auto_found_desc">Для этого трека был автоматически найден текст песни.</string>
+    <string name="lyrics_auto_found_use">Показать</string>
+    <string name="pref_track_source_badge_title">Индикатор источника аудио</string>
+    <string name="pref_track_source_badge_desc">Отображать значок площадки (YouTube, SoundCloud и т.д.) для играющего трека</string>
+    <string name="pref_track_source_badge_both">Значок и текст</string>
+    <string name="pref_track_source_badge_icon">Только значок</string>
+    <string name="pref_track_source_badge_text">Только текст</string>
+    <string name="pref_track_source_badge_hidden">Выкл</string>
+    <string name="pref_full_player_source_title">Индикатор источника аудио</string>
+    <string name="pref_full_player_source_desc">Показывать значок площадки (YouTube, SoundCloud и др.) для играющего трека</string>
+    <string name="audio_source_tooltip">Аудио из %s</string>
 </resources>

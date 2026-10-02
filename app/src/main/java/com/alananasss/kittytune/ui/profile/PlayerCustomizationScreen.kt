@@ -84,6 +84,7 @@ fun PlayerCustomizationScreen(
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
+    var fullPlayerSourceIndicator by remember { mutableStateOf(prefs.getFullPlayerSourceIndicatorEnabled()) }
 
     var waveformColorMode by remember { mutableStateOf(prefs.getWaveformColorMode()) }
     var commentsPopup by remember { mutableStateOf(prefs.getWaveformCommentsPopupEnabled()) }
@@ -569,6 +570,23 @@ fun PlayerCustomizationScreen(
                                 onUpdated()
                             },
                             highlightKey = "pref_animated_artist_profiles"
+                        )
+                    }
+
+                    add { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.pref_full_player_source_title),
+                            subtitle = stringResource(R.string.pref_full_player_source_desc),
+                            icon = Icons.Rounded.GraphicEq,
+                            hasSwitch = true,
+                            switchState = fullPlayerSourceIndicator,
+                            onSwitchChange = {
+                                fullPlayerSourceIndicator = it
+                                prefs.setFullPlayerSourceIndicatorEnabled(it)
+                                onUpdated()
+                            },
+                            highlightKey = "pref_full_player_source"
                         )
                     }
 

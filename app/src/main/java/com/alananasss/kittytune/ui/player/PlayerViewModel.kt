@@ -136,6 +136,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         } else null
     )
     var currentTrack by mutableStateOf<Track?>(null)
+    var currentStreamSource by mutableStateOf<String?>(null)
+    var fullPlayerSourceIndicatorEnabled by mutableStateOf(playerPrefs.getFullPlayerSourceIndicatorEnabled())
+        private set
+
+    fun updateFullPlayerSourceIndicatorEnabled(enabled: Boolean) {
+        fullPlayerSourceIndicatorEnabled = enabled
+        playerPrefs.setFullPlayerSourceIndicatorEnabled(enabled)
+    }
+
     var isPlaying by mutableStateOf(false)
     var playWhenReady by mutableStateOf(false)
     var isLoading by mutableStateOf(false)
@@ -401,6 +410,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var lyricsRevision by mutableIntStateOf(0)
     var isLyricsLoading by mutableStateOf(false)
     var isSearchingLyrics by mutableStateOf(false)
+    var isManualSearchLoading by mutableStateOf(false)
     var manualSearchQuery by mutableStateOf("")
     val lyricSearchResults = mutableStateListOf<LrcLibResponse>()
     var manualSearchProvider by mutableStateOf("MUSIXMATCH")
@@ -2043,7 +2053,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         rawPlainLyrics = payload.plain
         lyricsMode = if (payload.lines.isNotEmpty()) LyricsMode.SYNCED else LyricsMode.PLAIN
         isLyricsLoading = false
-        if (payload.lines.isNotEmpty() || !payload.plain.isNullOrBlank()) isSearchingLyrics = false
         lyricsRevision++
 
         if (isLyricsTranslationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.translation.isNullOrBlank() }) {
@@ -2433,7 +2442,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             isLyricsLoading = false
-            if (resultLines.isNotEmpty() || !rawPlainLyrics.isNullOrBlank()) isSearchingLyrics = false
         }
     }
 
@@ -2463,6 +2471,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         // to the newer search's list.
         manualLyricSearchJob?.cancel()
         isLyricsLoading = true
+        isManualSearchLoading = true
         unifiedLyricSearchResults.clear()
         manualSearchProvider = provider
 
@@ -2590,7 +2599,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                withContext(Dispatchers.Main) { isLyricsLoading = false }
+                withContext(Dispatchers.Main) {
+                    isLyricsLoading = false
+                    isManualSearchLoading = false
+                }
             }
         }
     }
@@ -5862,8 +5874,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             var resolvedMimeType: String? = null
+            var resolvedStream: com.alananasss.kittytune.data.ResolvedStream? = null
+            val isLocal = trackToPlay.source == "local" || (resolvedUrl != null && !resolvedUrl.startsWith("http"))
+
             if (resolvedUrl == null) {
                 val resolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
+                resolvedStream = resolved
                 resolvedUrl = resolved?.url
                 resolvedMimeType = resolved?.mimeType
                 if (resolved?.isDrmProtected == true && resolved.licenseAuthToken != null) {
@@ -5882,6 +5898,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 kotlinx.coroutines.delay(1200L * retryAttempt)
                 try {
                     val retryResolved = StreamResolver.resolveStreamWithDrm(context, trackToPlay)
+                    resolvedStream = retryResolved
                     resolvedUrl = retryResolved?.url
                     resolvedMimeType = retryResolved?.mimeType
                     if (retryResolved?.isDrmProtected == true && retryResolved.licenseAuthToken != null) {
@@ -5890,6 +5907,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 } catch (e: Exception) {
                     Log.w("PlayerViewModel", "Retry resolution attempt $retryAttempt failed: ${e.message}")
                 }
+            }
+
+            val finalStreamSource = if (isLocal) {
+                "local"
+            } else {
+                resolvedStream?.source ?: trackToPlay.source ?: "soundcloud"
             }
 
             if (resolvedUrl == null) {
@@ -5934,6 +5957,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     Log.d("PlayerViewModel", "Discarding stale stream resolution for track ${trackToPlay.id}, current track is ${currentTrack?.id}")
                     return@withContext
                 }
+                currentStreamSource = finalStreamSource
                 try {
                     queueChunkingJob?.cancel()
 

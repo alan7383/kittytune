@@ -1343,6 +1343,12 @@ fun NewPlayerScreen(
                                                     onClick = { viewModel.showAiDetectionSheet = true },
                                                     modifier = Modifier.padding(start = 8.dp)
                                                 )
+
+                                                com.alananasss.kittytune.ui.common.TrackSourceBadge(
+                                                    track = track,
+                                                    resolvedSource = viewModel.currentStreamSource,
+                                                    modifier = Modifier.padding(start = 6.dp)
+                                                )
                                             }
                                         }
                                     }
@@ -11298,6 +11304,12 @@ fun OldPlayerScreen(
                                                     modifier = Modifier.size(16.dp)
                                                 )
                                             }
+
+                                            com.alananasss.kittytune.ui.common.TrackSourceBadge(
+                                                track = track,
+                                                resolvedSource = viewModel.currentStreamSource,
+                                                modifier = Modifier.padding(start = 6.dp)
+                                            )
                                         }
                                     }
                                 }
@@ -11867,6 +11879,12 @@ fun LandscapePlayerView(
                         result = aiResult,
                         textColor = mainContentColor,
                         onClick = { viewModel.showAiDetectionSheet = true },
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+
+                    com.alananasss.kittytune.ui.common.TrackSourceBadge(
+                        track = track,
+                        resolvedSource = viewModel.currentStreamSource,
                         modifier = Modifier.padding(start = 6.dp)
                     )
                 }

@@ -7,6 +7,7 @@ import java.util.Locale
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
@@ -366,6 +367,15 @@ internal val PlayerCustomizationSettingDefinitions: List<SettingDefinition> = li
         icon = Icons.Rounded.PlayCircle,
         keywordsRes = com.alananasss.kittytune.R.string.keywords_mini_player_swipe,
         keywords = listOf("mini", "player", "swipe", "gesture", "track", "skip", "dismiss")
+    ),
+    SettingDefinition.Action(
+        id = "pref_full_player_source",
+        titleRes = com.alananasss.kittytune.R.string.pref_full_player_source_title,
+        subtitleRes = com.alananasss.kittytune.R.string.pref_full_player_source_desc,
+        category = SettingsCategory.INTERFACE,
+        route = "player_design_settings",
+        icon = Icons.Rounded.GraphicEq,
+        keywords = listOf("audio", "source", "badge", "indicator", "youtube", "soundcloud", "deezer", "tidal", "qobuz", "logo")
     )
 )
 

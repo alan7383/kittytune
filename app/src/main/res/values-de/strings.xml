@@ -142,7 +142,8 @@
     <string name="new_releases_popular_tracks">Beliebte Titel</string>
     <string name="new_releases_all_playlists">Alle Playlists</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube Music</string>
+    <string name="search_source_youtube">YouTube</string>
+    <string name="search_source_youtube_music">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">VKontakte (VK)</string>
     <string name="search_source_deezer">Deezer</string>
@@ -3152,4 +3153,17 @@
     <string name="provider_enabled_hint">SoundCloud und YouTube Music sind die Basisquellen und immer verfügbar.</string>
     <string name="provider_disabled_suffix">(aus)</string>
     <string name="keywords_data_saver">datensparmodus, traffic, mobile daten, eco, sparen, bandbreite, netzwerk, mobilfunk</string>
+    <string name="lyrics_searching">Songtext wird gesucht…</string>
+    <string name="lyrics_auto_found_title">Songtext automatisch gefunden</string>
+    <string name="lyrics_auto_found_desc">Für diesen Titel wurde automatisch ein Songtext gefunden.</string>
+    <string name="lyrics_auto_found_use">Anzeigen</string>
+    <string name="pref_track_source_badge_title">Audioquellen-Anzeige</string>
+    <string name="pref_track_source_badge_desc">Plattform-Badge (YouTube, SoundCloud usw.) für den aktuellen Titel anzeigen</string>
+    <string name="pref_track_source_badge_both">Symbol &amp; Text</string>
+    <string name="pref_track_source_badge_icon">Nur Symbol</string>
+    <string name="pref_track_source_badge_text">Nur Text</string>
+    <string name="pref_track_source_badge_hidden">Aus</string>
+    <string name="pref_full_player_source_title">Audioquellen-Anzeige</string>
+    <string name="pref_full_player_source_desc">Plattform-Logo (YouTube, SoundCloud usw.) für den aktuellen Titel anzeigen</string>
+    <string name="audio_source_tooltip">Audio von %s</string>
 </resources>

@@ -46,6 +46,7 @@ internal fun rememberSettingsSearchCatalog(
         var animatedArtistProfiles = prefs.getAnimatedArtistProfilesEnabled()
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
+        var fullPlayerSource = prefs.getFullPlayerSourceIndicatorEnabled()
         var verticalVolume = prefs.getVerticalVolumeSlider()
         var crossfade = prefs.getCrossfadeEnabled()
         var automix = prefs.getAutomixEnabled()
@@ -214,6 +215,24 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     showRemainingTime = it
                     prefs.setShowRemainingTime(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_full_player_source_title,
+                subtitleRes = R.string.pref_full_player_source_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.GraphicEq,
+                route = "player_design_settings",
+                highlightKey = "pref_full_player_source",
+                keywords = listOf("source", "youtube", "soundcloud", "badge", "provider"),
+                hasSwitch = true,
+                switchState = fullPlayerSource,
+                onSwitchChange = {
+                    fullPlayerSource = it
+                    prefs.setFullPlayerSourceIndicatorEnabled(it)
                     onPreferenceChange()
                 }
             ),

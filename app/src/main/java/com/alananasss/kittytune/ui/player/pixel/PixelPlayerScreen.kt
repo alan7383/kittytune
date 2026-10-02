@@ -693,6 +693,11 @@ fun PixelPlayerScreen(
                             modifier = Modifier.size(16.dp)
                         )
                     }
+                    com.alananasss.kittytune.ui.common.TrackSourceBadge(
+                        track = track,
+                        resolvedSource = viewModel.currentStreamSource,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

@@ -124,7 +124,8 @@
     <string name="new_releases_popular_tracks">Bài hát phổ biến</string>
     <string name="new_releases_all_playlists">Tất cả danh sách phát</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube Music</string>
+    <string name="search_source_youtube">YouTube</string>
+    <string name="search_source_youtube_music">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">VKontakte (VK)</string>
     <string name="search_source_deezer">Deezer</string>
@@ -3011,4 +3012,17 @@
     <string name="provider_enabled_hint">SoundCloud và YouTube Music là các nguồn cơ bản và luôn khả dụng.</string>
     <string name="provider_disabled_suffix">(tắt)</string>
     <string name="keywords_data_saver">tiet kiem du lieu, traffic, mang di dong, 4g, 5g, tiet kiem, bang thong, mang</string>
+    <string name="lyrics_searching">Đang tìm lời bài hát…</string>
+    <string name="lyrics_auto_found_title">Đã tự động tìm thấy lời bài hát</string>
+    <string name="lyrics_auto_found_desc">Đã tìm thấy lời bài hát tự động cho bài này.</string>
+    <string name="lyrics_auto_found_use">Xem</string>
+    <string name="pref_track_source_badge_title">Chỉ báo nguồn âm thanh</string>
+    <string name="pref_track_source_badge_desc">Hiển thị biểu tượng nền tảng (YouTube, SoundCloud, v.v.) cho bài hát đang phát</string>
+    <string name="pref_track_source_badge_both">Biểu tượng &amp; chữ</string>
+    <string name="pref_track_source_badge_icon">Chỉ biểu tượng</string>
+    <string name="pref_track_source_badge_text">Chỉ chữ</string>
+    <string name="pref_track_source_badge_hidden">Tắt</string>
+    <string name="pref_full_player_source_title">Chỉ báo nguồn âm thanh</string>
+    <string name="pref_full_player_source_desc">Hiển thị biểu tượng nguồn (YouTube, SoundCloud, v.v.) cho bài hát đang phát</string>
+    <string name="audio_source_tooltip">Âm thanh từ %s</string>
 </resources>

@@ -274,7 +274,11 @@ fun LyricsScreen(
                 )
             } else {
                 if (viewModel.lyricsLines.isEmpty() && viewModel.rawPlainLyrics.isNullOrBlank()) {
-                    EmptyLyricsState(onManualSearch = { viewModel.isSearchingLyrics = true })
+                    if (viewModel.isLyricsLoading) {
+                        SearchingLyricsState()
+                    } else {
+                        EmptyLyricsState(onManualSearch = { viewModel.isSearchingLyrics = true })
+                    }
                 } else {
                     AnimatedContent(
                         targetState = viewModel.lyricsMode,
@@ -872,6 +876,28 @@ fun PlainLyricsView(viewModel: PlayerViewModel) {
 }
 
 @Composable
+fun SearchingLyricsState() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator(
+            color = Color.White,
+            modifier = Modifier.size(36.dp),
+            strokeWidth = 3.dp
+        )
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = stringResource(R.string.lyrics_searching),
+            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 fun EmptyLyricsState(onManualSearch: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -939,6 +965,49 @@ fun SearchLyricsView(
     val isQueryFocused by queryInteractions.collectIsFocusedAsState()
 
     Column(modifier = Modifier.fillMaxSize()) {
+        val hasAutoLyrics = viewModel.lyricsLines.isNotEmpty() || !viewModel.rawPlainLyrics.isNullOrBlank()
+        if (hasAutoLyrics) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.lyrics_auto_found_title),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = stringResource(R.string.lyrics_auto_found_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Button(
+                        onClick = onCloseSearch,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
+                        Text(stringResource(R.string.lyrics_auto_found_use), fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+
         // State for provider picker lives here so both the button and dropdown can share it
         val allProviders = remember {
             com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.entries
@@ -1045,7 +1114,7 @@ fun SearchLyricsView(
             }
         }
 
-        if (viewModel.isLyricsLoading) {
+        if (viewModel.isManualSearchLoading) {
             LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color.White)
         }
 
@@ -1596,6 +1665,17 @@ fun QuickLyricsSettingsDialog(
                 subtitle = stringResource(R.string.pref_lyrics_romanization_sub),
                 checked = viewModel.isRomanizationEnabled,
                 onCheckedChange = { viewModel.toggleRomanization(it) }
+            )
+
+            var showSourceBadge by remember { mutableStateOf(viewModel.fullPlayerSourceIndicatorEnabled) }
+            LyricsToggleRow(
+                title = stringResource(R.string.pref_full_player_source_title),
+                subtitle = stringResource(R.string.pref_full_player_source_desc),
+                checked = showSourceBadge,
+                onCheckedChange = {
+                    showSourceBadge = it
+                    viewModel.updateFullPlayerSourceIndicatorEnabled(it)
+                }
             )
 
             Spacer(Modifier.height(8.dp))
