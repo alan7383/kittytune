@@ -1714,7 +1714,7 @@ fun PlaylistDetailScreen(
                                     }
                                     Spacer(Modifier.height(8.dp))
 
-                                    val totalDurationMs = remember(tracksToDisplay) { tracksToDisplay.sumOf { it.durationMs ?: 0L } }
+                                    val totalDurationMs = tracksToDisplay.sumOf { it.durationMs ?: 0L }
                                     val durationText = if (showTotalDuration) formatPlaylistTotalDuration(context.resources, totalDurationMs) else ""
 
                                     val trackCountText = when {

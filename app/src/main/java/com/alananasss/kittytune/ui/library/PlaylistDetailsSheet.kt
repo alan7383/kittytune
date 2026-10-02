@@ -237,12 +237,8 @@ fun PlaylistDetailsSheet(
                             }
                         }
 
-                        val totalDurationMs = remember(playlist) {
-                            playlist.tracks.orEmpty().mapNotNull { it.durationMs }.sum()
-                        }
-                        val durationText = remember(totalDurationMs) {
-                            if (totalDurationMs > 0L) formatPlaylistTotalDuration(context.resources, totalDurationMs) else ""
-                        }
+                        val totalDurationMs = playlist.tracks.orEmpty().sumOf { it.durationMs ?: 0L }
+                        val durationText = if (totalDurationMs > 0L) formatPlaylistTotalDuration(context.resources, totalDurationMs) else ""
                         if (durationText.isNotEmpty()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
