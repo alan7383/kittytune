@@ -814,7 +814,8 @@ data class Playlist(
     @SerializedName("set_type") val setType: String? = null,
     @SerializedName("playlist_type") val playlistType: String? = null,
     @SerializedName("release_date") val releaseDate: String? = null,
-    @SerializedName("likes_count") val likesCount: Int? = 0
+    @SerializedName("likes_count") val likesCount: Int? = 0,
+    @SerializedName("duration") val durationMs: Long? = null
 ) {
     val isRealAlbum: Boolean
         get() = isAlbum || 

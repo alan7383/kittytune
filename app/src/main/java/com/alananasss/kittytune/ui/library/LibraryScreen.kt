@@ -824,7 +824,8 @@ fun LibraryScreen(
                     showPlaylistDetailsSheet = false
                     playlistForDetails = null
                     playerViewModel.resolveAndNavigateToArtist(username)
-                }
+                },
+                initialDurationMs = p.durationMs
             )
         }
     }

@@ -142,6 +142,7 @@ fun PlaylistDetailScreen(
     var playlistReleaseDate by remember { mutableStateOf<String?>(null) }
     var playlistPermalink by remember { mutableStateOf<String?>(null) }
     var playlistUrn by remember { mutableStateOf<String?>(null) }
+    var playlistDurationMs by remember { mutableStateOf<Long?>(null) }
     var playlistUser by remember { mutableStateOf<User?>(null) }
     var playlistArtists by remember { mutableStateOf<List<com.alananasss.kittytune.data.spotify.SpotifyArtistRef>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -553,6 +554,8 @@ fun PlaylistDetailScreen(
         }
     }
 
+    val totalDurationMs = playlistDurationMs?.takeIf { it > 0L && playlistSearchQuery.isEmpty() }
+        ?: tracksToDisplay.sumOf { it.durationMs ?: 0L }
 
     val downloadedCount = remember(tracks.size, tracksToDisplay.size, downloadedIds) {
         if (tracksToDisplay.isEmpty()) 0
@@ -1240,6 +1243,7 @@ fun PlaylistDetailScreen(
                             playlistReleaseDate = playlistObj.releaseDate
                             playlistPermalink = playlistObj.permalink
                             playlistUrn = playlistObj.urn
+                            playlistDurationMs = playlistObj.durationMs
                             playlistPermalinkUrl = playlistObj.permalinkUrl.takeIf { !it.isNullOrBlank() }
                                 ?: if (isArtistStation) "https://soundcloud.com/discover/sets/artist-stations:$currentIdLong"
                                 else if (isTrackStation) "https://soundcloud.com/discover/sets/track-stations:$currentIdLong"
@@ -1714,7 +1718,6 @@ fun PlaylistDetailScreen(
                                     }
                                     Spacer(Modifier.height(8.dp))
 
-                                    val totalDurationMs = tracksToDisplay.sumOf { it.durationMs ?: 0L }
                                     val durationText = if (showTotalDuration) formatPlaylistTotalDuration(context.resources, totalDurationMs) else ""
 
                                     val trackCountText = when {
@@ -2590,7 +2593,8 @@ fun PlaylistDetailScreen(
                     onMentionClick = { username ->
                         showPlaylistDetailsSheet = false
                         playerViewModel.resolveAndNavigateToArtist(username)
-                    }
+                    },
+                    initialDurationMs = totalDurationMs
                 )
             }
         }

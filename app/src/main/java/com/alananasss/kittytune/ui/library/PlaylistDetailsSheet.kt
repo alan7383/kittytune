@@ -59,6 +59,7 @@ fun PlaylistDetailsSheet(
     onViewAll: (Int) -> Unit,
     onNavigate: (String) -> Unit,
     onMentionClick: (String) -> Unit,
+    initialDurationMs: Long? = null,
     viewModel: PlaylistInfoViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -237,7 +238,9 @@ fun PlaylistDetailsSheet(
                             }
                         }
 
-                        val totalDurationMs = playlist.tracks.orEmpty().sumOf { it.durationMs ?: 0L }
+                        val totalDurationMs = initialDurationMs?.takeIf { it > 0L }
+                            ?: playlist.durationMs?.takeIf { it > 0L }
+                            ?: playlist.tracks.orEmpty().sumOf { it.durationMs ?: 0L }
                         val durationText = if (totalDurationMs > 0L) formatPlaylistTotalDuration(context.resources, totalDurationMs) else ""
                         if (durationText.isNotEmpty()) {
                             Row(verticalAlignment = Alignment.CenterVertically) {

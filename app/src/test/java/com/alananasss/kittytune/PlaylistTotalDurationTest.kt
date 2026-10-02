@@ -161,4 +161,19 @@ class PlaylistTotalDurationTest {
         assertEquals("1 г.", formatPlaylistTotalDuration(365 * dayMs, ::mockResolveRussian))
         assertEquals("2 г. 3 мес.", formatPlaylistTotalDuration((2 * 365 + 90) * dayMs, ::mockResolveRussian))
     }
+
+    @Test
+    fun testPlaylistDurationDeserialization() {
+        val json = """
+            {
+                "id": 123456,
+                "title": "My SoundCloud Playlist",
+                "track_count": 104,
+                "duration": 22440000
+            }
+        """.trimIndent()
+        val playlist = com.google.gson.Gson().fromJson(json, com.alananasss.kittytune.domain.Playlist::class.java)
+        assertEquals(22440000L, playlist.durationMs)
+        assertEquals(104, playlist.trackCount)
+    }
 }
