@@ -78,13 +78,14 @@
                 withContext(Dispatchers.IO) {
                     try {
                         val query = tracks.randomOrNull()?.title ?: "music"
-                        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_VIDEO).getOrNull()
+                        val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
 
                         val newTracks = result?.items?.filterIsInstance<SongItem>()?.map { item ->
+                            val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
                             Track(
                                 id = kotlin.math.abs(item.id.hashCode().toLong()),
                                 title = item.title,
-                                user = User(0L, item.artists.firstOrNull()?.name ?: "YouTube", null),
+                                user = User(0L, displayArtist, null),
                                 artworkUrl = item.thumbnail,
                                 durationMs = (item.duration ?: 0) * 1000L,
                                 permalinkUrl = "https://youtube.com/watch?v=${item.id}",

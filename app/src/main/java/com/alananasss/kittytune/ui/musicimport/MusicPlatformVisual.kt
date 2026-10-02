@@ -36,8 +36,8 @@ fun MusicApi.visual(): MusicPlatformVisual = when (this) {
     )
     MusicApi.YOUTUBE_MUSIC -> MusicPlatformVisual(
         icon = Icons.Rounded.PlayCircle,
-        logoRes = R.drawable.ic_logo_youtube_music,
-        likedArtworkRes = R.drawable.ic_logo_youtube_music,
+        logoRes = R.drawable.ic_logo_youtube_music_colored,
+        likedArtworkRes = R.drawable.ic_logo_youtube_music_colored,
         color = Color(0xFFFF0000)
     )
     MusicApi.DEEZER -> MusicPlatformVisual(
