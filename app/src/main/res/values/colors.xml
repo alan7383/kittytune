@@ -1,3 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="whatsapp_green">#FF25D366</color>
+    <color name="facebook_blue">#FF1877F2</color>
 </resources>
