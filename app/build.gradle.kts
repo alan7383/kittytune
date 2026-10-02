@@ -167,7 +167,7 @@ dependencies {
     implementation(libs.smooth.corner.rect)
     implementation(libs.material)
     implementation(libs.androidx.ui.text.google.fonts)
-    implementation("app.rive:rive-android:11.12.1")
+    implementation(libs.rive.android)
 }
 
 kotlin {

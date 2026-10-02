@@ -14,6 +14,7 @@ coil = "2.7.0"
 media3 = "1.11.1"
 retrofit = "3.0.0"
 okhttp = "5.5.0"
+riveAndroid = "11.13.0"
 room = "2.8.5"
 ksp = "2.3.10"
 palette = "1.0.0"
@@ -102,6 +103,7 @@ ktor-client-encoding = { group = "io.ktor", name = "ktor-client-encoding", versi
 json = { group = "org.json", name = "json", version.ref = "json" }
 material-kolor = { group = "com.materialkolor", name = "material-kolor", version.ref = "materialKolor" }
 accompanist-drawablepainter = { group = "com.google.accompanist", name = "accompanist-drawablepainter", version.ref = "accompanist" }
+rive-android = { module = "app.rive:rive-android", version.ref = "riveAndroid" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 mlkit-language-id = { module = "com.google.mlkit:language-id", version.ref = "mlkit-language-id" }
 brotli = { group = "org.brotli", name = "dec", version.ref = "brotli" }
