@@ -2609,7 +2609,7 @@
     <string name="pref_lyrics_paxsenix_key">Clé d\'API Paxsenix</string>
     <string name="pref_lyrics_paxsenix_key_sub">Requis pour Apple Music, Spotify et Paxsenix Musixmatch</string>
     <string name="pref_lyrics_order">Ordre de priorité des fournisseurs</string>
-    <string name="pref_lyrics_order_sub">Ordre dans lequel les fournisseurs sont interrogés</string>
+    <string name="pref_lyrics_order_sub">Gérer la priorité et l\'activation des sources</string>
     <string name="pref_lyrics_enable_provider">Activer %s</string>
     <string name="qobuz_audio_quality">Qualité audio Qobuz</string>
     <string name="qobuz_quality_hires_192">Hi-Res FLAC / 24 bits 192 kHz</string>

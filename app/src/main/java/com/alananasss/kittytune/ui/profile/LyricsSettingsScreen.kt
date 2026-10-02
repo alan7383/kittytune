@@ -38,6 +38,16 @@
     import com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider
     import com.alananasss.kittytune.data.lyrics.providers.DefaultLyricsProviderOrder
     import com.alananasss.kittytune.data.lyrics.clients.PaxsenixClient
+    import com.alananasss.kittytune.ui.common.SettingsSwitch
+    import android.view.HapticFeedbackConstants
+    import androidx.compose.animation.core.animateDpAsState
+    import androidx.compose.foundation.lazy.itemsIndexed
+    import androidx.compose.foundation.lazy.rememberLazyListState
+    import androidx.compose.material.icons.rounded.DragIndicator
+    import androidx.compose.ui.draw.alpha
+    import androidx.compose.ui.platform.LocalView
+    import sh.calvin.reorderable.ReorderableItem
+    import sh.calvin.reorderable.rememberReorderableLazyListState
     import kotlin.math.roundToInt
 
     @Composable
@@ -235,44 +245,98 @@
         }
 
         if (showProviderOrderDialog) {
-            var currentOrder by remember { mutableStateOf(prefs.getLyricsProviderOrder().toMutableList()) }
+            val view = LocalView.current
+            val dialogListState = rememberLazyListState()
+            val currentOrder = remember(showProviderOrderDialog) {
+                mutableStateListOf<PreferredLyricsProvider>().apply { addAll(prefs.getLyricsProviderOrder()) }
+            }
+            var currentEnabled by remember(showProviderOrderDialog) {
+                mutableStateOf(
+                    PreferredLyricsProvider.entries.associateWith { prefs.getLyricsProviderEnabled(it) }
+                )
+            }
+            val reorderState = rememberReorderableLazyListState(
+                lazyListState = dialogListState,
+                onMove = { from, to ->
+                    val item = currentOrder.removeAt(from.index)
+                    currentOrder.add(to.index, item)
+                    view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+                }
+            )
             AlertDialog(
                 onDismissRequest = { showProviderOrderDialog = false },
                 title = { Text(stringResource(R.string.pref_lyrics_order)) },
                 text = {
-                    LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
-                        items(currentOrder.size) { index ->
-                            val p = currentOrder[index]
-                            Row(
-                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    "${index + 1}. ${p.displayName}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.weight(1f)
+                    LazyColumn(
+                        state = dialogListState,
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 440.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        itemsIndexed(currentOrder, key = { _, provider -> provider.name }) { index, provider ->
+                            ReorderableItem(state = reorderState, key = provider.name) { isDragging ->
+                                val elevation by animateDpAsState(
+                                    if (isDragging) 6.dp else 0.dp,
+                                    label = "providerDrag"
                                 )
-                                Row {
-                                    if (index > 0) {
-                                        IconButton(onClick = {
-                                            val list = currentOrder.toMutableList()
-                                            val item = list.removeAt(index)
-                                            list.add(index - 1, item)
-                                            currentOrder = list
-                                        }) {
-                                            Text("▲")
+                                val isEnabled = currentEnabled[provider] ?: true
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = if (isDragging) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    shadowElevation = elevation,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(min = 52.dp)
+                                            .padding(horizontal = 4.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(44.dp)
+                                                .draggableHandle(
+                                                    onDragStarted = {
+                                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                    },
+                                                    onDragStopped = {
+                                                        view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                                    }
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.DragIndicator,
+                                                contentDescription = stringResource(R.string.reorder_handle),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
-                                    }
-                                    if (index < currentOrder.size - 1) {
-                                        IconButton(onClick = {
-                                            val list = currentOrder.toMutableList()
-                                            val item = list.removeAt(index)
-                                            list.add(index + 1, item)
-                                            currentOrder = list
-                                        }) {
-                                            Text("▼")
+                                        Row(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .alpha(if (isEnabled) 1f else 0.45f),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "${index + 1}",
+                                                style = MaterialTheme.typography.labelLarge,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.width(28.dp)
+                                            )
+                                            Text(
+                                                provider.displayName,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier.weight(1f)
+                                            )
                                         }
+                                        Spacer(Modifier.width(8.dp))
+                                        SettingsSwitch(
+                                            checked = isEnabled,
+                                            onCheckedChange = { checked ->
+                                                currentEnabled = currentEnabled + (provider to checked)
+                                            }
+                                        )
+                                        Spacer(Modifier.width(8.dp))
                                     }
                                 }
                             }
@@ -281,8 +345,11 @@
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        providerOrder = currentOrder
-                        prefs.setLyricsProviderOrder(currentOrder)
+                        providerOrder = currentOrder.toList()
+                        prefs.setLyricsProviderOrder(currentOrder.toList())
+                        currentEnabled.forEach { (p, enabled) ->
+                            prefs.setLyricsProviderEnabled(p, enabled)
+                        }
                         showProviderOrderDialog = false
                     }) {
                         Text(stringResource(R.string.btn_save))
@@ -677,7 +744,6 @@
                 }
 
                 item {
-                    val providers = PreferredLyricsProvider.entries
                     val itemsList = mutableListOf<@Composable (Shape) -> Unit>()
                     itemsList.add { shape ->
                         SettingsItem(
@@ -694,22 +760,6 @@
                             subtitle = if (paxsenixKeyInput.isNotBlank()) "••••••••" else stringResource(R.string.pref_lyrics_paxsenix_key_sub),
                             onClick = { showPaxsenixKeyDialog = true }
                         )
-                    }
-                    providers.forEach { p ->
-                        itemsList.add { shape ->
-                            var enabled by remember { mutableStateOf(prefs.getLyricsProviderEnabled(p)) }
-                            SettingsItem(
-                                shape = shape,
-                                title = p.displayName,
-                                subtitle = stringResource(R.string.pref_lyrics_enable_provider, p.displayName),
-                                hasSwitch = true,
-                                switchState = enabled,
-                                onSwitchChange = {
-                                    enabled = it
-                                    prefs.setLyricsProviderEnabled(p, it)
-                                }
-                            )
-                        }
                     }
 
                     SettingsGroup(
