@@ -2989,4 +2989,17 @@
     <string name="provider_enabled_hint">SoundCloud and YouTube Music are the base sources and are always available.</string>
     <string name="provider_disabled_suffix">(off)</string>
     <string name="keywords_data_saver">data saver, traffic, mobile data, eco, save, bandwidth, network, mobile network</string>
+    <string name="lyrics_searching">Searching for lyrics…</string>
+    <string name="lyrics_auto_found_title">Lyrics found automatically</string>
+    <string name="lyrics_auto_found_desc">Automatic lyrics were found for this track.</string>
+    <string name="lyrics_auto_found_use">View</string>
+    <string name="pref_track_source_badge_title">Audio source indicator</string>
+    <string name="pref_track_source_badge_desc">Display the platform badge (YouTube, SoundCloud, etc.) for the playing track</string>
+    <string name="pref_track_source_badge_both">Icon &amp; text</string>
+    <string name="pref_track_source_badge_icon">Icon only</string>
+    <string name="pref_track_source_badge_text">Text only</string>
+    <string name="pref_track_source_badge_hidden">Off</string>
+    <string name="pref_full_player_source_title">Audio source indicator</string>
+    <string name="pref_full_player_source_desc">Display platform logo (YouTube, SoundCloud, etc.) for the playing track</string>
+    <string name="audio_source_tooltip">Audio from %s</string>
 </resources>
