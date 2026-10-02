@@ -1,8 +1,8 @@
 package com.alananasss.kittytune.ui.profile
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -15,16 +15,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,15 +24,38 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Celebration
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.People
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.ViewAgenda
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,12 +64,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.stats.ListeningReport
 import com.alananasss.kittytune.data.stats.ReportArtist
 import com.alananasss.kittytune.data.stats.ReportPeriod
@@ -64,44 +81,74 @@ import com.alananasss.kittytune.data.stats.ReportTrack
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.profile.stats.ActivityCard
 import com.alananasss.kittytune.ui.profile.stats.ArtistTile
+import com.alananasss.kittytune.ui.profile.stats.ArtistsListDialog
 import com.alananasss.kittytune.ui.profile.stats.ChangeChip
+import com.alananasss.kittytune.ui.profile.stats.CompactStats
 import com.alananasss.kittytune.ui.profile.stats.HabitsGrid
 import com.alananasss.kittytune.ui.profile.stats.HoursCard
-import com.alananasss.kittytune.ui.profile.stats.formatDuration
 import com.alananasss.kittytune.ui.profile.stats.PlaysListDialog
 import com.alananasss.kittytune.ui.profile.stats.RankedTrackRow
-import com.alananasss.kittytune.ui.profile.stats.ArtistsListDialog
 import com.alananasss.kittytune.ui.profile.stats.StatsCard
+import com.alananasss.kittytune.ui.profile.stats.StatsListTarget
+import com.alananasss.kittytune.ui.profile.stats.StoryStats
 import com.alananasss.kittytune.ui.profile.stats.TracksListDialog
+import com.alananasss.kittytune.ui.profile.stats.formatDuration
 import com.alananasss.kittytune.ui.profile.stats.spanLabel
 
 private const val TOP_TRACKS_SHOWN = 5
 private const val TOP_ARTISTS_SHOWN = 6
 
-/** Which full list is open, if any. */
-private enum class StatsList { NONE, PLAYS, TRACKS, ARTISTS }
+/**
+ * How the statistics are laid out: an overview with charts, a dense list for a quick look, or big "wrapped"
+ * cards that read like a recap.
+ */
+enum class StatsStyle(val labelRes: Int, val icon: ImageVector) {
+    OVERVIEW(R.string.stats_style_overview, Icons.Rounded.Dashboard),
+    COMPACT(R.string.stats_style_compact, Icons.Rounded.ViewAgenda),
+    STORY(R.string.stats_style_story, Icons.Rounded.AutoAwesome),
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ListeningStatsScreen(
     onBackClick: () -> Unit,
     onTrackClick: (ReportTrack) -> Unit,
-    onArtistClick: (ReportArtist) -> Unit
+    onArtistClick: (ReportArtist) -> Unit,
+    onNavigateToYearlyPlayback: () -> Unit = {},
+    isGuest: Boolean = false
 ) {
+    val context = LocalContext.current
+    val playerPrefs = remember { PlayerPreferences(context) }
     val viewModel: ListeningStatsViewModel = viewModel()
     val report = viewModel.report
     val isLoading = viewModel.isLoading
     val period = viewModel.selectedPeriod.toReportPeriod()
-    var openList by remember { mutableStateOf(StatsList.NONE) }
+    var openList by remember { mutableStateOf<StatsListTarget?>(null) }
+    var showPrivacy by remember { mutableStateOf(false) }
+    var styleMenu by remember { mutableStateOf(false) }
+    var style by remember {
+        mutableStateOf(
+            runCatching { StatsStyle.valueOf(playerPrefs.getListeningStatsStyle()) }
+                .getOrDefault(StatsStyle.OVERVIEW)
+        )
+    }
+
+    if (showPrivacy) {
+        PrivacyDialog(
+            playerPrefs = playerPrefs,
+            onNavigateToYearlyPlayback = onNavigateToYearlyPlayback,
+            isGuest = isGuest
+        ) { showPrivacy = false }
+    }
 
     if (report != null) {
         when (openList) {
-            StatsList.PLAYS -> PlaysListDialog(viewModel.events, { id, title ->
+            StatsListTarget.PLAYS -> PlaysListDialog(viewModel.events, { id, title ->
                 onTrackClick(ReportTrack(id, title, "", null, "soundcloud", 0, 0L))
-            }) { openList = StatsList.NONE }
-            StatsList.TRACKS -> TracksListDialog(report.topTracks, onTrackClick) { openList = StatsList.NONE }
-            StatsList.ARTISTS -> ArtistsListDialog(report.topArtists, onArtistClick) { openList = StatsList.NONE }
-            StatsList.NONE -> Unit
+            }) { openList = null }
+            StatsListTarget.TRACKS -> TracksListDialog(report.topTracks, onTrackClick) { openList = null }
+            StatsListTarget.ARTISTS -> ArtistsListDialog(report.topArtists, onArtistClick) { openList = null }
+            null -> Unit
         }
     }
 
@@ -139,6 +186,64 @@ fun ListeningStatsScreen(
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.btn_close))
                     }
                 },
+                actions = {
+                    Box {
+                        FilledTonalIconButton(
+                            onClick = { styleMenu = true },
+                            shapes = IconButtonDefaults.shapes(),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        ) {
+                            Icon(
+                                style.icon,
+                                contentDescription = stringResource(style.labelRes),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = styleMenu,
+                            onDismissRequest = { styleMenu = false },
+                            shape = RoundedCornerShape(16.dp),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        ) {
+                            StatsStyle.entries.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(option.labelRes)) },
+                                    leadingIcon = {
+                                        Icon(
+                                            option.icon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        if (option == style) {
+                                            Icon(
+                                                Icons.Rounded.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        styleMenu = false
+                                        style = option
+                                        playerPrefs.setListeningStatsStyle(option.name)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    IconButton(onClick = { showPrivacy = true }) {
+                        Icon(
+                            Icons.Rounded.Tune,
+                            contentDescription = stringResource(R.string.pref_privacy_title)
+                        )
+                    }
+                },
                 scrollBehavior = scrollBehavior,
                 colors = TopAppBarDefaults.largeTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -156,23 +261,207 @@ fun ListeningStatsScreen(
             StatsHeader(period = period, onSelect = { viewModel.selectPeriod(it.toStatsPeriod()) })
 
             AnimatedContent(
-                targetState = report?.takeIf { !isLoading },
+                targetState = report?.takeIf { !isLoading }?.let { it to style },
                 transitionSpec = {
                     fadeIn(tween(220, delayMillis = 60)) togetherWith fadeOut(tween(90))
                 },
+                contentKey = { it?.let { (r, s) -> r.window to s } },
                 label = "statsBody",
                 modifier = Modifier.fillMaxSize()
-            ) { shown ->
-                if (shown == null) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        ContainedLoadingIndicator()
+            ) { shownPair ->
+                val (shownReport, shownStyle) = shownPair ?: (null to style)
+                when {
+                    shownReport == null -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            ContainedLoadingIndicator()
+                        }
                     }
-                } else {
-                    OverviewStats(shown, period, { openList = it }, onTrackClick, onArtistClick)
+                    !shownReport.hasData -> {
+                        EmptyStats()
+                    }
+                    shownStyle == StatsStyle.OVERVIEW -> {
+                        OverviewStats(
+                            report = shownReport,
+                            period = period,
+                            onOpen = { openList = it },
+                            onTrackClick = onTrackClick,
+                            onArtistClick = onArtistClick,
+                            onNavigateToYearlyPlayback = onNavigateToYearlyPlayback,
+                            isGuest = isGuest
+                        )
+                    }
+                    shownStyle == StatsStyle.COMPACT -> {
+                        CompactStats(
+                            report = shownReport,
+                            period = period,
+                            onOpen = { openList = it },
+                            onTrackClick = onTrackClick,
+                            onArtistClick = onArtistClick
+                        )
+                    }
+                    else -> {
+                        StoryStats(
+                            report = shownReport,
+                            period = period,
+                            onOpen = { openList = it },
+                            onTrackClick = onTrackClick,
+                            onArtistClick = onArtistClick
+                        )
+                    }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun EmptyStats() {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            modifier = Modifier.size(88.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Rounded.Headphones,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(44.dp)
+                )
+            }
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(
+            stringResource(R.string.listening_stats_empty_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(R.string.listening_stats_empty_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun PrivacyDialog(
+    playerPrefs: PlayerPreferences,
+    onNavigateToYearlyPlayback: () -> Unit = {},
+    isGuest: Boolean = false,
+    onDismiss: () -> Unit
+) {
+    var isEnabled by remember { mutableStateOf(playerPrefs.getListeningStatsEnabled()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(R.string.pref_privacy_title),
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text(
+                    stringResource(R.string.pref_privacy_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Surface(
+                    onClick = {
+                        isEnabled = !isEnabled
+                        playerPrefs.setListeningStatsEnabled(isEnabled)
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                stringResource(R.string.pref_privacy_tracking_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                stringResource(R.string.pref_privacy_tracking_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Switch(
+                            checked = isEnabled,
+                            onCheckedChange = {
+                                isEnabled = it
+                                playerPrefs.setListeningStatsEnabled(it)
+                            }
+                        )
+                    }
+                }
+                Text(
+                    stringResource(R.string.listening_stats_disclaimer),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!isGuest) {
+                    Surface(
+                        onClick = {
+                            onDismiss()
+                            onNavigateToYearlyPlayback()
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer
+                    ) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Rounded.Celebration,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                stringResource(R.string.yearly_playback_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Icon(
+                                Icons.Rounded.ChevronRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.btn_close))
+            }
+        }
+    )
 }
 
 @Composable
@@ -219,9 +508,11 @@ private fun StatsHeader(
 private fun OverviewStats(
     report: ListeningReport,
     period: ReportPeriod,
-    onOpen: (StatsList) -> Unit,
+    onOpen: (StatsListTarget) -> Unit,
     onTrackClick: (ReportTrack) -> Unit,
-    onArtistClick: (ReportArtist) -> Unit
+    onArtistClick: (ReportArtist) -> Unit,
+    onNavigateToYearlyPlayback: () -> Unit = {},
+    isGuest: Boolean = false
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // Two charts sit side by side only where there is genuinely room; a phone stacks them, and
@@ -251,7 +542,7 @@ private fun OverviewStats(
                     StatsCard(
                         title = stringResource(R.string.listening_stats_top_tracks),
                         action = if (report.topTracks.size > TOP_TRACKS_SHOWN) {
-                            { onOpen(StatsList.TRACKS) }
+                            { onOpen(StatsListTarget.TRACKS) }
                         } else null
                     ) {
                         val top = report.topTracks.first().listenMs
@@ -268,7 +559,7 @@ private fun OverviewStats(
                     StatsCard(
                         title = stringResource(R.string.listening_stats_top_artists),
                         action = if (report.topArtists.size > TOP_ARTISTS_SHOWN) {
-                            { onOpen(StatsList.ARTISTS) }
+                            { onOpen(StatsListTarget.ARTISTS) }
                         } else null
                     ) {
                         // Three across in two rows rather than six in one: at a phone's width six
@@ -297,6 +588,34 @@ private fun OverviewStats(
                 }
             }
             item { HabitsGrid(report, if (isWide) 4 else 2) }
+            item {
+                if (!isGuest) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 24.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        TextButton(
+                            onClick = onNavigateToYearlyPlayback,
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Rounded.Celebration,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.yearly_playback_title),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -311,7 +630,7 @@ private fun OverviewStats(
 private fun SummaryCard(
     report: ListeningReport,
     period: ReportPeriod,
-    onOpen: (StatsList) -> Unit
+    onOpen: (StatsListTarget) -> Unit
 ) {
     Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.primaryContainer) {
         Column(Modifier.fillMaxWidth().padding(18.dp)) {
@@ -343,19 +662,19 @@ private fun SummaryCard(
                     value = report.plays.toString(),
                     label = stringResource(R.string.listening_stats_plays),
                     modifier = Modifier.weight(1f)
-                ) { onOpen(StatsList.PLAYS) }
+                ) { onOpen(StatsListTarget.PLAYS) }
                 SummaryTile(
                     icon = Icons.Rounded.MusicNote,
                     value = report.uniqueTracks.toString(),
                     label = stringResource(R.string.listening_stats_unique_tracks),
                     modifier = Modifier.weight(1f)
-                ) { onOpen(StatsList.TRACKS) }
+                ) { onOpen(StatsListTarget.TRACKS) }
                 SummaryTile(
                     icon = Icons.Rounded.People,
                     value = report.uniqueArtists.toString(),
                     label = stringResource(R.string.listening_stats_unique_artists),
                     modifier = Modifier.weight(1f)
-                ) { onOpen(StatsList.ARTISTS) }
+                ) { onOpen(StatsListTarget.ARTISTS) }
             }
         }
     }

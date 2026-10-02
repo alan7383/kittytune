@@ -46,6 +46,9 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
+/** Which full list dialog is open, if any. */
+internal enum class StatsListTarget { PLAYS, TRACKS, ARTISTS }
+
 /**
  * A cover or an avatar, with an icon on the container colour while it loads or when there is none.
  */
