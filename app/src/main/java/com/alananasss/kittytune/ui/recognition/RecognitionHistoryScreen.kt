@@ -1,8 +1,12 @@
 package com.alananasss.kittytune.ui.recognition
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -226,6 +230,7 @@ fun RecognitionHistoryScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryItemRow(
     item: RecognitionHistoryItem,
@@ -233,6 +238,7 @@ fun HistoryItemRow(
     onClick: () -> Unit,
     onOptionsClick: () -> Unit
 ) {
+    val view = LocalView.current
     if (item.trackId != null) {
         val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
         if (item.trackId in blockedTrackIds) return
@@ -247,7 +253,14 @@ fun HistoryItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    onOptionsClick()
+                }
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

@@ -1,8 +1,12 @@
     package com.alananasss.kittytune.ui.home
 
     import android.net.Uri
+    import android.view.HapticFeedbackConstants
+    import androidx.compose.foundation.ExperimentalFoundationApi
     import androidx.compose.foundation.background
     import androidx.compose.foundation.clickable
+    import androidx.compose.foundation.combinedClickable
+    import androidx.compose.ui.platform.LocalView
     import androidx.compose.foundation.layout.*
     import androidx.compose.foundation.lazy.LazyColumn
     import androidx.compose.foundation.lazy.LazyRow
@@ -250,6 +254,7 @@
         }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun PopularTrackListItem(
         track: Track,
@@ -257,6 +262,7 @@
         onClick: () -> Unit,
         onOptionClick: () -> Unit
     ) {
+        val view = LocalView.current
         val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
         val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
         if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) {
@@ -282,7 +288,13 @@
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onClick)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        onOptionClick()
+                    }
+                )
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
