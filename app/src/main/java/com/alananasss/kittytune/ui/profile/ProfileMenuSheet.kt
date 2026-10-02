@@ -9,6 +9,7 @@
     import androidx.compose.foundation.shape.RoundedCornerShape
     import androidx.compose.material.icons.Icons
     import androidx.compose.material.icons.automirrored.rounded.Logout
+    import androidx.compose.material.icons.rounded.Celebration
     import androidx.compose.material.icons.rounded.BarChart
     import androidx.compose.material.icons.rounded.EmojiEvents
     import androidx.compose.material.icons.rounded.Info
@@ -34,6 +35,7 @@
         onViewProfile: () -> Unit,
         onAchievementsClick: () -> Unit,
         onListeningStatsClick: () -> Unit,
+        onYearlyPlaybackClick: () -> Unit = {},
         onSettingsClick: () -> Unit,
         onAboutClick: () -> Unit,
         onLogoutClick: () -> Unit
@@ -145,6 +147,16 @@
                         label = stringResource(R.string.profile_menu_listening_stats),
                         onClick = { onDismiss(); onListeningStatsClick() }
                     )
+
+                    if (!isGuest) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
+
+                        MenuRowItem(
+                            icon = Icons.Rounded.Celebration,
+                            label = stringResource(R.string.yearly_playback_menu_title),
+                            onClick = { onDismiss(); onYearlyPlaybackClick() }
+                        )
+                    }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 1.dp)
 

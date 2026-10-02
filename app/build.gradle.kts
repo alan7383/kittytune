@@ -141,6 +141,7 @@ dependencies {
     implementation(project(":shazamkit"))
     implementation(libs.mlkit.language.id)
     testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
@@ -165,6 +166,7 @@ dependencies {
     implementation(libs.smooth.corner.rect)
     implementation(libs.material)
     implementation(libs.androidx.ui.text.google.fonts)
+    implementation("app.rive:rive-android:11.12.1")
 }
 
 kotlin {

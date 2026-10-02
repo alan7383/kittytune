@@ -25,6 +25,10 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
         LocaleUtils.applyAppLanguage(this)
         Config.init(applicationContext)
 
+        runCatching {
+            app.rive.runtime.kotlin.core.Rive.init(this)
+        }
+
         val activeLocale = LocaleUtils.getLocale(this)
         YouTube.locale = YouTubeLocale(
             gl = activeLocale.country.ifBlank { "US" },
@@ -57,6 +61,13 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
                     if (data.startsWith("/") && !data.startsWith("http")) File(data) else null
                 })
             }
+            .diskCache {
+                coil.disk.DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizeBytes(250L * 1024 * 1024)
+                    .build()
+            }
+            .respectCacheHeaders(false)
             .allowRgb565(true)
             .crossfade(true)
             .build()
