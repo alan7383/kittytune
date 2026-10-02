@@ -17,9 +17,12 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.ArtistProfileCache
+import com.alananasss.kittytune.data.CachedArtistProfile
 import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.*
+import com.alananasss.kittytune.utils.NetworkUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -146,7 +149,83 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         return allUserTracks
     }
 
+    private fun applyCachedProfile(cached: CachedArtistProfile) {
+        user = cached.user
+        isSpotifyProfile = cached.isSpotify
+        isVkProfile = cached.isVk
+        vkPageUrl = cached.vkPageUrl
+        spotifyArtist = cached.spotifyArtist
+
+        popularTracks.clear()
+        popularTracks.addAll(cached.popularTracks)
+
+        allTracks.clear()
+        allTracks.addAll(cached.allTracks)
+
+        popularReleases.clear()
+        popularReleases.addAll(cached.popularReleases)
+
+        albums.clear()
+        albums.addAll(cached.albums)
+
+        singles.clear()
+        singles.addAll(cached.singles)
+
+        compilations.clear()
+        compilations.addAll(cached.compilations)
+
+        appearsOn.clear()
+        appearsOn.addAll(cached.appearsOn)
+
+        discoveredOn.clear()
+        discoveredOn.addAll(cached.discoveredOn)
+
+        similarArtists.clear()
+        similarArtists.addAll(cached.similarArtists)
+
+        playlists.clear()
+        playlists.addAll(cached.playlists)
+
+        likedTracks.clear()
+        likedTracks.addAll(cached.likedTracks)
+
+        repostedTracks.clear()
+        repostedTracks.addAll(cached.repostedTracks)
+    }
+
+    private fun cacheCurrentProfile(key: String) {
+        val currentUser = user ?: return
+        val profile = CachedArtistProfile(
+            user = currentUser,
+            isSpotify = isSpotifyProfile,
+            isVk = isVkProfile,
+            vkPageUrl = vkPageUrl,
+            spotifyArtist = spotifyArtist,
+            popularTracks = popularTracks.toList(),
+            allTracks = allTracks.toList(),
+            popularReleases = popularReleases.toList(),
+            albums = albums.toList(),
+            singles = singles.toList(),
+            compilations = compilations.toList(),
+            appearsOn = appearsOn.toList(),
+            discoveredOn = discoveredOn.toList(),
+            similarArtists = similarArtists.toList(),
+            playlists = playlists.toList(),
+            likedTracks = likedTracks.toList(),
+            repostedTracks = repostedTracks.toList()
+        )
+        ArtistProfileCache.save(key, profile)
+    }
+
     fun loadProfile(userIdStr: String, forceRefresh: Boolean = false) {
+        if (!NetworkUtils.isInternetAvailable(getApplication())) {
+            val cached = ArtistProfileCache.get(userIdStr) ?: ArtistProfileCache.getByName(userIdStr)
+            if (cached != null) {
+                applyCachedProfile(cached)
+                isLoading = false
+                return
+            }
+        }
         if (userIdStr.startsWith("vk:") || userIdStr.startsWith("vk_artist:") || userIdStr.startsWith("vk_user:") || userIdStr.startsWith(
                 "vk_"
             )
@@ -200,6 +279,16 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         } else if (userIdStr.isNotBlank() && userIdStr != "0") {
             resolveAndLoadProfile(userIdStr, forceRefresh)
         }
+
+        if (!NetworkUtils.isInternetAvailable(getApplication()) && user == null) {
+            viewModelScope.launch {
+                val synthesized = ArtistProfileCache.synthesizeFromDownloads(userIdStr, getApplication())
+                if (synthesized != null) {
+                    applyCachedProfile(synthesized)
+                }
+                isLoading = false
+            }
+        }
     }
 
     fun loadVkArtistOrUser(target: String, forceRefresh: Boolean = false) {
@@ -208,15 +297,25 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             .removePrefix("vk:").removePrefix("vk_")
             .trim()
 
+        val cached = ArtistProfileCache.get(target) ?: ArtistProfileCache.getByName(cleanTarget)
+        if (cached != null) {
+            applyCachedProfile(cached)
+            isLoading = false
+            if (!forceRefresh && !NetworkUtils.isInternetAvailable(getApplication())) {
+                return
+            }
+        }
+
         viewModelScope.launch {
             isVkProfile = true
             isSpotifyProfile = false
             spotifyArtist = null
             vkPageUrl = null
             isCurrentUser = false
-            isLoading = true
-            user = null
-            popularTracks.clear()
+            if (user == null) {
+                isLoading = true
+                popularTracks.clear()
+            }
             allTracks.clear()
             repostedTracks.clear()
             albums.clear()
@@ -295,8 +394,17 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ProfileViewModel", "Failed to load VK artist: ${e.message}", e)
+                if (user == null) {
+                    val synthesized = ArtistProfileCache.synthesizeFromDownloads(cleanTarget, getApplication())
+                    if (synthesized != null) {
+                        applyCachedProfile(synthesized)
+                    }
+                }
             } finally {
                 isLoading = false
+                if (user != null) {
+                    cacheCurrentProfile("vk:$cleanTarget")
+                }
             }
         }
     }
@@ -350,8 +458,17 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ProfileViewModel", "Failed to resolve profile: $query", e)
+                if (user == null) {
+                    val synthesized = ArtistProfileCache.synthesizeFromDownloads(query, getApplication())
+                    if (synthesized != null) {
+                        applyCachedProfile(synthesized)
+                    }
+                }
             } finally {
                 isLoading = false
+                if (user != null) {
+                    cacheCurrentProfile(query)
+                }
             }
         }
     }
@@ -361,14 +478,24 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         if (cleanId.isBlank()) return
         if (spotifyArtist?.id == cleanId && user != null && !forceRefresh) return
 
+        val cached = ArtistProfileCache.get("spotify:$cleanId") ?: ArtistProfileCache.getByName(cleanId)
+        if (cached != null) {
+            applyCachedProfile(cached)
+            isLoading = false
+            if (!forceRefresh && !NetworkUtils.isInternetAvailable(getApplication())) {
+                return
+            }
+        }
+
         viewModelScope.launch {
             isSpotifyProfile = true
             isVkProfile = false
             vkPageUrl = null
             isCurrentUser = false
-            isLoading = true
-            user = null
-            popularTracks.clear()
+            if (user == null) {
+                isLoading = true
+                popularTracks.clear()
+            }
             allTracks.clear()
             repostedTracks.clear()
             popularReleases.clear()
@@ -445,8 +572,17 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ProfileViewModel", "Failed to load Spotify artist: ${e.message}", e)
+                if (user == null) {
+                    val synthesized = ArtistProfileCache.synthesizeFromDownloads(cleanId, getApplication())
+                    if (synthesized != null) {
+                        applyCachedProfile(synthesized)
+                    }
+                }
             } finally {
                 isLoading = false
+                if (user != null) {
+                    cacheCurrentProfile("spotify:$cleanId")
+                }
             }
         }
     }
@@ -456,13 +592,22 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
+        val cached = ArtistProfileCache.get("sc:$userId") ?: ArtistProfileCache.get(userId.toString())
+        if (cached != null) {
+            applyCachedProfile(cached)
+            isLoading = false
+            if (!forceRefresh && !NetworkUtils.isInternetAvailable(getApplication())) {
+                return
+            }
+        }
+
         viewModelScope.launch {
             isSpotifyProfile = false
             isVkProfile = false
             vkPageUrl = null
             spotifyArtist = null
             val isDifferentUser = user?.id != userId
-            if (isDifferentUser) {
+            if (isDifferentUser && user == null) {
                 isLoading = true
                 user = null
                 isCurrentUser = false
@@ -573,6 +718,12 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                                 return@launch
                             }
                         }
+                    }
+                    val synthTarget = artistName ?: userId.toString()
+                    val synthesized = ArtistProfileCache.synthesizeFromDownloads(synthTarget, getApplication())
+                    if (synthesized != null) {
+                        applyCachedProfile(synthesized)
+                        return@launch
                     }
                     user = null
                     return@launch
@@ -688,8 +839,17 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                if (user == null) {
+                    val synthesized = ArtistProfileCache.synthesizeFromDownloads(userId.toString(), getApplication())
+                    if (synthesized != null) {
+                        applyCachedProfile(synthesized)
+                    }
+                }
             } finally {
                 isLoading = false
+                if (user != null) {
+                    cacheCurrentProfile("sc:$userId")
+                }
             }
         }
     }

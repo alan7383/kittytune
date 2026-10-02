@@ -118,7 +118,7 @@
     <string name="new_releases_popular_tracks">Népszerű Számok</string>
     <string name="new_releases_all_playlists">Összes Playlist</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube</string>
+    <string name="search_source_youtube">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">VKontakte (VK)</string>
     <string name="search_source_deezer">Deezer</string>
@@ -744,6 +744,8 @@
     <string name="quality_low_sub">Adatspórolós mód</string>
     <string name="pref_youtube_fallback">Korlátozott számok feloldása</string>
     <string name="pref_youtube_fallback_sub">NewPipe Extractor használata Go+ számokhoz</string>
+    <string name="pref_hide_youtube_videos">Videók és Shorts elrejtése</string>
+    <string name="pref_hide_youtube_videos_sub">Csak hivatalos zeneszámok megjelenítése a YouTube Music keresésben</string>
     <string name="pref_download_drm">Natív DRM letöltés</string>
     <string name="pref_download_drm_sub">Beolvassa a DRM tartalmat a belső lejátszáshoz. Tiltsd le az MP3 letöltés kényszerítéséhez YouTube-on keresztül.</string>
     <string name="drm_explanation_text">A DRM-mel védett zeneszámokat a jogtulajdonosok titkosítják, hogy megakadályozzák a kinyerésüket és védjék a szerzői jogokat.
@@ -996,6 +998,8 @@
     <string name="update_check_manual">Frissítések keresése</string>
     <string name="pref_auto_update">Auto Frissítés</string>
     <string name="pref_auto_update_sub">Verzióellenőrzés indításkor</string>
+    <string name="pref_remember_search_filter">Keresési szűrő megjegyzése</string>
+    <string name="pref_remember_search_filter_sub">Az utoljára kiválasztott szűrő (Előadók, Lejátszási listák…) megőrzése a keresés megnyitásakor</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1303,6 +1307,19 @@
     <string name="listening_stats_duration_hr_min">%1$dó %2$dp</string>
     <string name="listening_stats_duration_min_sec">%1$dp %2$dmp</string>
     <string name="listening_stats_duration_sec">%1$dmp</string>
+
+    <string name="stats_style_overview">Áttekintés</string>
+    <string name="stats_style_compact">Tömör</string>
+    <string name="stats_style_story">Összegzés</string>
+    <string name="stats_story_you_listened">Ennyit hallgattál</string>
+    <string name="stats_story_numbers">%1$d hallgatás · %2$d szám · %3$d előadó</string>
+    <string name="stats_story_top_artist">Első számú előadód</string>
+    <string name="stats_story_top_track">Első számú számod</string>
+    <string name="stats_story_track_times">%1$d× szólt · %2$s</string>
+    <string name="stats_story_when">A te órád</string>
+    <string name="stats_story_habits">Hogyan hallgatsz</string>
+    <string name="stats_story_active_days">zenés nap</string>
+    <string name="listening_stats_disclaimer">Ezek a statisztikák a KittyTune lejátszási algoritmusa alapján készülnek, és nem tükrözik a teljes külső előzményeket.</string>
     <string name="label_intensity">Intenzitás: %d%%</string>
     <string name="label_speed_8d">Forgási sebesség: %d%%</string>
     <string name="label_cutoff">Szűrő: %d%%</string>
@@ -2639,9 +2656,16 @@
     <string name="logs_saved_toast">Naplók sikeresen mentve!</string>
     <string name="logs_save_failed_toast">Nem sikerült menteni a naplókat a fájlba.</string>
     <!-- Settings Parity & Search -->
+    <string name="homepage_search">Keresés a beállításokban</string>
     <string name="search_settings_hint">Keresés a beállításokban…</string>
     <string name="settings_search_results">Keresési eredmények</string>
     <string name="settings_search_no_results">Nem találhatók beállítások</string>
+    <string name="search_no_recent_results">Nincsenek legutóbbi keresési találatok</string>
+    <string name="search_no_results">Nincs találat</string>
+    <string name="search_suggestion_no_match">Nincs találat erre: „%1$s”</string>
+    <string name="settings_search_recent_header">Legutóbbi keresések</string>
+    <string name="settings_search_clear_recent">Törlés</string>
+    <string name="settings_search_clear_history">Előzmények törlése</string>
 
     <!-- Theme Presets -->
     <string name="theme_presets_title">Kész témák</string>
@@ -2819,4 +2843,170 @@
     <string name="notif_dislike_toast">Szám letiltva és átugorva</string>
     <string name="notif_added_to_playlist">Hozzáadva a következőhöz: \"%s\"</string>
     <string name="notif_no_playlist_available">Még nincs lejátszási lista</string>
+
+    <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
+    <string name="yearly_playback_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_menu_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_home_badge">2025-ös Összegzés</string>
+    <string name="yearly_playback_home_title">A 2025-ös Éved a Zenében</string>
+    <string name="yearly_playback_home_subtitle">Éld át újra a számaidat, előadóidat és az évedet meghatározó pillanatokat</string>
+    <string name="yearly_playback_home_action">Story megtekintése</string>
+    <string name="yearly_playback_stats_banner_title">A 2025-ös Történeted</string>
+    <string name="yearly_playback_stats_banner_sub">Teljes képernyős éves összefoglaló lejátszása</string>
+    <string name="yearly_playback_stats_play_action">Story lejátszása</string>
+
+    <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
+    <string name="yearly_playback_hub_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_hub_subtitle">Zenei mérföldköveid &amp; éves összefoglalóid</string>
+    <string name="yearly_playback_in_prep_badge">Készülőben</string>
+    <string name="yearly_playback_in_prep_title">SoundCloud Wrapped %1$s</string>
+    <string name="yearly_playback_in_prep_desc">A(z) %1$s Wrapped készülőben van. Hallgass zenét továbbra is, az összefoglalód az év végén érkezik ( ˘ ᵕ ˘ ) ♬</string>
+    <string name="yearly_playback_in_prep_status">Év végén érkezik</string>
+    <string name="yearly_playback_in_prep_toast">A SoundCloud Wrapped %1$s jelenleg készülőben van, és az év végén lesz elérhető!</string>
+    <string name="yearly_playback_archives_title">Archívum</string>
+    <string name="yearly_playback_archives_subtitle">Éld át újra a korábbi SoundCloud Wrapped kiadásokat</string>
+    <string name="yearly_playback_locked_badge">Nem jogosult</string>
+    <string name="yearly_playback_locked_account_desc">Fiók létrehozva: %1$s</string>
+    <string name="yearly_playback_locked_toast">Nem érhető el: SoundCloud fiókod %1$s során jött létre, a jelenlegi kiadás után.</string>
+    <string name="yearly_playback_launch_story">Történet lejátszása</string>
+    <string name="yearly_playback_view_playlist">Lejátszási lista megtekintése</string>
+    <string name="yearly_playback_member_since">SoundCloud tag %1$s óta</string>
+    <string name="yearly_playback_close">Bezárás</string>
+    <string name="yearly_playback_unavailable_badge">Nem érhető el</string>
+    <string name="yearly_playback_unavailable_desc">Nem készült Playback a SoundClouddal erre az évre</string>
+    <string name="yearly_playback_unavailable_toast">A SoundCloud nem generált Playback lejátszási listát a fiókodhoz a(z) %1$s évre.</string>
+    <string name="yearly_playback_playlist_404_title">Playback nem érhető el</string>
+    <string name="yearly_playback_playlist_404_desc">Ez a Playback lejátszási lista nem érhető el, vagy a SoundCloud nem generálta a fiókodhoz.</string>
+
+    <!-- SHARE SCREENSHOT & SOCIAL OPTIONS -->
+    <string name="share_screenshot_title">Képernyőkép megosztása</string>
+    <string name="share_screenshot_subtitle">Oszd meg a képet a számra mutató hivatkozással, hogy az ismerőseid is meghallgathassák.</string>
+    <string name="share_option_whatsapp">WhatsApp</string>
+    <string name="share_option_whatsapp_status">Állapot</string>
+    <string name="share_option_instagram_stories">Történetek</string>
+    <string name="share_option_facebook_story">Történetek</string>
+    <string name="share_option_snapchat">Snapchat</string>
+    <string name="share_option_twitter">X</string>
+    <string name="share_option_threads">Threads</string>
+    <string name="share_option_bluesky">Bluesky</string>
+    <string name="share_option_mastodon">Mastodon</string>
+    <string name="share_option_telegram">Telegram</string>
+    <string name="share_option_sms">SMS</string>
+    <string name="share_option_save_to_device">Mentés</string>
+    <string name="share_option_copy_link">Hivatkozás másolása</string>
+    <string name="more_options_share_option">Egyéb</string>
+    <string name="share_copied_to_clipboard">Hivatkozás a vágólapra másolva</string>
+    <string name="share_screenshot_saved_toast">Kép elmentve az eszközre</string>
+    <string name="share_screenshot_save_failed_toast">Nem sikerült elmenteni a képet</string>
+    <string name="share_tracktitle_artist_link">Hallgasd meg: %1$s előadója %2$s a #SoundCloud-on
+%3$s</string>
+    <string name="share_tracktitle_link">Hallgasd meg: %1$s a #SoundCloud-on
+%2$s</string>
+    <string name="share_playlist_artist_link">Hallgasd meg: %1$s, %2$s lejátszási listája a #SoundCloud-on
+%3$s</string>
+    <string name="share_playback_link">Hallgasd meg a 2025 Playbackemet a #SoundCloud-on
+%1$s</string>
+
+    <!-- YOUR MIX -->
+    <string name="mix_title">A te mixed</string>
+    <string name="mix_subtitle">Abból épül, amit valóban hallgatsz, nem abból, amit már kedveltél.</string>
+    <string name="mix_start">Mixelés indítása</string>
+    <string name="mix_building">Mix készítése…</string>
+    <string name="mix_customise">Mix testreszabása</string>
+    <string name="mix_needs_history">Hallgass meg pár számot — a mix a hallgatásaidból épül.</string>
+    <string name="mix_nothing_found">Semmi nem jött vissza. Ellenőrizd a kapcsolatot.</string>
+    <string name="mix_no_seeds">Nem található ez az előadó a SoundCloudon. Próbáld a pontos nevet.</string>
+    <string name="mix_all_known">Minden találat már a könyvtáradban van. Próbálj másik előadót vagy műfajt.</string>
+    <string name="mix_in_the_style_of">Egy előadó stílusában</string>
+    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
+    <string name="mix_by_genre">Vagy egy műfaj</string>
+    <string name="mix_track_count">%1$d szám</string>
+    <string name="mix_basis">%1$s alapján</string>
+    <string name="mix_basis_more">+%1$d további</string>
+    <string name="mix_done">%1$d szám %2$s alapján, a sorodban.</string>
+    <string name="mix_customise_sub">Építsd egy előadó vagy egy műfaj körül.</string>
+    <string name="mix_genre_search_hint">Keress műfajt, vagy írj be bármilyen címkét</string>
+    <string name="mix_genre_custom">„%1$s” mix</string>
+    <string name="mix_trusted_sources_title">Megbízható források és hitelesített előadók</string>
+    <string name="mix_trusted_sources_sub">Előnyben részesíti a több követővel rendelkező előadókat. Kapcsold ki a remixek és kisebb alkotók szabad megjelenítéséhez.</string>
+    <string name="mix_card_subtitle">Indítsd el a személyes mixedet, kifejezetten neked készítve</string>
+    <string name="mix_enable">Mix indítása</string>
+    <string name="mix_vibe_my_taste">Saját hangulat</string>
+    <string name="mix_vibe_my_taste_sub">Alternatív, személyes folyam</string>
+    <string name="mix_vibe_rock">E-e, rock!</string>
+    <string name="mix_vibe_rock_sub">Alternatív, rock és gitárok</string>
+    <string name="mix_vibe_sad">Túlélni a szomorúságot</string>
+    <string name="mix_vibe_sad_sub">Melankolikus és nyugodt hangulat</string>
+    <string name="mix_vibe_rap">Yo, rap</string>
+    <string name="mix_vibe_rap_sub">Hip-hop, trap és ritmusok</string>
+    <string name="mix_vibe_dance">Táncolj a ritmusra</string>
+    <string name="mix_vibe_dance_sub">Elektronikus zene és klub</string>
+    <string name="mix_vibe_pop">Pop slágerek</string>
+    <string name="mix_vibe_pop_sub">Fülbemászó dallamok és pop energia</string>
+    <string name="mix_vibe_artist">%1$s stílusában</string>
+    <string name="mix_playing">Mix lejátszása</string>
+    <string name="mix_resume">Mix folytatása</string>
+    <string name="mix_dislike">Nem tetszik</string>
+    <string name="pref_home_cards_group_title">Kezdőképernyő kártyák</string>
+    <string name="pref_home_listening_stats_desc">Hallgatási statisztika kártya megjelenítése a kezdőképernyőn</string>
+    <string name="pref_home_your_mix_desc">Személyre szabott mix kártya megjelenítése a kezdőképernyőn</string>
+
+    <!-- Search Keywords (Localized Tags for Settings Search) -->
+    <string name="keywords_themes">téma, szín, sötét mód, világos mód, amoled, oled, paletta, háttérkép, megjelenés</string>
+    <string name="keywords_player">lejátszó, csúszka, hullámos, gombok, menü, lebegő, hangerő</string>
+    <string name="keywords_navigation_bar">navigációs sáv, alsó sáv, fülek, fab, gyorsbillentyűk, testreszabás</string>
+    <string name="keywords_fab">lebegő akciógomb, fab, gyorsbillentyű, gyorsművelet</string>
+    <string name="keywords_lyrics">dalszöveg, karaoke, szinkronizált, fordítás, szöveg, betűtípus</string>
+    <string name="keywords_color_palette">színpaletta, kiemelőszín, árnyalat, egyéni szín</string>
+    <string name="keywords_app_icon">alkalmazásikon, ikon, logó, megjelenés</string>
+    <string name="keywords_dynamic_colors">dinamikus színek, háttérképszínek, monet, material you</string>
+    <string name="keywords_track_dynamic">albumborító, borítószín, dinamikus borító</string>
+    <string name="keywords_pure_black">tiszta fekete, valódi fekete, amoled, oled</string>
+    <string name="keywords_remaining_time">hátralévő idő, visszaszámlálás, hátralévő időtartam</string>
+    <string name="keywords_volume_slider">hangerő, hangerőcsúszka, függőleges, vízszintes</string>
+    <string name="keywords_animated_covers">animált borítók, videóborító, animáció</string>
+    <string name="keywords_animated_artist_profiles">animált előadói profilok, előadói videó, banner</string>
+    <string name="keywords_font">betűtípus, tipográfia, egyéni betűtípus, vastagság, szövegstílus</string>
+    <string name="keywords_explorer_grid">felfedező rács, rácselrendezés, rácsnézet</string>
+    <string name="keywords_library_layout">könyvtár, szűrők, kategóriák, elrendezés, gombok</string>
+    <string name="keywords_achievements">eredmények, trófeák, jutalmak, jelvények, értesítések</string>
+    <string name="keywords_stats">statisztikák, hallgatási statisztikák, előzmények, összefoglaló, hallgatási idő, legnépszerűbb számok</string>
+    <string name="keywords_your_mix">saját mix, mix készítése, ajánlások, személyre szabott lejátszási lista</string>
+    <string name="keywords_audio">hangminőség, hangszínszabályzó, normalizálás, bitráta, hangbeállítások</string>
+    <string name="keywords_equalizer">hangszínszabályzó, eq, előerősítő, basszus, magas, frekvencia, hang</string>
+    <string name="keywords_volume_normalization">hangerő normalizálás, replaygain, lufs, hangerőszint</string>
+    <string name="keywords_audio_mono">mono, mono hang, sztereó, csatornák</string>
+    <string name="keywords_haptics">haptikus visszajelzés, rezgés, tapintási visszajelzés, rezgés erőssége</string>
+    <string name="keywords_crossfade">átúsztatás, crossfade, áttűnés, átmenet</string>
+    <string name="keywords_autoplay">automatikus lejátszás, autoplay, ajánlás, következő számok</string>
+    <string name="keywords_automix">automix, intelligens átmenet, dj flow, átfedés</string>
+    <string name="keywords_stop_on_task_clear">zene leállítása bezáráskor, kilépés, alkalmazás bezárása</string>
+    <string name="keywords_persist_queue">lejátszási sor megjegyzése, sor, lejátszási lista</string>
+    <string name="keywords_save_position">lejátszás folytatása, pozíció megjegyzése, lejátszási pozíció</string>
+    <string name="keywords_sleep_timer">elalváskapcsoló, időzítő, automatikus leállítás, visszaszámlálás</string>
+    <string name="keywords_accounts">fiókok, streaming források, kapcsolatok, bejelentkezés, fiók összekapcsolása</string>
+    <string name="keywords_storage">tárhely, gyorsítótár, gyorsítótár törlése, memória, tisztítás</string>
+    <string name="keywords_local_media">helyi fájlok, mappák, sd kártya, beolvasás, helyi zene, mp3</string>
+    <string name="keywords_backup">biztonsági mentés, visszaállítás, exportálás, importálás</string>
+    <string name="keywords_sync">szinkronizálás, eszközök, párosítás, qr kód</string>
+    <string name="keywords_proxy">proxy, hálózat, port, ip, socks, http, dns, vpn</string>
+    <string name="keywords_language">nyelv, fordítás, magyar, angol, német, francia, rendszer</string>
+    <string name="keywords_start_screen">kezdőképernyő, kezdőlap, könyvtár, indítás</string>
+    <string name="keywords_auto_update">automatikus frissítés, frissítések keresése, új verzió</string>
+    <string name="keywords_content_filter">tartalomszűrő, mi észlelés, zene tiltása, automatikus kihagyás, letiltott számok</string>
+    <string name="keywords_mini_player_swipe">mini lejátszó, legyintés, szám váltása, bezárás</string>
+
+    <!-- YEARLY PLAYBACK ADDITIONAL STRINGS -->
+    <string name="yearly_playback_year_title">SoundCloud Wrapped %1$d</string>
+    <string name="yearly_playback_playback_year_title">SoundCloud Playback %1$d</string>
+    <string name="yearly_playback_archive_2025_subtitle">A 2025-ös Playbackod • Hivatalos Rive történet</string>
+    <string name="yearly_playback_archive_2024_subtitle">A 2024-es legjobb számaid lejátszási listája</string>
+    <string name="yearly_playback_archive_2023_subtitle">A 2023-as slágereid lejátszási listája</string>
+    <string name="yearly_playback_loading_title">A Wrapped betöltése…</string>
+    <string name="yearly_playback_loading_desc">A legjobb pillanataid lekérése a SoundCloudról</string>
+    <string name="yearly_playback_empty_title">Még nincs Playback előzmény</string>
+    <string name="yearly_playback_empty_desc">Nem található SoundCloud Wrapped a fiókodhoz erre az évre.</string>
+    <string name="yearly_playback_error_title">A Playback betöltése sikertelen</string>
+    <string name="yearly_playback_error_desc">Kérjük, ellenőrizd a hálózati kapcsolatot, vagy próbáld újra később.</string>
+    <string name="yearly_playback_explore_detailed_stats">Részletes statisztikák felfedezése</string>
 </resources>

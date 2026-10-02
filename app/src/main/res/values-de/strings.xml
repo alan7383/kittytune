@@ -142,7 +142,7 @@
     <string name="new_releases_popular_tracks">Beliebte Titel</string>
     <string name="new_releases_all_playlists">Alle Playlists</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube</string>
+    <string name="search_source_youtube">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">VKontakte (VK)</string>
     <string name="search_source_deezer">Deezer</string>
@@ -984,6 +984,8 @@
     <string name="quality_low_sub">Spart Daten im Mobilfunknetz</string>
     <string name="pref_youtube_fallback">Eingeschränkte Titel freischalten</string>
     <string name="pref_youtube_fallback_sub">Über NewPipe Extractor für Go+-Titel</string>
+    <string name="pref_hide_youtube_videos">Videos &amp; Shorts ausblenden</string>
+    <string name="pref_hide_youtube_videos_sub">Nur offizielle Musiktitel bei der YouTube Music-Suche anzeigen</string>
     <string name="pref_download_drm">Native DRM herunterladen</string>
     <string name="pref_download_drm_sub">Aktiviert lassen, um DRM nativ für die interne Wiedergabe zwischenzuspeichern. Deaktivieren, um unverschlüsselte MP3-Downloads über den YouTube-Fallback zu erzwingen.</string>
     <string name="drm_explanation_text">DRM-geschützte Titel werden von den Rechteinhabern verschlüsselt, um das Extrahieren zu verhindern und Urheberrechte zu schützen.\n\n• Aktiviert (empfohlen): Der Titel wird in nativer hoher Qualität in den sicheren internen Cache von KittyTune heruntergeladen. Er kann nur in der App abgespielt werden und erscheint nicht in deinem eingestellten Download-Ordner.\n\n• Deaktiviert: KittyTune ignoriert die verschlüsselte Version und versucht, den Song über YouTube zu finden und herunterzuladen. Die Datei wird in eine normale MP3 umgewandelt und in deinem festgelegten Ordner gespeichert. Achtung: Da die Suche automatisch erfolgt, kann versehentlich falscher Inhalt heruntergeladen werden (etwa ein Musikvideo oder ein Cover), wenn der Titel wenig bekannt ist.</string>
@@ -1285,6 +1287,8 @@
     <string name="update_check_manual">Nach Updates suchen</string>
     <string name="pref_auto_update">Automatisch nach Updates suchen</string>
     <string name="pref_auto_update_sub">Beim Start nach neuen Versionen suchen</string>
+    <string name="pref_remember_search_filter">Suchfilter merken</string>
+    <string name="pref_remember_search_filter_sub">Letzten ausgewählten Filter (Künstler, Playlists…) beim Öffnen der Suche beibehalten</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
@@ -1616,6 +1620,19 @@
     <string name="listening_stats_duration_hr_min">%1$d Std. %2$d Min.</string>
     <string name="listening_stats_duration_min_sec">%1$d Min. %2$d Sek.</string>
     <string name="listening_stats_duration_sec">%1$d Sek.</string>
+
+    <string name="stats_style_overview">Übersicht</string>
+    <string name="stats_style_compact">Kompakt</string>
+    <string name="stats_style_story">Rückblick</string>
+    <string name="stats_story_you_listened">Du hast gehört</string>
+    <string name="stats_story_numbers">%1$d Wiedergaben · %2$d Titel · %3$d Künstler</string>
+    <string name="stats_story_top_artist">Dein Top-Künstler</string>
+    <string name="stats_story_top_track">Dein Top-Titel</string>
+    <string name="stats_story_track_times">%1$d× gespielt · %2$s</string>
+    <string name="stats_story_when">Deine Stunde</string>
+    <string name="stats_story_habits">Wie du hörst</string>
+    <string name="stats_story_active_days">Tage mit Musik</string>
+    <string name="listening_stats_disclaimer">Diese Statistiken basieren auf dem Wiedergabe-Algorithmus von KittyTune und spiegeln möglicherweise nicht deine vollständige externe Hörhistorie wider.</string>
 
     <string name="label_intensity">Intensität: %d%%</string>
     <string name="label_speed_8d">Rotationsgeschwindigkeit: %d%%</string>
@@ -2752,9 +2769,16 @@
     <string name="logs_saved_toast">Protokolle erfolgreich gespeichert!</string>
     <string name="logs_save_failed_toast">Fehler beim Speichern der Protokolldatei.</string>
     <!-- Settings Parity & Search -->
+    <string name="homepage_search">Einstellungen durchsuchen</string>
     <string name="search_settings_hint">Einstellungen durchsuchen…</string>
     <string name="settings_search_results">Suchergebnisse</string>
     <string name="settings_search_no_results">Keine Einstellungen gefunden</string>
+    <string name="search_no_recent_results">Keine letzten Suchergebnisse</string>
+    <string name="search_no_results">Keine Ergebnisse</string>
+    <string name="search_suggestion_no_match">Keine Ergebnisse für „%1$s“</string>
+    <string name="settings_search_recent_header">Letzte Suchanfragen</string>
+    <string name="settings_search_clear_recent">Löschen</string>
+    <string name="settings_search_clear_history">Verlauf löschen</string>
 
     <!-- Theme Presets -->
     <string name="theme_presets_title">Vorgefertigte Designs</string>
@@ -2932,4 +2956,170 @@
     <string name="notif_dislike_toast">Titel blockiert und übersprungen</string>
     <string name="notif_added_to_playlist">Zu \"%s\" hinzugefügt</string>
     <string name="notif_no_playlist_available">Noch keine Playlist verfügbar</string>
+
+    <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
+    <string name="yearly_playback_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_menu_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_home_badge">Jahresrückblick 2025</string>
+    <string name="yearly_playback_home_title">Dein Musikjahr 2025</string>
+    <string name="yearly_playback_home_subtitle">Erlebe die Songs, Künstler und Momente deines Jahres noch einmal</string>
+    <string name="yearly_playback_home_action">Story ansehen</string>
+    <string name="yearly_playback_stats_banner_title">Deine 2025 Story</string>
+    <string name="yearly_playback_stats_banner_sub">Vollbild-Jahresrückblick starten</string>
+    <string name="yearly_playback_stats_play_action">Story starten</string>
+
+    <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
+    <string name="yearly_playback_hub_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_hub_subtitle">Deine musikalischen Meilensteine &amp; Jahresrückblicke</string>
+    <string name="yearly_playback_in_prep_badge">In Vorbereitung</string>
+    <string name="yearly_playback_in_prep_title">SoundCloud Wrapped %1$s</string>
+    <string name="yearly_playback_in_prep_desc">Dein %1$s Wrapped wird vorbereitet. Hör weiter deine Lieblingsmusik, dein Rückblick erscheint Ende des Jahres ( ˘ ᵕ ˘ ) ♬</string>
+    <string name="yearly_playback_in_prep_status">Erscheint Ende des Jahres</string>
+    <string name="yearly_playback_in_prep_toast">SoundCloud Wrapped %1$s wird derzeit vorbereitet und ist Ende des Jahres verfügbar!</string>
+    <string name="yearly_playback_archives_title">Archiv</string>
+    <string name="yearly_playback_archives_subtitle">Erlebe frühere SoundCloud-Wrapped-Ausgaben noch einmal</string>
+    <string name="yearly_playback_locked_badge">Nicht berechtigt</string>
+    <string name="yearly_playback_locked_account_desc">Konto erstellt in %1$s</string>
+    <string name="yearly_playback_locked_toast">Nicht verfügbar: Dein SoundCloud-Konto wurde %1$s nach dieser Ausgabe erstellt.</string>
+    <string name="yearly_playback_launch_story">Story abspielen</string>
+    <string name="yearly_playback_view_playlist">Playlist anzeigen</string>
+    <string name="yearly_playback_member_since">SoundCloud-Mitglied seit %1$s</string>
+    <string name="yearly_playback_close">Schließen</string>
+    <string name="yearly_playback_unavailable_badge">Nicht verfügbar</string>
+    <string name="yearly_playback_unavailable_desc">Kein Playback für dieses Jahr auf SoundCloud generiert</string>
+    <string name="yearly_playback_unavailable_toast">SoundCloud hat für %1$s keine Playback-Playlist für dein Konto erstellt.</string>
+    <string name="yearly_playback_playlist_404_title">Playback nicht verfügbar</string>
+    <string name="yearly_playback_playlist_404_desc">Diese Playback-Playlist ist nicht verfügbar oder wurde von SoundCloud nicht für dein Konto generiert.</string>
+
+    <!-- SHARE SCREENSHOT & SOCIAL OPTIONS -->
+    <string name="share_screenshot_title">Screenshot teilen</string>
+    <string name="share_screenshot_subtitle">Teile ein Bild mit einem Link zu diesem Titel, damit deine Freunde ihn auch hören können.</string>
+    <string name="share_option_whatsapp">WhatsApp</string>
+    <string name="share_option_whatsapp_status">Status</string>
+    <string name="share_option_instagram_stories">Stories</string>
+    <string name="share_option_facebook_story">Stories</string>
+    <string name="share_option_snapchat">Snapchat</string>
+    <string name="share_option_twitter">X</string>
+    <string name="share_option_threads">Threads</string>
+    <string name="share_option_bluesky">Bluesky</string>
+    <string name="share_option_mastodon">Mastodon</string>
+    <string name="share_option_telegram">Telegram</string>
+    <string name="share_option_sms">SMS</string>
+    <string name="share_option_save_to_device">Speichern</string>
+    <string name="share_option_copy_link">Link kopieren</string>
+    <string name="more_options_share_option">Mehr</string>
+    <string name="share_copied_to_clipboard">Link in die Zwischenablage kopiert</string>
+    <string name="share_screenshot_saved_toast">Bild auf dem Gerät gespeichert</string>
+    <string name="share_screenshot_save_failed_toast">Fehler beim Speichern des Bildes</string>
+    <string name="share_tracktitle_artist_link">Hör dir %1$s von %2$s auf #SoundCloud an
+%3$s</string>
+    <string name="share_tracktitle_link">Hör dir %1$s auf #SoundCloud an
+%2$s</string>
+    <string name="share_playlist_artist_link">Hör dir %1$s an, eine Playlist von %2$s auf #SoundCloud
+%3$s</string>
+    <string name="share_playback_link">Hör dir mein 2025 Playback auf #SoundCloud an
+%1$s</string>
+
+    <!-- YOUR MIX -->
+    <string name="mix_all_known">Alles Gefundene befindet sich bereits in deiner Bibliothek. Versuche es mit einem anderen Künstler oder Genre.</string>
+    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
+    <string name="mix_basis">Basierend auf %1$s</string>
+    <string name="mix_basis_more">+%1$d weitere</string>
+    <string name="mix_building">Dein Mix wird erstellt…</string>
+    <string name="mix_by_genre">Oder ein Genre</string>
+    <string name="mix_card_subtitle">Aktiviere deinen persönlichen Mix, der speziell für dich erstellt wird</string>
+    <string name="mix_customise">Mix anpassen</string>
+    <string name="mix_customise_sub">Baue ihn um einen Künstler oder ein Genre herum auf.</string>
+    <string name="mix_dislike">Gefällt mir nicht</string>
+    <string name="mix_done">%1$d Titel von %2$s in deiner Warteschlange.</string>
+    <string name="mix_enable">Mix aktivieren</string>
+    <string name="mix_genre_custom">Mix „%1$s“</string>
+    <string name="mix_genre_search_hint">Suche nach einem Genre oder gib ein beliebiges Tag ein</string>
+    <string name="mix_in_the_style_of">Im Stil eines Künstlers</string>
+    <string name="mix_needs_history">Spiele zuerst ein paar Titel ab – der Mix basiert auf deinem Hörverhalten.</string>
+    <string name="mix_no_seeds">Dieser Künstler konnte auf SoundCloud nicht gefunden werden. Versuche den genauen Namen.</string>
+    <string name="mix_nothing_found">Keine Ergebnisse. Überprüfe deine Internetverbindung und versuche es erneut.</string>
+    <string name="mix_playing">Mix wird abgespielt</string>
+    <string name="mix_resume">Mix fortsetzen</string>
+    <string name="mix_start">Mix starten</string>
+    <string name="mix_subtitle">Basiert auf dem, was du tatsächlich hörst, nicht nur auf dem, was du geliked hast.</string>
+    <string name="mix_title">Dein Mix</string>
+    <string name="mix_track_count">%1$d Titel</string>
+    <string name="mix_trusted_sources_sub">Bevorzuge Künstler mit mehr Followern. Deaktivieren, um Remixes, Bootlegs und kleinere Creator einzuschließen.</string>
+    <string name="mix_trusted_sources_title">Vertrauenswürdige Quellen &amp; verifizierte Künstler</string>
+    <string name="mix_vibe_artist">Im Stil von %1$s</string>
+    <string name="mix_vibe_dance">Tanz, was in dir steckt</string>
+    <string name="mix_vibe_dance_sub">Electronic, Club &amp; Synth</string>
+    <string name="mix_vibe_my_taste">Mein Vibe</string>
+    <string name="mix_vibe_my_taste_sub">Alternativer, persönlicher Flow</string>
+    <string name="mix_vibe_pop">Pop-Hits</string>
+    <string name="mix_vibe_pop_sub">Eingängige Melodien &amp; Pop-Energie</string>
+    <string name="mix_vibe_rap">Yo, Rap</string>
+    <string name="mix_vibe_rap_sub">Hip-Hop, Trap &amp; Beats</string>
+    <string name="mix_vibe_rock">E-e, Rock!</string>
+    <string name="mix_vibe_rock_sub">Alternative, anders als die anderen</string>
+    <string name="mix_vibe_sad">Gegen die Traurigkeit</string>
+    <string name="mix_vibe_sad_sub">Melancholische &amp; ruhige Vibes</string>
+    <string name="pref_home_cards_group_title">Karten auf dem Startbildschirm</string>
+    <string name="pref_home_listening_stats_desc">Hörstatistik-Karte auf dem Startbildschirm anzeigen</string>
+    <string name="pref_home_your_mix_desc">Karte für personalisierten Mix auf dem Startbildschirm anzeigen</string>
+
+    <!-- Search Keywords (Localized Tags for Settings Search) -->
+    <string name="keywords_themes">Thema, Farbe, Dunkelmodus, Hellmodus, AMOLED, OLED, Palette, Hintergrundbild, Farben</string>
+    <string name="keywords_player">Player, Wiedergabe, Schieberegler, Welle, Tasten, Menü, schwebend, Leiste, Lautstärke</string>
+    <string name="keywords_navigation_bar">Navigationsleiste, Leiste unten, Tabs, FAB, Verknüpfungen, anpassen</string>
+    <string name="keywords_fab">schwebende Aktionsschaltfläche, FAB, Verknüpfung, Schnellaktion</string>
+    <string name="keywords_lyrics">Songtext, Liedtext, Karaoke, Synchronisation, Übersetzung, Songtext-Anbieter</string>
+    <string name="keywords_color_palette">Farbpalette, Akzentfarbe, Farbton, eigene Farbe</string>
+    <string name="keywords_app_icon">App-Symbol, Icon, Logo, Optik</string>
+    <string name="keywords_dynamic_colors">dynamische Farben, Hintergrundfarben, Monet, Material You</string>
+    <string name="keywords_track_dynamic">Cover-Farbe, Albumcover, Titelfarbe, dynamisch</string>
+    <string name="keywords_pure_black">Reines Schwarz, echtes Schwarz, AMOLED, OLED</string>
+    <string name="keywords_remaining_time">verbleibende Zeit, Countdown, Restzeit, Dauer</string>
+    <string name="keywords_volume_slider">Lautstärke, Lautstärkeregler, vertikal, horizontal</string>
+    <string name="keywords_animated_covers">animierte Cover, Video-Cover, Video-Grafik</string>
+    <string name="keywords_animated_artist_profiles">animierte Künstlerprofile, Künstlervideo, Banner</string>
+    <string name="keywords_font">Schriftart, Typografie, eigene Schriftart, Schriftstärke, Textstil</string>
+    <string name="keywords_explorer_grid">Entdecker-Raster, Rasterlayout, Rasteransicht</string>
+    <string name="keywords_library_layout">Bibliothek, Filter, Kategorien, Desktop-Layout, Tasten</string>
+    <string name="keywords_achievements">Erfolge, Trophäen, Belohnungen, Abzeichen, Benachrichtigungen</string>
+    <string name="keywords_stats">Statistiken, Hörstatistiken, Verlauf, Jahresrückblick, Hörzeit, Top-Titel</string>
+    <string name="keywords_your_mix">Dein Mix, Mix starten, Empfehlungen, personalisierte Playlist</string>
+    <string name="keywords_audio">Audioqualität, Equalizer, Lautstärkeanpassung, Bitrate, Audio-Einstellungen</string>
+    <string name="keywords_equalizer">Equalizer, EQ, Vorverstärker, Bass, Höhen, Frequenz, Klang</string>
+    <string name="keywords_volume_normalization">Lautstärkeanpassung, ReplayGain, LUFS, Lautheit</string>
+    <string name="keywords_audio_mono">Mono, Mono-Audio, Stereo, Kanäle</string>
+    <string name="keywords_haptics">Haptik, Vibration, taktiles Feedback, Vibrationsstärke</string>
+    <string name="keywords_crossfade">Überblenden, Crossfade, Übergang, nahtlos</string>
+    <string name="keywords_autoplay">automatische Wiedergabe, Autoplay, Empfehlung, nächste Titel</string>
+    <string name="keywords_automix">Automix, intelligenter Übergang, DJ Flow, Überlappung</string>
+    <string name="keywords_stop_on_task_clear">Musik beim Schließen stoppen, beenden, App schließen</string>
+    <string name="keywords_persist_queue">Warteschlange merken, Warteschlange, Playlist</string>
+    <string name="keywords_save_position">Wiedergabe fortsetzen, Position merken, Abspielposition</string>
+    <string name="keywords_sleep_timer">Schlaf-Timer, Schlummerfunktion, Abschaltautomatik, Timer</string>
+    <string name="keywords_accounts">Konten, Streaming-Quellen, Verknüpfungen, anmelden, Konto verbinden</string>
+    <string name="keywords_storage">Speicher, Cache, Cache leeren, Speicherplatz, Bereinigung</string>
+    <string name="keywords_local_media">lokale Dateien, Ordner, SD-Karte, scannen, lokale Musik, MP3</string>
+    <string name="keywords_backup">Sicherung, Wiederherstellung, exportieren, importieren</string>
+    <string name="keywords_sync">Synchronisierung, Geräte, Kopplung, QR-Code</string>
+    <string name="keywords_proxy">Proxy, Netzwerk, Port, IP, SOCKS, HTTP, DNS, VPN</string>
+    <string name="keywords_language">Sprache, Übersetzung, Deutsch, Englisch, Französisch, Russisch, System</string>
+    <string name="keywords_start_screen">Startbildschirm, Startseite, Bibliothek, Start</string>
+    <string name="keywords_auto_update">automatisches Update, nach Updates suchen, neue Version</string>
+    <string name="keywords_content_filter">Inhaltsfilter, KI-Erkennung, Musik blockieren, automatisch überspringen, blockierte Titel</string>
+    <string name="keywords_mini_player_swipe">Mini-Player, Wischgeste, Titel überspringen, schließen</string>
+
+    <!-- YEARLY PLAYBACK ADDITIONAL STRINGS -->
+    <string name="yearly_playback_year_title">SoundCloud Wrapped %1$d</string>
+    <string name="yearly_playback_playback_year_title">SoundCloud Playback %1$d</string>
+    <string name="yearly_playback_archive_2025_subtitle">Dein Playback 2025 • Offizielle Rive-Story</string>
+    <string name="yearly_playback_archive_2024_subtitle">Deine Top-Tracks Playlist von 2024</string>
+    <string name="yearly_playback_archive_2023_subtitle">Deine Hits-Playlist von 2023</string>
+    <string name="yearly_playback_loading_title">Dein Wrapped wird geladen…</string>
+    <string name="yearly_playback_loading_desc">Deine Highlights werden von SoundCloud geladen</string>
+    <string name="yearly_playback_empty_title">Noch kein Playback-Verlauf</string>
+    <string name="yearly_playback_empty_desc">Für dieses Jahr wurde kein SoundCloud Wrapped für dein Konto gefunden.</string>
+    <string name="yearly_playback_error_title">Playback konnte nicht geladen werden</string>
+    <string name="yearly_playback_error_desc">Bitte überprüfe deine Netzwerkverbindung oder versuche es später erneut.</string>
+    <string name="yearly_playback_explore_detailed_stats">Detaillierte Statistiken anzeigen</string>
 </resources>

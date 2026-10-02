@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -42,6 +43,24 @@ import kotlinx.coroutines.flow.emptyFlow
 fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "content_filter_page" to 0,
+            "ai_detection_section" to 0,
+            "ai_auto_skip" to 2,
+            "ai_auto_block" to 2,
+            "ai_spare_favorites" to 2,
+            "ai_threshold" to 2,
+            "ai_detection_window" to 2,
+            "ai_show_badge" to 2,
+            "ai_show_human_badge" to 2,
+            "blocked_content_list" to 3
+        )
+    )
+
     val modelDownloadState by com.alananasss.kittytune.audio.ai.AiDetectionManager.downloadState.collectAsState()
     var aiAutoSkip by remember { mutableStateOf(prefs.aiAutoSkip) }
     var aiAutoBlock by remember { mutableStateOf(prefs.aiAutoBlock) }
@@ -458,6 +477,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
         }
     ) { innerPadding ->
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .padding(top = innerPadding.calculateTopPadding())
                 .fillMaxSize(),
@@ -518,7 +538,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                                         prefs.aiAutoBlock = false
                                     }
                                 }
-                            }
+                            },
+                            highlightKey = "ai_auto_skip"
                         )
 
                         AnimatedVisibility(
@@ -537,7 +558,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                                     onSwitchChange = {
                                         aiAutoBlock = it
                                         prefs.aiAutoBlock = it
-                                    }
+                                    },
+                                    highlightKey = "ai_auto_block"
                                 )
                                 SettingsItem(
                                     shape = RoundedCornerShape(4.dp),
@@ -549,7 +571,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                                     onSwitchChange = {
                                         aiSpareFavorites = it
                                         prefs.aiSpareFavorites = it
-                                    }
+                                    },
+                                    highlightKey = "ai_spare_favorites"
                                 )
                                 val pct = (aiThreshold * 100).toInt()
                                 SettingsItem(
@@ -568,7 +591,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                                     onSliderChange = {
                                         aiThreshold = it
                                         prefs.aiScoreThreshold = it
-                                    }
+                                    },
+                                    highlightKey = "ai_threshold"
                                 )
                             }
                         }
@@ -580,7 +604,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         title = stringResource(R.string.block_ai_window_title),
                         subtitle = stringResource(aiWindow.titleRes),
                         icon = Icons.Rounded.Speed,
-                        onClick = { showAiWindowDialog = true }
+                        onClick = { showAiWindowDialog = true },
+                        highlightKey = "ai_detection_window"
                     )
 
                     // Block 3: Badges group with animated corner radius
@@ -605,7 +630,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                             onSwitchChange = {
                                 aiShowBadge = it
                                 prefs.aiShowBadge = it
-                            }
+                            },
+                            highlightKey = "ai_show_badge"
                         )
 
                         AnimatedVisibility(
@@ -628,7 +654,8 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                                 onSwitchChange = {
                                     aiShowHumanBadge = it
                                     prefs.aiShowHumanBadge = it
-                                }
+                                },
+                                highlightKey = "ai_show_human_badge"
                             )
                         }
                     }
@@ -962,7 +989,8 @@ internal val ContentFilterSettingDefinitions: List<SettingDefinition> = listOf(
         subtitleRes = R.string.pref_content_filter_subtitle,
         category = SettingsCategory.MISC,
         route = "content_filter_settings",
-        icon = Icons.Rounded.Block
+        icon = Icons.Rounded.Block,
+        keywordsRes = R.string.keywords_content_filter
     ),
     SettingDefinition.Navigation(
         id = "ai_detection_section",

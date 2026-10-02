@@ -418,6 +418,7 @@ fun AudioSettingsScreen(
             "pref_persist_queue" to 0,
             "pref_save_position" to 0,
             "pref_youtube_fallback" to 0,
+            "pref_hide_youtube_videos" to 0,
             "pref_download_drm" to 0,
             "pref_precise_speed" to 0,
             "pref_sc_sync" to 0,
@@ -449,7 +450,7 @@ fun AudioSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (!isGuest) 8 else 7
+                        val totalVisibleItems = if (!isGuest) 9 else 8
 
                         SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 0),
@@ -501,8 +502,22 @@ fun AudioSettingsScreen(
                             highlightKey = "pref_youtube_fallback"
                         )
 
-                        SplitSettingsItem(
+                        var hideYoutubeVideosEnabled by remember { mutableStateOf(prefs.getHideYoutubeVideos()) }
+                        SettingsItem(
                             shape = getSettingsShape(totalVisibleItems, 5),
+                            title = stringResource(R.string.pref_hide_youtube_videos),
+                            subtitle = stringResource(R.string.pref_hide_youtube_videos_sub),
+                            hasSwitch = true,
+                            switchState = hideYoutubeVideosEnabled,
+                            onSwitchChange = {
+                                hideYoutubeVideosEnabled = it
+                                prefs.setHideYoutubeVideos(it)
+                            },
+                            highlightKey = "pref_hide_youtube_videos"
+                        )
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 6),
                             title = stringResource(R.string.pref_download_drm),
                             subtitle = stringResource(R.string.pref_download_drm_sub),
                             onClick = onNavigateToDrmExplanation,
@@ -512,7 +527,7 @@ fun AudioSettingsScreen(
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 6),
+                            shape = getSettingsShape(totalVisibleItems, 7),
                             title = stringResource(R.string.pref_precise_speed),
                             subtitle = stringResource(R.string.pref_precise_speed_sub),
                             hasSwitch = true,
@@ -523,7 +538,7 @@ fun AudioSettingsScreen(
 
                         if (!isGuest) {
                             SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 7),
+                                shape = getSettingsShape(totalVisibleItems, 8),
                                 title = stringResource(R.string.pref_sc_sync_title),
                                 subtitle = stringResource(R.string.pref_sc_sync_sub),
                                 hasSwitch = true,

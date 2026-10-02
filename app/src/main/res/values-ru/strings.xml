@@ -124,7 +124,7 @@
     <string name="new_releases_popular_tracks">Популярные треки</string>
     <string name="new_releases_all_playlists">Все плейлисты</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube</string>
+    <string name="search_source_youtube">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">ВКонтакте (VK)</string>
     <string name="search_source_deezer">Deezer</string>
@@ -749,6 +749,8 @@
     <string name="quality_low_sub">Сохраняет данные в мобильной сети</string>
     <string name="pref_youtube_fallback">Разблокировать запрещенные треки</string>
     <string name="pref_youtube_fallback_sub">Через NewPipe Extractor для треков Go+</string>
+    <string name="pref_hide_youtube_videos">Скрыть видео и Shorts</string>
+    <string name="pref_hide_youtube_videos_sub">Показывать только официальные треки при поиске в YouTube Music</string>
     <string name="pref_download_drm">Скачать оригинальный DRM</string>
     <string name="pref_download_drm_sub">Оставьте включённым для сохранения оригинальных DRM-треков во внутренний кэш. Отключите для принудительного скачивания MP3-версий через YouTube.</string>
     <string name="drm_explanation_text">Защищенные DRM-треки зашифрованы правообладателями для предотвращения извлечения и защиты авторских прав.\n\n• Включено (рекомендуется): Трек загружается в оригинальном высоком качестве в безопасный внутренний кэш KittyTune. Он воспроизводится только внутри приложения и не появится в обычной папке загрузок.\n\n• Отключено: KittyTune проигнорирует зашифрованную версию и попытается найти и скачать песню через YouTube в формате MP3. Предупреждение: так как поиск автоматический, может загрузиться неправильная версия (клип или кавер), если трек малоизвестен.</string>
@@ -996,6 +998,8 @@
     <string name="update_check_manual">Проверить обновления</string>
     <string name="pref_auto_update">Автоматически проверять обновления</string>
     <string name="pref_auto_update_sub">Проверять наличие новых версий при запуске</string>
+    <string name="pref_remember_search_filter">Запоминать фильтр поиска</string>
+    <string name="pref_remember_search_filter_sub">Сохранять последний выбранный фильтр (Артисты, Плейлисты…) при открытии поиска</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1298,6 +1302,19 @@
     <string name="listening_stats_duration_hr_min">%1$d ч. %2$d мин.</string>
     <string name="listening_stats_duration_min_sec">%1$d мин %2$d с</string>
     <string name="listening_stats_duration_sec">%1$d с</string>
+
+    <string name="stats_style_overview">Обзор</string>
+    <string name="stats_style_compact">Компактный</string>
+    <string name="stats_style_story">Итоги</string>
+    <string name="stats_story_you_listened">Вы слушали музыку</string>
+    <string name="stats_story_numbers">Прослушиваний: %1$d · треков: %2$d · исполнителей: %3$d</string>
+    <string name="stats_story_top_artist">Ваш исполнитель №1</string>
+    <string name="stats_story_top_track">Ваш трек №1</string>
+    <string name="stats_story_track_times">Раз прослушан: %1$d · %2$s</string>
+    <string name="stats_story_when">Ваше время</string>
+    <string name="stats_story_habits">Как вы слушаете</string>
+    <string name="stats_story_active_days">дней с музыкой</string>
+    <string name="listening_stats_disclaimer">Эта статистика рассчитывается по алгоритму KittyTune и может не отражать полную внешнюю историю прослушиваний.</string>
     <string name="label_intensity">Интенсивность: %d%%</string>
     <string name="label_speed_8d">Скорость поворота: %d%%</string>
     <string name="label_cutoff">Фильтр: %d%%</string>
@@ -2632,9 +2649,16 @@
     <string name="logs_saved_toast">Логи успешно сохранены!</string>
     <string name="logs_save_failed_toast">Не удалось сохранить логи в файл.</string>
     <!-- Settings Parity & Search -->
+    <string name="homepage_search">Поиск по настройкам</string>
     <string name="search_settings_hint">Поиск в настройках…</string>
     <string name="settings_search_results">Результаты поиска</string>
     <string name="settings_search_no_results">Настройки не найдены</string>
+    <string name="search_no_recent_results">Нет недавних результатов поиска</string>
+    <string name="search_no_results">Нет результатов</string>
+    <string name="search_suggestion_no_match">Ничего не найдено по запросу «%1$s»</string>
+    <string name="settings_search_recent_header">Недавние поиски</string>
+    <string name="settings_search_clear_recent">Очистить</string>
+    <string name="settings_search_clear_history">Очистить историю</string>
 
     <!-- Theme Presets -->
     <string name="theme_presets_title">Готовые темы</string>
@@ -2812,4 +2836,170 @@
     <string name="notif_dislike_toast">Трек заблокирован и пропущен</string>
     <string name="notif_added_to_playlist">Добавлено в \"%s\"</string>
     <string name="notif_no_playlist_available">Плейлисты пока отсутствуют</string>
+
+    <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
+    <string name="yearly_playback_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_menu_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_home_badge">Итоги 2025</string>
+    <string name="yearly_playback_home_title">Ваш 2025 год в музыке</string>
+    <string name="yearly_playback_home_subtitle">Вспомните треки, артистов и моменты, определившие ваш год</string>
+    <string name="yearly_playback_home_action">Смотреть историю</string>
+    <string name="yearly_playback_stats_banner_title">Ваша история 2025</string>
+    <string name="yearly_playback_stats_banner_sub">Открыть полноэкранные итоги года</string>
+    <string name="yearly_playback_stats_play_action">Смотреть историю</string>
+
+    <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
+    <string name="yearly_playback_hub_title">SoundCloud Wrapped</string>
+    <string name="yearly_playback_hub_subtitle">Ваши музыкальные итоги &amp; яркие моменты года</string>
+    <string name="yearly_playback_in_prep_badge">В подготовке</string>
+    <string name="yearly_playback_in_prep_title">SoundCloud Wrapped %1$s</string>
+    <string name="yearly_playback_in_prep_desc">Ваш Wrapped %1$s готовится! Слушайте любимую музыку, итоги года появятся в конце года ( ˘ ᵕ ˘ ) ♬</string>
+    <string name="yearly_playback_in_prep_status">Появится в конце года</string>
+    <string name="yearly_playback_in_prep_toast">SoundCloud Wrapped %1$s сейчас готовится и будет доступен в конце года!</string>
+    <string name="yearly_playback_archives_title">Архив</string>
+    <string name="yearly_playback_archives_subtitle">Вспомните предыдущие выпуски SoundCloud Wrapped</string>
+    <string name="yearly_playback_locked_badge">Недоступно</string>
+    <string name="yearly_playback_locked_account_desc">Аккаунт создан в %1$s году</string>
+    <string name="yearly_playback_locked_toast">Недоступно: ваш аккаунт SoundCloud был создан в %1$s году, позже этого выпуска.</string>
+    <string name="yearly_playback_launch_story">Смотреть историю</string>
+    <string name="yearly_playback_view_playlist">Открыть плейлист</string>
+    <string name="yearly_playback_member_since">В SoundCloud с %1$s года</string>
+    <string name="yearly_playback_close">Закрыть</string>
+    <string name="yearly_playback_unavailable_badge">Недоступно</string>
+    <string name="yearly_playback_unavailable_desc">Для этого года плейлист Playback в SoundCloud не был создан</string>
+    <string name="yearly_playback_unavailable_toast">SoundCloud не создал плейлист Playback для вашего аккаунта за %1$s год.</string>
+    <string name="yearly_playback_playlist_404_title">Playback недоступен</string>
+    <string name="yearly_playback_playlist_404_desc">Этот плейлист Playback недоступен или не был создан SoundCloud для вашего аккаунта.</string>
+
+    <!-- SHARE SCREENSHOT & SOCIAL OPTIONS -->
+    <string name="share_screenshot_title">Поделиться скриншотом</string>
+    <string name="share_screenshot_subtitle">Поделитесь изображением со ссылкой на трек, чтобы друзья тоже могли его послушать.</string>
+    <string name="share_option_whatsapp">WhatsApp</string>
+    <string name="share_option_whatsapp_status">Статус</string>
+    <string name="share_option_instagram_stories">Истории</string>
+    <string name="share_option_facebook_story">Истории</string>
+    <string name="share_option_snapchat">Snapchat</string>
+    <string name="share_option_twitter">X</string>
+    <string name="share_option_threads">Threads</string>
+    <string name="share_option_bluesky">Bluesky</string>
+    <string name="share_option_mastodon">Mastodon</string>
+    <string name="share_option_telegram">Telegram</string>
+    <string name="share_option_sms">SMS</string>
+    <string name="share_option_save_to_device">Сохранить</string>
+    <string name="share_option_copy_link">Скопировать ссылку</string>
+    <string name="more_options_share_option">Ещё</string>
+    <string name="share_copied_to_clipboard">Ссылка скопирована в буфер обмена</string>
+    <string name="share_screenshot_saved_toast">Изображение сохранено на устройстве</string>
+    <string name="share_screenshot_save_failed_toast">Не удалось сохранить изображение</string>
+    <string name="share_tracktitle_artist_link">Слушайте %1$s от %2$s на #SoundCloud
+%3$s</string>
+    <string name="share_tracktitle_link">Слушайте %1$s на #SoundCloud
+%2$s</string>
+    <string name="share_playlist_artist_link">Слушайте плейлист %1$s от %2$s на #SoundCloud
+%3$s</string>
+    <string name="share_playback_link">Послушайте мой Playback 2025 на #SoundCloud
+%1$s</string>
+
+    <!-- YOUR MIX -->
+    <string name="mix_title">Твой микс</string>
+    <string name="mix_subtitle">Собран из того, что ты действительно слушаешь, а не из того, что уже лайкнул.</string>
+    <string name="mix_start">Запустить микс</string>
+    <string name="mix_building">Собираем микс…</string>
+    <string name="mix_customise">Настроить микс</string>
+    <string name="mix_needs_history">Послушай сначала несколько треков — микс строится по твоим прослушиваниям.</string>
+    <string name="mix_nothing_found">Ничего не вернулось. Проверь соединение и попробуй снова.</string>
+    <string name="mix_no_seeds">Не удалось найти этого исполнителя на SoundCloud. Попробуй точное имя.</string>
+    <string name="mix_all_known">Всё найденное уже есть в твоей библиотеке. Попробуй другого исполнителя или жанр.</string>
+    <string name="mix_in_the_style_of">В стиле исполнителя</string>
+    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
+    <string name="mix_by_genre">Или жанр</string>
+    <string name="mix_track_count">%1$d треков</string>
+    <string name="mix_basis">На основе %1$s</string>
+    <string name="mix_basis_more">+%1$d ещё</string>
+    <string name="mix_done">%1$d треков на основе %2$s — в очереди.</string>
+    <string name="mix_customise_sub">Собери его вокруг артиста или жанра.</string>
+    <string name="mix_genre_search_hint">Найди жанр или введи любой тег</string>
+    <string name="mix_genre_custom">Микс «%1$s»</string>
+    <string name="mix_trusted_sources_title">Проверенные источники и авторы</string>
+    <string name="mix_trusted_sources_sub">Приоритет артистам с большим числом подписчиков. Отключите, чтобы свободно включать ремиксы, бутлеги и независимых авторов.</string>
+    <string name="mix_card_subtitle">Включите персональный микс, созданный специально для вас</string>
+    <string name="mix_enable">Включить микс</string>
+    <string name="mix_vibe_my_taste">Мой вайб</string>
+    <string name="mix_vibe_my_taste_sub">Альтернатива, не как у всех</string>
+    <string name="mix_vibe_rock">Е-е, рок!</string>
+    <string name="mix_vibe_rock_sub">Рок, гитары и драйв</string>
+    <string name="mix_vibe_sad">Пережить эту грусть</string>
+    <string name="mix_vibe_sad_sub">Меланхолия и спокойствие</string>
+    <string name="mix_vibe_rap">Йо, рэп</string>
+    <string name="mix_vibe_rap_sub">Хип-хоп, трэп и биты</string>
+    <string name="mix_vibe_dance">Танцевать то, что внутри</string>
+    <string name="mix_vibe_dance_sub">Электроника, клуб и ритм</string>
+    <string name="mix_vibe_pop">Поп-хиты</string>
+    <string name="mix_vibe_pop_sub">Яркие мелодии и поп-энергия</string>
+    <string name="mix_vibe_artist">В стиле %1$s</string>
+    <string name="mix_playing">Микс играет</string>
+    <string name="mix_resume">Продолжить микс</string>
+    <string name="mix_dislike">Не нравится</string>
+    <string name="pref_home_cards_group_title">Карточки главного экрана</string>
+    <string name="pref_home_listening_stats_desc">Показывать карточку статистики прослушиваний на главном экране</string>
+    <string name="pref_home_your_mix_desc">Показывать карточку персонального микса на главном экране</string>
+
+    <!-- Search Keywords (Localized Tags for Settings Search) -->
+    <string name="keywords_themes">тема, цвет, тёмная тема, светлая тема, amoled, oled, палитра, обои, оформление</string>
+    <string name="keywords_player">плеер, полоса прокрутки, ползунок, кнопки, меню, панель, громкость</string>
+    <string name="keywords_navigation_bar">панель навигации, нижняя панель, вкладки, ярлыки, настроить</string>
+    <string name="keywords_fab">плавающая кнопка, fab, ярлык, быстрое действие</string>
+    <string name="keywords_lyrics">текст песни, слова, караоке, синхронизация, перевод, шрифт</string>
+    <string name="keywords_color_palette">палитра цветов, акцентный цвет, оттенок, свой цвет</string>
+    <string name="keywords_app_icon">иконка приложения, значок, логотип, оформление</string>
+    <string name="keywords_dynamic_colors">динамические цвета, обои, monet, material you</string>
+    <string name="keywords_track_dynamic">обложка трека, цвет обложки, динамический цвет</string>
+    <string name="keywords_pure_black">чистый чёрный, настоящий чёрный, amoled, oled</string>
+    <string name="keywords_remaining_time">оставшееся время, обратный отсчет, длительность</string>
+    <string name="keywords_volume_slider">громкость, ползунок громкости, вертикальный, горизонтальный</string>
+    <string name="keywords_animated_covers">анимированные обложки, видео-обложка, видео</string>
+    <string name="keywords_animated_artist_profiles">анимированные профили, видео артиста, баннер</string>
+    <string name="keywords_font">шрифт, типографика, пользовательский шрифт, начертание, стиль текста</string>
+    <string name="keywords_explorer_grid">сетка обзора, сетка, плитка</string>
+    <string name="keywords_library_layout">библиотека, фильтры, категории, вид, кнопки</string>
+    <string name="keywords_achievements">достижения, трофеи, награды, значки, уведомления</string>
+    <string name="keywords_stats">статистика, статистика прослушиваний, история, итоги года, время прослушивания</string>
+    <string name="keywords_your_mix">ваш микс, создать микс, рекомендации, персональный плейлист</string>
+    <string name="keywords_audio">качество звука, эквалайзер, нормализация, битрейт, настройки аудио</string>
+    <string name="keywords_equalizer">эквалайзер, eq, предусилитель, бас, высокие частоты, частота, звук</string>
+    <string name="keywords_volume_normalization">нормализация громкости, replaygain, lufs, громкость</string>
+    <string name="keywords_audio_mono">моно, моно звук, стерео, каналы</string>
+    <string name="keywords_haptics">вибрация, тактильный отклик, виброотклик, сила вибрации</string>
+    <string name="keywords_crossfade">плавный переход, кроссфейд, переход, затухание</string>
+    <string name="keywords_autoplay">автовоспроизведение, автоплей, рекомендации, далее</string>
+    <string name="keywords_automix">автомикс, умный переход, dj flow, перекрытие</string>
+    <string name="keywords_stop_on_task_clear">останавливать при закрытии, закрытие, завершение</string>
+    <string name="keywords_persist_queue">сохранять очередь, очередь воспроизведения, плейлист</string>
+    <string name="keywords_save_position">сохранять позицию, возобновление, позиция трека</string>
+    <string name="keywords_sleep_timer">таймер сна, автовыключение, таймер, засыпание</string>
+    <string name="keywords_accounts">аккаунты, источники стриминга, подключения, войти, привязать</string>
+    <string name="keywords_storage">память, кэш, очистить кэш, место на диске, очистка</string>
+    <string name="keywords_local_media">локальные файлы, папки, sd-карта, сканирование, оффлайн музыка, mp3</string>
+    <string name="keywords_backup">резервная копия, восстановление, экспорт, импорт, сохранение</string>
+    <string name="keywords_sync">синхронизация, устройства, сопряжение, qr-код</string>
+    <string name="keywords_proxy">прокси, сеть, порт, ip, socks, http, dns, vpn</string>
+    <string name="keywords_language">язык, перевод, русский, английский, немецкий, французский, система</string>
+    <string name="keywords_start_screen">начальный экран, главный экран, библиотека, запуск</string>
+    <string name="keywords_auto_update">автообновление, проверка обновлений, новая версия</string>
+    <string name="keywords_content_filter">фильтрация контента, обнаружение ии, блокировка музыки, автопропуск, заблокированные треки</string>
+    <string name="keywords_mini_player_swipe">мини-плеер, жест свайпа, переключить трек, скрыть</string>
+
+    <!-- YEARLY PLAYBACK ADDITIONAL STRINGS -->
+    <string name="yearly_playback_year_title">SoundCloud Wrapped %1$d</string>
+    <string name="yearly_playback_playback_year_title">SoundCloud Playback %1$d</string>
+    <string name="yearly_playback_archive_2025_subtitle">Ваш Playback 2025 • Официальная история Rive</string>
+    <string name="yearly_playback_archive_2024_subtitle">Плейлист ваших лучших треков 2024 года</string>
+    <string name="yearly_playback_archive_2023_subtitle">Плейлист ваших хитов 2023 года</string>
+    <string name="yearly_playback_loading_title">Загрузка вашего Wrapped…</string>
+    <string name="yearly_playback_loading_desc">Получение ваших лучших моментов из SoundCloud</string>
+    <string name="yearly_playback_empty_title">Пока нет истории Playback</string>
+    <string name="yearly_playback_empty_desc">Для вашего аккаунта не найден SoundCloud Wrapped за этот год.</string>
+    <string name="yearly_playback_error_title">Не удалось загрузить Playback</string>
+    <string name="yearly_playback_error_desc">Пожалуйста, проверьте подключение к сети или повторите попытку позже.</string>
+    <string name="yearly_playback_explore_detailed_stats">Смотреть подробную статистику</string>
 </resources>

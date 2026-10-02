@@ -227,6 +227,10 @@ class PlayerPreferences(context: Context) {
         const val KEY_PLAYER_BAR_STYLE = "player_bar_style"
         const val KEY_FLOATING_BAR_LOOK = "floating_bar_look"
         const val KEY_SEEK_WHEEL_SECONDS = "seek_wheel_seconds"
+        const val KEY_MIX_DISLIKED_TRACK_IDS = "mix_disliked_track_ids"
+        const val KEY_MIX_PRIORITIZE_TRUSTED = "mix_prioritize_trusted"
+        const val KEY_SHOW_HOME_LISTENING_STATS = "show_home_listening_stats"
+        const val KEY_SHOW_HOME_YOUR_MIX = "show_home_your_mix"
 
         const val PLAYER_BAR_BUTTON_LIKE = "like"
         const val PLAYER_BAR_BUTTON_LYRICS = "lyrics"
@@ -257,6 +261,7 @@ class PlayerPreferences(context: Context) {
         const val KEY_CLASSIC_SLOT_PREFIX = "classic_slot_"
         const val KEY_PIXEL_SLOT_PREFIX = "pixel_slot_"
         const val KEY_LISTENING_STATS_ENABLED = "listening_stats_enabled"
+        const val KEY_STATS_STYLE = "listening_stats_style"
         private const val KEY_TRACK_JSON = "last_track_json"
         private const val KEY_POSITION = "last_position"
         private const val KEY_EFFECTS = "audio_effects"
@@ -287,6 +292,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LAST_SEARCH_FILTER = "last_search_filter"
         private const val KEY_RECOGNITION_AUDIO_SOURCE = "recognition_audio_source"
         private const val KEY_YOUTUBE_FALLBACK = "youtube_fallback_enabled"
+        private const val KEY_HIDE_YOUTUBE_VIDEOS = "hide_youtube_videos_and_shorts"
         private const val KEY_SC_GO_PLUS = "soundcloud_go_plus_active"
         private const val KEY_SHARE_CARD_CODE = "share_card_code_mode"
         private const val KEY_DOWNLOAD_DRM_STREAMS = "download_drm_streams_enabled"
@@ -689,6 +695,9 @@ class PlayerPreferences(context: Context) {
     fun getYouTubeFallbackEnabled(): Boolean = prefs.getBoolean(KEY_YOUTUBE_FALLBACK, true)
     fun setYouTubeFallbackEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_YOUTUBE_FALLBACK, enabled) }
 
+    fun getHideYoutubeVideos(): Boolean = prefs.getBoolean(KEY_HIDE_YOUTUBE_VIDEOS, true)
+    fun setHideYoutubeVideos(enabled: Boolean) = prefs.edit { putBoolean(KEY_HIDE_YOUTUBE_VIDEOS, enabled) }
+
     /**
      * Whether the signed-in SoundCloud account holds a Go+ subscription.
      *
@@ -1025,6 +1034,8 @@ class PlayerPreferences(context: Context) {
     fun setAutoplayEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_AUTOPLAY_STATION, enabled) }
     fun getListeningStatsEnabled(): Boolean = prefs.getBoolean(KEY_LISTENING_STATS_ENABLED, true)
     fun setListeningStatsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LISTENING_STATS_ENABLED, enabled) }
+    fun getListeningStatsStyle(): String = prefs.getString(KEY_STATS_STYLE, "OVERVIEW") ?: "OVERVIEW"
+    fun setListeningStatsStyle(style: String) = prefs.edit { putString(KEY_STATS_STYLE, style) }
     fun getAudioQuality(): String = prefs.getString(KEY_AUDIO_QUALITY, "HIGH") ?: "HIGH"
     fun setAudioQuality(quality: String) = prefs.edit { putString(KEY_AUDIO_QUALITY, quality) }
     fun getPersistentQueueEnabled(): Boolean = prefs.getBoolean(KEY_PERSISTENT_QUEUE, true)
@@ -1983,6 +1994,63 @@ class PlayerPreferences(context: Context) {
 
     fun clearSettingsRecentSearches() {
         prefs.edit { remove(KEY_SETTINGS_RECENT_SEARCHES) }
+    }
+
+    // ─── Mix Preferences ────────────────────────────────────────────────────────
+
+    fun getMixDislikedTrackIds(): Set<Long> {
+        val json = prefs.getString(KEY_MIX_DISLIKED_TRACK_IDS, null) ?: return emptySet()
+        return try {
+            gson.fromJson(json, object : com.google.gson.reflect.TypeToken<Set<Long>>() {}.type) ?: emptySet()
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    fun addMixDislikedTrack(trackId: Long) {
+        val current = getMixDislikedTrackIds().toMutableSet()
+        current.add(trackId)
+        prefs.edit { putString(KEY_MIX_DISLIKED_TRACK_IDS, gson.toJson(current)) }
+    }
+
+    fun removeMixDislikedTrack(trackId: Long) {
+        val current = getMixDislikedTrackIds().toMutableSet()
+        current.remove(trackId)
+        prefs.edit { putString(KEY_MIX_DISLIKED_TRACK_IDS, gson.toJson(current)) }
+    }
+
+    fun isMixTrackDisliked(trackId: Long): Boolean = getMixDislikedTrackIds().contains(trackId)
+    fun getMixPrioritizeTrusted(): Boolean = prefs.getBoolean(KEY_MIX_PRIORITIZE_TRUSTED, true)
+    fun setMixPrioritizeTrusted(enabled: Boolean) = prefs.edit { putBoolean(KEY_MIX_PRIORITIZE_TRUSTED, enabled) }
+
+    // ─── Home Screen Cards Preferences ──────────────────────────────────────────
+
+    fun getShowHomeListeningStats(): Boolean = prefs.getBoolean(KEY_SHOW_HOME_LISTENING_STATS, true)
+    fun setShowHomeListeningStats(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_HOME_LISTENING_STATS, enabled) }
+
+    fun getShowHomeListeningStatsFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
+        trySend(getShowHomeListeningStats())
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_SHOW_HOME_LISTENING_STATS) {
+                trySend(getShowHomeListeningStats())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getShowHomeYourMix(): Boolean = prefs.getBoolean(KEY_SHOW_HOME_YOUR_MIX, false)
+    fun setShowHomeYourMix(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_HOME_YOUR_MIX, enabled) }
+
+    fun getShowHomeYourMixFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
+        trySend(getShowHomeYourMix())
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_SHOW_HOME_YOUR_MIX) {
+                trySend(getShowHomeYourMix())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
     }
 }
 

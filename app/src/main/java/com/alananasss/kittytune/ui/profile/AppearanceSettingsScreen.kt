@@ -112,6 +112,8 @@ fun AppearanceSettingsScreen(
     var explorerGridLayout by remember { mutableStateOf(prefs.getExplorerGridLayout()) }
     var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
+    var showHomeListeningStats by remember { mutableStateOf(prefs.getShowHomeListeningStats()) }
+    var showHomeYourMix by remember { mutableStateOf(prefs.getShowHomeYourMix()) }
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showCategoryLayoutDialog by remember { mutableStateOf(false) }
@@ -286,7 +288,9 @@ fun AppearanceSettingsScreen(
             "pref_lyrics_under_cover" to 3,
             "pref_explorer_grid" to 4,
             "pref_library_category_layout" to 4,
-            "pref_achievement_popups" to 4
+            "pref_achievement_popups" to 4,
+            "pref_home_listening_stats" to 5,
+            "pref_home_your_mix" to 5
         )
     )
 
@@ -597,6 +601,45 @@ fun AppearanceSettingsScreen(
                                     prefs.setAchievementPopupsEnabled(it)
                                 },
                                 highlightKey = "pref_achievement_popups"
+                            )
+                        }
+                    )
+                )
+            }
+
+            // Section: Home Screen Cards
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.pref_home_cards_group_title),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.listening_stats_title),
+                                subtitle = stringResource(R.string.pref_home_listening_stats_desc),
+                                icon = Icons.Rounded.BarChart,
+                                hasSwitch = true,
+                                switchState = showHomeListeningStats,
+                                onSwitchChange = {
+                                    showHomeListeningStats = it
+                                    prefs.setShowHomeListeningStats(it)
+                                },
+                                highlightKey = "pref_home_listening_stats"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.mix_title),
+                                subtitle = stringResource(R.string.pref_home_your_mix_desc),
+                                icon = Icons.Rounded.AutoAwesome,
+                                hasSwitch = true,
+                                switchState = showHomeYourMix,
+                                onSwitchChange = {
+                                    showHomeYourMix = it
+                                    prefs.setShowHomeYourMix(it)
+                                },
+                                highlightKey = "pref_home_your_mix"
                             )
                         }
                     )

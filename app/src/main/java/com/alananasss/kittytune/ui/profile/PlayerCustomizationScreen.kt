@@ -147,12 +147,13 @@ fun PlayerCustomizationScreen(
         listState = listState,
         keyToIndex = mapOf(
             "player_design_page" to 0,
-            "pref_show_remaining_time" to 1,
-            "pref_animated_covers" to 2,
-            "pref_animated_covers_fade_ui" to 2,
-            "pref_animated_artist_profiles" to 2,
-            "notif_player_extra_button" to 4,
-            "mini_player_swipe_action" to 5
+            "pref_slider_style" to 1,
+            "pref_show_remaining_time" to 2,
+            "pref_animated_covers" to 3,
+            "pref_animated_covers_fade_ui" to 3,
+            "pref_animated_artist_profiles" to 3,
+            "notif_player_extra_button" to 5,
+            "mini_player_swipe_action" to 6
         )
     )
 
@@ -530,7 +531,8 @@ fun PlayerCustomizationScreen(
                                 animatedCovers = it
                                 prefs.setAnimatedCoversEnabled(it)
                                 onUpdated()
-                            }
+                            },
+                            highlightKey = "pref_animated_covers"
                         )
                     }
 
@@ -547,7 +549,8 @@ fun PlayerCustomizationScreen(
                                     animatedCoversFadeUi = it
                                     prefs.setAnimatedCoversFadeUiEnabled(it)
                                     onUpdated()
-                                }
+                                },
+                                highlightKey = "pref_animated_covers_fade_ui"
                             )
                         }
                     }
@@ -564,7 +567,8 @@ fun PlayerCustomizationScreen(
                                 animatedArtistProfiles = it
                                 prefs.setAnimatedArtistProfilesEnabled(it)
                                 onUpdated()
-                            }
+                            },
+                            highlightKey = "pref_animated_artist_profiles"
                         )
                     }
 
