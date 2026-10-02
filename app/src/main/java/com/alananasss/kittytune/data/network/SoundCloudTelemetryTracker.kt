@@ -83,7 +83,11 @@ object SoundCloudTelemetryTracker {
                     .writeTimeout(15, TimeUnit.SECONDS),
                 context.applicationContext
             ).build()
-            Log.d(TAG, "SoundCloudTelemetryTracker initialized with sessionId=$sessionId")
+            val cachedUserId = playerPrefs?.getCachedUserId() ?: 0L
+            if (cachedUserId > 0L) {
+                currentUserId = cachedUserId
+            }
+            Log.d(TAG, "SoundCloudTelemetryTracker initialized with sessionId=$sessionId, userId=$currentUserId")
         }
     }
 
@@ -298,8 +302,12 @@ object SoundCloudTelemetryTracker {
                 val deviceId = Config.getOrCreateSoundCloudDeviceId(ctx)
                 val now = System.currentTimeMillis()
                 val trackDurationMs = (track.durationMs ?: 0L).coerceAtLeast(1000L)
+                val effectiveUserId = if (currentUserId > 0L) currentUserId else (playerPrefs?.getCachedUserId() ?: 0L)
+                if (effectiveUserId > 0L && currentUserId == 0L) {
+                    currentUserId = effectiveUserId
+                }
                 val pageName = resolvePageName(currentContext)
-                val contextUrn = resolveContextUrn(currentContext, currentUserId)
+                val contextUrn = resolveContextUrn(currentContext, effectiveUserId)
 
                 // Build payload dictionary adhering to DataBuilderV1 schema (na0/h.java)
                 val payload = mutableMapOf<String, Any?>()
@@ -335,8 +343,8 @@ object SoundCloudTelemetryTracker {
                     payload["page_urn"] = contextUrn
                 }
 
-                if (!isGuest && currentUserId > 0L) {
-                    payload["user"] = "soundcloud:users:$currentUserId"
+                if (!isGuest && effectiveUserId > 0L) {
+                    payload["user"] = "soundcloud:users:$effectiveUserId"
                 }
 
                 if (action == "play_stop" && !stopReason.isNullOrEmpty()) {
@@ -422,7 +430,8 @@ object SoundCloudTelemetryTracker {
         val tm = tokenManager ?: TokenManager(ctx)
         if (tm.isGuestMode()) return
 
-        val contextUrn = resolveContextUrn(context, currentUserId) ?: return
+        val effectiveUserId = if (currentUserId > 0L) currentUserId else (playerPrefs?.getCachedUserId() ?: 0L)
+        val contextUrn = resolveContextUrn(context, effectiveUserId) ?: return
 
         scope.launch {
             try {
