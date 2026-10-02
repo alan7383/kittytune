@@ -1915,6 +1915,11 @@
     <string name="upload_crop_artwork_title">Recadrer la pochette</string>
     <string name="upload_crop_artwork_desc">Ajustez et recadrez l\'image pour votre titre</string>
     <string name="playlist_crop_artwork_desc">Ajustez et recadrez l\'image pour votre playlist</string>
+    <string name="gif_cover_preview_title">Pochette GIF animée</string>
+    <string name="gif_cover_preview_note">Le GIF tournera en boucle comme pochette animée. Le recadrage n\'est pas disponible pour les GIFs : les images non carrées sont automatiquement centrées. L\'animation tourne dans KittyTune ; SoundCloud affichera la première image.</string>
+    <string name="gif_cover_set_btn">Définir la pochette</string>
+    <string name="gif_cover_set_done">Pochette GIF animée définie</string>
+    <string name="gif_cover_too_large">Le GIF est trop volumineux — max %1$d Mo</string>
     <string name="upload_crop_rotate_90">90°</string>
     <string name="upload_crop_free_rotate">Rotation libre</string>
     <string name="upload_crop_reset">Réinitialiser</string>

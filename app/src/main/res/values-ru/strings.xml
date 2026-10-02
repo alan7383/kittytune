@@ -1834,6 +1834,11 @@
     <string name="upload_crop_artwork_title">Обрезать обложку</string>
     <string name="upload_crop_artwork_desc">Настройте и обрежьте изображение для вашего трека</string>
     <string name="playlist_crop_artwork_desc">Настройте и обрежьте изображение для вашего плейлиста</string>
+    <string name="gif_cover_preview_title">Анимированная GIF-обложка</string>
+    <string name="gif_cover_preview_note">GIF будет зациклен в качестве анимированной обложки. Обрезка недоступна для GIF — неквадратные изображения центрируются автоматически. Анимация воспроизводится в KittyTune; SoundCloud покажет первый кадр.</string>
+    <string name="gif_cover_set_btn">Установить обложку</string>
+    <string name="gif_cover_set_done">Анимированная GIF-обложка установлена</string>
+    <string name="gif_cover_too_large">GIF слишком большой — макс. %1$d МБ</string>
     <string name="upload_crop_rotate_90">90°</string>
     <string name="upload_crop_free_rotate">Свободный поворот</string>
     <string name="upload_crop_reset">Сбросить</string>

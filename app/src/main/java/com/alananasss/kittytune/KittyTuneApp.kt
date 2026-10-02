@@ -2,8 +2,11 @@ package com.alananasss.kittytune
 
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.map.Mapper
 import com.alananasss.kittytune.utils.Config
 import com.alananasss.kittytune.utils.LocaleUtils
@@ -60,6 +63,16 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
                 add(Mapper<String, File> { data, _ ->
                     if (data.startsWith("/") && !data.startsWith("http")) File(data) else null
                 })
+                // Animated image support (animated playlist covers etc.). Decoders sniff
+                // the actual bytes, so a GIF stored with a .jpg extension still animates.
+                // ImageDecoderDecoder (API 28+) covers animated GIF/WebP/AVIF via the
+                // platform AnimatedImageDrawable; GifDecoder is the software fallback
+                // for API 26-27 (app minSdk).
+                if (Build.VERSION.SDK_INT >= 28) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
             }
             .diskCache {
                 coil.disk.DiskCache.Builder()

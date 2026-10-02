@@ -1843,6 +1843,11 @@
     <string name="upload_crop_artwork_title">Borítókép körülvágása</string>
     <string name="upload_crop_artwork_desc">Igazítsd és vágd körül a képet a számodhoz</string>
     <string name="playlist_crop_artwork_desc">Igazítsd és vágd körül a képet a lejátszási listádhoz</string>
+    <string name="gif_cover_preview_title">Animált GIF borító</string>
+    <string name="gif_cover_preview_note">A GIF animált borítóként fog ismétlődni. A körülvágás nem érhető el GIF-eknél – a nem négyzet alakú képek automatikusan középre kerülnek. Az animáció a KittyTune-ban látható; a SoundCloud az első képkockát jeleníti meg.</string>
+    <string name="gif_cover_set_btn">Borító beállítása</string>
+    <string name="gif_cover_set_done">Animált GIF borító beállítva</string>
+    <string name="gif_cover_too_large">A GIF túl nagy — max. %1$d MB</string>
     <string name="upload_crop_rotate_90">90°</string>
     <string name="upload_crop_free_rotate">Szabad forgatás</string>
     <string name="upload_crop_reset">Visszaállítás</string>

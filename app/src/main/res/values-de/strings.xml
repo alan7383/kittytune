@@ -2034,6 +2034,11 @@
     <string name="upload_crop_artwork_title">Cover zuschneiden</string>
     <string name="upload_crop_artwork_desc">Passe das Bild für deinen Titel an und schneide es zu</string>
     <string name="playlist_crop_artwork_desc">Passe das Bild für deine Playlist an und schneide es zu</string>
+    <string name="gif_cover_preview_title">Animiertes GIF-Cover</string>
+    <string name="gif_cover_preview_note">Das GIF wird als animiertes Cover in einer Schleife abgespielt. Zuschneiden ist für GIFs nicht verfügbar – nicht-quadratische Bilder werden automatisch zentriert. Die Animation wird in KittyTune abgespielt; SoundCloud zeigt das erste Bild.</string>
+    <string name="gif_cover_set_btn">Cover festlegen</string>
+    <string name="gif_cover_set_done">Animiertes GIF-Cover festgelegt</string>
+    <string name="gif_cover_too_large">GIF ist zu groß – max. %1$d MB</string>
     <string name="upload_crop_rotate_90">90°</string>
     <string name="upload_crop_free_rotate">Freie Drehung</string>
     <string name="upload_crop_reset">Zurücksetzen</string>

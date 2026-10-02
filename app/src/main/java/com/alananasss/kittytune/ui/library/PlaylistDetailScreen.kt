@@ -8,6 +8,8 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import android.view.HapticFeedbackConstants
+import android.widget.Toast
+import com.alananasss.kittytune.utils.GifUtils
 import kotlinx.coroutines.flow.first
 import com.alananasss.kittytune.data.HistoryRepository
 import androidx.activity.compose.BackHandler
@@ -378,11 +380,29 @@ fun PlaylistDetailScreen(
 
     var tempCoverBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var showCoverCropDialog by remember { mutableStateOf(false) }
+    var pendingGifUri by remember { mutableStateOf<Uri?>(null) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             if (uri != null && stableId != 0L) {
+                // animated GIF: keep the original animation instead of flattening it to
+                // the first frame. the bytes are saved as-is (no re-encode, no quality loss) 
+                // and played back by the Coil animated decoder, so the crop dialog
+                // (bitmap-only) is intentionally skipped for GIFs
+                if (GifUtils.isGif(context.contentResolver, uri)) {
+                    val size = GifUtils.contentSize(context.contentResolver, uri)
+                    if (size < 0 || GifUtils.isAcceptableGifCoverSize(size)) {
+                        pendingGifUri = uri
+                    } else {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.gif_cover_too_large, GifUtils.MAX_GIF_COVER_MB),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                    return@rememberLauncherForActivityResult
+                }
                 try {
                     val bitmap = if (Build.VERSION.SDK_INT < 28) {
                         @Suppress("DEPRECATION")
@@ -427,6 +447,34 @@ fun PlaylistDetailScreen(
                 }
                 showCoverCropDialog = false
                 tempCoverBitmap = null
+            }
+        )
+    }
+
+    if (pendingGifUri != null) {
+        GifCoverPreviewDialog(
+            uri = pendingGifUri!!,
+            onDismiss = { pendingGifUri = null },
+            onConfirm = {
+                if (stableId != 0L) {
+                    // saves the original GIF bytes byte-for-byte; the first frame is
+                    // uploaded to SoundCloud as a static JPEG fallback
+                    DownloadManager.updatePlaylistCover(
+                        playlistId = stableId,
+                        uri = pendingGifUri!!,
+                        title = playlistTitle,
+                        artist = playlistUser?.username
+                    )
+                    val newPath = java.io.File(context.filesDir, "playlist_cover_${stableId}.jpg").absolutePath
+                    playlistCover = newPath
+                    coverUpdateKey = System.currentTimeMillis()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.gif_cover_set_done),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                pendingGifUri = null
             }
         )
     }

@@ -2145,6 +2145,11 @@
     <string name="upload_crop_artwork_title">Crop artwork</string>
     <string name="upload_crop_artwork_desc">Adjust and crop the image for your track</string>
     <string name="playlist_crop_artwork_desc">Adjust and crop the image for your playlist</string>
+    <string name="gif_cover_preview_title">Animated GIF cover</string>
+    <string name="gif_cover_preview_note">The GIF will loop as an animated cover. Cropping isn\'t available for GIFs — non-square images are center-cropped automatically. Animation plays in KittyTune; SoundCloud shows the first frame.</string>
+    <string name="gif_cover_set_btn">Set cover</string>
+    <string name="gif_cover_set_done">Animated GIF cover set</string>
+    <string name="gif_cover_too_large">GIF is too large — max %1$d MB</string>
     <string name="upload_crop_rotate_90">90°</string>
     <string name="upload_crop_free_rotate">Free rotation</string>
     <string name="upload_crop_reset">Reset</string>

@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.utils.GifUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -66,16 +67,28 @@ fun CoverViewerOverlay() {
     val context = LocalContext.current
     val clipboardManager = LocalClipboard.current
 
+    // MIME type of the next save target; refreshed before every launch so a GIF
+    // cover is saved as image/gif while regular covers stay image/jpeg
+    var downloadMime by remember { mutableStateOf("image/jpeg") }
+
     val createDocumentLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("image/jpeg")
+        contract = ActivityResultContracts.CreateDocument(downloadMime)
     ) { uri ->
         if (uri != null && url != null) {
             scope.launch(Dispatchers.IO) {
                 try {
                     context.contentResolver.openOutputStream(uri)?.use { output ->
-                        val u = URL(url)
-                        u.openStream().use { input ->
-                            input.copyTo(output)
+                        if (url.startsWith("/")) {
+                            // Local cover file (e.g. an animated GIF playlist cover)
+                            // copy the original bytes so the animation is preserved
+                            java.io.File(url).inputStream().use { input ->
+                                input.copyTo(output)
+                            }
+                        } else {
+                            val u = URL(url)
+                            u.openStream().use { input ->
+                                input.copyTo(output)
+                            }
                         }
                     }
                     withContext(Dispatchers.Main) { 
@@ -173,7 +186,12 @@ fun CoverViewerOverlay() {
                         Button(shapes = ButtonDefaults.shapes(), 
                             onClick = {
                                 url?.let {
-                                    createDocumentLauncher.launch("cover_${System.currentTimeMillis()}.jpg")
+                                    val isLocalGif = it.startsWith("/") &&
+                                        GifUtils.isGifFile(java.io.File(it))
+                                    downloadMime = if (isLocalGif) "image/gif" else "image/jpeg"
+                                    createDocumentLauncher.launch(
+                                        "cover_${System.currentTimeMillis()}${if (isLocalGif) ".gif" else ".jpg"}"
+                                    )
                                 }
                             }
                         ) {

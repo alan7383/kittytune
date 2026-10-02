@@ -1898,6 +1898,11 @@
     <string name="upload_crop_artwork_title">Cắt ảnh bìa</string>
     <string name="upload_crop_artwork_desc">Điều chỉnh và cắt ảnh cho bài hát của bạn</string>
     <string name="playlist_crop_artwork_desc">Điều chỉnh và cắt ảnh cho danh sách phát của bạn</string>
+    <string name="gif_cover_preview_title">Ảnh bìa GIF động</string>
+    <string name="gif_cover_preview_note">GIF sẽ lặp lại dưới dạng ảnh bìa động. Không thể cắt ảnh cho GIF — ảnh không vuông sẽ tự động căn giữa. Ảnh động phát trong KittyTune; SoundCloud sẽ hiển thị khung hình đầu tiên.</string>
+    <string name="gif_cover_set_btn">Đặt ảnh bìa</string>
+    <string name="gif_cover_set_done">Đã đặt ảnh bìa GIF động</string>
+    <string name="gif_cover_too_large">GIF quá lớn — tối đa %1$d MB</string>
     <string name="upload_crop_rotate_90">90°</string>
     <string name="upload_crop_free_rotate">Xoay tự do</string>
     <string name="upload_crop_reset">Đặt lại</string>
