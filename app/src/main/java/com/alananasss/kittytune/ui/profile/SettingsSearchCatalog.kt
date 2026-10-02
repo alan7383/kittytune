@@ -60,6 +60,7 @@ internal fun rememberSettingsSearchCatalog(
         var achievementPopups = prefs.getAchievementPopupsEnabled()
         var autoUpdate = prefs.getAutoUpdateEnabled()
         var rememberSearchFilter = prefs.getRememberSearchFilter()
+        var showPlaylistTotalDuration = prefs.getShowPlaylistTotalDuration()
         var customFontEnabled = prefs.getCustomFontEnabled()
         var explorerGridLayout = prefs.getExplorerGridLayout()
         var showHomeListeningStats = prefs.getShowHomeListeningStats()
@@ -932,6 +933,24 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     rememberSearchFilter = it
                     prefs.setRememberSearchFilter(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_show_playlist_total_duration,
+                subtitleRes = R.string.pref_show_playlist_total_duration_sub,
+                categoryName = catMisc,
+                icon = Icons.Rounded.Schedule,
+                route = "misc_settings",
+                highlightKey = "pref_show_playlist_total_duration",
+                keywords = listOf("duration", "playtime", "playlist", "duree", "temps"),
+                hasSwitch = true,
+                switchState = showPlaylistTotalDuration,
+                onSwitchChange = {
+                    showPlaylistTotalDuration = it
+                    prefs.setShowPlaylistTotalDuration(it)
                     onPreferenceChange()
                 }
             ),

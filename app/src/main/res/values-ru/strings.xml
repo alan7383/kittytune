@@ -1000,6 +1000,8 @@
     <string name="pref_auto_update_sub">Проверять наличие новых версий при запуске</string>
     <string name="pref_remember_search_filter">Запоминать фильтр поиска</string>
     <string name="pref_remember_search_filter_sub">Сохранять последний выбранный фильтр (Артисты, Плейлисты…) при открытии поиска</string>
+    <string name="pref_show_playlist_total_duration">Показывать общую длительность плейлиста</string>
+    <string name="pref_show_playlist_total_duration_sub">Отображать общую продолжительность рядом с количеством треков в плейлистах</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1302,6 +1304,16 @@
     <string name="listening_stats_duration_hr_min">%1$d ч. %2$d мин.</string>
     <string name="listening_stats_duration_min_sec">%1$d мин %2$d с</string>
     <string name="listening_stats_duration_sec">%1$d с</string>
+    <string name="playlist_duration_hours">%1$d ч.</string>
+    <string name="playlist_duration_days">%1$d дн.</string>
+    <string name="playlist_duration_months">%1$d мес.</string>
+    <string name="playlist_duration_months_days">%1$d мес. %2$d дн.</string>
+    <string name="playlist_duration_year">%1$d г.</string>
+    <string name="playlist_duration_years">%1$d г.</string>
+    <string name="playlist_duration_year_months">%1$d г. %2$d мес.</string>
+    <string name="playlist_duration_years_months">%1$d г. %2$d мес.</string>
+    <string name="playlist_duration_year_days">%1$d г. %2$d дн.</string>
+    <string name="playlist_duration_years_days">%1$d г. %2$d дн.</string>
 
     <string name="stats_style_overview">Обзор</string>
     <string name="stats_style_compact">Компактный</string>

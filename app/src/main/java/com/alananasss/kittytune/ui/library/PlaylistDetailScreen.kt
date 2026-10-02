@@ -11,6 +11,7 @@ import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import com.alananasss.kittytune.utils.GifUtils
 import kotlinx.coroutines.flow.first
+import com.alananasss.kittytune.utils.formatPlaylistTotalDuration
 import com.alananasss.kittytune.data.HistoryRepository
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -115,6 +116,7 @@ fun PlaylistDetailScreen(
     val view = LocalView.current
     val density = LocalDensity.current
     val prefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
+    val showTotalDuration by prefs.getShowPlaylistTotalDurationFlow().collectAsState(initial = prefs.getShowPlaylistTotalDuration())
     val storageTrigger by DownloadManager.storageTrigger.collectAsState()
     val isYoutubeRadio = playlistId.startsWith("yt_radio:")
     val isGuest = remember { TokenManager(context).isGuestMode() }
@@ -1712,13 +1714,17 @@ fun PlaylistDetailScreen(
                                     }
                                     Spacer(Modifier.height(8.dp))
 
+                                    val totalDurationMs = remember(tracksToDisplay) { tracksToDisplay.sumOf { it.durationMs ?: 0L } }
+                                    val durationText = if (showTotalDuration) formatPlaylistTotalDuration(context.resources, totalDurationMs) else ""
+
                                     val trackCountText = when {
                                         isArtistView -> {
                                             val count = tracksToDisplay.size
                                             if (count == 0 && playlistSearchQuery.isNotEmpty()) {
                                                 stringResource(R.string.no_tracks_found_filter)
                                             } else {
-                                                stringResource(R.string.new_releases_popular_tracks) + " • " + stringResource(R.string.playlist_num_tracks, count)
+                                                val base = stringResource(R.string.new_releases_popular_tracks) + " • " + stringResource(R.string.playlist_num_tracks, count)
+                                                if (durationText.isNotEmpty()) "$base • $durationText" else base
                                             }
                                         }
                                         playlistId.startsWith("yt_radio:") -> stringResource(R.string.radio) + " • YouTube"
@@ -1728,7 +1734,8 @@ fun PlaylistDetailScreen(
                                             if (count == 0 && playlistSearchQuery.isNotEmpty()) {
                                                 stringResource(R.string.no_tracks_found_filter)
                                             } else {
-                                                stringResource(R.string.playlist_num_tracks, count)
+                                                val base = stringResource(R.string.playlist_num_tracks, count)
+                                                if (durationText.isNotEmpty()) "$base • $durationText" else base
                                             }
                                         }
                                     }

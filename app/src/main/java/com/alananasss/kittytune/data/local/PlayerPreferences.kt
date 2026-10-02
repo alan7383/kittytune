@@ -454,6 +454,8 @@ class PlayerPreferences(context: Context) {
         // Settings search history
         private const val KEY_SETTINGS_RECENT_SEARCHES = "settings_recent_searches_json"
         const val SETTINGS_RECENT_SEARCHES_MAX = 10
+
+        const val KEY_SHOW_PLAYLIST_TOTAL_DURATION = "show_playlist_total_duration"
     }
 
     private fun getSafeFloat(key: String, default: Float): Float {
@@ -2083,6 +2085,20 @@ class PlayerPreferences(context: Context) {
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == KEY_SHOW_HOME_YOUR_MIX) {
                 trySend(getShowHomeYourMix())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
+    fun getShowPlaylistTotalDuration(): Boolean = prefs.getBoolean(KEY_SHOW_PLAYLIST_TOTAL_DURATION, true)
+    fun setShowPlaylistTotalDuration(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_PLAYLIST_TOTAL_DURATION, enabled) }
+
+    fun getShowPlaylistTotalDurationFlow(): kotlinx.coroutines.flow.Flow<Boolean> = kotlinx.coroutines.flow.callbackFlow {
+        trySend(getShowPlaylistTotalDuration())
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_SHOW_PLAYLIST_TOTAL_DURATION) {
+                trySend(getShowPlaylistTotalDuration())
             }
         }
         prefs.registerOnSharedPreferenceChangeListener(listener)

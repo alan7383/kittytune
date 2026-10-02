@@ -1000,6 +1000,8 @@
     <string name="pref_auto_update_sub">Verzióellenőrzés indításkor</string>
     <string name="pref_remember_search_filter">Keresési szűrő megjegyzése</string>
     <string name="pref_remember_search_filter_sub">Az utoljára kiválasztott szűrő (Előadók, Lejátszási listák…) megőrzése a keresés megnyitásakor</string>
+    <string name="pref_show_playlist_total_duration">Lejátszási lista teljes időtartamának megjelenítése</string>
+    <string name="pref_show_playlist_total_duration_sub">Teljes időtartam megjelenítése a zeneszámok száma mellett a lejátszási listákban</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1307,6 +1309,16 @@
     <string name="listening_stats_duration_hr_min">%1$dó %2$dp</string>
     <string name="listening_stats_duration_min_sec">%1$dp %2$dmp</string>
     <string name="listening_stats_duration_sec">%1$dmp</string>
+    <string name="playlist_duration_hours">%1$dó</string>
+    <string name="playlist_duration_days">%1$dn</string>
+    <string name="playlist_duration_months">%1$d hó</string>
+    <string name="playlist_duration_months_days">%1$d hó %2$dn</string>
+    <string name="playlist_duration_year">%1$d év</string>
+    <string name="playlist_duration_years">%1$d év</string>
+    <string name="playlist_duration_year_months">%1$d év %2$d hó</string>
+    <string name="playlist_duration_years_months">%1$d év %2$d hó</string>
+    <string name="playlist_duration_year_days">%1$d év %2$dn</string>
+    <string name="playlist_duration_years_days">%1$d év %2$dn</string>
 
     <string name="stats_style_overview">Áttekintés</string>
     <string name="stats_style_compact">Tömör</string>

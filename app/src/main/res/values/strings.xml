@@ -1397,6 +1397,8 @@
     <string name="pref_auto_update_sub">Check for new versions on startup</string>
     <string name="pref_remember_search_filter">Remember search filter</string>
     <string name="pref_remember_search_filter_sub">Keep the last selected filter (Artists, Playlists…) when opening search</string>
+    <string name="pref_show_playlist_total_duration">Show playlist total playtime</string>
+    <string name="pref_show_playlist_total_duration_sub">Display the total duration next to the track count in playlists</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
@@ -1732,6 +1734,16 @@
     <string name="listening_stats_duration_hr_min">%1$dh %2$dm</string>
     <string name="listening_stats_duration_min_sec">%1$dm %2$ds</string>
     <string name="listening_stats_duration_sec">%1$ds</string>
+    <string name="playlist_duration_hours">%1$dh</string>
+    <string name="playlist_duration_days">%1$dd</string>
+    <string name="playlist_duration_months">%1$dmo</string>
+    <string name="playlist_duration_months_days">%1$dmo %2$dd</string>
+    <string name="playlist_duration_year">%1$dy</string>
+    <string name="playlist_duration_years">%1$dy</string>
+    <string name="playlist_duration_year_months">%1$dy %2$dmo</string>
+    <string name="playlist_duration_years_months">%1$dy %2$dmo</string>
+    <string name="playlist_duration_year_days">%1$dy %2$dd</string>
+    <string name="playlist_duration_years_days">%1$dy %2$dd</string>
 
     <string name="stats_style_overview">Overview</string>
     <string name="stats_style_compact">Compact</string>

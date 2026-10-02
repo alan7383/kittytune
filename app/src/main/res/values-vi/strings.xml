@@ -1194,6 +1194,8 @@
     <string name="pref_auto_update_sub">Kiểm tra phiên bản mới mỗi khi mở ứng dụng</string>
     <string name="pref_remember_search_filter">Ghi nhớ bộ lọc tìm kiếm</string>
     <string name="pref_remember_search_filter_sub">Giữ bộ lọc đã chọn gần nhất (Nghệ sĩ, Danh sách phát…) khi mở tìm kiếm</string>
+    <string name="pref_show_playlist_total_duration">Hiển thị tổng thời lượng phát của danh sách phát</string>
+    <string name="pref_show_playlist_total_duration_sub">Hiển thị tổng thời lượng bên cạnh số lượng bài hát trong danh sách phát</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1496,6 +1498,16 @@
     <string name="listening_stats_duration_hr_min">%1$d giờ %2$d phút</string>
     <string name="listening_stats_duration_min_sec">%1$d phút %2$d giây</string>
     <string name="listening_stats_duration_sec">%1$d giây</string>
+    <string name="playlist_duration_hours">%1$d giờ</string>
+    <string name="playlist_duration_days">%1$d ngày</string>
+    <string name="playlist_duration_months">%1$d tháng</string>
+    <string name="playlist_duration_months_days">%1$d tháng %2$d ngày</string>
+    <string name="playlist_duration_year">%1$d năm</string>
+    <string name="playlist_duration_years">%1$d năm</string>
+    <string name="playlist_duration_year_months">%1$d năm %2$d tháng</string>
+    <string name="playlist_duration_years_months">%1$d năm %2$d tháng</string>
+    <string name="playlist_duration_year_days">%1$d năm %2$d ngày</string>
+    <string name="playlist_duration_years_days">%1$d năm %2$d ngày</string>
 
     <string name="stats_style_overview">Tổng quan</string>
     <string name="stats_style_compact">Gọn</string>

@@ -20,8 +20,10 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Repeat
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Tag
 import androidx.compose.material.icons.rounded.Verified
+import com.alananasss.kittytune.utils.formatPlaylistTotalDuration
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -229,6 +231,29 @@ fun PlaylistDetailsSheet(
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     text = stringResource(R.string.playlist_num_tracks, count),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        val totalDurationMs = remember(playlist) {
+                            playlist.tracks.orEmpty().mapNotNull { it.durationMs }.sum()
+                        }
+                        val durationText = remember(totalDurationMs) {
+                            if (totalDurationMs > 0L) formatPlaylistTotalDuration(context.resources, totalDurationMs) else ""
+                        }
+                        if (durationText.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.Schedule,
+                                    null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = durationText,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

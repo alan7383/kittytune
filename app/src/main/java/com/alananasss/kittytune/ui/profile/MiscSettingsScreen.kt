@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.AlertDialog
@@ -50,6 +51,7 @@ fun MiscSettingsScreen(
     var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
     var rememberSearchFilter by remember { mutableStateOf(prefs.getRememberSearchFilter()) }
+    var showPlaylistTotalDuration by remember { mutableStateOf(prefs.getShowPlaylistTotalDuration()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showStartDialog by remember { mutableStateOf(false) }
 
@@ -105,7 +107,8 @@ fun MiscSettingsScreen(
             "pref_language" to 0,
             "pref_start_screen" to 0,
             "pref_auto_update" to 0,
-            "pref_remember_search_filter" to 0
+            "pref_remember_search_filter" to 0,
+            "pref_show_playlist_total_duration" to 0
         )
     )
 
@@ -185,6 +188,21 @@ fun MiscSettingsScreen(
                                     prefs.setRememberSearchFilter(it)
                                 },
                                 highlightKey = "pref_remember_search_filter"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_show_playlist_total_duration),
+                                subtitle = stringResource(R.string.pref_show_playlist_total_duration_sub),
+                                icon = Icons.Rounded.Schedule,
+                                hasSwitch = true,
+                                switchState = showPlaylistTotalDuration,
+                                onSwitchChange = {
+                                    showPlaylistTotalDuration = it
+                                    prefs.setShowPlaylistTotalDuration(it)
+                                },
+                                highlightKey = "pref_show_playlist_total_duration"
                             )
                         }
                     )

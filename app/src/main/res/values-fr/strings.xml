@@ -1194,6 +1194,8 @@
     <string name="pref_auto_update_sub">Vérifier au démarrage de l\'app</string>
     <string name="pref_remember_search_filter">Mémoriser le filtre de recherche</string>
     <string name="pref_remember_search_filter_sub">Conserver le dernier filtre sélectionné (Artistes, Playlists…) lors de l\'ouverture de la recherche</string>
+    <string name="pref_show_playlist_total_duration">Afficher la durée totale de la playlist</string>
+    <string name="pref_show_playlist_total_duration_sub">Affiche la durée totale à côté du nombre de titres dans les playlists</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- ACHIEVEMENTS                                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1536,6 +1538,16 @@
     <string name="listening_stats_duration_hr_min">%1$dh %2$dm</string>
     <string name="listening_stats_duration_min_sec">%1$dm %2$ds</string>
     <string name="listening_stats_duration_sec">%1$ds</string>
+    <string name="playlist_duration_hours">%1$dh</string>
+    <string name="playlist_duration_days">%1$dj</string>
+    <string name="playlist_duration_months">%1$d mois</string>
+    <string name="playlist_duration_months_days">%1$d mois %2$dj</string>
+    <string name="playlist_duration_year">%1$d an</string>
+    <string name="playlist_duration_years">%1$d ans</string>
+    <string name="playlist_duration_year_months">%1$d an %2$d mois</string>
+    <string name="playlist_duration_years_months">%1$d ans %2$d mois</string>
+    <string name="playlist_duration_year_days">%1$d an %2$dj</string>
+    <string name="playlist_duration_years_days">%1$d ans %2$dj</string>
 
     <string name="stats_style_overview">Aperçu</string>
     <string name="stats_style_compact">Compact</string>
