@@ -122,6 +122,9 @@ interface SoundCloudApi {
     @GET("resolve")
     suspend fun resolveUrl(@Query("url") url: String): JsonObject
 
+    @GET("resolve")
+    suspend fun resolvePlaylist(@Query("url") url: String): Playlist
+
     @GET
     suspend fun getStreamUrl(@Url url: String): StreamUrlResponse
 

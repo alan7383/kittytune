@@ -23,6 +23,7 @@ object HistoryRepository {
             database.downloadDao().deleteHistoryItem("playlist:0")
             database.downloadDao().deleteHistoryItem("playlist:history")
             database.downloadDao().deleteHistoryItem("history")
+            database.downloadDao().deleteMixHistory()
         }
     }
 
@@ -49,10 +50,13 @@ object HistoryRepository {
     }
 
     fun addToHistory(playlist: Playlist, isStation: Boolean = false, isProfile: Boolean = false) {
-        if ((playlist.id == 0L && playlist.permalinkUrl.isNullOrBlank() && playlist.urn.isNullOrBlank()) || playlist.title.equals(
-                "history",
-                ignoreCase = true
-            ) || playlist.permalinkUrl == "history"
+        if ((playlist.id == 0L && playlist.permalinkUrl.isNullOrBlank() && playlist.urn.isNullOrBlank()) ||
+            playlist.title.equals("history", ignoreCase = true) ||
+            playlist.permalinkUrl == "history" ||
+            playlist.permalinkUrl == "your_mix" ||
+            playlist.urn == "your_mix" ||
+            playlist.permalinkUrl?.contains("your_mix") == true ||
+            playlist.urn?.contains("your_mix") == true
         ) {
             return
         }
@@ -62,6 +66,19 @@ object HistoryRepository {
             val isSpotifyArtist = isProfile && (rawNav.contains("spotify") || rawNav.startsWith("spotify_artist:"))
             val isSpotifyRadio = isStation && (rawNav.contains("spotify") || rawNav.startsWith("spotify_radio:"))
             val isSpotifyItem = rawNav.contains("spotify") || rawNav.startsWith("spotify_")
+            val isSystemPlaylist = rawNav.startsWith("system_playlist:") ||
+                    rawNav.startsWith("soundcloud:system-playlists:") ||
+                    playlist.urn?.startsWith("soundcloud:system-playlists:") == true ||
+                    playlist.permalinkUrl?.contains("system-playlists") == true ||
+                    playlist.permalinkUrl?.contains("your-playback") == true
+
+            val systemPlaylistUrn = when {
+                playlist.urn?.startsWith("soundcloud:system-playlists:") == true -> playlist.urn
+                rawNav.startsWith("system_playlist:") -> rawNav.removePrefix("system_playlist:")
+                rawNav.startsWith("soundcloud:system-playlists:") -> rawNav
+                else -> playlist.urn ?: rawNav
+            }
+            val systemPlaylistId = "system_playlist:$systemPlaylistUrn"
 
             val (stringId, type) = when {
                 isSpotifyArtist -> {
@@ -75,6 +92,7 @@ object HistoryRepository {
                     if (rawNav.contains("album")) "spotify:album:$clean" to "PLAYLIST"
                     else "spotify:playlist:$clean" to "PLAYLIST"
                 }
+                isSystemPlaylist -> systemPlaylistId to "PLAYLIST"
                 isProfile -> "profile:${playlist.id}" to "PROFILE"
                 isYoutubeRadio -> playlist.permalinkUrl!! to "STATION"
                 isStation -> "station:${playlist.id}" to "STATION"
@@ -109,12 +127,13 @@ object HistoryRepository {
 
             val item = HistoryItem(
                 id = stringId,
-                numericId = playlist.id,
+                numericId = if (isSystemPlaylist && playlist.id == 0L) kotlin.math.abs(systemPlaylistUrn.hashCode().toLong()) else playlist.id,
                 title = finalTitle,
                 subtitle = finalSubtitle,
                 imageUrl = resolvedImageUrl,
                 type = type,
-                isVerified = playlist.user?.verified == true
+                isVerified = playlist.user?.verified == true,
+                originalUrl = if (isSystemPlaylist) systemPlaylistId else playlist.permalinkUrl
             )
             database.downloadDao().insertHistory(item)
         }
@@ -132,7 +151,16 @@ object HistoryRepository {
     }
 
     fun getHistory() = database.downloadDao().getHistory().map { items ->
-        items.map { item ->
+        items.filterNot { item ->
+            item.originalUrl == "your_mix" ||
+            item.originalUrl?.contains("your_mix") == true ||
+            item.id == "your_mix" ||
+            item.id.contains("your_mix") ||
+            item.title.equals("your mix", ignoreCase = true) ||
+            item.title.equals("ton mix", ignoreCase = true) ||
+            item.title.equals("dein mix", ignoreCase = true) ||
+            item.title.equals("твой микс", ignoreCase = true)
+        }.map { item ->
             if (item.type == "PLAYLIST" && item.numericId < 0) {
                 val local = database.downloadDao().getPlaylist(item.numericId)
                 if (local?.localCoverPath?.isNotEmpty() == true) {

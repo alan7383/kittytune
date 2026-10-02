@@ -232,9 +232,38 @@ fun LibraryScreen(
         if (local.isNotEmpty()) {
             return local.map { it.toTrack(artworkOverride = it.artworkUrl) }
         }
+        val api = RetrofitClient.create(context)
+        val permalink = playlist.permalinkUrl ?: playlist.permalink
+        if (playlist.urn?.startsWith("soundcloud:system-playlists:") == true) {
+            return try {
+                val pl = api.getSystemPlaylist(playlist.urn!!)
+                val raw = pl.tracks ?: emptyList()
+                val incomplete = raw.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
+                if (incomplete.isNotEmpty()) {
+                    val map = api.getTracksByIds(incomplete.joinToString(",")).associateBy { it.id }
+                    raw.map { map[it.id] ?: it }
+                } else raw
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        if (permalink != null && (permalink.contains("discover/sets/") || permalink.contains("your-playback") || permalink.contains("system-playlists"))) {
+            return try {
+                val fullUrl = if (permalink.startsWith("http")) permalink else "https://soundcloud.com/${permalink.removePrefix("/")}"
+                val pl = api.resolvePlaylist(fullUrl)
+                val raw = pl.tracks ?: emptyList()
+                val incomplete = raw.filter { it.title.isNullOrBlank() || it.user == null }.map { it.id }
+                if (incomplete.isNotEmpty()) {
+                    val map = api.getTracksByIds(incomplete.joinToString(",")).associateBy { it.id }
+                    raw.map { map[it.id] ?: it }
+                } else raw
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
         if (playlist.id > 0) {
             return try {
-                RetrofitClient.create(context).getPlaylist(playlist.id).tracks ?: emptyList()
+                api.getPlaylist(playlist.id).tracks ?: emptyList()
             } catch (e: Exception) {
                 emptyList()
             }
@@ -2106,6 +2135,9 @@ fun LibraryContentGrid(
                             permalink?.contains("track-stations:") == true -> {
                                 val stationId = permalink.substringAfter("track-stations:").substringBefore("?").substringBefore("/").substringBefore("&")
                                 "station:$stationId"
+                            }
+                            permalink != null && (permalink.contains("discover/sets/") || permalink.contains("system-playlists") || permalink.contains("your-playback")) -> {
+                                "system_playlist:${android.net.Uri.encode(permalink)}"
                             }
                             item.playlist.id < 0 -> "local_playlist:${item.playlist.id}"
                             else -> item.playlist.id.toString()

@@ -513,6 +513,23 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                     val effectiveCover = local.localCoverPath ?: if (localCoverFile.exists()) localCoverFile.absolutePath else null
                     val finalArtwork =
                         if (!effectiveCover.isNullOrEmpty()) effectiveCover else local.artworkUrl
+                    val isSystemPl = local.permalinkUrl?.contains("discover/sets/") == true ||
+                            local.permalinkUrl?.contains("system-playlists") == true ||
+                            local.permalinkUrl?.contains("your-playback") == true
+                    val reconstructedUrn = when {
+                        isSystemPl && local.permalinkUrl != null -> {
+                            if (local.permalinkUrl.contains("your-playback")) {
+                                val yr = local.permalinkUrl.substringAfterLast(":", "").takeIf { it.isNotEmpty() }
+                                val userId = com.alananasss.kittytune.data.local.PlayerPreferences(app).getCachedUserId()
+                                if (userId != 0L && yr != null) "soundcloud:system-playlists:your-playback:$userId:$yr"
+                                else "soundcloud:system-playlists:${local.permalinkUrl.substringAfter("discover/sets/")}"
+                            } else {
+                                "soundcloud:system-playlists:${local.permalinkUrl.substringAfter("discover/sets/")}"
+                            }
+                        }
+                        else -> null
+                    }
+
                     val p = Playlist(
                         id = local.id,
                         title = local.title,
@@ -522,7 +539,8 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                         user = User(0, local.artist, null),
                         tracks = null,
                         isAlbum = local.isAlbum,
-                        permalinkUrl = local.permalinkUrl
+                        permalinkUrl = local.permalinkUrl,
+                        urn = reconstructedUrn
                     )
 
                     val key = LibraryItem.getPlaylistCanonicalKey(p)
@@ -568,10 +586,33 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         }
 
         val filteredOnlineItems = updatedOnlineItems.filter { item ->
-            if (item is LibraryItem.PlaylistItem) !localIds.contains(item.playlist.id) && !deletedIds.contains(item.playlist.id) else true
+            if (item is LibraryItem.PlaylistItem) {
+                val isSystem = item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true ||
+                        item.playlist.permalinkUrl?.contains("discover/sets/") == true ||
+                        item.playlist.permalinkUrl?.contains("your-playback") == true
+                if (isSystem) !deletedIds.contains(item.playlist.id)
+                else !localIds.contains(item.playlist.id) && !deletedIds.contains(item.playlist.id)
+            } else true
         }
 
-        val filteredLocalItems = updatedLocalItems
+        val onlineSystemIds = updatedOnlineItems
+            .filterIsInstance<LibraryItem.PlaylistItem>()
+            .filter {
+                it.playlist.urn?.startsWith("soundcloud:system-playlists:") == true ||
+                        it.playlist.permalinkUrl?.contains("discover/sets/") == true ||
+                        it.playlist.permalinkUrl?.contains("your-playback") == true
+            }
+            .map { it.playlist.id }
+            .toSet()
+
+        val filteredLocalItems = updatedLocalItems.filter { item ->
+            if (item is LibraryItem.PlaylistItem) {
+                val isSystem = item.playlist.urn?.startsWith("soundcloud:system-playlists:") == true ||
+                        item.playlist.permalinkUrl?.contains("discover/sets/") == true ||
+                        item.playlist.permalinkUrl?.contains("your-playback") == true
+                if (isSystem && onlineSystemIds.contains(item.playlist.id)) false else true
+            } else true
+        }
 
         val folderItems = allFoldersCache.map { folder ->
             val childPlaylistsCount = (filteredOnlineItems + filteredLocalItems).count { item ->

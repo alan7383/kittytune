@@ -80,8 +80,15 @@ class PlaylistInfoViewModel(application: Application) : AndroidViewModel(applica
                 coroutineScope {
                     val playlistDef = async {
                         try {
-                            if (isSystemPlaylist) api.getSystemPlaylist(systemPlaylistUrn)
-                            else api.getPlaylist(playlistId)
+                            if (isSystemPlaylist) {
+                                val decodedUrn = try { java.net.URLDecoder.decode(systemPlaylistUrn, "UTF-8") } catch (_: Exception) { systemPlaylistUrn }
+                                if (decodedUrn.startsWith("http") || decodedUrn.contains("soundcloud.com") || decodedUrn.contains("discover/sets")) {
+                                    val fullUrl = if (decodedUrn.startsWith("http")) decodedUrn else "https://soundcloud.com/${decodedUrn.removePrefix("/")}"
+                                    api.resolvePlaylist(fullUrl)
+                                } else {
+                                    api.getSystemPlaylist(decodedUrn)
+                                }
+                            } else api.getPlaylist(playlistId)
                         } catch (e: Exception) {
                             null
                         }

@@ -338,6 +338,23 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                 val targetNavId = when {
                     historyItem.id == "likes" -> "likes"
                     historyItem.id == "downloads" -> "downloads"
+                    historyItem.id.startsWith("system_playlist:") -> historyItem.id
+                    historyItem.id.startsWith("soundcloud:system-playlists:") -> "system_playlist:${historyItem.id}"
+                    historyItem.originalUrl?.startsWith("system_playlist:") == true -> historyItem.originalUrl
+                    historyItem.originalUrl?.startsWith("soundcloud:system-playlists:") == true -> "system_playlist:${historyItem.originalUrl}"
+                    historyItem.originalUrl?.contains("your-playback") == true || historyItem.originalUrl?.contains("system-playlists") == true -> {
+                        val url = historyItem.originalUrl
+                        if (url.startsWith("system_playlist:")) url else "system_playlist:$url"
+                    }
+                    historyItem.title.contains("Playback", ignoreCase = true) || historyItem.title.contains("Wrapped", ignoreCase = true) -> {
+                        val yr = Regex("\\b(20\\d\\d)\\b").find(historyItem.title)?.value ?: "2025"
+                        val cachedUserId = com.alananasss.kittytune.data.local.PlayerPreferences(app).getCachedUserId().takeIf { it != 0L } ?: 0L
+                        if (cachedUserId != 0L) {
+                            "system_playlist:soundcloud:system-playlists:your-playback:$cachedUserId:$yr"
+                        } else {
+                            historyItem.numericId.toString()
+                        }
+                    }
                     historyItem.id.startsWith("yt_radio:") -> historyItem.id
                     historyItem.id.startsWith("spotify_artist:") -> historyItem.id
                     historyItem.id.startsWith("spotify_radio:") -> historyItem.id
@@ -391,7 +408,11 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                     val dbContextsToCache = resolved.map { ctx ->
                         HistoryItem(
                             id = ctx.id,
-                            numericId = ctx.targetNavId.substringAfter(":").toLongOrNull() ?: 0L,
+                            numericId = if (ctx.id.startsWith("system_playlist:")) {
+                                kotlin.math.abs(ctx.id.hashCode().toLong())
+                            } else {
+                                ctx.targetNavId.substringAfter(":").toLongOrNull() ?: 0L
+                            },
                             title = ctx.title,
                             subtitle = ctx.subtitle,
                             imageUrl = ctx.imageUrl ?: "",
@@ -401,7 +422,8 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                                 else -> "PLAYLIST"
                             },
                             isVerified = ctx.isVerified,
-                            timestamp = ctx.playedAt
+                            timestamp = ctx.playedAt,
+                            originalUrl = if (ctx.id.startsWith("system_playlist:")) ctx.id else null
                         )
                     }
                     try {
@@ -581,6 +603,32 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                         type = HistoryContextType.LIKES,
                         playedAt = playedAt,
                         targetNavId = "likes"
+                    )
+                }
+
+                urn.startsWith("soundcloud:system-playlists:your-playback:") || urn.startsWith("soundcloud:system-playlists:") -> {
+                    val sysPl = try {
+                        api.getSystemPlaylist(urn)
+                    } catch (_: Exception) {
+                        null
+                    }
+                    val title = sysPl?.title ?: if (urn.contains("your-playback")) {
+                        val yr = urn.substringAfterLast(":")
+                        "SoundCloud Playback $yr"
+                    } else {
+                        app.getString(R.string.history_type_playlist)
+                    }
+                    val subtitle = sysPl?.user?.username ?: app.getString(R.string.history_source_soundcloud)
+                    HistoryContextItem(
+                        id = "system_playlist:$urn",
+                        urn = urn,
+                        title = title,
+                        subtitle = subtitle,
+                        imageUrl = sysPl?.fullResArtwork,
+                        type = HistoryContextType.PLAYLIST,
+                        playedAt = playedAt,
+                        targetNavId = "system_playlist:$urn",
+                        isVerified = sysPl?.user?.verified == true
                     )
                 }
 

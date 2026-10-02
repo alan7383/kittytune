@@ -21,7 +21,7 @@ object RetrofitClient {
         okHttpClient = null
     }
 
-    fun create(context: Context): SoundCloudApi {
+    fun create(context: Context = com.alananasss.kittytune.KittyTuneApp.instance): SoundCloudApi {
         return Retrofit.Builder()
             .baseUrl(Config.BASE_URL)
             .client(getOkHttpClient(context))
@@ -30,7 +30,7 @@ object RetrofitClient {
             .create(SoundCloudApi::class.java)
     }
 
-    fun getOkHttpClient(context: Context): OkHttpClient {
+    fun getOkHttpClient(context: Context = com.alananasss.kittytune.KittyTuneApp.instance): OkHttpClient {
         if (okHttpClient == null) {
             val appContext = context.applicationContext
             val tokenManager = TokenManager(appContext)
