@@ -78,6 +78,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.pointerInput
+import com.alananasss.kittytune.ui.player.playerDismissGesture
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -297,6 +298,12 @@ fun PixelPlayerScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .playerDismissGesture(
+                dismissTargetY = sheetCollapsedTargetY,
+                dismissProgress = predictiveBackProgress,
+                scope = scope,
+                onDismiss = handleClose
+            )
             .graphicsLayer {
                 scaleX = predictiveScaleX
                 scaleY = predictiveScaleY
@@ -405,47 +412,7 @@ fun PixelPlayerScreen(
             }
         }
 
-        val verticalDragModifier = Modifier.pointerInput(sheetCollapsedTargetY) {
-            detectVerticalDragGestures(
-                onDragEnd = {
-                    if (predictiveBackProgress.value > 0.18f) {
-                        handleClose()
-                    } else {
-                        scope.launch {
-                            predictiveBackProgress.animateTo(
-                                0f,
-                                spring(
-                                    dampingRatio = Spring.DampingRatioLowBouncy,
-                                    stiffness = Spring.StiffnessMediumLow
-                                )
-                            )
-                        }
-                    }
-                },
-                onDragCancel = {
-                    scope.launch {
-                        predictiveBackProgress.animateTo(
-                            0f,
-                            spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        )
-                    }
-                },
-                onVerticalDrag = { change, dragAmount ->
-                    if (dragAmount > 0 || predictiveBackProgress.value > 0f) {
-                        change.consume()
-                        val delta = dragAmount / sheetCollapsedTargetY
-                        scope.launch {
-                            predictiveBackProgress.snapTo(
-                                (predictiveBackProgress.value + delta).coerceIn(0f, 1f)
-                            )
-                        }
-                    }
-                }
-            )
-        }
+        val verticalDragModifier = Modifier
 
         // Main Player Column Layout
         Column(

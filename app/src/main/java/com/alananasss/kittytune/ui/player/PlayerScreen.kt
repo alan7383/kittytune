@@ -964,51 +964,17 @@ fun NewPlayerScreen(
     val predictiveTranslationY = if (pProgress.isFinite()) (pProgress.coerceAtLeast(0f) * dismissTargetY) else 0f
     val predictiveCorner = (clampedProgress * 32.dp.value).coerceAtLeast(0f).dp
 
-    val verticalDragModifier = Modifier.pointerInput(dismissTargetY) {
-        detectVerticalDragGestures(
-            onDragEnd = {
-                if (dismissProgress.value > 0.18f) {
-                    handleClose()
-                } else {
-                    scope.launch {
-                        dismissProgress.animateTo(
-                            0f,
-                            spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        )
-                    }
-                }
-            },
-            onDragCancel = {
-                scope.launch {
-                    dismissProgress.animateTo(
-                        0f,
-                        spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                }
-            },
-            onVerticalDrag = { change, dragAmount ->
-                if (dragAmount > 0 || dismissProgress.value > 0f) {
-                    change.consume()
-                    val delta = dragAmount / dismissTargetY
-                    scope.launch {
-                        dismissProgress.snapTo(
-                            (dismissProgress.value + delta).coerceIn(0f, 1f)
-                        )
-                    }
-                }
-            }
-        )
-    }
+    val verticalDragModifier = Modifier
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .playerDismissGesture(
+                dismissTargetY = dismissTargetY,
+                dismissProgress = dismissProgress,
+                scope = scope,
+                onDismiss = handleClose
+            )
             .graphicsLayer {
                 scaleX = predictiveScaleX
                 scaleY = predictiveScaleY
@@ -11015,51 +10981,17 @@ fun OldPlayerScreen(
     val predictiveTranslationY = if (pProgress.isFinite()) (pProgress.coerceAtLeast(0f) * dismissTargetY) else 0f
     val predictiveCorner = (clampedProgress * 32.dp.value).coerceAtLeast(0f).dp
 
-    val verticalDragModifier = Modifier.pointerInput(dismissTargetY) {
-        detectVerticalDragGestures(
-            onDragEnd = {
-                if (dismissProgress.value > 0.18f) {
-                    handleClose()
-                } else {
-                    scope.launch {
-                        dismissProgress.animateTo(
-                            0f,
-                            spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                        )
-                    }
-                }
-            },
-            onDragCancel = {
-                scope.launch {
-                    dismissProgress.animateTo(
-                        0f,
-                        spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessMediumLow
-                        )
-                    )
-                }
-            },
-            onVerticalDrag = { change, dragAmount ->
-                if (dragAmount > 0 || dismissProgress.value > 0f) {
-                    change.consume()
-                    val delta = dragAmount / dismissTargetY
-                    scope.launch {
-                        dismissProgress.snapTo(
-                            (dismissProgress.value + delta).coerceIn(0f, 1f)
-                        )
-                    }
-                }
-            }
-        )
-    }
+    val verticalDragModifier = Modifier
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .playerDismissGesture(
+                dismissTargetY = dismissTargetY,
+                dismissProgress = dismissProgress,
+                scope = scope,
+                onDismiss = handleClose
+            )
             .then(
                 if (clampedProgress > 0f) {
                     Modifier
