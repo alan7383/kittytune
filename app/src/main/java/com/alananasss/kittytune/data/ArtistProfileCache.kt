@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.alananasss.kittytune.KittyTuneApp
 import com.alananasss.kittytune.data.local.AppDatabase
-import com.alananasss.kittytune.data.local.LocalArtist
 import com.alananasss.kittytune.data.local.toTrack
 import com.alananasss.kittytune.data.spotify.SpotifyArtist
 import com.alananasss.kittytune.domain.Playlist
@@ -88,7 +87,7 @@ object ArtistProfileCache {
             }
         }
 
-        // Write to disk & sync to saved_artists in database
+        // Write to disk
         scope.launch {
             try {
                 val file = File(dir, "${hashKey(primaryKey)}.json")
@@ -102,26 +101,6 @@ object ArtistProfileCache {
                         if (nameFile.absolutePath != file.absolutePath) {
                             nameFile.writeText(json)
                         }
-                    }
-                }
-
-                // Auto-sync into Room's saved_artists so offline Library and Search know about this artist
-                val db = AppDatabase.getDatabase(KittyTuneApp.instance).downloadDao()
-                val artistId = profile.user.numericId
-                if (artistId != 0L) {
-                    val existing = db.getArtist(artistId)
-                    val effectiveCount = profile.user.trackCount.coerceAtLeast(
-                        profile.allTracks.size.coerceAtLeast(profile.popularTracks.size)
-                    )
-                    if (existing == null) {
-                        db.insertArtist(
-                            LocalArtist(
-                                id = artistId,
-                                username = profile.user.username ?: "",
-                                avatarUrl = profile.user.avatarUrl ?: "",
-                                trackCount = effectiveCount
-                            )
-                        )
                     }
                 }
             } catch (e: Exception) {
