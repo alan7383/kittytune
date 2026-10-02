@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.FileProvider
 import com.alananasss.kittytune.BuildConfig
+import com.alananasss.kittytune.data.network.GithubAsset
 import com.alananasss.kittytune.data.network.GithubClient
 import com.alananasss.kittytune.data.network.GithubRelease
 import com.alananasss.kittytune.utils.AppUtils
@@ -113,8 +114,21 @@ object UpdateManager {
         }
     }
 
+    fun findBestApkAsset(release: GithubRelease?): GithubAsset? {
+        val apkAssets = release?.assets?.filter { it.name.endsWith(".apk", ignoreCase = true) } ?: return null
+        if (apkAssets.isEmpty()) return null
+        if (apkAssets.size == 1) return apkAssets.first()
+
+        val supportedAbis = android.os.Build.SUPPORTED_ABIS
+        for (abi in supportedAbis) {
+            val match = apkAssets.find { it.name.contains(abi, ignoreCase = true) }
+            if (match != null) return match
+        }
+        return apkAssets.find { it.name.contains("universal", ignoreCase = true) } ?: apkAssets.first()
+    }
+
     fun getValidCachedApk(context: Context, release: GithubRelease?): File? {
-        val asset = release?.assets?.find { it.name.endsWith(".apk", ignoreCase = true) }
+        val asset = findBestApkAsset(release)
         val targetTagName = release?.tagName
 
         val dir = getUpdatesDir(context)
@@ -237,9 +251,7 @@ object UpdateManager {
 
     suspend fun downloadUpdate(context: Context, forceRedownload: Boolean = false) {
         val release = releaseInfo
-        val asset = release?.assets?.find {
-            it.name.endsWith(".apk", ignoreCase = true)
-        }
+        val asset = findBestApkAsset(release)
 
         if (release == null || asset == null) {
             _status.value = UpdateStatus.ERROR
