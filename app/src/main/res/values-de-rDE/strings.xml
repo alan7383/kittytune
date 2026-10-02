@@ -919,9 +919,9 @@
     <string name="pref_persist_queue_sub">Restore playback after restart</string>
     <string name="pref_quality">Stream Quality</string>
     <string name="quality_high">High (Default)</string>
-    <string name="quality_low">Eco (Data Saver)</string>
+    <string name="quality_low">Eco</string>
     <string name="quality_high_sub">Best quality (128kbps+)</string>
-    <string name="quality_low_sub">Saves data on mobile networks</string>
+    <string name="quality_low_sub">Lowest bitrate on every source</string>
     <string name="pref_youtube_fallback">Unlock Restricted Tracks</string>
     <string name="pref_youtube_fallback_sub">Via NewPipe Extractor for Go+ tracks</string>
     <string name="pref_hide_youtube_videos">Hide Videos &amp; Shorts</string>
@@ -2965,4 +2965,16 @@
     <string name="yearly_playback_error_title">Couldn\'t Load Playback</string>
     <string name="yearly_playback_error_desc">Please check your network connection or try again later.</string>
     <string name="yearly_playback_explore_detailed_stats">Explore Detailed Stats</string>
+    <!-- ECO MODE / DATA SAVER -->
+    <string name="quality_data_section">Quality &amp; Data</string>
+    <string name="data_saver_title">Data Saver</string>
+    <string name="data_saver_sub">One switch for all traffic: lowest bitrate on every source, light covers, no animated artwork. Applies to SoundCloud, YouTube Music, Qobuz, TIDAL and Deezer.</string>
+    <string name="data_saver_metered_only">Only on mobile network</string>
+    <string name="data_saver_metered_only_sub">On Wi-Fi everything returns to your chosen quality</string>
+    <string name="data_saver_forced_eco">Eco — forced by Data Saver</string>
+    <string name="provider_data_saver_title">Disable on mobile data</string>
+    <string name="provider_data_saver_sub">Qobuz, TIDAL and Deezer will not be used on a mobile network — only SoundCloud and YouTube. Connect to Wi-Fi to enjoy Hi-Res again.</string>
+    <string name="provider_enabled_hint">SoundCloud and YouTube Music are the base sources and are always available.</string>
+    <string name="provider_disabled_suffix">(off)</string>
+    <string name="keywords_data_saver">data saver, traffic, mobile data, eco, save, bandwidth, network, mobile network</string>
 </resources>
