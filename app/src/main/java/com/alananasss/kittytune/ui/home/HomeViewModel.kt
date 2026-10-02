@@ -86,7 +86,7 @@
     }
 
     enum class SearchSource {
-        SOUNDCLOUD, YOUTUBE, YOUTUBE_MUSIC, SPOTIFY, VK, DEEZER, TIDAL, QOBUZ
+        SOUNDCLOUD, YOUTUBE, SPOTIFY, VK, DEEZER, TIDAL, QOBUZ
     }
 
     class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -138,7 +138,6 @@
         val searchResultsArtists = mutableStateListOf<User>()
         val searchResultsPlaylists = mutableStateListOf<Playlist>()
         val searchResultsYoutube = mutableStateListOf<Track>()
-        val searchResultsYoutubeMusic = mutableStateListOf<Track>()
         val searchResultsSpotify = mutableStateListOf<Track>()
         val searchResultsSpotifyAlbums = mutableStateListOf<com.alananasss.kittytune.data.spotify.SpotifyAlbum>()
         val searchResultsSpotifyPlaylists = mutableStateListOf<com.alananasss.kittytune.data.spotify.SpotifyPlaylist>()
@@ -194,7 +193,6 @@
                     if (blockedIds.isNotEmpty()) {
                         searchResultsTracks.removeAll { it.id in blockedIds }
                         searchResultsYoutube.removeAll { it.id in blockedIds }
-                        searchResultsYoutubeMusic.removeAll { it.id in blockedIds }
                         searchResultsVk.removeAll { it.id in blockedIds }
                         searchResultsSpotify.removeAll { it.id in blockedIds }
                         searchResultsDeezerTracks.removeAll { it.id in blockedIds }
@@ -209,7 +207,6 @@
                         searchResultsTracks.removeAll { it.user?.id in blockedArtists }
                         searchResultsArtists.removeAll { it.id in blockedArtists }
                         searchResultsYoutube.removeAll { it.user?.id in blockedArtists }
-                        searchResultsYoutubeMusic.removeAll { it.user?.id in blockedArtists }
                         searchResultsVk.removeAll { it.user?.id in blockedArtists }
                         searchResultsSpotify.removeAll { it.user?.id in blockedArtists }
                         searchResultsDeezerTracks.removeAll { it.user?.id in blockedArtists }
@@ -478,7 +475,7 @@
         }
 
         private fun clearSearchResults() {
-            searchResultsTracks.clear(); searchResultsArtists.clear(); searchResultsPlaylists.clear(); searchResultsYoutube.clear(); searchResultsYoutubeMusic.clear()
+            searchResultsTracks.clear(); searchResultsArtists.clear(); searchResultsPlaylists.clear(); searchResultsYoutube.clear()
             searchResultsSpotify.clear(); searchResultsSpotifyAlbums.clear(); searchResultsSpotifyPlaylists.clear(); searchResultsSpotifyArtists.clear()
             searchResultsVk.clear()
             searchResultsDeezerTracks.clear(); searchResultsDeezerAlbums.clear(); searchResultsDeezerPlaylists.clear(); searchResultsDeezerArtists.clear()
@@ -486,7 +483,6 @@
             searchResultsQobuzTracks.clear(); searchResultsQobuzAlbums.clear(); searchResultsQobuzPlaylists.clear(); searchResultsQobuzArtists.clear()
             tracksNextUrl = null; artistsNextUrl = null; playlistsNextUrl = null
             youtubeContinuation = null
-            youtubeMusicContinuation = null
         }
 
         private suspend fun performSearch(query: String) {
@@ -501,7 +497,6 @@
                 when (activeSearchSource) {
                     SearchSource.SOUNDCLOUD -> performSoundCloudSearch(query)
                     SearchSource.YOUTUBE -> performYoutubeSearch(query)
-                    SearchSource.YOUTUBE_MUSIC -> performYoutubeMusicSearch(query)
                     SearchSource.SPOTIFY -> performSpotifySearch(query)
                     SearchSource.VK -> performVkSearch(query)
                     SearchSource.DEEZER -> performDeezerSearch(query)
@@ -865,44 +860,6 @@
             }
         }
 
-        private var youtubeMusicContinuation: String? = null
-
-        private suspend fun performYoutubeMusicSearch(query: String) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val result = YouTube.search(query, YouTube.SearchFilter.FILTER_SONG).getOrNull()
-                    youtubeMusicContinuation = result?.continuation
-
-                    val mappedTracks = result?.items?.mapNotNull { item ->
-                        if (item is SongItem) {
-                            val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
-                            Track(
-                                id = kotlin.math.abs(item.id.hashCode().toLong()),
-                                title = item.title,
-                                user = User(0L, displayArtist, null),
-                                artworkUrl = item.thumbnail,
-                                durationMs = (item.duration ?: 0) * 1000L,
-                                permalinkUrl = "https://youtube.com/watch?v=${item.id}",
-                                publisherMetadata = TrackPublisherMetadata(
-                                    albumTitle = item.album?.name,
-                                    artist = displayArtist,
-                                    explicit = item.explicit
-                                ),
-                                source = "youtube_music"
-                            )
-                        } else null
-                    } ?: emptyList()
-
-                    withContext(Dispatchers.Main) {
-                        searchResultsYoutubeMusic.clear()
-                        searchResultsYoutubeMusic.addAll(BlockManager.filterBlocked(mappedTracks))
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-
         private var youtubeContinuation: String? = null
 
         private suspend fun performYoutubeSearch(query: String) {
@@ -1002,36 +959,6 @@
                             if (results.tracks.isNotEmpty()) {
                                 val newTracks = BlockManager.filterBlocked(results.tracks.filter { nt -> searchResultsVk.none { it.id == nt.id && it.user?.id == nt.user?.id } })
                                 searchResultsVk.addAll(newTracks)
-                            }
-                        }
-                    } else if (activeSearchSource == SearchSource.YOUTUBE_MUSIC) {
-                        val continuation = youtubeMusicContinuation
-                        if (continuation != null) {
-                            val contResult = withContext(Dispatchers.IO) {
-                                YouTube.searchContinuation(continuation).getOrNull()
-                            }
-                            youtubeMusicContinuation = contResult?.continuation
-                            val newTracks = contResult?.items?.mapNotNull { item ->
-                                if (item is SongItem) {
-                                    val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
-                                    Track(
-                                        id = kotlin.math.abs(item.id.hashCode().toLong()),
-                                        title = item.title,
-                                        user = User(0L, displayArtist, null),
-                                        artworkUrl = item.thumbnail,
-                                        durationMs = (item.duration ?: 0) * 1000L,
-                                        permalinkUrl = "https://youtube.com/watch?v=${item.id}",
-                                        publisherMetadata = TrackPublisherMetadata(
-                                            albumTitle = item.album?.name,
-                                            artist = displayArtist,
-                                            explicit = item.explicit
-                                        ),
-                                        source = "youtube_music"
-                                    )
-                                } else null
-                            } ?: emptyList()
-                            if (newTracks.isNotEmpty()) {
-                                searchResultsYoutubeMusic.addAll(BlockManager.filterBlocked(newTracks.filter { nt -> searchResultsYoutubeMusic.none { it.id == nt.id } }))
                             }
                         }
                     } else if (activeSearchSource == SearchSource.YOUTUBE) {

@@ -419,7 +419,7 @@ fun HomeScreen(
                                             onFilterSelected = homeViewModel::onFilterChanged
                                         )
                                     }
-                                    if (homeViewModel.activeSearchSource == SearchSource.YOUTUBE || homeViewModel.activeSearchSource == SearchSource.YOUTUBE_MUSIC || homeViewModel.activeSearchSource == SearchSource.VK) {
+                                    if (homeViewModel.activeSearchSource == SearchSource.YOUTUBE || homeViewModel.activeSearchSource == SearchSource.VK) {
                                         Spacer(Modifier.weight(1f))
                                     }
                                     Spacer(Modifier.width(8.dp))
@@ -1602,8 +1602,7 @@ fun SearchSourceSelector(
         ) {
             val iconRes = when (selectedSource) {
                 SearchSource.SOUNDCLOUD -> R.drawable.ic_soundcloud
-                SearchSource.YOUTUBE -> R.drawable.ic_logo_youtube
-                SearchSource.YOUTUBE_MUSIC -> R.drawable.ic_logo_youtube_music
+                SearchSource.YOUTUBE -> R.drawable.ic_logo_youtube_music
                 SearchSource.SPOTIFY -> R.drawable.ic_logo_spotify
                 SearchSource.VK -> R.drawable.ic_vk
                 SearchSource.DEEZER -> R.drawable.ic_logo_deezer
@@ -1640,21 +1639,6 @@ fun SearchSourceSelector(
                 text = { Text(stringResource(R.string.search_source_youtube)) },
                 leadingIcon = {
                     Icon(
-                        painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_youtube),
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                },
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onSelect(SearchSource.YOUTUBE)
-                    isSourceMenuExpanded = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.search_source_youtube_music)) },
-                leadingIcon = {
-                    Icon(
                         painter = androidx.compose.ui.res.painterResource(R.drawable.ic_logo_youtube_music),
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
@@ -1662,7 +1646,7 @@ fun SearchSourceSelector(
                 },
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onSelect(SearchSource.YOUTUBE_MUSIC)
+                    onSelect(SearchSource.YOUTUBE)
                     isSourceMenuExpanded = false
                 }
             )
@@ -1962,47 +1946,6 @@ fun SearchResultsList(
             ) {
                 val isScrolling = listState.isScrollInProgress
                 itemsIndexed(homeViewModel.searchResultsYoutube) { index, track ->
-                    StaggeredItem(index, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
-                        val isDownloaded = downloadedIds.contains(track.id)
-                        TrackListItem(
-                            track = track,
-                            currentlyPlayingTrack = playerViewModel.currentTrack,
-                            index = index,
-                            isDownloading = false,
-                            isDownloaded = isDownloaded,
-                            downloadProgress = 0,
-                            onClick = { playerViewModel.playPlaylist(listOf(track), 0) },
-                            onOptionClick = { playerViewModel.showTrackOptions(track) })
-                    }
-                }
-            }
-        }
-
-        SearchSource.YOUTUBE_MUSIC -> {
-            val listState = rememberLazyListState()
-            val shouldLoadMore = remember {
-                derivedStateOf {
-                    val totalItems = listState.layoutInfo.totalItemsCount
-                    val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                    totalItems > 0 && lastVisibleItem >= totalItems - 5
-                }
-            }
-            LaunchedEffect(shouldLoadMore.value) {
-                if (shouldLoadMore.value && !homeViewModel.isSearchLoadingMore) {
-                    homeViewModel.loadMoreSearchResults()
-                }
-            }
-            if (homeViewModel.searchResultsYoutubeMusic.isEmpty()) Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) { Text(stringResource(R.string.no_results), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            else LazyColumn(
-                state = listState,
-                contentPadding = PaddingValues(bottom = 180.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                val isScrolling = listState.isScrollInProgress
-                itemsIndexed(homeViewModel.searchResultsYoutubeMusic) { index, track ->
                     StaggeredItem(index, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
                         val isDownloaded = downloadedIds.contains(track.id)
                         TrackListItem(

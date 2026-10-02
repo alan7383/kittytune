@@ -118,8 +118,7 @@
     <string name="new_releases_popular_tracks">Népszerű Számok</string>
     <string name="new_releases_all_playlists">Összes Playlist</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube</string>
-    <string name="search_source_youtube_music">YouTube Music</string>
+    <string name="search_source_youtube">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">VKontakte (VK)</string>
     <string name="search_source_deezer">Deezer</string>

@@ -124,8 +124,7 @@
     <string name="new_releases_popular_tracks">Популярные треки</string>
     <string name="new_releases_all_playlists">Все плейлисты</string>
     <string name="search_source_soundcloud">SoundCloud</string>
-    <string name="search_source_youtube">YouTube</string>
-    <string name="search_source_youtube_music">YouTube Music</string>
+    <string name="search_source_youtube">YouTube Music</string>
     <string name="search_source_spotify">Spotify</string>
     <string name="search_source_vk">ВКонтакте (VK)</string>
     <string name="search_source_deezer">Deezer</string>
