@@ -968,7 +968,7 @@
     <string name="pref_lyrics_paxsenix_key">Paxsenix API Key</string>
     <string name="pref_lyrics_paxsenix_key_sub">Required for Apple Music, Spotify and Paxsenix Musixmatch</string>
     <string name="pref_lyrics_order">Provider Priority Order</string>
-    <string name="pref_lyrics_order_sub">Order in which providers are searched</string>
+    <string name="pref_lyrics_order_sub">Manage provider priority and availability</string>
     <string name="pref_lyrics_enable_provider">Enable %s</string>
     <string name="pref_lyrics_translation_title">Перевод текста</string>
     <string name="pref_lyrics_translation_sub">Отображать строчный перевод под каждой строкой (если доступно)</string>
