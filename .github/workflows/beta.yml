@@ -1,8 +1,9 @@
 name: Beta
 
 # Automatic pre-releases, Morphe-style: every push to `dev` publishes a beta
-# build as a GitHub pre-release. Stable releases stay manual via `v*` tags
-# (see release.yml). Betas never ping Discord and never pop up in the app:
+# build as a GitHub pre-release. Merging `dev` into `main` publishes the
+# stable automatically (see release.yml, version from versionName).
+# Betas never ping Discord and never pop up in the app:
 # the in-app auto-check only looks at stable releases, betas require the
 # opt-in toggle in About.
 #

@@ -1,9 +1,17 @@
 name: Release
 
+# Stable releases, Morphe-style: merging `dev` into `main` (or any direct
+# push to `main`) publishes the stable automatically. The version comes from
+# versionName in app/build.gradle.kts — bump it before merging. If the tag
+# already exists the job stops quietly, so re-pushes are harmless.
+#
+# Daily habit: work and push on `dev` (each push = beta via beta.yml), merge
+# dev into main when ready (= stable here), then merge main back into dev.
+
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -74,20 +82,36 @@ jobs:
             -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$KEY_PASSWORD
 
+      # ── Resolve version (fail-safe against re-pushes) ──────────────────────
+      - name: Compute release tag
+        id: version
+        run: |
+          BASE_NAME=$(grep -m1 'versionName = ' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          TAG="v${BASE_NAME}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists — nothing new to release."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       # ── Changelog (git-cliff) ────────────────────────────────────────────────
       - name: Get previous tag
         id: prev_tag
+        if: steps.version.outputs.skip != 'true'
         run: |
-          # Find the closest tag in history before the current ref
-          PREV=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
+          # Closest stable tag in history (beta tags excluded)
+          PREV=$(git describe --tags --match 'v*.*.*' --exclude '*-beta*' --abbrev=0 HEAD 2>/dev/null || echo "")
           echo "Previous tag found: $PREV"
           if [ -z "$PREV" ]; then
-            echo "range=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "range=HEAD" >> $GITHUB_OUTPUT
           else
-            echo "range=${PREV}..${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "range=${PREV}..HEAD" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate changelog
+        if: steps.version.outputs.skip != 'true'
         uses: orhun/git-cliff-action@v4
         id: cliff
         with:
@@ -96,27 +120,31 @@ jobs:
 
       # ── GitHub Release ───────────────────────────────────────────────────────
       - name: Delete existing release if present
-        run: gh release delete ${{ github.ref_name }} --yes || true
+        if: steps.version.outputs.skip != 'true'
+        run: gh release delete ${{ steps.version.outputs.tag }} --yes || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Write changelog to file
+        if: steps.version.outputs.skip != 'true'
         run: echo "${{ steps.cliff.outputs.content }}" > CHANGELOG_RELEASE.md
 
       - name: Create GitHub Release
+        if: steps.version.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          name: "KittyTune ${{ github.ref_name }}"
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "KittyTune ${{ steps.version.outputs.tag }}"
           body_path: CHANGELOG_RELEASE.md
           files: app/build/outputs/apk/release/*.apk
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Discord Release Notification ────────────────────────────────────────
       - name: Send Discord Release Notification
-        if: success()
+        if: success() && steps.version.outputs.skip != 'true'
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ steps.version.outputs.tag }}
         run: |
           python3 - << 'EOF'
           import os, json, urllib.request

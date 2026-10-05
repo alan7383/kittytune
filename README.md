@@ -203,12 +203,12 @@ flowchart TD
 ### > install
 
 <p align="center">
-  <a href="https://github.com/alan7383/kittytune/releases">
-    <img src="https://img.shields.io/badge/Download-Latest_APK-2ea44f?style=for-the-badge&logo=android&logoColor=white" alt="Download APK">
+  <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune">
+    <img src=".github/assets/download-kittytune.svg" alt="Download KittyTune" width="240"/>
   </a>
 </p>
 
-Download the latest APK from the [releases page](https://github.com/alan7383/kittytune/releases).
+Download the latest APK from the [download page](https://alan7383.github.io/kittytune-website/download) or the [releases page](https://github.com/alan7383/kittytune/releases).
 
 KittyTune targets **Android 8.0+ (API 26+)**.
 
