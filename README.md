@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="app/src/main/ic_launcher-playstore.png" width="128" alt="KittyTune Logo">
+  <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune">
+    <img src="images/banner.png" alt="KittyTune — click to download">
+  </a>
 </p>
-
-<h1 align="center">KittyTune (=^･ω･^=)</h1>
 
 <p align="center">
   <a href="https://github.com/alan7383/kittytune/blob/main/LICENSE">
@@ -19,11 +19,6 @@
   </a>
   <a href="https://discord.gg/thyHQH9jV9">
     <img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
-  </a>
-  <img src="https://img.shields.io/badge/status-beta-yellow?style=for-the-badge" alt="Status: Beta">
-  <img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android Badge">
-  <a href="https://github.com/alan7383/KittyTuneDesktop">
-    <img src="https://img.shields.io/badge/Desktop-Windows%20%7C%20Linux%20%7C%20macOS-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Desktop Version">
   </a>
 </p>
 
