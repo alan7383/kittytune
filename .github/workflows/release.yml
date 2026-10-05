@@ -96,6 +96,15 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
+      # ── Tag first so git-cliff attributes commits to it (no "Unreleased") ───
+      - name: Create release tag
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
       # ── Changelog (git-cliff) ────────────────────────────────────────────────
       - name: Get previous tag
         id: prev_tag
