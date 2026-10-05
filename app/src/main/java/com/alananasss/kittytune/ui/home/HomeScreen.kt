@@ -131,7 +131,7 @@ fun HomeScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
-    val searchFieldState = remember { TextFieldState() }
+    val searchFieldState = rememberSaveable(saver = TextFieldState.Saver) { TextFieldState() }
     val searchFieldInteractions = remember { MutableInteractionSource() }
     val isSearchFieldFocused by searchFieldInteractions.collectIsFocusedAsState()
 
@@ -170,7 +170,12 @@ fun HomeScreen(
     LaunchedEffect(searchFieldState) {
         snapshotFlow { searchFieldState.text.toString() }
             .distinctUntilChanged()
-            .collect { homeViewModel.onSearchQueryChanged(it) }
+            .collect { text ->
+                // Ne pas écraser la query conservée par le ViewModel quand l'écran est recomposé
+                if (text != homeViewModel.searchQuery) {
+                    homeViewModel.onSearchQueryChanged(text)
+                }
+            }
     }
 
     LaunchedEffect(homeViewModel.searchQuery) {

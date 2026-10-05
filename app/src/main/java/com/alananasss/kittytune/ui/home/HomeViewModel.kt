@@ -434,13 +434,17 @@
 
         var searchTrigger by mutableStateOf(0)
         fun activateSearch() {
-            if (!playerPrefs.getRememberSearchFilter()) {
-                activeFilter = SearchFilter.ALL
-            } else {
-                try {
-                    activeFilter = SearchFilter.valueOf(playerPrefs.getLastSearchFilter())
-                } catch (_: Exception) {
+            // Ne réinitialise le filtre que si la recherche était fermée : le champ peut gagner
+            // le focus au retour d'un écran (onExpandedChange(true)) sans qu'on soit reparti de zéro.
+            if (!isSearching) {
+                if (!playerPrefs.getRememberSearchFilter()) {
                     activeFilter = SearchFilter.ALL
+                } else {
+                    try {
+                        activeFilter = SearchFilter.valueOf(playerPrefs.getLastSearchFilter())
+                    } catch (_: Exception) {
+                        activeFilter = SearchFilter.ALL
+                    }
                 }
             }
             isSearching = true
