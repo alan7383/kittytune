@@ -1309,6 +1309,11 @@
     <string name="update_error">Échec de la mise à jour</string>
     <string name="update_no_update">Aucune mise à jour disponible</string>
     <string name="update_check_manual">Vérifier les mises à jour</string>
+    <string name="btn_enable">Enable</string>
+    <string name="beta_updates_title">Beta updates</string>
+    <string name="beta_updates_subtitle">Get pre-release builds to test new features early</string>
+    <string name="beta_warning_title">Enable beta updates?</string>
+    <string name="beta_warning_message">Beta builds may be unstable and contain bugs. Once enabled, the normal update check (including on startup) will also offer pre-releases.</string>
     <string name="pref_auto_update">Mise à jour auto</string>
     <string name="pref_auto_update_sub">Vérifier au démarrage de l\'app</string>
     <string name="pref_remember_search_filter">Remember search filter</string>
