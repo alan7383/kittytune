@@ -471,4 +471,3 @@ fun ExpandableTechInfo(packageName: String, shape: androidx.compose.ui.graphics.
         }
     }
 }
-

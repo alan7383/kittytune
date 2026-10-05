@@ -7,11 +7,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,10 +65,32 @@ fun MiscGeneralSettingsScreen(
     var appLanguage by remember { mutableStateOf(prefs.getAppLanguage()) }
     var startDestination by remember { mutableStateOf(prefs.getStartDestination()) }
     var autoUpdate by remember { mutableStateOf(prefs.getAutoUpdateEnabled()) }
+    var betaUpdates by remember { mutableStateOf(prefs.getBetaUpdatesEnabled()) }
     var rememberSearchFilter by remember { mutableStateOf(prefs.getRememberSearchFilter()) }
     var showPlaylistTotalDuration by remember { mutableStateOf(prefs.getShowPlaylistTotalDuration()) }
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showStartDialog by remember { mutableStateOf(false) }
+    var showBetaWarning by remember { mutableStateOf(false) }
+
+    if (showBetaWarning) {
+        AlertDialog(
+            onDismissRequest = { showBetaWarning = false },
+            title = { Text(stringResource(R.string.beta_warning_title)) },
+            text = { Text(stringResource(R.string.beta_warning_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBetaWarning = false
+                    betaUpdates = true
+                    prefs.setBetaUpdatesEnabled(true)
+                }) { Text(stringResource(R.string.btn_enable)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBetaWarning = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
 
     if (showLanguageDialog) {
         AlertDialog(
@@ -186,6 +210,25 @@ fun MiscGeneralSettingsScreen(
                                     prefs.setAutoUpdateEnabled(it)
                                 },
                                 highlightKey = "pref_auto_update"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.beta_updates_title),
+                                subtitle = stringResource(R.string.beta_updates_subtitle),
+                                icon = Icons.Rounded.Science,
+                                hasSwitch = true,
+                                switchState = betaUpdates,
+                                onSwitchChange = {
+                                    if (it) {
+                                        showBetaWarning = true
+                                    } else {
+                                        betaUpdates = false
+                                        prefs.setBetaUpdatesEnabled(false)
+                                    }
+                                },
+                                highlightKey = "pref_beta_updates"
                             )
                         },
                         { shape ->

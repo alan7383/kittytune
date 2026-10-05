@@ -31,6 +31,27 @@ class UpdateManagerTest {
     }
 
     @Test
+    fun testIsNewerVersionWithPrereleases() {
+        // Beta of a newer core is newer than stable
+        assertTrue(UpdateManager.isNewerVersion("2.68.0", "2.68.1-beta.1"))
+        assertTrue(UpdateManager.isNewerVersion("2.68.0", "2.69.0-beta.12"))
+        // Newer beta than installed beta
+        assertTrue(UpdateManager.isNewerVersion("2.68.0-beta.3", "2.68.0-beta.4"))
+        assertTrue(UpdateManager.isNewerVersion("2.68.0-beta.9", "2.68.0-beta.10"))
+        // Stable is newer than its own beta line
+        assertTrue(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.68.0"))
+        // Same-core beta is never offered over the stable
+        assertFalse(UpdateManager.isNewerVersion("2.68.0", "2.68.0-beta.5"))
+        // Same beta, older beta, older core
+        assertFalse(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.68.0-beta.4"))
+        assertFalse(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.68.0-beta.3"))
+        assertFalse(UpdateManager.isNewerVersion("2.68.0-beta.4", "2.67.9"))
+        // Plain versions unaffected by prerelease handling
+        assertTrue(UpdateManager.isNewerVersion("2.68.0", "2.68.1"))
+        assertFalse(UpdateManager.isNewerVersion("2.68.0", "2.68.0"))
+    }
+
+    @Test
     fun testGetApkFileName() {
         assertEquals("update_v2.66.0.apk", UpdateManager.getApkFileName("v2.66.0"))
         assertEquals("update_2.66.0.apk", UpdateManager.getApkFileName("2.66.0"))

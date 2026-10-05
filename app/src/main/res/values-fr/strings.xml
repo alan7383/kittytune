@@ -1190,6 +1190,11 @@
     <string name="update_error">Échec de la mise à jour</string>
     <string name="update_no_update">Aucune mise à jour disponible</string>
     <string name="update_check_manual">Vérifier les mises à jour</string>
+    <string name="btn_enable">Activer</string>
+    <string name="beta_updates_title">Mises à jour bêta</string>
+    <string name="beta_updates_subtitle">Tester les versions bêta en avant-première</string>
+    <string name="beta_warning_title">Activer les mises à jour bêta ?</string>
+    <string name="beta_warning_message">Les versions bêta peuvent être instables et contenir des bugs. Une fois activées, la vérification de mise à jour normale (y compris au démarrage) proposera aussi les pré-versions.</string>
     <string name="pref_auto_update">Mise à jour auto</string>
     <string name="pref_auto_update_sub">Vérifier au démarrage de l\'app</string>
     <string name="pref_remember_search_filter">Mémoriser le filtre de recherche</string>

@@ -11,6 +11,7 @@ import retrofit2.http.GET
 data class GithubRelease(
     @SerializedName("tag_name") val tagName: String,
     @SerializedName("body") val body: String,
+    @SerializedName("prerelease") val prerelease: Boolean = false,
     @SerializedName("assets") val assets: List<GithubAsset>
 )
 
@@ -25,6 +26,10 @@ data class GithubAsset(
 interface GithubApiService {
     @GET("repos/alan7383/kittytune/releases/latest")
     suspend fun getLatestRelease(): GithubRelease
+
+    /** Newest first, prereleases included (unlike `latest`). Used for the beta channel. */
+    @GET("repos/alan7383/kittytune/releases?per_page=20")
+    suspend fun listReleases(): List<GithubRelease>
 }
 
 object GithubClient {

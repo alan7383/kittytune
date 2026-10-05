@@ -199,12 +199,10 @@ object UpdateManager {
 
         try {
             val currentVersion = AppUtils.getAppVersion(context).replace("v", "")
-            val release = GithubClient.api.getLatestRelease()
+            val release = resolveTargetRelease(context, currentVersion)
 
             releaseInfo = release
-            val remoteVersion = release.tagName.replace("v", "")
-
-            if (isNewerVersion(currentVersion, remoteVersion)) {
+            if (release != null) {
                 try {
                     prefs.edit().putString(KEY_CACHED_RELEASE_JSON, Gson().toJson(release)).apply()
                 } catch (_: Exception) {}
@@ -416,17 +414,67 @@ object UpdateManager {
 
     fun isNewerVersion(current: String, remote: String): Boolean {
         return try {
-            val v1 = current.split(".").map { it.toIntOrNull() ?: 0 }
-            val v2 = remote.split(".").map { it.toIntOrNull() ?: 0 }
-            for (i in 0 until max(v1.size, v2.size)) {
-                val v1Part = v1.getOrElse(i) { 0 }
-                val v2Part = v2.getOrElse(i) { 0 }
+            val (v1Nums, v1Pre) = splitVersion(current)
+            val (v2Nums, v2Pre) = splitVersion(remote)
+            for (i in 0 until max(v1Nums.size, v2Nums.size)) {
+                val v1Part = v1Nums.getOrElse(i) { 0 }
+                val v2Part = v2Nums.getOrElse(i) { 0 }
                 if (v2Part > v1Part) return true
                 if (v2Part < v1Part) return false
             }
-            false
+            // Same numeric core: a prerelease is older than its release, and two
+            // prereleases compare by suffix (beta.3 < beta.4). A stable is never
+            // "older" than a prerelease of the same core.
+            if (v1Pre == null && v2Pre == null) return false
+            if (v1Pre != null && v2Pre == null) return true
+            if (v1Pre == null && v2Pre != null) return false
+            comparePreRelease(v1Pre!!, v2Pre!!) < 0
         } catch (e: Exception) {
             false
         }
+    }
+
+    private fun splitVersion(version: String): Pair<List<Int>, String?> {
+        val clean = version.trim().removePrefix("v")
+        val dash = clean.indexOf('-')
+        val core = if (dash < 0) clean else clean.substring(0, dash)
+        val pre = if (dash < 0) null else clean.substring(dash + 1).takeIf { it.isNotBlank() }
+        return core.split(".").map { it.toIntOrNull() ?: 0 } to pre
+    }
+
+    private fun comparePreRelease(a: String, b: String): Int {
+        val aParts = a.split(".")
+        val bParts = b.split(".")
+        for (i in 0 until max(aParts.size, bParts.size)) {
+            val ap = aParts.getOrElse(i) { "" }
+            val bp = bParts.getOrElse(i) { "" }
+            if (ap == bp) continue
+            val an = ap.toIntOrNull()
+            val bn = bp.toIntOrNull()
+            if (an != null && bn != null) return an.compareTo(bn)
+            return ap.compareTo(bp)
+        }
+        return 0
+    }
+
+    /**
+     * Which release the update check targets.
+     *
+     * Stable channel (default): GitHub's `latest`, which excludes prereleases.
+     * Beta channel (opt-in toggle): the newest release — stable or prerelease —
+     * newer than the installed version, so beta users still get stables.
+     * Same button, same startup auto-check, different channel.
+     */
+    private suspend fun resolveTargetRelease(context: Context, currentVersion: String): GithubRelease? {
+        val betaEnabled = try {
+            com.alananasss.kittytune.data.local.PlayerPreferences(context).getBetaUpdatesEnabled()
+        } catch (_: Exception) { false }
+        if (!betaEnabled) {
+            val latest = GithubClient.api.getLatestRelease()
+            return latest.takeIf { isNewerVersion(currentVersion, it.tagName.replace("v", "")) }
+        }
+        val releases = GithubClient.api.listReleases()
+        // GitHub returns newest first: first newer release wins.
+        return releases.firstOrNull { isNewerVersion(currentVersion, it.tagName.replace("v", "")) }
     }
 }

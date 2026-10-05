@@ -400,6 +400,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_COLOR_STYLE = "color_style"
         private const val KEY_COLOR_SPEC = "color_spec"
         private const val KEY_SYNC_LIKES = "sync_likes_enabled"
+        private const val KEY_BETA_UPDATES_ENABLED = "beta_updates_enabled"
         private const val KEY_SLEEP_TIMER_FADE_DURATION = "sleep_timer_fade_duration"
         private const val KEY_SLEEP_TIMER_FADE_ENABLED = "sleep_timer_fade_enabled"
         const val KEY_EQUALIZER_STATE = "equalizer_state_json"
@@ -497,6 +498,9 @@ class PlayerPreferences(context: Context) {
 
     fun getSyncLikesEnabled(): Boolean = prefs.getBoolean(KEY_SYNC_LIKES, true)
     fun setSyncLikesEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_SYNC_LIKES, enabled) }
+
+    fun getBetaUpdatesEnabled(): Boolean = prefs.getBoolean(KEY_BETA_UPDATES_ENABLED, false)
+    fun setBetaUpdatesEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_BETA_UPDATES_ENABLED, enabled) }
 
     fun getCrossfadeEnabled(): Boolean = prefs.getBoolean(KEY_CROSSFADE_ENABLED, false)
     fun setCrossfadeEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_CROSSFADE_ENABLED, enabled) }

@@ -25,7 +25,12 @@ extensions.configure<ApplicationExtension> {
         applicationId = "com.alananasss.kittytune"
         minSdk = 26
         targetSdk = 37
-        versionCode = 54
+        // Timestamp-based versionCode (Morphe-style): minutes since epoch plus an
+        // offset. Every build — beta or stable — gets a higher code than any
+        // previous one, so switching channels is always an upgrade and user
+        // data survives. The offset exceeds all legacy sequential codes (54)
+        // and early beta-scheme codes, making this a one-way jump.
+        versionCode = (System.currentTimeMillis() / 60000).toInt() + 10_000_000
         versionName = "2.68.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

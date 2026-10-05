@@ -60,6 +60,7 @@ internal fun rememberSettingsSearchCatalog(
         var dataSaver = prefs.getDataSaverEnabled()
         var achievementPopups = prefs.getAchievementPopupsEnabled()
         var autoUpdate = prefs.getAutoUpdateEnabled()
+        var betaUpdates = prefs.getBetaUpdatesEnabled()
         var rememberSearchFilter = prefs.getRememberSearchFilter()
         var showPlaylistTotalDuration = prefs.getShowPlaylistTotalDuration()
         var customFontEnabled = prefs.getCustomFontEnabled()
@@ -934,6 +935,24 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     autoUpdate = it
                     prefs.setAutoUpdateEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.beta_updates_title,
+                subtitleRes = R.string.beta_updates_subtitle,
+                categoryName = catMisc,
+                icon = Icons.Rounded.Science,
+                route = "misc_general_settings",
+                highlightKey = "pref_beta_updates",
+                keywords = listOf("beta", "bêta", "pre-release", "prerelease", "test", "preview"),
+                hasSwitch = true,
+                switchState = betaUpdates,
+                onSwitchChange = {
+                    betaUpdates = it
+                    prefs.setBetaUpdatesEnabled(it)
                     onPreferenceChange()
                 }
             ),
