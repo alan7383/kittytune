@@ -189,6 +189,9 @@ fun PlayerCustomizationScreen(
             "pref_animated_covers_fade_ui" to 3,
             "pref_animated_artist_profiles" to 3,
             "notif_player_extra_button" to 5,
+            "pref_player_style" to 4,
+            "pref_track_source_badge" to 4,
+            "pref_full_player_source" to 4,
         )
     )
 

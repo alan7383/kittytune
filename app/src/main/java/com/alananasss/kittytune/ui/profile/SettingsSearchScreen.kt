@@ -122,6 +122,10 @@ fun SettingsSearchScreen(
 
     /** Records the clicked item to recent history then navigates/acts. */
     fun onResultClick(item: SearchSettingEntry) {
+        // Drop the keyboard synchronously so it is already gone during the
+        // navigation instead of lingering over the next screen.
+        focusManager.clearFocus()
+        keyboardController?.hide()
         val entry = PlayerPreferences.RecentSettingsEntry(
             title = item.title,
             subtitle = item.subtitle,
@@ -145,6 +149,8 @@ fun SettingsSearchScreen(
 
     /** Navigates directly from a recent item without re-searching. */
     fun onRecentClick(entry: PlayerPreferences.RecentSettingsEntry) {
+        focusManager.clearFocus()
+        keyboardController?.hide()
         val catalogItem = allSearchItems.find { it.title == entry.title }
         val highlightKey = entry.highlightKey ?: catalogItem?.highlightKey
         if (highlightKey != null) {
@@ -287,35 +293,42 @@ fun SettingsSearchScreen(
 
                 // ── Results list ───────────────────────────────────────────────────────
                 else -> {
-                    val grouped = remember(matches) { matches.groupBy { it.categoryName } }
+                    // Flat list, best match first: no per-category groups pushing
+                    // results down — with the keyboard open only the top rows
+                    // are visible, so everything must start at the very top.
+                    val listState = remember(matches) { androidx.compose.foundation.lazy.LazyListState() }
+                    LaunchedEffect(matches) {
+                        listState.scrollToItem(0)
+                    }
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp)
                     ) {
-                        grouped.forEach { (catName, itemsInCat) ->
-                            item(key = "search-cat-$catName") {
-                                SettingsGroup(
-                                    title = catName,
-                                    items = itemsInCat.map { searchItem ->
-                                        { shape ->
-                                            val hasAction = searchItem.onClick != null || searchItem.route != null
-                                            SettingsItem(
-                                                shape = shape,
-                                                title = searchItem.title,
-                                                subtitle = searchItem.subtitle,
-                                                icon = searchItem.icon ?: (if (searchItem.iconRes == null) Icons.Rounded.Settings else null),
-                                                iconRes = searchItem.iconRes,
-                                                hasSwitch = searchItem.hasSwitch,
-                                                switchState = searchItem.switchState,
-                                                onSwitchChange = searchItem.onSwitchChange,
-                                                onClick = if (hasAction) {
-                                                    { onResultClick(searchItem) }
-                                                } else null
-                                            )
-                                        }
+                        item(key = "search-results") {
+                            SettingsGroup(
+                                items = matches.map { searchItem ->
+                                    { shape ->
+                                        val hasAction = searchItem.onClick != null || searchItem.route != null
+                                        SettingsItem(
+                                            shape = shape,
+                                            title = searchItem.title,
+                                            subtitle = when {
+                                                !searchItem.subtitle.isNullOrBlank() -> "${searchItem.subtitle} • ${searchItem.categoryName}"
+                                                else -> searchItem.categoryName
+                                            },
+                                            icon = searchItem.icon ?: (if (searchItem.iconRes == null) Icons.Rounded.Settings else null),
+                                            iconRes = searchItem.iconRes,
+                                            hasSwitch = searchItem.hasSwitch,
+                                            switchState = searchItem.switchState,
+                                            onSwitchChange = searchItem.onSwitchChange,
+                                            onClick = if (hasAction) {
+                                                { onResultClick(searchItem) }
+                                            } else null
+                                        )
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
                 }
