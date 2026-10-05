@@ -27,7 +27,22 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
+
+      # ── Gradle cache (build outputs, not just dependencies) ─────────────────
+      - name: Cache Gradle
+        uses: burrunan/gradle-cache-action@v3
+
+      # ── ccache (native CMake code) ──────────────────────────────────────────
+      - name: Install ccache
+        run: sudo apt-get update && sudo apt-get install -y ccache
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ runner.os }}-ndk27.1.12297006-${{ hashFiles('app/src/main/cpp/**') }}
+          restore-keys: |
+            ccache-${{ runner.os }}-ndk27.1.12297006-
 
       # ── Android NDK ─────────────────────────────────────────────────────────
       - name: Setup Android NDK
@@ -49,6 +64,9 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
+          USE_CCACHE: '1'
+          CCACHE_DIR: ~/.ccache
+          CCACHE_MAXSIZE: 2G
         run: |
           ./gradlew assembleRelease -x lintVitalRelease --stacktrace \
             -Pandroid.injected.signing.store.file=$PWD/app/keystore.jks \

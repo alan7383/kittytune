@@ -38,6 +38,18 @@ extensions.configure<ApplicationExtension> {
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
         }
+        externalNativeBuild {
+            cmake {
+                // ccache (CI sets USE_CCACHE=1): native code hits the cache
+                // instead of recompiling from scratch on every clean runner.
+                if (System.getenv("USE_CCACHE") == "1") {
+                    arguments += listOf(
+                        "-DCMAKE_C_COMPILER_LAUNCHER=ccache",
+                        "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+                    )
+                }
+            }
+        }
     }
 
     splits {
