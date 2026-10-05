@@ -541,6 +541,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="settings_cat_interface_sub">Témák, lejátszó és dalszövegek</string>
     <string name="settings_cat_interface">Felület</string>
+    <string name="settings_cat_network">Hálózat</string>
     <string name="settings_cat_misc">Egyéb</string>
     <string name="settings_page_themes">Témák</string>
     <string name="settings_page_themes_sub">Színek, háttér és betűtípus</string>
@@ -3080,6 +3081,34 @@
     <string name="sync_advanced_sub">Kapcsolat részletei, port és hibaelhárítás</string>
 
     <string name="network_proxy_sub">HTTP és SOCKS5 proxy beállítása</string>
+    <string name="network_zapret_sub">Beépített DPI-kerülés VPN és proxy nélkül</string>
+    <!-- Zapret: beépített DPI-kerülés -->
+    <string name="zapret_title">Zapret</string>
+    <string name="zapret_info_title">Nincs VPN, nincs proxy, nincs külön app</string>
+    <string name="zapret_info_desc">A Zapret a kapcsolatok első csomagjainak feldarabolásával kerüli meg a blokkokat, így a szűrők nem látják, melyik oldalt kérted, és átengedik. Ugyanaz az elv, mint a PC-s zapret, de az appba építve. Csak a KittyTune-on belül működik. A legjobb eredményért futtasd le az alábbi ellenőrzést.</string>
+    <string name="zapret_enable">Zapret bekapcsolása</string>
+    <string name="zapret_enable_desc">DPI-blokkok megkerülése az app forgalmánál</string>
+    <string name="zapret_status_enabled">Be • %1$d domain • %2$s</string>
+    <string name="zapret_status_disabled">Ki</string>
+    <string name="zapret_strategy">Stratégia</string>
+    <string name="zapret_strategy_split2">Kettévágás</string>
+    <string name="zapret_strategy_split2_desc">Gyors kézfogás, egyszerű SNI-blokkok ellen</string>
+    <string name="zapret_strategy_multi">Többszörös vágás</string>
+    <string name="zapret_strategy_multi_desc">Lassabb kézfogás, erősebb szigorú DPI ellen</string>
+    <string name="zapret_check">Szolgáltatások ellenőrzése</string>
+    <string name="zapret_checking">Ellenőrzés…</string>
+    <string name="zapret_reachable">Működik</string>
+    <string name="zapret_blocked">Blokkolva</string>
+    <string name="zapret_covered">Megkerülve</string>
+    <string name="zapret_add">Hozzáadás</string>
+    <string name="zapret_add_blocked">Blokkoltak megkerülése (%1$d)</string>
+    <string name="zapret_added">Lista frissítve: %1$d domain</string>
+    <string name="zapret_nothing_to_add">Minden blokkolt már meg van kerülve</string>
+    <string name="zapret_own_title">KittyTune által megkerülve</string>
+    <string name="zapret_remove_own">Törlés</string>
+    <string name="zapret_copy_list">Lista másolása PC-s zaprethez</string>
+    <string name="zapret_copied">Doménlista másolva. Illeszd be PC-n a zapret list-general-user.txt fájljába</string>
+    <string name="keywords_zapret">zapret, dpi, megkerülés, cenzúra, blokk, youtube, discord</string>
 
     <string name="misc_general_sub">Nyelv, kezdőképernyő és frissítések</string>
     <string name="misc_discord_sub">A hallgatott zene megjelenítése a Discordon</string>

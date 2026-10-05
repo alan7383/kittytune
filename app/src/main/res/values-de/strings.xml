@@ -776,6 +776,7 @@
 
     <string name="settings_cat_interface_sub">Designs, Player und Songtexte</string>
     <string name="settings_cat_interface">Oberfläche</string>
+    <string name="settings_cat_network">Netzwerk</string>
     <string name="settings_cat_misc">Verschiedenes</string>
     <string name="settings_page_themes">Designs</string>
     <string name="settings_page_themes_sub">Farben, Hintergrund und Schrift</string>
@@ -3193,6 +3194,34 @@
     <string name="sync_advanced_sub">Verbindungsdetails, Port und Fehlerbehebung</string>
 
     <string name="network_proxy_sub">HTTP- und SOCKS5-Proxy-Konfiguration</string>
+    <string name="network_zapret_sub">In-App-DPI-Umgehung, ohne VPN oder Proxy</string>
+    <!-- Zapret: In-App-DPI-Umgehung -->
+    <string name="zapret_title">Zapret</string>
+    <string name="zapret_info_title">Kein VPN, kein Proxy, keine extra App</string>
+    <string name="zapret_info_desc">Zapret umgeht Sperren, indem es die ersten Pakete der App-Verbindungen teilt, damit Filter nicht sehen, welche Seite du angefragt hast, und durchlassen. Gleiches Prinzip wie zapret am PC, aber in der App eingebaut. Funktioniert nur innerhalb von KittyTune. Nutze die Prüfung unten für beste Ergebnisse.</string>
+    <string name="zapret_enable">Zapret aktivieren</string>
+    <string name="zapret_enable_desc">DPI-Sperren für den App-Verkehr umgehen</string>
+    <string name="zapret_status_enabled">An • %1$d Domains • %2$s</string>
+    <string name="zapret_status_disabled">Aus</string>
+    <string name="zapret_strategy">Strategie</string>
+    <string name="zapret_strategy_split2">Teilung ×2</string>
+    <string name="zapret_strategy_split2_desc">Schneller Handshake, gegen einfache SNI-Sperren</string>
+    <string name="zapret_strategy_multi">Mehrfach-Teilung</string>
+    <string name="zapret_strategy_multi_desc">Langsamerer Handshake, stärker gegen strenge DPI</string>
+    <string name="zapret_check">Dienste prüfen</string>
+    <string name="zapret_checking">Wird geprüft…</string>
+    <string name="zapret_reachable">Funktioniert</string>
+    <string name="zapret_blocked">Blockiert</string>
+    <string name="zapret_covered">Umgangen</string>
+    <string name="zapret_add">Hinzufügen</string>
+    <string name="zapret_add_blocked">Blockierte umgehen (%1$d)</string>
+    <string name="zapret_added">Liste aktualisiert: %1$d Domains</string>
+    <string name="zapret_nothing_to_add">Alles Blockierte wird bereits umgangen</string>
+    <string name="zapret_own_title">Von KittyTune umgangen</string>
+    <string name="zapret_remove_own">Entfernen</string>
+    <string name="zapret_copy_list">Liste für PC-zapret kopieren</string>
+    <string name="zapret_copied">Domänenliste kopiert. Füge sie am PC in zaprets list-general-user.txt ein</string>
+    <string name="keywords_zapret">zapret, dpi, umgehung, zensur, sperre, youtube, discord</string>
 
     <string name="misc_general_sub">Sprache, Startbildschirm und Aktualisierungen</string>
     <string name="misc_discord_sub">Zeigen, was du gerade auf Discord hörst</string>

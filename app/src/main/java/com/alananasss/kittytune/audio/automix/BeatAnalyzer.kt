@@ -26,6 +26,7 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlin.math.sin
 import kotlin.math.sqrt
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 /**
  * Offline BPM + beat-grid analyzer. Classical DSP, no ML:
@@ -100,7 +101,7 @@ object BeatAnalyzer {
     private const val MAX_FETCH_BYTES = 5L * 1024 * 1024
 
     private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        ZapretManager.newBuilder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .followRedirects(true)

@@ -82,6 +82,11 @@ object YouTube {
         set(value) {
             innerTube.proxy = value
         }
+    var socketFactory: javax.net.SocketFactory?
+        get() = innerTube.socketFactory
+        set(value) {
+            innerTube.socketFactory = value
+        }
 
     suspend fun searchSuggestions(query: String): Result<SearchSuggestions> = runCatching {
         val response = innerTube.getSearchSuggestions(WEB_REMIX, query).body<GetSearchSuggestionsResponse>()

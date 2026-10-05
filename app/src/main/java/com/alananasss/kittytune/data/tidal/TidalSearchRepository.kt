@@ -18,6 +18,7 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 data class TidalSearchResult(
     val tracks: List<Track> = emptyList(),
@@ -32,7 +33,7 @@ object TidalSearchRepository {
     private const val CLIENT_ID = "txNoH4kkV41MfH25"
     private const val CLIENT_SECRET = "dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98="
 
-    private val client = OkHttpClient.Builder()
+    private val client = ZapretManager.newBuilder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .build()

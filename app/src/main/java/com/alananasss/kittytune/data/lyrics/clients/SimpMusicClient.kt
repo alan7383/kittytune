@@ -20,12 +20,14 @@ import com.alananasss.kittytune.data.LyricsMatcher
 import com.alananasss.kittytune.data.lyrics.models.LyricsData
 import com.alananasss.kittytune.data.lyrics.models.SimpMusicApiResponse
 import kotlin.math.abs
+import com.alananasss.kittytune.data.zapret.withDpiBypass
 
 object SimpMusicClient {
     private const val BASE_URL = "https://api-lyrics.simpmusic.org/v1/"
 
     private val client by lazy {
         HttpClient(OkHttp) {
+            withDpiBypass()
             install(ContentNegotiation) {
                 json(
                     Json {

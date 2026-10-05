@@ -23,6 +23,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.util.concurrent.TimeUnit
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 /**
  * Singleton that manages ArtifactNet ONNX model downloading and on-device inference.
@@ -76,7 +77,7 @@ object AiDetectionManager {
     private var analysisJob: Job? = null
 
     private val httpClient by lazy {
-        OkHttpClient.Builder()
+        ZapretManager.newBuilder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .followRedirects(true)

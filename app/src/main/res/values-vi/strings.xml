@@ -700,6 +700,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="settings_cat_interface_sub">Chủ đề, trình phát và lời bài hát</string>
     <string name="settings_cat_interface">Giao diện</string>
+    <string name="settings_cat_network">Mạng</string>
     <string name="settings_cat_misc">Khác</string>
     <string name="settings_page_themes">Chủ đề</string>
     <string name="settings_page_themes_sub">Màu sắc, nền và phông chữ</string>
@@ -3052,6 +3053,34 @@
     <string name="sync_advanced_sub">Chi tiết kết nối, cổng và khắc phục sự cố</string>
 
     <string name="network_proxy_sub">Cấu hình proxy HTTP và SOCKS5</string>
+    <string name="network_zapret_sub">Vượt DPI trong ứng dụng, không cần VPN hay proxy</string>
+    <!-- Zapret: vượt DPI trong ứng dụng -->
+    <string name="zapret_title">Zapret</string>
+    <string name="zapret_info_title">Không VPN, không proxy, không cần app khác</string>
+    <string name="zapret_info_desc">Zapret vượt chặn bằng cách chia nhỏ các gói tin đầu tiên của kết nối để bộ lọc không thấy bạn yêu cầu trang nào và cho qua. Cùng nguyên tắc như zapret trên PC, nhưng tích hợp sẵn trong ứng dụng. Chỉ hoạt động trong KittyTune. Hãy kiểm tra dịch vụ bên dưới để đạt kết quả tốt nhất.</string>
+    <string name="zapret_enable">Bật Zapret</string>
+    <string name="zapret_enable_desc">Vượt chặn DPI cho lưu lượng của ứng dụng</string>
+    <string name="zapret_status_enabled">Bật • %1$d tên miền • %2$s</string>
+    <string name="zapret_status_disabled">Tắt</string>
+    <string name="zapret_strategy">Chiến lược</string>
+    <string name="zapret_strategy_split2">Chia ×2</string>
+    <string name="zapret_strategy_split2_desc">Bắt tay nhanh, vượt chặn SNI cơ bản</string>
+    <string name="zapret_strategy_multi">Chia nhỏ</string>
+    <string name="zapret_strategy_multi_desc">Bắt tay chậm hơn, mạnh hơn trước DPI nghiêm ngặt</string>
+    <string name="zapret_check">Kiểm tra dịch vụ</string>
+    <string name="zapret_checking">Đang kiểm tra…</string>
+    <string name="zapret_reachable">Hoạt động</string>
+    <string name="zapret_blocked">Bị chặn</string>
+    <string name="zapret_covered">Đã vượt</string>
+    <string name="zapret_add">Thêm</string>
+    <string name="zapret_add_blocked">Vượt các mục bị chặn (%1$d)</string>
+    <string name="zapret_added">Đã cập nhật danh sách: %1$d tên miền</string>
+    <string name="zapret_nothing_to_add">Mọi mục bị chặn đều đã được vượt</string>
+    <string name="zapret_own_title">Do KittyTune vượt chặn</string>
+    <string name="zapret_remove_own">Gỡ</string>
+    <string name="zapret_copy_list">Sao chép danh sách cho zapret PC</string>
+    <string name="zapret_copied">Đã sao chép danh sách. Dán vào list-general-user.txt của zapret trên PC</string>
+    <string name="keywords_zapret">zapret, dpi, vượt chặn, kiểm duyệt, chặn, youtube, discord</string>
 
     <string name="misc_general_sub">Ngôn ngữ, màn hình khởi động và cập nhật</string>
     <string name="misc_discord_sub">Hiển thị nhạc đang nghe trên Discord</string>

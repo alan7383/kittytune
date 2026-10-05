@@ -415,6 +415,12 @@ class PlayerPreferences(context: Context) {
         const val KEY_PROXY_PROFILES = "saved_proxy_profiles_json"
         const val KEY_SELECTED_PROXY_PROFILE_ID = "selected_proxy_profile_id"
 
+        // Zapret: in-app DPI bypass (no folder, no VPN, no proxy)
+        const val KEY_ZAPRET_ENABLED = "zapret_enabled"
+        const val KEY_ZAPRET_STRATEGY = "zapret_strategy"
+        const val KEY_ZAPRET_DOMAINS = "zapret_domains_csv"
+        const val KEY_ZAPRET_AUTO_CHECKED = "zapret_auto_checked"
+
         const val SLEEP_TIMER_FADE_DURATION_MIN = 0
         const val SLEEP_TIMER_FADE_DURATION_MAX = 30
         const val SLEEP_TIMER_FADE_DURATION_DEFAULT = 30
@@ -1689,6 +1695,36 @@ class PlayerPreferences(context: Context) {
         if (getSelectedProxyProfileId() == profileId) {
             setSelectedProxyProfileId(null)
         }
+    }
+
+    // Zapret: in-app DPI bypass (no folder, no VPN, no proxy)
+    fun getZapretEnabled(): Boolean = prefs.getBoolean(KEY_ZAPRET_ENABLED, false)
+
+    fun setZapretEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_ZAPRET_ENABLED, enabled) }
+    }
+
+    fun getZapretStrategy(): String =
+        prefs.getString(KEY_ZAPRET_STRATEGY, "split2") ?: "split2"
+
+    fun setZapretStrategy(strategyId: String) {
+        prefs.edit { putString(KEY_ZAPRET_STRATEGY, strategyId) }
+    }
+
+    fun getZapretDomains(): Set<String> {
+        val raw = prefs.getString(KEY_ZAPRET_DOMAINS, "") ?: ""
+        if (raw.isBlank()) return emptySet()
+        return raw.split(",", ";", "\n").map { it.trim().lowercase() }.filter { it.isNotBlank() }.toSet()
+    }
+
+    fun setZapretDomains(domains: Set<String>) {
+        prefs.edit { putString(KEY_ZAPRET_DOMAINS, domains.sorted().joinToString(",")) }
+    }
+
+    fun getZapretAutoChecked(): Boolean = prefs.getBoolean(KEY_ZAPRET_AUTO_CHECKED, false)
+
+    fun setZapretAutoChecked(checked: Boolean) {
+        prefs.edit { putBoolean(KEY_ZAPRET_AUTO_CHECKED, checked) }
     }
 
     fun getLikedSpotifyArtists(): Set<String> {

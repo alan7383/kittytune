@@ -215,6 +215,9 @@ object ProxyManager {
     }
 
     fun configureOkHttpClient(builder: OkHttpClient.Builder, context: Context? = null): OkHttpClient.Builder {
+        // In-app DPI bypass (zapret): installed unconditionally, the policy inside is a dynamic
+        // no-op until the user enables it, so toggling needs no client rebuild.
+        com.alananasss.kittytune.data.zapret.ZapretManager.applyTo(builder)
         val proxy = activeJavaProxy
         if (proxy != null) {
             builder.proxy(proxy)

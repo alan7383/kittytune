@@ -705,6 +705,7 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="settings_cat_interface_sub">Thèmes, lecteur et paroles</string>
     <string name="settings_cat_interface">Interface</string>
+    <string name="settings_cat_network">Réseau</string>
     <string name="settings_cat_misc">Divers</string>
     <string name="settings_page_themes">Thèmes</string>
     <string name="settings_page_themes_sub">Couleurs, fond et police</string>
@@ -3099,6 +3100,34 @@
     <string name="sync_advanced_sub">Détails de connexion, port et dépannage</string>
 
     <string name="network_proxy_sub">Configuration du proxy HTTP et SOCKS5</string>
+    <string name="network_zapret_sub">Contournement DPI intégré, sans VPN ni proxy</string>
+    <!-- Zapret : contournement DPI intégré -->
+    <string name="zapret_title">Zapret</string>
+    <string name="zapret_info_title">Ni VPN, ni proxy, ni appli supplémentaire</string>
+    <string name="zapret_info_desc">Zapret contourne les blocages en découpant les premiers paquets des connexions de l’appli, pour que les filtres ne voient pas quel site tu as demandé et laissent passer. Même principe que zapret sur PC, mais intégré à l’appli. Ça ne marche que dans KittyTune. Lance la vérification en dessous pour de meilleurs résultats.</string>
+    <string name="zapret_enable">Activer Zapret</string>
+    <string name="zapret_enable_desc">Contourner les blocages DPI pour le trafic de l’appli</string>
+    <string name="zapret_status_enabled">Activé • %1$d domaines • %2$s</string>
+    <string name="zapret_status_disabled">Désactivé</string>
+    <string name="zapret_strategy">Stratégie</string>
+    <string name="zapret_strategy_split2">Découpage ×2</string>
+    <string name="zapret_strategy_split2_desc">Handshake rapide, contre le blocage SNI simple</string>
+    <string name="zapret_strategy_multi">Multi-découpage</string>
+    <string name="zapret_strategy_multi_desc">Handshake plus lent, plus fort contre les DPI stricts</string>
+    <string name="zapret_check">Vérifier les services</string>
+    <string name="zapret_checking">Vérification…</string>
+    <string name="zapret_reachable">Fonctionne</string>
+    <string name="zapret_blocked">Bloqué</string>
+    <string name="zapret_covered">Contourné</string>
+    <string name="zapret_add">Ajouter</string>
+    <string name="zapret_add_blocked">Contourner les bloqués (%1$d)</string>
+    <string name="zapret_added">Liste mise à jour : %1$d domaines</string>
+    <string name="zapret_nothing_to_add">Tout ce qui est bloqué est déjà contourné</string>
+    <string name="zapret_own_title">Contourné par KittyTune</string>
+    <string name="zapret_remove_own">Retirer</string>
+    <string name="zapret_copy_list">Copier la liste pour zapret PC</string>
+    <string name="zapret_copied">Liste copiée. Collez-la dans list-general-user.txt de zapret sur PC</string>
+    <string name="keywords_zapret">zapret, dpi, contournement, censure, blocage, russie, youtube, discord</string>
 
     <string name="misc_general_sub">Langue, écran de démarrage et mises à jour</string>
     <string name="misc_discord_sub">Afficher la musique en cours sur Discord</string>

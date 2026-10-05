@@ -455,6 +455,7 @@ fun MainScreen(
                 currentRoute == "music_import_transfer" ||
                 currentRoute == Screen.Recognition.route ||
                 currentRoute == "proxy_settings" ||
+                currentRoute == "zapret_settings" ||
                 currentRoute == "discord_login" ||
                 currentRoute == "vk_login" ||
                 currentRoute == "deezer_login" ||
@@ -1590,6 +1591,12 @@ fun MainScreen(
 
                     clippedComposable("proxy_settings") {
                         ProxySettingsScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("zapret_settings") {
+                        ZapretSettingsScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }

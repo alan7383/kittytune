@@ -20,6 +20,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import java.net.Proxy
 import java.util.*
+import javax.net.SocketFactory
 
 /**
  * Provide access to InnerTube endpoints.
@@ -47,6 +48,17 @@ class InnerTube {
             httpClient = createClient()
         }
 
+    /**
+     * Optional plain [SocketFactory] (e.g. the app's DPI-bypass factory). Applied together with
+     * [proxy] through a preconfigured OkHttp client; dynamic factories need to be set only once.
+     */
+    var socketFactory: SocketFactory? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
     @OptIn(ExperimentalSerializationApi::class)
     private fun createClient() = HttpClient(OkHttp) {
         expectSuccess = true
@@ -65,9 +77,12 @@ class InnerTube {
             deflate(0.8F)
         }
 
-        if (proxy != null) {
+        if (proxy != null || socketFactory != null) {
             engine {
-                proxy = this@InnerTube.proxy
+                preconfigured = okhttp3.OkHttpClient.Builder().apply {
+                    socketFactory?.let { socketFactory(it) }
+                    proxy?.let { proxy(it) }
+                }.build()
             }
         }
 
