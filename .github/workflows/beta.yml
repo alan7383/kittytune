@@ -102,13 +102,15 @@ jobs:
             -Pandroid.injected.signing.key.password=$KEY_PASSWORD
 
       # ── Changelog (git-cliff, since last stable tag) ───────────────────────
-      - name: Get previous stable tag
+      - name: Get previous tag
         id: prev_tag
         run: |
-          # Latest stable tag only: beta tags (*-beta*) are excluded so the
-          # changelog always covers everything since the last stable release.
-          PREV=$(git describe --tags --match 'v*.*.*' --exclude '*-beta*' --abbrev=0 HEAD 2>/dev/null || echo "")
-          echo "Previous stable tag found: $PREV"
+          # Most recent reachable tag of any kind: each beta only lists what
+          # changed since the previous beta (or the last stable for the first
+          # beta of a cycle). Ranging from the last *stable* would repeat the
+          # whole cycle's notes on every beta.
+          PREV=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "")
+          echo "Previous tag found: $PREV"
           if [ -z "$PREV" ]; then
             echo "range=HEAD" >> $GITHUB_OUTPUT
           else
