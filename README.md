@@ -6,25 +6,28 @@
 
 <p align="center">
   <a href="https://github.com/alan7383/kittytune/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/alan7383/kittytune?style=for-the-badge&logo=github" alt="License">
+    <img src="https://img.shields.io/badge/License-gray?style=for-the-badge&logo=github" alt="License">
   </a>
   <a href="https://github.com/alan7383/kittytune/releases">
-    <img src="https://img.shields.io/github/v/tag/alan7383/kittytune?style=for-the-badge&logo=github&color=orange" alt="Release">
+    <img src="https://img.shields.io/github/v/tag/alan7383/kittytune?style=for-the-badge&label=Release&color=gray&logo=github" alt="Release">
   </a>
   <a href="https://github.com/alan7383/kittytune/stargazers">
-    <img src="https://img.shields.io/github/stars/alan7383/kittytune?style=for-the-badge&logo=github" alt="Stars">
+    <img src="https://img.shields.io/github/stars/alan7383/kittytune?style=for-the-badge&label=Stars&color=gray&logo=github" alt="Stars">
   </a>
   <a href="https://ko-fi.com/alan7383">
-    <img src="https://img.shields.io/badge/Ko--fi-Support-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
+    <img src="https://img.shields.io/badge/Ko--fi-gray?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi">
   </a>
   <a href="https://discord.gg/thyHQH9jV9">
-    <img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+    <img src="https://img.shields.io/badge/Discord-gray?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
   </a>
 </p>
-
+&nbsp;
 <p align="center">
-  <strong>A SoundCloud-first Android player with guest mode, YouTube fallback, local files, offline downloads, lyrics, widgets, and a lot of real extras.</strong>
+  <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune">
+    <img src=".github/assets/download-kittytune.svg" alt="Download KittyTune" width="240"/>
+  </a>
 </p>
+&nbsp;
 
 > [!NOTE]
 > KittyTune is still in active development and far from finished, so please treat it as a beta. Some features might be broken or incomplete. If you run into any bugs or weird behavior, feel free to [open an issue](https://github.com/alan7383/kittytune/issues) to help track them down! Keep in mind I'm working on this alone during my free time, so I won't always be able to fix things right away.
@@ -196,12 +199,6 @@ flowchart TD
 ---
 
 ### > install
-
-<p align="center">
-  <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune">
-    <img src=".github/assets/download-kittytune.svg" alt="Download KittyTune" width="240"/>
-  </a>
-</p>
 
 Download the latest APK from the [download page](https://alan7383.github.io/kittytune-website/download) or the [releases page](https://github.com/alan7383/kittytune/releases).
 
