@@ -101,14 +101,6 @@ jobs:
             -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
             -Pandroid.injected.signing.key.password=$KEY_PASSWORD
 
-      # ── Tag first so git-cliff attributes commits to it (no "Unreleased") ───
-      - name: Create beta tag
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag "${{ steps.beta.outputs.tag }}" || true
-          git push origin "${{ steps.beta.outputs.tag }}" || true
-
       # ── Changelog (git-cliff, since previous tag, beta included) ────────────
       - name: Get previous tag
         id: prev_tag
@@ -124,6 +116,14 @@ jobs:
           else
             echo "range=${PREV}..HEAD" >> $GITHUB_OUTPUT
           fi
+
+      # ── Tag now (prev already computed) so cliff attributes commits to it ───
+      - name: Create beta tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag "${{ steps.beta.outputs.tag }}" || true
+          git push origin "${{ steps.beta.outputs.tag }}" || true
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4
