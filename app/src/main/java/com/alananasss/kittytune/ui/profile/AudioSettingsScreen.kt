@@ -6,14 +6,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Equalizer
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.*
-import com.alananasss.kittytune.ui.common.Slider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,40 +21,413 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
-import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
-import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
+import com.alananasss.kittytune.ui.common.Slider
+import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
 
+/**
+ * The Audio category folder hub:
+ * Playback, Sound & Output, Transitions & Mix, Sleep Timer, Haptic Feedback.
+ */
 @Composable
 fun AudioSettingsScreen(
+    navController: NavController,
+    onBackClick: () -> Unit
+) {
+    SettingsFolderScreen(
+        title = stringResource(R.string.settings_cat_audio),
+        pages = SettingsSubPage.audioPages,
+        navController = navController,
+        onBackClick = onBackClick
+    )
+}
+
+/**
+ * Audio Playback subpage:
+ * Autoplay, queue persistence, position saving, YouTube fallback, speed.
+ */
+@Composable
+fun AudioPlaybackSettingsScreen(
+    onBackClick: () -> Unit,
+    playerViewModel: PlayerViewModel
+) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+    val tokenManager = remember { TokenManager(context) }
+    val isGuest = remember { tokenManager.isGuestMode() }
+
+    var autoplayEnabled by remember { mutableStateOf(prefs.getAutoplayEnabled()) }
+    var stopOnTaskClear by remember { mutableStateOf(prefs.getStopOnTaskClear()) }
+    var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
+    var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
+    var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
+    var hideYoutubeVideosEnabled by remember { mutableStateOf(prefs.getHideYoutubeVideos()) }
+    var scHistorySyncEnabled by remember { mutableStateOf(prefs.getSoundCloudHistorySyncEnabled()) }
+
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "pref_autoplay" to 0,
+            "pref_stop_on_task_clear" to 0,
+            "pref_persist_queue" to 0,
+            "pref_save_position" to 0,
+            "pref_youtube_fallback" to 0,
+            "pref_hide_youtube_videos" to 0,
+            "pref_precise_speed" to 0,
+            "pref_sc_sync" to 0
+        )
+    )
+
+    SettingsScaffold(
+        title = stringResource(R.string.settings_cat_playback),
+        onBackClick = onBackClick
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val totalVisibleItems = if (!isGuest) 8 else 7
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 0),
+                            title = stringResource(R.string.pref_autoplay),
+                            subtitle = stringResource(R.string.pref_autoplay_sub),
+                            hasSwitch = true,
+                            switchState = autoplayEnabled,
+                            onSwitchChange = { autoplayEnabled = it; prefs.setAutoplayEnabled(it) },
+                            highlightKey = "pref_autoplay"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 1),
+                            title = stringResource(R.string.pref_stop_on_task_clear),
+                            hasSwitch = true,
+                            switchState = stopOnTaskClear,
+                            onSwitchChange = { stopOnTaskClear = it; prefs.setStopOnTaskClear(it) },
+                            highlightKey = "pref_stop_on_task_clear"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 2),
+                            title = stringResource(R.string.pref_persist_queue),
+                            subtitle = stringResource(R.string.pref_persist_queue_sub),
+                            hasSwitch = true,
+                            switchState = persistentQueueEnabled,
+                            onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) },
+                            highlightKey = "pref_persist_queue"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 3),
+                            title = stringResource(R.string.pref_save_position),
+                            subtitle = stringResource(R.string.pref_save_position_sub),
+                            hasSwitch = true,
+                            switchState = savePositionEnabled,
+                            onSwitchChange = { savePositionEnabled = it; prefs.setSavePositionEnabled(it) },
+                            highlightKey = "pref_save_position"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 4),
+                            title = stringResource(R.string.pref_youtube_fallback),
+                            subtitle = stringResource(R.string.pref_youtube_fallback_sub),
+                            hasSwitch = true,
+                            switchState = youtubeFallbackEnabled,
+                            onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) },
+                            highlightKey = "pref_youtube_fallback"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 5),
+                            title = stringResource(R.string.pref_hide_youtube_videos),
+                            subtitle = stringResource(R.string.pref_hide_youtube_videos_sub),
+                            hasSwitch = true,
+                            switchState = hideYoutubeVideosEnabled,
+                            onSwitchChange = {
+                                hideYoutubeVideosEnabled = it
+                                prefs.setHideYoutubeVideos(it)
+                            },
+                            highlightKey = "pref_hide_youtube_videos"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 6),
+                            title = stringResource(R.string.pref_precise_speed),
+                            subtitle = stringResource(R.string.pref_precise_speed_sub),
+                            hasSwitch = true,
+                            switchState = playerViewModel.isPreciseSpeedEnabled,
+                            onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) },
+                            highlightKey = "pref_precise_speed"
+                        )
+
+                        if (!isGuest) {
+                            SettingsItem(
+                                shape = getSettingsShape(totalVisibleItems, 7),
+                                title = stringResource(R.string.pref_sc_sync_title),
+                                subtitle = stringResource(R.string.pref_sc_sync_sub),
+                                hasSwitch = true,
+                                switchState = scHistorySyncEnabled,
+                                onSwitchChange = {
+                                    scHistorySyncEnabled = it
+                                    prefs.setSoundCloudHistorySyncEnabled(it)
+                                },
+                                highlightKey = "pref_sc_sync"
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Sound & Output subpage:
+ * Equalizer, volume normalization, mono audio, DRM download.
+ */
+@Composable
+fun AudioQualitySettingsScreen(
     onBackClick: () -> Unit,
     onNavigateToDrmExplanation: () -> Unit,
     playerViewModel: PlayerViewModel
 ) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
-
-    var autoplayEnabled by remember { mutableStateOf(prefs.getAutoplayEnabled()) }
-    var stopOnTaskClear by remember { mutableStateOf(prefs.getStopOnTaskClear()) }
-    var persistentQueueEnabled by remember { mutableStateOf(prefs.getPersistentQueueEnabled()) }
-
-    val tokenManager = remember { TokenManager(context) }
-    val isGuest = remember { tokenManager.isGuestMode() }
-    var scHistorySyncEnabled by remember { mutableStateOf(prefs.getSoundCloudHistorySyncEnabled()) }
-
-    var youtubeFallbackEnabled by remember { mutableStateOf(prefs.getYouTubeFallbackEnabled()) }
     var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
-    var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
-    var fadeDuration by remember { mutableStateOf(prefs.getSleepTimerFadeDuration()) }
+
+    var showEqualizerSheet by remember { mutableStateOf(false) }
+    var showNormalizationDialog by remember { mutableStateOf(false) }
+    var showNormalizationInfoDialog by remember { mutableStateOf(false) }
+
+    if (showEqualizerSheet) {
+        EqualizerSheet(
+            viewModel = playerViewModel,
+            onDismiss = { showEqualizerSheet = false }
+        )
+    }
+
+    if (showNormalizationDialog) {
+        AlertDialog(
+            onDismissRequest = { showNormalizationDialog = false },
+            icon = { Icon(Icons.Rounded.Equalizer, null) },
+            title = {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = stringResource(R.string.pref_norm_title),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = 32.dp)
+                    )
+                    IconButton(
+                        onClick = { showNormalizationInfoDialog = true },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .size(32.dp),
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Info,
+                            contentDescription = stringResource(R.string.pref_norm_info_title),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.pref_norm_sub), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(16.dp))
+                    com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup(
+                        options = com.alananasss.kittytune.ui.player.NormalizationLevel.entries,
+                        selectedOption = playerViewModel.effectsState.normalizationLevel,
+                        onOptionSelected = { level ->
+                            playerViewModel.setNormalizationLevel(level)
+                            if (!playerViewModel.effectsState.isNormalizationEnabled) playerViewModel.toggleNormalization()
+                        },
+                        labelProvider = { level ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = when (level) {
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> stringResource(R.string.pref_norm_level_quiet)
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> stringResource(R.string.pref_norm_level_normal)
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> stringResource(R.string.pref_norm_level_loud)
+                                    },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = when (level) {
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> "\u221219 LUFS"
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> "\u221214 LUFS"
+                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> "\u221211 LUFS"
+                                    },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = androidx.compose.material3.LocalContentColor.current.copy(alpha = 0.8f),
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = { TextButton(onClick = { showNormalizationDialog = false }) { Text(stringResource(R.string.btn_ok)) } }
+        )
+    }
+
+    if (showNormalizationInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showNormalizationInfoDialog = false },
+            icon = { Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_norm_info_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.pref_norm_info_body_1),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.pref_norm_info_body_2),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showNormalizationInfoDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
+
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "equalizer" to 0,
+            "pref_audio_mono" to 0,
+            "pref_norm" to 0,
+            "pref_download_drm" to 0
+        )
+    )
+
+    SettingsScaffold(
+        title = stringResource(R.string.settings_audio_quality_title),
+        onBackClick = onBackClick
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.settings_audio_quality_title))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val totalVisibleItems = 4
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 0),
+                            title = stringResource(R.string.equalizer_title),
+                            subtitle = if (playerViewModel.equalizerState.isEnabled) {
+                                playerViewModel.equalizerState.selectedPreset
+                            } else {
+                                stringResource(R.string.equalizer_subtitle)
+                            },
+                            onClick = { showEqualizerSheet = true },
+                            switchState = playerViewModel.equalizerState.isEnabled,
+                            onSwitchChange = { playerViewModel.toggleEqualizer() },
+                            highlightKey = "equalizer"
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 1),
+                            title = stringResource(R.string.pref_audio_mono),
+                            subtitle = stringResource(R.string.pref_audio_mono_sub),
+                            hasSwitch = true,
+                            switchState = playerViewModel.effectsState.isMonoEnabled,
+                            onSwitchChange = { playerViewModel.toggleMono() },
+                            highlightKey = "pref_audio_mono"
+                        )
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 2),
+                            title = stringResource(R.string.pref_norm_title),
+                            subtitle = stringResource(R.string.pref_norm_sub),
+                            onClick = { showNormalizationDialog = true },
+                            switchState = playerViewModel.effectsState.isNormalizationEnabled,
+                            onSwitchChange = { playerViewModel.toggleNormalization() },
+                            highlightKey = "pref_norm"
+                        )
+
+                        SplitSettingsItem(
+                            shape = getSettingsShape(totalVisibleItems, 3),
+                            title = stringResource(R.string.pref_download_drm),
+                            subtitle = stringResource(R.string.pref_download_drm_sub),
+                            onClick = onNavigateToDrmExplanation,
+                            switchState = downloadDrmEnabled,
+                            onSwitchChange = { downloadDrmEnabled = it; prefs.setDownloadDrmStreamsEnabled(it) },
+                            highlightKey = "pref_download_drm"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Transitions & Mix subpage:
+ * Crossfade and DJ Automix.
+ */
+@Composable
+fun AudioTransitionsSettingsScreen(
+    onBackClick: () -> Unit,
+    playerViewModel: PlayerViewModel
+) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
 
     var crossfadeEnabled by remember { mutableStateOf(prefs.getCrossfadeEnabled()) }
     var crossfadeDuration by remember { mutableStateOf(prefs.getCrossfadeDuration()) }
@@ -72,51 +444,10 @@ fun AudioSettingsScreen(
     var automixStartOffsetMode by remember { mutableStateOf(prefs.getAutomixStartOffsetMode()) }
     var automixStartOffsetCustomSec by remember { mutableStateOf(prefs.getAutomixStartOffsetCustomSec()) }
     var automixIndicator by remember { mutableStateOf(prefs.getAutomixIndicatorEnabled()) }
+
     var showAutomixOverlapDialog by remember { mutableStateOf(false) }
     var showAutomixStartOffsetDialog by remember { mutableStateOf(false) }
-    var showFadeDurationDialog by remember { mutableStateOf(false) }
     var showCrossfadeDurationDialog by remember { mutableStateOf(false) }
-    var showNormalizationDialog by remember { mutableStateOf(false) }
-    var showNormalizationInfoDialog by remember { mutableStateOf(false) }
-    var showEqualizerSheet by remember { mutableStateOf(false) }
-
-    if (showEqualizerSheet) {
-        EqualizerSheet(
-            viewModel = playerViewModel,
-            onDismiss = { showEqualizerSheet = false }
-        )
-    }
-
-    if (showFadeDurationDialog) {
-        AlertDialog(
-            onDismissRequest = { showFadeDurationDialog = false },
-            title = { Text(stringResource(R.string.sleep_timer_fade_title)) },
-            text = {
-                Column {
-                    Text(
-                        text = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Slider(
-                        value = fadeDuration.toFloat(),
-                        onValueChange = {
-                            fadeDuration = it.toInt()
-                            prefs.setSleepTimerFadeDuration(it.toInt())
-                        },
-                        valueRange = PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MIN.toFloat()..PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MAX.toFloat(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showFadeDurationDialog = false }) {
-                    Text(stringResource(R.string.btn_ok))
-                }
-            }
-        )
-    }
 
     if (showCrossfadeDurationDialog) {
         AlertDialog(
@@ -266,144 +597,18 @@ fun AudioSettingsScreen(
         )
     }
 
-
-    if (showNormalizationDialog) {
-        AlertDialog(
-            onDismissRequest = { showNormalizationDialog = false },
-            icon = { Icon(Icons.Rounded.Equalizer, null) },
-            title = {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = stringResource(R.string.pref_norm_title),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(horizontal = 32.dp)
-                    )
-                    IconButton(
-                        onClick = { showNormalizationInfoDialog = true },
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .size(32.dp),
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Info,
-                            contentDescription = stringResource(R.string.pref_norm_info_title),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            },
-            text = {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.pref_norm_sub), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup(
-                        options = com.alananasss.kittytune.ui.player.NormalizationLevel.entries,
-                        selectedOption = playerViewModel.effectsState.normalizationLevel,
-                        onOptionSelected = { level ->
-                            playerViewModel.setNormalizationLevel(level)
-                            if (!playerViewModel.effectsState.isNormalizationEnabled) playerViewModel.toggleNormalization()
-                        },
-                        labelProvider = { level ->
-                            val isSelected = (level == playerViewModel.effectsState.normalizationLevel)
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = when (level) {
-                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> stringResource(R.string.pref_norm_level_quiet)
-                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> stringResource(R.string.pref_norm_level_normal)
-                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> stringResource(R.string.pref_norm_level_loud)
-                                    },
-                                    style = MaterialTheme.typography.labelMedium,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = when (level) {
-                                        com.alananasss.kittytune.ui.player.NormalizationLevel.QUIET -> "\u221219 LUFS"
-                                        com.alananasss.kittytune.ui.player.NormalizationLevel.NORMAL -> "\u221214 LUFS"
-                                        com.alananasss.kittytune.ui.player.NormalizationLevel.LOUD -> "\u221211 LUFS"
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = androidx.compose.material3.LocalContentColor.current.copy(alpha = 0.8f),
-                                    maxLines = 1
-                                )
-                            }
-                        }
-                    )
-                }
-            },
-            confirmButton = { TextButton(onClick = { showNormalizationDialog = false }) { Text(stringResource(R.string.btn_ok)) } }
-        )
-    }
-
-    if (showNormalizationInfoDialog) {
-        AlertDialog(
-            onDismissRequest = { showNormalizationInfoDialog = false },
-            icon = { Icon(Icons.Rounded.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-            title = {
-                Text(
-                    text = stringResource(R.string.pref_norm_info_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.pref_norm_info_body_1),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(R.string.pref_norm_info_body_2),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showNormalizationInfoDialog = false }) {
-                    Text(stringResource(R.string.btn_ok))
-                }
-            }
-        )
-    }
-
     val listState = rememberLazyListState()
 
     AutoScrollToHighlightedItem(
         listState = listState,
         keyToIndex = mapOf(
-            "pref_autoplay" to 0,
-            "pref_stop_on_task_clear" to 0,
-            "pref_persist_queue" to 0,
-            "pref_save_position" to 0,
-            "pref_youtube_fallback" to 0,
-            "pref_hide_youtube_videos" to 0,
-            "pref_download_drm" to 0,
-            "pref_precise_speed" to 0,
-            "pref_sc_sync" to 0,
-            "equalizer" to 1,
-            "pref_audio_mono" to 1,
-            "pref_norm" to 1,
-            "pref_haptics" to 1,
-            "sleep_timer_fade" to 2,
-            "pref_crossfade" to 3,
-            "pref_automix" to 4
+            "pref_crossfade" to 0,
+            "pref_automix" to 1
         )
     )
 
     SettingsScaffold(
-        title = stringResource(R.string.pref_audio_title),
+        title = stringResource(R.string.settings_audio_transitions_title),
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(
@@ -411,221 +616,8 @@ fun AudioSettingsScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 180.dp)
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
         ) {
-
-            item {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.settings_cat_playback))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = if (!isGuest) 9 else 8
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 0),
-                            title = stringResource(R.string.pref_autoplay),
-                            subtitle = stringResource(R.string.pref_autoplay_sub),
-                            hasSwitch = true,
-                            switchState = autoplayEnabled,
-                            onSwitchChange = { autoplayEnabled = it; prefs.setAutoplayEnabled(it) },
-                            highlightKey = "pref_autoplay"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 1),
-                            title = stringResource(R.string.pref_stop_on_task_clear),
-                            hasSwitch = true,
-                            switchState = stopOnTaskClear,
-                            onSwitchChange = { stopOnTaskClear = it; prefs.setStopOnTaskClear(it) },
-                            highlightKey = "pref_stop_on_task_clear"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 2),
-                            title = stringResource(R.string.pref_persist_queue),
-                            subtitle = stringResource(R.string.pref_persist_queue_sub),
-                            hasSwitch = true,
-                            switchState = persistentQueueEnabled,
-                            onSwitchChange = { persistentQueueEnabled = it; prefs.setPersistentQueueEnabled(it) },
-                            highlightKey = "pref_persist_queue"
-                        )
-
-                        var savePositionEnabled by remember { mutableStateOf(prefs.getSavePositionEnabled()) }
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 3),
-                            title = stringResource(R.string.pref_save_position),
-                            subtitle = stringResource(R.string.pref_save_position_sub),
-                            hasSwitch = true,
-                            switchState = savePositionEnabled,
-                            onSwitchChange = { savePositionEnabled = it; prefs.setSavePositionEnabled(it) },
-                            highlightKey = "pref_save_position"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 4),
-                            title = stringResource(R.string.pref_youtube_fallback),
-                            subtitle = stringResource(R.string.pref_youtube_fallback_sub),
-                            hasSwitch = true,
-                            switchState = youtubeFallbackEnabled,
-                            onSwitchChange = { youtubeFallbackEnabled = it; prefs.setYouTubeFallbackEnabled(it) },
-                            highlightKey = "pref_youtube_fallback"
-                        )
-
-                        var hideYoutubeVideosEnabled by remember { mutableStateOf(prefs.getHideYoutubeVideos()) }
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 5),
-                            title = stringResource(R.string.pref_hide_youtube_videos),
-                            subtitle = stringResource(R.string.pref_hide_youtube_videos_sub),
-                            hasSwitch = true,
-                            switchState = hideYoutubeVideosEnabled,
-                            onSwitchChange = {
-                                hideYoutubeVideosEnabled = it
-                                prefs.setHideYoutubeVideos(it)
-                            },
-                            highlightKey = "pref_hide_youtube_videos"
-                        )
-
-                        SplitSettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 6),
-                            title = stringResource(R.string.pref_download_drm),
-                            subtitle = stringResource(R.string.pref_download_drm_sub),
-                            onClick = onNavigateToDrmExplanation,
-                            switchState = downloadDrmEnabled,
-                            onSwitchChange = { downloadDrmEnabled = it; prefs.setDownloadDrmStreamsEnabled(it) },
-                            highlightKey = "pref_download_drm"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 7),
-                            title = stringResource(R.string.pref_precise_speed),
-                            subtitle = stringResource(R.string.pref_precise_speed_sub),
-                            hasSwitch = true,
-                            switchState = playerViewModel.isPreciseSpeedEnabled,
-                            onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) },
-                            highlightKey = "pref_precise_speed"
-                        )
-
-                        if (!isGuest) {
-                            SettingsItem(
-                                shape = getSettingsShape(totalVisibleItems, 8),
-                                title = stringResource(R.string.pref_sc_sync_title),
-                                subtitle = stringResource(R.string.pref_sc_sync_sub),
-                                hasSwitch = true,
-                                switchState = scHistorySyncEnabled,
-                                onSwitchChange = {
-                                    scHistorySyncEnabled = it
-                                    prefs.setSoundCloudHistorySyncEnabled(it)
-                                },
-                                highlightKey = "pref_sc_sync"
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle("Audio DSP")
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalVisibleItems = 4
-
-                        SplitSettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 0),
-                            title = stringResource(R.string.equalizer_title),
-                            subtitle = if (playerViewModel.equalizerState.isEnabled) {
-                                playerViewModel.equalizerState.selectedPreset
-                            } else {
-                                stringResource(R.string.equalizer_subtitle)
-                            },
-                            onClick = { showEqualizerSheet = true },
-                            switchState = playerViewModel.equalizerState.isEnabled,
-                            onSwitchChange = { playerViewModel.toggleEqualizer() },
-                            highlightKey = "equalizer"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 1),
-                            title = stringResource(R.string.pref_audio_mono),
-                            subtitle = stringResource(R.string.pref_audio_mono_sub),
-                            hasSwitch = true,
-                            switchState = playerViewModel.effectsState.isMonoEnabled,
-                            onSwitchChange = { playerViewModel.toggleMono() },
-                            highlightKey = "pref_audio_mono"
-                        )
-
-                        SplitSettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 2),
-                            title = stringResource(R.string.pref_norm_title),
-                            subtitle = stringResource(R.string.pref_norm_sub),
-                            onClick = { showNormalizationDialog = true },
-                            switchState = playerViewModel.effectsState.isNormalizationEnabled,
-                            onSwitchChange = { playerViewModel.toggleNormalization() },
-                            highlightKey = "pref_norm"
-                        )
-
-                        SettingsItem(
-                            shape = getSettingsShape(totalVisibleItems, 3),
-                            title = stringResource(R.string.pref_haptics_title),
-                            subtitle = stringResource(R.string.pref_haptics_subtitle),
-                            hasSwitch = true,
-                            switchState = playerViewModel.isHapticsEnabled,
-                            onSwitchChange = { playerViewModel.toggleHaptics(it) },
-                            highlightKey = "pref_haptics"
-                        )
-                    }
-                }
-            }
-
-            item {
-                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                    SettingsGroupTitle(stringResource(R.string.sleep_timer_title))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val fadeBottomRadius by animateDpAsState(
-                            targetValue = if (fadeEnabled) 4.dp else 24.dp,
-                            label = "FadeCornerAnimation"
-                        )
-
-                        SettingsItem(
-                            shape = RoundedCornerShape(
-                                topStart = 24.dp,
-                                topEnd = 24.dp,
-                                bottomStart = fadeBottomRadius,
-                                bottomEnd = fadeBottomRadius
-                            ),
-                            title = stringResource(R.string.sleep_timer_fade_title),
-                            subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
-                            hasSwitch = true,
-                            switchState = fadeEnabled,
-                            onSwitchChange = { 
-                                fadeEnabled = it
-                                prefs.setSleepTimerFadeEnabled(it)
-                            },
-                            highlightKey = "sleep_timer_fade"
-                        )
-
-                        AnimatedVisibility(
-                            visible = fadeEnabled,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            SettingsItem(
-                                shape = RoundedCornerShape(
-                                    topStart = 4.dp,
-                                    topEnd = 4.dp,
-                                    bottomStart = 24.dp,
-                                    bottomEnd = 24.dp
-                                ),
-                                title = stringResource(R.string.label_duration),
-                                subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
-                                onClick = { showFadeDurationDialog = true }
-                            )
-                        }
-                    }
-                }
-            }
-
             item {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.pref_crossfade_title))
@@ -713,6 +705,7 @@ fun AudioSettingsScreen(
                     else -> stringResource(R.string.automix_start_offset_auto)
                 }
 
+                Spacer(Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                     SettingsGroupTitle(stringResource(R.string.automix))
 
@@ -830,6 +823,124 @@ fun AudioSettingsScreen(
                                     }
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Sleep Timer subpage:
+ * Fade out and duration.
+ */
+@Composable
+fun AudioSleepTimerSettingsScreen(
+    onBackClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val prefs = remember { PlayerPreferences(context) }
+
+    var fadeEnabled by remember { mutableStateOf(prefs.getSleepTimerFadeEnabled()) }
+    var fadeDuration by remember { mutableStateOf(prefs.getSleepTimerFadeDuration()) }
+    var showFadeDurationDialog by remember { mutableStateOf(false) }
+
+    if (showFadeDurationDialog) {
+        AlertDialog(
+            onDismissRequest = { showFadeDurationDialog = false },
+            title = { Text(stringResource(R.string.sleep_timer_fade_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Slider(
+                        value = fadeDuration.toFloat(),
+                        onValueChange = {
+                            fadeDuration = it.toInt()
+                            prefs.setSleepTimerFadeDuration(it.toInt())
+                        },
+                        valueRange = PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MIN.toFloat()..PlayerPreferences.SLEEP_TIMER_FADE_DURATION_MAX.toFloat(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showFadeDurationDialog = false }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            }
+        )
+    }
+
+    val listState = rememberLazyListState()
+
+    AutoScrollToHighlightedItem(
+        listState = listState,
+        keyToIndex = mapOf(
+            "sleep_timer_fade" to 0
+        )
+    )
+
+    SettingsScaffold(
+        title = stringResource(R.string.sleep_timer_title),
+        onBackClick = onBackClick
+    ) { innerPadding ->
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.sleep_timer_title))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        val fadeBottomRadius by animateDpAsState(
+                            targetValue = if (fadeEnabled) 4.dp else 24.dp,
+                            label = "FadeCornerAnimation"
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(
+                                topStart = 24.dp,
+                                topEnd = 24.dp,
+                                bottomStart = fadeBottomRadius,
+                                bottomEnd = fadeBottomRadius
+                            ),
+                            title = stringResource(R.string.sleep_timer_fade_title),
+                            subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                            hasSwitch = true,
+                            switchState = fadeEnabled,
+                            onSwitchChange = { 
+                                fadeEnabled = it
+                                prefs.setSleepTimerFadeEnabled(it)
+                            },
+                            highlightKey = "sleep_timer_fade"
+                        )
+
+                        AnimatedVisibility(
+                            visible = fadeEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            SettingsItem(
+                                shape = RoundedCornerShape(
+                                    topStart = 4.dp,
+                                    topEnd = 4.dp,
+                                    bottomStart = 24.dp,
+                                    bottomEnd = 24.dp
+                                ),
+                                title = stringResource(R.string.label_duration),
+                                subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
+                                onClick = { showFadeDurationDialog = true }
+                            )
                         }
                     }
                 }

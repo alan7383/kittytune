@@ -71,18 +71,21 @@ fun SettingsScreen(
                     .fillMaxWidth(),
                 contentPadding = PaddingValues(bottom = 180.dp, top = 8.dp)
             ) {
-                SettingsCategory.entries.forEach { category ->
-                    item(key = "cat-${category.name}") {
+                // Old style (pre-desktop rework): each section lists its pages
+                // directly, several rows per card, instead of one button per
+                // category opening an extra folder screen.
+                rootGroups().forEach { group ->
+                    item(key = "root-${group.titleRes}") {
                         SettingsGroup(
-                            title = stringResource(category.titleRes),
-                            items = category.entriesFor().map { entry ->
+                            title = stringResource(group.titleRes),
+                            items = group.rows.map { row ->
                                 { shape ->
                                     SettingsItem(
                                         shape = shape,
-                                        title = stringResource(entry.titleRes),
-                                        subtitle = entry.subtitleRes?.let { stringResource(it) },
-                                        icon = entry.icon,
-                                        onClick = { navController.navigate(entry.route) }
+                                        title = stringResource(row.titleRes),
+                                        subtitle = row.subtitleRes?.let { stringResource(it) },
+                                        icon = row.icon,
+                                        onClick = { navController.navigate(row.route) }
                                     )
                                 }
                             }
@@ -137,13 +140,18 @@ fun SettingsHomeSearchBar(
  * The Interface category's sub-pages, rendered identically to Desktop Screenshot 5:
  * Thèmes, Design du lecteur, Barre de navigation, Paroles.
  */
+/**
+ * A category's sub-page folder hub, styled identically to InterfaceSettingsScreen.
+ */
 @Composable
-fun InterfaceSettingsScreen(
+internal fun SettingsFolderScreen(
+    title: String,
+    pages: List<SettingsSubPage>,
     navController: NavController,
     onBackClick: () -> Unit
 ) {
     SettingsScaffold(
-        title = stringResource(R.string.settings_cat_interface),
+        title = title,
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(
@@ -154,7 +162,7 @@ fun InterfaceSettingsScreen(
         ) {
             item {
                 SettingsGroup(
-                    items = SettingsSubPage.interfacePages.map { page ->
+                    items = pages.map { page ->
                         { shape ->
                             SettingsItem(
                                 shape = shape,
@@ -172,3 +180,55 @@ fun InterfaceSettingsScreen(
         }
     }
 }
+
+/**
+ * The Interface category's sub-pages:
+ * Thèmes, Design du lecteur, Barre de navigation, Paroles.
+ */
+@Composable
+fun InterfaceSettingsScreen(
+    navController: NavController,
+    onBackClick: () -> Unit
+) {
+    SettingsFolderScreen(
+        title = stringResource(R.string.settings_cat_interface),
+        pages = SettingsSubPage.interfacePages,
+        navController = navController,
+        onBackClick = onBackClick
+    )
+}
+
+/**
+ * The Sources category's sub-pages:
+ * Comptes connectés, Ordre des fournisseurs, Import de musique, Fournisseurs de paroles.
+ */
+@Composable
+fun SourcesSettingsScreen(
+    navController: NavController,
+    onBackClick: () -> Unit
+) {
+    SettingsFolderScreen(
+        title = stringResource(R.string.settings_cat_accounts),
+        pages = SettingsSubPage.sourcesPages,
+        navController = navController,
+        onBackClick = onBackClick
+    )
+}
+
+/**
+ * The Storage category's sub-pages:
+ * Cache et stockage, Médias locaux, Sauvegarde et restauration.
+ */
+@Composable
+fun StorageSettingsScreen(
+    navController: NavController,
+    onBackClick: () -> Unit
+) {
+    SettingsFolderScreen(
+        title = stringResource(R.string.pref_storage_title),
+        pages = SettingsSubPage.storagePages,
+        navController = navController,
+        onBackClick = onBackClick
+    )
+}
+

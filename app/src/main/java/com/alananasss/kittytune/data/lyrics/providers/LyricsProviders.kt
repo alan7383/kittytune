@@ -111,10 +111,74 @@ object LrcLibLyricsProvider : LyricsProvider {
         if (plain != null) return@runCatching plain
 
         val search = LrcLibClient.api.searchLyrics("$artist $title".trim())
-        val match = search.firstOrNull() ?: throw IllegalStateException("Lyrics not found on LrcLib")
+        val usable = search.filter {
+            !it.syncedLyrics.isNullOrBlank() || !it.plainLyrics.isNullOrBlank()
+        }
+        if (usable.isEmpty()) throw IllegalStateException("Lyrics not found on LrcLib")
+
+        // Closest duration within ±2s wins; otherwise fall back to text similarity
+        // (avg title/artist > 0.6, synced preferred), mirroring ArchiveTune.
+        val match = if (duration > 0) {
+            usable.minByOrNull { abs(it.duration - duration.toDouble()) }
+                ?.takeIf { abs(it.duration - duration.toDouble()) <= MAX_DURATION_DELTA_SECONDS }
+                ?: usable.bestTextMatch(title, artist)
+        } else {
+            usable.bestTextMatch(title, artist) ?: usable.firstOrNull { !it.syncedLyrics.isNullOrBlank() }
+        } ?: throw IllegalStateException("Lyrics not found on LrcLib")
+
         match.syncedLyrics?.takeIf { it.isNotBlank() }
             ?: match.plainLyrics?.takeIf { it.isNotBlank() }
             ?: throw IllegalStateException("Lyrics not found on LrcLib")
+    }
+
+    private const val MAX_DURATION_DELTA_SECONDS = 2.0
+    private const val MIN_TEXT_SIMILARITY = 0.6
+
+    private fun List<com.alananasss.kittytune.data.network.LrcLibResponse>.bestTextMatch(
+        title: String,
+        artist: String,
+    ): com.alananasss.kittytune.data.network.LrcLibResponse? {
+        val normTitle = title.trim().lowercase()
+        val normArtist = artist.trim().lowercase()
+        return maxByOrNull { track ->
+            var score = (similarity(normTitle, track.name.trim().lowercase()) +
+                similarity(normArtist, track.artistName.trim().lowercase())) / 2.0
+            if (!track.syncedLyrics.isNullOrBlank()) score += 0.1
+            score
+        }?.takeIf { track ->
+            (similarity(normTitle, track.name.trim().lowercase()) +
+                similarity(normArtist, track.artistName.trim().lowercase())) / 2.0 > MIN_TEXT_SIMILARITY
+        }
+    }
+
+    private fun similarity(a: String, b: String): Double {
+        if (a == b) return 1.0
+        if (a.isEmpty() || b.isEmpty()) return 0.0
+        if (a.contains(b) || b.contains(a)) return maxOf(0.8, levenshteinSimilarity(a, b))
+        return levenshteinSimilarity(a, b)
+    }
+
+    private fun levenshteinSimilarity(a: String, b: String): Double {
+        val maxLen = maxOf(a.length, b.length)
+        if (maxLen == 0) return 1.0
+        return 1.0 - levenshtein(a, b).toDouble() / maxLen
+    }
+
+    private fun levenshtein(a: String, b: String): Int {
+        val prev = IntArray(b.length + 1) { it }
+        val curr = IntArray(b.length + 1)
+        for (i in 1..a.length) {
+            curr[0] = i
+            for (j in 1..b.length) {
+                curr[j] = minOf(
+                    prev[j] + 1,
+                    curr[j - 1] + 1,
+                    prev[j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1,
+                )
+            }
+            prev.indices.forEach { prev[it] = curr[it] }
+        }
+        return prev[b.length]
     }
 }
 

@@ -2553,11 +2553,13 @@ fun SearchResultsList(
                             if (isPlaylistLiked) context.getString(R.string.action_unlike) else context.getString(R.string.player_like_action)
                         ) {
                             if (!isPlaylistLiked) {
-                                    val isSpotify = playlist.permalinkUrl?.contains("spotify") == true || playlist.urn?.startsWith("spotify:") == true
+                                    val isExternal = com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalProvider(
+                                        playlist.permalinkUrl, playlist.urn
+                                    )
                                     com.alananasss.kittytune.data.DownloadManager.importPlaylistToLibrary(
                                         playlist = playlist,
                                         tracks = playlist.tracks ?: emptyList(),
-                                        syncToCloud = !isSpotify,
+                                        syncToCloud = !isExternal,
                                         likePlaylist = true
                                     )
                             } else {

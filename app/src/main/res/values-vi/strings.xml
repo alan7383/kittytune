@@ -3024,4 +3024,35 @@
     <string name="pref_full_player_source_title">Chỉ báo nguồn âm thanh</string>
     <string name="pref_full_player_source_desc">Hiển thị biểu tượng nguồn (YouTube, SoundCloud, v.v.) cho bài hát đang phát</string>
     <string name="audio_source_tooltip">Âm thanh từ %s</string>
+
+    <!-- Settings subpage folders -->
+    <string name="settings_cat_misc_sub">Chung, bộ lọc nội dung, Discord và giới thiệu</string>
+    <string name="settings_audio_playback_sub">Tự động phát, hàng đợi, tiếp tục và tốc độ</string>
+    <string name="settings_audio_quality_title">Âm thanh &amp; Đầu ra</string>
+    <string name="settings_audio_quality_sub">Chất lượng âm thanh, thiết bị và chuẩn hóa âm lượng</string>
+    <string name="settings_audio_transitions_title">Chuyển tiếp &amp; Trộn</string>
+    <string name="settings_audio_transitions_sub">Chuyển bài mượt mà và DJ automix</string>
+    <string name="settings_audio_sleep_sub">Thời gian mờ dần và tùy chọn hẹn giờ ngủ</string>
+
+    <string name="sources_services_sub">SoundCloud, Qobuz, TIDAL, Deezer, VK</string>
+    <string name="sources_order_sub">Thứ tự ưu tiên nguồn phát và nhập nhạc</string>
+    <string name="lyrics_sources_title">Nguồn lời bài hát</string>
+    <string name="lyrics_sources_sub">Thứ tự và các nguồn lời bài hát được bật</string>
+
+    <string name="storage_cache_sub">Giới hạn và dọn dẹp bộ nhớ đệm âm thanh, hình ảnh</string>
+    <string name="storage_downloads_sub">Các bài hát đã tải xuống và vị trí lưu trữ</string>
+    <string name="storage_local_files_sub">Thư mục đã quét và thư viện cục bộ</string>
+    <string name="storage_backup_sub">Xuất và nhập cài đặt cùng dữ liệu ứng dụng</string>
+
+    <string name="sync_paired_devices_title">Thiết bị đã ghép đôi</string>
+    <string name="sync_paired_devices_sub">Trạng thái đồng bộ, kết nối và quản lý thiết bị</string>
+    <string name="sync_options_title">Dữ liệu đồng bộ</string>
+    <string name="sync_options_sub">Chọn dữ liệu cần đồng bộ giữa các thiết bị</string>
+    <string name="sync_advanced_title">Đồng bộ nâng cao</string>
+    <string name="sync_advanced_sub">Chi tiết kết nối, cổng và khắc phục sự cố</string>
+
+    <string name="network_proxy_sub">Cấu hình proxy HTTP và SOCKS5</string>
+
+    <string name="misc_general_sub">Ngôn ngữ, màn hình khởi động và cập nhật</string>
+    <string name="misc_discord_sub">Hiển thị nhạc đang nghe trên Discord</string>
 </resources>

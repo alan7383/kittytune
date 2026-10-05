@@ -21,11 +21,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Computer
 import androidx.compose.material.icons.rounded.Devices
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.PhoneAndroid
@@ -34,12 +31,9 @@ import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Switch
-import com.alananasss.kittytune.data.local.PlayerPreferences
-import com.alananasss.kittytune.data.sync.SyncLikes
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -64,13 +58,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.sync.KnownDevice
 import com.alananasss.kittytune.data.sync.SyncClient
+import com.alananasss.kittytune.data.sync.SyncLikes
 import com.alananasss.kittytune.data.sync.SyncLog
 import com.alananasss.kittytune.data.sync.SyncPeers
 import com.alananasss.kittytune.data.sync.SyncScheduler
 import com.alananasss.kittytune.data.sync.SyncService
+import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
@@ -78,18 +76,28 @@ import com.alananasss.kittytune.ui.common.getSettingsShape
 import kotlinx.coroutines.launch
 
 /**
- * Pairing with a computer, and seeing that it is working (issue #33).
- *
- * The state comes first and in a sentence — in step, or not, and with what — because that is the only
- * question anyone opens this screen with, and the previous version answered it nowhere: it showed a name
- * field, a code field and a count of log entries, none of which say whether sync is happening.
- *
- * There is one action, *pair with a computer*, which is a camera. Everything that is a mechanism rather
- * than a decision is behind **Advanced**, where it can be found when something has gone wrong and ignored
- * the rest of the time. The desktop's screen is laid out the same way, deliberately.
+ * The Sync category folder hub:
+ * Paired Devices, Sync Data, Advanced Sync.
  */
 @Composable
-fun SyncSettingsScreen(onBackClick: () -> Unit) {
+fun SyncSettingsScreen(
+    navController: NavController,
+    onBackClick: () -> Unit
+) {
+    SettingsFolderScreen(
+        title = stringResource(R.string.sync_title),
+        pages = SettingsSubPage.syncPages,
+        navController = navController,
+        onBackClick = onBackClick
+    )
+}
+
+/**
+ * Paired Devices subpage:
+ * Status card, list of connected computers/phones, pair via QR.
+ */
+@Composable
+fun SyncDevicesScreen(onBackClick: () -> Unit) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val playerPrefs = remember { PlayerPreferences(context) }
@@ -97,9 +105,7 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
     var devices by remember { mutableStateOf(SyncPeers.all()) }
     var status by remember { mutableStateOf<String?>(null) }
     var scanning by remember { mutableStateOf(false) }
-    var showAdvanced by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    var likesSyncEnabled by remember { mutableStateOf(playerPrefs.getSyncLikesEnabled()) }
     var showDisclaimerDialog by remember { mutableStateOf(!playerPrefs.isSyncDisclaimerDismissed()) }
 
     val isSyncing by SyncScheduler.isSyncing.collectAsState()
@@ -107,10 +113,6 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
 
     LaunchedEffect(lastSyncAtMs, scanning) { devices = SyncPeers.all() }
 
-    // Android 16 and later drop connections to local addresses unless this is granted, and they drop them
-    // silently — the app sees a plain TCP timeout, so without asking for it the whole feature looks like a
-    // network fault (issue #33). Older releases have no such permission and report it as granted, so the
-    // banner never appears there.
     var localNetworkGranted by remember { mutableStateOf(hasLocalNetworkAccess(context)) }
     val localNetworkLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -126,7 +128,6 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
     val badCode = stringResource(R.string.sync_bad_code)
     val allDoneTemplate = stringResource(R.string.sync_all_done)
 
-    /** One place for both ways in, so scanning and pasting cannot drift apart. */
     fun pair(code: String) {
         val peer = SyncService.parsePairingCode(code)
         if (peer == null) {
@@ -140,13 +141,10 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
             devices = SyncPeers.all()
             status = when (result) {
                 is SyncClient.Result.Success -> {
-                    // Paired means paired: the listener comes up so the computer can start the next
-                    // exchange itself, and the scheduler keeps them in step from here on.
                     SyncService.isListenerEnabled = true
                     SyncScheduler.start()
                     String.format(doneTemplate, result.peerName)
                 }
-
                 SyncClient.Result.Unauthorized -> unauthorized
                 is SyncClient.Result.Failed -> String.format(failedTemplate, result.reason)
             }
@@ -163,16 +161,12 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
         )
     }
 
-    SettingsScaffold(title = stringResource(R.string.sync_title), onBackClick = onBackClick) { padding ->
-        // The same shape as every other settings screen: the scaffold's insets applied as padding, and a
-        // generous bottom so the last row clears the player bar. This screen only applied the *top* inset and
-        // reserved 48 dp at the bottom, which is why it sat tight against the edges and ran under the player
-        // (issue #33).
+    SettingsScaffold(title = stringResource(R.string.sync_paired_devices_title), onBackClick = onBackClick) { padding ->
         LazyColumn(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 180.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp),
         ) {
             item {
                 Column(
@@ -214,8 +208,6 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
                                 Button(
                                     onClick = { localNetworkLauncher.launch(LOCAL_NETWORK_PERMISSION) },
                                     shapes = ButtonDefaults.shapes(),
-                                    // Stays inside the error role it sits in; the default primary fill on
-                                    // an errorContainer card is two unrelated hues touching.
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.error,
                                         contentColor = MaterialTheme.colorScheme.onError,
@@ -262,50 +254,6 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
                             )
                         }
                     }
-
-                    Spacer(Modifier.height(12.dp))
-                    SettingsGroupTitle(stringResource(R.string.sync_likes_title))
-
-                    SettingsItem(
-                        title = stringResource(R.string.sync_likes_title),
-                        subtitle = stringResource(R.string.sync_likes_sub),
-                        icon = Icons.Rounded.Favorite,
-                        shape = getSettingsShape(1, 0),
-                        hasSwitch = true,
-                        switchState = likesSyncEnabled,
-                        onSwitchChange = {
-                            likesSyncEnabled = it
-                            playerPrefs.setSyncLikesEnabled(it)
-                            if (it) {
-                                scope.launch {
-                                    SyncLikes.seedMissing()
-                                    SyncLikes.seedMissingPlaylists()
-                                    SyncScheduler.triggerImmediateSync("likes_toggled")
-                                }
-                            }
-                        }
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-                    TextButton(onClick = { showAdvanced = !showAdvanced }) {
-                        Icon(
-                            if (showAdvanced) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                            null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.sync_advanced))
-                    }
-                    AnimatedVisibility(visible = showAdvanced) {
-                        AdvancedSection(
-                            onPasteCode = { pair(it) },
-                            onForgetAll = {
-                                SyncPeers.forgetAll()
-                                devices = SyncPeers.all()
-                            },
-                        )
-                    }
-                    Spacer(Modifier.height(24.dp))
                 }
             }
         }
@@ -330,7 +278,7 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
                 Text(
                     text = stringResource(R.string.sync_disclaimer_title),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    fontWeight = FontWeight.Bold,
                 )
             },
             text = {
@@ -376,10 +324,133 @@ fun SyncSettingsScreen(onBackClick: () -> Unit) {
 }
 
 /**
+ * Sync Options subpage:
+ * Choose what to sync (Liked tracks and playlists).
+ */
+@Composable
+fun SyncOptionsScreen(onBackClick: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val playerPrefs = remember { PlayerPreferences(context) }
+    var likesSyncEnabled by remember { mutableStateOf(playerPrefs.getSyncLikesEnabled()) }
+
+    SettingsScaffold(title = stringResource(R.string.sync_options_title), onBackClick = onBackClick) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp),
+        ) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    SettingsGroupTitle(stringResource(R.string.sync_options_title))
+
+                    SettingsItem(
+                        title = stringResource(R.string.sync_likes_title),
+                        subtitle = stringResource(R.string.sync_likes_sub),
+                        icon = Icons.Rounded.Favorite,
+                        shape = getSettingsShape(1, 0),
+                        hasSwitch = true,
+                        switchState = likesSyncEnabled,
+                        onSwitchChange = {
+                            likesSyncEnabled = it
+                            playerPrefs.setSyncLikesEnabled(it)
+                            if (it) {
+                                scope.launch {
+                                    SyncLikes.seedMissing()
+                                    SyncLikes.seedMissingPlaylists()
+                                    SyncScheduler.triggerImmediateSync("likes_toggled")
+                                }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Advanced Sync subpage:
+ * Listener, address, manual peer code, logs.
+ */
+@Composable
+fun SyncAdvancedScreen(onBackClick: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var devices by remember { mutableStateOf(SyncPeers.all()) }
+    var status by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+
+    val doneTemplate = stringResource(R.string.sync_paired_with)
+    val failedTemplate = stringResource(R.string.sync_failed)
+    val unauthorized = stringResource(R.string.sync_unauthorized)
+    val badCode = stringResource(R.string.sync_bad_code)
+
+    fun pair(code: String) {
+        val peer = SyncService.parsePairingCode(code)
+        if (peer == null) {
+            status = badCode
+            return
+        }
+        busy = true
+        scope.launch {
+            val result = SyncClient.exchange(peer)
+            busy = false
+            devices = SyncPeers.all()
+            status = when (result) {
+                is SyncClient.Result.Success -> {
+                    SyncService.isListenerEnabled = true
+                    SyncScheduler.start()
+                    String.format(doneTemplate, result.peerName)
+                }
+                SyncClient.Result.Unauthorized -> unauthorized
+                is SyncClient.Result.Failed -> String.format(failedTemplate, result.reason)
+            }
+        }
+    }
+
+    SettingsScaffold(title = stringResource(R.string.sync_advanced_title), onBackClick = onBackClick) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp),
+        ) {
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    AdvancedSection(
+                        onPasteCode = { pair(it) },
+                        onForgetAll = {
+                            SyncPeers.forgetAll()
+                            devices = SyncPeers.all()
+                        },
+                    )
+
+                    if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+
+                    status?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * The answer to "is this working?", in one card.
- *
- * Deliberately a sentence rather than a set of fields. What was wrong before was not that the address and
- * the log size were hidden — it is that they were the whole screen, and neither answers the question.
  */
 @Composable
 private fun StatusCard(
@@ -390,13 +461,6 @@ private fun StatusCard(
     val paired = devices.isNotEmpty()
     val lastSynced = devices.mapNotNull { it.lastSyncedAtMs.takeIf { at -> at > 0 } }.maxOrNull()
 
-    // A plain card with the accent on the icon, not a saturated slab.
-    //
-    // This was a `primaryContainer` plate, and under a dynamic theme whose primary and primaryContainer are
-    // both the same bright colour, the filled button inside it disappeared: two near-identical fills with
-    // the label floating between them. Nothing about the state needs a full block of colour to be legible,
-    // and the card now uses the same container as every other card on the page, so a normal primary button
-    // on top of it has maximum contrast in every theme rather than in most of them.
     val onContainer = MaterialTheme.colorScheme.onSurface
     val onContainerMuted = MaterialTheme.colorScheme.onSurfaceVariant
     val accent = if (paired) MaterialTheme.colorScheme.primary else onContainerMuted
@@ -412,8 +476,6 @@ private fun StatusCard(
                 if (isSyncing) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                 } else {
-                    // The one spot of accent: coloured when in step, grey when there is nothing to be in
-                    // step with. It carries the state without shouting it.
                     Icon(Icons.Rounded.Sync, null, modifier = Modifier.size(20.dp), tint = accent)
                 }
                 Spacer(Modifier.width(10.dp))
@@ -453,7 +515,6 @@ private fun StatusCard(
                     }
                     if (!canDial) {
                         Spacer(Modifier.width(10.dp))
-                        // Honest rather than a button that does nothing: some devices can only call in.
                         Text(
                             stringResource(R.string.sync_only_inbound),
                             style = MaterialTheme.typography.bodySmall,
@@ -513,12 +574,6 @@ private fun DeviceRow(device: KnownDevice, shape: Shape, onForget: () -> Unit) {
     }
 }
 
-/**
- * The mechanism, for when something has gone wrong.
- *
- * Nothing here is needed to use sync. It is here so a firewall, a computer whose code was regenerated, or
- * a phone with the camera refused can be dealt with — and nowhere near the parts used daily.
- */
 @Composable
 private fun AdvancedSection(
     onPasteCode: (String) -> Unit,
@@ -540,10 +595,6 @@ private fun AdvancedSection(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        // Their own column at 2 dp, which is what the other settings screens use. [getSettingsShape] gives a
-        // group large outer corners and small inner ones so the rows read as one block — and that only works
-        // if they touch. Inheriting the section's 8 dp pulled them apart into three cards with mismatched
-        // corners, which looks like a layout fault rather than a group (issue #33).
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             SettingsItem(
                 shape = getSettingsShape(3, 0),
@@ -594,12 +645,6 @@ private fun AdvancedSection(
     }
 }
 
-/**
- * "just now", "3 min", "2 h", "yesterday" — how long ago something happened.
- *
- * Deliberately coarse: the useful question is "is this still happening?", and a timestamp to the second
- * invites staring at it.
- */
 private fun agoLabel(context: android.content.Context, atMs: Long): String {
     val elapsed = (System.currentTimeMillis() - atMs).coerceAtLeast(0L)
     val minutes = elapsed / 60_000
@@ -614,20 +659,8 @@ private fun agoLabel(context: android.content.Context, atMs: Long): String {
     }
 }
 
-/**
- * The permission Android 16 introduced for reaching devices on the same network.
- *
- * A literal rather than `Manifest.permission.ACCESS_LOCAL_NETWORK` so this still builds against an older
- * platform jar; the name is stable and the string is what the framework matches on anyway.
- */
 private const val LOCAL_NETWORK_PERMISSION = "android.permission.ACCESS_LOCAL_NETWORK"
 
-/**
- * @return whether local-network access is available.
- *
- * Always true below SDK 36: the restriction does not exist there, and asking would fail rather than being
- * harmlessly granted.
- */
 private fun hasLocalNetworkAccess(context: android.content.Context): Boolean =
     if (android.os.Build.VERSION.SDK_INT < 36) {
         true
@@ -635,4 +668,3 @@ private fun hasLocalNetworkAccess(context: android.content.Context): Boolean =
         androidx.core.content.ContextCompat.checkSelfPermission(context, LOCAL_NETWORK_PERMISSION) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
     }
-

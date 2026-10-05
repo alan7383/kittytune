@@ -3045,4 +3045,35 @@
     <string name="pref_full_player_source_title">Индикатор источника аудио</string>
     <string name="pref_full_player_source_desc">Показывать значок площадки (YouTube, SoundCloud и др.) для играющего трека</string>
     <string name="audio_source_tooltip">Аудио из %s</string>
+
+    <!-- Settings subpage folders -->
+    <string name="settings_cat_misc_sub">Общие, фильтр контента, Discord и о приложении</string>
+    <string name="settings_audio_playback_sub">Автовоспроизведение, очередь, возобновление и скорость</string>
+    <string name="settings_audio_quality_title">Звук и вывод</string>
+    <string name="settings_audio_quality_sub">Качество аудио, устройство и нормализация громкости</string>
+    <string name="settings_audio_transitions_title">Переходы и микс</string>
+    <string name="settings_audio_transitions_sub">Кроссфейд и DJ-автомикс</string>
+    <string name="settings_audio_sleep_sub">Длительность затухания и параметры сна</string>
+
+    <string name="sources_services_sub">SoundCloud, Qobuz, TIDAL, Deezer, VK</string>
+    <string name="sources_order_sub">Порядок приоритета и импорт музыки</string>
+    <string name="lyrics_sources_title">Провайдеры текста</string>
+    <string name="lyrics_sources_sub">Порядок и включенные источники текстов песен</string>
+
+    <string name="storage_cache_sub">Лимиты кэша аудио и изображений, очистка</string>
+    <string name="storage_downloads_sub">Скачанные треки и место хранения</string>
+    <string name="storage_local_files_sub">Сканируемые папки и локальная библиотека</string>
+    <string name="storage_backup_sub">Экспорт и импорт настроек и данных приложения</string>
+
+    <string name="sync_paired_devices_title">Подключенные устройства</string>
+    <string name="sync_paired_devices_sub">Статус синхронизации, подключение и управление устройствами</string>
+    <string name="sync_options_title">Данные синхронизации</string>
+    <string name="sync_options_sub">Выбор данных для синхронизации между устройствами</string>
+    <string name="sync_advanced_title">Дополнительно</string>
+    <string name="sync_advanced_sub">Параметры соединения, порт и устранение неполадок</string>
+
+    <string name="network_proxy_sub">Конфигурация HTTP и SOCKS5 прокси</string>
+
+    <string name="misc_general_sub">Язык, начальный экран и обновления</string>
+    <string name="misc_discord_sub">Отображение играющего трека в Discord</string>
 </resources>

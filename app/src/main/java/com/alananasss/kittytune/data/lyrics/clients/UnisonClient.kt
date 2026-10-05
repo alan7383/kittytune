@@ -68,6 +68,7 @@ object UnisonClient {
         if (byMetadata != null) return byMetadata
 
         val cleanVideoId = videoId?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        fetchVariants(cleanVideoId).firstOrNull()?.let { return it }
         logger?.invoke("No metadata match, fetching Unison lyrics by videoId: $cleanVideoId")
         return fetchByVideoId(cleanVideoId)
     }
@@ -105,8 +106,29 @@ object UnisonClient {
         }
     }
 
-    private suspend fun searchEntries(
-        title: String,
+    private suspend fun fetchVariants(videoId: String): List<UnisonEntry> {
+        return try {
+            val response = client.get("lyrics/variants/$videoId")
+            if (!response.status.isSuccess()) return emptyList()
+            val body = response.bodyAsText()
+            val parsed = runCatching { jsonFormat.decodeFromString<UnisonSearchResponse>(body) }.getOrNull()
+            parsed
+                ?.takeIf { it.success }
+                ?.data
+                .orEmpty()
+                .asSequence()
+                .mapNotNull { it.toEntry() }
+                .take(MAX_SEARCH_RESULTS)
+                .toList()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger?.invoke("Unison variants fetch error: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private suspend fun searchEntries(        title: String,
         artist: String,
         album: String?,
         durationSeconds: Int,
@@ -166,4 +188,28 @@ object UnisonClient {
         } catch (e: Exception) {
             Result.failure(e)
         }
+
+    suspend fun getAllLyrics(
+        videoId: String? = null,
+        title: String,
+        artist: String,
+        album: String? = null,
+        durationSeconds: Int = -1,
+        callback: (String) -> Unit,
+    ) {
+        var results = searchEntries(title, artist, album, durationSeconds)
+        if (results.isEmpty()) {
+            val cleanVideoId = videoId?.trim()?.takeIf { it.isNotEmpty() }
+            if (cleanVideoId != null) {
+                results = fetchVariants(cleanVideoId)
+                if (results.isEmpty()) {
+                    results = listOfNotNull(fetchByVideoId(cleanVideoId))
+                }
+            }
+        }
+        results.take(MAX_SEARCH_RESULTS).forEach { entry ->
+            currentCoroutineContext().ensureActive()
+            callback(entry.lyrics)
+        }
+    }
 }

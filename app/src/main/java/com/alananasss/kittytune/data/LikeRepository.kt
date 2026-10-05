@@ -300,16 +300,19 @@ object LikeRepository {
         return _likedPlaylists.value.contains(playlistId)
     }
 
-    fun setLikedPlaylists(ids: Set<Long>) {
+    suspend fun setLikedPlaylists(ids: Set<Long>) {
         val currentLiked = _likedPlaylists.value
         val preservedLocalIds = try {
             val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(appContext).downloadDao()
-            val allLocal = kotlinx.coroutines.runBlocking { db.getAllPlaylistsList() }
+            val allLocal = db.getAllPlaylistsList()
             allLocal.filter { local ->
-                currentLiked.contains(local.id) && (local.permalinkUrl?.contains("spotify") == true || local.id < 0 || local.isDownloaded)
+                currentLiked.contains(local.id) && (
+                    com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalPermalink(local.permalinkUrl) ||
+                        local.id < 0 || local.isDownloaded
+                    )
             }.map { it.id }.toSet()
         } catch (e: Exception) {
-            emptySet()
+            (currentLiked - ids)
         }
 
         _likedPlaylists.value = ids + preservedLocalIds
@@ -323,13 +326,17 @@ object LikeRepository {
             DownloadManager.clearDeletedPlaylistId(playlistId)
         } else {
             current.remove(playlistId)
-            val isUserCreated = try {
-                val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(appContext).downloadDao()
-                val p = kotlinx.coroutines.runBlocking { db.getPlaylist(playlistId) }
-                p?.isUserCreated == true
-            } catch (_: Exception) { false }
-            if (!isUserCreated) {
-                DownloadManager.addDeletedPlaylistId(playlistId)
+            // DB check must not block the UI thread (Room throws on main): decide the
+            // deleted-marker asynchronously and correct it once the row is known.
+            DownloadManager.addDeletedPlaylistId(playlistId)
+            scope.launch {
+                try {
+                    val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(appContext).downloadDao()
+                    val p = db.getPlaylist(playlistId)
+                    if (p?.isUserCreated == true) {
+                        DownloadManager.clearDeletedPlaylistId(playlistId)
+                    }
+                } catch (_: Exception) { }
             }
         }
         _likedPlaylists.value = current
@@ -354,10 +361,10 @@ object LikeRepository {
             }
 
             val safePermalink = permalink ?: ""
-            val isSpotify = safePermalink.contains("spotify.com") || safePermalink.contains("spotify:")
-                    || urn?.startsWith("spotify:") == true || (urn != null && urn.contains("spotify"))
-                    || playlistId == 0L
-            if (isSpotify) {
+            val isExternal = com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalProvider(
+                permalink, urn
+            ) || playlistId == 0L
+            if (isExternal) {
                 return@launch
             }
 
@@ -507,13 +514,15 @@ object LikeRepository {
             DownloadManager.clearDeletedPlaylistId(playlistId)
         } else {
             current.remove(playlistId)
-            val isUserCreated = try {
-                val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(appContext).downloadDao()
-                val p = kotlinx.coroutines.runBlocking { db.getPlaylist(playlistId) }
-                p?.isUserCreated == true
-            } catch (_: Exception) { false }
-            if (!isUserCreated) {
-                DownloadManager.addDeletedPlaylistId(playlistId)
+            DownloadManager.addDeletedPlaylistId(playlistId)
+            scope.launch {
+                try {
+                    val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(appContext).downloadDao()
+                    val p = db.getPlaylist(playlistId)
+                    if (p?.isUserCreated == true) {
+                        DownloadManager.clearDeletedPlaylistId(playlistId)
+                    }
+                } catch (_: Exception) { }
             }
         }
         _likedPlaylists.value = current

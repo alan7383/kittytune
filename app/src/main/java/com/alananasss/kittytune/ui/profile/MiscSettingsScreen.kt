@@ -34,15 +34,28 @@ import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 
 /**
- * The MISC category: everything that is not a colour, a sound, a source or a device.
- *
- * Language, start screen and auto-update live here, as on the desktop. They were in the Appearance
- * screen, where none of them belongs: none of them changes how anything looks, and hiding them
- * there is what made that screen long enough to lose people in.
+ * The Miscellaneous category folder hub:
+ * General, Content filter, Discord RPC, About.
  */
 @Composable
 fun MiscSettingsScreen(
     navController: NavController,
+    onBackClick: () -> Unit
+) {
+    SettingsFolderScreen(
+        title = stringResource(R.string.settings_cat_misc),
+        pages = SettingsSubPage.miscPages,
+        navController = navController,
+        onBackClick = onBackClick
+    )
+}
+
+/**
+ * The General subpage:
+ * Language, start screen, updates, remember search filter, playlist total duration.
+ */
+@Composable
+fun MiscGeneralSettingsScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -114,7 +127,7 @@ fun MiscSettingsScreen(
 
     SettingsScaffold(
         title = stringResource(R.string.settings_cat_general),
-        subtitle = stringResource(R.string.settings_cat_general_sub),
+        subtitle = stringResource(R.string.misc_general_sub),
         onBackClick = onBackClick
     ) { innerPadding ->
         LazyColumn(

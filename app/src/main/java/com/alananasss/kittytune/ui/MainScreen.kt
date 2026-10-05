@@ -1433,9 +1433,36 @@ fun MainScreen(
 
                     clippedComposable("audio_settings") {
                         AudioSettingsScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("audio_playback_settings") {
+                        AudioPlaybackSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            playerViewModel = playerViewModel
+                        )
+                    }
+
+                    clippedComposable("audio_quality_settings") {
+                        AudioQualitySettingsScreen(
                             onBackClick = { navController.popBackStack() },
                             onNavigateToDrmExplanation = { navController.navigate("drm_explanation") },
                             playerViewModel = playerViewModel
+                        )
+                    }
+
+                    clippedComposable("audio_transitions_settings") {
+                        AudioTransitionsSettingsScreen(
+                            onBackClick = { navController.popBackStack() },
+                            playerViewModel = playerViewModel
+                        )
+                    }
+
+                    clippedComposable("audio_sleep_settings") {
+                        AudioSleepTimerSettingsScreen(
+                            onBackClick = { navController.popBackStack() }
                         )
                     }
 
@@ -1538,6 +1565,25 @@ fun MainScreen(
 
                     clippedComposable("sync_settings") {
                         SyncSettingsScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("sync_devices_settings") {
+                        SyncDevicesScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("sync_options_settings") {
+                        SyncOptionsScreen(
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("sync_advanced_settings") {
+                        SyncAdvancedScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }
@@ -1555,6 +1601,20 @@ fun MainScreen(
                         )
                     }
 
+                    clippedComposable("sources_settings") {
+                        SourcesSettingsScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("storage_settings") {
+                        StorageSettingsScreen(
+                            navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
                     clippedComposable("player_design_settings") {
                         PlayerCustomizationScreen(
                             onBackClick = { navController.popBackStack() }
@@ -1564,6 +1624,12 @@ fun MainScreen(
                     clippedComposable("misc_settings") {
                         MiscSettingsScreen(
                             navController = navController,
+                            onBackClick = { navController.popBackStack() }
+                        )
+                    }
+
+                    clippedComposable("misc_general_settings") {
+                        MiscGeneralSettingsScreen(
                             onBackClick = { navController.popBackStack() }
                         )
                     }

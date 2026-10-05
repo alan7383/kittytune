@@ -503,7 +503,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 DownloadManager.deletedPlaylistIds
             ) { allLocalPlaylists, likedIds, deletedIds ->
                 allLocalPlaylists.filter { local ->
-                    !deletedIds.contains(local.id) && (local.id < 0 || local.isUserCreated || !local.localCoverPath.isNullOrEmpty() || local.isDownloaded || likedIds.contains(local.id) || local.permalinkUrl?.contains("spotify") == true)
+                    !deletedIds.contains(local.id) && (local.id < 0 || local.isUserCreated || !local.localCoverPath.isNullOrEmpty() || local.isDownloaded || likedIds.contains(local.id) || com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalPermalink(local.permalinkUrl))
                 }
             }.collect { localPlaylists ->
                 val localIds = localPlaylists.map { it.id }.toSet()

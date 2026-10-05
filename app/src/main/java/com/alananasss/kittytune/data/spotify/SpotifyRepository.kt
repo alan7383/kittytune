@@ -6,14 +6,17 @@ import com.alananasss.kittytune.data.network.ProxyManager
 import com.alananasss.kittytune.utils.NetworkUtils
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.random.Random
 
 object SpotifyRepository {
 
@@ -21,6 +24,26 @@ object SpotifyRepository {
     private val gson = Gson()
     private val albumCache = ConcurrentHashMap<String, SpotifyAlbum>()
     private val playlistCache = ConcurrentHashMap<String, SpotifyPlaylist>()
+
+    /**
+     * Browser-like User-Agent pool (mirrors the web player fingerprinting).
+     * One agent is picked per app session and kept for every request so the
+     * identity stays consistent across calls.
+     */
+    private val USER_AGENTS = listOf(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:134.0) Gecko/20100101 Firefox/134.0"
+    )
+    private val userAgent: String by lazy { USER_AGENTS[Random.nextInt(USER_AGENTS.size)] }
+
+    private const val MAX_ATTEMPTS = 4
+    private const val BACKOFF_BASE_MS = 500L
+    private const val BACKOFF_MAX_MS = 8_000L
+
+    private enum class FetchOutcome { SUCCESS, RETRY_NEW_TOKEN, RETRY_BACKOFF, GIVE_UP }
 
     private fun getAlbumCacheFile(id: String): File {
         val dir = File(KittyTuneApp.instance.filesDir, "spotify_albums").apply { mkdirs() }
@@ -40,56 +63,145 @@ object SpotifyRepository {
     private val client: OkHttpClient
         get() = ProxyManager.configureOkHttpClient(baseClient.newBuilder()).build()
 
-    suspend fun search(query: String, limit: Int = 20, offset: Int = 0): SpotifySearchResults =
-        withContext(Dispatchers.IO) {
-            val trimmed = query.trim()
-            if (trimmed.isBlank()) return@withContext SpotifySearchResults(query = query)
+    /**
+     * Central GET used by every bearer-authenticated endpoint: one
+     * refresh-and-retry on HTTP 401 (the anonymous access token is short-lived
+     * and rotating it out silently is what used to leave playlists stuck on
+     * "0 tracks"), exponential backoff with jitter on transient failures
+     * (429 / 5xx / network), honoring Retry-After, and explicit detection of
+     * rotated persisted-query hashes so a contract change is loud in the log
+     * instead of showing up as an empty screen.
+     */
+    private suspend fun <T> execute(
+        url: String,
+        parse: (JSONObject) -> T?
+    ): T? = withContext(Dispatchers.IO) {
+        var attempt = 0
+        var refreshedAfter401 = false
 
-            val token =
-                SpotifyTokenManager.getValidAccessToken() ?: return@withContext SpotifySearchResults(query = query)
-            val url = SpotifyPathfinderApi.buildSearchUrl(trimmed, offset = offset, limit = limit)
+        while (attempt < MAX_ATTEMPTS) {
+            val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null
+            var outcome = FetchOutcome.GIVE_UP
+            var parsed: T? = null
+            var retryAfterMs = BACKOFF_BASE_MS
 
             try {
                 val request = Request.Builder()
                     .url(url)
                     .header("Authorization", "Bearer $token")
                     .header("app-platform", "WebPlayer")
-                    .header(
-                        "User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                    )
+                    .header("Accept", "application/json")
+                    .header("User-Agent", userAgent)
                     .build()
 
                 client.newCall(request).execute().use { response ->
-                    if (response.code == 401) {
-                        SpotifyTokenManager.invalidateToken()
-                        return@withContext SpotifySearchResults(query = query)
+                    when {
+                        response.code == 401 -> {
+                            // Anonymous token rejected: refresh once, then give up.
+                            SpotifyTokenManager.invalidateToken()
+                            outcome =
+                                if (refreshedAfter401) FetchOutcome.GIVE_UP else FetchOutcome.RETRY_NEW_TOKEN
+                            refreshedAfter401 = true
+                        }
+                        response.code == 429 || response.code >= 500 -> {
+                            response.header("Retry-After")?.toLongOrNull()?.let {
+                                retryAfterMs = (it * 1000L).coerceAtMost(BACKOFF_MAX_MS)
+                            }
+                            outcome = FetchOutcome.RETRY_BACKOFF
+                        }
+                        !response.isSuccessful -> {
+                            Log.w(TAG, "Spotify request failed with HTTP ${response.code} for $url")
+                            FetchOutcome.GIVE_UP
+                        }
+                        else -> {
+                            val bodyStr = response.body?.string()
+                            if (bodyStr.isNullOrBlank()) {
+                                outcome = FetchOutcome.GIVE_UP
+                            } else {
+                                try {
+                                    val json = JSONObject(bodyStr)
+                                    val errors = json.optJSONArray("errors")
+                                    if (errors != null && hasPersistedQueryNotFound(errors)) {
+                                        Log.e(
+                                            TAG,
+                                            "Spotify rejected a persisted-query hash (PersistedQueryNotFound); " +
+                                                "the internal API contract changed and needs an update."
+                                        )
+                                        outcome = FetchOutcome.GIVE_UP
+                                    } else {
+                                        parsed = parse(json)
+                                        outcome = if (parsed != null) FetchOutcome.SUCCESS else FetchOutcome.GIVE_UP
+                                    }
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Failed to parse Spotify response: ${e.message}")
+                                    outcome = FetchOutcome.GIVE_UP
+                                }
+                            }
+                        }
                     }
-                    if (!response.isSuccessful) {
-                        Log.w(TAG, "Search request failed with HTTP ${response.code}")
-                        return@withContext SpotifySearchResults(query = query)
-                    }
-
-                    val bodyStr = response.body?.string() ?: return@withContext SpotifySearchResults(query = query)
-                    val json = JSONObject(bodyStr)
-                    val data = json.optJSONObject("data") ?: return@withContext SpotifySearchResults(query = query)
-                    val searchV2 =
-                        data.optJSONObject("searchV2") ?: return@withContext SpotifySearchResults(query = query)
-
-                    val tracks = parseSearchTracks(searchV2.optJSONObject("tracksV2"))
-                    val albums = parseSearchAlbums(searchV2.optJSONObject("albumsV2"))
-                    val artists = parseSearchArtists(searchV2.optJSONObject("artists"))
-                    val playlists = parseSearchPlaylists(searchV2.optJSONObject("playlists"))
-
-                    return@withContext SpotifySearchResults(
-                        query = trimmed,
-                        tracks = tracks,
-                        albums = albums,
-                        artists = artists,
-                        playlists = playlists,
-                        totalTracks = tracks.size
-                    )
                 }
+            } catch (e: IOException) {
+                outcome = FetchOutcome.RETRY_BACKOFF
+            } catch (e: Exception) {
+                Log.w(TAG, "Spotify request error: ${e.message}")
+                outcome = FetchOutcome.GIVE_UP
+            }
+
+            when (outcome) {
+                FetchOutcome.SUCCESS -> return@withContext parsed
+                FetchOutcome.RETRY_NEW_TOKEN -> attempt++
+                FetchOutcome.RETRY_BACKOFF -> {
+                    if (++attempt >= MAX_ATTEMPTS) return@withContext null
+                    val backoff = (retryAfterMs shl (attempt - 1)).coerceAtMost(BACKOFF_MAX_MS)
+                    delay(backoff + Random.nextLong(backoff / 4 + 1))
+                }
+                FetchOutcome.GIVE_UP -> return@withContext null
+            }
+        }
+        null
+    }
+
+    private fun hasPersistedQueryNotFound(errors: JSONArray): Boolean {
+        for (i in 0 until errors.length()) {
+            if (errors.optJSONObject(i)?.optString("message") == "PersistedQueryNotFound") return true
+        }
+        return false
+    }
+
+    /** Fetch a pathfinder GraphQL query and return its `data` envelope. */
+    private suspend fun fetchPathfinderData(url: String): JSONObject? =
+        execute(url) { it.optJSONObject("data") }
+
+    /**
+     * Fetch any bearer-authenticated JSON endpoint that is not a pathfinder query
+     * (the seed-to-playlist and track-credits endpoints). Returns the whole body.
+     */
+    private suspend fun fetchJsonObject(url: String): JSONObject? = execute(url) { it }
+
+    suspend fun search(query: String, limit: Int = 20, offset: Int = 0): SpotifySearchResults =
+        withContext(Dispatchers.IO) {
+            val trimmed = query.trim()
+            if (trimmed.isBlank()) return@withContext SpotifySearchResults(query = query)
+
+            val url = SpotifyPathfinderApi.buildSearchUrl(trimmed, offset = offset, limit = limit)
+
+            try {
+                val searchV2 = fetchPathfinderData(url)?.optJSONObject("searchV2")
+                    ?: return@withContext SpotifySearchResults(query = query)
+
+                val tracks = parseSearchTracks(searchV2.optJSONObject("tracksV2"))
+                val albums = parseSearchAlbums(searchV2.optJSONObject("albumsV2"))
+                val artists = parseSearchArtists(searchV2.optJSONObject("artists"))
+                val playlists = parseSearchPlaylists(searchV2.optJSONObject("playlists"))
+
+                return@withContext SpotifySearchResults(
+                    query = trimmed,
+                    tracks = tracks,
+                    albums = albums,
+                    artists = artists,
+                    playlists = playlists,
+                    totalTracks = tracks.size
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Exception during Spotify search: ${e.message}", e)
                 SpotifySearchResults(query = query)
@@ -98,33 +210,13 @@ object SpotifyRepository {
 
     suspend fun getTrack(trackId: String): SpotifyTrack? = withContext(Dispatchers.IO) {
         val cleanId = extractId(trackId)
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null
-        val url = SpotifyPathfinderApi.buildTrackUrl(cleanId)
+        if (cleanId.isBlank()) return@withContext null
 
         try {
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer $token")
-                .header("app-platform", "WebPlayer")
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                )
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                if (response.code == 401) {
-                    SpotifyTokenManager.invalidateToken()
-                    return@withContext null
-                }
-                if (!response.isSuccessful) return@withContext null
-                val bodyStr = response.body?.string() ?: return@withContext null
-                val json = JSONObject(bodyStr)
-                val data = json.optJSONObject("data") ?: return@withContext null
-                val trackUnion = data.optJSONObject("trackUnion") ?: return@withContext null
-
-                return@withContext parseTrackNode(trackUnion)
-            }
+            fetchPathfinderData(SpotifyPathfinderApi.buildTrackUrl(cleanId))
+                ?.optJSONObject("trackUnion")
+                ?.let { return@withContext parseTrackNode(it) }
+            null
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch Spotify track $trackId: ${e.message}")
             null
@@ -133,7 +225,12 @@ object SpotifyRepository {
 
     suspend fun getAlbum(albumId: String): SpotifyAlbum? = withContext(Dispatchers.IO) {
         val cleanId = extractId(albumId)
+        if (cleanId.isBlank()) {
+            Log.w(TAG, "Refusing to fetch a Spotify album for blank id '$albumId'")
+            return@withContext null
+        }
         albumCache[cleanId]?.let { return@withContext it }
+        var offline = false
         try {
             val file = getAlbumCacheFile(cleanId)
             if (file.exists()) {
@@ -141,113 +238,98 @@ object SpotifyRepository {
                 if (cached != null) {
                     albumCache[cleanId] = cached
                     if (!NetworkUtils.isInternetAvailable(KittyTuneApp.instance)) {
+                        offline = true
                         return@withContext cached
                     }
                 }
             }
         } catch (_: Exception) {}
 
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext albumCache[cleanId]
-        val url = SpotifyPathfinderApi.buildAlbumUrl(cleanId)
+        if (offline) return@withContext null
 
-        try {
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer $token")
-                .header("app-platform", "WebPlayer")
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                )
-                .build()
+        return@withContext try {
+            val albumUnion = fetchPathfinderData(SpotifyPathfinderApi.buildAlbumUrl(cleanId))
+                ?.optJSONObject("albumUnion")
+                ?: return@withContext readCachedAlbum(cleanId)
 
-            client.newCall(request).execute().use { response ->
-                if (response.code == 401) {
-                    SpotifyTokenManager.invalidateToken()
-                    return@withContext albumCache[cleanId]
+            val rawName = albumUnion.optString("name").trim()
+            val name = rawName.ifBlank { "Unknown Album" }
+            val coverUrl = extractCoverArt(albumUnion.optJSONObject("coverArt"))
+            val dateStr = albumUnion.optJSONObject("date")?.optString("isoString")
+            val artists = parseArtistList(albumUnion.optJSONObject("artists")?.optJSONArray("items"))
+                .distinctBy { it.id.ifBlank { it.name } }
+
+            val tracksList = mutableListOf<SpotifyTrack>()
+            val tracksV2 = albumUnion.optJSONObject("tracksV2")
+            val totalCount = tracksV2?.optInt("totalCount", 0) ?: 0
+
+            suspend fun collect(items: JSONArray?) {
+                if (items == null) return
+                for (i in 0 until items.length()) {
+                    val trackNode = items.optJSONObject(i)?.optJSONObject("track") ?: continue
+                    parseTrackNode(
+                        trackNode,
+                        defaultAlbumName = name,
+                        defaultArtwork = coverUrl
+                    )?.let(tracksList::add)
                 }
-                if (!response.isSuccessful) return@withContext albumCache[cleanId]
-                val bodyStr = response.body?.string() ?: return@withContext albumCache[cleanId]
-                val json = JSONObject(bodyStr)
-                val data = json.optJSONObject("data") ?: return@withContext albumCache[cleanId]
-                val albumUnion = data.optJSONObject("albumUnion") ?: return@withContext albumCache[cleanId]
-
-                val name = albumUnion.optString("name", "Unknown Album")
-                val coverUrl = extractCoverArt(albumUnion.optJSONObject("coverArt"))
-                val dateStr = albumUnion.optJSONObject("date")?.optString("isoString")
-                val artists = parseArtistList(albumUnion.optJSONObject("artists")?.optJSONArray("items"))
-
-                val tracksList = mutableListOf<SpotifyTrack>()
-                val tracksV2 = albumUnion.optJSONObject("tracksV2")
-                val totalCount = tracksV2?.optInt("totalCount", 0) ?: 0
-                val items = tracksV2?.optJSONArray("items")
-                if (items != null) {
-                    for (i in 0 until items.length()) {
-                        val item = items.optJSONObject(i) ?: continue
-                        val trackNode = item.optJSONObject("track") ?: continue
-                        val track = parseTrackNode(trackNode, defaultAlbumName = name, defaultArtwork = coverUrl)
-                        if (track != null) tracksList.add(track)
-                    }
-                }
-
-                var albumOffset = items?.length() ?: 0
-                while (albumOffset < totalCount && tracksList.size < 500) {
-                    try {
-                        val pageUrl = SpotifyPathfinderApi.buildAlbumUrl(cleanId, offset = albumOffset, limit = 50)
-                        val pageReq = Request.Builder()
-                            .url(pageUrl)
-                            .header("Authorization", "Bearer $token")
-                            .header("app-platform", "WebPlayer")
-                            .build()
-                        val pageRes = client.newCall(pageReq).execute()
-                        if (!pageRes.isSuccessful) break
-                        val pageBody = pageRes.body?.string() ?: break
-                        val pageJson = JSONObject(pageBody)
-                        val pageItems = pageJson.optJSONObject("data")
-                            ?.optJSONObject("albumUnion")
-                            ?.optJSONObject("tracksV2")
-                            ?.optJSONArray("items") ?: break
-                        if (pageItems.length() == 0) break
-                        for (i in 0 until pageItems.length()) {
-                            val item = pageItems.optJSONObject(i) ?: continue
-                            val trackNode = item.optJSONObject("track") ?: continue
-                            val track = parseTrackNode(trackNode, defaultAlbumName = name, defaultArtwork = coverUrl)
-                            if (track != null) tracksList.add(track)
-                        }
-                        albumOffset += pageItems.length()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Album pagination stopped early at offset $albumOffset", e)
-                        break
-                    }
-                }
-
-                val album = SpotifyAlbum(
-                    id = cleanId,
-                    name = name,
-                    artists = artists,
-                    artworkUrl = coverUrl,
-                    releaseDate = dateStr,
-                    totalTracks = if (totalCount > 0) totalCount else tracksList.size,
-                    tracks = tracksList
-                )
-                albumCache[cleanId] = album
-                try {
-                    getAlbumCacheFile(cleanId).writeText(gson.toJson(album))
-                } catch (_: Exception) {}
-                return@withContext album
             }
+
+            collect(tracksV2?.optJSONArray("items"))
+
+            // Paginate through the remaining album tracks (50 per page, hard cap 500).
+            var albumOffset = tracksV2?.optJSONArray("items")?.length() ?: 0
+            while (albumOffset < totalCount && tracksList.size < 500) {
+                val pageItems = fetchPathfinderData(
+                    SpotifyPathfinderApi.buildAlbumUrl(cleanId, offset = albumOffset, limit = 50)
+                )?.optJSONObject("albumUnion")?.optJSONObject("tracksV2")?.optJSONArray("items")
+                if (pageItems == null || pageItems.length() == 0) break
+                collect(pageItems)
+                albumOffset += pageItems.length()
+            }
+
+            // Same empty-shell trap as playlists: never persist an id Spotify rejected.
+            if (rawName.isBlank() && tracksList.isEmpty() && totalCount == 0) {
+                Log.w(TAG, "Spotify returned an empty shell for album $cleanId; not caching it")
+                return@withContext readCachedAlbum(cleanId)
+            }
+
+            val album = SpotifyAlbum(
+                id = cleanId,
+                name = name,
+                artists = artists,
+                artworkUrl = coverUrl,
+                releaseDate = dateStr,
+                totalTracks = if (totalCount > 0) totalCount else tracksList.size,
+                tracks = tracksList
+            )
+            albumCache[cleanId] = album
+            try {
+                getAlbumCacheFile(cleanId).writeText(gson.toJson(album))
+            } catch (_: Exception) {}
+            album
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch Spotify album $albumId: ${e.message}")
-            albumCache[cleanId] ?: try {
-                val file = getAlbumCacheFile(cleanId)
-                if (file.exists()) gson.fromJson(file.readText(), SpotifyAlbum::class.java) else null
-            } catch (_: Exception) { null }
+            readCachedAlbum(cleanId)
         }
+    }
+
+    /** Last-resort read of the on-disk album cache, ignoring any in-memory entry. */
+    private fun readCachedAlbum(cleanId: String): SpotifyAlbum? = try {
+        val file = getAlbumCacheFile(cleanId)
+        if (file.exists()) gson.fromJson(file.readText(), SpotifyAlbum::class.java) else null
+    } catch (_: Exception) {
+        null
     }
 
     suspend fun getPlaylist(playlistId: String, maxTracks: Int = 1000): SpotifyPlaylist? = withContext(Dispatchers.IO) {
         val cleanId = extractId(playlistId)
+        if (cleanId.isBlank()) {
+            Log.w(TAG, "Refusing to fetch a Spotify playlist for blank id '$playlistId'")
+            return@withContext null
+        }
         playlistCache[cleanId]?.let { return@withContext it }
+        var offline = false
         try {
             val file = getPlaylistCacheFile(cleanId)
             if (file.exists()) {
@@ -255,125 +337,101 @@ object SpotifyRepository {
                 if (cached != null) {
                     playlistCache[cleanId] = cached
                     if (!NetworkUtils.isInternetAvailable(KittyTuneApp.instance)) {
+                        offline = true
                         return@withContext cached
                     }
                 }
             }
         } catch (_: Exception) {}
 
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext playlistCache[cleanId]
-        val url = SpotifyPathfinderApi.buildPlaylistUrl(cleanId, offset = 0, limit = 100)
+        if (offline) return@withContext null
 
-        try {
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer $token")
-                .header("app-platform", "WebPlayer")
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                )
-                .build()
+        return@withContext try {
+            val playlistV2 = fetchPathfinderData(
+                SpotifyPathfinderApi.buildPlaylistUrl(cleanId, offset = 0, limit = 100)
+            )?.optJSONObject("playlistV2")
+                ?: return@withContext readCachedPlaylist(cleanId)
 
-            client.newCall(request).execute().use { response ->
-                if (response.code == 401) {
-                    SpotifyTokenManager.invalidateToken()
-                    return@withContext playlistCache[cleanId]
+            val rawName = playlistV2.optString("name").trim()
+            val name = rawName.ifBlank { "Spotify Playlist" }
+            val description = playlistV2.optString("description").ifBlank { null }
+            val ownerData = playlistV2.optJSONObject("ownerV2")?.optJSONObject("data")
+            val ownerName = ownerData?.optString("name")
+            val ownerUri = ownerData?.optString("uri")
+            val ownerId = ownerUri?.let { extractId(it) }?.ifBlank { null }
+                ?: ownerData?.optString("username")?.takeIf { it.isNotBlank() }
+            val ownerAvatarUrl = extractImageFromItems(ownerData?.optJSONObject("avatar")?.optJSONArray("sources"))
+                ?: extractImageFromItems(ownerData?.optJSONObject("images")?.optJSONArray("items"))
+
+            val followersCount = playlistV2.optJSONObject("followers")?.optLong("totalCount")
+                ?: playlistV2.optLong("likesCount", 0L).takeIf { it > 0L }
+                ?: playlistV2.optLong("followersCount", 0L).takeIf { it > 0L }
+
+            val artworkUrl = extractImageFromItems(playlistV2.optJSONObject("images")?.optJSONArray("items"))
+
+            val tracksList = mutableListOf<SpotifyTrack>()
+            val content = playlistV2.optJSONObject("content")
+            val totalCount = content?.optInt("totalCount", 0) ?: 0
+
+            suspend fun collect(items: JSONArray?) {
+                if (items == null) return
+                for (i in 0 until items.length()) {
+                    val trackData = items.optJSONObject(i)
+                        ?.optJSONObject("itemV2")?.optJSONObject("data") ?: continue
+                    parseTrackNode(trackData)?.let(tracksList::add)
                 }
-                if (!response.isSuccessful) return@withContext playlistCache[cleanId]
-                val bodyStr = response.body?.string() ?: return@withContext playlistCache[cleanId]
-                val json = JSONObject(bodyStr)
-                val data = json.optJSONObject("data") ?: return@withContext playlistCache[cleanId]
-                val playlistV2 = data.optJSONObject("playlistV2") ?: return@withContext playlistCache[cleanId]
-
-                val name = playlistV2.optString("name", "Spotify Playlist")
-                val description = playlistV2.optString("description").ifBlank { null }
-                val ownerData = playlistV2.optJSONObject("ownerV2")?.optJSONObject("data")
-                val ownerName = ownerData?.optString("name")
-                val ownerUri = ownerData?.optString("uri")
-                val ownerId = ownerUri?.removePrefix("spotify:user:")?.removePrefix("spotify:artist:")
-                    ?: ownerData?.optString("username")?.takeIf { it.isNotBlank() }
-                val ownerAvatarUrl = extractImageFromItems(ownerData?.optJSONObject("avatar")?.optJSONArray("sources"))
-                    ?: extractImageFromItems(ownerData?.optJSONObject("images")?.optJSONArray("items"))
-
-                val followersCount = playlistV2.optJSONObject("followers")?.optLong("totalCount")
-                    ?: playlistV2.optLong("likesCount", 0L).takeIf { it > 0L }
-                    ?: playlistV2.optLong("followersCount", 0L).takeIf { it > 0L }
-
-                val artworkUrl = extractImageFromItems(playlistV2.optJSONObject("images")?.optJSONArray("items"))
-
-                val tracksList = mutableListOf<SpotifyTrack>()
-                val content = playlistV2.optJSONObject("content")
-                val totalCount = content?.optInt("totalCount", 0) ?: 0
-                val items = content?.optJSONArray("items")
-                if (items != null) {
-                    for (i in 0 until items.length()) {
-                        val item = items.optJSONObject(i) ?: continue
-                        val itemV2 = item.optJSONObject("itemV2") ?: continue
-                        val trackData = itemV2.optJSONObject("data") ?: continue
-                        val track = parseTrackNode(trackData)
-                        if (track != null) tracksList.add(track)
-                    }
-                }
-
-                // Paginate to fetch all tracks if playlist has more than 100 tracks (e.g. 400+ songs)
-                var playlistOffset = items?.length() ?: 0
-                while (playlistOffset < totalCount && tracksList.size < maxTracks) {
-                    try {
-                        val pageUrl = SpotifyPathfinderApi.buildPlaylistUrl(cleanId, offset = playlistOffset, limit = 100)
-                        val pageReq = Request.Builder()
-                            .url(pageUrl)
-                            .header("Authorization", "Bearer $token")
-                            .header("app-platform", "WebPlayer")
-                            .build()
-                        val pageRes = client.newCall(pageReq).execute()
-                        if (!pageRes.isSuccessful) break
-                        val pageBody = pageRes.body?.string() ?: break
-                        val pageJson = JSONObject(pageBody)
-                        val pageItems = pageJson.optJSONObject("data")
-                            ?.optJSONObject("playlistV2")
-                            ?.optJSONObject("content")
-                            ?.optJSONArray("items") ?: break
-                        if (pageItems.length() == 0) break
-                        for (i in 0 until pageItems.length()) {
-                            val item = pageItems.optJSONObject(i) ?: continue
-                            val itemV2 = item.optJSONObject("itemV2") ?: continue
-                            val trackData = itemV2.optJSONObject("data") ?: continue
-                            val track = parseTrackNode(trackData)
-                            if (track != null) tracksList.add(track)
-                        }
-                        playlistOffset += pageItems.length()
-                    } catch (e: Exception) {
-                        Log.w(TAG, "Playlist pagination stopped early at offset $playlistOffset", e)
-                        break
-                    }
-                }
-
-                val playlist = SpotifyPlaylist(
-                    id = cleanId,
-                    name = name,
-                    description = description,
-                    ownerName = ownerName,
-                    ownerId = ownerId,
-                    ownerAvatarUrl = ownerAvatarUrl,
-                    artworkUrl = artworkUrl,
-                    totalTracks = if (totalCount > 0) totalCount else tracksList.size,
-                    followersCount = followersCount,
-                    tracks = tracksList
-                )
-                playlistCache[cleanId] = playlist
-                try {
-                    getPlaylistCacheFile(cleanId).writeText(gson.toJson(playlist))
-                } catch (_: Exception) {}
-                return@withContext playlist
             }
+
+            collect(content?.optJSONArray("items"))
+
+            // Paginate through the remaining tracks (100 per page).
+            var playlistOffset = content?.optJSONArray("items")?.length() ?: 0
+            while (playlistOffset < totalCount && tracksList.size < maxTracks) {
+                val pageItems = fetchPathfinderData(
+                    SpotifyPathfinderApi.buildPlaylistUrl(cleanId, offset = playlistOffset, limit = 100)
+                )?.optJSONObject("playlistV2")?.optJSONObject("content")?.optJSONArray("items")
+                if (pageItems == null || pageItems.length() == 0) break
+                collect(pageItems)
+                playlistOffset += pageItems.length()
+            }
+
+            // Spotify answers an id it does not recognise with a name-less, content-less
+            // shell. Caching that would freeze the failure for the whole session, and it
+            // is what made a broken id look like a genuinely empty playlist.
+            if (rawName.isBlank() && tracksList.isEmpty() && totalCount == 0) {
+                Log.w(TAG, "Spotify returned an empty shell for playlist $cleanId; not caching it")
+                return@withContext readCachedPlaylist(cleanId)
+            }
+
+            val playlist = SpotifyPlaylist(
+                id = cleanId,
+                name = name,
+                description = description,
+                ownerName = ownerName,
+                ownerId = ownerId,
+                ownerAvatarUrl = ownerAvatarUrl,
+                artworkUrl = artworkUrl,
+                totalTracks = if (totalCount > 0) totalCount else tracksList.size,
+                followersCount = followersCount,
+                tracks = tracksList
+            )
+            playlistCache[cleanId] = playlist
+            try {
+                getPlaylistCacheFile(cleanId).writeText(gson.toJson(playlist))
+            } catch (_: Exception) {}
+            playlist
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch Spotify playlist $playlistId: ${e.message}")
-            playlistCache[cleanId] ?: try {
-                val file = getPlaylistCacheFile(cleanId)
-                if (file.exists()) gson.fromJson(file.readText(), SpotifyPlaylist::class.java) else null
-            } catch (_: Exception) { null }
+            readCachedPlaylist(cleanId)
         }
+    }
+
+    /** Last-resort read of the on-disk playlist cache, ignoring any in-memory entry. */
+    private fun readCachedPlaylist(cleanId: String): SpotifyPlaylist? = try {
+        val file = getPlaylistCacheFile(cleanId)
+        if (file.exists()) gson.fromJson(file.readText(), SpotifyPlaylist::class.java) else null
+    } catch (_: Exception) {
+        null
     }
 
 
@@ -390,32 +448,22 @@ object SpotifyRepository {
 
     suspend fun getArtist(artistId: String): SpotifyArtist? = withContext(Dispatchers.IO) {
         val cleanId = extractId(artistId)
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null
+        if (cleanId.isBlank()) return@withContext null
         val url = SpotifyPathfinderApi.buildArtistUrl(cleanId)
 
         try {
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer $token")
-                .header("app-platform", "WebPlayer")
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                )
-                .build()
+            fetchPathfinderData(url)?.optJSONObject("artistUnion")?.let { artistUnion ->
+                return@withContext parseArtistUnion(cleanId, artistUnion)
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch Spotify artist $artistId: ${e.message}", e)
+            null
+        }
+    }
 
-            client.newCall(request).execute().use { response ->
-                if (response.code == 401) {
-                    SpotifyTokenManager.invalidateToken()
-                    return@withContext null
-                }
-                if (!response.isSuccessful) return@withContext null
-                val bodyStr = response.body?.string() ?: return@withContext null
-                val json = JSONObject(bodyStr)
-                val data = json.optJSONObject("data") ?: return@withContext null
-                val artistUnion = data.optJSONObject("artistUnion") ?: return@withContext null
-
-                val profile = artistUnion.optJSONObject("profile")
+    private fun parseArtistUnion(cleanId: String, artistUnion: JSONObject): SpotifyArtist {
+        val profile = artistUnion.optJSONObject("profile")
                 val name = profile?.optString("name") ?: "Unknown Artist"
                 val verification = artistUnion.optJSONObject("onPlatformReputationTrait")?.optJSONObject("verification")
                 val isReputationVerified = verification?.optBoolean("isVerified", false) == true
@@ -534,7 +582,7 @@ object SpotifyRepository {
                     }
                 }
 
-                return@withContext SpotifyArtist(
+                return SpotifyArtist(
                     id = cleanId,
                     name = name,
                     avatarUrl = avatarUrl,
@@ -554,11 +602,6 @@ object SpotifyRepository {
                     relatedArtists = relatedArtists.distinctBy { it.id },
                     externalLinks = externalLinks
                 )
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch Spotify artist $artistId: ${e.message}", e)
-            null
-        }
     }
 
     fun getCharts(): List<SpotifyChart> {
@@ -711,31 +754,20 @@ object SpotifyRepository {
     }
 
     suspend fun getRadioPlaylistId(seedUri: String): String? = withContext(Dispatchers.IO) {
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null
         val cleanSeed = when {
             seedUri.startsWith("spotify:track:") || seedUri.startsWith("spotify:artist:") -> seedUri
             seedUri.startsWith("spotify_artist:") -> "spotify:artist:${seedUri.removePrefix("spotify_artist:")}"
             else -> "spotify:track:${extractId(seedUri)}"
         }
+        if (cleanSeed.endsWith(":")) return@withContext null
         val url = "https://spclient.wg.spotify.com/inspiredby-mix/v2/seed_to_playlist/$cleanSeed"
 
         try {
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer $token")
-                .header("app-platform", "WebPlayer")
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                )
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext null
-                val bodyStr = response.body?.string() ?: return@withContext null
-                val match = Regex("spotify:playlist:(37i9dQZF[a-zA-Z0-9]+)").find(bodyStr)
-                return@withContext match?.groupValues?.get(1)
-            }
+            // The endpoint answers a JSON document whose playlist uri embeds the
+            // editorial radio id; extract it from the serialized payload.
+            val bodyJson = fetchJsonObject(url) ?: return@withContext null
+            val match = Regex("spotify:playlist:(37i9dQZF[a-zA-Z0-9]+)").find(bodyJson.toString())
+            return@withContext match?.groupValues?.get(1)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to resolve radio playlist ID for $seedUri: ${e.message}")
             null
@@ -744,6 +776,7 @@ object SpotifyRepository {
 
     suspend fun getRadio(seedId: String, isArtist: Boolean = false): SpotifyPlaylist? = withContext(Dispatchers.IO) {
         val cleanId = extractId(seedId)
+        if (cleanId.isBlank()) return@withContext null
 
         if (cleanId.startsWith("37i9dQZF")) {
             val playlist = getPlaylist(cleanId)
@@ -848,34 +881,15 @@ object SpotifyRepository {
         radioTracks.add(seedTrack)
 
         try {
-            val token = SpotifyTokenManager.getValidAccessToken()
-            if (!token.isNullOrEmpty()) {
-                val recUrl = "https://api.spotify.com/v1/recommendations?seed_tracks=$cleanId&limit=50"
-                val request = Request.Builder()
-                    .url(recUrl)
-                    .header("Authorization", "Bearer $token")
-                    .header(
-                        "User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                    )
-                    .build()
-
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        val bodyStr = response.body?.string()
-                        if (!bodyStr.isNullOrBlank()) {
-                            val json = JSONObject(bodyStr)
-                            val recTracksArr = json.optJSONArray("tracks")
-                            if (recTracksArr != null && recTracksArr.length() > 0) {
-                                for (i in 0 until recTracksArr.length()) {
-                                    val item = recTracksArr.optJSONObject(i) ?: continue
-                                    val t = parseWebApiTrackNode(item)
-                                    if (t != null && t.id != seedTrack.id) {
-                                        radioTracks.add(t)
-                                    }
-                                }
-                            }
-                        }
+            val recUrl = "https://api.spotify.com/v1/recommendations?seed_tracks=$cleanId&limit=50"
+            val json = fetchJsonObject(recUrl)
+            val recTracksArr = json?.optJSONArray("tracks")
+            if (recTracksArr != null && recTracksArr.length() > 0) {
+                for (i in 0 until recTracksArr.length()) {
+                    val item = recTracksArr.optJSONObject(i) ?: continue
+                    val t = parseWebApiTrackNode(item)
+                    if (t != null && t.id != seedTrack.id) {
+                        radioTracks.add(t)
                     }
                 }
             }
@@ -951,82 +965,69 @@ object SpotifyRepository {
 
     suspend fun getCredits(trackId: String): SpotifyCredits? = withContext(Dispatchers.IO) {
         val cleanId = extractId(trackId)
-        val token = SpotifyTokenManager.getValidAccessToken() ?: return@withContext null
+        if (cleanId.isBlank()) return@withContext null
         val url = "https://spclient.wg.spotify.com/track-credits-view/v0/experimental/$cleanId/credits"
 
         try {
-            val request = Request.Builder()
-                .url(url)
-                .header("Authorization", "Bearer $token")
-                .header("app-platform", "WebPlayer")
-                .header(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-                )
-                .build()
+            val json = fetchJsonObject(url)
+            if (json != null) {
+                val trackTitle = json.optString("trackTitle")
+                val trackUri = json.optString("trackUri")
 
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    val bodyStr = response.body?.string()
-                    if (!bodyStr.isNullOrBlank()) {
-                        val json = JSONObject(bodyStr)
-                        val trackTitle = json.optString("trackTitle")
-                        val trackUri = json.optString("trackUri")
+                val sourceNames = mutableListOf<String>()
+                val sourcesArr = json.optJSONArray("sourceNames")
+                if (sourcesArr != null) {
+                    for (i in 0 until sourcesArr.length()) {
+                        val s = sourcesArr.optString(i)
+                        if (s.isNotBlank()) sourceNames.add(s)
+                    }
+                }
 
-                        val sourceNames = mutableListOf<String>()
-                        val sourcesArr = json.optJSONArray("sourceNames")
-                        if (sourcesArr != null) {
-                            for (i in 0 until sourcesArr.length()) {
-                                val s = sourcesArr.optString(i)
-                                if (s.isNotBlank()) sourceNames.add(s)
-                            }
-                        }
-
-                        val roles = mutableListOf<SpotifyCreditRole>()
-                        val roleCreditsArr = json.optJSONArray("roleCredits")
-                        if (roleCreditsArr != null) {
-                            for (i in 0 until roleCreditsArr.length()) {
-                                val roleObj = roleCreditsArr.optJSONObject(i) ?: continue
-                                val roleTitle = roleObj.optString("roleTitle")
-                                val artistsList = mutableListOf<SpotifyCreditArtist>()
-                                val artistsArr = roleObj.optJSONArray("artists")
-                                if (artistsArr != null) {
-                                    for (j in 0 until artistsArr.length()) {
-                                        val artObj = artistsArr.optJSONObject(j) ?: continue
-                                        val name = artObj.optString("name")
-                                        val uri = artObj.optString("uri")
-                                        val id = extractId(uri)
-                                        val img = artObj.optString("imageUri").ifBlank { null }
-                                        val subroles = mutableListOf<String>()
-                                        val subArr = artObj.optJSONArray("subroles")
-                                        if (subArr != null) {
-                                            for (k in 0 until subArr.length()) {
-                                                val sub = subArr.optString(k)
-                                                if (sub.isNotBlank()) subroles.add(sub)
-                                            }
-                                        }
-                                        artistsList.add(
-                                            SpotifyCreditArtist(
-                                                id = id,
-                                                name = name,
-                                                uri = uri,
-                                                imageUri = img,
-                                                subroles = subroles
-                                            )
-                                        )
+                val roles = mutableListOf<SpotifyCreditRole>()
+                val roleCreditsArr = json.optJSONArray("roleCredits")
+                if (roleCreditsArr != null) {
+                    for (i in 0 until roleCreditsArr.length()) {
+                        val roleObj = roleCreditsArr.optJSONObject(i) ?: continue
+                        val roleTitle = roleObj.optString("roleTitle")
+                        val artistsList = mutableListOf<SpotifyCreditArtist>()
+                        val artistsArr = roleObj.optJSONArray("artists")
+                        if (artistsArr != null) {
+                            for (j in 0 until artistsArr.length()) {
+                                val artObj = artistsArr.optJSONObject(j) ?: continue
+                                val name = artObj.optString("name")
+                                val uri = artObj.optString("uri")
+                                val id = extractId(uri)
+                                val img = artObj.optString("imageUri").ifBlank { null }
+                                val subroles = mutableListOf<String>()
+                                val subArr = artObj.optJSONArray("subroles")
+                                if (subArr != null) {
+                                    for (k in 0 until subArr.length()) {
+                                        val sub = subArr.optString(k)
+                                        if (sub.isNotBlank()) subroles.add(sub)
                                     }
                                 }
-                                roles.add(SpotifyCreditRole(roleTitle = roleTitle, artists = artistsList))
+                                artistsList.add(
+                                    SpotifyCreditArtist(
+                                        id = id,
+                                        name = name,
+                                        uri = uri,
+                                        imageUri = img,
+                                        subroles = subroles
+                                    )
+                                )
                             }
                         }
-
-                        return@withContext SpotifyCredits(
-                            trackTitle = trackTitle,
-                            trackUri = trackUri,
-                            roles = roles,
-                            sourceNames = sourceNames
-                        )
+                        roles.add(SpotifyCreditRole(roleTitle = roleTitle, artists = artistsList))
                     }
+                }
+
+                if (trackTitle.isNotBlank() || roles.isNotEmpty()) {
+                    return@withContext SpotifyCredits(
+                        trackTitle = trackTitle,
+                        trackUri = trackUri,
+                        roles = roles,
+                        sourceNames = sourceNames
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -1191,24 +1192,21 @@ object SpotifyRepository {
         return extractImageFromSources(first.optJSONArray("sources"))
     }
 
-    fun extractId(input: String): String {
-        return input.trim()
-            .removePrefix("spotify:track:")
-            .removePrefix("spotify:album:")
-            .removePrefix("spotify:artist:")
-            .removePrefix("spotify:playlist:")
-            .removePrefix("spotify:user:spotify:playlist:")
-            .removePrefix("spotify:")
-            .removePrefix("spotify_artist:")
-            .removePrefix("spotify_radio:")
-            .removePrefix("spotify_album:")
-            .removePrefix("spotify_playlist:")
-            .removePrefix("station_artist:")
-            .removePrefix("station_spotify:")
-            .removePrefix("station:")
-            .removePrefix("profile:")
-            .substringAfterLast("/")
-            .substringBefore("?")
-            .trim()
-    }
+    /**
+     * Normalizes any Spotify identifier form into the raw base62 entity id.
+     *
+     * Delegates to [SpotifyIds], the single normalization point shared with the
+     * rest of the app, so a route can never be half-stripped here after some
+     * caller already stripped part of it.
+     */
+    fun extractId(input: String): String = SpotifyIds.stripPrefixes(input)
+
+    /**
+     * Strict variant for callers that need to react to a malformed reference
+     * instead of silently continuing with an empty id. A `null` id here means the
+     * reference was never a valid Spotify entity, which is worth logging: it is
+     * how a half-stripped route announces itself.
+     */
+    fun resolveId(input: String, typeHint: SpotifyIds.EntityType? = null): SpotifyIds.Result =
+        SpotifyIds.parse(input, typeHint)
 }

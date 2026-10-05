@@ -3066,4 +3066,35 @@
     <string name="pref_full_player_source_title">Indicateur de source audio</string>
     <string name="pref_full_player_source_desc">Afficher le logo de la plateforme (YouTube, SoundCloud, etc.) pour le morceau en lecture</string>
     <string name="audio_source_tooltip">Audio venant de %s</string>
+
+    <!-- Settings subpage folders -->
+    <string name="settings_cat_misc_sub">Général, filtre de contenu, Discord et à propos</string>
+    <string name="settings_audio_playback_sub">Lecture auto, file d\'attente, reprise et vitesse</string>
+    <string name="settings_audio_quality_title">Son &amp; Sortie</string>
+    <string name="settings_audio_quality_sub">Qualité audio, périphérique et normalisation</string>
+    <string name="settings_audio_transitions_title">Transitions &amp; Mixage</string>
+    <string name="settings_audio_transitions_sub">Fondu enchaîné et mixage DJ automix</string>
+    <string name="settings_audio_sleep_sub">Durée du fondu et options de veille</string>
+
+    <string name="sources_services_sub">SoundCloud, Qobuz, TIDAL, Deezer, VK</string>
+    <string name="sources_order_sub">Ordre des sources audio et import de musique</string>
+    <string name="lyrics_sources_title">Fournisseurs de paroles</string>
+    <string name="lyrics_sources_sub">Ordre et sources de paroles activées</string>
+
+    <string name="storage_cache_sub">Limites et nettoyage du cache audio et images</string>
+    <string name="storage_downloads_sub">Musique téléchargée et emplacement</string>
+    <string name="storage_local_files_sub">Dossiers analysés et bibliothèque locale</string>
+    <string name="storage_backup_sub">Exporter et importer les données et réglages</string>
+
+    <string name="sync_paired_devices_title">Appareils jumelés</string>
+    <string name="sync_paired_devices_sub">État de synchronisation et gestion des appareils</string>
+    <string name="sync_options_title">Données synchronisées</string>
+    <string name="sync_options_sub">Choisir les données à synchroniser entre appareils</string>
+    <string name="sync_advanced_title">Synchronisation avancée</string>
+    <string name="sync_advanced_sub">Détails de connexion, port et dépannage</string>
+
+    <string name="network_proxy_sub">Configuration du proxy HTTP et SOCKS5</string>
+
+    <string name="misc_general_sub">Langue, écran de démarrage et mises à jour</string>
+    <string name="misc_discord_sub">Afficher la musique en cours sur Discord</string>
 </resources>

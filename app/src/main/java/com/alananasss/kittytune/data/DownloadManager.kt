@@ -182,8 +182,81 @@ object DownloadManager {
 
                 val allPlaylists = dao.getAllPlaylists().first()
                 val currentLiked = LikeRepository.likedPlaylists.value
-                allPlaylists.forEach { localPlaylist ->
-                    if (localPlaylist.id > 0) {
+                // One-time migration: detail-screen legacy ids (B) -> provider-canonical ids (A).
+                // Without this, one Spotify/Deezer/... playlist lives under two ids and the
+                // like flag depends on where it was liked from.
+                try {
+                    allPlaylists.forEach { local ->
+                        val canonical = com.alananasss.kittytune.data.local.ExternalPlaylists.canonicalIdForLocal(
+                            local.id, local.permalinkUrl, local.isAlbum
+                        ) ?: return@forEach
+                        if (dao.getPlaylist(canonical) != null) {
+                            // Both ids exist (liked once from home, once from detail):
+                            // keep the canonical row, move refs, drop the legacy row.
+                            val legacyRefs = dao.getTracksForPlaylistSync(local.id)
+                            legacyRefs.forEach { track ->
+                                try {
+                                    dao.insertPlaylistTrackRef(
+                                        com.alananasss.kittytune.data.local.PlaylistTrackCrossRef(
+                                            playlistId = canonical,
+                                            trackId = track.id,
+                                            addedAt = System.currentTimeMillis()
+                                        )
+                                    )
+                                } catch (_: Exception) { }
+                            }
+                            dao.deletePlaylist(local.id)
+                            dao.deletePlaylistRefs(local.id)
+                            if (currentLiked.contains(local.id)) {
+                                LikeRepository.applyRemotePlaylistLike(canonical, true, local.permalinkUrl, null)
+                                LikeRepository.applyRemotePlaylistLike(local.id, false, local.permalinkUrl, null)
+                            }
+                        } else {
+                            val refs = dao.getTracksForPlaylistSync(local.id)
+                            dao.insertPlaylist(
+                                local.copy(id = canonical)
+                            )
+                            refs.forEach { track ->
+                                try {
+                                    dao.insertPlaylistTrackRef(
+                                        com.alananasss.kittytune.data.local.PlaylistTrackCrossRef(
+                                            playlistId = canonical,
+                                            trackId = track.id,
+                                            addedAt = System.currentTimeMillis()
+                                        )
+                                    )
+                                } catch (_: Exception) { }
+                            }
+                            dao.deletePlaylist(local.id)
+                            dao.deletePlaylistRefs(local.id)
+                            if (currentLiked.contains(local.id)) {
+                                LikeRepository.applyRemotePlaylistLike(canonical, true, local.permalinkUrl, null)
+                                LikeRepository.applyRemotePlaylistLike(local.id, false, local.permalinkUrl, null)
+                            } else {
+                                // Preserve downloaded flag visibility even when unliked.
+                                if (local.isDownloaded) {
+                                    LikeRepository.applyRemotePlaylistLike(canonical, false, local.permalinkUrl, null)
+                                }
+                            }
+                            try {
+                                val oldCover = java.io.File(context.filesDir, "playlist_cover_${local.id}.jpg")
+                                val newCover = java.io.File(context.filesDir, "playlist_cover_${canonical}.jpg")
+                                if (oldCover.exists() && !newCover.exists()) {
+                                    oldCover.copyTo(newCover, overwrite = false)
+                                }
+                            } catch (_: Exception) { }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("DownloadManager", "Failed to migrate external playlist ids", e)
+                }
+                val refreshedPlaylists = try { dao.getAllPlaylistsList() } catch (_: Exception) { allPlaylists }
+                refreshedPlaylists.forEach { localPlaylist ->
+                    val isExternal =
+                        com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalPermalink(
+                            localPlaylist.permalinkUrl
+                        )
+                    if (localPlaylist.id > 0 && !isExternal) {
                         val isBroken = localPlaylist.title == context.getString(R.string.untitled_track) || localPlaylist.title == "Untitled Track" || localPlaylist.artworkUrl.isBlank()
                         try {
                             val online = api.getPlaylist(localPlaylist.id)
@@ -209,8 +282,8 @@ object DownloadManager {
                     }
 
                     val isSpotify = localPlaylist.permalinkUrl?.contains("spotify") == true
-                    val isLiked = currentLiked.contains(localPlaylist.id)
-                    if (!localPlaylist.isUserCreated && localPlaylist.id > 0 && !isSpotify && !isLiked) {
+                    val isLiked = LikeRepository.likedPlaylists.value.contains(localPlaylist.id)
+                    if (!localPlaylist.isUserCreated && localPlaylist.id > 0 && !isSpotify && !isExternal && !isLiked) {
                         val tracks = dao.getTracksForPlaylistSync(localPlaylist.id)
                         val hasDownloadedTracks = tracks.any { it.localAudioPath.isNotEmpty() }
                         if (!hasDownloadedTracks) {

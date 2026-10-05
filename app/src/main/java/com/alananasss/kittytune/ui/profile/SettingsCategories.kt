@@ -21,13 +21,16 @@ import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.alananasss.kittytune.R
 
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.SwapVert
+
 /**
  * The settings categories, in the order they are worth opening.
  *
- * The same list, order and icons the desktop app uses. Language, start screen and auto-update used
- * to sit under Appearance on Android, which is where they do not belong: none of them changes how
- * anything looks, and burying them is why that screen had grown to well over a thousand lines.
- * They are in [SettingsCategory.MISC] now, where the desktop keeps them.
+ * The same list, order and icons the desktop app uses. Each category opens into a clean
+ * folder view of sub-pages, matching the Interface category design.
  */
 internal enum class SettingsCategory(
     @StringRes val titleRes: Int,
@@ -48,17 +51,49 @@ internal enum class SettingsSubPage(
     @StringRes val subtitleRes: Int?,
     val icon: ImageVector?
 ) {
+    // Interface
     THEMES(R.string.settings_page_themes, R.string.settings_page_themes_sub, Icons.Rounded.ColorLens),
     PLAYER(R.string.settings_page_player, R.string.settings_page_player_sub, Icons.Rounded.PlayCircle),
     BOTTOM_BAR(R.string.pref_bottom_menu_title, R.string.pref_bottom_menu_subtitle, Icons.Rounded.Home),
     LYRICS(R.string.pref_lyrics_title, R.string.settings_page_lyrics_sub, Icons.Rounded.Lyrics),
+
+    // Audio
+    AUDIO_PLAYBACK(R.string.settings_cat_playback, R.string.settings_audio_playback_sub, Icons.Rounded.PlayCircle),
+    AUDIO_QUALITY(R.string.settings_audio_quality_title, R.string.settings_audio_quality_sub, Icons.Rounded.GraphicEq),
+    AUDIO_TRANSITIONS(R.string.settings_audio_transitions_title, R.string.settings_audio_transitions_sub, Icons.Rounded.Tune),
+    AUDIO_SLEEP_TIMER(R.string.sleep_timer_title, R.string.settings_audio_sleep_sub, Icons.Rounded.Schedule),
+    AUDIO_HAPTICS(R.string.pref_haptics_title, R.string.pref_haptics_subtitle, Icons.Rounded.Vibration),
+
+    // Sources
+    SOURCES_SERVICES(R.string.pref_accounts_title, R.string.sources_services_sub, Icons.Rounded.Cloud),
+    SOURCES_ORDER(R.string.provider_order, R.string.sources_order_sub, Icons.Rounded.SwapVert),
+    SOURCES_IMPORT(R.string.music_import_title, R.string.music_import_settings_subtitle, Icons.Rounded.ImportExport),
+    SOURCES_LYRICS(R.string.lyrics_sources_title, R.string.lyrics_sources_sub, Icons.Rounded.Lyrics),
+
+    // Storage
+    STORAGE_CACHE(R.string.pref_storage_title, R.string.storage_cache_sub, Icons.Rounded.Storage),
+    STORAGE_LOCAL_FILES(R.string.pref_local_title, R.string.storage_local_files_sub, Icons.Filled.SdStorage),
+    STORAGE_BACKUP(R.string.pref_backup_title, R.string.storage_backup_sub, Icons.Rounded.Backup),
+
+    // Sync
+    SYNC_DEVICES(R.string.sync_paired_devices_title, R.string.sync_paired_devices_sub, Icons.Rounded.Devices),
+    SYNC_OPTIONS(R.string.sync_options_title, R.string.sync_options_sub, Icons.Rounded.Check),
+    SYNC_ADVANCED(R.string.sync_advanced_title, R.string.sync_advanced_sub, Icons.Rounded.Tune),
+
+    // Misc
+    MISC_GENERAL(R.string.settings_cat_general, R.string.misc_general_sub, Icons.Rounded.Tune),
+    MISC_CONTENT_FILTER(R.string.pref_content_filter_title, R.string.pref_content_filter_subtitle, Icons.Rounded.Block),
+    MISC_DISCORD(R.string.pref_discord_title, R.string.misc_discord_sub, Icons.Rounded.Cloud),
+    MISC_ABOUT(R.string.pref_about_title, R.string.pref_about_subtitle, Icons.Rounded.Info),
     ;
 
     companion object {
-        /**
-         * The Interface category's pages, in the desktop's order.
-         */
         val interfacePages: List<SettingsSubPage> = listOf(THEMES, PLAYER, BOTTOM_BAR, LYRICS)
+        val audioPages: List<SettingsSubPage> = listOf(AUDIO_PLAYBACK, AUDIO_QUALITY, AUDIO_TRANSITIONS, AUDIO_SLEEP_TIMER, AUDIO_HAPTICS)
+        val sourcesPages: List<SettingsSubPage> = listOf(SOURCES_SERVICES, SOURCES_ORDER, SOURCES_IMPORT, SOURCES_LYRICS)
+        val storagePages: List<SettingsSubPage> = listOf(STORAGE_CACHE, STORAGE_LOCAL_FILES, STORAGE_BACKUP)
+        val syncPages: List<SettingsSubPage> = listOf(SYNC_DEVICES, SYNC_OPTIONS, SYNC_ADVANCED)
+        val miscPages: List<SettingsSubPage> = listOf(MISC_GENERAL, MISC_CONTENT_FILTER, MISC_DISCORD, MISC_ABOUT)
     }
 }
 
@@ -70,10 +105,54 @@ internal data class SettingsEntry(
     val route: String
 )
 
-/** The rows of each category, in the desktop's order. */
+/** A root-screen section: a header with the category's pages listed directly. */
+internal data class SettingsRootGroup(
+    @StringRes val titleRes: Int,
+    val rows: List<SettingsEntry>
+)
+
+private fun SettingsSubPage.toEntry(): SettingsEntry =
+    SettingsEntry(titleRes, subtitleRes, icon ?: Icons.Rounded.Tune, route)
+
+/**
+ * Root sections in the old (pre-desktop-rework) style: every category lists
+ * its pages directly, several rows per card. Proxy joins Misc so no section
+ * holds a single row duplicating its own header.
+ */
+internal fun rootGroups(): List<SettingsRootGroup> = listOf(
+    SettingsRootGroup(
+        SettingsCategory.INTERFACE.titleRes,
+        SettingsSubPage.interfacePages.map { it.toEntry() }
+    ),
+    SettingsRootGroup(
+        SettingsCategory.AUDIO.titleRes,
+        SettingsSubPage.audioPages.map { it.toEntry() }
+    ),
+    SettingsRootGroup(
+        SettingsCategory.SOURCES.titleRes,
+        SettingsSubPage.sourcesPages.map { it.toEntry() }
+    ),
+    SettingsRootGroup(
+        SettingsCategory.STORAGE.titleRes,
+        SettingsSubPage.storagePages.map { it.toEntry() }
+    ),
+    SettingsRootGroup(
+        SettingsCategory.SYNC.titleRes,
+        SettingsSubPage.syncPages.map { it.toEntry() }
+    ),
+    SettingsRootGroup(
+        SettingsCategory.MISC.titleRes,
+        SettingsSubPage.miscPages.map { it.toEntry() } + SettingsEntry(
+            R.string.pref_proxy_title,
+            R.string.network_proxy_sub,
+            Icons.Rounded.Dns,
+            "proxy_settings"
+        )
+    ),
+)
+
+/** The rows of each category on the root settings screen. */
 internal fun SettingsCategory.entriesFor(): List<SettingsEntry> = when (this) {
-    // Opened as a page of sub-pages rather than as its own screen, so the category list stays put.
-    // One row that opens the sub-page list, the way the desktop's Interface pane lists its pages.
     SettingsCategory.INTERFACE -> listOf(
         SettingsEntry(
             R.string.settings_cat_interface,
@@ -83,29 +162,52 @@ internal fun SettingsCategory.entriesFor(): List<SettingsEntry> = when (this) {
         )
     )
     SettingsCategory.AUDIO -> listOf(
-        SettingsEntry(R.string.pref_audio_title, R.string.pref_audio_subtitle, Icons.Rounded.GraphicEq, "audio_settings"),
-        SettingsEntry(R.string.pref_haptics_title, R.string.pref_haptics_subtitle, Icons.Rounded.Vibration, "haptic_settings")
+        SettingsEntry(
+            R.string.settings_cat_audio,
+            R.string.pref_audio_subtitle,
+            Icons.Rounded.GraphicEq,
+            "audio_settings"
+        )
     )
     SettingsCategory.SOURCES -> listOf(
-        SettingsEntry(R.string.pref_accounts_title, R.string.pref_accounts_subtitle, Icons.Rounded.ImportExport, "accounts_settings"),
-        SettingsEntry(R.string.provider_order, R.string.pref_accounts_subtitle, Icons.Rounded.Tune, "provider_order_settings")
+        SettingsEntry(
+            R.string.settings_cat_accounts,
+            R.string.pref_accounts_subtitle,
+            Icons.Rounded.ImportExport,
+            "sources_settings"
+        )
     )
     SettingsCategory.STORAGE -> listOf(
-        SettingsEntry(R.string.pref_storage_title, R.string.pref_storage_subtitle, Icons.Rounded.Storage, "storage"),
-        SettingsEntry(R.string.pref_local_title, R.string.pref_local_subtitle, Icons.Filled.SdStorage, "local_media_settings"),
-        SettingsEntry(R.string.pref_backup_title, R.string.pref_backup_subtitle, Icons.Rounded.Backup, "backup_restore")
+        SettingsEntry(
+            R.string.pref_storage_title,
+            R.string.pref_storage_subtitle,
+            Icons.Rounded.Storage,
+            "storage_settings"
+        )
     )
     SettingsCategory.SYNC -> listOf(
-        SettingsEntry(R.string.sync_title, R.string.sync_intro, Icons.Rounded.Devices, "sync_settings")
+        SettingsEntry(
+            R.string.sync_title,
+            R.string.sync_intro,
+            Icons.Rounded.Devices,
+            "sync_settings"
+        )
     )
     SettingsCategory.NETWORK -> listOf(
-        SettingsEntry(R.string.pref_proxy_title, R.string.pref_proxy_subtitle, Icons.Rounded.Dns, "proxy_settings")
+        SettingsEntry(
+            R.string.pref_proxy_title,
+            R.string.network_proxy_sub,
+            Icons.Rounded.Dns,
+            "proxy_settings"
+        )
     )
     SettingsCategory.MISC -> listOf(
-        SettingsEntry(R.string.settings_cat_general, R.string.settings_cat_general_sub, Icons.Rounded.Tune, "misc_settings"),
-        SettingsEntry(R.string.pref_content_filter_title, R.string.pref_content_filter_subtitle, Icons.Rounded.Block, "content_filter_settings"),
-        SettingsEntry(R.string.music_import_title, R.string.music_import_settings_subtitle, Icons.Rounded.ImportExport, "music_import"),
-        SettingsEntry(R.string.pref_about_title, R.string.pref_about_subtitle, Icons.Rounded.Info, "about")
+        SettingsEntry(
+            R.string.settings_cat_misc,
+            R.string.settings_cat_misc_sub,
+            Icons.Rounded.Tune,
+            "misc_settings"
+        )
     )
 }
 
@@ -116,4 +218,28 @@ internal val SettingsSubPage.route: String
         SettingsSubPage.PLAYER -> "player_design_settings"
         SettingsSubPage.BOTTOM_BAR -> "bottom_bar_settings"
         SettingsSubPage.LYRICS -> "lyrics_settings"
+
+        SettingsSubPage.AUDIO_PLAYBACK -> "audio_playback_settings"
+        SettingsSubPage.AUDIO_QUALITY -> "audio_quality_settings"
+        SettingsSubPage.AUDIO_TRANSITIONS -> "audio_transitions_settings"
+        SettingsSubPage.AUDIO_SLEEP_TIMER -> "audio_sleep_settings"
+        SettingsSubPage.AUDIO_HAPTICS -> "haptic_settings"
+
+        SettingsSubPage.SOURCES_SERVICES -> "accounts_settings"
+        SettingsSubPage.SOURCES_ORDER -> "provider_order_settings"
+        SettingsSubPage.SOURCES_IMPORT -> "music_import"
+        SettingsSubPage.SOURCES_LYRICS -> "lyrics_settings"
+
+        SettingsSubPage.STORAGE_CACHE -> "storage"
+        SettingsSubPage.STORAGE_LOCAL_FILES -> "local_media_settings"
+        SettingsSubPage.STORAGE_BACKUP -> "backup_restore"
+
+        SettingsSubPage.SYNC_DEVICES -> "sync_devices_settings"
+        SettingsSubPage.SYNC_OPTIONS -> "sync_options_settings"
+        SettingsSubPage.SYNC_ADVANCED -> "sync_advanced_settings"
+
+        SettingsSubPage.MISC_GENERAL -> "misc_general_settings"
+        SettingsSubPage.MISC_CONTENT_FILTER -> "content_filter_settings"
+        SettingsSubPage.MISC_DISCORD -> "discord_settings"
+        SettingsSubPage.MISC_ABOUT -> "about"
     }

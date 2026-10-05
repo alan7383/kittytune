@@ -6,6 +6,7 @@ import com.zionhuang.kugou.models.SearchLyricsResponse
 import com.zionhuang.kugou.models.SearchSongResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
@@ -30,6 +31,12 @@ object KuGou {
     @OptIn(ExperimentalSerializationApi::class)
     private val client = HttpClient {
         expectSuccess = true
+
+        install(HttpTimeout) {
+            requestTimeoutMillis = 15000
+            connectTimeoutMillis = 10000
+            socketTimeoutMillis = 15000
+        }
 
         install(ContentNegotiation) {
             val json = Json {

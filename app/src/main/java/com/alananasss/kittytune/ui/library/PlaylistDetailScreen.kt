@@ -175,6 +175,19 @@ fun PlaylistDetailScreen(
         }
     }
 
+    /**
+     * Display and provider-agnostic key for this route.
+     *
+     * Kept byte-for-byte as it has always been computed, because [stableId] is
+     * derived from it and indexes the local download database. Normalizing it
+     * "properly" would change every hash and orphan playlists the user already
+     * downloaded, so it stays a frozen key rather than a source of truth.
+     *
+     * Spotify ids are NOT read from here. They go through [SpotifyRepository],
+     * which normalizes them in one place via SpotifyIds; passing a half-stripped
+     * string down here is what used to ship `spotify:playlist:playlist:<id>`
+     * upstream and render an empty playlist.
+     */
     val cleanIdStr = decodedPlaylistId
         .replace("spotify_playlist:", "")
         .replace("spotify_album:", "")
@@ -206,11 +219,88 @@ fun PlaylistDetailScreen(
             cleanIdStr.contains("discover/sets/") ||
             cleanIdStr.contains("your-playback")
 
+    /**
+     * Canonical id for external providers.
+     *
+     * Search/home build playlist ids with the provider-canonical hash
+     * (SpotifyModels, DeezerSearchRepository, ...), while this screen used to
+     * hash the cleaned route (`abs(cleanId.hashCode())`, or the raw numeric id
+     * for Deezer). Same Spotify playlist therefore had two ids depending on
+     * where it was liked from. External routes now use the canonical hash so
+     * one playlist is one library entry; SoundCloud keeps the historic logic.
+     */
     val stableId = remember(playlistId, cleanIdStr, currentIdLong, isSystemPlaylistRoute) {
-        if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+        val lowerRoute = decodedPlaylistId.lowercase()
+        when {
+            lowerRoute.startsWith("spotify:album:") || lowerRoute.startsWith("spotify_album:") -> {
+                val raw = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(decodedPlaylistId).trim()
+                if (raw.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.spotifyStableId(raw)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("spotify:playlist:") || lowerRoute.startsWith("spotify_playlist:") -> {
+                val raw = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(decodedPlaylistId).trim()
+                if (raw.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.spotifyStableId(raw)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("spotify_radio:") || lowerRoute.startsWith("station_spotify:") -> {
+                val raw = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(decodedPlaylistId).trim()
+                if (raw.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.spotifyStableId(raw)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("deezer:playlist:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.deezerPlaylistStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("deezer:album:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.deezerAlbumStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("tidal:playlist:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.tidalPlaylistStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("tidal:album:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.tidalAlbumStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("qobuz:playlist:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.qobuzPlaylistStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("qobuz:album:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.qobuzAlbumStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            else -> if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+        }
     }
 
-    val playlistInDb by DownloadManager.isPlaylistInLibraryFlow(stableId).collectAsState(initial = null)
+    /** Pre-fix id for migration: likes/rows stored under this must also count. */
+    val legacyStableId = remember(playlistId, cleanIdStr, currentIdLong, isSystemPlaylistRoute) {
+        com.alananasss.kittytune.data.local.ExternalPlaylists.legacyDetailStableId(cleanIdStr, currentIdLong, isSystemPlaylistRoute)
+    }
+
+    /**
+     * The Spotify entity id for this route, or null when this is not a Spotify
+     * route. Read from [decodedPlaylistId] rather than [cleanIdStr]: the Spotify
+     * repositories normalize internally, so handing them the untouched route is
+     * what keeps a full URN intact. Callers that receive null are not Spotify
+     * routes and must not call into the repository.
+     */
+    val spotifyRouteId = remember(decodedPlaylistId) {
+        val isSpotifyRoute = decodedPlaylistId.startsWith("spotify", ignoreCase = true) ||
+                decodedPlaylistId.startsWith("station_spotify:", ignoreCase = true)
+        if (!isSpotifyRoute) {
+            null
+        } else {
+            com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(decodedPlaylistId)
+                .takeIf { it.isNotBlank() }
+        }
+    }
+
+    val playlistInDbCanonical by DownloadManager.isPlaylistInLibraryFlow(stableId).collectAsState(initial = null)
+    val playlistInDbLegacy by DownloadManager.isPlaylistInLibraryFlow(legacyStableId).collectAsState(initial = null)
+    val playlistInDb = playlistInDbCanonical ?: playlistInDbLegacy
 
     val effectiveBatchId = if (playlistId == "likes") DownloadManager.LIKES_BATCH_ID else stableId
 
@@ -224,6 +314,25 @@ fun PlaylistDetailScreen(
     var showPlaylistSortSheet by remember { mutableStateOf(false) }
 
     var playlistPermalinkUrl by remember { mutableStateOf<String?>(null) }
+
+    /**
+     * Where tapping the creator's name should go, or null when there is nothing
+     * resolvable to open.
+     *
+     * Only ever a real identifier. A playlist's creator name is a free-form
+     * string, not an identity: for a Spotify community playlist the header shows
+     * "By <owner name>" with `id == 0L`, no `urn` and no `permalink`. Routing on
+     * that name built `profile:Hiver`, and the profile screen resolved it by
+     * searching Spotify for an artist called "Hiver" — landing on an unrelated
+     * verified profile with its own listener count. A name is never an identity,
+     * so a name-only creator gets no link at all rather than a guessed one.
+     *
+     * Mirrors the desktop, which gates the same block on `id > 0` and renders
+     * plain text otherwise.
+     */
+    val playlistCreatorNavId = remember(playlistUser) {
+        com.alananasss.kittytune.domain.playlistCreatorNavId(playlistUser)
+    }
 
     val isLikesScreen = playlistId == "likes" || playlistId.startsWith("liked_by:")
     val isSpotifyRadio = playlistId.startsWith("spotify_radio:") || playlistId.startsWith("station_spotify:")
@@ -792,8 +901,11 @@ fun PlaylistDetailScreen(
                         val isQobuzAlbum = playlistId.startsWith("qobuz:album:")
                         val isQobuzPlaylist = playlistId.startsWith("qobuz:playlist:")
 
+                        val spotifyId = spotifyRouteId
                         if (isSpotifyAlbum) {
-                            val album = com.alananasss.kittytune.data.spotify.SpotifyRepository.getAlbum(cleanIdStr)
+                            val album = spotifyId?.let {
+                                com.alananasss.kittytune.data.spotify.SpotifyRepository.getAlbum(it)
+                            }
                             if (album != null) {
                                 isAlbum = true
                                 playlistTitle = album.name
@@ -814,7 +926,9 @@ fun PlaylistDetailScreen(
                                 newTracks.addAll(album.tracks.map { it.toTrack() })
                             }
                         } else if (isSpotifyPlaylist) {
-                            val pl = com.alananasss.kittytune.data.spotify.SpotifyRepository.getPlaylist(cleanIdStr)
+                            val pl = spotifyId?.let {
+                                com.alananasss.kittytune.data.spotify.SpotifyRepository.getPlaylist(it)
+                            }
                             if (pl != null) {
                                 isAlbum = false
                                 playlistTitle = pl.name
@@ -936,9 +1050,13 @@ fun PlaylistDetailScreen(
                             }
                         } else if (isSpotifyRadio) {
                             val isArtistStation = playlistId.startsWith("station_artist:") || playlistId.startsWith("spotify:artist:") || playlistId.startsWith("spotify_artist:")
-                            var radioPlaylist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(cleanIdStr, isArtist = isArtistStation)
+                            var radioPlaylist = spotifyId?.let {
+                                com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(it, isArtist = isArtistStation)
+                            }
                             if (radioPlaylist == null) {
-                                radioPlaylist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(cleanIdStr, isArtist = !isArtistStation)
+                                radioPlaylist = spotifyId?.let {
+                                    com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadio(it, isArtist = !isArtistStation)
+                                }
                             }
                             if (radioPlaylist != null) {
                                 isAlbum = false
@@ -954,7 +1072,9 @@ fun PlaylistDetailScreen(
                                 playlistUrn = "spotify:playlist:${radioPlaylist.id}"
                                 newTracks.addAll(radioPlaylist.tracks.map { it.toTrack() })
                             } else {
-                                val seedTrack = com.alananasss.kittytune.data.spotify.SpotifyRepository.getTrack(cleanIdStr)
+                                val seedTrack = spotifyId?.let {
+                                com.alananasss.kittytune.data.spotify.SpotifyRepository.getTrack(it)
+                            }
                                 val radioTitle = if (seedTrack != null) context.getString(R.string.spotify_radio_title, seedTrack.name) else "Spotify Radio"
                                 playlistTitle = radioTitle
                                 playlistCover = seedTrack?.artworkUrl
@@ -968,10 +1088,14 @@ fun PlaylistDetailScreen(
                                         urn = seedTrack.artists.firstOrNull()?.id?.let { "spotify:artist:$it" }
                                     )
                                     playlistPermalinkUrl = seedTrack.shareUrl
-                                    val radioList = com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadioTracks(cleanIdStr)
+                                    val radioList = spotifyId?.let {
+                                        com.alananasss.kittytune.data.spotify.SpotifyRepository.getRadioTracks(it)
+                                    }.orEmpty()
                                     newTracks.addAll(radioList.map { it.toTrack() })
                                 } else {
-                                    val artist = com.alananasss.kittytune.data.spotify.SpotifyRepository.getArtist(cleanIdStr)
+                                    val artist = spotifyId?.let {
+                                        com.alananasss.kittytune.data.spotify.SpotifyRepository.getArtist(it)
+                                    }
                                     if (artist != null) {
                                         playlistTitle = "${artist.name} Radio"
                                         playlistCover = artist.avatarUrl ?: artist.headerImageUrl
@@ -1065,13 +1189,10 @@ fun PlaylistDetailScreen(
                             if (isLocalSpotify && localFallback != null) {
                                 val permalink = localFallback.permalinkUrl ?: ""
                                 val isAlbumType = localFallback.isAlbum || permalink.contains("/album/")
-                                val spotifyId = if (permalink.contains("/playlist/")) {
-                                    permalink.substringAfter("playlist/").substringBefore("?").substringBefore("/")
-                                } else if (permalink.contains("/album/")) {
-                                    permalink.substringAfter("album/").substringBefore("?").substringBefore("/")
-                                } else {
-                                    permalink.removePrefix("spotify:playlist:").removePrefix("spotify:album:")
-                                }
+                                // The permalink is a stored web URL or URN; the repository normalizes it
+                                // through SpotifyIds, so it is passed whole.
+                                val spotifyId = com.alananasss.kittytune.data.spotify.SpotifyRepository
+                                    .extractId(permalink)
 
                                 if (isAlbumType) {
                                     val album = com.alananasss.kittytune.data.spotify.SpotifyRepository.getAlbum(spotifyId)
@@ -1681,17 +1802,22 @@ fun PlaylistDetailScreen(
                                                 )
                                             }
                                         }
-                                    } else if (playlistUser != null && !playlistUser!!.username.isNullOrBlank()) {
+                                    } else if (playlistUser != null && playlistCreatorNavId != null) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(8.dp))
                                                 .clickable {
-                                                    if (playlistArtists.isNotEmpty()) {
-                                                        playerViewModel.navigateToArtistChoice(playlistArtists, playlistUser?.id)
+                                                    val creator = playlistUser!!
+                                                    // A record credited to several artists
+                                                    // asks which one to open.
+                                                    if (playlistArtists.count { it.id.isNotBlank() } > 1) {
+                                                        playerViewModel.navigateToArtistChoice(
+                                                            playlistArtists,
+                                                            creator.id
+                                                        )
                                                     } else {
-                                                        val creator = playlistUser!!
-                                                        onNavigate(creator.profileNavId)
+                                                        onNavigate(playlistCreatorNavId!!)
                                                     }
                                                 }
                                                 .padding(vertical = 4.dp, horizontal = 2.dp)
@@ -1715,6 +1841,20 @@ fun PlaylistDetailScreen(
                                                 )
                                             }
                                         }
+                                    } else if (playlistUser?.username != null) {
+                                        // No resolvable identity: show the name, but do not
+                                        // link it. A link here would resolve the name as a
+                                        // search and land on an unrelated profile.
+                                        Text(
+                                            text = stringResource(
+                                                R.string.playlist_by_user,
+                                                playlistUser!!.username ?: ""
+                                            ),
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onBackground
+                                                .copy(alpha = 0.7f)
+                                        )
                                     }
                                     Spacer(Modifier.height(8.dp))
 
@@ -1785,7 +1925,7 @@ fun PlaylistDetailScreen(
                                                 }
                                             } else {
                                                 val altSysId = playlistUrn?.let { com.alananasss.kittytune.ui.yearlyplayback.YearlyPlaybackViewModel.extractPlaylistId(it) }
-                                                val isPlaylistLiked = likedPlaylistsRepo.contains(stableId) || (altSysId != null && likedPlaylistsRepo.contains(altSysId))
+                                                val isPlaylistLiked = likedPlaylistsRepo.contains(stableId) || likedPlaylistsRepo.contains(legacyStableId) || (altSysId != null && likedPlaylistsRepo.contains(altSysId))
                                                 IconButton(
                                                     onClick = {
                                                         if (!isPlaylistLiked) {
@@ -1804,9 +1944,20 @@ fun PlaylistDetailScreen(
                                                             DownloadManager.importPlaylistToLibrary(
                                                                 playlist = targetPlaylist,
                                                                 tracks = tracksToDisplay.toList(),
-                                                                syncToCloud = !(playlistId.startsWith("spotify") || playlistId.startsWith("station_spotify") || playlistUrn?.startsWith("spotify:") == true || playlistPermalinkUrl?.contains("spotify") == true),
+                                                                syncToCloud = !com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalProvider(
+                                                                    playlistPermalinkUrl ?: shareUrl,
+                                                                    playlistUrn
+                                                                ) && !playlistId.startsWith("spotify") && !playlistId.startsWith("station_spotify"),
                                                                 likePlaylist = true
                                                             )
+                                                            if (legacyStableId != stableId && likedPlaylistsRepo.contains(legacyStableId)) {
+                                                                LikeRepository.togglePlaylistLike(
+                                                                    legacyStableId,
+                                                                    false,
+                                                                    playlistPermalinkUrl,
+                                                                    playlistUrn
+                                                                )
+                                                            }
                                                         } else {
                                                             LikeRepository.togglePlaylistLike(
                                                                 stableId,
@@ -1814,6 +1965,14 @@ fun PlaylistDetailScreen(
                                                                 playlistPermalinkUrl,
                                                                 playlistUrn
                                                             )
+                                                            if (legacyStableId != stableId) {
+                                                                LikeRepository.togglePlaylistLike(
+                                                                    legacyStableId,
+                                                                    false,
+                                                                    playlistPermalinkUrl,
+                                                                    playlistUrn
+                                                                )
+                                                            }
                                                         }
                                                     },
                                                     shapes = IconButtonDefaults.shapes()
