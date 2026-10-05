@@ -52,6 +52,20 @@ class UpdateManagerTest {
     }
 
     @Test
+    fun testBetaChannelGuards() {
+        // Same-core stable over an installed beta = downgrade nag, must skip
+        assertTrue(UpdateManager.isSameCoreStableOverBeta("2.68.0-beta.1", "2.68.0"))
+        assertFalse(UpdateManager.isSameCoreStableOverBeta("2.68.0-beta.1", "2.69.0"))
+        assertFalse(UpdateManager.isSameCoreStableOverBeta("2.68.0", "2.69.0"))
+        assertFalse(UpdateManager.isSameCoreStableOverBeta("2.68.0", "2.68.0"))
+        // Same-core beta over installed stable = the beta program
+        assertTrue(UpdateManager.isSameCoreBetaOverStable("2.68.0", "2.68.0-beta.2"))
+        assertFalse(UpdateManager.isSameCoreBetaOverStable("2.68.0-beta.1", "2.68.0-beta.2"))
+        assertFalse(UpdateManager.isSameCoreBetaOverStable("2.68.0", "2.69.0-beta.1"))
+        assertFalse(UpdateManager.isSameCoreBetaOverStable("2.68.0", "2.68.0"))
+    }
+
+    @Test
     fun testGetApkFileName() {
         assertEquals("update_v2.66.0.apk", UpdateManager.getApkFileName("v2.66.0"))
         assertEquals("update_2.66.0.apk", UpdateManager.getApkFileName("2.66.0"))
