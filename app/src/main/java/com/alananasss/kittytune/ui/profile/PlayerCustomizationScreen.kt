@@ -72,10 +72,12 @@ import com.alananasss.kittytune.data.PlaybackService
 import com.alananasss.kittytune.data.WaveformRepository
 import com.alananasss.kittytune.data.local.NotificationExtraButton
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
+import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerDesign
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.PlayerProgressMode
 import com.alananasss.kittytune.data.local.PlayerSliderStyle
+import com.alananasss.kittytune.data.local.TrackSourceBadgeStyle
 import com.alananasss.kittytune.data.local.WaveformColorMode
 import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
@@ -109,6 +111,10 @@ fun PlayerCustomizationScreen(
         )
     }
     var sliderStyle by remember { mutableStateOf(prefs.getPlayerSliderStyle()) }
+    var backgroundStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
+    var sourceBadgeStyle by remember { mutableStateOf(prefs.getTrackSourceBadgeStyle()) }
+    var showBackgroundStyleDialog by remember { mutableStateOf(false) }
+    var showSourceBadgeStyleDialog by remember { mutableStateOf(false) }
     var showRemainingTime by remember { mutableStateOf(prefs.getShowRemainingTime()) }
 
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
@@ -132,8 +138,6 @@ fun PlayerCustomizationScreen(
 
     var notifExtraButton by remember { mutableStateOf(prefs.getNotificationExtraButton()) }
     var showNotifExtraButtonDialog by remember { mutableStateOf(false) }
-    var miniPlayerSwipeAction by remember { mutableStateOf(prefs.getMiniPlayerSwipeAction()) }
-    var showMiniPlayerSwipeActionDialog by remember { mutableStateOf(false) }
 
     var previewSliderProgress by remember { mutableFloatStateOf(0.42f) }
     var isPreviewPlaying by remember { mutableStateOf(true) }
@@ -185,7 +189,6 @@ fun PlayerCustomizationScreen(
             "pref_animated_covers_fade_ui" to 3,
             "pref_animated_artist_profiles" to 3,
             "notif_player_extra_button" to 5,
-            "mini_player_swipe_action" to 6
         )
     )
 
@@ -554,6 +557,33 @@ fun PlayerCustomizationScreen(
                     add { shape ->
                         SettingsItem(
                             shape = shape,
+                            title = stringResource(R.string.pref_player_style),
+                            subtitle = stringResource(
+                                when (backgroundStyle) {
+                                    PlayerBackgroundStyle.THEME -> R.string.style_theme
+                                    PlayerBackgroundStyle.GRADIENT -> R.string.style_gradient
+                                    PlayerBackgroundStyle.BLUR -> R.string.style_blur
+                                    PlayerBackgroundStyle.APPLE_MUSIC -> R.string.style_apple_music
+                                }
+                            ),
+                            icon = Icons.Rounded.Style,
+                            onClick = { showBackgroundStyleDialog = true },
+                            highlightKey = "pref_player_style"
+                        )
+                    }
+                    add { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.pref_track_source_badge_title),
+                            subtitle = stringResource(sourceBadgeStyle.titleRes),
+                            icon = Icons.Rounded.Badge,
+                            onClick = { showSourceBadgeStyleDialog = true },
+                            highlightKey = "pref_track_source_badge"
+                        )
+                    }
+                    add { shape ->
+                        SettingsItem(
+                            shape = shape,
                             title = stringResource(R.string.pref_animated_covers),
                             subtitle = stringResource(R.string.pref_animated_covers_desc),
                             icon = Icons.Rounded.Movie,
@@ -758,29 +788,6 @@ fun PlayerCustomizationScreen(
                 )
             }
 
-            item(key = "mini_player_swipe_settings") {
-                val miniItems = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit> { shape ->
-                    SettingsItem(
-                        shape = shape,
-                        title = stringResource(R.string.pref_mini_player_swipe_action_title),
-                        subtitle = when (miniPlayerSwipeAction) {
-                            com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK ->
-                                stringResource(R.string.pref_mini_player_swipe_action_change_track)
-                            com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS ->
-                                stringResource(R.string.pref_mini_player_swipe_action_dismiss)
-                        },
-                        trailingText = stringResource(R.string.player_slot_change),
-                        onClick = { showMiniPlayerSwipeActionDialog = true },
-                        highlightKey = "mini_player_swipe_action"
-                    )
-                }
-
-                SettingsGroup(
-                    title = stringResource(R.string.pref_mini_player_title),
-                    items = miniItems
-                )
-            }
-
             // 6. Track Menu Sheet Tiles (Draggable M3 Grouped Settings)
             item(key = "menu_tiles_header") {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -950,6 +957,87 @@ fun PlayerCustomizationScreen(
         )
     }
 
+    if (showBackgroundStyleDialog) {
+        val styles = PlayerBackgroundStyle.entries
+        AlertDialog(
+            onDismissRequest = { showBackgroundStyleDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_player_style),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    styles.forEachIndexed { idx, style ->
+                        val isSelected = backgroundStyle == style
+                        SettingsItem(
+                            shape = getSettingsShape(styles.size, idx),
+                            title = stringResource(
+                                when (style) {
+                                    PlayerBackgroundStyle.THEME -> R.string.style_theme
+                                    PlayerBackgroundStyle.GRADIENT -> R.string.style_gradient
+                                    PlayerBackgroundStyle.BLUR -> R.string.style_blur
+                                    PlayerBackgroundStyle.APPLE_MUSIC -> R.string.style_apple_music
+                                }
+                            ),
+                            trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
+                            onClick = {
+                                backgroundStyle = style
+                                prefs.setPlayerStyle(style)
+                                showBackgroundStyleDialog = false
+                                onUpdated()
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showBackgroundStyleDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showSourceBadgeStyleDialog) {
+        val badgeStyles = TrackSourceBadgeStyle.entries
+        AlertDialog(
+            onDismissRequest = { showSourceBadgeStyleDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_track_source_badge_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    badgeStyles.forEachIndexed { idx, style ->
+                        val isSelected = sourceBadgeStyle == style
+                        SettingsItem(
+                            shape = getSettingsShape(badgeStyles.size, idx),
+                            title = stringResource(style.titleRes),
+                            trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
+                            onClick = {
+                                sourceBadgeStyle = style
+                                prefs.setTrackSourceBadgeStyle(style)
+                                showSourceBadgeStyleDialog = false
+                                onUpdated()
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSourceBadgeStyleDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
     if (showWaveformColorDialog) {
         WaveformColorDialog(
             currentMode = waveformColorMode,
@@ -1018,89 +1106,6 @@ fun PlayerCustomizationScreen(
         )
     }
 
-    if (showMiniPlayerSwipeActionDialog) {
-        AlertDialog(
-            onDismissRequest = { showMiniPlayerSwipeActionDialog = false },
-            title = {
-                Text(
-                    text = stringResource(R.string.pref_mini_player_swipe_action_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK)
-                                miniPlayerSwipeAction = com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK
-                                showMiniPlayerSwipeActionDialog = false
-                                onUpdated()
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK,
-                            onClick = null
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS)
-                                miniPlayerSwipeAction = com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS
-                                showMiniPlayerSwipeActionDialog = false
-                                onUpdated()
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS,
-                            onClick = null
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showMiniPlayerSwipeActionDialog = false }) {
-                    Text(stringResource(R.string.btn_cancel))
-                }
-            }
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

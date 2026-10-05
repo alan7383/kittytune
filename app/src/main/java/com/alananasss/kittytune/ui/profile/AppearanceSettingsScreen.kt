@@ -117,6 +117,8 @@ fun AppearanceSettingsScreen(
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showCategoryLayoutDialog by remember { mutableStateOf(false) }
+    var trackRemovalMethod by remember { mutableStateOf(prefs.getTrackRemovalMethod()) }
+    var showTrackRemovalDialog by remember { mutableStateOf(false) }
 
     val look = remember(themeMode, pureBlack) {
         when {
@@ -271,6 +273,58 @@ fun AppearanceSettingsScreen(
         )
     }
 
+    if (showTrackRemovalDialog) {
+        AlertDialog(
+            onDismissRequest = { showTrackRemovalDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_track_removal_title),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TrackRemovalMethod.entries.forEach { method ->
+                        val isSelected = trackRemovalMethod == method
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    trackRemovalMethod = method
+                                    prefs.setTrackRemovalMethod(method)
+                                    showTrackRemovalDialog = false
+                                }
+                                .padding(vertical = 10.dp, horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(
+                                    when (method) {
+                                        TrackRemovalMethod.SWIPE_AND_MENU -> R.string.track_removal_swipe_and_menu
+                                        TrackRemovalMethod.MENU_ONLY -> R.string.track_removal_menu_only
+                                    }
+                                ),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTrackRemovalDialog = false }) {
+                    Text(stringResource(R.string.btn_close))
+                }
+            }
+        )
+    }
+
     val listState = rememberLazyListState()
 
     AutoScrollToHighlightedItem(
@@ -288,6 +342,7 @@ fun AppearanceSettingsScreen(
             "pref_lyrics_under_cover" to 3,
             "pref_explorer_grid" to 4,
             "pref_library_category_layout" to 4,
+            "pref_track_removal" to 4,
             "pref_achievement_popups" to 4,
             "pref_home_listening_stats" to 5,
             "pref_home_your_mix" to 5
@@ -585,6 +640,22 @@ fun AppearanceSettingsScreen(
                                 icon = Icons.Rounded.FilterList,
                                 onClick = { showCategoryLayoutDialog = true },
                                 highlightKey = "pref_library_category_layout"
+                            )
+                        },
+
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.pref_track_removal_title),
+                                subtitle = stringResource(
+                                    when (trackRemovalMethod) {
+                                        TrackRemovalMethod.SWIPE_AND_MENU -> R.string.track_removal_swipe_and_menu
+                                        TrackRemovalMethod.MENU_ONLY -> R.string.track_removal_menu_only
+                                    }
+                                ),
+                                icon = Icons.Rounded.DeleteSweep,
+                                onClick = { showTrackRemovalDialog = true },
+                                highlightKey = "pref_track_removal"
                             )
                         },
 

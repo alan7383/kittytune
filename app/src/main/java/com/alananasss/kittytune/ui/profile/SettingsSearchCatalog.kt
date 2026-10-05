@@ -47,6 +47,8 @@ internal fun rememberSettingsSearchCatalog(
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
         var fullPlayerSource = prefs.getFullPlayerSourceIndicatorEnabled()
+        var backgroundStyle = prefs.getPlayerStyle()
+        var sourceBadgeStyle = prefs.getTrackSourceBadgeStyle()
         var verticalVolume = prefs.getVerticalVolumeSlider()
         var crossfade = prefs.getCrossfadeEnabled()
         var automix = prefs.getAutomixEnabled()
@@ -240,6 +242,33 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_player_style,
+                subtitleRes = when (backgroundStyle) {
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.THEME -> R.string.style_theme
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.GRADIENT -> R.string.style_gradient
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.BLUR -> R.string.style_blur
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.APPLE_MUSIC -> R.string.style_apple_music
+                },
+                categoryName = catInterface,
+                icon = Icons.Rounded.Style,
+                route = "player_design_settings",
+                highlightKey = "pref_player_style",
+                keywords = listOf("background", "style", "theme", "gradient", "blur", "fond", "arrière-plan")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_track_source_badge_title,
+                subtitleRes = R.string.pref_track_source_badge_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Badge,
+                route = "player_design_settings",
+                highlightKey = "pref_track_source_badge",
+                keywords = listOf("source", "badge", "provider", "icon", "logo", "plateforme")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_volume_slider_title,
                 subtitleRes = R.string.volume_vertical,
                 categoryName = catInterface,
@@ -383,6 +412,17 @@ internal fun rememberSettingsSearchCatalog(
                 route = "appearance_settings",
                 highlightKey = "pref_library_category_layout",
                 keywordsRes = R.string.keywords_library_layout
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_track_removal_title,
+                subtitleRes = R.string.pref_track_removal_subtitle,
+                categoryName = catInterface,
+                icon = Icons.Rounded.DeleteSweep,
+                route = "appearance_settings",
+                highlightKey = "pref_track_removal",
+                keywords = listOf("remove", "delete", "supprimer", "retirer", "swipe", "glisser", "playlist", "track", "titre", "menu")
             ),
             createSearchEntry(
                 context = context,
