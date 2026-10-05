@@ -185,9 +185,6 @@ fun PlayerCustomizationScreen(
             "player_design_page" to 0,
             "pref_slider_style" to 1,
             "pref_show_remaining_time" to 2,
-            "pref_animated_covers" to 3,
-            "pref_animated_covers_fade_ui" to 3,
-            "pref_animated_artist_profiles" to 3,
             "notif_player_extra_button" to 5,
             "pref_player_style" to 4,
             "pref_track_source_badge" to 4,
@@ -582,58 +579,6 @@ fun PlayerCustomizationScreen(
                             icon = Icons.Rounded.Badge,
                             onClick = { showSourceBadgeStyleDialog = true },
                             highlightKey = "pref_track_source_badge"
-                        )
-                    }
-                    add { shape ->
-                        SettingsItem(
-                            shape = shape,
-                            title = stringResource(R.string.pref_animated_covers),
-                            subtitle = stringResource(R.string.pref_animated_covers_desc),
-                            icon = Icons.Rounded.Movie,
-                            hasSwitch = true,
-                            switchState = animatedCovers,
-                            onSwitchChange = {
-                                animatedCovers = it
-                                prefs.setAnimatedCoversEnabled(it)
-                                onUpdated()
-                            },
-                            highlightKey = "pref_animated_covers"
-                        )
-                    }
-
-                    if (animatedCovers) {
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_animated_covers_fade_ui),
-                                subtitle = stringResource(R.string.pref_animated_covers_fade_ui_desc),
-                                icon = Icons.Rounded.BlurLinear,
-                                hasSwitch = true,
-                                switchState = animatedCoversFadeUi,
-                                onSwitchChange = {
-                                    animatedCoversFadeUi = it
-                                    prefs.setAnimatedCoversFadeUiEnabled(it)
-                                    onUpdated()
-                                },
-                                highlightKey = "pref_animated_covers_fade_ui"
-                            )
-                        }
-                    }
-
-                    add { shape ->
-                        SettingsItem(
-                            shape = shape,
-                            title = stringResource(R.string.pref_animated_artist_profiles),
-                            subtitle = stringResource(R.string.pref_animated_artist_profiles_desc),
-                            icon = Icons.Rounded.AccountBox,
-                            hasSwitch = true,
-                            switchState = animatedArtistProfiles,
-                            onSwitchChange = {
-                                animatedArtistProfiles = it
-                                prefs.setAnimatedArtistProfilesEnabled(it)
-                                onUpdated()
-                            },
-                            highlightKey = "pref_animated_artist_profiles"
                         )
                     }
 
