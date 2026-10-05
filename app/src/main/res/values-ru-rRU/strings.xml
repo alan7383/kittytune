@@ -3003,4 +3003,29 @@
     <string name="pref_full_player_source_title">Audio source indicator</string>
     <string name="pref_full_player_source_desc">Display platform logo (YouTube, SoundCloud, etc.) for the playing track</string>
     <string name="audio_source_tooltip">Audio from %s</string>
+    <!-- Settings subpage folders -->
+    <string name="settings_cat_misc_sub">General, content filter, Discord and about</string>
+    <string name="settings_audio_playback_sub">Autoplay, queue, resumption and speed</string>
+    <string name="settings_audio_quality_title">Sound &amp; Output</string>
+    <string name="settings_audio_quality_sub">Audio quality, device and volume normalization</string>
+    <string name="settings_audio_transitions_title">Transitions &amp; Mix</string>
+    <string name="settings_audio_transitions_sub">Crossfade and DJ automix</string>
+    <string name="settings_audio_sleep_sub">Fade out duration and sleep options</string>
+    <string name="sources_services_sub">SoundCloud, Qobuz, TIDAL, Deezer, VK</string>
+    <string name="sources_order_sub">Provider priority order and music import</string>
+    <string name="lyrics_sources_title">Lyrics Providers</string>
+    <string name="lyrics_sources_sub">Order and enabled lyrics sources</string>
+    <string name="storage_cache_sub">Audio and image cache limits and cleanup</string>
+    <string name="storage_downloads_sub">Downloaded tracks and storage location</string>
+    <string name="storage_local_files_sub">Scanned folders and local library</string>
+    <string name="storage_backup_sub">Export and import app settings and data</string>
+    <string name="sync_paired_devices_title">Paired Devices</string>
+    <string name="sync_paired_devices_sub">Sync status, connect and manage devices</string>
+    <string name="sync_options_title">Sync Data</string>
+    <string name="sync_options_sub">Choose what to sync between devices</string>
+    <string name="sync_advanced_title">Advanced Sync</string>
+    <string name="sync_advanced_sub">Connection details, port and troubleshooting</string>
+    <string name="network_proxy_sub">HTTP and SOCKS5 proxy configuration</string>
+    <string name="misc_general_sub">Language, startup screen and updates</string>
+    <string name="misc_discord_sub">Show what you are listening to on Discord</string>
 </resources>
