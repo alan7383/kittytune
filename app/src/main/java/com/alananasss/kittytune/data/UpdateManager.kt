@@ -442,6 +442,13 @@ object UpdateManager {
         return core.split(".").map { it.toIntOrNull() ?: 0 } to pre
     }
 
+    private fun sameNumericCore(a: List<Int>, b: List<Int>): Boolean {
+        for (i in 0 until max(a.size, b.size)) {
+            if (a.getOrElse(i) { 0 } != b.getOrElse(i) { 0 }) return false
+        }
+        return true
+    }
+
     private fun comparePreRelease(a: String, b: String): Int {
         val aParts = a.split(".")
         val bParts = b.split(".")
@@ -471,10 +478,45 @@ object UpdateManager {
         } catch (_: Exception) { false }
         if (!betaEnabled) {
             val latest = GithubClient.api.getLatestRelease()
-            return latest.takeIf { isNewerVersion(currentVersion, it.tagName.replace("v", "")) }
+            val remote = latest.tagName.replace("v", "")
+            // Never nag a beta install with the same-core stable: build-wise it
+            // is older (downgrade), even though semver ranks it higher.
+            if (isNewerVersion(currentVersion, remote) && !isSameCoreStableOverBeta(currentVersion, remote)) {
+                return latest
+            }
+            return null
         }
         val releases = GithubClient.api.listReleases()
-        // GitHub returns newest first: first newer release wins.
-        return releases.firstOrNull { isNewerVersion(currentVersion, it.tagName.replace("v", "")) }
+        // GitHub returns newest first: first matching release wins.
+        return releases.firstOrNull { rel ->
+            val remote = rel.tagName.replace("v", "")
+            if (isNewerVersion(currentVersion, remote)) {
+                !isSameCoreStableOverBeta(currentVersion, remote)
+            } else {
+                // Same-core beta over same-core stable: the beta program itself
+                // (betas are tagged v<base>-beta.N from the current versionName).
+                betaEnabled && isSameCoreBetaOverStable(currentVersion, remote)
+            }
+        }
+    }
+
+    /**
+     * Current is a prerelease (2.68.0-beta.1) and remote is the stable of the
+     * same core (2.68.0): offering it would be a build downgrade.
+     */
+    internal fun isSameCoreStableOverBeta(current: String, remote: String): Boolean {
+        val (cNums, cPre) = splitVersion(current)
+        val (rNums, rPre) = splitVersion(remote)
+        return cPre != null && rPre == null && sameNumericCore(cNums, rNums)
+    }
+
+    /**
+     * Current is stable (2.68.0) and remote is a beta of the same core
+     * (2.68.0-beta.2): the beta program for this version line.
+     */
+    internal fun isSameCoreBetaOverStable(current: String, remote: String): Boolean {
+        val (cNums, cPre) = splitVersion(current)
+        val (rNums, rPre) = splitVersion(remote)
+        return cPre == null && rPre != null && sameNumericCore(cNums, rNums)
     }
 }
