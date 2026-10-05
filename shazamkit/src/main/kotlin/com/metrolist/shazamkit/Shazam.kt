@@ -28,6 +28,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import javax.net.SocketFactory
 import kotlin.random.Random
 
 /**
@@ -51,13 +52,40 @@ object Shazam {
     private val resultCache = ConcurrentHashMap<String, CachedResult>()
 
     // HTTP Client Configuration
-    private val client by lazy {
-        HttpClient(OkHttp) {
+    /**
+     * Optional plain [SocketFactory] (e.g. the app's DPI-bypass factory). The client is
+     * (re)created with it, so set it once at startup; dynamic factories need no further updates.
+     */
+    @Volatile
+    var socketFactory: SocketFactory? = null
+        set(value) {
+            field = value
+            // The client below is lazy: setting before first recognition takes effect directly.
+            // If recognition already ran, rebuild so the new factory applies.
+            if (clientInitialized) {
+                client.close()
+                client = createClient()
+            }
+        }
+
+    @Volatile
+    private var clientInitialized = false
+
+    @Volatile
+    private var client = createClient()
+        get() {
+            clientInitialized = true
+            return field
+        }
+
+    private fun createClient(): HttpClient {
+        return HttpClient(OkHttp) {
             engine {
                 config {
                     connectTimeout(8, TimeUnit.SECONDS)
                     readTimeout(8, TimeUnit.SECONDS)
                     writeTimeout(8, TimeUnit.SECONDS)
+                    socketFactory?.let { socketFactory(it) }
                 }
             }
             install(ContentNegotiation) {

@@ -10,6 +10,7 @@ import org.json.JSONObject
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 /**
  * Fetches Apple Music artist motion artwork (HLS / MP4 canvas) for the artist profile screen.
@@ -38,7 +39,7 @@ object AppleMusicArtistBackgroundProvider {
     private const val CACHE_TTL_MS = 24 * 60 * 60 * 1000L // 24 hours
     private const val NEGATIVE_CACHE_TTL_MS = 10 * 60 * 1000L // 10 minutes
 
-    private val http = OkHttpClient.Builder()
+    private val http = ZapretManager.newBuilder()
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .build()

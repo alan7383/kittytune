@@ -16,6 +16,7 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 data class DeezerSearchResult(
     val tracks: List<Track> = emptyList(),
@@ -27,7 +28,7 @@ data class DeezerSearchResult(
 object DeezerSearchRepository {
     private const val API_BASE = "https://api.deezer.com"
 
-    private val client = OkHttpClient.Builder()
+    private val client = ZapretManager.newBuilder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
         .build()

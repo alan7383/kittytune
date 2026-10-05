@@ -926,6 +926,17 @@ internal fun rememberSettingsSearchCatalog(
                 keywordsRes = R.string.keywords_proxy,
                 keywords = listOf("ip", "port", "socks", "http", "dns", "vpn")
             ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.zapret_title,
+                subtitleRes = R.string.network_zapret_sub,
+                categoryName = catNetwork,
+                icon = Icons.Rounded.Security,
+                route = "zapret_settings",
+                keywordsRes = R.string.keywords_zapret,
+                keywords = listOf("dpi", "bypass", "desync", "sni", "censorship", "запрет", "обход")
+            ),
 
             // MISC
             createSearchEntry(

@@ -15,6 +15,7 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 data class QobuzSearchResult(
     val tracks: List<Track> = emptyList(),
@@ -26,7 +27,7 @@ data class QobuzSearchResult(
 object QobuzSearchRepository {
     private const val DEFAULT_BASE = "https://qobuz-dll.vercel.app"
 
-    private val client = OkHttpClient.Builder()
+    private val client = ZapretManager.newBuilder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(25, TimeUnit.SECONDS)
         .build()

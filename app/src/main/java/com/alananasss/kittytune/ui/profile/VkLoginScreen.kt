@@ -115,7 +115,7 @@ fun VkLoginScreen(
                                                             .url(url)
                                                             .header("User-Agent", "VKAndroidApp/9.2.0-24200 (Android 11; SDK 30; arm64-v8a; Xiaomi M2003J15SC; ru; 2340x1080)")
                                                             .build()
-                                                        val client = okhttp3.OkHttpClient()
+                                                        val client = com.alananasss.kittytune.data.zapret.ZapretManager.newClient()
                                                         client.newCall(req).execute().use { resp ->
                                                             if (resp.isSuccessful) {
                                                                 val bodyStr = resp.body?.string() ?: ""

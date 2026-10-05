@@ -40,6 +40,23 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
 
         com.alananasss.kittytune.data.network.ProxyManager.init(this)
 
+        // In-app DPI bypass (zapret): no folder, no VPN, no proxy. Installs the fragmenting
+        // socket factories and restores the bypass domain list into the dynamic policy.
+        com.alananasss.kittytune.data.zapret.ZapretManager.init(this)
+        com.zionhuang.innertube.YouTube.socketFactory =
+            com.alananasss.kittytune.data.zapret.ZapretManager.bypassSocketFactory()
+        // Recognition (Shazam) and KuGou lyrics run on their own Ktor engines in library
+        // modules: same dynamic factory, set once, follows toggles without rebuilds.
+        com.metrolist.shazamkit.Shazam.socketFactory =
+            com.alananasss.kittytune.data.zapret.ZapretManager.bypassSocketFactory()
+        com.zionhuang.kugou.KuGou.socketFactory =
+            com.alananasss.kittytune.data.zapret.ZapretManager.bypassSocketFactory()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching {
+                com.alananasss.kittytune.data.zapret.ZapretManager.autoConfigureOnce(this@KittyTuneApp)
+            }
+        }
+
         // Paired once, in step from then on. Costs nothing until something is paired: no port is opened
         // and no timer runs on an install that has never paired (issue #33).
         if (!com.alananasss.kittytune.data.sync.SyncPeers.isEmpty()) {

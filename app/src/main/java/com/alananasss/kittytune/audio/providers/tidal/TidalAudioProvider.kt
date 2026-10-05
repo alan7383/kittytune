@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import android.util.Log
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 
 enum class TidalAudioQuality {
@@ -286,8 +287,7 @@ object TidalAudioProvider {
     )
 
     private val client =
-        OkHttpClient
-            .Builder()
+        ZapretManager.newBuilder()
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .callTimeout(25, TimeUnit.SECONDS)

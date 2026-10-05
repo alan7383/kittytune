@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit
 import javax.crypto.Cipher
 import javax.crypto.spec.OAEPParameterSpec
 import javax.crypto.spec.PSource
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 sealed interface RemoteAuthState {
     object Idle : RemoteAuthState
@@ -85,7 +86,7 @@ class DiscordRemoteAuthManager {
     private var rsaKeyPair: KeyPair? = null
 
     private val httpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        ZapretManager.newBuilder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)

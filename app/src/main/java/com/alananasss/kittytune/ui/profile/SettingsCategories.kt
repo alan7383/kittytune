@@ -15,6 +15,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PlayCircle
+import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Vibration
@@ -116,8 +117,8 @@ private fun SettingsSubPage.toEntry(): SettingsEntry =
 
 /**
  * Root sections in the old (pre-desktop-rework) style: every category lists
- * its pages directly, several rows per card. Proxy joins Misc so no section
- * holds a single row duplicating its own header.
+ * its pages directly, several rows per card. Network holds proxy and zapret,
+ * exactly like the desktop NETWORK category folder.
  */
 internal fun rootGroups(): List<SettingsRootGroup> = listOf(
     SettingsRootGroup(
@@ -141,13 +142,25 @@ internal fun rootGroups(): List<SettingsRootGroup> = listOf(
         SettingsSubPage.syncPages.map { it.toEntry() }
     ),
     SettingsRootGroup(
-        SettingsCategory.MISC.titleRes,
-        SettingsSubPage.miscPages.map { it.toEntry() } + SettingsEntry(
-            R.string.pref_proxy_title,
-            R.string.network_proxy_sub,
-            Icons.Rounded.Dns,
-            "proxy_settings"
+        R.string.settings_cat_network,
+        listOf(
+            SettingsEntry(
+                R.string.pref_proxy_title,
+                R.string.network_proxy_sub,
+                Icons.Rounded.Dns,
+                "proxy_settings"
+            ),
+            SettingsEntry(
+                R.string.zapret_title,
+                R.string.network_zapret_sub,
+                Icons.Rounded.Security,
+                "zapret_settings"
+            )
         )
+    ),
+    SettingsRootGroup(
+        SettingsCategory.MISC.titleRes,
+        SettingsSubPage.miscPages.map { it.toEntry() }
     ),
 )
 
@@ -199,6 +212,12 @@ internal fun SettingsCategory.entriesFor(): List<SettingsEntry> = when (this) {
             R.string.network_proxy_sub,
             Icons.Rounded.Dns,
             "proxy_settings"
+        ),
+        SettingsEntry(
+            R.string.zapret_title,
+            R.string.network_zapret_sub,
+            Icons.Rounded.Security,
+            "zapret_settings"
         )
     )
     SettingsCategory.MISC -> listOf(
