@@ -233,13 +233,15 @@ object ProxyManager {
         // In-app DPI bypass (zapret): installed unconditionally, the policy inside is a dynamic
         // no-op until the user enables it, so toggling needs no client rebuild.
         com.alananasss.kittytune.data.zapret.ZapretManager.applyTo(builder)
-        val proxy = activeJavaProxy
-        if (proxy != null) {
-            builder.proxy(proxy)
-            activeProxyAuthenticator?.let { builder.proxyAuthenticator(it) }
-        } else {
-            builder.proxySelector(appProxySelector)
-        }
+        // Never bake `builder.proxy(...)` here. A baked proxy is a static snapshot: every client
+        // built while the proxy was enabled — Retrofit's cached client, SocialProofRepository's
+        // cached API, ViewModels' `api` fields, lyrics lazy clients — keeps dialing the dead proxy
+        // after it is disabled (ECONNREFUSED on 127.0.0.1:1080) until the process dies. The app
+        // selector below reads the @Volatile proxy state (zapret first, then the user proxy) on
+        // every new connection, so toggling applies to already-built clients immediately. SOCKS
+        // auth still works via the global `Authenticator`; HTTP 407 via the builder authenticator.
+        builder.proxySelector(appProxySelector)
+        activeProxyAuthenticator?.let { builder.proxyAuthenticator(it) }
         builder.addInterceptor { chain ->
             val request = chain.request()
             if (request.header("User-Agent").isNullOrBlank()) {
