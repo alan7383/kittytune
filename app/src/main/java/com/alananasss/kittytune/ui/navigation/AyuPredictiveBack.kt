@@ -728,13 +728,28 @@ internal val LocalAyuBackState = androidx.compose.runtime.compositionLocalOf { A
  * exactly one handler, so a second handler would starve `NavHost`. Instead we observe the dispatcher
  * state that handler feeds — precisely the `BackEvent` data AyuGram gets in
  * `onBackStarted(touchX, touchY)` / `onBackProgress(progress, touchY)` — plus the back stack itself.
+ *
+ * @param gesturesEnabled must be false while an overlay that consumes the back gesture itself is
+ * open (expanded player, lyrics sheet): the overlay's own `PredictiveBackHandler` drives the
+ * dispatcher's `transitionState` too, and without this gate the NavHost screen *behind* the
+ * overlay would play a ghost predictive animation for a pop that never happens.
  */
 @Composable
-internal fun AyuBackGestureBridge(navController: NavHostController, state: AyuBackState) {
+internal fun AyuBackGestureBridge(
+    navController: NavHostController,
+    state: AyuBackState,
+    gesturesEnabled: Boolean = true
+) {
     val dispatcher = LocalNavigationEventDispatcherOwner.current?.navigationEventDispatcher
 
-    LaunchedEffect(dispatcher) {
+    LaunchedEffect(dispatcher, gesturesEnabled) {
         dispatcher?.transitionState?.collect { transitionState ->
+            if (!gesturesEnabled) {
+                // The gesture belongs to the overlay, not to NavHost: drop it. Recover a
+                // half-started gesture gracefully instead of leaving it stuck.
+                if (state.phase == AyuBackPhase.Gesture) state.onCancel()
+                return@collect
+            }
             val gesture = transitionState as? NavigationEventTransitionState.InProgress
             if (gesture != null && gesture.direction == NavigationEventTransitionState.TRANSITIONING_BACK) {
                 val event = gesture.latestEvent
