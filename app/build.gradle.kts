@@ -31,7 +31,7 @@ extensions.configure<ApplicationExtension> {
         // data survives. The offset exceeds all legacy sequential codes (54)
         // and early beta-scheme codes, making this a one-way jump.
         versionCode = (System.currentTimeMillis() / 60000).toInt() + 10_000_000
-        versionName = "2.68.0"
+        versionName = "2.69.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
