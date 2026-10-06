@@ -700,7 +700,14 @@ fun MainScreen(
                     // `PredictiveBackAnimationHelper` for both of its containers; this plays the
                     // same role for the two Compose screens that NavHost animates during a pop.
                     val ayuBackState = remember(density.density) { AyuBackState(density.density) }
-                    AyuBackGestureBridge(navController, ayuBackState)
+                    // While the expanded player or the lyrics sheet is open, the back gesture is
+                    // consumed by their own handlers (player dismiss / sheet close): NavHost never
+                    // sees it, so the bridge must not animate the screen behind them.
+                    AyuBackGestureBridge(
+                        navController,
+                        ayuBackState,
+                        gesturesEnabled = !playerViewModel.isPlayerExpanded && !playerViewModel.showLyricsSheet
+                    )
 
                     androidx.compose.runtime.CompositionLocalProvider(
                         LocalAyuBackState provides ayuBackState
