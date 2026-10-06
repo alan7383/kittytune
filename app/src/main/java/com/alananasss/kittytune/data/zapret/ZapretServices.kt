@@ -33,7 +33,7 @@ object ZapretServices {
                 "https://graph.soundcloud.com/graphql",
                 "https://api-auth.soundcloud.com/",
             ),
-            listOf("soundcloud.com", "sndcdn.com", "soundcloud.cloud"),
+            listOf("soundcloud.com", "sndcdn.com", "sndcdn.net", "soundcloud.cloud", "audiomack.com"),
         ),
         ZapretService(
             "youtube", "YouTube Music",
@@ -44,7 +44,16 @@ object ZapretServices {
                 // The playback edge: throttled on its own while the front page loads fine.
                 "https://www.googlevideo.com/",
             ),
-            listOf("youtube.com", "googlevideo.com", "ytimg.com", "ggpht.com", "youtubei.googleapis.com", "kavin.rocks"),
+            listOf(
+                "youtube.com",
+                "googlevideo.com",
+                "ytimg.com",
+                "ggpht.com",
+                "googleusercontent.com",
+                "youtubei.googleapis.com",
+                "googleapis.com",
+                "kavin.rocks"
+            ),
         ),
         ZapretService(
             "spotify", "Spotify",
@@ -61,7 +70,7 @@ object ZapretServices {
         ZapretService(
             "apple", "Apple Music",
             listOf("https://music.apple.com/", "https://amp-api.music.apple.com/v1/catalog/us/search?term=a", "https://mzstatic.com/"),
-            listOf("music.apple.com", "amp-api.music.apple.com", "mzstatic.com"),
+            listOf("music.apple.com", "amp-api.music.apple.com", "mzstatic.com", "apple.com"),
         ),
         ZapretService("deezer", "Deezer", listOf("https://api.deezer.com/chart", "https://www.deezer.com/"), listOf("deezer.com", "dzcdn.net")),
         ZapretService("tidal", "TIDAL", listOf("https://tidal.com/", "https://api.tidal.com/v1/", "https://auth.tidal.com/v1/oauth2/token"), listOf("tidal.com", "tidalhifi.com")),
@@ -104,4 +113,8 @@ object ZapretServices {
             listOf("translate.googleapis.com"),
         ),
     )
+
+    val ALL_DOMAINS: Set<String> by lazy {
+        ALL.flatMap { it.domains }.map { it.lowercase().trim().trimEnd('.') }.filter { it.isNotBlank() }.toSet()
+    }
 }

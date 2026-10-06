@@ -1,6 +1,10 @@
 package com.alananasss.kittytune.data.zapret
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.util.Log
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.zapret.byedpi.ByeDpiProxy
@@ -18,6 +22,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.InetSocketAddress
 import java.net.Proxy
+import java.net.ServerSocket
 import java.util.concurrent.TimeUnit
 import javax.net.SocketFactory
 
@@ -29,6 +34,7 @@ data class ZapretState(
     val enabled: Boolean = false,
     val strategy: ZapretStrategy = ZapretStrategy.SPLIT2,
     val domains: Set<String> = emptySet(),
+    val isPausedForVpn: Boolean = false,
 )
 
 /**
@@ -38,10 +44,13 @@ data class ZapretState(
  * Only connections to covered domains ([ZapretHostList]) are routed through the proxy by
  * [ProxyManager][com.alananasss.kittytune.data.network.ProxyManager], where TLS records
  * and TCP packets are desynced to defeat DPI boxes without breaking Conscrypt / BoringSSL.
+ *
+ * Automatically detects external active VPN connections (Telegram-style) and suspends
+ * the local proxy to avoid port conflicts (e.g. port 10808) and unnecessary double proxying.
  */
 object ZapretManager {
     private const val TAG = "ZapretManager"
-    const val DEFAULT_PORT = 10808
+    const val DEFAULT_PORT = 10898
 
     private val proxy = ByeDpiProxy()
 
@@ -50,6 +59,9 @@ object ZapretManager {
 
     @Volatile
     private var prefs: PlayerPreferences? = null
+
+    @Volatile
+    private var vpnCallback: ConnectivityManager.NetworkCallback? = null
 
     /**
      * Direct connections only: the check probes whether the network lets a service through directly,
@@ -65,37 +77,126 @@ object ZapretManager {
             .build()
     }
 
+    private fun findAvailablePort(preferredPort: Int = DEFAULT_PORT): Int {
+        try {
+            ServerSocket(preferredPort).use { return it.localPort }
+        } catch (_: Exception) {}
+        try {
+            ServerSocket(0).use { return it.localPort }
+        } catch (_: Exception) {}
+        return preferredPort
+    }
+
+    fun isVpnConnected(context: Context): Boolean {
+        return try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+            val active = cm.activeNetwork
+            if (active != null && cm.getNetworkCapabilities(active)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true) {
+                return true
+            }
+            cm.allNetworks.any { network ->
+                cm.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to check VPN connectivity", e)
+            false
+        }
+    }
+
+    private fun registerVpnMonitor(context: Context) {
+        if (vpnCallback != null) return
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+        try {
+            val request = NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
+                .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+                .build()
+
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    Log.i(TAG, "VPN network available: $network")
+                    onVpnStatusChanged(isVpn = true)
+                }
+
+                override fun onLost(network: Network) {
+                    Log.i(TAG, "VPN network lost: $network")
+                    val stillVpn = isVpnConnected(context)
+                    if (!stillVpn) {
+                        onVpnStatusChanged(isVpn = false)
+                    }
+                }
+            }
+            vpnCallback = callback
+            cm.registerNetworkCallback(request, callback)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to register VPN network callback", e)
+        }
+    }
+
+    private fun onVpnStatusChanged(isVpn: Boolean) {
+        val current = _state.value
+        if (current.isPausedForVpn == isVpn) return
+        Log.i(TAG, "VPN status changed: isVpn=$isVpn (zapretEnabled=${current.enabled})")
+        _state.value = current.copy(isPausedForVpn = isVpn)
+        CoroutineScope(Dispatchers.IO).launch {
+            if (isVpn) {
+                // VPN is active: stop ByeDPI proxy so port is freed and VPN tunnel handles everything
+                proxy.stop()
+            } else {
+                // VPN was disconnected: resume ByeDPI proxy if Zapret was enabled
+                if (_state.value.enabled) {
+                    startProxyInternal(_state.value.strategy)
+                }
+            }
+        }
+    }
+
     fun init(context: Context) {
-        val p = PlayerPreferences(context.applicationContext)
+        val appContext = context.applicationContext
+        val p = PlayerPreferences(appContext)
         prefs = p
         val isEnabled = p.getZapretEnabled()
         val strategy = ZapretStrategy.fromId(p.getZapretStrategy())
-        val domains = p.getZapretDomains()
+        val savedDomains = p.getZapretDomains()
+
+        // If enabled and domains is empty, default to all service domains
+        val domains = if (isEnabled && savedDomains.isEmpty()) {
+            val all = ZapretServices.ALL_DOMAINS
+            p.setZapretDomains(all)
+            all
+        } else {
+            savedDomains
+        }
+
+        val vpnActive = isVpnConnected(appContext)
 
         _state.value = ZapretState(
             enabled = isEnabled,
             strategy = strategy,
             domains = domains,
+            isPausedForVpn = vpnActive,
         )
 
-        if (isEnabled) {
+        registerVpnMonitor(appContext)
+
+        if (isEnabled && !vpnActive) {
             CoroutineScope(Dispatchers.IO).launch {
                 startProxyInternal(strategy)
             }
         }
-        Log.i(TAG, "Initialized (enabled=$isEnabled, domains=${domains.size})")
+        Log.i(TAG, "Initialized (enabled=$isEnabled, vpnActive=$vpnActive, domains=${domains.size})")
     }
 
     fun getLocalProxy(): Proxy? {
         val current = _state.value
-        if (!current.enabled || !proxy.isRunning) return null
+        if (!current.enabled || current.isPausedForVpn || !proxy.isRunning) return null
         val port = proxy.boundPort.takeIf { it > 0 } ?: DEFAULT_PORT
         return Proxy(Proxy.Type.SOCKS, InetSocketAddress.createUnresolved("127.0.0.1", port))
     }
 
     fun getProxyForHost(host: String?): Proxy? {
         val current = _state.value
-        if (!current.enabled || !proxy.isRunning) return null
+        if (!current.enabled || current.isPausedForVpn || !proxy.isRunning) return null
         val clean = host?.lowercase()?.trim()?.trimEnd('.') ?: return null
         if (clean.isBlank()) return null
         return if (ZapretHostList.isCovered(clean, current.domains)) {
@@ -104,10 +205,27 @@ object ZapretManager {
     }
 
     private suspend fun startProxyInternal(strategy: ZapretStrategy) {
-        val port = DEFAULT_PORT
+        if (_state.value.isPausedForVpn) {
+            Log.i(TAG, "Skipping proxy start: VPN is active")
+            return
+        }
+        val port = findAvailablePort(DEFAULT_PORT)
         val args = when (strategy) {
-            ZapretStrategy.SPLIT2 -> arrayOf("--ip", "127.0.0.1", "--port", port.toString(), "--split", "2", "--tlsrec", "1+s")
-            ZapretStrategy.MULTI -> arrayOf("--ip", "127.0.0.1", "--port", port.toString(), "--split", "1+s", "--disorder", "1", "--tlsrec", "1+s")
+            ZapretStrategy.SPLIT2 -> arrayOf(
+                "--ip", "127.0.0.1",
+                "--port", port.toString(),
+                "--split", "1+s",
+                "--tlsrec", "1+s",
+                "--mod-http", "h,d"
+            )
+            ZapretStrategy.MULTI -> arrayOf(
+                "--ip", "127.0.0.1",
+                "--port", port.toString(),
+                "--split", "1+s",
+                "--disorder", "3+s",
+                "--tlsrec", "1+s",
+                "--mod-http", "h,d"
+            )
         }
         proxy.start(args, port)
     }
@@ -125,13 +243,28 @@ object ZapretManager {
 
     fun isEnabled(): Boolean = _state.value.enabled
 
+    fun isPausedForVpn(): Boolean = _state.value.isPausedForVpn
+
     fun setEnabled(context: Context, enabled: Boolean) {
-        PlayerPreferences(context.applicationContext).setZapretEnabled(enabled)
-        prefs?.setZapretEnabled(enabled)
-        _state.value = _state.value.copy(enabled = enabled)
+        val appContext = context.applicationContext
+        val p = prefs ?: PlayerPreferences(appContext).also { prefs = it }
+        p.setZapretEnabled(enabled)
+        val curDomains = _state.value.domains
+        val domains = if (enabled && curDomains.isEmpty()) {
+            val all = ZapretServices.ALL_DOMAINS
+            p.setZapretDomains(all)
+            all
+        } else {
+            curDomains
+        }
+        _state.value = _state.value.copy(enabled = enabled, domains = domains)
         CoroutineScope(Dispatchers.IO).launch {
             if (enabled) {
-                startProxyInternal(_state.value.strategy)
+                if (!_state.value.isPausedForVpn) {
+                    startProxyInternal(_state.value.strategy)
+                } else {
+                    Log.i(TAG, "Zapret enabled, but paused because VPN is currently active.")
+                }
             } else {
                 proxy.stop()
             }
@@ -142,7 +275,7 @@ object ZapretManager {
         PlayerPreferences(context.applicationContext).setZapretStrategy(strategy.id)
         prefs?.setZapretStrategy(strategy.id)
         _state.value = _state.value.copy(strategy = strategy)
-        if (_state.value.enabled) {
+        if (_state.value.enabled && !_state.value.isPausedForVpn) {
             CoroutineScope(Dispatchers.IO).launch {
                 proxy.stop()
                 startProxyInternal(strategy)
@@ -204,7 +337,7 @@ object ZapretManager {
         val appContext = context.applicationContext
         val covered = coveredDomains().toMutableSet()
         val missing = services.flatMap { it.domains }
-            .map { it.lowercase().trim() }.distinct()
+            .map { it.lowercase().trim().trimEnd('.') }.distinct()
             .filter { !ZapretHostList.isCovered(it, covered) }
         if (missing.isEmpty()) return@withContext emptyList()
         covered += missing
@@ -219,8 +352,14 @@ object ZapretManager {
     suspend fun autoConfigureOnce(context: Context): List<String> {
         val p = prefs ?: PlayerPreferences(context.applicationContext).also { prefs = it }
         if (p.getZapretAutoChecked() || !isEnabled()) return emptyList()
+        val cur = coveredDomains()
+        if (cur.isEmpty()) {
+            val all = ZapretServices.ALL_DOMAINS
+            setDomains(context, all)
+            p.setZapretAutoChecked(true)
+            return all.toList()
+        }
         val results = check()
-        if (results.none { it.reachability == Reachability.REACHABLE }) return emptyList()
         val blocked = results.filter { it.reachability == Reachability.BLOCKED && !it.isCovered }.map { it.service }
         p.setZapretAutoChecked(true)
         return if (blocked.isEmpty()) emptyList() else addDomains(context, blocked)

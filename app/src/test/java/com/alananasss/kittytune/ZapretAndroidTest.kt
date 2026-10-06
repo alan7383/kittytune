@@ -128,4 +128,36 @@ class ZapretAndroidTest {
         assertTrue(multi.budgetBytes >= split2.budgetBytes)
         assertTrue(split2.delayMs > 0)
     }
+
+    @Test
+    fun coversAndCdnsAreCoveredByServices() {
+        val yt = ZapretServices.ALL.first { it.id == "youtube" }
+        assertTrue("YouTube should cover googleusercontent for covers", ZapretHostList.isCovered("lh3.googleusercontent.com", yt.domains.toSet()))
+        assertTrue("YouTube should cover ytimg", ZapretHostList.isCovered("i.ytimg.com", yt.domains.toSet()))
+
+        val sc = ZapretServices.ALL.first { it.id == "soundcloud" }
+        assertTrue("SoundCloud should cover sndcdn for artworks", ZapretHostList.isCovered("i1.sndcdn.com", sc.domains.toSet()))
+        assertTrue("SoundCloud should cover sndcdn.net", ZapretHostList.isCovered("cf-media.sndcdn.net", sc.domains.toSet()))
+
+        assertTrue("ALL_DOMAINS should not be empty", ZapretServices.ALL_DOMAINS.isNotEmpty())
+        assertTrue(ZapretServices.ALL_DOMAINS.contains("googleusercontent.com"))
+        assertTrue(ZapretServices.ALL_DOMAINS.contains("sndcdn.com"))
+    }
+
+    @Test
+    fun defaultPortDoesNotCollideWithPopularVpnClients() {
+        // v2rayNG, NekoBox, and Shadowsocks default to 10808; KittyTune must not collide with it
+        assertTrue(com.alananasss.kittytune.data.zapret.ZapretManager.DEFAULT_PORT != 10808)
+        assertEquals(10898, com.alananasss.kittytune.data.zapret.ZapretManager.DEFAULT_PORT)
+    }
+
+    @Test
+    fun zapretStateTracksVpnPause() {
+        val state = com.alananasss.kittytune.data.zapret.ZapretState(
+            enabled = true,
+            isPausedForVpn = true
+        )
+        assertTrue(state.enabled)
+        assertTrue(state.isPausedForVpn)
+    }
 }
