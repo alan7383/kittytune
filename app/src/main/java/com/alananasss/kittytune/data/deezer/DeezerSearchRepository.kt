@@ -129,7 +129,28 @@ object DeezerSearchRepository {
         val cleanId = artistId.removePrefix("deezer:artist:").trim()
         val artistJson = fetchJson("$API_BASE/artist/$cleanId") ?: return@withContext null
         val topTracksJson = fetchJson("$API_BASE/artist/$cleanId/top?limit=50")
-        val tracks = topTracksJson?.optJSONArray("data")?.mapObjects { it.toDeezerTrack() } ?: emptyList()
+        var tracks = topTracksJson?.optJSONArray("data")?.mapObjects { it.toDeezerTrack() } ?: emptyList()
+        if (tracks.isEmpty()) {
+            val albumsJson = fetchJson("$API_BASE/artist/$cleanId/albums?limit=5")
+            val albumsData = albumsJson?.optJSONArray("data")
+            if (albumsData != null) {
+                val fallbackTracks = mutableListOf<Track>()
+                for (i in 0 until albumsData.length()) {
+                    val albumObj = albumsData.optJSONObject(i) ?: continue
+                    val albumId = albumObj.optLong("id")
+                    if (albumId == 0L) continue
+                    val albumDetails = getAlbum(albumId.toString())
+                    val albumTracks = albumDetails?.tracks
+                    if (!albumTracks.isNullOrEmpty()) {
+                        fallbackTracks.addAll(albumTracks)
+                        if (fallbackTracks.size >= 30) break
+                    }
+                }
+                if (fallbackTracks.isNotEmpty()) {
+                    tracks = fallbackTracks.distinctBy { it.id }
+                }
+            }
+        }
 
         val idLong = artistJson.optLong("id")
         val stableId = abs(("deezer:artist:$idLong").hashCode().toLong())

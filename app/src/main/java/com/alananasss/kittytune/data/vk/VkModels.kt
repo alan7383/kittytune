@@ -158,6 +158,7 @@ data class VkAudioItem(
         val durationMs = durationSeconds.toLong() * 1000L
         val displayTitle = if (subtitle.isNotBlank()) "$title ($subtitle)" else title
         val cover = coverUrl?.takeIf { it.isNotBlank() }
+            ?: album?.thumbUrl?.takeIf { it.isNotBlank() }
         val artistName = displayArtists.ifBlank { "VKontakte" }
 
         val playable = url.takeIf {
@@ -283,9 +284,9 @@ data class VkAudioItem(
                     .firstNotNullOfOrNull { key -> thumb?.optString(key)?.takeIf { it.isNotBlank() } }
                     ?: albumObj?.optString("thumb")?.takeIf { it.isNotBlank() }
 
-                val cover = listOf("coverUrl_p", "coverUrl_s", "thumb")
-                    .firstNotNullOfOrNull { key -> obj.optString(key).takeIf { it.isNotBlank() } }
-                    ?: albumCover
+                val cover = albumCover
+                    ?: listOf("coverUrl_p", "coverUrl_s", "thumb")
+                        .firstNotNullOfOrNull { key -> obj.optString(key).takeIf { it.isNotBlank() } }
 
                 return VkAudioItem(
                     id = id,

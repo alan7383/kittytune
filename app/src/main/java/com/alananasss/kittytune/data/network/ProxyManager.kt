@@ -222,6 +222,11 @@ object ProxyManager {
         RetrofitClient.resetClient()
         // The shared client carries the old proxy, so it has to go with it.
         sharedClient = null
+        try {
+            YouTube.okHttpClient = getOkHttpClient(context)
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to update YouTube OkHttpClient", e)
+        }
     }
 
     fun configureOkHttpClient(builder: OkHttpClient.Builder, context: Context? = null): OkHttpClient.Builder {

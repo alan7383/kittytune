@@ -233,8 +233,12 @@ object ZapretManager {
         proxy.start(args, port)
     }
 
-    /** A fresh OkHttp builder. */
-    fun newBuilder(): OkHttpClient.Builder = OkHttpClient.Builder()
+    /** A fresh OkHttp builder pre-configured with proxy routing and browser headers. */
+    fun newBuilder(): OkHttpClient.Builder {
+        val builder = OkHttpClient.Builder()
+        com.alananasss.kittytune.data.network.ProxyManager.configureOkHttpClient(builder)
+        return builder
+    }
 
     /** A fresh OkHttp client. */
     fun newClient(): OkHttpClient = newBuilder().build()

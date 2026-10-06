@@ -815,7 +815,12 @@
 
                     val hideVideos = playerPrefs.getHideYoutubeVideos()
                     val searchFilter = if (hideVideos) YouTube.SearchFilter.FILTER_SONG else YouTube.SearchFilter.FILTER_VIDEO
-                    val result = YouTube.search(query, searchFilter).getOrNull()
+                    val searchRes = YouTube.search(query, searchFilter).getOrNull()
+                    val result = if (searchRes != null && searchRes.items.isNotEmpty()) {
+                        searchRes
+                    } else {
+                        YouTube.search(query, YouTube.SearchFilter.FILTER_ALL).getOrNull() ?: searchRes
+                    }
                     result?.items?.mapNotNull { item ->
                         if (item is SongItem) {
                             val displayArtist = item.artists.joinToString(", ") { it.name }.ifEmpty { "YouTube Music" }
@@ -871,7 +876,12 @@
                 try {
                     val hideVideos = playerPrefs.getHideYoutubeVideos()
                     val searchFilter = if (hideVideos) YouTube.SearchFilter.FILTER_SONG else YouTube.SearchFilter.FILTER_VIDEO
-                    val result = YouTube.search(query, searchFilter).getOrNull()
+                    val searchRes = YouTube.search(query, searchFilter).getOrNull()
+                    val result = if (searchRes != null && searchRes.items.isNotEmpty()) {
+                        searchRes
+                    } else {
+                        YouTube.search(query, YouTube.SearchFilter.FILTER_ALL).getOrNull() ?: searchRes
+                    }
                     youtubeContinuation = result?.continuation
 
                     val mappedTracks = result?.items?.mapNotNull { item ->

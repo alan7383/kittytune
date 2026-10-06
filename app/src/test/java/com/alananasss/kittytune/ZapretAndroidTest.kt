@@ -4,6 +4,8 @@ import com.alananasss.kittytune.data.zapret.FragmentSpec
 import com.alananasss.kittytune.data.zapret.ZapretHostList
 import com.alananasss.kittytune.data.zapret.ZapretServices
 import com.alananasss.kittytune.data.zapret.ZapretStrategy
+import com.alananasss.kittytune.domain.isDefaultAvatar
+import com.alananasss.kittytune.domain.getHighResAvatarUrl
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -176,5 +178,41 @@ class ZapretAndroidTest {
         )
         assertTrue(state.enabled)
         assertTrue(state.isPausedForVpn)
+    }
+
+    @Test
+    fun multiServiceDomainsAreCovered() {
+        val spotify = ZapretServices.ALL.first { it.id == "spotify" }
+        assertTrue(ZapretHostList.isCovered("audio-ak-spotify-com.akamaized.net", spotify.domains.toSet()))
+        assertTrue(ZapretHostList.isCovered("i.scdn.co", spotify.domains.toSet()))
+
+        val tidal = ZapretServices.ALL.first { it.id == "tidal" }
+        assertTrue(ZapretHostList.isCovered("api.tidal.com", tidal.domains.toSet()))
+        assertTrue(ZapretHostList.isCovered("song.link", tidal.domains.toSet()))
+
+        val qobuz = ZapretServices.ALL.first { it.id == "qobuz" }
+        assertTrue(ZapretHostList.isCovered("play.qobuz.com", qobuz.domains.toSet()))
+        assertTrue(ZapretHostList.isCovered("static.qobuz.com", qobuz.domains.toSet()))
+
+        val yt = ZapretServices.ALL.first { it.id == "youtube" }
+        assertTrue(ZapretHostList.isCovered("youtu.be", yt.domains.toSet()))
+    }
+
+    @Test
+    fun soundCloudArtworkAndDefaultAvatarsAreProperlyFormatted() {
+        val defaultAvatar = "https://a1.sndcdn.com/images/default_avatar_large.png"
+        val customAvatar = "https://i1.sndcdn.com/avatars-000123-abcdef-large.jpg"
+
+        assertTrue(defaultAvatar.isDefaultAvatar())
+        assertFalse(customAvatar.isDefaultAvatar())
+
+        // Default avatar must not be changed to t500x500 (which 404s on SoundCloud)
+        assertEquals(defaultAvatar, defaultAvatar.getHighResAvatarUrl())
+
+        // Custom avatar should be upgraded to t500x500
+        assertEquals(
+            "https://i1.sndcdn.com/avatars-000123-abcdef-t500x500.jpg",
+            customAvatar.getHighResAvatarUrl()
+        )
     }
 }
