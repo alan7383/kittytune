@@ -3208,6 +3208,8 @@
     <string name="zapret_enable_desc">Bypass DPI blocks for the app’s traffic</string>
     <string name="zapret_status_enabled">On • %1$d domains • %2$s</string>
     <string name="zapret_status_disabled">Off</string>
+    <string name="zapret_status_vpn_paused">Paused • VPN is active</string>
+    <string name="zapret_vpn_active_notice">A VPN connection is active. Zapret is automatically paused to prevent conflicts and save battery. Traffic is handled directly by your VPN.</string>
     <string name="zapret_strategy">Strategy</string>
     <string name="zapret_strategy_split2">Split ×2</string>
     <string name="zapret_strategy_split2_desc">Fast handshake, defeats basic SNI blocking</string>

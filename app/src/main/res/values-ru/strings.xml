@@ -3083,6 +3083,8 @@
     <string name="zapret_enable_desc">Обходить DPI-блокировки для трафика приложения</string>
     <string name="zapret_status_enabled">Вкл • доменов: %1$d • %2$s</string>
     <string name="zapret_status_disabled">Выкл</string>
+    <string name="zapret_status_vpn_paused">Приостановлен • Активен VPN</string>
+    <string name="zapret_vpn_active_notice">Подключение к VPN активно. Zapret автоматически приостановлен во избежание конфликтов и для экономии батареи. Трафик направляется через ваш VPN.</string>
     <string name="zapret_strategy">Стратегия</string>
     <string name="zapret_strategy_split2">Разбиение ×2</string>
     <string name="zapret_strategy_split2_desc">Быстрое соединение, против простых SNI-блокировок</string>

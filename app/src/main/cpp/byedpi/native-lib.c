@@ -48,6 +48,9 @@ Java_com_alananasss_kittytune_data_zapret_byedpi_ByeDpiProxy_jniCreateSocketWith
     }
 
     int res = parse_args(argc, argv);
+    for (int i = 0; i < argc; i++) {
+        free(argv[i]);
+    }
     if (res < 0) {
         uniperror("parse_args");
         return -1;

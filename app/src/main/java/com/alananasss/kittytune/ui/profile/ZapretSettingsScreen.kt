@@ -173,6 +173,37 @@ fun ZapretSettingsScreen(
                 }
             }
 
+            if (zapretState.isPausedForVpn) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                Icons.Rounded.Security,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary
+                            )
+                            Text(
+                                stringResource(R.string.zapret_vpn_active_notice),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
+            }
+
             // Master switch.
             item {
                 SettingsGroup(
@@ -182,7 +213,9 @@ fun ZapretSettingsScreen(
                             SettingsItem(
                                 shape = shape,
                                 title = stringResource(R.string.zapret_enable),
-                                subtitle = if (zapretState.enabled) {
+                                subtitle = if (zapretState.isPausedForVpn) {
+                                    stringResource(R.string.zapret_status_vpn_paused)
+                                } else if (zapretState.enabled) {
                                     context.getString(
                                         R.string.zapret_status_enabled,
                                         zapretState.domains.size,

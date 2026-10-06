@@ -232,6 +232,8 @@ object ProxyManager {
         if (proxy != null) {
             builder.proxy(proxy)
             activeProxyAuthenticator?.let { builder.proxyAuthenticator(it) }
+        } else {
+            builder.proxySelector(appProxySelector)
         }
         return builder
     }
