@@ -3,6 +3,8 @@ package com.alananasss.kittytune.data.zapret
 import android.content.Context
 import android.util.Log
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.data.zapret.byedpi.ByeDpiProxy
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -10,9 +12,11 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.net.InetSocketAddress
 import java.net.Proxy
 import java.util.concurrent.TimeUnit
 import javax.net.SocketFactory
@@ -28,19 +32,18 @@ data class ZapretState(
 )
 
 /**
- * Android zapret: DPI bypass built into the app, no external folder, no VPN, no proxy.
+ * Android zapret / DPI circumvention powered by the native ByeDPI engine.
  *
- * Desktop finds a zapret installation and edits its host lists; here the same service catalogue
- * ([ZapretServices]) and host matching ([ZapretHostList]) drive [DpiBypass], which fragments the
- * TLS ClientHello of the app's own connections to the listed domains. Every OkHttp client routed
- * through [newBuilder]/[applyTo] (including [ProxyManager][com.alananasss.kittytune.data.network.ProxyManager]
- * choke point) and every `HttpURLConnection` (ExoPlayer streaming) is covered.
- *
- * The gating is dynamic — [DpiBypass.policy] reads the current state on each connection — so
- * toggling takes effect immediately without rebuilding any client.
+ * Runs an embedded local SOCKS5 proxy on 127.0.0.1 in user-space without root or VPN.
+ * Only connections to covered domains ([ZapretHostList]) are routed through the proxy by
+ * [ProxyManager][com.alananasss.kittytune.data.network.ProxyManager], where TLS records
+ * and TCP packets are desynced to defeat DPI boxes without breaking Conscrypt / BoringSSL.
  */
 object ZapretManager {
     private const val TAG = "ZapretManager"
+    const val DEFAULT_PORT = 10808
+
+    private val proxy = ByeDpiProxy()
 
     private val _state = MutableStateFlow(ZapretState())
     val state: StateFlow<ZapretState> = _state.asStateFlow()
@@ -49,8 +52,8 @@ object ZapretManager {
     private var prefs: PlayerPreferences? = null
 
     /**
-     * Direct connections only: the check is about whether the network lets a service through, so a proxy
-     * configured in the app would hide the answer. Raw socket factory on purpose — no bypass either.
+     * Direct connections only: the check probes whether the network lets a service through directly,
+     * so it explicitly bypasses any proxy.
      */
     private val probeClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -65,40 +68,60 @@ object ZapretManager {
     fun init(context: Context) {
         val p = PlayerPreferences(context.applicationContext)
         prefs = p
+        val isEnabled = p.getZapretEnabled()
+        val strategy = ZapretStrategy.fromId(p.getZapretStrategy())
+        val domains = p.getZapretDomains()
+
         _state.value = ZapretState(
-            enabled = p.getZapretEnabled(),
-            strategy = ZapretStrategy.fromId(p.getZapretStrategy()),
-            domains = p.getZapretDomains(),
+            enabled = isEnabled,
+            strategy = strategy,
+            domains = domains,
         )
-        DpiBypass.policy = { host ->
-            val current = _state.value
-            if (!current.enabled || current.domains.isEmpty()) null
-            else {
-                val covered = current.domains
-                // Unknown host: fragment — TCP segmentation is transparent to the server.
-                // Known host: only fragment when it (or its parent) is in the bypass list.
-                val clean = host?.lowercase()?.trim()?.trimEnd('.')
-                if (clean.isNullOrBlank() || ZapretHostList.isCovered(clean, covered)) {
-                    FragmentSpec.forStrategy(current.strategy)
-                } else null
+
+        if (isEnabled) {
+            CoroutineScope(Dispatchers.IO).launch {
+                startProxyInternal(strategy)
             }
         }
-        DpiBypass.installDefaultHttpsFactory()
-        Log.i(TAG, "Initialized (enabled=${_state.value.enabled}, domains=${_state.value.domains.size})")
+        Log.i(TAG, "Initialized (enabled=$isEnabled, domains=${domains.size})")
     }
 
-    /** A fresh OkHttp builder with the bypass socket factory installed. */
-    fun newBuilder(): OkHttpClient.Builder =
-        OkHttpClient.Builder().socketFactory(bypassSocketFactory())
+    fun getLocalProxy(): Proxy? {
+        val current = _state.value
+        if (!current.enabled || !proxy.isRunning) return null
+        val port = proxy.boundPort.takeIf { it > 0 } ?: DEFAULT_PORT
+        return Proxy(Proxy.Type.SOCKS, InetSocketAddress.createUnresolved("127.0.0.1", port))
+    }
 
-    /** A fresh OkHttp client with the bypass socket factory installed. */
+    fun getProxyForHost(host: String?): Proxy? {
+        val current = _state.value
+        if (!current.enabled || !proxy.isRunning) return null
+        val clean = host?.lowercase()?.trim()?.trimEnd('.') ?: return null
+        if (clean.isBlank()) return null
+        return if (ZapretHostList.isCovered(clean, current.domains)) {
+            getLocalProxy()
+        } else null
+    }
+
+    private suspend fun startProxyInternal(strategy: ZapretStrategy) {
+        val port = DEFAULT_PORT
+        val args = when (strategy) {
+            ZapretStrategy.SPLIT2 -> arrayOf("--ip", "127.0.0.1", "--port", port.toString(), "--split", "2", "--tlsrec", "1+s")
+            ZapretStrategy.MULTI -> arrayOf("--ip", "127.0.0.1", "--port", port.toString(), "--split", "1+s", "--disorder", "1", "--tlsrec", "1+s")
+        }
+        proxy.start(args, port)
+    }
+
+    /** A fresh OkHttp builder. */
+    fun newBuilder(): OkHttpClient.Builder = OkHttpClient.Builder()
+
+    /** A fresh OkHttp client. */
     fun newClient(): OkHttpClient = newBuilder().build()
 
-    fun bypassSocketFactory(): SocketFactory = DpiBypass.socketFactory
+    fun bypassSocketFactory(): SocketFactory = SocketFactory.getDefault()
 
-    /** Installs the bypass socket factory on any OkHttp builder (no-op until enabled). */
-    fun applyTo(builder: OkHttpClient.Builder): OkHttpClient.Builder =
-        builder.socketFactory(DpiBypass.socketFactory)
+    /** Retained for compatibility. Proxy routing is handled via ProxySelector. */
+    fun applyTo(builder: OkHttpClient.Builder): OkHttpClient.Builder = builder
 
     fun isEnabled(): Boolean = _state.value.enabled
 
@@ -106,12 +129,25 @@ object ZapretManager {
         PlayerPreferences(context.applicationContext).setZapretEnabled(enabled)
         prefs?.setZapretEnabled(enabled)
         _state.value = _state.value.copy(enabled = enabled)
+        CoroutineScope(Dispatchers.IO).launch {
+            if (enabled) {
+                startProxyInternal(_state.value.strategy)
+            } else {
+                proxy.stop()
+            }
+        }
     }
 
     fun setStrategy(context: Context, strategy: ZapretStrategy) {
         PlayerPreferences(context.applicationContext).setZapretStrategy(strategy.id)
         prefs?.setZapretStrategy(strategy.id)
         _state.value = _state.value.copy(strategy = strategy)
+        if (_state.value.enabled) {
+            CoroutineScope(Dispatchers.IO).launch {
+                proxy.stop()
+                startProxyInternal(strategy)
+            }
+        }
     }
 
     fun coveredDomains(): Set<String> = _state.value.domains
@@ -132,7 +168,7 @@ object ZapretManager {
         return clean
     }
 
-    /** Probes every service in parallel, with raw connections (no proxy, no bypass). */
+    /** Probes every service in parallel, with raw direct connections. */
     suspend fun check(): List<ServiceCheck> = coroutineScope {
         val covered = coveredDomains()
         ZapretServices.ALL.map { service ->
@@ -146,12 +182,6 @@ object ZapretManager {
         }.awaitAll()
     }
 
-    /** Any answer at all — a 403 included — means the connection got through; a timeout or reset does not. */
-    /**
-     * A real request, with its body read: blocking by traffic inspection often lets the handshake and a few
-     * kilobytes through and then stalls the connection, so a HEAD with an empty answer said "works" for services
-     * whose searches never returned. Any status counts — a 401 from an API is it answering.
-     */
     private fun probe(url: String): Reachability = runCatching {
         probeClient.newCall(Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build()).execute().use { response ->
             response.body.byteStream().use { input ->
@@ -186,26 +216,16 @@ object ZapretManager {
         setDomains(context.applicationContext, emptyList())
     }
 
-    /**
-     * The first time the bypass is enabled: probe everything and add only what is blocked. Runs once;
-     * after that the settings page's buttons are the way to change the list.
-     */
     suspend fun autoConfigureOnce(context: Context): List<String> {
         val p = prefs ?: PlayerPreferences(context.applicationContext).also { prefs = it }
         if (p.getZapretAutoChecked() || !isEnabled()) return emptyList()
         val results = check()
-        // Nothing reachable at all is no network, not a blocklist: try again next launch.
         if (results.none { it.reachability == Reachability.REACHABLE }) return emptyList()
         val blocked = results.filter { it.reachability == Reachability.BLOCKED && !it.isCovered }.map { it.service }
         p.setZapretAutoChecked(true)
         return if (blocked.isEmpty()) emptyList() else addDomains(context, blocked)
     }
 
-    /**
-     * The bypass list in zapret host-list format, with KittyTune's marker block — paste it into
-     * `lists/list-general-user.txt` (Windows) or `ipset/zapret-hosts-user.txt` (Linux) to reuse the
-     * same domains with zapret on a PC.
-     */
     fun exportAsHostList(): String =
         ZapretHostList.withOwnDomains("", _state.value.domains.sorted())
 }

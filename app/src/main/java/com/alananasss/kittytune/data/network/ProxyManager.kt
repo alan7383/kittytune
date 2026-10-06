@@ -70,7 +70,27 @@ object ProxyManager {
     @Volatile
     private var activeProxyAuthenticator: OkHttpAuthenticator? = null
 
+    private val appProxySelector = object : ProxySelector() {
+        override fun select(uri: URI?): List<Proxy> {
+            val host = uri?.host?.lowercase()
+            val zapretProxy = com.alananasss.kittytune.data.zapret.ZapretManager.getProxyForHost(host)
+            if (zapretProxy != null) {
+                return listOf(zapretProxy)
+            }
+            val userProxy = activeJavaProxy
+            if (userProxy != null) {
+                return listOf(userProxy)
+            }
+            return initialDefaultProxySelector?.select(uri) ?: listOf(Proxy.NO_PROXY)
+        }
+
+        override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) {
+            Log.w(TAG, "Proxy connection failed for URI: $uri", ioe)
+        }
+    }
+
     fun init(context: Context) {
+        ProxySelector.setDefault(appProxySelector)
         applyConfiguration(context.applicationContext)
     }
 
@@ -125,17 +145,7 @@ object ProxyManager {
                 Authenticator.setDefault(null)
             }
 
-            // Apply global Java ProxySelector for HttpURLConnection, ExoPlayer DefaultHttpDataSource, etc.
-            val customProxySelector = object : ProxySelector() {
-                override fun select(uri: URI?): List<Proxy> {
-                    return listOf(javaProxy)
-                }
-
-                override fun connectFailed(uri: URI?, sa: SocketAddress?, ioe: IOException?) {
-                    Log.w(TAG, "Proxy connection failed for URI: $uri", ioe)
-                }
-            }
-            ProxySelector.setDefault(customProxySelector)
+            ProxySelector.setDefault(appProxySelector)
 
             // System properties for legacy/standard Java network libraries
             if (config.protocol == ProxyProtocol.HTTP) {
@@ -180,8 +190,8 @@ object ProxyManager {
             activeJavaProxy = null
             activeProxyAuthenticator = null
 
-            // Restore initial default ProxySelector
-            ProxySelector.setDefault(initialDefaultProxySelector)
+            // Keep appProxySelector active so Zapret continues to work
+            ProxySelector.setDefault(appProxySelector)
             Authenticator.setDefault(null)
 
             System.clearProperty("http.proxyHost")

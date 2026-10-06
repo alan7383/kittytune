@@ -38,14 +38,20 @@ jobs:
       - name: Compute beta version
         id: beta
         run: |
+          git fetch --tags || true
           BASE_NAME=$(grep -m1 'versionName = ' app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
-          RUN=${{ github.run_number }}
-          TAG="v${BASE_NAME}-beta.${RUN}"
+          LATEST_NUM=$(git tag -l "v${BASE_NAME}-beta.*" | sed "s/.*-beta\.//" | sort -n | tail -n1)
+          if [ -z "$LATEST_NUM" ]; then
+            BETA_NUM=1
+          else
+            BETA_NUM=$((LATEST_NUM + 1))
+          fi
+          TAG="v${BASE_NAME}-beta.${BETA_NUM}"
           echo "Base $BASE_NAME -> beta $TAG (versionCode is timestamp-based, see app/build.gradle.kts)"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "name=${BASE_NAME}-beta.${RUN}" >> $GITHUB_OUTPUT
+          echo "name=${BASE_NAME}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
           # Bake the beta version name into the build (fresh checkout, nothing committed)
-          sed -i "s/versionName = \".*\"/versionName = \"${BASE_NAME}-beta.${RUN}\"/" app/build.gradle.kts
+          sed -i "s/versionName = \".*\"/versionName = \"${BASE_NAME}-beta.${BETA_NUM}\"/" app/build.gradle.kts
           grep -m1 'versionName = ' app/build.gradle.kts
 
       # ── Java ────────────────────────────────────────────────────────────────
@@ -156,4 +162,5 @@ jobs:
           body_path: CHANGELOG_BETA.md
           files: app/build/outputs/apk/release/*.apk
           prerelease: true
+          make_latest: false
           token: ${{ secrets.GITHUB_TOKEN }}

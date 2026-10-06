@@ -464,18 +464,37 @@ object UpdateManager {
         return 0
     }
 
+    fun compareVersions(v1: String, v2: String): Int {
+        val (v1Nums, v1Pre) = splitVersion(v1)
+        val (v2Nums, v2Pre) = splitVersion(v2)
+        for (i in 0 until max(v1Nums.size, v2Nums.size)) {
+            val v1Part = v1Nums.getOrElse(i) { 0 }
+            val v2Part = v2Nums.getOrElse(i) { 0 }
+            if (v1Part != v2Part) return v1Part.compareTo(v2Part)
+        }
+        if (v1Pre == null && v2Pre == null) return 0
+        if (v1Pre != null && v2Pre == null) return -1
+        if (v1Pre == null && v2Pre != null) return 1
+        return comparePreRelease(v1Pre!!, v2Pre!!)
+    }
+
     /**
      * Which release the update check targets.
      *
      * Stable channel (default): GitHub's `latest`, which excludes prereleases.
-     * Beta channel (opt-in toggle): the newest release — stable or prerelease —
-     * newer than the installed version, so beta users still get stables.
-     * Same button, same startup auto-check, different channel.
+     * Beta channel (opt-in toggle, or automatic if current build is a beta):
+     * the newest release — stable or prerelease — newer than the installed version.
+     * GitHub's list order is not guaranteed to be SemVer-ordered (e.g. beta.10 sorting
+     * lexicographically below beta.5), so candidates are SemVer-compared to pick the maximum.
      */
     private suspend fun resolveTargetRelease(context: Context, currentVersion: String): GithubRelease? {
-        val betaEnabled = try {
+        val (_, currPre) = splitVersion(currentVersion)
+        val isCurrentBeta = currPre != null
+        val betaPref = try {
             com.alananasss.kittytune.data.local.PlayerPreferences(context).getBetaUpdatesEnabled()
         } catch (_: Exception) { false }
+        val betaEnabled = isCurrentBeta || betaPref
+
         if (!betaEnabled) {
             val latest = GithubClient.api.getLatestRelease()
             val remote = latest.tagName.replace("v", "")
@@ -487,8 +506,7 @@ object UpdateManager {
             return null
         }
         val releases = GithubClient.api.listReleases()
-        // GitHub returns newest first: first matching release wins.
-        return releases.firstOrNull { rel ->
+        val candidates = releases.filter { rel ->
             val remote = rel.tagName.replace("v", "")
             if (isNewerVersion(currentVersion, remote)) {
                 !isSameCoreStableOverBeta(currentVersion, remote)
@@ -497,6 +515,11 @@ object UpdateManager {
                 // (betas are tagged v<base>-beta.N from the current versionName).
                 betaEnabled && isSameCoreBetaOverStable(currentVersion, remote)
             }
+        }
+        return candidates.maxWithOrNull { a, b ->
+            val vA = a.tagName.replace("v", "")
+            val vB = b.tagName.replace("v", "")
+            compareVersions(vA, vB)
         }
     }
 

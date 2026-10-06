@@ -9,6 +9,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -296,8 +297,8 @@ fun ZapretSettingsScreen(
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        FlowRow(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
@@ -315,7 +316,9 @@ fun ZapretSettingsScreen(
                                     stringResource(
                                         if (isChecking) R.string.zapret_checking
                                         else R.string.zapret_check
-                                    )
+                                    ),
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
                             val blocked = checks.orEmpty()
@@ -325,13 +328,22 @@ fun ZapretSettingsScreen(
                                     onClick = { add(blocked.map { it.service }) },
                                     shapes = ButtonDefaults.shapes()
                                 ) {
-                                    Text(stringResource(R.string.zapret_add_blocked, blocked.size))
+                                    Text(
+                                        stringResource(R.string.zapret_add_blocked, blocked.size),
+                                        maxLines = 1,
+                                        softWrap = false
+                                    )
                                 }
                             }
                             if (isChecking) {
-                                LoadingIndicator(
-                                    modifier = Modifier.size(32.dp)
-                                )
+                                Box(
+                                    modifier = Modifier.size(40.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    LoadingIndicator(
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
                         }
 
@@ -356,46 +368,54 @@ fun ZapretSettingsScreen(
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        stringResource(R.string.zapret_own_title),
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                    Text(
-                                        zapretState.domains.sorted().joinToString(", "),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                TextButton(
-                                    onClick = {
-                                        clipboardManager.setText(
-                                            AnnotatedString(ZapretManager.exportAsHostList())
-                                        )
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.zapret_copied),
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    stringResource(R.string.zapret_own_title),
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                Text(
+                                    zapretState.domains.sorted().joinToString(", "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        Icons.Rounded.ContentCopy,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(stringResource(R.string.zapret_copy_list))
-                                }
-                                TextButton(
-                                    onClick = {
-                                        scope.launch {
-                                            ZapretManager.removeOwnDomains(context)
-                                            checks?.let { checks = ZapretManager.check() }
+                                    TextButton(
+                                        onClick = {
+                                            clipboardManager.setText(
+                                                AnnotatedString(ZapretManager.exportAsHostList())
+                                            )
+                                            Toast.makeText(
+                                                context,
+                                                context.getString(R.string.zapret_copied),
+                                                Toast.LENGTH_LONG
+                                            ).show()
                                         }
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.ContentCopy,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(stringResource(R.string.zapret_copy_list))
                                     }
-                                ) { Text(stringResource(R.string.zapret_remove_own)) }
+                                    Spacer(Modifier.width(4.dp))
+                                    TextButton(
+                                        onClick = {
+                                            scope.launch {
+                                                ZapretManager.removeOwnDomains(context)
+                                                checks?.let { checks = ZapretManager.check() }
+                                            }
+                                        }
+                                    ) { Text(stringResource(R.string.zapret_remove_own)) }
+                                }
                             }
                         }
                     }
@@ -435,10 +455,23 @@ private fun ZapretServiceRow(check: ServiceCheck, onAdd: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
         }
-        Text(label, style = MaterialTheme.typography.labelMedium, color = color)
+        Spacer(Modifier.width(8.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = color,
+            maxLines = 1,
+            softWrap = false
+        )
         if (!check.isCovered && check.reachability == Reachability.BLOCKED) {
             Spacer(Modifier.width(4.dp))
-            TextButton(onClick = onAdd) { Text(stringResource(R.string.zapret_add)) }
+            TextButton(onClick = onAdd) {
+                Text(
+                    stringResource(R.string.zapret_add),
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
         }
     }
 }

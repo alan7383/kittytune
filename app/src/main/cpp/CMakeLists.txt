@@ -42,3 +42,21 @@ target_link_libraries(kittytune_audio_dsp
     android
     log
 )
+
+file(GLOB BYE_DPI_SRC byedpi/byedpi/*.c)
+list(REMOVE_ITEM BYE_DPI_SRC ${CMAKE_CURRENT_SOURCE_DIR}/byedpi/byedpi/win_service.c)
+
+add_library(byedpi SHARED
+    ${BYE_DPI_SRC}
+    byedpi/native-lib.c
+    byedpi/utils.c
+)
+target_include_directories(byedpi PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/byedpi/byedpi
+    ${CMAKE_CURRENT_SOURCE_DIR}/byedpi
+)
+target_compile_options(byedpi PRIVATE -std=c99 -O2 -D_XOPEN_SOURCE=500)
+target_compile_definitions(byedpi PRIVATE ANDROID_APP)
+target_link_options(byedpi PRIVATE "-Wl,-z,max-page-size=16384")
+target_link_libraries(byedpi PRIVATE android log)
+

@@ -52,6 +52,51 @@ class UpdateManagerTest {
     }
 
     @Test
+    fun testCompareVersions() {
+        assertTrue(UpdateManager.compareVersions("1.0.0", "1.0.1") < 0)
+        assertTrue(UpdateManager.compareVersions("1.0.1", "1.0.0") > 0)
+        assertEquals(0, UpdateManager.compareVersions("1.0.0", "1.0.0"))
+
+        // beta.10 is strictly greater than beta.9 (numerical comparison of pre-release chunk)
+        assertTrue(UpdateManager.compareVersions("2.68.0-beta.9", "2.68.0-beta.10") < 0)
+        assertTrue(UpdateManager.compareVersions("2.68.0-beta.10", "2.68.0-beta.9") > 0)
+
+        // beta.10 is smaller than stable 2.68.0
+        assertTrue(UpdateManager.compareVersions("2.68.0-beta.10", "2.68.0") < 0)
+        assertTrue(UpdateManager.compareVersions("2.68.0", "2.68.0-beta.10") > 0)
+
+        // 2.69.0-beta.11 is greater than 2.68.0 and 2.68.0-beta.10
+        assertTrue(UpdateManager.compareVersions("2.69.0-beta.11", "2.68.0") > 0)
+        assertTrue(UpdateManager.compareVersions("2.69.0-beta.11", "2.68.0-beta.10") > 0)
+    }
+
+    @Test
+    fun testOutOfOrderBetaResolution() {
+        // Simulating the exact out-of-order list GitHub returned:
+        // beta.9, beta.8, beta.7, beta.6, beta.5, beta.10
+        val versions = listOf(
+            "2.68.0-beta.9",
+            "2.68.0-beta.8",
+            "2.68.0-beta.7",
+            "2.68.0-beta.6",
+            "2.68.0-beta.5",
+            "2.68.0-beta.10"
+        )
+        val currentVersion = "2.68.0-beta.9"
+
+        val candidates = versions.filter { UpdateManager.isNewerVersion(currentVersion, it) }
+        assertEquals(listOf("2.68.0-beta.10"), candidates)
+
+        val best = candidates.maxWithOrNull { a, b -> UpdateManager.compareVersions(a, b) }
+        assertEquals("2.68.0-beta.10", best)
+
+        // For a user on beta.8, finding the max must return beta.10, not beta.9
+        val candidatesForBeta8 = versions.filter { UpdateManager.isNewerVersion("2.68.0-beta.8", it) }
+        val bestForBeta8 = candidatesForBeta8.maxWithOrNull { a, b -> UpdateManager.compareVersions(a, b) }
+        assertEquals("2.68.0-beta.10", bestForBeta8)
+    }
+
+    @Test
     fun testBetaChannelGuards() {
         // Same-core stable over an installed beta = downgrade nag, must skip
         assertTrue(UpdateManager.isSameCoreStableOverBeta("2.68.0-beta.1", "2.68.0"))
