@@ -1140,6 +1140,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         currentQueueIndex = -1
         currentTrack = null
         MusicManager.currentTrack = null
+        MusicManager.isLoadingTrack = false
+        MusicManager.pendingSeekPositionMs = null
         currentContext = null
         _queue.clear()
         _originalQueue.clear()
@@ -3717,6 +3719,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         isLoading = true
         duration = trackToPlay.actualDurationMs
         currentPosition = 0L
+
+        MusicManager.pendingSeekPositionMs = null
+        MusicManager.playWhenReadyRequested = autoPlay
+        MusicManager.currentTrack = trackToPlay
+        currentTrack = trackToPlay
+        MusicManager.isLoadingTrack = true
+
         if (!isCrossfade) {
             MusicManager.cancelCrossfade()
             try {
@@ -3730,6 +3739,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     .setIsPlayable(true)
                     .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
                     .setArtworkUri(trackToPlay.fullResArtwork.toUri())
+                    .setDurationMs(trackToPlay.actualDurationMs)
                     .build()
                 val placeholderItem = MediaItem.Builder()
                     .setMediaId(trackToPlay.id.toString())
@@ -4378,7 +4388,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_SEEK
         )
         isScrubbing = false
-        player.seekTo(position)
+        if (MusicManager.isLoadingTrack) {
+            MusicManager.pendingSeekPositionMs = position
+        } else {
+            player.seekTo(position)
+        }
         currentPosition = position
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context).onPositionDiscontinuity(position)
         SoundCloudTelemetryTracker.onTrackSeeked(position)
@@ -5827,6 +5841,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     )
                     isLoading = false
                     isPlaying = true
+                    MusicManager.isLoadingTrack = false
                     currentPosition = startPosition
                     duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else trackToPlay.actualDurationMs
                     startProgressUpdate()
@@ -5837,6 +5852,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     MusicManager.cancelCrossfade()
                     isLoading = false
                     isPlaying = false
+                    MusicManager.isLoadingTrack = false
                     if (allowSkipOnFailure && currentQueueIndex + 1 < _queue.size) {
                         playNext(manual = false, isCrossfade = false)
                     }
@@ -5940,6 +5956,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                     isLoading = false
                     isPlaying = false
+                    MusicManager.isLoadingTrack = false
                     MusicManager.cancelCrossfade()
                     try {
                         MusicManager.player.pause()
@@ -6021,17 +6038,21 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         )
                         isLoading = false
                         isPlaying = true
+                        MusicManager.isLoadingTrack = false
                         currentPosition = startPosition
                         duration = if (MusicManager.player.duration > 0) MusicManager.player.duration else trackToPlay.actualDurationMs
                         startProgressUpdate()
                     } else {
-                        MusicManager.player.setMediaItem(newMediaItem, startPosition)
+                        val effectiveStart = MusicManager.pendingSeekPositionMs ?: startPosition
+                        MusicManager.pendingSeekPositionMs = null
+                        MusicManager.player.setMediaItem(newMediaItem, effectiveStart)
                         MusicManager.player.prepare()
-                        if (autoPlay) {
+                        if (autoPlay && MusicManager.playWhenReadyRequested) {
                             val intent = Intent(context, PlaybackService::class.java)
                             startServiceSafe(context, intent)
                             MusicManager.player.play()
                         }
+                        MusicManager.isLoadingTrack = false
                     }
 
                     MusicManager.applyEffects(effectsState)
@@ -6041,6 +6062,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     MusicManager.cancelCrossfade()
                     isLoading = false
                     isPlaying = false
+                    MusicManager.isLoadingTrack = false
                     if (allowSkipOnFailure && currentQueueIndex + 1 < _queue.size) {
                         Log.i("PlayerViewModel", "Skipping to next track after error for ${trackToPlay.id}")
                         playNext(manual = false, isCrossfade = false)
@@ -6133,6 +6155,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             .setIsPlayable(true)
             .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
             .setArtworkUri(track.fullResArtwork.toUri())
+            .setDurationMs(track.actualDurationMs)
 
         track.publisherMetadata?.albumTitle?.takeIf { it.isNotBlank() }?.let { albumTitle ->
             metadataBuilder.setAlbumTitle(albumTitle)

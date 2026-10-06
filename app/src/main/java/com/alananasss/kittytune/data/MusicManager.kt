@@ -257,6 +257,16 @@ object MusicManager {
 
     var currentTrack: Track? = null
 
+    val isLoadingTrackFlow = MutableStateFlow(false)
+    var isLoadingTrack: Boolean
+        get() = isLoadingTrackFlow.value
+        set(value) {
+            isLoadingTrackFlow.value = value
+        }
+
+    var playWhenReadyRequested: Boolean = true
+    var pendingSeekPositionMs: Long? = null
+
     // Stores the licenseAuthToken per trackId for DRM-protected streams
     private val drmTokenCache = ConcurrentHashMap<Long, String>()
 

@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.core.app.ServiceCompat
+import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -32,6 +33,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
 import android.app.PendingIntent
+import androidx.core.net.toUri
 
 class PlaybackService : MediaLibraryService() {
 
@@ -62,6 +64,7 @@ class PlaybackService : MediaLibraryService() {
     private var discordRpc: DiscordRPC? = null
     private var automotiveLyricsJob: Job? = null
     private var automotiveLyricsGeneration = 0
+    private var currentForwardingPlayer: KittyTuneForwardingPlayer? = null
     private lateinit var prefs: PlayerPreferences
 
     @OptIn(UnstableApi::class)
@@ -97,37 +100,19 @@ class PlaybackService : MediaLibraryService() {
             }
         }
 
+        serviceScope.launch {
+            MusicManager.isLoadingTrackFlow.collect { isLoading ->
+                currentForwardingPlayer?.notifyLoadingStateChanged()
+                requestUpdate(delayed = false)
+            }
+        }
+
         val sessionIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(this, 0, sessionIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
-    fun createForwardingPlayer(): ForwardingPlayer {
-        return object : ForwardingPlayer(MusicManager.player) {
-            override fun getAvailableCommands(): Player.Commands {
-                return super.getAvailableCommands().buildUpon()
-                    .add(Player.COMMAND_SEEK_TO_NEXT)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS)
-                    .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
-                    .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
-                    .build()
-            }
-
-            override fun isCommandAvailable(command: Int): Boolean {
-                return when (command) {
-                    Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_PREVIOUS,
-                    Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> true
-                    else -> super.isCommandAvailable(command)
-                }
-            }
-
-            override fun seekToNext() { MusicManager.onNextClick?.invoke() }
-            override fun seekToPrevious() { MusicManager.onPreviousClick?.invoke() }
-            override fun seekToNextMediaItem() { MusicManager.onNextClick?.invoke() }
-            override fun seekToPreviousMediaItem() { MusicManager.onPreviousClick?.invoke() }
-        }
-    }
 
         librarySessionCallback = KittyTuneMediaLibrarySessionCallback(
             context = this,
@@ -531,6 +516,257 @@ class PlaybackService : MediaLibraryService() {
                     val original = currentTrack.displayArtist.ifBlank { currentTrack.user?.username ?: getString(R.string.unknown_artist) }
                     replaceCurrentMediaSubtitle(currentTrack.id.toString(), original, isLyric = false)
                 }
+            }
+        }
+    }
+
+    private fun createForwardingPlayer(): KittyTuneForwardingPlayer {
+        return KittyTuneForwardingPlayer(MusicManager.player).also {
+            currentForwardingPlayer = it
+        }
+    }
+
+    inner class KittyTuneForwardingPlayer(delegate: Player) : ForwardingPlayer(delegate) {
+        private val wrappedListeners = java.util.concurrent.CopyOnWriteArrayList<Player.Listener>()
+        private val listenerMap = java.util.concurrent.ConcurrentHashMap<Player.Listener, Player.Listener>()
+
+        override fun getDuration(): Long {
+            val superDuration = super.getDuration()
+            if (superDuration > 0L && superDuration != C.TIME_UNSET) {
+                return superDuration
+            }
+            val trackDuration = MusicManager.currentTrack?.actualDurationMs ?: 0L
+            if (trackDuration > 0L) {
+                return trackDuration
+            }
+            return superDuration
+        }
+
+        override fun isCurrentMediaItemSeekable(): Boolean {
+            if (super.isCurrentMediaItemSeekable()) return true
+            return MusicManager.currentTrack != null
+        }
+
+        override fun isCurrentMediaItemDynamic(): Boolean {
+            if (MusicManager.currentTrack != null) return false
+            return super.isCurrentMediaItemDynamic()
+        }
+
+        override fun isCurrentMediaItemLive(): Boolean {
+            if (MusicManager.currentTrack != null) return false
+            return super.isCurrentMediaItemLive()
+        }
+
+        override fun getMediaMetadata(): androidx.media3.common.MediaMetadata {
+            val superMeta = super.getMediaMetadata()
+            val track = MusicManager.currentTrack
+            if (track != null && (superMeta.title.isNullOrEmpty() || superMeta.durationMs == null || superMeta.durationMs == 0L)) {
+                val artist = track.displayArtist.ifBlank { getString(R.string.unknown_artist) }
+                return superMeta.buildUpon()
+                    .setTitle(superMeta.title?.takeIf { it.isNotEmpty() } ?: track.title ?: getString(R.string.untitled_track))
+                    .setArtist(superMeta.artist?.takeIf { it.isNotEmpty() } ?: artist)
+                    .setSubtitle(superMeta.subtitle?.takeIf { it.isNotEmpty() } ?: artist)
+                    .setIsPlayable(true)
+                    .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                    .setArtworkUri(superMeta.artworkUri ?: track.fullResArtwork.toUri())
+                    .setDurationMs(track.actualDurationMs)
+                    .build()
+            }
+            return superMeta
+        }
+
+        override fun getCurrentMediaItem(): androidx.media3.common.MediaItem? {
+            val superItem = super.getCurrentMediaItem()
+            if (superItem != null) return superItem
+            val track = MusicManager.currentTrack ?: return null
+            val artist = track.displayArtist.ifBlank { getString(R.string.unknown_artist) }
+            val meta = androidx.media3.common.MediaMetadata.Builder()
+                .setTitle(track.title ?: getString(R.string.untitled_track))
+                .setArtist(artist)
+                .setSubtitle(artist)
+                .setIsPlayable(true)
+                .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                .setArtworkUri(track.fullResArtwork.toUri())
+                .setDurationMs(track.actualDurationMs)
+                .build()
+            return androidx.media3.common.MediaItem.Builder()
+                .setMediaId(track.id.toString())
+                .setUri("soundtune://track/${track.id}".toUri())
+                .setMediaMetadata(meta)
+                .build()
+        }
+
+        override fun getAvailableCommands(): Player.Commands {
+            return super.getAvailableCommands().buildUpon()
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_GET_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_GET_TIMELINE)
+                .add(Player.COMMAND_GET_METADATA)
+                .add(Player.COMMAND_PLAY_PAUSE)
+                .build()
+        }
+
+        override fun isCommandAvailable(command: Int): Boolean {
+            return when (command) {
+                Player.COMMAND_SEEK_TO_NEXT, Player.COMMAND_SEEK_TO_PREVIOUS,
+                Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM, Player.COMMAND_GET_CURRENT_MEDIA_ITEM,
+                Player.COMMAND_GET_TIMELINE, Player.COMMAND_GET_METADATA,
+                Player.COMMAND_PLAY_PAUSE -> true
+                else -> super.isCommandAvailable(command)
+            }
+        }
+
+        override fun getPlaybackState(): Int {
+            val base = super.getPlaybackState()
+            return if (MusicManager.isLoadingTrack || (MusicManager.currentTrack != null && base == Player.STATE_IDLE)) {
+                Player.STATE_BUFFERING
+            } else {
+                base
+            }
+        }
+
+        override fun getPlayWhenReady(): Boolean {
+            return if (MusicManager.isLoadingTrack) {
+                MusicManager.playWhenReadyRequested
+            } else {
+                super.getPlayWhenReady()
+            }
+        }
+
+        override fun isPlaying(): Boolean {
+            return if (MusicManager.isLoadingTrack) {
+                false
+            } else {
+                super.isPlaying()
+            }
+        }
+
+        override fun getCurrentPosition(): Long {
+            return if (MusicManager.isLoadingTrack) {
+                MusicManager.pendingSeekPositionMs ?: 0L
+            } else {
+                super.getCurrentPosition()
+            }
+        }
+
+        override fun seekTo(positionMs: Long) {
+            if (MusicManager.isLoadingTrack) {
+                MusicManager.pendingSeekPositionMs = positionMs
+                notifyPositionDiscontinuity(positionMs)
+            } else {
+                super.seekTo(positionMs)
+            }
+        }
+
+        override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+            if (MusicManager.isLoadingTrack) {
+                MusicManager.pendingSeekPositionMs = positionMs
+                notifyPositionDiscontinuity(positionMs)
+            } else {
+                super.seekTo(mediaItemIndex, positionMs)
+            }
+        }
+
+        override fun play() {
+            if (MusicManager.isLoadingTrack) {
+                MusicManager.playWhenReadyRequested = true
+                notifyLoadingStateChanged()
+            } else {
+                super.play()
+            }
+        }
+
+        override fun pause() {
+            if (MusicManager.isLoadingTrack) {
+                MusicManager.playWhenReadyRequested = false
+                notifyLoadingStateChanged()
+            } else {
+                super.pause()
+            }
+        }
+
+        override fun seekToNext() { MusicManager.onNextClick?.invoke() }
+        override fun seekToPrevious() { MusicManager.onPreviousClick?.invoke() }
+        override fun seekToNextMediaItem() { MusicManager.onNextClick?.invoke() }
+        override fun seekToPreviousMediaItem() { MusicManager.onPreviousClick?.invoke() }
+
+        override fun addListener(listener: Player.Listener) {
+            val wrapped = object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    val effectiveState = if (MusicManager.isLoadingTrack || (MusicManager.currentTrack != null && playbackState == Player.STATE_IDLE)) {
+                        Player.STATE_BUFFERING
+                    } else {
+                        playbackState
+                    }
+                    listener.onPlaybackStateChanged(effectiveState)
+                }
+
+                override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                    val effective = if (MusicManager.isLoadingTrack) MusicManager.playWhenReadyRequested else playWhenReady
+                    listener.onPlayWhenReadyChanged(effective, reason)
+                }
+
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    val effective = if (MusicManager.isLoadingTrack) false else isPlaying
+                    listener.onIsPlayingChanged(effective)
+                }
+
+                override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                    listener.onMediaItemTransition(mediaItem, reason)
+                }
+
+                override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+                    listener.onTimelineChanged(timeline, reason)
+                }
+
+                override fun onEvents(player: Player, events: Player.Events) {
+                    listener.onEvents(this@KittyTuneForwardingPlayer, events)
+                }
+
+                override fun onPositionDiscontinuity(
+                    oldPosition: Player.PositionInfo,
+                    newPosition: Player.PositionInfo,
+                    reason: Int
+                ) {
+                    listener.onPositionDiscontinuity(oldPosition, newPosition, reason)
+                }
+            }
+            listenerMap[listener] = wrapped
+            wrappedListeners.add(wrapped)
+            super.addListener(wrapped)
+        }
+
+        override fun removeListener(listener: Player.Listener) {
+            val wrapped = listenerMap.remove(listener) ?: listener
+            wrappedListeners.remove(wrapped)
+            super.removeListener(wrapped)
+        }
+
+        fun notifyLoadingStateChanged() {
+            val state = getPlaybackState()
+            val pwr = getPlayWhenReady()
+            val playing = isPlaying
+            for (l in wrappedListeners) {
+                try {
+                    l.onPlaybackStateChanged(state)
+                    l.onPlayWhenReadyChanged(pwr, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
+                    l.onIsPlayingChanged(playing)
+                } catch (_: Exception) {}
+            }
+        }
+
+        private fun notifyPositionDiscontinuity(positionMs: Long) {
+            val oldPos = Player.PositionInfo(null, 0, null, null, 0, 0L, 0L, 0, 0)
+            val newPos = Player.PositionInfo(null, 0, null, null, 0, positionMs, positionMs, 0, 0)
+            for (l in wrappedListeners) {
+                try {
+                    l.onPositionDiscontinuity(oldPos, newPos, Player.DISCONTINUITY_REASON_SEEK)
+                } catch (_: Exception) {}
             }
         }
     }
