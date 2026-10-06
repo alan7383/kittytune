@@ -36,7 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import kotlinx.coroutines.Dispatchers
@@ -200,7 +200,7 @@ private suspend fun loadTexture(context: Context, url: String): Bitmap? = withCo
         .size(TEXTURE_PX)
         .allowHardware(false)
         .build()
-    val loader = ImageLoader(context)
+    val loader = context.imageLoader
     val result = runCatching { loader.execute(request) }.getOrNull()
     val bitmap = ((result as? SuccessResult)?.drawable as? BitmapDrawable)?.bitmap ?: return@withContext null
 

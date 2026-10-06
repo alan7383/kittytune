@@ -235,6 +235,18 @@ object ProxyManager {
         } else {
             builder.proxySelector(appProxySelector)
         }
+        builder.addInterceptor { chain ->
+            val request = chain.request()
+            if (request.header("User-Agent").isNullOrBlank()) {
+                chain.proceed(
+                    request.newBuilder()
+                        .header("User-Agent", "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                        .build()
+                )
+            } else {
+                chain.proceed(request)
+            }
+        }
         return builder
     }
 

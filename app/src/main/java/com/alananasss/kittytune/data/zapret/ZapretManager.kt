@@ -159,11 +159,14 @@ object ZapretManager {
         val strategy = ZapretStrategy.fromId(p.getZapretStrategy())
         val savedDomains = p.getZapretDomains()
 
-        // If enabled and domains is empty, default to all service domains
-        val domains = if (isEnabled && savedDomains.isEmpty()) {
-            val all = ZapretServices.ALL_DOMAINS
-            p.setZapretDomains(all)
-            all
+        // If enabled, always merge ZapretServices.ALL_DOMAINS so updates and CDN domains
+        // (like image covers) are never omitted even on existing installs.
+        val domains = if (isEnabled) {
+            val merged = (savedDomains + ZapretServices.ALL_DOMAINS).toSet()
+            if (merged != savedDomains) {
+                p.setZapretDomains(merged)
+            }
+            merged
         } else {
             savedDomains
         }
@@ -189,17 +192,18 @@ object ZapretManager {
 
     fun getLocalProxy(): Proxy? {
         val current = _state.value
-        if (!current.enabled || current.isPausedForVpn || !proxy.isRunning) return null
+        if (!current.enabled || current.isPausedForVpn) return null
         val port = proxy.boundPort.takeIf { it > 0 } ?: DEFAULT_PORT
         return Proxy(Proxy.Type.SOCKS, InetSocketAddress.createUnresolved("127.0.0.1", port))
     }
 
     fun getProxyForHost(host: String?): Proxy? {
         val current = _state.value
-        if (!current.enabled || current.isPausedForVpn || !proxy.isRunning) return null
+        if (!current.enabled || current.isPausedForVpn) return null
         val clean = host?.lowercase()?.trim()?.trimEnd('.') ?: return null
         if (clean.isBlank()) return null
-        return if (ZapretHostList.isCovered(clean, current.domains)) {
+        val effectiveDomains = current.domains + ZapretServices.ALL_DOMAINS
+        return if (ZapretHostList.isCovered(clean, effectiveDomains)) {
             getLocalProxy()
         } else null
     }
@@ -210,12 +214,12 @@ object ZapretManager {
             return
         }
         val port = findAvailablePort(DEFAULT_PORT)
+        // Clean Linux desync without TLS record corruption (--tlsrec causes resets on CDNs like CloudFront/Cloudflare)
         val args = when (strategy) {
             ZapretStrategy.SPLIT2 -> arrayOf(
                 "--ip", "127.0.0.1",
                 "--port", port.toString(),
-                "--split", "1+s",
-                "--tlsrec", "1+s",
+                "--disorder", "1",
                 "--mod-http", "h,d"
             )
             ZapretStrategy.MULTI -> arrayOf(
@@ -223,7 +227,6 @@ object ZapretManager {
                 "--port", port.toString(),
                 "--split", "1+s",
                 "--disorder", "3+s",
-                "--tlsrec", "1+s",
                 "--mod-http", "h,d"
             )
         }
@@ -250,10 +253,10 @@ object ZapretManager {
         val p = prefs ?: PlayerPreferences(appContext).also { prefs = it }
         p.setZapretEnabled(enabled)
         val curDomains = _state.value.domains
-        val domains = if (enabled && curDomains.isEmpty()) {
-            val all = ZapretServices.ALL_DOMAINS
-            p.setZapretDomains(all)
-            all
+        val domains = if (enabled) {
+            val merged = (curDomains + ZapretServices.ALL_DOMAINS).toSet()
+            p.setZapretDomains(merged)
+            merged
         } else {
             curDomains
         }
@@ -287,7 +290,7 @@ object ZapretManager {
 
     /** Whether [host] (or its parent domain) is in the bypass list — host lists match subdomains. */
     fun isCovered(host: String): Boolean {
-        val covered = _state.value.domains
+        val covered = _state.value.domains + ZapretServices.ALL_DOMAINS
         if (covered.isEmpty()) return false
         return ZapretHostList.isCovered(host, covered)
     }

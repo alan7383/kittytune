@@ -142,6 +142,23 @@ class ZapretAndroidTest {
         assertTrue("ALL_DOMAINS should not be empty", ZapretServices.ALL_DOMAINS.isNotEmpty())
         assertTrue(ZapretServices.ALL_DOMAINS.contains("googleusercontent.com"))
         assertTrue(ZapretServices.ALL_DOMAINS.contains("sndcdn.com"))
+        assertTrue(ZapretServices.ALL_DOMAINS.contains("gstatic.com"))
+        assertTrue(ZapretServices.ALL_DOMAINS.contains("userapi.com"))
+        assertTrue(ZapretServices.ALL_DOMAINS.contains("picsum.photos"))
+
+        val vk = ZapretServices.ALL.first { it.id == "vk" }
+        assertTrue("VK should cover userapi.com for avatar/cover images", ZapretHostList.isCovered("sun9-1.userapi.com", vk.domains.toSet()))
+
+        val helpers = ZapretServices.ALL.first { it.id == "helpers" }
+        assertTrue("Helpers should cover picsum.photos for placeholder covers", ZapretHostList.isCovered("picsum.photos", helpers.domains.toSet()))
+    }
+
+    @Test
+    fun isCoveredFallsBackToAllDomainsWhenStateDomainsEmpty() {
+        // Even if user's saved domain preference is empty or stale, all service domains must be covered
+        assertTrue(com.alananasss.kittytune.data.zapret.ZapretManager.isCovered("i1.sndcdn.com"))
+        assertTrue(com.alananasss.kittytune.data.zapret.ZapretManager.isCovered("lh3.googleusercontent.com"))
+        assertTrue(com.alananasss.kittytune.data.zapret.ZapretManager.isCovered("sun9-1.userapi.com"))
     }
 
     @Test

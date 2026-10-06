@@ -43,6 +43,7 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
         // In-app DPI bypass (zapret): no folder, no VPN, no proxy. Installs the fragmenting
         // socket factories and restores the bypass domain list into the dynamic policy.
         com.alananasss.kittytune.data.zapret.ZapretManager.init(this)
+        coil.Coil.setImageLoader(this)
         com.zionhuang.innertube.YouTube.socketFactory =
             com.alananasss.kittytune.data.zapret.ZapretManager.bypassSocketFactory()
         // Recognition (Shazam) and KuGou lyrics run on their own Ktor engines in library
@@ -90,22 +91,38 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
                 } else {
                     add(GifDecoder.Factory())
                 }
-                // Data saver choke point for artwork: every image request in the app goes
-                // through this interceptor, so a single URL rewrite here lightens covers in
-                // lists, players, playlists and widgets at once — no UI call site touched.
+                // Data saver & CDN header support: ensures browser User-Agent / Referer
+                // so CDNs (SoundCloud CloudFront, Google, picsum) do not block requests.
                 add(object : coil.intercept.Interceptor {
                     override suspend fun intercept(chain: coil.intercept.Interceptor.Chain): coil.request.ImageResult {
-                        if (!com.alananasss.kittytune.data.DataSaver.isActive(this@KittyTuneApp)) {
-                            return chain.proceed(chain.request)
+                        var req = chain.request
+                        val urlStr = (req.data as? String)?.takeIf { it.startsWith("http") }
+                        if (urlStr != null) {
+                            val headersBuilder = req.headers.newBuilder()
+                            var headersChanged = false
+                            if (req.headers["User-Agent"].isNullOrBlank()) {
+                                headersBuilder.set("User-Agent", "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                                headersChanged = true
+                            }
+                            if (urlStr.contains("sndcdn.com") && req.headers["Referer"].isNullOrBlank()) {
+                                headersBuilder.set("Referer", "https://soundcloud.com/")
+                                headersChanged = true
+                            }
+                            if (headersChanged) {
+                                req = req.newBuilder().headers(headersBuilder.build()).build()
+                            }
                         }
-                        val data = chain.request.data
+                        if (!com.alananasss.kittytune.data.DataSaver.isActive(this@KittyTuneApp)) {
+                            return chain.proceed(req)
+                        }
+                        val data = req.data
                         if (data is String) {
                             val light = com.alananasss.kittytune.data.DataSaver.lightArtwork(data)
                             if (light != null && light != data) {
-                                return chain.proceed(chain.request.newBuilder().data(light).build())
+                                return chain.proceed(req.newBuilder().data(light).build())
                             }
                         }
-                        return chain.proceed(chain.request)
+                        return chain.proceed(req)
                     }
                 })
             }

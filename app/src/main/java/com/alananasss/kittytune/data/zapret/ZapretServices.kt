@@ -52,6 +52,8 @@ object ZapretServices {
                 "googleusercontent.com",
                 "youtubei.googleapis.com",
                 "googleapis.com",
+                "gstatic.com",
+                "google.com",
                 "kavin.rocks"
             ),
         ),
@@ -81,16 +83,16 @@ object ZapretServices {
             listOf("lrclib.net", "musixmatch.com", "genius.com", "paxsenix.org", "boidu.dev", "megalobiz.com", "simpmusic.org", "binimum.org", "prjktla.my.id", "atomix.one"),
         ),
         ZapretService(
-            "helpers", "Helper APIs (Hugging Face, Render, Vercel)",
+            "helpers", "Helper APIs (Hugging Face, Render, Vercel, Picsum)",
             listOf("https://huggingface.co/", "https://vercel.app/", "https://picsum.photos/200"),
-            listOf("hf.space", "huggingface.co", "onrender.com", "vercel.app", "workers.dev", "picsum.photos"),
+            listOf("hf.space", "huggingface.co", "onrender.com", "vercel.app", "workers.dev", "picsum.photos", "fastly.picsum.photos"),
         ),
         ZapretService("discord", "Discord", listOf("https://discord.com/api/v9/gateway", "https://cdn.discordapp.com/"), listOf("discord.com", "discordapp.com", "discord.gg", "discord.media")),
         ZapretService("github", "GitHub (updates)", listOf("https://api.github.com/", "https://objects.githubusercontent.com/"), listOf("github.com", "githubusercontent.com")),
         ZapretService(
             "vk", "VK",
             listOf("https://vk.com/", "https://api.vk.com/method/users.get?v=5.131"),
-            listOf("vk.com", "vk.ru"),
+            listOf("vk.com", "vk.ru", "userapi.com", "vkuser.net", "vkcache.com"),
         ),
         ZapretService(
             "shazam", "Shazam (recognition)",
