@@ -12,6 +12,7 @@ import com.zionhuang.innertube.models.SearchSuggestions
 import com.zionhuang.innertube.models.SongItem
 import com.zionhuang.innertube.models.WatchEndpoint
 import com.zionhuang.innertube.models.WatchEndpoint.WatchEndpointMusicSupportedConfigs.WatchEndpointMusicConfig.Companion.MUSIC_VIDEO_TYPE_ATV
+import com.zionhuang.innertube.models.YTItem
 import com.zionhuang.innertube.models.YouTubeClient.Companion.ANDROID_MUSIC
 import com.zionhuang.innertube.models.YouTubeClient.Companion.TVHTML5
 import com.zionhuang.innertube.models.YouTubeClient.Companion.WEB
@@ -87,6 +88,11 @@ object YouTube {
         set(value) {
             innerTube.socketFactory = value
         }
+    var okHttpClient: okhttp3.OkHttpClient?
+        get() = innerTube.okHttpClient
+        set(value) {
+            innerTube.okHttpClient = value
+        }
 
     suspend fun searchSuggestions(query: String): Result<SearchSuggestions> = runCatching {
         val response = innerTube.getSearchSuggestions(WEB_REMIX, query).body<GetSearchSuggestionsResponse>()
@@ -133,17 +139,19 @@ object YouTube {
         )
     }
 
-    suspend fun search(query: String, filter: SearchFilter): Result<SearchResult> = runCatching {
-        val response = innerTube.search(WEB_REMIX, query, filter.value).body<SearchResponse>()
+    suspend fun search(query: String, filter: SearchFilter = SearchFilter.FILTER_ALL): Result<SearchResult> = runCatching {
+        val param = filter.value.takeIf { it.isNotBlank() }
+        val response = innerTube.search(WEB_REMIX, query, param).body<SearchResponse>()
+        val contents = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
+            ?.tabRenderer?.content?.sectionListRenderer?.contents
+        val shelf = contents?.mapNotNull { it.musicShelfRenderer }?.firstOrNull()
+            ?: contents?.lastOrNull()?.musicShelfRenderer
+        val items: List<YTItem> = shelf?.contents?.mapNotNull {
+            SearchPage.toYTItem(it.musicResponsiveListItemRenderer)
+        }.orEmpty()
         SearchResult(
-            items = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-                ?.tabRenderer?.content?.sectionListRenderer?.contents?.lastOrNull()
-                ?.musicShelfRenderer?.contents?.mapNotNull {
-                    SearchPage.toYTItem(it.musicResponsiveListItemRenderer)
-                }.orEmpty(),
-            continuation = response.contents?.tabbedSearchResultsRenderer?.tabs?.firstOrNull()
-                ?.tabRenderer?.content?.sectionListRenderer?.contents?.lastOrNull()
-                ?.musicShelfRenderer?.continuations?.getContinuation()
+            items = items,
+            continuation = shelf?.continuations?.getContinuation()
         )
     }
 
@@ -548,6 +556,7 @@ object YouTube {
     @JvmInline
     value class SearchFilter(val value: String) {
         companion object {
+            val FILTER_ALL = SearchFilter("")
             val FILTER_SONG = SearchFilter("EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D")
             val FILTER_VIDEO = SearchFilter("EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D")
             val FILTER_ALBUM = SearchFilter("EgWKAQIYAWoKEAkQChAFEAMQBA%3D%3D")

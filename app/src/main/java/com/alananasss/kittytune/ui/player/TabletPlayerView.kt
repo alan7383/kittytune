@@ -441,44 +441,50 @@ fun DesktopTrackInfoTabContent(
             }
         }
 
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                StatItem(
-                    icon = Icons.Rounded.PlayArrow,
-                    count = track.playbackCount
-                )
-                StatItem(
-                    icon = Icons.Rounded.Favorite,
-                    count = track.likesCount,
-                    tint = if (viewModel.isLiked) animatedColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                    onClick = { viewModel.navigateToTrackDetails(track.id, 0) }
-                )
-                StatItem(
-                    icon = Icons.Rounded.Repeat,
-                    count = track.repostsCount,
-                    onClick = { viewModel.navigateToTrackDetails(track.id, 1) }
-                )
-                StatItem(
-                    icon = Icons.AutoMirrored.Rounded.Comment,
-                    count = track.commentCount
-                )
-                IconButton(
-                    onClick = { viewModel.navigateToTrackDetails(track.id, 0) },
-                    shapes = IconButtonDefaults.shapes(),
-                    modifier = Modifier.size(32.dp)
+        val isExternalTrack = track.source in listOf("deezer", "tidal", "qobuz", "youtube", "youtube_music", "spotify", "vk") ||
+            track.user?.urn?.startsWith("deezer:") == true ||
+            track.user?.urn?.startsWith("tidal:") == true ||
+            track.user?.urn?.startsWith("qobuz:") == true
+        if (!isExternalTrack && (track.playbackCount > 0 || track.likesCount > 0 || track.repostsCount > 0)) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Rounded.Info,
-                        contentDescription = "Details",
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    StatItem(
+                        icon = Icons.Rounded.PlayArrow,
+                        count = track.playbackCount
                     )
+                    StatItem(
+                        icon = Icons.Rounded.Favorite,
+                        count = track.likesCount,
+                        tint = if (viewModel.isLiked) animatedColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                        onClick = { viewModel.navigateToTrackDetails(track.id, 0) }
+                    )
+                    StatItem(
+                        icon = Icons.Rounded.Repeat,
+                        count = track.repostsCount,
+                        onClick = { viewModel.navigateToTrackDetails(track.id, 1) }
+                    )
+                    StatItem(
+                        icon = Icons.AutoMirrored.Rounded.Comment,
+                        count = track.commentCount
+                    )
+                    IconButton(
+                        onClick = { viewModel.navigateToTrackDetails(track.id, 0) },
+                        shapes = IconButtonDefaults.shapes(),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Rounded.Info,
+                            contentDescription = "Details",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

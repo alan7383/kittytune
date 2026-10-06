@@ -3037,9 +3037,26 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             currentTrack?.let { navigateToTrackArtist(it) }
             return
         }
-        if (currentU != null && (currentU.id == userId || currentU.numericId == userId) && currentU.urn?.startsWith("spotify:artist:") == true) {
-            navigateToPlaylistId = "profile:${currentU.urn}"
-            return
+        if (currentU != null && (currentU.id == userId || currentU.numericId == userId)) {
+            val urn = currentU.urn
+            if (urn != null) {
+                when {
+                    urn.startsWith("spotify:artist:") -> {
+                        navigateToPlaylistId = "profile:$urn"
+                        return
+                    }
+                    urn.startsWith("deezer:artist:") || urn.startsWith("tidal:artist:") || urn.startsWith("qobuz:artist:") -> {
+                        navigateToPlaylistId = urn
+                        return
+                    }
+                }
+            }
+        }
+        if (currentTrack?.source in listOf("deezer", "tidal", "qobuz")) {
+            currentTrack?.let {
+                navigateToTrackArtist(it)
+                return
+            }
         }
         navigateToPlaylistId = "profile:$userId"
     }

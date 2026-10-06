@@ -59,6 +59,16 @@ class InnerTube {
             httpClient = createClient()
         }
 
+    /**
+     * Optional preconfigured [okhttp3.OkHttpClient] (e.g. KittyTune's app-wide proxy client).
+     */
+    var okHttpClient: okhttp3.OkHttpClient? = null
+        set(value) {
+            field = value
+            httpClient.close()
+            httpClient = createClient()
+        }
+
     @OptIn(ExperimentalSerializationApi::class)
     private fun createClient() = HttpClient(OkHttp) {
         expectSuccess = true
@@ -77,7 +87,12 @@ class InnerTube {
             deflate(0.8F)
         }
 
-        if (proxy != null || socketFactory != null) {
+        val customClient = okHttpClient
+        if (customClient != null) {
+            engine {
+                preconfigured = customClient
+            }
+        } else if (proxy != null || socketFactory != null) {
             engine {
                 preconfigured = okhttp3.OkHttpClient.Builder().apply {
                     socketFactory?.let { socketFactory(it) }

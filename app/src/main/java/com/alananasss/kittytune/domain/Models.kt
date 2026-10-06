@@ -504,8 +504,8 @@ data class Track(
 
     val fullResArtwork: String
         get() {
-            if (artworkUrl != null) return artworkUrl.replace("large", "t500x500")
-            if (user != null && user.avatarUrl != null) return user.avatarUrl.replace("large", "t500x500")
+            if (!artworkUrl.isNullOrEmpty()) return artworkUrl.toHighResArtwork()
+            if (user != null && !user.avatarUrl.isNullOrEmpty()) return user.avatarUrl.toHighResArtwork()
             return "https://picsum.photos/200"
         }
 
@@ -718,9 +718,9 @@ data class SystemPlaylist(
     val isTrackStation: Boolean get() = (urn ?: id ?: "").contains("track-stations")
     val fullResArtwork: String
         get() {
-            if (!artworkUrl.isNullOrEmpty()) return artworkUrl.replace("large", "t500x500")
-            if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.replace("large", "t500x500")
-            return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200"
+            if (!artworkUrl.isNullOrEmpty()) return artworkUrl.toHighResArtwork()
+            if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.toHighResArtwork()
+            return user?.avatarUrl?.toHighResArtwork() ?: "https://picsum.photos/200"
         }
 
     val thumbnailUrl: String
@@ -830,13 +830,13 @@ data class Playlist(
 
     val fullResArtwork: String
         get() {
-            if (!artworkUrl.isNullOrEmpty()) return artworkUrl.replace("large", "t500x500")
-            if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.replace("large", "t500x500")
+            if (!artworkUrl.isNullOrEmpty()) return artworkUrl.toHighResArtwork()
+            if (!calculatedArtworkUrl.isNullOrEmpty()) return calculatedArtworkUrl.toHighResArtwork()
             if (!tracks.isNullOrEmpty()) {
                 val firstTrackArt = tracks[0].fullResArtwork
                 if (!firstTrackArt.contains("picsum")) return firstTrackArt
             }
-            return user?.avatarUrl?.replace("large", "t500x500") ?: "https://picsum.photos/200"
+            return user?.avatarUrl?.toHighResArtwork() ?: "https://picsum.photos/200"
         }
 
     val thumbnailUrl: String
@@ -1048,9 +1048,21 @@ fun String?.isDefaultAvatar(): Boolean {
     return false
 }
 
+fun String.toHighResArtwork(): String {
+    if (this.isBlank()) return this
+    if (this.contains("default_avatar", ignoreCase = true)) return this
+    val withSizes = this.replace("{size}", "t500x500").replace("{format}", "t500x500")
+    return if (withSizes.contains("sndcdn.com")) {
+        withSizes.replace("-large.", "-t500x500.").replace("large", "t500x500")
+    } else {
+        withSizes
+    }
+}
+
 fun String?.getHighResAvatarUrl(): String? {
-    if (this == null || this.isDefaultAvatar()) return null
-    return this.replace("large", "t500x500")
+    if (this == null) return null
+    if (this.isDefaultAvatar()) return this
+    return this.toHighResArtwork()
 }
 
 data class SoundCloudConfigurationResponse(

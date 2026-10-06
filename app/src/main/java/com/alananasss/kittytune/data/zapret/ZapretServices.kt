@@ -54,7 +54,8 @@ object ZapretServices {
                 "googleapis.com",
                 "gstatic.com",
                 "google.com",
-                "kavin.rocks"
+                "kavin.rocks",
+                "youtu.be"
             ),
         ),
         ZapretService(
@@ -67,7 +68,7 @@ object ZapretServices {
                 // Recommendations power radio and mixes; 401 without token still answers.
                 "https://api.spotify.com/v1/recommendations?seed_tracks=4uLU6hMCjMI75M1A2tKUQm&limit=1",
             ),
-            listOf("spotify.com", "scdn.co", "spotifycdn.com"),
+            listOf("spotify.com", "scdn.co", "spotifycdn.com", "akamaized.net", "akamaihd.net", "spotifycharts.com"),
         ),
         ZapretService(
             "apple", "Apple Music",
@@ -75,8 +76,8 @@ object ZapretServices {
             listOf("music.apple.com", "amp-api.music.apple.com", "mzstatic.com", "apple.com"),
         ),
         ZapretService("deezer", "Deezer", listOf("https://api.deezer.com/chart", "https://www.deezer.com/"), listOf("deezer.com", "dzcdn.net")),
-        ZapretService("tidal", "TIDAL", listOf("https://tidal.com/", "https://api.tidal.com/v1/", "https://auth.tidal.com/v1/oauth2/token"), listOf("tidal.com", "tidalhifi.com")),
-        ZapretService("qobuz", "Qobuz", listOf("https://www.qobuz.com/", "https://www.qobuz.com/api.json/0.2/"), listOf("qobuz.com")),
+        ZapretService("tidal", "TIDAL", listOf("https://tidal.com/", "https://api.tidal.com/v1/", "https://auth.tidal.com/v1/oauth2/token"), listOf("tidal.com", "tidalhifi.com", "song.link")),
+        ZapretService("qobuz", "Qobuz", listOf("https://www.qobuz.com/", "https://www.qobuz.com/api.json/0.2/"), listOf("qobuz.com", "static.qobuz.com")),
         ZapretService(
             "lyrics", "Lyrics (LRCLIB, Musixmatch, Genius…)",
             listOf("https://lrclib.net/api/search?q=hello", "https://apic-desktop.musixmatch.com/", "https://api.genius.com/"),
@@ -92,7 +93,7 @@ object ZapretServices {
         ZapretService(
             "vk", "VK",
             listOf("https://vk.com/", "https://api.vk.com/method/users.get?v=5.131"),
-            listOf("vk.com", "vk.ru", "userapi.com", "vkuser.net", "vkcache.com"),
+            listOf("vk.com", "vk.ru", "userapi.com", "vkuser.net", "vkcache.com", "vk-cdn.me", "vk.me", "mycdn.me"),
         ),
         ZapretService(
             "shazam", "Shazam (recognition)",

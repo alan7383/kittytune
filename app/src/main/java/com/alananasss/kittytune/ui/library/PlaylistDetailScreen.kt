@@ -82,6 +82,7 @@ import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.domain.PlaylistUpdateRequest
+import com.alananasss.kittytune.domain.getHighResAvatarUrl
 import com.alananasss.kittytune.ui.common.TrackListItemShimmer
 import com.alananasss.kittytune.ui.common.MiniSocialProofAvatars
 import com.alananasss.kittytune.data.SocialProofRepository
@@ -813,8 +814,7 @@ fun PlaylistDetailScreen(
                     val targetUserId = currentIdLong
                     defaultIcon = Icons.Rounded.Favorite
                     val user = api.getUser(targetUserId)
-                    playlistTitle = context.getString(R.string.home_liked_by_user_title, user.username ?: "")
-                    playlistCover = user.avatarUrl?.replace("large", "t500x500")
+                    playlistCover = user.avatarUrl.getHighResAvatarUrl() ?: user.avatarUrl
                     playlistUser = user
                     playlistPermalinkUrl = user.permalinkUrl
 

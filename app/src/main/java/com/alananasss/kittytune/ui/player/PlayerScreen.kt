@@ -85,6 +85,7 @@ import com.alananasss.kittytune.ui.player.slider.SquigglySlider
 import com.alananasss.kittytune.domain.Comment
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.domain.getHighResAvatarUrl
 import com.alananasss.kittytune.ui.library.TrackSortBy
 import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
 import com.alananasss.kittytune.ui.player.lyrics.LyricLine
@@ -1960,7 +1961,7 @@ fun SocialProofBanner(
         ) {
             displayLikers.forEachIndexed { index, user ->
                 val fallbackTeal = Color(0xFF00897B)
-                val avatarUrl = user.avatarUrl?.replace("large", "t500x500")
+                val avatarUrl = user.avatarUrl.getHighResAvatarUrl() ?: user.avatarUrl
 
                 Box(
                     modifier = Modifier
@@ -10104,6 +10105,11 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
     // VK exposes no play/like/repost counters and has no comment or "similar tracks" endpoint, so
     // those SoundCloud-only blocks are hidden instead of being rendered as a row of zeros.
     val isVkTrack = track.source == "vk"
+    val isDeezerTrack = track.source == "deezer" || track.user?.urn?.startsWith("deezer:") == true || track.permalinkUrl?.contains("deezer.com") == true
+    val isTidalTrack = track.source == "tidal" || track.user?.urn?.startsWith("tidal:") == true || track.permalinkUrl?.contains("tidal.com") == true
+    val isQobuzTrack = track.source == "qobuz" || track.user?.urn?.startsWith("qobuz:") == true || track.permalinkUrl?.contains("qobuz.com") == true
+    val isYtTrack = track.source in listOf("youtube", "youtube_music") || track.permalinkUrl?.contains("youtube.com") == true || track.permalinkUrl?.contains("youtu.be") == true
+    val isExternalStreamTrack = isDeezerTrack || isTidalTrack || isQobuzTrack || isYtTrack
     val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
     val displayFormat = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
     val releaseDateStr = remember(track.releaseDate, track.createdAt) {
@@ -10586,6 +10592,31 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                     DetailInfoRow(stringResource(R.string.detail_stats_artist), track.displayArtist)
                 }
                 DetailInfoRow(stringResource(R.string.detail_stats_source), "VKontakte")
+                Spacer(Modifier.height(32.dp))
+            }
+        } else if (isExternalStreamTrack) {
+            item {
+                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.actualDurationMs))
+                if (!track.publisherMetadata?.albumTitle.isNullOrBlank()) {
+                    DetailInfoRow(
+                        stringResource(R.string.profile_tab_albums),
+                        track.publisherMetadata!!.albumTitle!!
+                    )
+                }
+                if (!track.displayArtist.isBlank()) {
+                    DetailInfoRow(stringResource(R.string.detail_stats_artist), track.displayArtist)
+                }
+                val sourceLabel = when {
+                    isDeezerTrack -> "Deezer"
+                    isTidalTrack -> "TIDAL"
+                    isQobuzTrack -> "Qobuz"
+                    isYtTrack -> "YouTube Music"
+                    else -> track.source?.replaceFirstChar { it.uppercase() } ?: "External"
+                }
+                DetailInfoRow(stringResource(R.string.detail_stats_source), sourceLabel)
+                track.publisherMetadata?.isrc?.takeIf { it.isNotBlank() }?.let { isrc ->
+                    DetailInfoRow("ISRC", isrc)
+                }
                 Spacer(Modifier.height(32.dp))
             }
         } else {
