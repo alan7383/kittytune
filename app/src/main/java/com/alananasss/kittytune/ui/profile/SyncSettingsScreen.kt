@@ -677,7 +677,7 @@ private fun agoLabel(context: android.content.Context, atMs: Long): String {
 private const val LOCAL_NETWORK_PERMISSION = "android.permission.ACCESS_LOCAL_NETWORK"
 
 private fun hasLocalNetworkAccess(context: android.content.Context): Boolean =
-    if (android.os.Build.VERSION.SDK_INT < 36) {
+    if (android.os.Build.VERSION.SDK_INT < 37) {
         true
     } else {
         androidx.core.content.ContextCompat.checkSelfPermission(context, LOCAL_NETWORK_PERMISSION) ==
