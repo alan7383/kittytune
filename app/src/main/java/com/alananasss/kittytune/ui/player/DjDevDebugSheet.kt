@@ -53,7 +53,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
     if (!viewModel.showDjDebugSheet) return
 
     val flowState by viewModel.djFlowController.flowState.collectAsState()
-    val currentTrack = viewModel.currentTrack
+    val currentTrack = viewModel.uiCurrentTrack
 
     val tempoMs = if (flowState.currentBpm > 0f) (60000f / flowState.currentBpm).toInt().coerceIn(250, 1500) else 500
     val beatTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "DjBeatPulse")
@@ -136,7 +136,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
             item {
                 NextTrackTimingHeroCard(
                     flowState = flowState,
-                    currentPosition = viewModel.currentPosition,
+                    currentPosition = viewModel.uiCurrentPosition,
                     onTriggerTransition = { viewModel.djFlowController.triggerTransition() }
                 )
             }

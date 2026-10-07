@@ -1,0 +1,7 @@
+# docker compose -f compose.yaml -f compose.named.yaml up -d
+# Put the named tunnel token in .env; configure its public hostname to http://relay:8787.
+services:
+  tunnel:
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?Set a named Cloudflare tunnel token in .env}

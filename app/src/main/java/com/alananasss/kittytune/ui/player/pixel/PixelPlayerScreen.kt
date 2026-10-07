@@ -145,7 +145,7 @@ fun PixelPlayerScreen(
     viewModel: PlayerViewModel,
     onClose: () -> Unit
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
     val screenHeightPx = remember(configuration, density) {
@@ -339,7 +339,7 @@ fun PixelPlayerScreen(
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
                     CanvasVideo(
                         canvasUrl = backdropAnimatedUrl,
-                        isPlaying = viewModel.isPlaying,
+                        isPlaying = viewModel.uiIsPlaying,
                         modifier = Modifier
                             .fillMaxSize()
                             .blur(40.dp)
@@ -390,7 +390,7 @@ fun PixelPlayerScreen(
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
                     CanvasVideo(
                         canvasUrl = backdropAnimatedUrl,
-                        isPlaying = viewModel.isPlaying,
+                        isPlaying = viewModel.uiIsPlaying,
                         modifier = Modifier
                             .fillMaxSize()
                             .blur(40.dp)
@@ -454,12 +454,15 @@ fun PixelPlayerScreen(
 
                 // Center "Now Playing" title
                 Text(
-                    text = stringResource(R.string.player_now_playing),
+                    text = viewModel.playbackDeviceLabel ?: stringResource(R.string.player_now_playing),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontFamily = GoogleSansRounded,
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = mainTextColor
+                    color = mainTextColor,
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
 
                 // Right connected buttons: Lyrics + Queue
@@ -467,6 +470,7 @@ fun PixelPlayerScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    com.alananasss.kittytune.ui.profile.ConnectButton(tint = topBarBtnTint)
                     // Lyrics Squircle
                     Box(
                         modifier = Modifier
@@ -524,28 +528,28 @@ fun PixelPlayerScreen(
             }
 
             // Pager for swipe animation between queue tracks
-            val queueSize = viewModel.queueState.size
-            val currentIdx = viewModel.currentQueueIndex
+            val queueSize = viewModel.uiQueueState.size
+            val currentIdx = viewModel.uiCurrentQueueIndex
             val pagerState = rememberPagerState(
                 initialPage = currentIdx.coerceIn(0, (queueSize - 1).coerceAtLeast(0)),
                 pageCount = { queueSize.coerceAtLeast(1) }
             )
 
-            LaunchedEffect(viewModel.currentQueueIndex) {
-                if (viewModel.currentQueueIndex in 0 until pagerState.pageCount &&
-                    viewModel.currentQueueIndex != pagerState.currentPage
+            LaunchedEffect(viewModel.uiCurrentQueueIndex) {
+                if (viewModel.uiCurrentQueueIndex in 0 until pagerState.pageCount &&
+                    viewModel.uiCurrentQueueIndex != pagerState.currentPage
                 ) {
                     try {
-                        pagerState.animateScrollToPage(viewModel.currentQueueIndex)
+                        pagerState.animateScrollToPage(viewModel.uiCurrentQueueIndex)
                     } catch (_: Exception) {
-                        pagerState.scrollToPage(viewModel.currentQueueIndex)
+                        pagerState.scrollToPage(viewModel.uiCurrentQueueIndex)
                     }
                 }
             }
 
             LaunchedEffect(pagerState) {
                 snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-                    if (settledPage != viewModel.currentQueueIndex && settledPage in viewModel.queueState.indices) {
+                    if (settledPage != viewModel.uiCurrentQueueIndex && settledPage in viewModel.uiQueueState.indices) {
                         viewModel.skipToQueueItem(settledPage)
                     }
                 }
@@ -584,7 +588,7 @@ fun PixelPlayerScreen(
                         pageSpacing = 16.dp,
                         contentPadding = PaddingValues(horizontal = 24.dp)
                     ) { page ->
-                        val pageTrack = viewModel.queueState.getOrNull(page) ?: track
+                        val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
                         val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
                         val scale = lerp(0.88f, 1f, (1f - pageOffset.coerceIn(0f, 1f)))
                         val alpha = lerp(0.5f, 1f, (1f - pageOffset.coerceIn(0f, 1f)))
@@ -609,7 +613,7 @@ fun PixelPlayerScreen(
                             AnimatedArtwork(
                                 artworkUrl = pageTrack.fullResArtwork,
                                 animatedCoverUrl = if (pageTrack.id == track.id) (viewModel.currentAnimatedCoverTallUrl ?: viewModel.currentAnimatedCoverUrl) else null,
-                                isPlaying = viewModel.isPlaying && (pageTrack.id == track.id),
+                                isPlaying = viewModel.uiIsPlaying && (pageTrack.id == track.id),
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
@@ -703,15 +707,15 @@ fun PixelPlayerScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Expressive Wavy Slider
-                val totalDuration = if (viewModel.duration > 1000) {
-                    viewModel.duration
+                val totalDuration = if (viewModel.uiDuration > 1000) {
+                    viewModel.uiDuration
                 } else {
                     track.actualDurationMs.takeIf { it > 1000 } ?: 180000L
                 }
 
                 val (smoothProgressState, _) = rememberSmoothProgress(
-                    isPlayingProvider = { viewModel.isPlaying },
-                    currentPositionProvider = { viewModel.currentPosition },
+                    isPlayingProvider = { viewModel.uiIsPlaying },
+                    currentPositionProvider = { viewModel.uiCurrentPosition },
                     totalDuration = totalDuration,
                     trackId = track.id
                 )
@@ -786,7 +790,7 @@ fun PixelPlayerScreen(
                                     sliderDragValue = null
                                 }
                             },
-                            isPlaying = viewModel.isPlaying,
+                            isPlaying = viewModel.uiIsPlaying,
                             activeTrackColor = sliderActiveColor,
                             inactiveTrackColor = sliderInactiveColor,
                             thumbColor = sliderActiveColor,
@@ -887,7 +891,7 @@ fun PixelPlayerScreen(
                                 }
                             },
                             colors = sliderColors,
-                            isPlaying = viewModel.isPlaying,
+                            isPlaying = viewModel.uiIsPlaying,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -934,7 +938,7 @@ fun PixelPlayerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    isPlayingProvider = { viewModel.isPlaying },
+                    isPlayingProvider = { viewModel.uiIsPlaying },
                     isLoadingProvider = { viewModel.isLoading },
                     onPrevious = { viewModel.smartPrevious() },
                     onPlayPause = { viewModel.togglePlayPause() },
@@ -958,9 +962,9 @@ fun PixelPlayerScreen(
                         .height(66.dp)
                         .padding(horizontal = 24.dp),
                     slots = pixelSlots,
-                    isShuffleEnabled = viewModel.shuffleEnabled,
-                    repeatMode = viewModel.repeatMode,
-                    isFavorite = viewModel.isLiked,
+                    isShuffleEnabled = viewModel.uiShuffleEnabled,
+                    repeatMode = viewModel.uiRepeatMode,
+                    isFavorite = viewModel.uiIsLiked,
                     isLyricsActive = viewModel.showInlineLyrics || viewModel.isLyricsUnderCoverActive,
                     isFullscreenLyricsActive = viewModel.showLyricsSheet,
                     isSleepTimerActive = viewModel.isSleepTimerActive,
@@ -972,14 +976,14 @@ fun PixelPlayerScreen(
                     onEffectsClick = { showEffectsSheet = true },
                     onLyricsClick = { viewModel.openLyrics() },
                     onFullscreenLyricsClick = { viewModel.openLyrics(forceSheet = true) },
-                    onShareClick = { viewModel.currentTrack?.let { viewModel.openShareCard(it) } },
+                    onShareClick = { viewModel.uiCurrentTrack?.let { viewModel.openShareCard(it) } },
                     onCommentsClick = {
-                        viewModel.selectedTrackForSheet = viewModel.currentTrack
+                        viewModel.selectedTrackForSheet = viewModel.uiCurrentTrack
                         viewModel.showCommentsSheet = true
                     },
                     onSleepTimerClick = { viewModel.showSleepTimerDialog = true },
                     onHapticsToggle = { viewModel.toggleHaptics() },
-                    onMoreClick = { viewModel.currentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } },
+                    onMoreClick = { viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } },
                     activeColorMain = colorScheme.primary,
                     activeColorSecondary = colorScheme.secondary,
                     activeColorTertiary = colorScheme.tertiary,

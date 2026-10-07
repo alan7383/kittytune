@@ -177,7 +177,7 @@ fun TagScreen(
                                 ) {
                                     TrackListItem(
                                         track = track,
-                                        currentlyPlayingTrack = playerViewModel.currentTrack,
+                                        currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                         index = index,
                                         isDownloading = progress != null,
                                         isDownloaded = isDownloaded,

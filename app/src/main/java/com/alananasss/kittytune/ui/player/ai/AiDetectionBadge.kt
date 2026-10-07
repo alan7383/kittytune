@@ -224,7 +224,7 @@ fun AiDetectionBottomSheet(
     onDismissRequest: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
     val context = LocalContext.current
     val prefs = remember(context) { PlayerPreferences(context) }
     val aiResult by AiDetectionManager.result.collectAsState()
@@ -488,7 +488,7 @@ fun AiDetectionBottomSheet(
                                 track = track,
                                 reason = if (isAi) BlockManager.REASON_AI_GENERATED else BlockManager.REASON_MANUAL,
                                 skipIfCurrent = true,
-                                currentlyPlayingId = viewModel.currentTrack?.id
+                                currentlyPlayingId = viewModel.uiCurrentTrack?.id
                             )
                         }
                         onDismissRequest()
@@ -536,7 +536,7 @@ fun AiDetectionBottomSheet(
                                     avatarUrl = track.user.avatarUrl,
                                     source = track.source ?: "soundcloud",
                                     reason = if (isAi) BlockManager.REASON_AI_GENERATED else BlockManager.REASON_MANUAL,
-                                    currentlyPlayingTrack = viewModel.currentTrack
+                                    currentlyPlayingTrack = viewModel.uiCurrentTrack
                                 )
                             }
                             onDismissRequest()

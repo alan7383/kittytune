@@ -120,7 +120,7 @@ fun LyricsScreen(
     onClose: () -> Unit
 ) {
     val isSearching = viewModel.isSearchingLyrics
-    val currentTrack = viewModel.currentTrack
+    val currentTrack = viewModel.uiCurrentTrack
 
     val hasSynced = viewModel.lyricsLines.any { it.endTime > 0 }
     val hasPlain = !viewModel.rawPlainLyrics.isNullOrBlank()
@@ -403,7 +403,7 @@ fun LyricsModeChip(
 
 @Composable
 fun SyncedLyricsView(viewModel: PlayerViewModel) {
-    val currentPosition = viewModel.currentPosition
+    val currentPosition = viewModel.uiCurrentPosition
     val adjustedPosition = currentPosition + viewModel.lyricsOffset
     val lyrics = viewModel.lyricsLines
     // Opened on the line being sung, not on line one. Two minutes into a track the first frame
@@ -432,7 +432,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
     var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
 
     // High-precision smooth frame interpolation loop with PLL drift tracking
-    LaunchedEffect(viewModel.currentTrack?.id) {
+    LaunchedEffect(viewModel.uiCurrentTrack?.id) {
         var smoothPosition = MusicManager.player.currentPosition.coerceAtLeast(0L).toDouble()
         var lastOutputPosition = smoothPosition.toFloat()
         var lastFrameNanos = 0L
@@ -440,7 +440,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         while (isActive) {
             val isSliderActive = viewModel.isScrubbing
             val rawPosition = if (isSliderActive) {
-                viewModel.currentPosition.toDouble()
+                viewModel.uiCurrentPosition.toDouble()
             } else {
                 MusicManager.player.currentPosition.coerceAtLeast(0L).toDouble()
             }
@@ -592,7 +592,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 val scale by animateFloatAsState(targetScale, tween(400), label = "scale")
                 val alpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
 
-                val isDuetActive = viewModel.isDuetActiveForTrack(viewModel.currentTrack)
+                val isDuetActive = viewModel.isDuetActiveForTrack(viewModel.uiCurrentTrack)
                 val effectiveSinger = if (isDuetActive) {
                     line.singer.takeIf { it != LyricSinger.DEFAULT } ?: when (line.agent?.trim()?.lowercase()) {
                         "v2", "singer2", "2" -> LyricSinger.SINGER_2
@@ -717,7 +717,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                         } else {
                             val reconstructedText = buildAnnotatedString {
                                 displayWords.forEachIndexed { idx, word ->
-                                    val isWordActive = (viewModel.currentPosition + viewModel.lyricsOffset) >= word.startTime
+                                    val isWordActive = (viewModel.uiCurrentPosition + viewModel.lyricsOffset) >= word.startTime
                                     val wordColor = if (isWordActive) Color.White else Color.White.copy(alpha = 0.5f)
                                     val wordText = formattedWords.getOrElse(idx) { word.word }
                                     withStyle(SpanStyle(color = wordColor)) { append(wordText) }
