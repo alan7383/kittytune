@@ -69,6 +69,7 @@ object SyncClient {
             // Only when we are actually reachable. Handing over an address that answers nothing would
             // have the peer retrying it for ever instead of waiting to be called.
             callback = SyncService.selfPairing().takeIf { SyncService.isRunning },
+            playback = SyncPlayback.current(),
         )
 
         val request = Request.Builder()
@@ -89,6 +90,7 @@ object SyncClient {
 
                 val applied = SyncLog.merge(reply.events)
                 SyncApply.applyNow(applied)
+                SyncPlayback.accept(reply.playback)
                 // What it reported already accounts for what we just sent, so the next exchange
                 // starts from there instead of from the beginning of the log.
                 SyncLog.setPeerMarks(reply.deviceId, reply.marks)

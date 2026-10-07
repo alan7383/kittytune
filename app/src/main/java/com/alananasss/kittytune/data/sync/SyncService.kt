@@ -261,6 +261,7 @@ object SyncService {
         val applied = SyncLog.merge(request.events)
         // Awaited, so the marks and the count we report describe work that has actually happened.
         SyncApply.applyNow(applied)
+        SyncPlayback.accept(request.playback)
         SyncLog.setPeerMarks(request.deviceId, request.marks)
 
         val callback = request.callback
@@ -282,6 +283,7 @@ object SyncService {
             marks = SyncLog.marks(),
             events = SyncMerge.eventsToSend(SyncLog.all(), request.marks, request.deviceId),
             callback = selfPairing().takeIf { isRunning },
+            playback = SyncPlayback.current(),
         )
     }
 
@@ -395,6 +397,8 @@ data class SyncExchange(
      * pairing — both of which leave the pairing one-directional rather than breaking it.
      */
     val callback: PairingPayload? = null,
+    /** Latest queue/playhead, absent when talking to an older client. */
+    val playback: PlaybackSnapshot? = null,
 )
 
 /** Where the secret goes. Must match the desktop, which refuses anything else. */

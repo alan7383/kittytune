@@ -38,6 +38,9 @@ import coil.request.SuccessResult
 import coil.size.Precision
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.*
+import com.alananasss.kittytune.data.sync.SyncLog
+import com.alananasss.kittytune.data.sync.SyncPlayback
+import com.alananasss.kittytune.data.sync.SyncScheduler
 import com.alananasss.kittytune.data.spotify.SpotifyArtistRef
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.LocalPlaylist
@@ -181,6 +184,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     @Volatile
     private var isRestoringSession = true
+    private var syncPlaybackReady = false
 
     val player: ExoPlayer
         get() {
@@ -1592,6 +1596,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         restoreSession()
         syncWithCurrentPlayback()
+        viewModelScope.launch {
+            SyncPlayback.latest.collect { snapshot ->
+                if (syncPlaybackReady && SyncPlayback.enabled && snapshot != null &&
+                    snapshot.deviceId != SyncLog.deviceId && isPlaying) {
+                    playWhenReady = false
+                    player.pause()
+                }
+            }
+        }
     }
 
     private fun bindToActivePlayer() {
@@ -3585,8 +3598,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         tracks: List<Track>,
         startIndex: Int = 0,
         context: PlaybackContext? = null,
-        maintainPlayerState: Boolean = false
+        maintainPlayerState: Boolean = false,
+        autoPlay: Boolean = true,
     ) {
+        SyncPlayback.claimLocal()
         val cleanTracks = BlockManager.filterBlocked(tracks)
         if (cleanTracks.isEmpty()) return
         if (!maintainPlayerState) {
@@ -3610,10 +3625,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 cleanTracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
             _queue.add(clickedTrack)
             _queue.addAll(rest)
-            playTrackAtIndex(0, addToHistory = (context == null || isHistoryContext), autoPlay = true)
+            playTrackAtIndex(0, addToHistory = (context == null || isHistoryContext), autoPlay = autoPlay)
         } else {
             _queue.addAll(cleanTracks)
-            playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null || isHistoryContext), autoPlay = true)
+            playTrackAtIndex(effectiveStartIndex, addToHistory = (context == null || isHistoryContext), autoPlay = autoPlay)
         }
 
         updateQueueState(); saveStateAsync(saveQueue = true)
@@ -4322,6 +4337,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun togglePlayPause() {
+        SyncPlayback.claimLocal()
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
             context,
             com.alananasss.kittytune.data.local.PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE
@@ -4355,6 +4371,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun seekTo(position: Long) {
+        SyncPlayback.claimLocal()
         MusicManager.releasePrebuffered()
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
             context,
@@ -5181,6 +5198,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private fun saveStateAsync(saveQueue: Boolean = false, savePositionOnly: Boolean = false) {
         if (isRestoringSession) return
+        if (syncPlaybackReady) {
+            val q = queueState.toList()
+            val index = q.indexOfFirst { it.id == currentTrack?.id }
+            if (index >= 0) {
+                val position = currentPosition
+                val playing = isPlaying
+                val shuffle = shuffleEnabled
+                val repeat = repeatMode.name
+                viewModelScope.launch(Dispatchers.IO) {
+                    SyncPlayback.publish(q, index, position, playing, shuffle, repeat)
+                }
+            }
+        }
         val t = currentTrack
         val p = currentPosition
         val c = currentContext
@@ -5582,6 +5612,40 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             } finally {
                 isRestoringSession = false
             }
+            restoreSyncedPlayback()
+        }
+    }
+
+    /** Fetch once on opening; an active local play always takes precedence over this restore. */
+    private suspend fun restoreSyncedPlayback() {
+        runCatching { SyncScheduler.syncAll("playback restore") }
+        withContext(Dispatchers.Main) {
+            var appliedRemote = false
+            val remote = SyncPlayback.current()?.takeIf { it.deviceId != SyncLog.deviceId }
+            if (!isPlaying && remote != null) {
+                val track = remote.queue.getOrNull(remote.currentIndex)
+                if (track != null && track.source != "local" && !BlockManager.isBlocked(track)) {
+                    val portable = remote.queue.filter { it.source != "local" && !BlockManager.isBlocked(it) }
+                    val index = portable.indexOfFirst { it.id == track.id }
+                    if (index >= 0) {
+                        val shouldPlay = remote.isPlaying &&
+                            (System.currentTimeMillis() - remote.updatedAtMs) < 60_000L
+                        val position = if (shouldPlay) remote.projectedPosition(System.currentTimeMillis())
+                            else remote.positionMs
+                        shuffleEnabled = false // preserve the sender's exact queue order
+                        pendingSeekPosition = position
+                        playPlaylist(portable, index, autoPlay = shouldPlay)
+                        currentPosition = position
+                        appliedRemote = true
+                        shuffleEnabled = remote.shuffleEnabled
+                        repeatMode = runCatching { RepeatMode.valueOf(remote.repeatMode) }
+                            .getOrDefault(RepeatMode.NONE)
+                        applyRepeatMode()
+                    }
+                }
+            }
+            syncPlaybackReady = true
+            if (!appliedRemote) saveStateAsync(saveQueue = true)
         }
     }
 
