@@ -5373,11 +5373,20 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 require(index >= 0)
                 shuffleEnabled = false
                 pendingSeekPosition = remote.positionMs
-                playPlaylist(portable, index, autoPlay = remote.isPlaying)
+                playPlaylist(portable, index, maintainPlayerState = true, autoPlay = remote.isPlaying)
                 currentPosition = remote.positionMs
                 shuffleEnabled = remote.shuffleEnabled
                 repeatMode = RepeatMode.valueOf(remote.repeatMode)
                 applyRepeatMode()
+                kotlinx.coroutines.withTimeout(20_000) {
+                    while (player.playbackState != Player.STATE_READY ||
+                        player.currentMediaItem?.mediaId?.removePrefix("yt_") != track.id.toString()) {
+                        player.playerError?.let { throw IllegalStateException("Unable to prepare this track", it) }
+                        kotlinx.coroutines.delay(100)
+                    }
+                }
+                player.seekTo(remote.positionMs)
+                currentPosition = remote.positionMs
             }
             else -> error("Unknown player command")
         }

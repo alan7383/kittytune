@@ -4,6 +4,34 @@ import kotlin.test.*
 import org.junit.Test
 
 class ConnectWireTest {
+    @Test fun queuePayloadOmitsApiMetadataAndNegotiatesCompression() {
+        val track = com.alananasss.kittytune.domain.Track(id = 42, title = "Music", artworkUrl = "https://example.com/art.jpg",
+            durationMs = 120000, user = com.alananasss.kittytune.domain.User(7, "Artist", null,
+                description = "Biography".repeat(10000)), description = "Description".repeat(10000),
+            source = "soundcloud", permalinkUrl = "https://soundcloud.com/artist/music", secretToken = "private-track")
+        val state = PlaybackSnapshot("phone", 1, (1L..500L).map { track.copy(id = it) }, 42, 12345, true, true, "ALL")
+        val message = message(kind = "state").copy(state = state)
+        val raw = ConnectWire.seal(credentials, message)
+        val packed = ConnectWire.seal(credentials, message, compress = true)
+        assertTrue(raw.length < 400000, "API descriptions must not be transmitted")
+        assertTrue(packed.length < raw.length / 4, "Compress repetitive queue references before encryption")
+        for (wire in listOf(raw, packed)) {
+            val decoded = assertNotNull(ConnectWire.open(credentials, wire)).state!!
+            assertEquals(500, decoded.queue.size)
+            assertEquals(ConnectWire.queueVersion(state), ConnectWire.queueVersion(decoded))
+            assertEquals(state.currentIndex, decoded.currentIndex)
+            assertEquals(state.positionMs, decoded.positionMs)
+            val restored = decoded.queue.first()
+            assertEquals(track.title, restored.title)
+            assertEquals(track.durationMs, restored.durationMs)
+            assertEquals(track.artworkUrl, restored.artworkUrl)
+            assertEquals(track.permalinkUrl, restored.permalinkUrl)
+            assertEquals(track.secretToken, restored.secretToken)
+            assertEquals("Artist", restored.displayArtist)
+            assertNull(restored.description)
+            assertNull(restored.user!!.description)
+        }
+    }
     private val credentials = ConnectCredentials.derive("phone", "a".repeat(27), "desktop", "b".repeat(27))
     private fun message(n: Long = 1, session: String = "session-1234567890", kind: String = "command") =
         ConnectMessage(kind = kind, sender = "phone", session = session, sequence = n, action = "seek", value = 42345)

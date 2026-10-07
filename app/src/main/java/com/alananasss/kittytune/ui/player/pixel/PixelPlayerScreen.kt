@@ -470,7 +470,7 @@ fun PixelPlayerScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    com.alananasss.kittytune.ui.profile.ConnectButton()
+                    com.alananasss.kittytune.ui.profile.ConnectButton(tint = topBarBtnTint)
                     // Lyrics Squircle
                     Box(
                         modifier = Modifier

@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
 
 /** Opaque two-device rooms. No music, history, credentials, commands or persistent state are stored. */
-export function createRelay({ maxRooms = 128, maxConnections = 256, heartbeatMs = 60000 } = {}) {
+export function createRelay({ maxRooms = 128, maxConnections = 256, heartbeatMs = 60000, trace = () => {} } = {}) {
   const rooms = new Map();
   const server = http.createServer((req, res) => {
     res.writeHead(req.url === '/health' ? 200 : 404, { 'Content-Type': 'application/json' });
@@ -16,6 +16,7 @@ export function createRelay({ maxRooms = 128, maxConnections = 256, heartbeatMs 
     wss.handleUpgrade(req, socket, head, ws => wss.emit('connection', ws));
   });
   wss.on('connection', ws => {
+    trace('socket_open');
     let roomId, device, room;
     let bytes = 0, messages = 0, windowAt = Date.now();
     ws.alive = true;
@@ -46,12 +47,14 @@ export function createRelay({ maxRooms = 128, maxConnections = 256, heartbeatMs 
           room.devices.get(device)?.close(1000, 'Reconnected');
           room.devices.set(device, ws);
           clearTimeout(authTimer);
+          trace(`joined endpoints=${room.devices.size}`);
           // Notify both endpoints so a newly joined device gets a full state without cached ciphertext.
           for (const endpoint of room.devices.values()) if (endpoint.readyState === WebSocket.OPEN) endpoint.send('{"type":"ready"}');
         } catch { ws.close(1008, 'Unauthorized'); }
         return;
       }
       // Frames are AEAD-encrypted by the clients. The relay cannot interpret or forge them.
+      trace(`frame bytes=${data.length} endpoints=${room.devices.size}`);
       for (const [id, endpoint] of room.devices) {
         if (id !== device && endpoint.readyState === WebSocket.OPEN) {
           if (endpoint.bufferedAmount > 2 * 1024 * 1024) endpoint.close(1013, 'Slow client');
@@ -60,6 +63,7 @@ export function createRelay({ maxRooms = 128, maxConnections = 256, heartbeatMs 
       }
     });
     ws.on('close', () => {
+      trace('socket_close');
       clearTimeout(authTimer);
       if (!room || room.devices.get(device) !== ws) return;
       room.devices.delete(device);
@@ -84,7 +88,9 @@ export function createRelay({ maxRooms = 128, maxConnections = 256, heartbeatMs 
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const relay = createRelay();
+  // Opt-in diagnostics contain counts only, never room IDs, device IDs, tokens or frames.
+  const relay = createRelay({ trace: process.env.KITTY_CONNECT_TRACE === '1'
+    ? event => console.log(new Date().toISOString(), event) : () => {} });
   const port = Number(process.env.PORT || 8787);
   relay.server.listen(port, process.env.BIND || '127.0.0.1', () => console.log(`KittyTune relay listening on ${port}`));
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await relay.close(); process.exit(0); });

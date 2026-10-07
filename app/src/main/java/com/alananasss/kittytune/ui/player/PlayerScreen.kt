@@ -1563,7 +1563,7 @@ fun PlayerHeader(
                     )
                 }
             }
-            com.alananasss.kittytune.ui.profile.ConnectButton()
+            com.alananasss.kittytune.ui.profile.ConnectButton(tint = contentColor)
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.btn_close), tint = contentColor)
             }
@@ -12216,7 +12216,7 @@ fun PhoneLandscapePlayerView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                com.alananasss.kittytune.ui.profile.ConnectButton()
+                com.alananasss.kittytune.ui.profile.ConnectButton(tint = mainContentColor)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val contextStr = viewModel.currentContext
                     Text(

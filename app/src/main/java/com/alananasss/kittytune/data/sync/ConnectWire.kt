@@ -1,6 +1,11 @@
 package com.alananasss.kittytune.data.sync
 
-import com.google.gson.Gson
+import com.google.gson.*
+import com.alananasss.kittytune.domain.Track
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
@@ -41,19 +46,44 @@ data class ConnectMessage(
     val state: PlaybackSnapshot? = null,
     val ok: Boolean = false,
     val error: String = "",
+    val compression: String = "",
 )
 
 object ConnectWire {
     const val MAX_BYTES = 2 * 1024 * 1024
-    private val gson = Gson()
+    // Queue entries are references to playable tracks, not copies of API responses.
+    private val gson = GsonBuilder().registerTypeAdapter(Track::class.java, JsonSerializer<Track> { track, _, context ->
+        JsonObject().apply {
+            addProperty("id", track.id); addProperty("title", track.title)
+            addProperty("artwork_url", track.artworkUrl); addProperty("duration", track.durationMs)
+            addProperty("source", track.source); addProperty("permalink_url", track.permalinkUrl)
+            addProperty("permalink", track.permalink); addProperty("secret_token", track.secretToken)
+            addProperty("user_favorite", track.isLiked); addProperty("policy", track.policy)
+            addProperty("monetization_model", track.monetizationModel)
+            add("publisher_metadata", context.serialize(track.publisherMetadata))
+            add("artists", context.serialize(track.artists))
+            track.user?.let { user -> add("user", JsonObject().apply {
+                addProperty("id", user.id); addProperty("username", user.username)
+                addProperty("avatar_url", user.avatarUrl); addProperty("urn", user.urn)
+                addProperty("permalink_url", user.permalinkUrl)
+            }) }
+        }
+    }).create()
     private val random = SecureRandom()
-    fun seal(credentials: ConnectCredentials, message: ConnectMessage): String {
+    private val gzipHeader = byteArrayOf(75, 84, 67, 50)
+    fun seal(credentials: ConnectCredentials, message: ConnectMessage, compress: Boolean = false): String {
         val iv = ByteArray(12).also(random::nextBytes)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(credentials.key, "AES"), GCMParameterSpec(128, iv))
         cipher.updateAAD(credentials.room.toByteArray(Charsets.UTF_8))
-        val bytes = gson.toJson(message).toByteArray(Charsets.UTF_8)
+        var bytes = gson.toJson(message).toByteArray(Charsets.UTF_8)
         require(bytes.size < MAX_BYTES * 3 / 4 - 32)
+        if (compress && bytes.size > 1024) {
+            val output = ByteArrayOutputStream()
+            GZIPOutputStream(output).use { it.write(bytes) }
+            val packed = gzipHeader + output.toByteArray()
+            if (packed.size < bytes.size) bytes = packed
+        }
         return Base64.getEncoder().encodeToString(iv + cipher.doFinal(bytes))
     }
 
@@ -65,7 +95,22 @@ object ConnectWire {
         cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(credentials.key, "AES"),
             GCMParameterSpec(128, bytes.copyOfRange(0, 12)))
         cipher.updateAAD(credentials.room.toByteArray(Charsets.UTF_8))
-        gson.fromJson(String(cipher.doFinal(bytes.copyOfRange(12, bytes.size)), Charsets.UTF_8),
+        var decoded = cipher.doFinal(bytes.copyOfRange(12, bytes.size))
+        if (decoded.size >= 4 && decoded.copyOfRange(0, 4).contentEquals(gzipHeader)) {
+            decoded = GZIPInputStream(ByteArrayInputStream(decoded, 4, decoded.size - 4)).use {
+                val output = ByteArrayOutputStream()
+                val chunk = ByteArray(8192)
+                while (true) {
+                    val count = it.read(chunk)
+                    if (count < 0) break
+                    require(output.size() + count < MAX_BYTES * 3 / 4 - 32)
+                    output.write(chunk, 0, count)
+                }
+                output.toByteArray()
+            }
+        }
+        require(decoded.size < MAX_BYTES * 3 / 4 - 32)
+        gson.fromJson(String(decoded, Charsets.UTF_8),
             ConnectMessage::class.java).also {
             require(it.version == 1 && it.sequence > 0 && it.sender.isNotBlank() && it.session.length in 16..64)
         }

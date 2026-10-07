@@ -1204,7 +1204,7 @@ fun TabletFullScreenPlayerView(
                         tint = mainContentColor
                     )
                 }
-                com.alananasss.kittytune.ui.profile.ConnectButton()
+                com.alananasss.kittytune.ui.profile.ConnectButton(tint = mainContentColor)
                 IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,

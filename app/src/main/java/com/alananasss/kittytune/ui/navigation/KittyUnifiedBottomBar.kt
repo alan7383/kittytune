@@ -167,7 +167,7 @@ fun KittyUnifiedBottomBar(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                                text = playerViewModel.playbackDeviceLabel ?: track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -175,6 +175,7 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
+                        com.alananasss.kittytune.ui.profile.ConnectButton()
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -291,7 +292,7 @@ fun KittyUnifiedBottomBar(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                                text = playerViewModel.playbackDeviceLabel ?: track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -299,6 +300,7 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
+                        com.alananasss.kittytune.ui.profile.ConnectButton()
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,

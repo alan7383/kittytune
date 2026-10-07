@@ -221,7 +221,7 @@ fun TabletBottomDock(
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                                    text = playerViewModel.playbackDeviceLabel ?: track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -258,6 +258,7 @@ fun TabletBottomDock(
                                 }
                             }
 
+                            com.alananasss.kittytune.ui.profile.ConnectButton()
                             // Bouton Lecture / Pause
                             IconButton(
                                 onClick = { playerViewModel.togglePlayPause() },
