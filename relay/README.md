@@ -111,3 +111,23 @@ Android's **Continue with headphones** defaults to enabled and can be switched o
 | Destination cannot open a local-only source file | Show an error; leave source playback intact |
 
 Callbacks are registered while the app is visible or its own audio is playing, and removed when idle in the background. No additional wake lock, Bluetooth scan, background service or recurring task is added. A stopped/killed app must be reopened for automatic takeover. Stream preparation has a bounded timeout; hardware headphone behavior needs verification on each Android audio stack.
+
+## Stable address on the same PC: ngrok
+
+Anonymous localhost.run URLs can rotate during a session and the tunnel can be disconnected for inactivity. HTTP 502 / `no tunnel` with a healthy local `/health` is a tunnel/address failure; restarting the music app cannot fix it.
+
+The free ngrok plan provides an assigned account dev domain and no endpoint timeout (subject to its account traffic quotas). Create a free account, run `configure-ngrok.ps1`, and enter **Your Authtoken** in its local masked input. The helper stores a Windows DPAPI-encrypted token, restricted to the current user, in ignored `.runtime/ngrok-token.dpapi`. Do not paste tokens into chats or Git.
+
+Download the Windows ngrok agent from its official download page and put `ngrok.exe` in `.runtime/ngrok-bin/`, or pass `-NgrokExecutable` pointing to an existing installation. Then run with PowerShell 7:
+
+```powershell
+pwsh -File .\start-ngrok.ps1 -NodeExecutable 'C:\path\node.exe'
+```
+
+The agent connects directly by default. `-SocksProxyPort` is optional and requires a running local proxy plus an ngrok account that permits agent proxy connections. If ngrok rejects it with `ERR_NGROK_9010`, retry with `-SocksProxyPort 0`; this also overrides a previously saved proxy setting. No paid upgrade is needed when direct connectivity works.
+
+The helper preserves the running managed local relay, replaces only its tunnel, and pins the assigned public URL in `.runtime/ngrok-settings.json` for later launches. Native ngrok reconnection keeps the same account endpoint. Save that public HTTPS/WSS URL on the phone and PC; keep **Server runs on this computer** enabled on the hosting PC so it uses the relay via loopback. Tokens reach only the child process environment, not command-line arguments or YAML files. Traffic inspection and remote agent management are disabled; TLS certificate checks remain enabled.
+
+`pwsh -File .\start-ngrok.ps1 -Stop` stops only the managed ngrok process. `start-local.ps1 -Stop` stops the whole managed stack. The existing SOCKS/VPN helper must be running if it is selected; these scripts do not promise availability while the PC is off or asleep. No system startup task is installed automatically.
+
+Primary docs: https://ngrok.com/docs/pricing-limits/free-plan-limits and https://ngrok.com/docs/agent/config/v3

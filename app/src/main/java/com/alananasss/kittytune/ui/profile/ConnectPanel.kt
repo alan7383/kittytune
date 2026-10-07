@@ -78,6 +78,12 @@ private fun label(ru: String, en: String) = if (Locale.getDefault().language == 
                 ConnectManager.switchOutput(peer.deviceId)
             }
         }
+        val connectionError = peers.values.firstOrNull { !it.connected && it.error.isNotBlank() }?.error
+        if (!independent && connectionError != null) Text(
+            if (connectionError.startsWith("HTTP")) label("Сервер недоступен: ", "Server unavailable: ") + connectionError +
+                label(". Проверьте адрес в настройках устройств.", ". Check the address in device settings.")
+            else label("Ошибка соединения: ", "Connection error: ") + connectionError,
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         if (busy) Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
