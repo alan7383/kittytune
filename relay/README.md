@@ -37,6 +37,15 @@ Get-Content .runtime/tunnel-error.log
 
 The launcher downloads the official cloudflared Windows x64 executable and verifies its published SHA256 digest. Processes run in hidden windows. Stop only the launched processes with `./start-local.ps1 -Stop`.
 
+If Cloudflare cannot maintain a connection on your network, use the SSH tunnel fallback:
+
+```powershell
+.\start-local.ps1 -Stop
+.\start-local.ps1 -Provider localhost
+```
+
+This uses Windows OpenSSH and localhost.run without sending your SSH keys. The HTTPS address appears in `.runtime/tunnel.log`; enter it in both apps. The free address is temporary and can change on reconnect. The relay and encrypted Connect protocol are identical with either provider. Stop either variant with `-Stop`.
+
 ## Battery behavior
 
 Android has a live socket only while KittyTune is visible or the phone is playing music. Leaving an idle controller closes the socket and stops sync timers/LAN discovery. On return, a fresh full snapshot is requested. There are no Connect wake locks or dedicated foreground services.
