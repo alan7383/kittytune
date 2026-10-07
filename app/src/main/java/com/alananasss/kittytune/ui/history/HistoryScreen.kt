@@ -285,7 +285,7 @@ fun HistoryScreen(
                 }
             )
 
-            val miniPlayerPadding = if (playerViewModel.currentTrack != null) 180.dp else 100.dp
+            val miniPlayerPadding = if (playerViewModel.uiCurrentTrack != null) 180.dp else 100.dp
 
             AnimatedContent(
                 targetState = currentTab,
@@ -345,7 +345,7 @@ fun HistoryScreen(
                                             "${dateHeader}_track_${historyTrack.track.id}_${historyTrack.playedAt}_$index"
                                         }
                                     ) { _, historyTrack ->
-                                        val isPlaying = playerViewModel.currentTrack?.id == historyTrack.track.id
+                                        val isPlaying = playerViewModel.uiCurrentTrack?.id == historyTrack.track.id
                                         HistoryTrackRow(
                                             item = historyTrack,
                                             isPlaying = isPlaying,

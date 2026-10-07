@@ -148,7 +148,7 @@ fun TabletSidePlayerPanel(
     onNavigateToArtist: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Surface(
@@ -310,7 +310,7 @@ fun DesktopTrackInfoTabContent(
     onNavigateToArtist: (Long) -> Unit,
     onSelectTab: ((Int) -> Unit)? = null
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
     val context = LocalContext.current
     val myId = viewModel.currentUserId
     val isGuest = myId == 0L
@@ -456,7 +456,7 @@ fun DesktopTrackInfoTabContent(
                 StatItem(
                     icon = Icons.Rounded.Favorite,
                     count = track.likesCount,
-                    tint = if (viewModel.isLiked) animatedColor else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (viewModel.uiIsLiked) animatedColor else MaterialTheme.colorScheme.onSurfaceVariant,
                     onClick = { viewModel.navigateToTrackDetails(track.id, 0) }
                 )
                 StatItem(
@@ -1177,7 +1177,7 @@ fun TabletFullScreenPlayerView(
     isBlurMode: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
     var showEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
 
@@ -1204,6 +1204,7 @@ fun TabletFullScreenPlayerView(
                         tint = mainContentColor
                     )
                 }
+                com.alananasss.kittytune.ui.profile.ConnectButton()
                 IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,
@@ -1218,7 +1219,7 @@ fun TabletFullScreenPlayerView(
                 modifier = Modifier.weight(1f).padding(horizontal = 16.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.player_playing_now),
+                    text = viewModel.playbackDeviceLabel ?: stringResource(R.string.player_playing_now),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
@@ -1386,9 +1387,9 @@ fun TabletFullScreenPlayerView(
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
-                                imageVector = if (viewModel.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                imageVector = if (viewModel.uiIsLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                                 contentDescription = "Like",
-                                tint = if (viewModel.isLiked) animatedColor else iconTint,
+                                tint = if (viewModel.uiIsLiked) animatedColor else iconTint,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -1527,9 +1528,9 @@ private fun TabletQueueList(
 ) {
     val view = LocalView.current
     val listState = rememberLazyListState()
-    val queue = viewModel.queueState
-    val currentIndex = viewModel.currentQueueIndex
-    val currentTrack = viewModel.currentTrack
+    val queue = viewModel.uiQueueState
+    val currentIndex = viewModel.uiCurrentQueueIndex
+    val currentTrack = viewModel.uiCurrentTrack
 
     val reorderableState = rememberReorderableLazyListState(
         lazyListState = listState,
@@ -1595,7 +1596,7 @@ private fun TabletQueueList(
                     Icon(
                         imageVector = Icons.Rounded.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (viewModel.shuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (viewModel.uiShuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1700,7 +1701,7 @@ private fun TabletQueueList(
                                             .clip(RoundedCornerShape(10.dp))
                                             .background(MaterialTheme.colorScheme.surfaceVariant)
                                     )
-                                    if (isCurrent && viewModel.isPlaying) {
+                                    if (isCurrent && viewModel.uiIsPlaying) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()

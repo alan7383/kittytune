@@ -169,6 +169,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
                 .fillMaxSize(),
             contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp),
         ) {
+            item { ConnectPanel() }
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),

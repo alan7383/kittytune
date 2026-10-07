@@ -1681,7 +1681,7 @@ fun LibraryScreen(
         floatingActionButton = {
             if (!showLogin || isGuest) {
                 val bottomNavHeight = 90.dp
-                val miniPlayerHeight = if (playerViewModel.currentTrack != null) 72.dp else 0.dp
+                val miniPlayerHeight = if (playerViewModel.uiCurrentTrack != null) 72.dp else 0.dp
                 val totalBottomPadding = bottomNavHeight + miniPlayerHeight
 
                 FloatingActionButtonMenu(
@@ -2025,7 +2025,7 @@ fun LibraryContentGrid(
                         Box(modifier = Modifier.animateItem()) {
                             TrackListItem(
                                 track = track,
-                                currentlyPlayingTrack = playerViewModel.currentTrack,
+                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                 index = trackIndex,
                                 isDownloading = trackProgress != null,
                                 isDownloaded = downloadedIds.contains(track.id),

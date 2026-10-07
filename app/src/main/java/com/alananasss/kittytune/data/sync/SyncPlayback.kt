@@ -17,6 +17,7 @@ data class PlaybackSnapshot(
     val isPlaying: Boolean,
     val shuffleEnabled: Boolean,
     val repeatMode: String,
+    val volume: Float? = null,
 ) {
     fun projectedPosition(nowMs: Long): Long {
         val elapsed = if (isPlaying) (nowMs - updatedAtMs).coerceAtLeast(0L) else 0L
@@ -38,7 +39,7 @@ object SyncPlayback {
     private var lastTransferAtMs = 0L
     var enabled: Boolean
         get() = prefs.getBoolean("playback_sync_enabled", true)
-        set(value) { prefs.edit().putBoolean("playback_sync_enabled", value).apply() }
+        set(value) { prefs.edit().putBoolean("playback_sync_enabled", value).apply(); ConnectManager.setEnabled(value) }
 
     /** A deliberate local playback action takes ownership back from a peer. */
     @Synchronized fun claimLocal() { localOwner = true }
@@ -58,7 +59,7 @@ object SyncPlayback {
             old.repeatMode != repeatMode || old.queue.map { it.id } != selectedQueue.map { it.id }
         val seeked = old != null && kotlin.math.abs(positionMs - old.projectedPosition(now)) > 2_000L
         if (!changed && !seeked &&
-            (SyncPeers.isEmpty() || now - lastTransferAtMs < 15_000L)) return old
+            (SyncPeers.isEmpty() || now - lastTransferAtMs < 60_000L)) return old
         val snapshot = PlaybackSnapshot(
             deviceId = SyncLog.deviceId,
             updatedAtMs = maxOf(now, (_latest.value?.updatedAtMs ?: 0L) + 1L),
@@ -72,8 +73,8 @@ object SyncPlayback {
         if (snapshot.currentIndex !in snapshot.queue.indices) return null
         save(snapshot)
         lastTransferAtMs = now
-        if (SyncPeers.anyDialable()) {
-            SyncScheduler.triggerImmediateSync("playback")
+        if ((changed || seeked) && SyncPeers.anyDialable() && !ConnectManager.hasLivePeer()) {
+            SyncScheduler.requestSync("playback")
         }
         return snapshot
     }

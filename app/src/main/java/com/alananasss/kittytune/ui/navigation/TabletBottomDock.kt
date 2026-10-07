@@ -46,8 +46,8 @@ fun TabletBottomDock(
     onPlayerClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val track = playerViewModel.currentTrack
-    val isPlaying = playerViewModel.isPlaying
+    val track = playerViewModel.uiCurrentTrack
+    val isPlaying = playerViewModel.uiIsPlaying
     val showMiniPlayer = track != null && !playerViewModel.isSidePlayerOpen
 
     Row(
@@ -236,9 +236,9 @@ fun TabletBottomDock(
                                 modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
-                                    imageVector = if (playerViewModel.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                                    imageVector = if (playerViewModel.uiIsLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                                     contentDescription = null,
-                                    tint = if (playerViewModel.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = if (playerViewModel.uiIsLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }

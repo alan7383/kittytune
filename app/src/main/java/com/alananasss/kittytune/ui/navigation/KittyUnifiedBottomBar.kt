@@ -65,8 +65,8 @@ fun KittyUnifiedBottomBar(
     style: String = "modern",
     blurEnabled: Boolean = true
 ) {
-    val track = playerViewModel.currentTrack
-    val isPlaying = playerViewModel.isPlaying
+    val track = playerViewModel.uiCurrentTrack
+    val isPlaying = playerViewModel.uiIsPlaying
 
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
@@ -451,8 +451,8 @@ internal fun rememberDockProgress(viewModel: com.alananasss.kittytune.ui.player.
     val progress = remember { Animatable(0f) }
     LaunchedEffect(viewModel) {
         snapshotFlow {
-            if (viewModel.duration > 0) {
-                (viewModel.currentPosition.toFloat() / viewModel.duration.toFloat()).coerceIn(0f, 1f)
+            if (viewModel.uiDuration > 0) {
+                (viewModel.uiCurrentPosition.toFloat() / viewModel.uiDuration.toFloat()).coerceIn(0f, 1f)
             } else 0f
         }.collect { target ->
             // Snap on a track change or a seek, glide in between, so the line does not stutter at

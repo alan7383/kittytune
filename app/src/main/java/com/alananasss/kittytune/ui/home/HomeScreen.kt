@@ -1950,7 +1950,7 @@ fun SearchResultsList(
                         val isDownloaded = downloadedIds.contains(track.id)
                         TrackListItem(
                             track = track,
-                            currentlyPlayingTrack = playerViewModel.currentTrack,
+                            currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                             index = index,
                             isDownloading = false,
                             isDownloaded = isDownloaded,
@@ -1999,7 +1999,7 @@ fun SearchResultsList(
                             val isDownloaded = downloadedIds.contains(track.id)
                             TrackListItem(
                                 track = track,
-                                currentlyPlayingTrack = playerViewModel.currentTrack,
+                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                 index = index,
                                 isDownloading = false,
                                 isDownloaded = isDownloaded,
@@ -2148,7 +2148,7 @@ fun SearchResultsList(
                                 val isDownloaded = downloadedIds.contains(track.id)
                                 TrackListItem(
                                     track = track,
-                                    currentlyPlayingTrack = playerViewModel.currentTrack,
+                                    currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                     index = index,
                                     isDownloading = false,
                                     isDownloaded = isDownloaded,
@@ -2365,7 +2365,7 @@ fun SearchResultsList(
                     ) {
                         TrackListItem(
                             track = track,
-                            currentlyPlayingTrack = playerViewModel.currentTrack,
+                            currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                             index = index,
                             isDownloading = downloadProgress[track.id] != null,
                             isDownloaded = downloadedIds.contains(track.id),
@@ -2745,7 +2745,7 @@ fun ProviderSearchResults(
                         val isDownloaded = downloadedIds.contains(track.id)
                         TrackListItem(
                             track = track,
-                            currentlyPlayingTrack = playerViewModel.currentTrack,
+                            currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                             index = index,
                             isDownloading = false,
                             isDownloaded = isDownloaded,
