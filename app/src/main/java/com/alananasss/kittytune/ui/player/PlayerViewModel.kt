@@ -185,6 +185,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     @Volatile
     private var isRestoringSession = true
     private var syncPlaybackReady = false
+    private var lastAppliedRemotePlaybackAtMs = 0L
 
     val player: ExoPlayer
         get() {
@@ -5616,12 +5617,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Fetch once on opening; an active local play always takes precedence over this restore. */
+    /** An active local play always takes precedence over a remote restore. */
     private suspend fun restoreSyncedPlayback() {
         runCatching { SyncScheduler.syncAll("playback restore") }
         withContext(Dispatchers.Main) {
+            val wasReady = syncPlaybackReady
             var appliedRemote = false
-            val remote = SyncPlayback.current()?.takeIf { it.deviceId != SyncLog.deviceId }
+            val remote = SyncPlayback.current()?.takeIf {
+                it.deviceId != SyncLog.deviceId && it.updatedAtMs > lastAppliedRemotePlaybackAtMs
+            }
             if (!isPlaying && remote != null) {
                 val track = remote.queue.getOrNull(remote.currentIndex)
                 if (track != null && track.source != "local" && !BlockManager.isBlocked(track)) {
@@ -5637,6 +5641,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         playPlaylist(portable, index, autoPlay = shouldPlay)
                         currentPosition = position
                         appliedRemote = true
+                        lastAppliedRemotePlaybackAtMs = remote.updatedAtMs
                         shuffleEnabled = remote.shuffleEnabled
                         repeatMode = runCatching { RepeatMode.valueOf(remote.repeatMode) }
                             .getOrDefault(RepeatMode.NONE)
@@ -5645,7 +5650,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
             syncPlaybackReady = true
-            if (!appliedRemote) saveStateAsync(saveQueue = true)
+            if (!appliedRemote && !wasReady) saveStateAsync(saveQueue = true)
         }
     }
 
@@ -5689,6 +5694,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 }
             }
+            // ON_RESUME already calls this method. Fetch after the local queue refresh so it
+            // cannot overwrite a newer queue received from the other device.
+            if (syncPlaybackReady && SyncPlayback.enabled) restoreSyncedPlayback()
         }
     }
 
