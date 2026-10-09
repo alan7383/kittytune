@@ -14,9 +14,9 @@
 -keep class com.alananasss.kittytune.ui.player.audio.** { *; }
 -keep class com.alananasss.kittytune.data.AudioScannerManager { *; }
 
-# ONNX Runtime (AI music detection / ArtifactNet)
--keep class ai.onnxruntime.** { *; }
--dontwarn ai.onnxruntime.**
+# LiteRT / TensorFlow Lite (AI music detection / ArtifactNet)
+-keep class org.tensorflow.lite.** { *; }
+-dontwarn org.tensorflow.lite.**
 
 # Rive Android (SoundCloud Wrapped story engine)
 -keep class app.rive.** { *; }
