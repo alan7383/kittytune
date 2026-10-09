@@ -6,7 +6,8 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import androidx.activity.compose.BackHandler
+import java.net.URLDecoder
+import java.net.URLEncoder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -106,7 +107,6 @@ fun ProfileScreen(
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
     val listState = rememberLazyListState()
 
-    var expandedSection by remember { mutableStateOf<String?>(null) }
     var selectedDiscographyFilter by remember { mutableStateOf("popular") }
     var showEditSheet by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
@@ -130,29 +130,9 @@ fun ProfileScreen(
 
     val user = profileViewModel.user
 
-    BackHandler(enabled = expandedSection != null) {
-        expandedSection = null
-    }
-
     val artistText = stringResource(R.string.generic_artist)
     val artistPlaybackContext = remember(user, artistText) {
-        user?.let {
-            val navId = if (it.urn?.startsWith("spotify:artist:") == true) {
-                "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(it.urn)}"
-            } else if (it.urn?.startsWith("spotify") == true || it.permalinkUrl?.contains("spotify") == true) {
-                val clean = it.permalink ?: it.urn?.removePrefix("spotify:artist:") ?: ""
-                "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(clean)}"
-            } else {
-                "profile:${it.id}"
-            }
-            PlaybackContext(
-                displayText = "$artistText • ${it.username}",
-                navigationId = navId,
-                imageUrl = it.avatarUrl,
-                artistName = it.username,
-                isVerified = it.verified
-            )
-        }
+        createArtistPlaybackContext(user, artistText)
     }
 
     val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
@@ -226,7 +206,10 @@ fun ProfileScreen(
                             SectionTitle(
                                 title = stringResource(R.string.profile_tab_popular),
                                 showMore = profileViewModel.popularTracks.size > 5,
-                                onMoreClick = { expandedSection = "popular" })
+                                onMoreClick = {
+                                    val enc = encodeRouteParam(userId)
+                                    onNavigate("profile_section/$enc/popular")
+                                })
                         }
                         itemsIndexed(profileViewModel.popularTracks.take(5)) { index, track ->
                             ProfileTrackItem(
@@ -246,7 +229,10 @@ fun ProfileScreen(
                                 SectionTitle(
                                     title = stringResource(R.string.profile_latest_tracks),
                                     showMore = true,
-                                    onMoreClick = { expandedSection = "tracks" })
+                                    onMoreClick = {
+                                        val enc = encodeRouteParam(userId)
+                                        onNavigate("profile_section/$enc/tracks")
+                                    })
                             }
                             itemsIndexed(profileViewModel.allTracks.take(5)) { index, track ->
                                 ProfileTrackItem(
@@ -305,7 +291,10 @@ fun ProfileScreen(
                                 SectionTitle(
                                     title = stringResource(R.string.profile_likes_by_user, name),
                                     showMore = true,
-                                    onMoreClick = { expandedSection = "likes" })
+                                    onMoreClick = {
+                                        val enc = encodeRouteParam(userId)
+                                        onNavigate("profile_section/$enc/likes")
+                                    })
                             }
                             itemsIndexed(profileViewModel.likedTracks.take(3)) { index, track ->
                                 ProfileTrackItem(
@@ -324,7 +313,10 @@ fun ProfileScreen(
                                 SectionTitle(
                                     title = stringResource(R.string.profile_tab_reposts),
                                     showMore = true,
-                                    onMoreClick = { expandedSection = "reposts" })
+                                    onMoreClick = {
+                                        val enc = encodeRouteParam(userId)
+                                        onNavigate("profile_section/$enc/reposts")
+                                    })
                             }
                             itemsIndexed(profileViewModel.repostedTracks.take(5)) { index, track ->
                                 ProfileTrackItem(
@@ -343,7 +335,10 @@ fun ProfileScreen(
                                 SectionTitle(
                                     title = stringResource(R.string.profile_tab_comments),
                                     showMore = profileViewModel.userComments.size > 3,
-                                    onMoreClick = { expandedSection = "comments" }
+                                    onMoreClick = {
+                                        val enc = encodeRouteParam(userId)
+                                        onNavigate("profile_section/$enc/comments")
+                                    }
                                 )
                             }
                             itemsIndexed(profileViewModel.userComments.take(3)) { index, comment ->
@@ -394,7 +389,10 @@ fun ProfileScreen(
                                 SectionTitle(
                                     title = stringResource(R.string.spotify_discography),
                                     showMore = true,
-                                    onMoreClick = { expandedSection = "discography" }
+                                    onMoreClick = {
+                                        val enc = encodeRouteParam(userId)
+                                        onNavigate("profile_section/$enc/discography?filter=$selectedDiscographyFilter")
+                                    }
                                 )
                             }
 
@@ -741,53 +739,6 @@ fun ProfileScreen(
                             profileViewModel.updateProfile(name, bio, city, "")
                             showEditSheet = false
                         }
-                    )
-                }
-            }
-
-            AnimatedVisibility(
-                visible = expandedSection != null,
-                enter = slideInHorizontally { it },
-                exit = slideOutHorizontally { it },
-                modifier = Modifier.fillMaxSize().zIndex(10f)
-            ) {
-                if (expandedSection == "discography") {
-                    FullDiscographyScreen(
-                        profileViewModel = profileViewModel,
-                        initialFilter = selectedDiscographyFilter,
-                        onBack = { expandedSection = null },
-                        playerViewModel = playerViewModel,
-                        onNavigate = onNavigate
-                    )
-                } else if (expandedSection == "comments") {
-                    FullCommentListScreen(
-                        comments = profileViewModel.userComments,
-                        onBack = { expandedSection = null },
-                        playerViewModel = playerViewModel,
-                        profileViewModel = profileViewModel
-                    )
-                } else {
-                    val (title, list) = when (expandedSection) {
-                        "popular" -> stringResource(R.string.profile_tab_popular) to profileViewModel.popularTracks.toList()
-                        "tracks" -> stringResource(R.string.profile_tab_tracks) to profileViewModel.allTracks.toList()
-                        "reposts" -> stringResource(R.string.profile_tab_reposts) to profileViewModel.repostedTracks.toList()
-                        "likes" -> stringResource(
-                            R.string.profile_tab_likes,
-                            user.username ?: ""
-                        ) to profileViewModel.likedTracks.toList()
-
-                        else -> "" to emptyList<Track>()
-                    }
-
-                    val contextForList = if (expandedSection == "likes") null else artistPlaybackContext
-
-                    FullListScreen(
-                        title = title,
-                        tracks = list,
-                        onBack = { expandedSection = null },
-                        playerViewModel = playerViewModel,
-                        downloadProgress = downloadProgress,
-                        context = contextForList
                     )
                 }
             }
@@ -1818,6 +1769,141 @@ fun EditProfileSheet(
                 tempBitmap = null
             }
         )
+    }
+}
+
+fun encodeRouteParam(param: String): String =
+    runCatching { URLEncoder.encode(param, "UTF-8") }.getOrDefault(param)
+
+fun decodeRouteParam(param: String): String =
+    runCatching { URLDecoder.decode(param, "UTF-8") }.getOrDefault(param)
+
+fun createArtistPlaybackContext(user: User?, artistText: String): PlaybackContext? {
+    return user?.let {
+        val navId = if (it.urn?.startsWith("spotify:artist:") == true) {
+            "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(it.urn)}"
+        } else if (it.urn?.startsWith("spotify") == true || it.permalinkUrl?.contains("spotify") == true) {
+            val clean = it.permalink ?: it.urn?.removePrefix("spotify:artist:") ?: ""
+            "spotify_artist:${com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(clean)}"
+        } else {
+            "profile:${it.id}"
+        }
+        PlaybackContext(
+            displayText = "$artistText • ${it.username}",
+            navigationId = navId,
+            imageUrl = it.avatarUrl,
+            artistName = it.username,
+            isVerified = it.verified
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun ProfileSectionScreen(
+    userId: String,
+    section: String,
+    initialFilter: String? = null,
+    onBackClick: () -> Unit,
+    playerViewModel: PlayerViewModel,
+    onNavigate: (String) -> Unit = {},
+    profileViewModel: ProfileViewModel = viewModel()
+) {
+    val downloadProgress by DownloadManager.downloadProgress.collectAsState()
+
+    LaunchedEffect(userId) {
+        if (profileViewModel.user == null) {
+            val id = userId.toLongOrNull()
+            if (id != null) {
+                profileViewModel.loadProfile(id)
+            } else {
+                profileViewModel.loadProfile(userId)
+            }
+        }
+    }
+
+    val user = profileViewModel.user
+    val artistText = stringResource(R.string.generic_artist)
+    val artistPlaybackContext = remember(user, artistText) {
+        createArtistPlaybackContext(user, artistText)
+    }
+
+    when (section) {
+        "discography" -> {
+            FullDiscographyScreen(
+                profileViewModel = profileViewModel,
+                initialFilter = initialFilter ?: "popular",
+                onBack = onBackClick,
+                playerViewModel = playerViewModel,
+                onNavigate = onNavigate
+            )
+        }
+        "comments" -> {
+            FullCommentListScreen(
+                comments = profileViewModel.userComments,
+                onBack = onBackClick,
+                playerViewModel = playerViewModel,
+                profileViewModel = profileViewModel
+            )
+        }
+        else -> {
+            val (title, list) = when (section) {
+                "popular" -> stringResource(R.string.profile_tab_popular) to profileViewModel.popularTracks.toList()
+                "tracks" -> stringResource(R.string.profile_tab_tracks) to profileViewModel.allTracks.toList()
+                "reposts" -> stringResource(R.string.profile_tab_reposts) to profileViewModel.repostedTracks.toList()
+                "likes" -> stringResource(
+                    R.string.profile_tab_likes,
+                    user?.username ?: ""
+                ) to profileViewModel.likedTracks.toList()
+                else -> "" to emptyList()
+            }
+
+            val contextForList = if (section == "likes") null else artistPlaybackContext
+
+            if (profileViewModel.isLoading && list.isEmpty()) {
+                Scaffold(
+                    topBar = {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            TopAppBar(
+                                title = { Text(title, fontWeight = FontWeight.Bold) },
+                                navigationIcon = {
+                                    FilledTonalIconButton(
+                                        onClick = onBackClick,
+                                        shapes = IconButtonDefaults.shapes(),
+                                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
+                                    }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                            )
+                        }
+                    },
+                    containerColor = MaterialTheme.colorScheme.background
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            } else {
+                FullListScreen(
+                    title = title,
+                    tracks = list,
+                    onBack = onBackClick,
+                    playerViewModel = playerViewModel,
+                    downloadProgress = downloadProgress,
+                    context = contextForList
+                )
+            }
+        }
     }
 }
 

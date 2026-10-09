@@ -153,11 +153,7 @@ fun PlaylistDetailScreen(
     val playlistDownloadProgress by DownloadManager.playlistDownloadProgress.collectAsState()
     val downloadedIds by DownloadManager.downloadedIds.collectAsState()
 
-    var showAllPlaylists by remember { mutableStateOf(false) }
 
-    BackHandler(enabled = showAllPlaylists) {
-        showAllPlaylists = false
-    }
 
     val isDownloadedView = playlistId.startsWith("downloaded_section:")
     val isDeezerArtist = playlistId.startsWith("deezer:artist:")
@@ -404,7 +400,6 @@ fun PlaylistDetailScreen(
 
             playlistId == "downloads" -> ""
 
-            // VK collections have no soundcloud.com address either.
             playlistId == "vk_likes" -> {
                 val ownerId = playlistUser?.id ?: 0L
                 if (ownerId > 0L) "https://vk.com/audios$ownerId" else "https://vk.com/audio"
@@ -499,10 +494,6 @@ fun PlaylistDetailScreen(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             if (uri != null && stableId != 0L) {
-                // animated GIF: keep the original animation instead of flattening it to
-                // the first frame. the bytes are saved as-is (no re-encode, no quality loss) 
-                // and played back by the Coil animated decoder, so the crop dialog
-                // (bitmap-only) is intentionally skipped for GIFs
                 if (GifUtils.isGif(context.contentResolver, uri)) {
                     val size = GifUtils.contentSize(context.contentResolver, uri)
                     if (size < 0 || GifUtils.isAcceptableGifCoverSize(size)) {
@@ -570,8 +561,6 @@ fun PlaylistDetailScreen(
             onDismiss = { pendingGifUri = null },
             onConfirm = {
                 if (stableId != 0L) {
-                    // saves the original GIF bytes byte-for-byte; the first frame is
-                    // uploaded to SoundCloud as a static JPEG fallback
                     DownloadManager.updatePlaylistCover(
                         playlistId = stableId,
                         uri = pendingGifUri!!,
@@ -1189,8 +1178,6 @@ fun PlaylistDetailScreen(
                             if (isLocalSpotify && localFallback != null) {
                                 val permalink = localFallback.permalinkUrl ?: ""
                                 val isAlbumType = localFallback.isAlbum || permalink.contains("/album/")
-                                // The permalink is a stored web URL or URN; the repository normalizes it
-                                // through SpotifyIds, so it is passed whole.
                                 val spotifyId = com.alananasss.kittytune.data.spotify.SpotifyRepository
                                     .extractId(permalink)
 
@@ -1255,7 +1242,6 @@ fun PlaylistDetailScreen(
                                                     ?: playerViewModel.currentUserId.takeIf { it != 0L }
                                                     ?: try { api.getMe().id } catch (_: Exception) { 0L }
 
-                                                // 1. Try matching against system playlist hashes
                                                 if (cachedUserId != 0L) {
                                                     for (yr in listOf(2027, 2026, 2025, 2024, 2023, 2022, 2021, 2020)) {
                                                         val urn = "soundcloud:system-playlists:your-playback:$cachedUserId:$yr"
@@ -1270,7 +1256,6 @@ fun PlaylistDetailScreen(
                                                     }
                                                 }
 
-                                                // 2. Try looking up in play_history
                                                 if (resolvedPl == null) {
                                                     val hist = try {
                                                         db.getHistoryItemById(currentIdLong, "playlist:$currentIdLong")
@@ -1654,8 +1639,7 @@ fun PlaylistDetailScreen(
     val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
 
     Box(modifier = Modifier.fillMaxSize().background(backgroundColor)) {
-        if (!showAllPlaylists) {
-            Scaffold(containerColor = Color.Transparent) { innerPadding ->
+        Scaffold(containerColor = Color.Transparent) { innerPadding ->
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                     if (!playlistCover.isNullOrEmpty()) {
                         Box(modifier = Modifier.fillMaxWidth().height(500.dp)) {
@@ -1809,8 +1793,6 @@ fun PlaylistDetailScreen(
                                                 .clip(RoundedCornerShape(8.dp))
                                                 .clickable {
                                                     val creator = playlistUser!!
-                                                    // A record credited to several artists
-                                                    // asks which one to open.
                                                     if (playlistArtists.count { it.id.isNotBlank() } > 1) {
                                                         playerViewModel.navigateToArtistChoice(
                                                             playlistArtists,
@@ -1842,9 +1824,6 @@ fun PlaylistDetailScreen(
                                             }
                                         }
                                     } else if (playlistUser?.username != null) {
-                                        // No resolvable identity: show the name, but do not
-                                        // link it. A link here would resolve the name as a
-                                        // search and land on an unrelated profile.
                                         Text(
                                             text = stringResource(
                                                 R.string.playlist_by_user,
@@ -1898,7 +1877,7 @@ fun PlaylistDetailScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.Start
                                     ) {
-                                        if ((isLocalPlaylist || isUserCreated || isDownloadedView) && !isYoutubeRadio) {
+                                        if (((isLocalPlaylist && !isDownloadedView) || isUserCreated) && !isYoutubeRadio) {
                                             IconButton(
                                                 onClick = { newPlaylistName = playlistTitle; showRenameDialog = true },
                                                 shapes = IconButtonDefaults.shapes()
@@ -2106,7 +2085,7 @@ fun PlaylistDetailScreen(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         if (downloadedPlaylists.size > 4) {
-                                            TextButton(onClick = { showAllPlaylists = true }) {
+                                            TextButton(onClick = { onNavigate("downloaded_playlists") }) {
                                                 Text(
                                                     stringResource(R.string.btn_see_all),
                                                     maxLines = 1,
@@ -2601,51 +2580,6 @@ fun PlaylistDetailScreen(
                     }
                 }
             }
-        }
-
-        AnimatedVisibility(
-            visible = showAllPlaylists,
-            enter = slideInHorizontally { it },
-            exit = slideOutHorizontally { it },
-            modifier = Modifier.zIndex(2f)
-        ) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(stringResource(R.string.lib_playlists), fontWeight = FontWeight.Bold) },
-                        navigationIcon = {
-                            FilledTonalIconButton(
-                                onClick = { showAllPlaylists = false },
-                                shapes = IconButtonDefaults.shapes(),
-                                colors = IconButtonDefaults.filledTonalIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            ) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                    )
-                },
-                containerColor = MaterialTheme.colorScheme.background
-            ) { inner ->
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 160.dp),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.padding(inner).padding(bottom = 180.dp)
-                ) {
-                    items(downloadedPlaylists) { playlist ->
-                        PlaylistSquareCard(playlist = playlist) {
-                            val id = if (playlist.id < 0) "local_playlist:${playlist.id}" else playlist.id.toString()
-                            onNavigate("downloaded_section:$id")
-                        }
-                    }
-                }
-            }
-        }
 
         if (showPlaylistOptionsSheet) {
             com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
@@ -3337,5 +3271,95 @@ fun EmptyPlaylistView(
         Spacer(Modifier.height(48.dp))
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DownloadedPlaylistsScreen(
+    onBackClick: () -> Unit,
+    onNavigate: (String) -> Unit
+) {
+    val context = LocalContext.current
+    val db = remember { AppDatabase.getDatabase(context).downloadDao() }
+    val downloadedPlaylists = remember { mutableStateListOf<Playlist>() }
+    val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val localPlaylists = db.getDownloadedPlaylists().first()
+            val mapped = localPlaylists.mapNotNull { local ->
+                val tracksInPlaylist = db.getTracksForPlaylistSync(local.id)
+                val realDownloadedCount = tracksInPlaylist.count { it.localAudioPath.isNotEmpty() }
+                if (realDownloadedCount == 0) return@mapNotNull null
+                val firstTrackArt =
+                    tracksInPlaylist.firstOrNull { it.localArtworkPath.isNotEmpty() || it.artworkUrl.isNotEmpty() }
+                        ?.let { it.localArtworkPath.ifEmpty { it.artworkUrl } }
+                val finalArt = local.localCoverPath ?: local.artworkUrl.ifEmpty { firstTrackArt ?: "" }
+                Playlist(
+                    id = local.id,
+                    title = local.title,
+                    artworkUrl = finalArt,
+                    calculatedArtworkUrl = local.localCoverPath,
+                    trackCount = realDownloadedCount,
+                    user = User(0, local.artist, null),
+                    tracks = null
+                )
+            }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                downloadedPlaylists.clear()
+                downloadedPlaylists.addAll(mapped)
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp).fillMaxWidth() else Modifier.fillMaxWidth()
+                ) {
+                    TopAppBar(
+                        title = { Text(stringResource(R.string.lib_playlists), fontWeight = FontWeight.Bold) },
+                        navigationIcon = {
+                            FilledTonalIconButton(
+                                onClick = onBackClick,
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                    )
+                }
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { inner ->
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 160.dp),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (windowSizeInfo.isTablet) Modifier.widthIn(max = 840.dp) else Modifier)
+                    .padding(inner)
+                    .padding(bottom = 180.dp)
+            ) {
+                items(downloadedPlaylists) { playlist ->
+                    PlaylistSquareCard(playlist = playlist) {
+                        val id = if (playlist.id < 0) "local_playlist:${playlist.id}" else playlist.id.toString()
+                        onNavigate("downloaded_section:$id")
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 
