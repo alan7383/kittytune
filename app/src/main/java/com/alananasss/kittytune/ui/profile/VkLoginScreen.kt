@@ -9,6 +9,7 @@ import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.alananasss.kittytune.ui.common.SafeWebView
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,12 +72,7 @@ fun VkLoginScreen(
                 .padding(innerPadding)
                 .fillMaxSize(),
             factory = { ctx ->
-                WebView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-
+                SafeWebView(ctx).apply {
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true

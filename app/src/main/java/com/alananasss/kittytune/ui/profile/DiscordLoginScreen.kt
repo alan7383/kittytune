@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
+import com.alananasss.kittytune.ui.common.SafeWebView
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.PlaybackService
 import com.alananasss.kittytune.data.discord.DiscordRemoteAuthManager
@@ -201,11 +202,7 @@ private fun HCaptchaWebView(
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
-            WebView(ctx).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
+            SafeWebView(ctx).apply {
                 settings.apply {
                     javaScriptEnabled = true
                     domStorageEnabled = true
@@ -473,12 +470,7 @@ fun DiscordLoginScreen(
                             .fillMaxWidth()
                             .weight(1f),
                         factory = { ctx ->
-                            WebView(ctx).apply {
-                                layoutParams = ViewGroup.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT
-                                )
-
+                            SafeWebView(ctx).apply {
                                 settings.apply {
                                     javaScriptEnabled = true
                                     domStorageEnabled = true
