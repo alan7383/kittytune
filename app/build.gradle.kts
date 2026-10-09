@@ -82,7 +82,8 @@ extensions.configure<ApplicationExtension> {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             val releaseSigning = signingConfigs.getByName("release")
             if (releaseSigning.storeFile?.exists() == true) {
                 signingConfig = releaseSigning
@@ -179,7 +180,7 @@ dependencies {
     implementation(libs.lottie.compose)
     implementation(libs.zxing.core)
 
-    // AI music detector — on-device ONNX inference (ArtifactNet, ~17.2 MB on-demand)
+    // AI music detector — on-device LiteRT inference (ArtifactNet TFLite, ~17.4 MB on-demand)
     implementation(libs.onnxruntime)
 
     // Scanning the desktop's pairing QR. zxing above already does the decoding; these are only
