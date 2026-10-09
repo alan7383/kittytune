@@ -58,6 +58,8 @@ internal fun rememberSettingsSearchCatalog(
         var savePosition = prefs.getSavePositionEnabled()
         var youtubeFallback = prefs.getYouTubeFallbackEnabled()
         var hideYoutubeVideos = prefs.getHideYoutubeVideos()
+        var scHistorySync = prefs.getSoundCloudHistorySyncEnabled()
+        var downloadDrm = prefs.getDownloadDrmStreamsEnabled()
         var discordRpc = prefs.getDiscordRpcEnabled()
         var dataSaver = prefs.getDataSaverEnabled()
         var achievementPopups = prefs.getAchievementPopupsEnabled()
@@ -93,6 +95,17 @@ internal fun rememberSettingsSearchCatalog(
                 route = "player_design_settings",
                 keywordsRes = R.string.keywords_player,
                 keywords = listOf("wavy", "slim", "squiggly", "dj flow")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.share_card_code_title,
+                subtitleRes = R.string.share_card_code_subtitle,
+                categoryName = catInterface,
+                icon = Icons.Rounded.QrCode2,
+                route = "player_design_settings",
+                highlightKey = "share_card_code",
+                keywords = listOf("share", "partage", "qr", "code", "card", "carte", "cover")
             ),
             createSearchEntry(
                 context = context,
@@ -691,6 +704,56 @@ internal fun rememberSettingsSearchCatalog(
                 route = "audio_sleep_settings",
                 highlightKey = "sleep_timer_fade",
                 keywordsRes = R.string.keywords_sleep_timer
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_download_drm,
+                subtitleRes = R.string.pref_download_drm_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.EnhancedEncryption,
+                route = "audio_quality_settings",
+                highlightKey = "pref_download_drm",
+                keywords = listOf("drm", "download", "télécharger", "telecharger", "widevine", "encrypted", "mp3", "youtube fallback"),
+                hasSwitch = true,
+                switchState = downloadDrm,
+                onSwitchChange = {
+                    downloadDrm = it
+                    prefs.setDownloadDrmStreamsEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_precise_speed,
+                subtitleRes = R.string.pref_precise_speed_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.Speed,
+                route = "audio_playback_settings",
+                highlightKey = "pref_precise_speed",
+                keywords = listOf("speed", "vitesse", "playback speed", "tempo", "pitch"),
+                hasSwitch = true,
+                switchState = playerViewModel.isPreciseSpeedEnabled,
+                onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_sc_sync_title,
+                subtitleRes = R.string.pref_sc_sync_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.Sync,
+                route = "audio_playback_settings",
+                highlightKey = "pref_sc_sync",
+                keywords = listOf("soundcloud", "history", "sync", "historique", "scrobble"),
+                hasSwitch = true,
+                switchState = scHistorySync,
+                onSwitchChange = {
+                    scHistorySync = it
+                    prefs.setSoundCloudHistorySyncEnabled(it)
+                    onPreferenceChange()
+                }
             ),
 
             // SOURCES
