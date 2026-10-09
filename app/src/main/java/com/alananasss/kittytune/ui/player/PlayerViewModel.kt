@@ -764,6 +764,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (trimWatchJob != null) return
         trimWatchJob = viewModelScope.launch {
             while (isActive) {
+                if (!isPlaying || trimJumpInProgress || currentTrim.isEmpty) {
+                    delay(500L)
+                    continue
+                }
                 delay(TRIM_TICK_MS)
                 if (!isPlaying || trimJumpInProgress || currentTrim.isEmpty) continue
                 applyTrimNow()

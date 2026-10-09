@@ -63,7 +63,7 @@
     )
 
     enum class SectionType {
-        TRACKS_ROW, ARTISTS_ROW, STATIONS_ROW, DISCOVERY_ROW, HIGHLIGHT_ROW
+        TRACKS_ROW, ARTISTS_ROW, STATIONS_ROW, DISCOVERY_ROW, HIGHLIGHT_ROW, REPOSTS_ROW
     }
 
     data class HomeCacheData(
@@ -78,6 +78,7 @@
         val tracks: List<Track> = emptyList(),
         val playlists: List<Playlist> = emptyList(),
         val users: List<User> = emptyList(),
+        val reposts: List<com.alananasss.kittytune.domain.CaptionedRepostItem> = emptyList(),
         val id: String? = null
     )
 
@@ -1049,6 +1050,7 @@
                                 SectionType.ARTISTS_ROW -> section.users
                                 SectionType.DISCOVERY_ROW -> section.tracks
                                 SectionType.HIGHLIGHT_ROW -> section.tracks
+                                SectionType.REPOSTS_ROW -> section.reposts
                             }
                             if (content.isNotEmpty()) {
                                 val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(section.title, getApplication())
@@ -1064,7 +1066,18 @@
         private fun saveToCache() {
             viewModelScope.launch {
                 try {
-                    val sectionsCache = homeSections.map { section -> HomeSectionCache(section.title, section.subtitle, section.type, section.content.filterIsInstance<Track>(), section.content.filterIsInstance<Playlist>(), section.content.filterIsInstance<User>(), section.id) }
+                    val sectionsCache = homeSections.map { section ->
+                        HomeSectionCache(
+                            section.title,
+                            section.subtitle,
+                            section.type,
+                            section.content.filterIsInstance<Track>(),
+                            section.content.filterIsInstance<Playlist>(),
+                            section.content.filterIsInstance<User>(),
+                            section.content.filterIsInstance<com.alananasss.kittytune.domain.CaptionedRepostItem>(),
+                            section.id
+                        )
+                    }
                     val data = HomeCacheData(userProfile, sectionsCache)
                     prefs.edit().putString(getHomeCacheKey(), gson.toJson(data)).apply()
                 } catch (e: Exception) { e.printStackTrace() }
@@ -1593,10 +1606,13 @@
                 coroutineScope {
                     val streamDef = async {
                         try {
-                            api.getMyStream(limit = 20).collection
-                                .filter { it.type == "track" || it.type == "track-repost" }
-                                .mapNotNull { it.track }
-                                .distinctBy { it.id }
+                            api.getMyStream(limit = 40).collection
+                        } catch (e: Exception) { emptyList() }
+                    }
+
+                    val activitiesDef = async {
+                        try {
+                            api.getActivities(limit = 40).collection
                         } catch (e: Exception) { emptyList() }
                     }
 
@@ -1610,11 +1626,63 @@
                     val historySectionDef = async { fetchHistoryBasedSection() }
                     val discoverySectionDef = async { fetchDiscoverySection(sourceLikes) }
                     val recommendationsDef = async { fetchTrackRecommendations(localLikes) }
+                    val homeQueryRepostsDef = async { fetchHomeQueryReposts() }
 
                     val discoverySection = discoverySectionDef.await()
                     if (discoverySection != null) allSections.add(discoverySection)
 
-                    val streamTracks = streamDef.await()
+                    val rawStream = streamDef.await()
+                    val rawActivities = activitiesDef.await()
+
+                    // 1. Official SoundCloud Captioned Reposts (from /home/query)
+                    val officialRepostsSection = homeQueryRepostsDef.await()
+                    if (officialRepostsSection != null) {
+                        allSections.add(officialRepostsSection)
+                    } else {
+                        // Fallback: only items that actually have a non-blank caption!
+                        val streamReposts = rawStream
+                            .filter { it.type == "track-repost" && it.user != null && it.track != null && !it.caption.isNullOrBlank() }
+                            .map {
+                                com.alananasss.kittytune.domain.CaptionedRepostItem(
+                                    reposter = it.user!!,
+                                    track = it.track!!,
+                                    caption = it.caption,
+                                    createdAt = it.createdAt
+                                )
+                            }
+
+                        val activityReposts = rawActivities
+                            .filter { it.type == "track-repost" && it.user != null && it.track != null && !it.caption.isNullOrBlank() }
+                            .map {
+                                com.alananasss.kittytune.domain.CaptionedRepostItem(
+                                    reposter = it.user!!,
+                                    track = it.track!!,
+                                    caption = it.caption,
+                                    createdAt = it.createdAt
+                                )
+                            }
+
+                        val friendReposts = (streamReposts + activityReposts)
+                            .distinctBy { "${it.reposter.id}_${it.track.id}" }
+
+                        if (friendReposts.isNotEmpty()) {
+                            allSections.add(
+                                HomeSection(
+                                    title = getString(R.string.home_reposts_from_friends),
+                                    subtitle = null,
+                                    content = friendReposts,
+                                    type = SectionType.REPOSTS_ROW,
+                                    id = "reposts_from_friends"
+                                )
+                            )
+                        }
+                    }
+
+                    val streamTracks = rawStream
+                        .filter { it.type == "track" || it.type == "track-repost" }
+                        .mapNotNull { it.track }
+                        .distinctBy { it.id }
+
                     if (streamTracks.isNotEmpty()) {
                         allSections.add(HomeSection(getString(R.string.home_stream), null, streamTracks, SectionType.HIGHLIGHT_ROW, id = "stream"))
                     }
@@ -1633,8 +1701,16 @@
                     // Fetch mixed selections (Trending by genre, Latest from artists you follow, etc)
                     val mixedSelections = fetchMixedSelections()
                     if (mixedSelections.isNotEmpty()) {
-                        // Add mixed selections to the top or after discovery
-                        allSections.addAll(1, mixedSelections)
+                        val hasReposts = allSections.any { it.id == "reposts_from_friends" || it.type == SectionType.REPOSTS_ROW }
+                        val toAdd = if (hasReposts) {
+                            mixedSelections.filterNot { it.id == "reposts_from_friends" || it.type == SectionType.REPOSTS_ROW }
+                        } else {
+                            mixedSelections
+                        }
+                        if (toAdd.isNotEmpty()) {
+                            val insertIndex = if (allSections.isNotEmpty()) 1.coerceAtMost(allSections.size) else 0
+                            allSections.addAll(insertIndex, toAdd)
+                        }
                     }
                 }
 
@@ -1725,6 +1801,15 @@
                             val kind = actualObj.get("kind")?.asString
                             when (kind) {
                                 "track" -> parsedItems.add(gson.fromJson(actualObj, Track::class.java))
+                                "track-repost", "repost" -> {
+                                    val track = (if (actualObj.has("track")) actualObj.getAsJsonObject("track") else null)?.let { gson.fromJson(it, Track::class.java) }
+                                    val user = (if (actualObj.has("reposter")) actualObj.getAsJsonObject("reposter") else actualObj.getAsJsonObject("user"))?.let { gson.fromJson(it, User::class.java) }
+                                    val caption = actualObj.get("caption")?.asString
+                                    val createdAt = actualObj.get("created_at")?.asString
+                                    if (track != null && user != null && !caption.isNullOrBlank()) {
+                                        parsedItems.add(com.alananasss.kittytune.domain.CaptionedRepostItem(user, track, caption, createdAt))
+                                    }
+                                }
                                 "playlist", "system-playlist" -> {
                                     val pl = gson.fromJson(actualObj, Playlist::class.java)
                                     val locPlTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(pl.title, getApplication())
@@ -1740,6 +1825,7 @@
                         val tracks = parsedItems.filterIsInstance<Track>()
                         val playlists = parsedItems.filterIsInstance<Playlist>()
                         val users = parsedItems.filterIsInstance<User>()
+                        val reposts = parsedItems.filterIsInstance<com.alananasss.kittytune.domain.CaptionedRepostItem>()
 
                         val isLatest = selection.title?.contains("follow", ignoreCase = true) == true || 
                                        selection.id?.contains("follow", ignoreCase = true) == true ||
@@ -1751,6 +1837,7 @@
                         val locSectionDesc = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(rawDesc, getApplication())
 
                         val derivedId = when {
+                            rawTitle.contains("repost", ignoreCase = true) || rawTitle.contains("vos amis", ignoreCase = true) || rawTitle.contains("from friends", ignoreCase = true) -> "reposts_from_friends"
                             rawTitle.contains("discover", ignoreCase = true) || rawTitle.contains("station", ignoreCase = true) -> "stations"
                             rawTitle.contains("more of what you like", ignoreCase = true) -> "more_of_what_you_like"
                             rawTitle.contains("mixed for", ignoreCase = true) -> "mixed_for"
@@ -1762,7 +1849,9 @@
                             else -> selection.id ?: selection.urn
                         }
 
-                        if (tracks.isNotEmpty() && playlists.isEmpty() && users.isEmpty()) {
+                        if (reposts.isNotEmpty()) {
+                            sections.add(HomeSection(locSectionTitle, locSectionDesc, reposts, SectionType.REPOSTS_ROW, "reposts_from_friends"))
+                        } else if (tracks.isNotEmpty() && playlists.isEmpty() && users.isEmpty()) {
                             sections.add(HomeSection(locSectionTitle, locSectionDesc, tracks, if (isLatest) SectionType.HIGHLIGHT_ROW else SectionType.TRACKS_ROW, derivedId))
                         } else if (playlists.isNotEmpty() && tracks.isEmpty() && users.isEmpty()) {
                             sections.add(HomeSection(locSectionTitle, locSectionDesc, playlists, SectionType.STATIONS_ROW, derivedId))
@@ -1781,6 +1870,112 @@
                 e.printStackTrace()
             }
             return sections
+        }
+
+        private suspend fun fetchHomeQueryReposts(): HomeSection? {
+            return try {
+                val json = api.getHomeQuery()
+                val sections = json.getAsJsonArray("sections") ?: return null
+                val entities = json.getAsJsonObject("entities") ?: return null
+
+                var targetSection: com.google.gson.JsonObject? = null
+                for (secEl in sections) {
+                    val sec = secEl.asJsonObject
+                    val dataObj = sec.getAsJsonObject("data") ?: continue
+                    val secType = dataObj.get("type")?.asString
+                    val secTitle = dataObj.get("title")?.asString ?: ""
+                    if (secType == "reposts_carousel" || 
+                        secTitle.contains("reposts by people you follow", ignoreCase = true) ||
+                        secTitle.contains("repost de vos amis", ignoreCase = true) ||
+                        (secTitle.contains("repost", ignoreCase = true) && (secTitle.contains("follow", ignoreCase = true) || secTitle.contains("amis", ignoreCase = true) || secTitle.contains("friend", ignoreCase = true)))) {
+                        targetSection = sec
+                        break
+                    }
+                }
+
+                val target = targetSection ?: return null
+                val dataObj = target.getAsJsonObject("data") ?: return null
+                val rawTitle = dataObj.get("title")?.asString ?: getString(R.string.home_reposts_from_friends)
+                val rawDesc = dataObj.get("subtitle")?.asString
+                val resultsArr = dataObj.getAsJsonArray("results") ?: return null
+
+                val parsedReposts = mutableListOf<com.alananasss.kittytune.domain.CaptionedRepostItem>()
+                for (urnEl in resultsArr) {
+                    val urn = urnEl.asString
+                    val entity = entities.getAsJsonObject(urn) ?: continue
+                    val trData = entity.getAsJsonObject("data") ?: continue
+                    val tr = if (trData.has("track_repost")) trData.getAsJsonObject("track_repost") else trData
+
+                    val caption = tr.get("caption")?.asString
+                    if (caption.isNullOrBlank()) continue
+
+                    val createdAt = tr.get("created_at")?.asString
+
+                    val reposterObj = tr.getAsJsonObject("reposter") ?: continue
+                    val reposterUrn = reposterObj.get("urn")?.asString ?: ""
+                    val reposterId = reposterObj.get("id")?.asLong
+                        ?: reposterUrn.removePrefix("soundcloud:users:").toLongOrNull()
+                        ?: 0L
+                    val reposter = com.alananasss.kittytune.domain.User(
+                        id = reposterId,
+                        username = reposterObj.get("username")?.asString ?: getString(R.string.unknown_user),
+                        avatarUrl = reposterObj.get("avatar_url")?.asString,
+                        verified = reposterObj.get("verified")?.asBoolean ?: false
+                    )
+
+                    val trackObj = tr.getAsJsonObject("track") ?: continue
+                    val trackUrn = trackObj.get("urn")?.asString ?: ""
+                    val trackId = trackObj.get("id")?.asLong
+                        ?: trackUrn.removePrefix("soundcloud:tracks:").toLongOrNull()
+                        ?: 0L
+                    trackObj.addProperty("id", trackId)
+
+                    val artworkTemplate = trackObj.get("artwork_url_template")?.asString
+                    if (artworkTemplate != null && !trackObj.has("artwork_url")) {
+                        trackObj.addProperty("artwork_url", artworkTemplate.replace("{size}", "t500x500"))
+                    }
+
+                    val embeddedUser = trackObj.getAsJsonObject("_embedded")?.getAsJsonObject("user")
+                    if (embeddedUser != null && !trackObj.has("user")) {
+                        val userUrn = embeddedUser.get("urn")?.asString ?: ""
+                        val userId = userUrn.removePrefix("soundcloud:users:").toLongOrNull() ?: 0L
+                        embeddedUser.addProperty("id", userId)
+                        trackObj.add("user", embeddedUser)
+                    }
+
+                    val track = try {
+                        gson.fromJson(trackObj, com.alananasss.kittytune.domain.Track::class.java)
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    if (track != null) {
+                        parsedReposts.add(
+                            com.alananasss.kittytune.domain.CaptionedRepostItem(
+                                reposter = reposter,
+                                track = track,
+                                caption = caption,
+                                createdAt = createdAt
+                            )
+                        )
+                    }
+                }
+
+                if (parsedReposts.isNotEmpty()) {
+                    val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(rawTitle, getApplication())
+                    val locDesc = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(rawDesc, getApplication())
+                    HomeSection(
+                        title = locTitle,
+                        subtitle = locDesc,
+                        content = parsedReposts,
+                        type = SectionType.REPOSTS_ROW,
+                        id = "reposts_from_friends"
+                    )
+                } else null
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
         }
 
         private fun getIconForGenre(genre: String): ImageVector {
