@@ -2,9 +2,6 @@ package com.alananasss.kittytune.audio.ai
 
 import android.content.Context
 import android.util.Log
-import ai.onnxruntime.OnnxTensor
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtSession
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,22 +14,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.FloatBuffer
 import java.util.concurrent.TimeUnit
 import com.alananasss.kittytune.data.zapret.ZapretManager
 
 /**
- * Singleton that manages ArtifactNet ONNX model downloading and on-device inference.
+ * Singleton that manages ArtifactNet LiteRT (TensorFlow Lite) model downloading and on-device inference.
  *
  * ArtifactNet (4.2M params) detects AI-generated music by extracting forensic
  * residual artifacts from neural audio codecs — generalises across 22+ generators.
- * The full pipeline (STFT → UNet → HPSS → CNN → sigmoid) is baked into the ONNX.
+ * The full pipeline (STFT → UNet → HPSS → CNN → sigmoid) is executed natively via Google LiteRT.
  *
- * Model files are downloaded on-demand from Hugging Face (~17.2 MB total) into private app storage
+ * Model file is downloaded on-demand (~17.4 MB) into private app storage
  * to keep the APK download size small and respect user storage preferences.
  */
 object AiDetectionManager {
@@ -42,13 +39,13 @@ object AiDetectionManager {
     const val CHUNK_SAMPLES = 176_400
     const val TARGET_SR = 44_100
 
-    private const val ONNX_FILENAME = "artifactnet_v94_full.onnx"
-    private const val DATA_FILENAME = "artifactnet_v94_full.onnx.data"
+    private const val MODEL_FILENAME = "artifactnet_v94_full.tflite"
+    private const val LEGACY_ONNX_FILENAME = "artifactnet_v94_full.onnx"
+    private const val LEGACY_DATA_FILENAME = "artifactnet_v94_full.onnx.data"
 
-    private const val URL_ONNX = "https://huggingface.co/intrect/artifactnet/resolve/main/artifactnet_v94_full.onnx"
-    private const val URL_DATA = "https://huggingface.co/intrect/artifactnet/resolve/main/artifactnet_v94_full.onnx.data"
+    private const val URL_MODEL = "https://github.com/alan7383/kittytune/releases/download/v2.68.0/artifactnet_v94_full.tflite"
 
-    const val TOTAL_MODEL_BYTES = 17_199_844L // 226,020 + 16,973,824
+    const val TOTAL_MODEL_BYTES = 17_460_936L
 
     enum class Status { IDLE, ANALYZING, DONE, ERROR }
 
@@ -72,8 +69,7 @@ object AiDetectionManager {
     val downloadState: StateFlow<ModelDownloadState> = _downloadState.asStateFlow()
 
     private val scope = CoroutineScope(Dispatchers.Default)
-    private var ortEnv: OrtEnvironment? = null
-    private var ortSession: OrtSession? = null
+    private var interpreter: Interpreter? = null
     private var analysisJob: Job? = null
 
     private val httpClient by lazy {
@@ -91,42 +87,38 @@ object AiDetectionManager {
 
     fun isModelReady(context: Context): Boolean {
         val dir = getModelsDir(context)
-        val onnx = File(dir, ONNX_FILENAME)
-        val data = File(dir, DATA_FILENAME)
-        return onnx.exists() && onnx.length() > 200_000 && data.exists() && data.length() > 15_000_000
+        val file = File(dir, MODEL_FILENAME)
+        return file.exists() && file.length() > 15_000_000
     }
 
-    fun isModelLoaded(): Boolean = ortSession != null
+    fun isModelLoaded(): Boolean = interpreter != null
 
     /**
-     * Check if model files are on disk and load the session if so.
+     * Check if model file is on disk and load the interpreter if so.
      */
     fun init(context: Context) {
-        if (ortSession != null) return
+        if (interpreter != null) return
         val ready = isModelReady(context)
         if (!ready) {
             _downloadState.value = ModelDownloadState.NotDownloaded
             return
         }
         try {
-            val env = OrtEnvironment.getEnvironment()
-            ortEnv = env
-            val onnxFile = File(getModelsDir(context), ONNX_FILENAME)
-            val opts = OrtSession.SessionOptions().apply {
-                setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
-                setIntraOpNumThreads(2)
+            val modelFile = File(getModelsDir(context), MODEL_FILENAME)
+            val options = Interpreter.Options().apply {
+                setNumThreads(2)
             }
-            ortSession = env.createSession(onnxFile.absolutePath, opts)
+            interpreter = Interpreter(modelFile, options)
             _downloadState.value = ModelDownloadState.Ready
-            Log.i(TAG, "ArtifactNet loaded from storage — input: ${ortSession!!.inputNames}")
+            Log.i(TAG, "ArtifactNet (LiteRT) loaded from storage successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load ArtifactNet", e)
-            _downloadState.value = ModelDownloadState.Error(e.message ?: "Failed to initialize session")
+            _downloadState.value = ModelDownloadState.Error(e.message ?: "Failed to initialize interpreter")
         }
     }
 
     /**
-     * Download the ArtifactNet model files (~17.2 MB total) from Hugging Face.
+     * Download the ArtifactNet LiteRT model file (~17.4 MB) from GitHub Releases.
      */
     fun downloadModel(context: Context) {
         if (_downloadState.value is ModelDownloadState.Downloading) return
@@ -134,36 +126,32 @@ object AiDetectionManager {
 
         scope.launch(Dispatchers.IO) {
             val dir = getModelsDir(context)
-            val onnxTmp = File(dir, "$ONNX_FILENAME.tmp")
-            val dataTmp = File(dir, "$DATA_FILENAME.tmp")
-            val onnxFinal = File(dir, ONNX_FILENAME)
-            val dataFinal = File(dir, DATA_FILENAME)
+            // Clean up old ONNX files if present to save storage space
+            try {
+                File(dir, LEGACY_ONNX_FILENAME).delete()
+                File(dir, LEGACY_DATA_FILENAME).delete()
+            } catch (_: Exception) {}
+
+            val modelTmp = File(dir, "$MODEL_FILENAME.tmp")
+            val modelFinal = File(dir, MODEL_FILENAME)
 
             var totalDownloaded = 0L
 
             try {
-                downloadFile(URL_ONNX, onnxTmp) { bytesRead ->
+                downloadFile(URL_MODEL, modelTmp) { bytesRead ->
                     totalDownloaded += bytesRead
                     val progress = (totalDownloaded.toFloat() / TOTAL_MODEL_BYTES).coerceIn(0f, 1f)
                     _downloadState.value = ModelDownloadState.Downloading(progress, totalDownloaded, TOTAL_MODEL_BYTES)
                 }
 
-                downloadFile(URL_DATA, dataTmp) { bytesRead ->
-                    totalDownloaded += bytesRead
-                    val progress = (totalDownloaded.toFloat() / TOTAL_MODEL_BYTES).coerceIn(0f, 1f)
-                    _downloadState.value = ModelDownloadState.Downloading(progress, totalDownloaded, TOTAL_MODEL_BYTES)
-                }
-
-                onnxTmp.renameTo(onnxFinal)
-                dataTmp.renameTo(dataFinal)
+                modelTmp.renameTo(modelFinal)
 
                 withContext(Dispatchers.Main) {
                     init(context)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Model download failed", e)
-                onnxTmp.delete()
-                dataTmp.delete()
+                modelTmp.delete()
                 _downloadState.value = ModelDownloadState.Error(e.message ?: "Download failed")
             }
         }
@@ -191,25 +179,26 @@ object AiDetectionManager {
     }
 
     /**
-     * Delete the downloaded model files and release memory.
+     * Delete the downloaded model file and release memory.
      */
     fun deleteModel(context: Context) {
         analysisJob?.cancel()
         analysisJob = null
         try {
-            ortSession?.close()
-            ortSession = null
+            interpreter?.close()
+            interpreter = null
         } catch (_: Exception) {}
         val dir = getModelsDir(context)
-        File(dir, ONNX_FILENAME).delete()
-        File(dir, DATA_FILENAME).delete()
+        File(dir, MODEL_FILENAME).delete()
+        File(dir, LEGACY_ONNX_FILENAME).delete()
+        File(dir, LEGACY_DATA_FILENAME).delete()
         _downloadState.value = ModelDownloadState.NotDownloaded
         _result.value = null
         Log.i(TAG, "ArtifactNet model files deleted")
     }
 
     fun analyzeAsync(pcmBytes: ByteArray, sampleRate: Int, channelCount: Int) {
-        val session = ortSession ?: run {
+        val session = interpreter ?: run {
             Log.w(TAG, "analyzeAsync called before model ready; skipping")
             return
         }
@@ -246,7 +235,7 @@ object AiDetectionManager {
     }
 
     private fun runDetection(
-        session: OrtSession,
+        session: Interpreter,
         pcmBytes: ByteArray,
         srcSr: Int,
         channels: Int
@@ -255,7 +244,6 @@ object AiDetectionManager {
         if (numFrames == 0) return 0f
 
         val buf = ByteBuffer.wrap(pcmBytes).order(ByteOrder.LITTLE_ENDIAN)
-        // Convert directly to mono FloatArray in one pass without allocating raw stereo samples (~10 MB saved)
         val mono = FloatArray(numFrames)
         if (channels == 1) {
             for (i in 0 until numFrames) {
@@ -297,10 +285,8 @@ object AiDetectionManager {
         val inputSamples: FloatArray
         val numChunks: Int
         if (resampled.size < CHUNK_SAMPLES) {
-            // Fast mode: short audio (~1.0s) tiled up to CHUNK_SAMPLES with smooth loop crossfading
-            // to completely eliminate boundary step discontinuities / click transients.
             val n = resampled.size
-            val fadeLen = minOf(882, n / 10) // ~20 ms crossfade window at 44.1 kHz
+            val fadeLen = minOf(882, n / 10)
             if (fadeLen > 1 && n > fadeLen) {
                 val loopLen = n - fadeLen
                 val loopable = FloatArray(loopLen)
@@ -325,27 +311,22 @@ object AiDetectionManager {
             numChunks = resampled.size / CHUNK_SAMPLES
         }
 
-        val env = ortEnv ?: return 0f
-        val inputName = session.inputNames.firstOrNull() ?: return 0f
         val scores = mutableListOf<Float>()
+        val inputBuffer = ByteBuffer.allocateDirect(CHUNK_SAMPLES * 4).order(ByteOrder.nativeOrder())
+        val outputBuffer = ByteBuffer.allocateDirect(4).order(ByteOrder.nativeOrder())
 
         var offset = 0
         for (c in 0 until numChunks) {
-            val chunk = FloatBuffer.wrap(inputSamples, offset, CHUNK_SAMPLES)
-            val tensor = OnnxTensor.createTensor(env, chunk, longArrayOf(1L, CHUNK_SAMPLES.toLong()))
-            try {
-                val outputs = session.run(mapOf(inputName to tensor))
-                try {
-                    @Suppress("UNCHECKED_CAST")
-                    val prob = (outputs[0].value as FloatArray)[0]
-                    if (!prob.isNaN()) {
-                        scores.add(prob.coerceIn(0f, 1f))
-                    }
-                } finally {
-                    outputs.close()
-                }
-            } finally {
-                tensor.close()
+            inputBuffer.clear()
+            for (i in offset until offset + CHUNK_SAMPLES) {
+                inputBuffer.putFloat(inputSamples[i])
+            }
+            outputBuffer.clear()
+            session.run(inputBuffer, outputBuffer)
+            outputBuffer.rewind()
+            val prob = outputBuffer.float
+            if (!prob.isNaN()) {
+                scores.add(prob.coerceIn(0f, 1f))
             }
             offset += CHUNK_SAMPLES
         }

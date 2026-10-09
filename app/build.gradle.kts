@@ -181,7 +181,7 @@ dependencies {
     implementation(libs.zxing.core)
 
     // AI music detector — on-device LiteRT inference (ArtifactNet TFLite, ~17.4 MB on-demand)
-    implementation(libs.onnxruntime)
+    implementation(libs.litert)
 
     // Scanning the desktop's pairing QR. zxing above already does the decoding; these are only
     // the camera frames to hand it (issue #33).
