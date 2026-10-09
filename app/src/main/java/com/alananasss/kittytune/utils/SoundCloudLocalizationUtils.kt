@@ -84,6 +84,13 @@ object SoundCloudLocalizationUtils {
         if (trimmed.equals("Albums for you", ignoreCase = true)) {
             return stringResolver(R.string.home_albums_for_you, emptyArray())
         }
+        if (trimmed.equals("Reposts by people you follow", ignoreCase = true) ||
+            trimmed.contains("reposts by people you follow", ignoreCase = true) ||
+            trimmed.equals("Reposts from friends", ignoreCase = true) || 
+            trimmed.equals("Reposts from your friends", ignoreCase = true) ||
+            trimmed.equals("Repost de vos amis", ignoreCase = true)) {
+            return stringResolver(R.string.home_reposts_from_friends, emptyArray())
+        }
         if (trimmed.equals("Rediscover your collection", ignoreCase = true)) {
             return stringResolver(R.string.home_rediscovery_title, emptyArray())
         }

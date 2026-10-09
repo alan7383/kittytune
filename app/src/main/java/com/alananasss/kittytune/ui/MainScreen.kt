@@ -165,11 +165,7 @@ fun MainScreen(
             }
         )
     }
-    var isGuestLoading by remember { mutableStateOf(false) }
     var showProfileMenu by remember { mutableStateOf(false) }
-    var instantiateWebView by remember { mutableStateOf(false) }
-
-    val isClientIdValid by SessionManager.isClientIdValid.collectAsState()
     val allAchievementsUnlocked by AchievementManager.isAllUnlocked.collectAsState()
     var showCompletionScreen by remember { mutableStateOf(false) }
     var showPopups by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
@@ -225,12 +221,10 @@ fun MainScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                if (!SessionManager.showCaptchaFlow.value) {
-                    SessionManager.requestSessionRefresh(
-                        context = context,
-                        force = tokenManager.shouldRefreshAccessToken()
-                    )
-                }
+                SessionManager.requestSessionRefresh(
+                    context = context,
+                    force = tokenManager.shouldRefreshAccessToken()
+                )
                 showPopups = prefs.getAchievementPopupsEnabled()
                 AchievementManager.checkDailyStreak()
                 playerViewModel.syncWithCurrentPlayback()
@@ -285,76 +279,9 @@ fun MainScreen(
         }
     }
 
-    if (instantiateWebView) {
-        val showCaptchaWebView by SessionManager.showCaptchaFlow.collectAsState()
-
-        Box(
-            modifier = if (showCaptchaWebView) {
-                Modifier.fillMaxSize().zIndex(100f)
-            } else {
-                Modifier.offset(x = (-10000).dp, y = (-10000).dp).size(800.dp).zIndex(-1f)
-            }
-        ) {
-            AndroidView(
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        SessionManager.attachGhost(this, ctx)
-                    }
-                },
-                modifier = if (showCaptchaWebView) {
-                    Modifier.fillMaxSize().background(Color.White)
-                } else {
-                    Modifier.fillMaxSize()
-                }
-            )
-
-            AnimatedVisibility(
-                visible = showCaptchaWebView,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 48.dp)
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shadowElevation = 8.dp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Button(
-                            onClick = { SessionManager.retryPendingAction() },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(stringResource(R.string.captcha_done), fontWeight = FontWeight.Bold)
-                        }
-                        FilledTonalButton(
-                            onClick = { SessionManager.cancelCaptcha() },
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        ) {
-                            Text(stringResource(R.string.btn_cancel))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     LaunchedEffect(Unit) {
         delay(200)
-        SessionManager.harvestStoredSession(context)
+
 
         val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
 
@@ -368,21 +295,9 @@ fun MainScreen(
                 navigateToAuthenticatedStart()
             }
         }
-        instantiateWebView = true
     }
 
-    LaunchedEffect(isGuestLoading, isClientIdValid) {
-        if (isGuestLoading && isClientIdValid) {
-            val tm = TokenManager(context)
-            tm.setGuestMode(true)
-            homeViewModel.loadData()
-            delay(500)
-            isGuestLoading = false
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Welcome.route) { inclusive = true }
-            }
-        }
-    }
+
 
     if (playerViewModel.showLyricsSheet) {
         DisposableEffect(Unit) {

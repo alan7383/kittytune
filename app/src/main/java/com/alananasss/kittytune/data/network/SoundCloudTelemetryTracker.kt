@@ -401,7 +401,7 @@ object SoundCloudTelemetryTracker {
         try {
             val response = client.newCall(requestBuilder.build()).execute()
             val code = response.code
-            val body = response.body?.string()
+            val body = response.body.string()
             response.close()
 
             if (code in 200..299) {

@@ -16,7 +16,15 @@ data class StreamItem(
     val track: Track?,
     val playlist: Playlist?,
     val user: User?,
+    @SerializedName("caption") val caption: String? = null,
     @SerializedName("created_at") val createdAt: String?
+)
+
+data class CaptionedRepostItem(
+    val reposter: User,
+    val track: Track,
+    val caption: String? = null,
+    @SerializedName("created_at") val createdAt: String? = null
 )
 
 data class CommentCollection(val collection: List<Comment>, val next_href: String?)
@@ -74,7 +82,8 @@ data class ActivityItem(
     val user: User?,
     val track: Track?,
     val playlist: Playlist?,
-    val comment: Comment?
+    val comment: Comment?,
+    @SerializedName("caption") val caption: String? = null
 )
 
 
