@@ -49,7 +49,9 @@ fun MusicImportTransferScreen(
         }
     }
 
-    androidx.activity.compose.BackHandler(enabled = true, onBack = handleBackClick)
+    androidx.activity.compose.BackHandler(enabled = isTransferring) {
+        android.widget.Toast.makeText(context, context.getString(R.string.music_import_transfer_in_progress_toast), android.widget.Toast.LENGTH_SHORT).show()
+    }
 
     SettingsScaffold(
         title = stringResource(R.string.music_import_transfer_title),

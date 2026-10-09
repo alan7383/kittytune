@@ -89,12 +89,8 @@ fun RecognitionScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val audioSource by viewModel.audioSource.collectAsStateWithLifecycle()
 
-    BackHandler {
-        if (state is RecognitionState.Searching) {
-            viewModel.cancelRecognition()
-        } else {
-            onBackClick()
-        }
+    BackHandler(enabled = state is RecognitionState.Searching) {
+        viewModel.cancelRecognition()
     }
 
     var hasPermission by remember {
@@ -163,7 +159,6 @@ fun RecognitionScreen(
 
     val isErrorOrSuccess = state is RecognitionState.Error || state is RecognitionState.Success
     val isSearching = state is RecognitionState.Searching
-    // Matches original: idle = secondaryContainer, searching = primaryContainer, result = surface
     val bgColor = when {
         isErrorOrSuccess -> MaterialTheme.colorScheme.surface
         isSearching -> MaterialTheme.colorScheme.primaryContainer
@@ -181,7 +176,6 @@ fun RecognitionScreen(
             .background(animatedBgColor)
     ) {
         val bgComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.background_animation))
-        // Original HomeFragment.java: lottie scales 1→5 on motionEasingEmphasizedDecelerate over 1000ms when listening starts.
         val lottieScale = remember { androidx.compose.animation.core.Animatable(1f) }
         LaunchedEffect(isSearching) {
             if (isSearching) {
@@ -193,17 +187,10 @@ fun RecognitionScreen(
                 lottieScale.snapTo(1f)
             }
         }
-        // From HomeFragment.java lines 89-149 (exact reverse-engineered code):
-        //   private static final fdy aw = new fdy("**", ".primary", "**");    → COLOR + OPACITY 95
-        //   private static final fdy ax = new fdy("**", ".secondary", "**");  → COLOR + OPACITY 95
-        //   private static final fdy ay = new fdy("**", ".tertiary", "**");   → COLOR + OPACITY 90
-        //   fav.a = 1 = LottieProperty.COLOR; fav.d = 4 = LottieProperty.OPACITY
-        //   Colors: colorPrimary, colorSecondary, colorTertiary
         val lottiePrimary   = MaterialTheme.colorScheme.primary.copy(alpha = 1f).toArgb()
         val lottieSecondary = MaterialTheme.colorScheme.secondary.copy(alpha = 1f).toArgb()
         val lottieTertiary  = MaterialTheme.colorScheme.tertiary.copy(alpha = 1f).toArgb()
         val bgDynamicProps = rememberLottieDynamicProperties(
-            // .primary layers: colorPrimary fill, 95% opacity
             rememberLottieDynamicProperty(
                 property = LottieProperty.COLOR,
                 value = lottiePrimary,
@@ -214,7 +201,6 @@ fun RecognitionScreen(
                 value = 95,
                 keyPath = arrayOf("**", ".primary", "**"),
             ),
-            // .secondary layers: colorSecondary fill, 95% opacity
             rememberLottieDynamicProperty(
                 property = LottieProperty.COLOR,
                 value = lottieSecondary,
@@ -225,7 +211,6 @@ fun RecognitionScreen(
                 value = 95,
                 keyPath = arrayOf("**", ".secondary", "**"),
             ),
-            // .tertiary layer: colorTertiary fill, 90% opacity
             rememberLottieDynamicProperty(
                 property = LottieProperty.COLOR,
                 value = lottieTertiary,
@@ -379,13 +364,13 @@ private fun RecognitionHomeView(
     val btnScale by animateFloatAsState(targetValue = if (isPressed && !isSearching) 0.92f else 1f, label = "scale")
 
     val buttonColor = if (isSearching)
-        MaterialTheme.colorScheme.onPrimaryContainer  // dark blob on primaryContainer bg
+        MaterialTheme.colorScheme.onPrimaryContainer
     else
-        MaterialTheme.colorScheme.secondary           // circle on secondaryContainer bg
+        MaterialTheme.colorScheme.secondary
     val iconTint = if (isSearching)
-        MaterialTheme.colorScheme.primaryContainer    // light icon on dark blob
+        MaterialTheme.colorScheme.primaryContainer
     else
-        MaterialTheme.colorScheme.onSecondary         // icon on secondary circle
+        MaterialTheme.colorScheme.onSecondary
 
     val labelColor by animateColorAsState(
         targetValue = if (isSearching)
@@ -424,8 +409,6 @@ private fun RecognitionHomeView(
                     }
                 ),
         ) {
-            // Original: button src = avd_nowplaying_searching (animated 3-bar icon) when searching,
-            // or gs_mic_off_64 (mic-off icon, which is the music note) when idle.
             if (isSearching) {
                 SearchingBarsIcon(
                     color = iconTint,
@@ -441,9 +424,6 @@ private fun RecognitionHomeView(
             }
         }
 
-        // Official Pixel Now Playing label animation (gow.java lines 1331-1336 & 1580-1586):
-        // HomeLabelTopPadding oscillates between -31dp (idle) and +21dp (searching), sliding 52dp down
-        // over 1000ms with CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f) as the button blooms.
         val homeLabelTopPadding by animateDpAsState(
             targetValue = if (isSearching) 21.dp else (-31).dp,
             animationSpec = tween(1000, easing = CubicBezierEasing(0.2f, 0.0f, 0.0f, 1.0f)),
@@ -456,7 +436,6 @@ private fun RecognitionHomeView(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.offset { IntOffset(x = 0, y = homeLabelTopPadding.roundToPx()) }
         ) {
-            // Title: fades smoothly matching official 300ms transition (ggp.java case 13)
             AnimatedContent(
                 targetState = if (isSearching) {
                     stringResource(R.string.recognition_listening)
@@ -479,7 +458,6 @@ private fun RecognitionHomeView(
                 )
             }
 
-            // Subtitle: fades smoothly via alpha so layout height remains stable with zero reflow
             val subtitleAlpha by animateFloatAsState(
                 targetValue = if (isSearching) 0f else 1f,
                 animationSpec = tween(250),
@@ -500,8 +478,6 @@ private fun RecognitionHomeView(
             )
         }
 
-        // Connected buttons right under the text: fades out and slightly slides down via graphicsLayer,
-        // preserving its layout height so the Column NEVER collapses and the top items NEVER jump!
         val controlsAlpha by animateFloatAsState(
             targetValue = if (isSearching) 0f else 1f,
             animationSpec = tween(250, easing = FastOutSlowInEasing),
@@ -767,7 +743,6 @@ private fun ErrorView(error: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Faithful reproduction of home_not_found_illustration from Google Pixel Now Playing
         Box(
             modifier = Modifier
                 .size(72.dp)
