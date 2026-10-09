@@ -48,8 +48,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.text.font.FontStyle
+import com.alananasss.kittytune.domain.CaptionedRepostItem
+import com.alananasss.kittytune.ui.library.getRelativeTime
+import java.text.SimpleDateFormat
+import java.util.Locale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -171,7 +178,6 @@ fun HomeScreen(
         snapshotFlow { searchFieldState.text.toString() }
             .distinctUntilChanged()
             .collect { text ->
-                // Ne pas écraser la query conservée par le ViewModel quand l'écran est recomposé
                 if (text != homeViewModel.searchQuery) {
                     homeViewModel.onSearchQueryChanged(text)
                 }
@@ -187,8 +193,6 @@ fun HomeScreen(
             }
         }
     }
-
-    // Live network observer
     val context = LocalContext.current
     DisposableEffect(context) {
         val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
@@ -589,6 +593,7 @@ fun HomeContent(
 
     val titleRecommended = stringResource(R.string.home_recommended_tracks)
 
+    val titleReposts = stringResource(R.string.home_reposts_from_friends)
     val titleRediscover = stringResource(R.string.home_rediscovery_title)
     val titleHabits = stringResource(R.string.home_habits_title)
 
@@ -597,25 +602,33 @@ fun HomeContent(
     val titleSimilarPrefix = stringResource(R.string.home_section_similar, "").trim()
 
     val discoverySection = allSections.find { it.id == "discovery" || it.type == SectionType.DISCOVERY_ROW }
+    val repostsSection = allSections.find { it.id == "reposts_from_friends" || it.type == SectionType.REPOSTS_ROW || it.title == titleReposts || it.title.equals("Reposts by people you follow", ignoreCase = true) || it.title.equals("Reposts from friends", ignoreCase = true) || it.title.equals("Repost de vos amis", ignoreCase = true) }
     val recommendedSection = allSections.find { it.id == "recommended" || it.title == titleRecommended || it.title.equals("Recommended for You", ignoreCase = true) || it.title.equals("Рекомендовано вам", ignoreCase = true) }
 
     val rediscoverSection = allSections.find { it.id == "rediscover" || it.title == titleRediscover || it.title.equals("Rediscover your collection", ignoreCase = true) || it.title.equals("Откройте свою коллекцию заново", ignoreCase = true) }
     val habitsSection = allSections.find { it.id == "habits" || it.title == titleHabits || it.title.equals("Your Vibe", ignoreCase = true) || it.title.equals("Ваш вайб", ignoreCase = true) }
 
     val stationsSection = allSections.find { it.id == "stations" || it.title == titleStations || it.title.equals("Discover with Stations", ignoreCase = true) || it.title.equals("Discover with stations", ignoreCase = true) || it.title.equals("Откройте для себя станции", ignoreCase = true) }
+    val newCrewSection = allSections.find { it.id == "new_crew" || it.title.contains("New crew", ignoreCase = true) || it.title.contains("Nouveaux Talents", ignoreCase = true) || it.title.contains("New Talent", ignoreCase = true) }
     val albumsSection = allSections.find { it.id == "albums" || it.title == titleAlbums || it.title.equals("Albums for you", ignoreCase = true) || it.title.equals("Альбомы для вас", ignoreCase = true) }
     val similarSection = allSections.find { it.id == "similar" || it.title.startsWith(titleSimilarPrefix) || it.title.startsWith("Similar to", ignoreCase = true) || it.title.startsWith("Похожие на", ignoreCase = true) }
 
     val usedSections = setOfNotNull(
         discoverySection,
+        repostsSection,
         recommendedSection,
         rediscoverSection,
         habitsSection,
         stationsSection,
+        newCrewSection,
         albumsSection,
         similarSection
     )
-    val remainingSections = allSections.filter { !usedSections.contains(it) }
+    val remainingSections = allSections.filter { 
+        !usedSections.contains(it) && 
+        it.id != "reposts_from_friends" && 
+        it.type != SectionType.REPOSTS_ROW 
+    }
 
     LazyColumn(
         state = scrollState,
@@ -794,6 +807,15 @@ fun HomeContent(
         stationsSection?.let {
             RenderHomeSection(it, onNavigate, playerViewModel)
         }
+
+        newCrewSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
+        }
+
+        repostsSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
+        }
+
         albumsSection?.let {
             RenderHomeSection(it, onNavigate, playerViewModel)
         }
@@ -889,6 +911,24 @@ fun LazyListScope.RenderHomeSection(
                 }
             }
 
+            SectionType.REPOSTS_ROW -> {
+                val reposts = section.content.filterIsInstance<CaptionedRepostItem>()
+                if (reposts.isNotEmpty()) {
+                    StandardHorizontalSection(
+                        title = locTitle,
+                        subtitle = locSub
+                    ) {
+                        items(reposts) { repost ->
+                            CaptionedRepostCard(
+                                repost = repost,
+                                onTrackClick = { playerViewModel.playPlaylist(listOf(repost.track), 0, null) },
+                                onUserClick = { onNavigate(repost.reposter.profileNavId) }
+                            )
+                        }
+                    }
+                }
+            }
+
             else -> {}
         }
     }
@@ -974,6 +1014,211 @@ fun HighlightTrackCard(track: Track, onClick: () -> Unit) {
                         tint = Color(0xFF1DA1F2),
                         modifier = Modifier.size(16.dp)
                     )
+                }
+            }
+        }
+    }
+}
+
+fun formatRelativeRepostTime(dateStr: String?, context: android.content.Context): String {
+    val safeDate = dateStr?.takeIf { it.isNotBlank() } ?: return ""
+    val rel = getRelativeTime(safeDate, context)
+    if (rel.isNotBlank()) return rel
+    return try {
+        val epochMillis = try {
+            val scFormat = SimpleDateFormat("yyyy/MM/dd HH:mm:ss Z", Locale.US)
+            scFormat.parse(safeDate)?.time
+        } catch (_: Exception) {
+            null
+        } ?: try {
+            java.time.OffsetDateTime.parse(safeDate).toInstant().toEpochMilli()
+        } catch (_: Exception) {
+            try {
+                java.time.Instant.parse(safeDate).toEpochMilli()
+            } catch (_: Exception) {
+                null
+            }
+        } ?: return ""
+
+        val diff = System.currentTimeMillis() - epochMillis
+        val seconds = diff / 1000
+        val minutes = seconds / 60
+        val hours = minutes / 60
+        val days = hours / 24
+        val weeks = days / 7
+        val months = days / 30
+        val years = days / 365
+        when {
+            seconds < 60 -> context.getString(R.string.time_now)
+            minutes < 60 -> context.getString(R.string.time_minutes_ago, minutes)
+            hours < 24 -> context.getString(R.string.time_hours_ago, hours)
+            days < 7 -> context.getString(R.string.time_days_ago, days)
+            weeks < 5 -> context.getString(R.string.time_weeks_ago, weeks)
+            months < 12 -> context.getString(R.string.time_months_ago, months)
+            years == 1L -> context.getString(R.string.time_one_year_ago)
+            else -> context.getString(R.string.time_years_ago, years)
+        }
+    } catch (_: Exception) {
+        ""
+    }
+}
+
+@Composable
+fun CaptionedRepostCard(
+    repost: CaptionedRepostItem,
+    onTrackClick: () -> Unit,
+    onUserClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val columns = maxOf(1, (screenWidth / 350f).toInt())
+    val cardWidth = ((screenWidth * 0.82f) / columns).dp
+
+    val context = LocalContext.current
+    val timeAgo = remember(repost.createdAt) {
+        formatRelativeRepostTime(repost.createdAt, context)
+    }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        modifier = modifier
+            .width(cardWidth)
+            .wrapContentHeight()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(onClick = onUserClick),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    AsyncImage(
+                        model = repost.reposter.avatarUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    )
+                    Text(
+                        text = repost.reposter.username ?: "",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (repost.reposter.verified) {
+                        Icon(
+                            imageVector = Icons.Rounded.Verified,
+                            contentDescription = null,
+                            tint = Color(0xFF1DA1F2),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.Rounded.Repeat,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+
+                if (timeAgo.isNotBlank()) {
+                    Text(
+                        text = timeAgo,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 44.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = "“",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    lineHeight = 24.sp
+                )
+                Text(
+                    text = repost.caption ?: "",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontStyle = FontStyle.Italic),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            val artworkUrl = repost.track.fullResArtwork ?: repost.track.artworkUrl
+            Surface(
+                onClick = onTrackClick,
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    AsyncImage(
+                        model = artworkUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    )
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = repost.track.title ?: "",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = repost.track.displayArtist.ifBlank { repost.track.user?.username ?: "" },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
