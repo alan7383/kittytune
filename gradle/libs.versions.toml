@@ -1,6 +1,6 @@
 [versions]
 agp = "9.4.1"
-kotlin = "2.4.20"
+kotlin = "2.4.21"
 coreKtx = "1.19.1"
 junit = "4.13.2"
 junitVersion = "1.3.0"
@@ -14,7 +14,7 @@ coil = "2.7.0"
 media3 = "1.11.1"
 retrofit = "3.0.0"
 okhttp = "5.5.0"
-riveAndroid = "11.13.0"
+riveAndroid = "11.14.1"
 room = "2.8.5"
 ksp = "2.3.10"
 palette = "1.0.0"
@@ -33,7 +33,7 @@ reorderable = "3.1.0"
 aboutlibraries = "15.2.0"
 ktor = "3.6.0"
 json = "20260814"
-material3 = "1.5.0-alpha29"
+material3 = "1.5.0-beta01"
 materialKolor = "5.0.1"
 accompanist = "0.37.3"
 camerax = "1.6.2"
@@ -114,7 +114,7 @@ camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.r
 camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 accompanist-lyrics-ui = { module = "com.mocharealm.accompanist:lyrics-ui", version = "1.0.19" }
-accompanist-lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version = "0.4.7" }
+accompanist-lyrics-core = { module = "com.mocharealm.accompanist:lyrics-core", version = "0.5.0" }
 onnxruntime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
 smooth-corner-rect = { module = "com.github.racra:smooth-corner-rect-android-compose", version.ref = "smooth-corner-rect" }
 
