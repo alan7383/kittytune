@@ -386,7 +386,9 @@ fun MainScreen(
                 currentRoute == "deezer_login" ||
                 currentRoute == "tidal_login" ||
                 currentRoute.startsWith("yearly_playback") ||
-                currentRoute.startsWith("listening_stats")
+                currentRoute.startsWith("listening_stats") ||
+                currentRoute == "storage" ||
+                currentRoute.startsWith("storage_downloads")
 
         val hideNavRail = currentRoute == Screen.Login.route ||
                 currentRoute.startsWith("login") ||
@@ -397,7 +399,9 @@ fun MainScreen(
                 currentRoute == "deezer_login" ||
                 currentRoute == "tidal_login" ||
                 currentRoute.startsWith("yearly_playback") ||
-                currentRoute.startsWith("listening_stats")
+                currentRoute.startsWith("listening_stats") ||
+                currentRoute == "storage" ||
+                currentRoute.startsWith("storage_downloads")
 
         val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -1516,7 +1520,28 @@ fun MainScreen(
                         }
 
                         clippedComposable("storage") {
-                            StorageScreen(onBackClick = { navController.popBackStack() })
+                            StorageScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToPlaylist = { route -> navController.navigate(route) },
+                                onNavigateToDownloads = { tab -> navController.navigate("storage_downloads?tab=$tab") }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "storage_downloads?tab={tab}",
+                            arguments = listOf(
+                                navArgument("tab") {
+                                    type = NavType.IntType
+                                    defaultValue = 0
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val tab = backStackEntry.arguments?.getInt("tab") ?: 0
+                            StorageDownloadsScreen(
+                                initialTab = tab,
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToPlaylist = { route -> navController.navigate(route) }
+                            )
                         }
 
                         clippedComposable("discord_settings") {

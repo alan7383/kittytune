@@ -138,6 +138,8 @@ fun PlayerCustomizationScreen(
 
     var notifExtraButton by remember { mutableStateOf(prefs.getNotificationExtraButton()) }
     var showNotifExtraButtonDialog by remember { mutableStateOf(false) }
+    var shareCardCodeMode by remember { mutableIntStateOf(prefs.getShareCardCodeMode()) }
+    var showShareCardCodeDialog by remember { mutableStateOf(false) }
 
     var previewSliderProgress by remember { mutableFloatStateOf(0.42f) }
     var isPreviewPlaying by remember { mutableStateOf(true) }
@@ -189,6 +191,7 @@ fun PlayerCustomizationScreen(
             "pref_player_style" to 4,
             "pref_track_source_badge" to 4,
             "pref_full_player_source" to 4,
+            "share_card_code" to 6,
         )
     )
 
@@ -736,6 +739,29 @@ fun PlayerCustomizationScreen(
                 )
             }
 
+            item {
+                val shareCodeSubtitle = when (shareCardCodeMode) {
+                    1 -> stringResource(R.string.share_card_code_solid)
+                    2 -> stringResource(R.string.share_card_code_halftone)
+                    else -> stringResource(R.string.share_card_code_auto)
+                }
+                SettingsGroup(
+                    title = stringResource(R.string.share_card_settings_group),
+                    items = listOf { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.share_card_code_title),
+                            subtitle = stringResource(
+                                R.string.share_card_code_subtitle
+                            ) + " • " + shareCodeSubtitle,
+                            icon = Icons.Rounded.QrCode2,
+                            onClick = { showShareCardCodeDialog = true },
+                            highlightKey = "share_card_code"
+                        )
+                    }
+                )
+            }
+
             // 6. Track Menu Sheet Tiles (Draggable M3 Grouped Settings)
             item(key = "menu_tiles_header") {
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -1051,6 +1077,59 @@ fun PlayerCustomizationScreen(
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
+        )
+    }
+
+    if (showShareCardCodeDialog) {
+        val labels = listOf(
+            stringResource(R.string.share_card_code_auto) to stringResource(R.string.share_card_code_auto_desc),
+            stringResource(R.string.share_card_code_solid) to stringResource(R.string.share_card_code_solid_desc),
+            stringResource(R.string.share_card_code_halftone) to stringResource(R.string.share_card_code_halftone_desc),
+        )
+        AlertDialog(
+            onDismissRequest = { showShareCardCodeDialog = false },
+            title = { Text(stringResource(R.string.share_card_code_title)) },
+            text = {
+                Column {
+                    labels.forEachIndexed { index, (label, desc) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                    onUpdated()
+                                }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            RadioButton(
+                                selected = shareCardCodeMode == index,
+                                onClick = {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                    onUpdated()
+                                },
+                            )
+                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                                Text(label, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showShareCardCodeDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            },
         )
     }
 

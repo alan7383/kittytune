@@ -15,13 +15,18 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -59,7 +64,7 @@ fun SettingsGroupTitle(title: String) {
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp, top = 24.dp)
+        modifier = Modifier.padding(start = 8.dp, bottom = 12.dp, top = 24.dp)
     )
 }
 
@@ -68,7 +73,11 @@ fun SettingsGroup(
     title: String? = null,
     items: List<@Composable (Shape) -> Unit>
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
         if (title != null) {
             SettingsGroupTitle(title)
         }
@@ -78,7 +87,7 @@ fun SettingsGroup(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             items.forEachIndexed { index, itemContent ->
-                itemContent(androidx.compose.ui.graphics.RectangleShape)
+                itemContent(getSettingsShape(items.size, index))
             }
         }
     }
@@ -114,6 +123,7 @@ fun SettingsItem(
     val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val highlightAlpha = remember { Animatable(0f) }
+    var itemCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -130,7 +140,7 @@ fun SettingsItem(
             }
             delay(150)
             try {
-                bringIntoViewRequester.bringIntoView()
+                bringIntoViewRequester.bringIntoViewCentered(itemCoordinates)
             } catch (_: Exception) {}
 
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
@@ -165,7 +175,8 @@ fun SettingsItem(
         shape = shape,
         modifier = modifier
             .fillMaxWidth()
-            .bringIntoViewRequester(bringIntoViewRequester),
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onGloballyPositioned { itemCoordinates = it },
         interactionSource = interactionSource
     ) {
         Row(
@@ -388,6 +399,7 @@ fun SplitSettingsItem(
     val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val highlightAlpha = remember { Animatable(0f) }
+    var itemCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val primaryColor = MaterialTheme.colorScheme.primary
     val baseColor = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -404,7 +416,7 @@ fun SplitSettingsItem(
             }
             delay(150)
             try {
-                bringIntoViewRequester.bringIntoView()
+                bringIntoViewRequester.bringIntoViewCentered(itemCoordinates)
             } catch (_: Exception) {}
 
             highlightAlpha.animateTo(1f, tween(200, easing = LinearEasing))
@@ -431,6 +443,7 @@ fun SplitSettingsItem(
         modifier = Modifier
             .fillMaxWidth()
             .bringIntoViewRequester(bringIntoViewRequester)
+            .onGloballyPositioned { itemCoordinates = it }
     ) {
         Row(
             modifier = Modifier
@@ -501,32 +514,9 @@ fun SplitSettingsItem(
                 modifier = Modifier
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                Switch(
+                SettingsSwitch(
                     checked = switchState,
-                    onCheckedChange = onSwitchChange,
-                    thumbContent = {
-                        if (switchState) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(SwitchDefaults.IconSize),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(SwitchDefaults.IconSize),
-                                tint = MaterialTheme.colorScheme.surfaceContainerHighest
-                            )
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
-                    )
+                    onCheckedChange = onSwitchChange
                 )
             }
         }

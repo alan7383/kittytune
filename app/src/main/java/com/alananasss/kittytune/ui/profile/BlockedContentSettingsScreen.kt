@@ -1051,6 +1051,15 @@ internal val ContentFilterSettingDefinitions: List<SettingDefinition> = listOf(
         formatTitleArgs = { arrayOf((it.aiScoreThreshold * 100).toInt()) },
         formatSubtitleArgs = { arrayOf((it.aiScoreThreshold * 100).toInt()) }
     ),
+    SettingDefinition.Action(
+        id = "ai_detection_window",
+        titleRes = R.string.block_ai_window_title,
+        subtitleRes = R.string.block_ai_window_dialog_title,
+        category = SettingsCategory.MISC,
+        route = "content_filter_settings",
+        icon = Icons.Rounded.Speed,
+        keywords = listOf("window", "fenêtre", "detection", "analyse", "4s", "1s", "accurate", "fast")
+    ),
     SettingDefinition.Switch(
         id = "ai_show_badge",
         titleRes = R.string.pref_ai_show_badge,

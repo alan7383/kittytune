@@ -176,6 +176,12 @@ fun AppearanceSettingsScreen(
                         item {
                             AssistChip(
                                 onClick = { applyPreset(250f, 105f, 0f, 0f, 0f, 14f) },
+                                label = { Text(stringResource(R.string.font_preset_elegant)) }
+                            )
+                        }
+                        item {
+                            AssistChip(
+                                onClick = { applyPreset(900f, 110f, 0f, 50f, 0f, 14f) },
                                 label = { Text(stringResource(R.string.font_preset_chunky)) }
                             )
                         }
@@ -190,6 +196,28 @@ fun AppearanceSettingsScreen(
                             onValueChange = { wght = it; prefs.setFontWght(it.toInt()) },
                             valueRange = 100f..1000f,
                             steps = 18
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.dialog_font_width, wdth.toInt()), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Slider(
+                            value = wdth,
+                            onValueChange = { wdth = it; prefs.setFontWdth(it) },
+                            valueRange = 25f..151f
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(stringResource(R.string.dialog_font_slant, slnt.toInt()), style = MaterialTheme.typography.bodyMedium)
+                        }
+                        Slider(
+                            value = slnt,
+                            onValueChange = { slnt = it; prefs.setFontSlnt(it) },
+                            valueRange = -10f..0f
                         )
                     }
 
