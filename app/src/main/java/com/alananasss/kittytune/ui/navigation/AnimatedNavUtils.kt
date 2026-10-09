@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -126,13 +127,30 @@ fun AnimatedVisibilityScope.ClippedScreen(
     // `ActionBarLayout.isRightLayout`: only relevant for the entering screen's left corners.
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
+    DisposableEffect(entryId) {
+        onDispose {
+            backState.onEntryDisposed(entryId)
+        }
+    }
+
     // `ActionBarLayout.getForegroundView()` / `getBackgroundView()` for the Compose world: the
     // destination being dismissed, and the one that sits underneath it.
     val role = backState.roleFor(entryId)
+    // A destination that is no longer on the back stack is either the one a close animation is
+    // dismissing (Closing), the screen a forward open is sliding over (PushExiting), or one whose
+    // navigation the state machine never absorbed. The first two ARE the animation; the last one
+    // must not sit on top of the revealed screen — Navigation draws a popped destination above
+    // its target, so it would linger there until `AnimatedContent` disposes it.
+    val onLiveStack = backState.isOnStack(entryId)
+    val isPoppedHidden = !onLiveStack && role != AyuScreenRole.PushExiting && role != AyuScreenRole.TabExiting
     // Deliberately not gated on the phase: the roles stay bound until the next navigation so the
     // dismissed screen cannot flash back while `AnimatedContent` finishes disposing it.
-    val animated = role != AyuScreenRole.None
-    val frame = if (animated) backState.frame(role, isDark) else AyuScreenFrame.Identity
+    val animated = role != AyuScreenRole.None || isPoppedHidden || backState.isHidden(entryId)
+    val frame = if (animated) {
+        backState.frame(role, isDark, entryId, onLiveStack)
+    } else {
+        AyuScreenFrame.Identity
+    }
 
     // Corner radius used when no back animation is running (forward navigation only).
     val restRadius by transition.animateDp(
@@ -174,15 +192,6 @@ fun AnimatedVisibilityScope.ClippedScreen(
             .fillMaxSize()
             .onSizeChanged { backState.updateSize(it.width, it.height, deviceCornerRadiusPx) }
     ) {
-        // Drawn *under* the closing screen and *over* the screen underneath it, exactly like the
-        // `scrimPaint` rectangle in `ActionBarLayout.drawChild()`. Always present (alpha 0 when
-        // idle) so the composition structure stays stable.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = frame.scrimAlpha))
-        )
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -208,6 +217,13 @@ fun AnimatedVisibilityScope.ClippedScreen(
                         } else {
                             roundedShape(radius)
                         }
+                        if ((role == AyuScreenRole.Closing && frame.scale < 1f) ||
+                            (role == AyuScreenRole.PushEntering && frame.translationX > 0f)
+                        ) {
+                            shadowElevation = with(density) { 8.dp.toPx() }
+                            spotShadowColor = Color.Black.copy(alpha = 0.5f)
+                            ambientShadowColor = Color.Black.copy(alpha = 0.5f)
+                        }
                     } else {
                         clip = restRadiusPx > 0f
                         shape = roundedShape(restRadiusPx)
@@ -215,6 +231,17 @@ fun AnimatedVisibilityScope.ClippedScreen(
                 }
         ) {
             content()
+
+            // Scrim overlay: drawn OVER content() so opaque surfaces are actually dimmed,
+            // exactly like AyuGram's scrimPaint drawn over getBackgroundView().
+            // Clipped to the screen's graphicsLayer shape/scale.
+            if (frame.scrimAlpha > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = frame.scrimAlpha))
+                )
+            }
         }
     }
 }
