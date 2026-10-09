@@ -11,6 +11,7 @@ import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.alananasss.kittytune.ui.common.SafeWebView
 import androidx.activity.compose.BackHandler
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.compose.animation.*
@@ -125,10 +126,12 @@ private fun Context.findActivity(): Activity? = when (this) {
 
 /**
  * How long `AnimatedContent` must keep the popped destination composed. AyuGram's commit animation
- * runs for 375ms ([com.alananasss.kittytune.ui.navigation.AyuBack.POST_COMMIT_DURATION_MS]); the
- * extra margin keeps the closing screen alive for the whole thing.
+ * runs for 375ms ([com.alananasss.kittytune.ui.navigation.AyuBack.POST_COMMIT_DURATION_MS]).
+ * 450ms = 375ms + ~1 frame startup delay + rendering jitter headroom on slow devices.
+ * The closing screen must stay composed for the *entire* animation; if `AnimatedContent` disposes
+ * it early, the dismissed screen flashes back on top of the revealed one for the remaining frames.
  */
-private const val AYU_BACK_KEEP_ALIVE_MS = 400
+private const val AYU_BACK_KEEP_ALIVE_MS = 450
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -236,7 +239,6 @@ fun MainScreen(
 
     LaunchedEffect(Unit) {
         AchievementNotificationManager.notifications.collect { notification ->
-            // Respect the showPopups setting for achievements, but always show sleep timer (emoji "🌙")
             if (showPopups || notification.iconEmoji == "🌙") {
                 currentNotification = notification
                 delay(5000)
@@ -281,8 +283,6 @@ fun MainScreen(
 
     LaunchedEffect(Unit) {
         delay(200)
-
-
         val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
 
         if (hasToken) {
@@ -296,8 +296,6 @@ fun MainScreen(
             }
         }
     }
-
-
 
     if (playerViewModel.showLyricsSheet) {
         DisposableEffect(Unit) {
@@ -344,7 +342,6 @@ fun MainScreen(
         playerViewModel.isSidePlayerOpen = false
     }
 
-    // Update Manager Logic Moved from MainActivity
     val updateStatus by UpdateManager.status.collectAsState()
     val downloadProgress by UpdateManager.downloadProgress.collectAsState()
     val totalDownloadSize by UpdateManager.downloadSize.collectAsState()
@@ -359,6 +356,8 @@ fun MainScreen(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val backDensity = LocalDensity.current
+    val ayuBackState = remember(backDensity.density) { AyuBackState(backDensity.density) }
     LaunchedEffect(Unit) {
         playerViewModel.uiEvent.collect { message ->
             snackbarHostState.showSnackbar(message)
@@ -433,15 +432,12 @@ fun MainScreen(
             },
             bottomBar = {
             },
-            // Disable automatic window-inset injection so full-screen routes (YearlyPlayback,
-            // player, etc.) can draw edge-to-edge without a background bleed at the bottom/sides.
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { _ ->
             val allTabKeys = listOf("home", "search", "genres", "library")
             val bottomNavItemsKeys by prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems())
             val bottomNavOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
 
-            // The bar follows the persistent user-reordered tab order, while bottomNavItemsKeys decides visibility.
             val orderedTabKeys = remember(bottomNavOrder) {
                 (bottomNavOrder.filter { it in allTabKeys } +
                     allTabKeys.filter { it !in bottomNavOrder }).distinct()
@@ -462,6 +458,20 @@ fun MainScreen(
                     route = screen.route,
                     visible = bottomNavItemsKeys.contains(key)
                 )
+            }
+
+            val mainTabRoutes = remember(orderedTabKeys) {
+                orderedTabKeys.mapNotNull { key ->
+                    when (key) {
+                        "home" -> Screen.Home.route
+                        "genres" -> Screen.Explore.route
+                        "library" -> Screen.Library.route
+                        else -> null
+                    }
+                }.distinct()
+            }
+            LaunchedEffect(mainTabRoutes) {
+                ayuBackState.tabRoutes = mainTabRoutes
             }
 
             val selectedRoute = tabs.find { tab ->
@@ -615,13 +625,6 @@ fun MainScreen(
                     }
                     val bottomBarHeightPx = with(density) { if (windowSizeInfo.showTabletDock) 130.dp.toPx() else 150.dp.toPx() }
 
-                    // AyuGram predictive-back state. `ActionBarLayout` keeps a single
-                    // `PredictiveBackAnimationHelper` for both of its containers; this plays the
-                    // same role for the two Compose screens that NavHost animates during a pop.
-                    val ayuBackState = remember(density.density) { AyuBackState(density.density) }
-                    // While the expanded player or the lyrics sheet is open, the back gesture is
-                    // consumed by their own handlers (player dismiss / sheet close): NavHost never
-                    // sees it, so the bridge must not animate the screen behind them.
                     AyuBackGestureBridge(
                         navController,
                         ayuBackState,
@@ -658,12 +661,6 @@ fun MainScreen(
                                         Modifier
                                     }
                                 ),
-                        // Forward navigation is *entirely* driven by ClippedScreen (see AyuPredictiveBack.kt):
-                        // one shared 0..1000 spring plays AyuGram's `applySpringProgress(layout, opening)`
-                        // for both screens, with the scrim drawn under the entering one and both screens
-                        // clipped to the device corners. These two transitions therefore contribute
-                        // nothing visually — they only keep AnimatedContent alive for 400ms so both
-                        // screens stay composed while the (~250ms) spring runs.
                         enterTransition = {
                             fadeIn(
                                 animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
@@ -676,12 +673,6 @@ fun MainScreen(
                                 targetAlpha = 1f
                             )
                         },
-                        // Back navigation is *entirely* driven by ClippedScreen (see AyuPredictiveBack.kt):
-                        // the current screen and the one underneath it are placed on the exact rects
-                        // computed by AyuGram's PredictiveBackAnimationHelper, and a scrim is drawn
-                        // between them. These four transitions therefore contribute nothing visually —
-                        // they only keep AnimatedContent alive for 400ms so the closing screen stays
-                        // composed while our own 375ms commit animation runs.
                         popEnterTransition = {
                             fadeIn(
                                 animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
@@ -935,15 +926,6 @@ fun MainScreen(
                             )
                         }
 
-                        clippedComposable(route = "downloaded_playlists") {
-                            com.alananasss.kittytune.ui.library.DownloadedPlaylistsScreen(
-                                onBackClick = { navController.popBackStack() },
-                                onNavigate = { id ->
-                                    navController.navigate("playlist_detail/$id")
-                                }
-                            )
-                        }
-
                         clippedComposable("new_releases") {
                             NewReleasesScreen(
                                 onBackClick = { navController.popBackStack() },
@@ -998,6 +980,15 @@ fun MainScreen(
                             )
                         }
 
+                        clippedComposable(route = "downloaded_playlists") {
+                            com.alananasss.kittytune.ui.library.DownloadedPlaylistsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { id ->
+                                    navController.navigate("playlist_detail/$id")
+                                }
+                            )
+                        }
+
                         clippedComposable(
                             route = "genre_playlists/{genreTitle}/{query}",
                             arguments = listOf(
@@ -1043,68 +1034,6 @@ fun MainScreen(
                                 }
                             )
                         }
-
-                        clippedComposable(
-                            route = "profile_section/{userId}/{section}?filter={filter}",
-                            arguments = listOf(
-                                navArgument("userId") { type = NavType.StringType },
-                                navArgument("section") { type = NavType.StringType },
-                                navArgument("filter") {
-                                    type = NavType.StringType
-                                    nullable = true
-                                    defaultValue = null
-                                }
-                            )
-                        ) { backStackEntry ->
-                            val rawUserId = backStackEntry.arguments?.getString("userId") ?: ""
-                            val userId = runCatching {
-                                java.net.URLDecoder.decode(rawUserId, "UTF-8")
-                            }.getOrDefault(rawUserId)
-                            val section = backStackEntry.arguments?.getString("section") ?: ""
-                            val filter = backStackEntry.arguments?.getString("filter")
-
-                            val parentEntry = remember(backStackEntry) {
-                                runCatching { navController.previousBackStackEntry }.getOrNull()
-                            }
-                            val isProfileParent = parentEntry?.destination?.route?.let { route ->
-                                route.startsWith("profile/") || route.startsWith("spotify_artist/")
-                            } == true
-
-                            val profileViewModel: ProfileViewModel = if (isProfileParent) {
-                                viewModel(parentEntry!!)
-                            } else {
-                                viewModel()
-                            }
-
-                            ProfileSectionScreen(
-                                userId = userId,
-                                section = section,
-                                initialFilter = filter,
-                                onBackClick = { navController.popBackStack() },
-                                playerViewModel = playerViewModel,
-                                onNavigate = { id ->
-                                    when {
-                                        id.startsWith("profile_section/") -> navController.navigate(id)
-                                        id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
-                                        id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
-                                        id.startsWith("profile:") -> {
-                                            val target = id.removePrefix("profile:")
-                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
-                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
-                                                navController.navigate("spotify_artist/$clean")
-                                            } else {
-                                                navController.navigate("profile/$target")
-                                            }
-                                        }
-                                        id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
-                                        else -> navController.navigate("playlist_detail/$id")
-                                    }
-                                },
-                                profileViewModel = profileViewModel
-                            )
-                        }
-
-
 
                         clippedComposable(
                             route = "profile/{userId}",
@@ -1205,8 +1134,6 @@ fun MainScreen(
                                 profileViewModel = profileViewModel
                             )
                         }
-
-
 
                         clippedComposable(
                             route = "followers/{userId}",
@@ -1927,7 +1854,6 @@ fun MainScreen(
                 }
             }
 
-            // Tablet Side Player Panel (Smoothly animates layout width in sync with main content)
             if (animatedSidePanelWidth > 0.dp) {
                 val panelAlpha = (animatedSidePanelWidth / sidePanelWidth).coerceIn(0f, 1f)
                 Box(
@@ -1963,6 +1889,10 @@ fun MainScreen(
             }
         }
     }
+
+        val navStackIds = navController.currentBackStack.collectAsState().value.map { it.id }
+        BackHandler(enabled = ayuBackState.shouldVetoBack(navStackIds)) {
+        }
 
         AnimatedVisibility(
             visible = playerViewModel.isPlayerExpanded,
@@ -2179,7 +2109,7 @@ fun MainScreen(
                         .fillMaxSize()) {
                         AndroidView(
                             factory = { ctx ->
-                                WebView(ctx).apply {
+                                SafeWebView(ctx).apply {
                                     @SuppressLint("SetJavaScriptEnabled")
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true
