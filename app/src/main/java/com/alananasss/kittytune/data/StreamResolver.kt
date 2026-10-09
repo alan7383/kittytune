@@ -2,7 +2,6 @@
 
     import android.content.Context
     import android.util.Log
-    import android.webkit.CookieManager
     import com.alananasss.kittytune.audio.providers.AudioProviderOrderItem
     import com.alananasss.kittytune.audio.providers.ProviderIsrc
     import com.alananasss.kittytune.audio.providers.IsrcResolver
@@ -765,18 +764,26 @@
                 force = tokenManager.shouldRefreshAccessToken()
             ) ?: tokenManager.getAccessToken()
 
+            val streamClient = client.newBuilder().followRedirects(false).build()
+
             for (candidate in candidates) {
                 val protocol = candidate.format?.protocol ?: continue
                 val apiUrl = candidate.url ?: continue
 
-                val urlWithParams = if (apiUrl.contains("?")) "$apiUrl&client_id=${Config.CLIENT_ID}" else "$apiUrl?client_id=${Config.CLIENT_ID}"
+                val isMobileApi = apiUrl.contains("api-mobile.soundcloud.com")
+                val targetClientId = if (isMobileApi || !token.isNullOrEmpty()) {
+                    Config.OFFICIAL_CLIENT_ID
+                } else {
+                    Config.CLIENT_ID
+                }
+                val urlWithParams = if (apiUrl.contains("?")) "$apiUrl&client_id=$targetClientId" else "$apiUrl?client_id=$targetClientId"
 
                 Log.d(TAG, "Track ${track.id} — trying transcoding: preset=${candidate.preset}, protocol=$protocol")
 
                 try {
-                    var response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                    var response = streamClient.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
 
-                    if (!response.isSuccessful && isAuthFailure(response.code)) {
+                    if (!response.isSuccessful && response.code !in 300..399 && isAuthFailure(response.code)) {
                         Log.w(TAG, "Track ${track.id} — auth failure (${response.code}), refreshing token...")
                         val refreshedToken = SessionManager.awaitFreshAccessToken(
                             context = context,
@@ -787,47 +794,106 @@
                         if (!refreshedToken.isNullOrEmpty() && refreshedToken != token) {
                             response.close()
                             token = refreshedToken
-                            response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                            response = streamClient.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
                         } else if (!token.isNullOrEmpty()) {
                             response.close()
                             token = null
-                            response = client.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
+                            response = streamClient.newCall(buildStreamInfoRequest(urlWithParams, token)).execute()
                         } else {
                             response.close()
                             continue
                         }
                     }
 
-                    if (!response.isSuccessful) {
+                    if (!response.isSuccessful && response.code !in 300..399) {
                         Log.w(TAG, "Track ${track.id} — transcoding ${candidate.preset}/$protocol failed: code=${response.code}")
                         response.close()
                         continue
                     }
 
-                    val body = response.body.string()
-                    Log.d(TAG, "Track ${track.id} — stream API response: ${body.take(500)}")
-                    val json = JSONObject(body)
-                    val streamInfoUrl = json.getString("url")
-                    val licenseAuthToken = if (json.has("licenseAuthToken") && !json.isNull("licenseAuthToken")) json.getString("licenseAuthToken") else null
+                    var streamInfoUrl: String? = null
+                    var licenseAuthToken: String? = null
+
+                    if (response.isRedirect || response.code in 300..399) {
+                        // Direct HTTP redirect (standard for api-mobile.soundcloud.com, exactly like official SoundCloud app)
+                        val rawLocation = response.header("Location")
+                        streamInfoUrl = if (!rawLocation.isNullOrEmpty()) {
+                            response.request.url.resolve(rawLocation)?.toString() ?: rawLocation
+                        } else {
+                            null
+                        }
+                        licenseAuthToken = response.header("x-sc-license-auth-token")
+                        response.close()
+                        Log.d(TAG, "Track ${track.id} — redirect stream URL: $streamInfoUrl")
+                    } else {
+                        // Check if redirect was already followed by an upstream interceptor/proxy
+                        val prior = response.priorResponse
+                        if (prior != null && (prior.isRedirect || prior.code in 300..399)) {
+                            streamInfoUrl = response.request.url.toString()
+                            licenseAuthToken = prior.header("x-sc-license-auth-token") ?: response.header("x-sc-license-auth-token")
+                            response.close()
+                            Log.d(TAG, "Track ${track.id} — followed redirect stream URL: $streamInfoUrl")
+                        } else {
+                            val body = response.body.string()
+                            response.close()
+                            Log.d(TAG, "Track ${track.id} — stream API response: ${body.take(500)}")
+                            val trimmed = body.trim()
+                            if (trimmed.startsWith("{")) {
+                                try {
+                                    val json = JSONObject(trimmed)
+                                    streamInfoUrl = if (json.has("url") && !json.isNull("url")) json.getString("url") else null
+                                    licenseAuthToken = if (json.has("licenseAuthToken") && !json.isNull("licenseAuthToken")) {
+                                        json.getString("licenseAuthToken")
+                                    } else {
+                                        response.header("x-sc-license-auth-token")
+                                    }
+                                } catch (e: org.json.JSONException) {
+                                    Log.w(TAG, "Track ${track.id} — JSON parse error on stream body: ${e.message}")
+                                }
+                            } else {
+                                // Body is not JSON (e.g. #EXTM3U playlist or direct audio bytes after redirect)
+                                streamInfoUrl = response.request.url.toString()
+                                licenseAuthToken = response.header("x-sc-license-auth-token")
+                            }
+                        }
+                    }
+
+                    if (streamInfoUrl.isNullOrEmpty()) {
+                        Log.w(TAG, "Track ${track.id} — no stream URL found for ${candidate.preset}/$protocol")
+                        continue
+                    }
+
                     if (!licenseAuthToken.isNullOrEmpty()) {
                         Log.d(TAG, "Track ${track.id} — CENC DRM detected! licenseAuthToken=${licenseAuthToken.take(50)}...")
                     }
-                    val isHlsLike = protocol == "hls" || protocol.contains("encrypted-hls")
+
+                    val isHlsLike = protocol == "hls" || protocol.contains("encrypted-hls") || streamInfoUrl.contains(".m3u8")
                     if (isHlsLike) {
                         Log.d(TAG, "Track ${track.id} — HLS resolved: $streamInfoUrl (drm=${!licenseAuthToken.isNullOrEmpty()}, protocol=$protocol)")
                         return ResolvedStream(streamInfoUrl, licenseAuthToken, source = "soundcloud")
                     }
-                    Log.d(TAG, "Resolving progressive stream URL: $streamInfoUrl")
-                    val finalRequest = okhttp3.Request.Builder().url(streamInfoUrl).build()
-                    val finalResponse = client.newCall(finalRequest).execute()
-                    finalResponse.body.close()
 
-                    if (!finalResponse.isSuccessful) {
+                    // Progressive stream: if already a CDN media URL, return directly without extra network request
+                    if (streamInfoUrl.contains("sndcdn.com") || streamInfoUrl.contains(".mp3") || streamInfoUrl.contains("media-streaming.soundcloud.cloud")) {
+                        Log.d(TAG, "Track ${track.id} — Final Progressive CDN URL: $streamInfoUrl")
+                        return ResolvedStream(streamInfoUrl, licenseAuthToken, source = "soundcloud")
+                    }
+
+                    Log.d(TAG, "Resolving progressive stream URL: $streamInfoUrl")
+                    val finalRequest = okhttp3.Request.Builder().url(streamInfoUrl).head().build()
+                    val finalResponse = try {
+                        client.newCall(finalRequest).execute()
+                    } catch (e: Exception) {
+                        client.newCall(okhttp3.Request.Builder().url(streamInfoUrl).build()).execute()
+                    }
+                    val finalUrl = finalResponse.request.url.toString()
+                    finalResponse.close()
+
+                    if (!finalResponse.isSuccessful && finalResponse.code !in 300..399) {
                         Log.e(TAG, "Final resolution of progressive URL failed: ${finalResponse.code}")
                         continue
                     }
 
-                    val finalUrl = finalResponse.request.url.toString()
                     Log.d(TAG, "Final Progressive CDN URL: $finalUrl")
                     return ResolvedStream(finalUrl, licenseAuthToken, source = "soundcloud")
 
@@ -887,20 +953,27 @@
         }
 
         private fun buildStreamInfoRequest(url: String, token: String?): okhttp3.Request {
+            val isMobileApi = url.contains("api-mobile.soundcloud.com")
+            val userAgent = if (isMobileApi) {
+                val androidRelease = try { android.os.Build.VERSION.RELEASE ?: "14" } catch (_: Exception) { "14" }
+                val deviceModel = try { android.os.Build.MODEL ?: "Pixel 8" } catch (_: Exception) { "Pixel 8" }
+                "SoundCloud/2025.12.10-release (Android $androidRelease; $deviceModel)"
+            } else {
+                Config.USER_AGENT
+            }
+
             val builder = okhttp3.Request.Builder()
                 .url(url)
-                .header("User-Agent", Config.USER_AGENT)
+                .header("User-Agent", userAgent)
                 .header("Accept", "application/json")
-                .header("Origin", "https://soundcloud.com")
-                .header("Referer", "https://soundcloud.com/")
+
+            if (!isMobileApi) {
+                builder.header("Origin", "https://soundcloud.com")
+                builder.header("Referer", "https://soundcloud.com/")
+            }
 
             if (!token.isNullOrEmpty() && token != "null") {
                 builder.header("Authorization", "OAuth $token")
-            }
-
-            val cookies = CookieManager.getInstance().getCookie("https://soundcloud.com")
-            if (!cookies.isNullOrEmpty()) {
-                builder.header("Cookie", cookies)
             }
 
             return builder.build()
