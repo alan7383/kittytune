@@ -470,7 +470,16 @@ fun PixelPlayerScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    com.alananasss.kittytune.ui.profile.ConnectButton(tint = topBarBtnTint)
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    val showTopBarDevices = remember {
+                        com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonTopBar()
+                    }
+                    if (showTopBarDevices) {
+                        com.alananasss.kittytune.ui.profile.ConnectButton(
+                            tint = topBarBtnTint,
+                            onClick = { viewModel.showConnectSheet = true }
+                        )
+                    }
                     // Lyrics Squircle
                     Box(
                         modifier = Modifier
@@ -984,6 +993,7 @@ fun PixelPlayerScreen(
                     onSleepTimerClick = { viewModel.showSleepTimerDialog = true },
                     onHapticsToggle = { viewModel.toggleHaptics() },
                     onMoreClick = { viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } },
+                    onDevicesClick = { viewModel.showConnectSheet = true },
                     activeColorMain = colorScheme.primary,
                     activeColorSecondary = colorScheme.secondary,
                     activeColorTertiary = colorScheme.tertiary,

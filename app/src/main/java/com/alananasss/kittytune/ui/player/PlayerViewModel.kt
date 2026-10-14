@@ -320,6 +320,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     var showMenuSheet by mutableStateOf(false)
     var showAiDetectionSheet by mutableStateOf(false)
+    var showConnectSheet by mutableStateOf(false)
 
     /**
      * The track whose share card is being composed, or null while no card is open.

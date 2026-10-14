@@ -1564,7 +1564,16 @@ fun PlayerHeader(
                     )
                 }
             }
-            com.alananasss.kittytune.ui.profile.ConnectButton(tint = contentColor)
+            val androidContext = androidx.compose.ui.platform.LocalContext.current
+            val showTopBarDevices = remember {
+                com.alananasss.kittytune.data.local.PlayerPreferences(androidContext).getShowDevicesButtonTopBar()
+            }
+            if (showTopBarDevices) {
+                com.alananasss.kittytune.ui.profile.ConnectButton(
+                    tint = contentColor,
+                    onClick = { viewModel.showConnectSheet = true }
+                )
+            }
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.btn_close), tint = contentColor)
             }
@@ -2258,6 +2267,15 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     stringResource(R.string.sleep_timer_title),
                     id = "sleep_timer"
                 ) { viewModel.showSleepTimerDialog = true })
+            add(
+                DockOptionItem(
+                    Icons.Rounded.Devices,
+                    stringResource(R.string.menu_playback_devices),
+                    id = "devices"
+                ) {
+                    viewModel.showMenuSheet = false
+                    viewModel.showConnectSheet = true
+                })
             // Only for the track that is playing: the editor's whole method is "listen, mark here", so it
             // needs a playhead to mark from (issue #33).
             add(
@@ -2439,6 +2457,9 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             if (item.text == stringResource(R.string.sleep_timer_title) && viewModel.isSleepTimerActive) {
                 tint = activeColor
                 text = viewModel.formatSleepTimerRemaining()
+            }
+            if (item.id == "devices" && com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null) {
+                tint = activeColor
             }
             if (item.id == "download" && isDownloaded) {
                 tint = MaterialTheme.colorScheme.error
@@ -4721,6 +4742,7 @@ private fun PlayerSlotButton(
         PlayerActionButtonSlot.FULLSCREEN_LYRICS -> viewModel.showLyricsSheet
         PlayerActionButtonSlot.SLEEP_TIMER -> viewModel.isSleepTimerActive
         PlayerActionButtonSlot.HAPTICS -> viewModel.isHapticsEnabled
+        PlayerActionButtonSlot.DEVICES -> com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null
         else -> false
     }
 
@@ -4740,6 +4762,7 @@ private fun PlayerSlotButton(
         PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
         PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
         PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
+        PlayerActionButtonSlot.DEVICES -> Icons.Rounded.Devices
         PlayerActionButtonSlot.NONE -> null
     }
 
@@ -4784,6 +4807,7 @@ private fun PlayerSlotButton(
                     PlayerActionButtonSlot.MORE -> {
                         viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) }
                     }
+                    PlayerActionButtonSlot.DEVICES -> viewModel.showConnectSheet = true
                     PlayerActionButtonSlot.NONE, PlayerActionButtonSlot.LYRICS -> {}
                 }
             }
@@ -12247,7 +12271,18 @@ fun PhoneLandscapePlayerView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                com.alananasss.kittytune.ui.profile.ConnectButton(tint = mainContentColor)
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val showDevicesInTopBar = remember {
+                    com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonTopBar()
+                }
+                if (showDevicesInTopBar) {
+                    com.alananasss.kittytune.ui.profile.ConnectButton(
+                        tint = mainContentColor,
+                        onClick = { viewModel.showConnectSheet = true }
+                    )
+                } else {
+                    Spacer(modifier = Modifier.size(40.dp))
+                }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val contextStr = viewModel.currentContext
                     Text(
@@ -13225,6 +13260,21 @@ fun SoundCloudPlayerView(
                                     imageVector = Icons.Rounded.MoreVert,
                                     contentDescription = null,
                                     tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        PlayerActionButtonSlot.DEVICES -> {
+                            val isConnected = com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null
+                            IconButton(
+                                onClick = { viewModel.showConnectSheet = true },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isConnected) Icons.Rounded.CastConnected else Icons.Rounded.Devices,
+                                    contentDescription = stringResource(R.string.slot_devices),
+                                    tint = if (isConnected) Color(0xFFFF5500) else Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }

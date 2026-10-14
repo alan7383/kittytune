@@ -2270,8 +2270,11 @@
     <string name="account_vk_diagnose_copy">Copier</string>
     <string name="sync_title">Synchro entre appareils</string>
     <string name="sync_intro">Tes appareils échangent l\'historique d\'écoute directement sur ton réseau local. Rien n\'est envoyé ailleurs, et il n\'y a pas de compte.</string>
+    <string name="sync_playback_title">File d\'attente et position de lecture</string>
+    <string name="sync_playback_sub">Reprendre le dernier morceau et la file lors de l\'ouverture d\'un autre appareil</string>
     <string name="sync_device_name">Nom de cet appareil</string>
     <string name="sync_peer_code">Code d\'appairage de l\'ordinateur</string>
+    <string name="sync_have_a_code">Coller le code manuellement</string>
     <string name="sync_now">Synchroniser</string>
     <string name="sync_bad_code">Ce n\'est pas un code d\'appairage.</string>
     
@@ -3005,4 +3008,47 @@
 
     <string name="misc_general_sub">Langue, écran de démarrage et mises à jour</string>
     <string name="misc_discord_sub">Afficher la musique en cours sur Discord</string>
+
+    <!-- Connect / Appareils de lecture -->
+    <string name="slot_devices">Appareils de lecture</string>
+    <string name="menu_playback_devices">Appareils de lecture</string>
+    <string name="connect_devices_title">Appareils disponibles</string>
+    <string name="connect_devices_subtitle">Écoutez et contrôlez votre musique sur vos appareils</string>
+    <string name="connect_this_device">Cet appareil</string>
+    <string name="connect_this_device_desc">Lecture locale</string>
+    <string name="connect_playing_here">Lecture en cours sur cet appareil</string>
+    <string name="connect_switch_here">Écouter ici</string>
+    <string name="connect_paired_devices">Appareils associés</string>
+    <string name="connect_no_devices">Aucun appareil associé</string>
+    <string name="connect_no_devices_desc">Associez votre téléphone et votre ordinateur dans la synchronisation d\'appareils pour transférer votre musique instantanément.</string>
+    <string name="connect_open_sync">Synchro d\'appareils</string>
+    <string name="connect_status_lan">En ligne · Réseau local</string>
+    <string name="connect_status_internet">En ligne · Internet</string>
+    <string name="connect_status_offline">Hors ligne</string>
+    <string name="connect_status_playing">En lecture · %1$s</string>
+    <string name="connect_moving_playback">Transfert de la lecture…</string>
+    <string name="connect_connected_to">Connecté à %1$s</string>
+    <string name="connect_resume_local">Reprendre sur cet appareil</string>
+    <string name="connect_independent_title">Lecture indépendante</string>
+    <string name="connect_independent_desc">Conserver sa propre file et désactiver le contrôle distant depuis d\'autres appareils</string>
+    <string name="connect_headphones_title">Reprise automatique au casque</string>
+    <string name="connect_headphones_desc">Brancher pour transférer depuis le PC. Débrancher pour mettre en pause.</string>
+    <string name="connect_headphones_hint">Fonctionne lorsque l\'application est ouverte. Les enceintes Bluetooth peuvent aussi être détectées comme un casque.</string>
+    <string name="connect_relay_title">Connexion Internet (Relais)</string>
+    <string name="connect_relay_desc">Adresse de votre serveur. Indiquez la même adresse sur les deux appareils.</string>
+    <string name="connect_relay_url_label">Adresse du serveur</string>
+    <string name="connect_relay_url_error">Utilisez une adresse https:// ou wss://</string>
+    <string name="connect_pref_group">Boutons appareils (Connect)</string>
+    <string name="connect_pref_top_bar">Afficher le bouton appareils dans l\'en-tête du lecteur</string>
+    <string name="connect_pref_mini_player">Afficher le bouton appareils dans le mini-lecteur</string>
+    <string name="connect_pref_bottom_bar">Afficher le bouton appareils dans la barre de navigation</string>
+    <string name="connect_pref_slots_hint">Vous pouvez également placer le bouton appareils dans la barre d\'action du lecteur ou dans le menu des 3 points.</string>
+    <string name="connect_feedback_timeout">L\'appareil n\'a pas répondu à temps. Réessayez.</string>
+    <string name="connect_feedback_offline">L\'appareil est hors ligne.</string>
+    <string name="connect_feedback_auto_cancelled">Transfert automatique annulé.</string>
+    <string name="connect_feedback_local_file">Ce fichier local n\'est disponible que sur l\'appareil source.</string>
+    <string name="connect_feedback_track_changed">Le morceau a changé pendant le transfert. Choisissez à nouveau l\'appareil.</string>
+    <string name="connect_feedback_prepare_failed">Impossible de lire ce morceau sur l\'appareil sélectionné.</string>
+    <string name="connect_error_server">Serveur indisponible : %1$s. Vérifiez l\'adresse dans les paramètres.</string>
+    <string name="connect_error_connection">Erreur de connexion : %1$s</string>
 </resources>
