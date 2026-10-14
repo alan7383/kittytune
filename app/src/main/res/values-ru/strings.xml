@@ -2995,4 +2995,11 @@
     <string name="connect_feedback_prepare_failed">Не удалось открыть трек на выбранном устройстве.</string>
     <string name="connect_error_server">Сервер недоступен: %1$s. Проверьте адрес в настройках устройств.</string>
     <string name="connect_error_connection">Ошибка соединения: %1$s</string>
+    <string name="connect_devices_hero">Подключение к устройству</string>
+    <string name="connect_listening_on">СЕЙЧАС ИГРАЕТ НА</string>
+    <string name="connect_this_phone">Этот телефон</string>
+    <string name="connect_service_name">KittyTune Connect</string>
+    <string name="connect_cant_find">Не можете найти устройство?</string>
+    <string name="connect_pair_hint">Убедитесь, что оба устройства подключены к одной сети Wi-Fi и KittyTune открыт.</string>
+    <string name="connect_pair_action">Связать устройство</string>
 </resources>

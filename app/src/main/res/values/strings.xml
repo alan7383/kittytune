@@ -3141,4 +3141,11 @@
     <string name="connect_feedback_prepare_failed">Could not open the track on this device.</string>
     <string name="connect_error_server">Server unavailable: %1$s. Check the address in device settings.</string>
     <string name="connect_error_connection">Connection error: %1$s</string>
+    <string name="connect_devices_hero">Connect to a device</string>
+    <string name="connect_listening_on">CURRENTLY PLAYING ON</string>
+    <string name="connect_this_phone">This phone</string>
+    <string name="connect_service_name">KittyTune Connect</string>
+    <string name="connect_cant_find">Can\'t find your device?</string>
+    <string name="connect_pair_hint">Make sure both devices are connected to the same Wi-Fi network and KittyTune is running.</string>
+    <string name="connect_pair_action">Pair a device</string>
 </resources>
