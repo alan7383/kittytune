@@ -102,11 +102,11 @@ fun LyricsEnhancedView(
         }
     }
 
-    val lyricsSessionKey = remember(viewModel.currentTrack?.id, rawLines.size) {
-        "${viewModel.currentTrack?.id ?: 0L}_${rawLines.size}"
+    val lyricsSessionKey = remember(viewModel.uiCurrentTrack?.id, rawLines.size) {
+        "${viewModel.uiCurrentTrack?.id ?: 0L}_${rawLines.size}"
     }
 
-    val isDuetEnabled = viewModel.isDuetActiveForTrack(viewModel.currentTrack)
+    val isDuetEnabled = viewModel.isDuetActiveForTrack(viewModel.uiCurrentTrack)
     val syncedLyrics = remember(
         viewModel.lyricsRevision,
         rawLines.size,
@@ -123,7 +123,7 @@ fun LyricsEnhancedView(
     val latestLeadMs = rememberUpdatedState(leadMs)
     val latestPlaybackSpeed = rememberUpdatedState(viewModel.effectsState.speed)
 
-    val playbackPositionMs = remember(viewModel.currentTrack?.id) {
+    val playbackPositionMs = remember(viewModel.uiCurrentTrack?.id) {
         mutableLongStateOf(MusicManager.player.currentPosition.coerceAtLeast(0L))
     }
     var isManualScrolling by remember { mutableStateOf(false) }
@@ -139,7 +139,7 @@ fun LyricsEnhancedView(
     }
 
     // High-precision smooth frame interpolation loop with PLL drift tracking
-    LaunchedEffect(viewModel.currentTrack?.id) {
+    LaunchedEffect(viewModel.uiCurrentTrack?.id) {
         var smoothPositionMs = MusicManager.player.currentPosition.coerceAtLeast(0L).toDouble()
         var lastOutputPositionMs = smoothPositionMs.toLong()
         var lastFrameNanos = 0L
@@ -147,7 +147,7 @@ fun LyricsEnhancedView(
         while (isActive) {
             val isSliderActive = viewModel.isScrubbing
             val rawPosition = if (isSliderActive) {
-                viewModel.currentPosition
+                viewModel.uiCurrentPosition
             } else {
                 MusicManager.player.currentPosition.coerceAtLeast(0L)
             }

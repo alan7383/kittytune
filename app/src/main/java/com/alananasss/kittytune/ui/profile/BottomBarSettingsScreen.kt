@@ -216,7 +216,7 @@ fun BottomBarSettingsScreen(
         title = stringResource(R.string.pref_bottom_menu_title),
         onBackClick = onBackClick
     ) { padding ->
-        val miniPlayerHeight = if (playerViewModel.currentTrack != null) 64.dp else 0.dp
+        val miniPlayerHeight = if (playerViewModel.uiCurrentTrack != null) 64.dp else 0.dp
         LazyColumn(
             state = listState,
             modifier = Modifier

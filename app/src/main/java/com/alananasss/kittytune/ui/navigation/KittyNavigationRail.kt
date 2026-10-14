@@ -42,8 +42,8 @@ fun KittyNavigationRail(
     modifier: Modifier = Modifier
 ) {
     val visibleTabs = tabs.filter { it.visible }
-    val track = playerViewModel.currentTrack
-    val isPlaying = playerViewModel.isPlaying
+    val track = playerViewModel.uiCurrentTrack
+    val isPlaying = playerViewModel.uiIsPlaying
     val windowSizeInfo = rememberWindowSizeInfo()
 
     val isPhoneLandscape = windowSizeInfo.heightSizeClass == WindowHeightSizeClass.COMPACT

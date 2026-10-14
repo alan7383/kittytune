@@ -304,7 +304,7 @@ fun PremiumMarqueeText(
 
 @Composable
 fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
-    val currentPosition = viewModel.currentPosition
+    val currentPosition = viewModel.uiCurrentPosition
     val adjustedPosition = currentPosition + viewModel.lyricsOffset
     val lyrics = viewModel.lyricsLines
     // Opened on the line being sung, not on line one. Two minutes into a track the first frame
@@ -333,7 +333,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
     var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
 
     // High-precision smooth frame interpolation loop with PLL drift tracking
-    LaunchedEffect(viewModel.currentTrack?.id) {
+    LaunchedEffect(viewModel.uiCurrentTrack?.id) {
         var smoothPosition = MusicManager.player.currentPosition.coerceAtLeast(0L).toDouble()
         var lastOutputPosition = smoothPosition.toFloat()
         var lastFrameNanos = 0L
@@ -341,7 +341,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         while (isActive) {
             val isSliderActive = viewModel.isScrubbing
             val rawPosition = if (isSliderActive) {
-                viewModel.currentPosition.toDouble()
+                viewModel.uiCurrentPosition.toDouble()
             } else {
                 MusicManager.player.currentPosition.coerceAtLeast(0L).toDouble()
             }
@@ -843,7 +843,7 @@ fun NewPlayerScreen(
     onClose: () -> Unit,
     forceSoundCloud: Boolean? = null
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
 
     val scope = rememberCoroutineScope()
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -1004,7 +1004,7 @@ fun NewPlayerScreen(
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
                     CanvasVideo(
                         canvasUrl = backdropAnimatedUrl,
-                        isPlaying = viewModel.isPlaying,
+                        isPlaying = viewModel.uiIsPlaying,
                         modifier = Modifier
                             .fillMaxSize()
                             .blur(40.dp)
@@ -1046,7 +1046,7 @@ fun NewPlayerScreen(
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
                     CanvasVideo(
                         canvasUrl = backdropAnimatedUrl,
-                        isPlaying = viewModel.isPlaying,
+                        isPlaying = viewModel.uiIsPlaying,
                         modifier = Modifier
                             .fillMaxSize()
                             .blur(40.dp)
@@ -1140,23 +1140,23 @@ fun NewPlayerScreen(
                     )
 
                     val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-                        initialPage = viewModel.currentQueueIndex.coerceAtLeast(0),
-                        pageCount = { viewModel.queueState.size.takeIf { it > 0 } ?: 1 }
+                        initialPage = viewModel.uiCurrentQueueIndex.coerceAtLeast(0),
+                        pageCount = { viewModel.uiQueueState.size.takeIf { it > 0 } ?: 1 }
                     )
 
-                    LaunchedEffect(viewModel.currentQueueIndex) {
-                        if (viewModel.currentQueueIndex >= 0 && viewModel.currentQueueIndex != pagerState.currentPage && viewModel.currentQueueIndex < pagerState.pageCount) {
+                    LaunchedEffect(viewModel.uiCurrentQueueIndex) {
+                        if (viewModel.uiCurrentQueueIndex >= 0 && viewModel.uiCurrentQueueIndex != pagerState.currentPage && viewModel.uiCurrentQueueIndex < pagerState.pageCount) {
                             try {
-                                pagerState.animateScrollToPage(viewModel.currentQueueIndex)
+                                pagerState.animateScrollToPage(viewModel.uiCurrentQueueIndex)
                             } catch (e: Exception) {
-                                pagerState.scrollToPage(viewModel.currentQueueIndex)
+                                pagerState.scrollToPage(viewModel.uiCurrentQueueIndex)
                             }
                         }
                     }
 
                     LaunchedEffect(pagerState) {
                         snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-                            if (settledPage != viewModel.currentQueueIndex && settledPage in viewModel.queueState.indices) {
+                            if (settledPage != viewModel.uiCurrentQueueIndex && settledPage in viewModel.uiQueueState.indices) {
                                 viewModel.skipToQueueItem(settledPage)
                             }
                         }
@@ -1181,14 +1181,14 @@ fun NewPlayerScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Box(modifier = Modifier.fillMaxWidth().alpha(coverAlpha).zIndex(if (showLyrics) 0f else 1f)) {
-                            if (viewModel.queueState.isNotEmpty()) {
+                            if (viewModel.uiQueueState.isNotEmpty()) {
                                 androidx.compose.foundation.pager.HorizontalPager(
                                     state = pagerState,
                                     modifier = Modifier.fillMaxWidth(),
                                     pageSpacing = 16.dp,
                                     contentPadding = PaddingValues(24.dp)
                                 ) { page ->
-                                    val pageTrack = viewModel.queueState.getOrNull(page) ?: track
+                                    val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1204,7 +1204,7 @@ fun NewPlayerScreen(
                                         AnimatedArtwork(
                                             artworkUrl = pageTrack.fullResArtwork,
                                             animatedCoverUrl = if (pageTrack.id == track.id) viewModel.currentAnimatedCoverUrl else null,
-                                            isPlaying = viewModel.isPlaying,
+                                            isPlaying = viewModel.uiIsPlaying,
                                             contentDescription = null,
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
@@ -1228,7 +1228,7 @@ fun NewPlayerScreen(
                                     AnimatedArtwork(
                                         artworkUrl = track.fullResArtwork,
                                         animatedCoverUrl = viewModel.currentAnimatedCoverUrl,
-                                        isPlaying = viewModel.isPlaying,
+                                        isPlaying = viewModel.uiIsPlaying,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
@@ -1398,7 +1398,7 @@ fun NewPlayerScreen(
                                     modifier = Modifier.size(44.dp)
                                 ) {
                                     val targetColor =
-                                        if (viewModel.isLiked) animatedColor else iconTint
+                                        if (viewModel.uiIsLiked) animatedColor else iconTint
                                     val heartColor by animateColorAsState(
                                         targetValue = targetColor,
                                         animationSpec = tween(300),
@@ -1406,7 +1406,7 @@ fun NewPlayerScreen(
                                     )
 
                                     AnimatedContent(
-                                        targetState = viewModel.isLiked,
+                                        targetState = viewModel.uiIsLiked,
                                         transitionSpec = {
                                             if (targetState) {
                                                 (fadeIn(tween(300)) + scaleIn(
@@ -1466,7 +1466,7 @@ fun NewPlayerScreen(
                     val automixDebugOverlayEnabled = prefs.getAutomixDebugOverlayEnabled()
                     if (automixDebugOverlayEnabled) {
                         com.alananasss.kittytune.ui.player.automix.AutomixDebugOverlay(
-                            currentPositionMs = viewModel.currentPosition
+                            currentPositionMs = viewModel.uiCurrentPosition
                         )
                     }
 
@@ -1564,6 +1564,7 @@ fun PlayerHeader(
                     )
                 }
             }
+            com.alananasss.kittytune.ui.profile.ConnectButton(tint = contentColor)
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.btn_close), tint = contentColor)
             }
@@ -1574,7 +1575,7 @@ fun PlayerHeader(
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
         ) {
             Text(
-                stringResource(R.string.player_playing_now),
+                viewModel.playbackDeviceLabel ?: stringResource(R.string.player_playing_now),
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
@@ -1598,7 +1599,7 @@ fun PlayerHeader(
             }
         }
 
-        IconButton(onClick = { viewModel.currentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } }) {
+        IconButton(onClick = { viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } }) {
             Icon(Icons.Default.MoreVert, stringResource(R.string.btn_options), tint = contentColor)
         }
     }
@@ -2006,7 +2007,7 @@ fun SocialProofBanner(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MenuSheetContent(viewModel: PlayerViewModel) {
-    val track = viewModel.trackForMenu ?: viewModel.currentTrack ?: return
+    val track = viewModel.trackForMenu ?: viewModel.uiCurrentTrack ?: return
     val context = LocalContext.current
 
     LaunchedEffect(track.id) {
@@ -2300,7 +2301,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     } else {
                         com.alananasss.kittytune.data.BlockManager.blockTrack(
                             track,
-                            currentlyPlayingId = viewModel.currentTrack?.id
+                            currentlyPlayingId = viewModel.uiCurrentTrack?.id
                         )
                         Toast.makeText(context, context.getString(R.string.track_hidden_toast), Toast.LENGTH_SHORT).show()
                     }
@@ -2323,7 +2324,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                                 artistName = track.user!!.username ?: "",
                                 avatarUrl = track.user.avatarUrl,
                                 source = track.source ?: "soundcloud",
-                                currentlyPlayingTrack = viewModel.currentTrack
+                                currentlyPlayingTrack = viewModel.uiCurrentTrack
                             )
                             Toast.makeText(context, context.getString(R.string.artist_blocked_toast), Toast.LENGTH_SHORT).show()
                         }
@@ -2424,12 +2425,12 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             var text = item.text
 
             if (item.text == stringResource(R.string.action_unlike)) tint = activeColor
-            if (item.text == stringResource(R.string.menu_shuffle) && viewModel.shuffleEnabled) tint = activeColor
+            if (item.text == stringResource(R.string.menu_shuffle) && viewModel.uiShuffleEnabled) tint = activeColor
             if (item.text == stringResource(R.string.menu_reposted)) tint = activeColor
             if (item.text == stringResource(R.string.menu_enable_duet_lyrics)) tint = activeColor
             if (item.text == stringResource(R.string.menu_repeat)) {
-                if (viewModel.repeatMode != com.alananasss.kittytune.ui.player.RepeatMode.NONE) tint = activeColor
-                text = when (viewModel.repeatMode) {
+                if (viewModel.uiRepeatMode != com.alananasss.kittytune.ui.player.RepeatMode.NONE) tint = activeColor
+                text = when (viewModel.uiRepeatMode) {
                     com.alananasss.kittytune.ui.player.RepeatMode.ALL -> stringResource(R.string.menu_repeat_all)
                     com.alananasss.kittytune.ui.player.RepeatMode.ONE -> stringResource(R.string.menu_repeat_one)
                     else -> stringResource(R.string.menu_repeat)
@@ -2486,7 +2487,7 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
 
 @Composable
 fun AddToPlaylistContent(viewModel: PlayerViewModel) {
-    val singleTrack = viewModel.trackForMenu ?: viewModel.currentTrack
+    val singleTrack = viewModel.trackForMenu ?: viewModel.uiCurrentTrack
     val bulkTracks = viewModel.tracksToAddInBulk
     if (singleTrack == null && bulkTracks == null) return
 
@@ -3485,11 +3486,11 @@ fun QueueContent(
         }
     )
 
-    LaunchedEffect(isQueueOpen, viewModel.currentTrack) {
+    LaunchedEffect(isQueueOpen, viewModel.uiCurrentTrack) {
         if (isQueueOpen) {
-            val track = viewModel.currentTrack
-            if (track != null && viewModel.queueState.isNotEmpty()) {
-                val index = viewModel.queueState.indexOfFirst { it.id == track.id }
+            val track = viewModel.uiCurrentTrack
+            if (track != null && viewModel.uiQueueState.isNotEmpty()) {
+                val index = viewModel.uiQueueState.indexOfFirst { it.id == track.id }
                 if (index >= 0) listState.scrollToItem(kotlin.math.max(0, index - 2))
             }
         }
@@ -3537,13 +3538,13 @@ fun QueueContent(
             state = listState,
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            itemsIndexed(items = viewModel.queueState, key = { _, track -> track.id }) { index, track ->
+            itemsIndexed(items = viewModel.uiQueueState, key = { _, track -> track.id }) { index, track ->
                 ReorderableItem(
                     state = reorderableState,
                     key = track.id
                 ) { isDragging ->
 
-                    val isCurrent = track.id == viewModel.currentTrack?.id
+                    val isCurrent = track.id == viewModel.uiCurrentTrack?.id
                     val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
                     val backgroundColor =
                         if (isDragging) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainer
@@ -3681,18 +3682,18 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
     val sliderPosition = if (isDragging) dragPosition else progressState.value
 
     var lastValidDuration by remember { mutableFloatStateOf(180000f) }
-    if (viewModel.duration > 1000) {
-        lastValidDuration = viewModel.duration.toFloat()
+    if (viewModel.uiDuration > 1000) {
+        lastValidDuration = viewModel.uiDuration.toFloat()
     }
-    val totalDuration = if (viewModel.duration > 1000) viewModel.duration.toFloat() else lastValidDuration
-    val rawPosition = viewModel.currentPosition.toFloat()
+    val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else lastValidDuration
+    val rawPosition = viewModel.uiCurrentPosition.toFloat()
 
-    var currentTrackId by remember { mutableStateOf(viewModel.currentTrack?.id) }
+    var currentTrackId by remember { mutableStateOf(viewModel.uiCurrentTrack?.id) }
     var isTransitioning by remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel.currentTrack?.id) {
-        if (viewModel.currentTrack?.id != currentTrackId) {
-            currentTrackId = viewModel.currentTrack?.id
+    LaunchedEffect(viewModel.uiCurrentTrack?.id) {
+        if (viewModel.uiCurrentTrack?.id != currentTrackId) {
+            currentTrackId = viewModel.uiCurrentTrack?.id
             progressState.snapTo(0f)
             dragPosition = 0f
             isDragging = false
@@ -3775,7 +3776,7 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                         isDragging = false
                     },
                     colors = sliderColors,
-                    isPlaying = viewModel.isPlaying,
+                    isPlaying = viewModel.uiIsPlaying,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -3843,7 +3844,7 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                         isDragging = false
                     },
                     colors = sliderColors,
-                    isPlaying = viewModel.isPlaying,
+                    isPlaying = viewModel.uiIsPlaying,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -3889,13 +3890,13 @@ fun WaveformPlayerProgress(
     val view = LocalView.current
 
     var lastValidDuration by remember { mutableFloatStateOf(180000f) }
-    if (viewModel.duration > 1000) lastValidDuration = viewModel.duration.toFloat()
-    val totalDuration = if (viewModel.duration > 1000) viewModel.duration.toFloat() else lastValidDuration
+    if (viewModel.uiDuration > 1000) lastValidDuration = viewModel.uiDuration.toFloat()
+    val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else lastValidDuration
 
-    val rawPosition = viewModel.currentPosition.toFloat()
-    val isPlaying = viewModel.isPlaying
+    val rawPosition = viewModel.uiCurrentPosition.toFloat()
+    val isPlaying = viewModel.uiIsPlaying
 
-    val currentTrack = viewModel.currentTrack
+    val currentTrack = viewModel.uiCurrentTrack
     val waveformTrackId = currentTrack?.id
 
     var waveformSamples by remember(waveformTrackId) {
@@ -4017,7 +4018,7 @@ fun WaveformPlayerProgress(
         commentableComments.sortedWith(compareBy({ it.trackTimestamp ?: 0L }, { it.id }))
     }
 
-    var displayedComment by remember(viewModel.currentTrack?.id) {
+    var displayedComment by remember(viewModel.uiCurrentTrack?.id) {
         mutableStateOf<com.alananasss.kittytune.domain.Comment?>(
             null
         )
@@ -4064,8 +4065,8 @@ fun WaveformPlayerProgress(
 
     val activeComment = displayedComment
 
-    LaunchedEffect(viewModel.currentTrack?.id) {
-        viewModel.currentTrack?.let { viewModel.loadTrackReactions(it.id) }
+    LaunchedEffect(viewModel.uiCurrentTrack?.id) {
+        viewModel.uiCurrentTrack?.let { viewModel.loadTrackReactions(it.id) }
     }
 
     var activeReaction by remember { mutableStateOf<PlayerViewModel.WaveformReactionParticle?>(null) }
@@ -4532,7 +4533,7 @@ fun PlayerControls(
                 contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
-                    targetState = Pair(viewModel.isLoading, viewModel.isPlaying),
+                    targetState = Pair(viewModel.isLoading, viewModel.uiIsPlaying),
                     transitionSpec = {
                         val springSpec = spring<Float>(dampingRatio = 0.6f, stiffness = 1000f)
                         (scaleIn(initialScale = 0.8f, animationSpec = springSpec) + fadeIn(tween(100)))
@@ -4700,7 +4701,7 @@ private fun PlayerSlotButton(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
-    val currentTrack = viewModel.currentTrack
+    val currentTrack = viewModel.uiCurrentTrack
     val isSpotifyCurrent = currentTrack?.let {
         it.source == "spotify" || it.user?.urn?.startsWith("spotify") == true || it.artists?.isNotEmpty() == true
     } ?: false
@@ -4713,9 +4714,9 @@ private fun PlayerSlotButton(
     }
 
     val isSlotActive = when (effectiveSlot) {
-        PlayerActionButtonSlot.LIKE -> viewModel.isLiked
-        PlayerActionButtonSlot.SHUFFLE -> viewModel.shuffleEnabled
-        PlayerActionButtonSlot.REPEAT -> viewModel.repeatMode != RepeatMode.NONE
+        PlayerActionButtonSlot.LIKE -> viewModel.uiIsLiked
+        PlayerActionButtonSlot.SHUFFLE -> viewModel.uiShuffleEnabled
+        PlayerActionButtonSlot.REPEAT -> viewModel.uiRepeatMode != RepeatMode.NONE
         PlayerActionButtonSlot.LYRICS -> viewModel.showInlineLyrics || viewModel.isLyricsUnderCoverActive
         PlayerActionButtonSlot.FULLSCREEN_LYRICS -> viewModel.showLyricsSheet
         PlayerActionButtonSlot.SLEEP_TIMER -> viewModel.isSleepTimerActive
@@ -4724,13 +4725,13 @@ private fun PlayerSlotButton(
     }
 
     val iconVector = when (effectiveSlot) {
-        PlayerActionButtonSlot.LIKE -> if (viewModel.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
+        PlayerActionButtonSlot.LIKE -> if (viewModel.uiIsLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
         PlayerActionButtonSlot.COMMENTS -> Icons.AutoMirrored.Rounded.Comment
         PlayerActionButtonSlot.SHARE -> Icons.Rounded.Share
         PlayerActionButtonSlot.QUEUE -> Icons.AutoMirrored.Rounded.QueueMusic
         PlayerActionButtonSlot.AUDIO_FX -> Icons.Default.Equalizer
         PlayerActionButtonSlot.SHUFFLE -> Icons.Rounded.Shuffle
-        PlayerActionButtonSlot.REPEAT -> when (viewModel.repeatMode) {
+        PlayerActionButtonSlot.REPEAT -> when (viewModel.uiRepeatMode) {
             RepeatMode.ONE -> Icons.Rounded.RepeatOne
             else -> Icons.Rounded.Repeat
         }
@@ -4764,14 +4765,14 @@ private fun PlayerSlotButton(
                 when (effectiveSlot) {
                     PlayerActionButtonSlot.LIKE -> viewModel.toggleLike()
                     PlayerActionButtonSlot.COMMENTS -> {
-                        viewModel.selectedTrackForSheet = viewModel.currentTrack
+                        viewModel.selectedTrackForSheet = viewModel.uiCurrentTrack
                         viewModel.showCommentsSheet = true
                     }
                     PlayerActionButtonSlot.SHARE -> {
                         // The card sheet still carries the link, so nothing is lost for someone
                         // who only wanted to send one - and it is reachable from the player now
                         // rather than two taps deep in the overflow menu.
-                        viewModel.currentTrack?.let { viewModel.openShareCard(it) }
+                        viewModel.uiCurrentTrack?.let { viewModel.openShareCard(it) }
                     }
                     PlayerActionButtonSlot.QUEUE -> onQueueClick()
                     PlayerActionButtonSlot.AUDIO_FX -> onEffectsClick()
@@ -4781,7 +4782,7 @@ private fun PlayerSlotButton(
                     PlayerActionButtonSlot.SLEEP_TIMER -> viewModel.showSleepTimerDialog = true
                     PlayerActionButtonSlot.HAPTICS -> viewModel.toggleHaptics()
                     PlayerActionButtonSlot.MORE -> {
-                        viewModel.currentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) }
+                        viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) }
                     }
                     PlayerActionButtonSlot.NONE, PlayerActionButtonSlot.LYRICS -> {}
                 }
@@ -9291,7 +9292,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
     val tabs = remember { CommentSort.values() }
     var isSortMenuExpanded by remember { mutableStateOf(false) }
 
-    val targetTrack = viewModel.selectedTrackForSheet ?: viewModel.currentTrack
+    val targetTrack = viewModel.selectedTrackForSheet ?: viewModel.uiCurrentTrack
 
     var isViewingReactions by remember { mutableStateOf(false) }
     var selectedReactionTabIndex by remember { mutableIntStateOf(0) }
@@ -9420,7 +9421,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                                 .clickable {
                                     val ts = item.timestampSeconds
                                     val t = viewModel.selectedTrackForSheet
-                                    if (t != null && t.id != viewModel.currentTrack?.id) {
+                                    if (t != null && t.id != viewModel.uiCurrentTrack?.id) {
                                         viewModel.playTrackAtPosition(t, ts)
                                     } else {
                                         viewModel.seekTo(ts)
@@ -9494,7 +9495,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                                     Spacer(Modifier.width(6.dp))
                                     IconButton(
                                         onClick = {
-                                            val track = viewModel.selectedTrackForSheet ?: viewModel.currentTrack
+                                            val track = viewModel.selectedTrackForSheet ?: viewModel.uiCurrentTrack
                                             viewModel.removeQuickReaction(
                                                 currentEmoji,
                                                 track,
@@ -9816,7 +9817,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                             onNavigateToProfile = { if (userId != 0L) viewModel.navigateToArtist(userId) },
                             onSeekTo = { pos ->
                                 val t = viewModel.selectedTrackForSheet; if (t != null) {
-                                if (t.id == viewModel.currentTrack?.id) viewModel.seekTo(pos) else viewModel.playTrackAtPosition(
+                                if (t.id == viewModel.uiCurrentTrack?.id) viewModel.seekTo(pos) else viewModel.playTrackAtPosition(
                                     t,
                                     pos
                                 )
@@ -9835,7 +9836,7 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                                 onNavigateToProfile = { if (rUserId != 0L) viewModel.navigateToArtist(rUserId) },
                                 onSeekTo = { pos ->
                                     val t = viewModel.selectedTrackForSheet; if (t != null) {
-                                    if (t.id == viewModel.currentTrack?.id) viewModel.seekTo(
+                                    if (t.id == viewModel.uiCurrentTrack?.id) viewModel.seekTo(
                                         reply.trackTimestamp ?: 0
                                     ) else viewModel.playTrackAtPosition(t, reply.trackTimestamp ?: 0)
                                 }
@@ -10899,7 +10900,7 @@ fun OldPlayerScreen(
     viewModel: PlayerViewModel,
     onClose: () -> Unit
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
 
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -11062,7 +11063,7 @@ fun OldPlayerScreen(
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
                     CanvasVideo(
                         canvasUrl = backdropAnimatedUrl,
-                        isPlaying = viewModel.isPlaying,
+                        isPlaying = viewModel.uiIsPlaying,
                         modifier = Modifier
                             .fillMaxSize()
                             .blur(40.dp)
@@ -11104,7 +11105,7 @@ fun OldPlayerScreen(
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
                     CanvasVideo(
                         canvasUrl = backdropAnimatedUrl,
-                        isPlaying = viewModel.isPlaying,
+                        isPlaying = viewModel.uiIsPlaying,
                         modifier = Modifier
                             .fillMaxSize()
                             .blur(40.dp)
@@ -11157,23 +11158,23 @@ fun OldPlayerScreen(
                 )
 
                 val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-                    initialPage = viewModel.currentQueueIndex.coerceAtLeast(0),
-                    pageCount = { viewModel.queueState.size.takeIf { it > 0 } ?: 1 }
+                    initialPage = viewModel.uiCurrentQueueIndex.coerceAtLeast(0),
+                    pageCount = { viewModel.uiQueueState.size.takeIf { it > 0 } ?: 1 }
                 )
 
-                LaunchedEffect(viewModel.currentQueueIndex) {
-                    if (viewModel.currentQueueIndex >= 0 && viewModel.currentQueueIndex != pagerState.currentPage && viewModel.currentQueueIndex < pagerState.pageCount) {
+                LaunchedEffect(viewModel.uiCurrentQueueIndex) {
+                    if (viewModel.uiCurrentQueueIndex >= 0 && viewModel.uiCurrentQueueIndex != pagerState.currentPage && viewModel.uiCurrentQueueIndex < pagerState.pageCount) {
                         try {
-                            pagerState.animateScrollToPage(viewModel.currentQueueIndex)
+                            pagerState.animateScrollToPage(viewModel.uiCurrentQueueIndex)
                         } catch (e: Exception) {
-                            pagerState.scrollToPage(viewModel.currentQueueIndex)
+                            pagerState.scrollToPage(viewModel.uiCurrentQueueIndex)
                         }
                     }
                 }
 
                 LaunchedEffect(pagerState) {
                     snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-                        if (settledPage != viewModel.currentQueueIndex && settledPage in viewModel.queueState.indices) {
+                        if (settledPage != viewModel.uiCurrentQueueIndex && settledPage in viewModel.uiQueueState.indices) {
                             viewModel.skipToQueueItem(settledPage)
                         }
                     }
@@ -11197,14 +11198,14 @@ fun OldPlayerScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Box(modifier = Modifier.fillMaxWidth().alpha(coverAlpha).zIndex(if (showLyrics) 0f else 1f)) {
-                        if (viewModel.queueState.isNotEmpty()) {
+                        if (viewModel.uiQueueState.isNotEmpty()) {
                             androidx.compose.foundation.pager.HorizontalPager(
                                 state = pagerState,
                                 modifier = Modifier.fillMaxWidth(),
                                 pageSpacing = 16.dp,
                                 contentPadding = PaddingValues(24.dp)
                             ) { page ->
-                                val pageTrack = viewModel.queueState.getOrNull(page) ?: track
+                                val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -11216,7 +11217,7 @@ fun OldPlayerScreen(
                                     AnimatedArtwork(
                                         artworkUrl = pageTrack.fullResArtwork,
                                         animatedCoverUrl = if (pageTrack.id == track.id) viewModel.currentAnimatedCoverUrl else null,
-                                        isPlaying = viewModel.isPlaying,
+                                        isPlaying = viewModel.uiIsPlaying,
                                         contentDescription = null,
                                         contentScale = ContentScale.Crop,
                                         modifier = Modifier.fillMaxSize()
@@ -11236,7 +11237,7 @@ fun OldPlayerScreen(
                                 AnimatedArtwork(
                                     artworkUrl = track.fullResArtwork,
                                     animatedCoverUrl = viewModel.currentAnimatedCoverUrl,
-                                    isPlaying = viewModel.isPlaying,
+                                    isPlaying = viewModel.uiIsPlaying,
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize()
@@ -11387,7 +11388,7 @@ fun OldPlayerScreen(
                                 modifier = Modifier.size(44.dp)
                             ) {
                                 val targetColor =
-                                    if (viewModel.isLiked) animatedColor else iconTint
+                                    if (viewModel.uiIsLiked) animatedColor else iconTint
                                 val heartColor by animateColorAsState(
                                     targetValue = targetColor,
                                     animationSpec = tween(300),
@@ -11395,7 +11396,7 @@ fun OldPlayerScreen(
                                 )
 
                                 AnimatedContent(
-                                    targetState = viewModel.isLiked,
+                                    targetState = viewModel.uiIsLiked,
                                     transitionSpec = {
                                         if (targetState) {
                                             (fadeIn(tween(300)) + scaleIn(
@@ -11455,7 +11456,7 @@ fun OldPlayerScreen(
                 val automixDebugOverlayEnabled = prefs.getAutomixDebugOverlayEnabled()
                 if (automixDebugOverlayEnabled) {
                     com.alananasss.kittytune.ui.player.automix.AutomixDebugOverlay(
-                        currentPositionMs = viewModel.currentPosition
+                        currentPositionMs = viewModel.uiCurrentPosition
                     )
                 }
 
@@ -11538,19 +11539,19 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
     val sliderPosition = if (isDragging) dragPosition else progressState.value
 
     var lastValidDuration by remember { mutableFloatStateOf(180000f) }
-    if (viewModel.duration > 1000) {
-        lastValidDuration = viewModel.duration.toFloat()
+    if (viewModel.uiDuration > 1000) {
+        lastValidDuration = viewModel.uiDuration.toFloat()
     }
-    val totalDuration = if (viewModel.duration > 1000) viewModel.duration.toFloat() else lastValidDuration
+    val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else lastValidDuration
 
-    val rawPosition = viewModel.currentPosition.toFloat()
+    val rawPosition = viewModel.uiCurrentPosition.toFloat()
 
-    var currentTrackId by remember { mutableStateOf(viewModel.currentTrack?.id) }
+    var currentTrackId by remember { mutableStateOf(viewModel.uiCurrentTrack?.id) }
     var isTransitioning by remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel.currentTrack?.id) {
-        if (viewModel.currentTrack?.id != currentTrackId) {
-            currentTrackId = viewModel.currentTrack?.id
+    LaunchedEffect(viewModel.uiCurrentTrack?.id) {
+        if (viewModel.uiCurrentTrack?.id != currentTrackId) {
+            currentTrackId = viewModel.uiCurrentTrack?.id
             progressState.snapTo(0f)
             dragPosition = 0f
             isDragging = false
@@ -11635,7 +11636,7 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
                         isDragging = false
                     },
                     colors = sliderColors,
-                    isPlaying = viewModel.isPlaying,
+                    isPlaying = viewModel.uiIsPlaying,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -11703,7 +11704,7 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
                         isDragging = false
                     },
                     colors = sliderColors,
-                    isPlaying = viewModel.isPlaying,
+                    isPlaying = viewModel.uiIsPlaying,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -11745,12 +11746,12 @@ fun OldPlayerControls(
     contentColorOverride: Color
 ) {
     val buttonWidth by animateDpAsState(
-        targetValue = if (viewModel.isPlaying) 110.dp else 72.dp,
+        targetValue = if (viewModel.uiIsPlaying) 110.dp else 72.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "width"
     )
-    val buttonColor = if (viewModel.isPlaying) animatedMainColor else contentColorOverride.copy(alpha = 0.2f)
-    val targetPlayIconColor = if (viewModel.isPlaying) {
+    val buttonColor = if (viewModel.uiIsPlaying) animatedMainColor else contentColorOverride.copy(alpha = 0.2f)
+    val targetPlayIconColor = if (viewModel.uiIsPlaying) {
         if (buttonColor.luminance() > 0.42f) DarkContentColor else Color.White
     } else contentColorOverride
     val playIconColor by animateColorAsState(
@@ -11781,7 +11782,7 @@ fun OldPlayerControls(
                     .clickable { viewModel.togglePlayPause() }, contentAlignment = Alignment.Center
             ) {
                 AnimatedContent(
-                    targetState = Pair(viewModel.isLoading, viewModel.isPlaying),
+                    targetState = Pair(viewModel.isLoading, viewModel.uiIsPlaying),
                     transitionSpec = { (scaleIn() + fadeIn()).togetherWith(scaleOut() + fadeOut()) },
                     label = "playPauseLoading"
                 ) { (isLoading, isPlaying) ->
@@ -11823,7 +11824,7 @@ fun LandscapePlayerView(
     animatedColor: Color,
     isBlurMode: Boolean
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
     var selectedRightTab by remember { mutableIntStateOf(0) }
 
     Row(
@@ -11872,7 +11873,7 @@ fun LandscapePlayerView(
                 AnimatedArtwork(
                     artworkUrl = track.fullResArtwork,
                     animatedCoverUrl = viewModel.currentAnimatedCoverUrl,
-                    isPlaying = viewModel.isPlaying,
+                    isPlaying = viewModel.uiIsPlaying,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -11936,7 +11937,7 @@ fun LandscapePlayerView(
                     Icon(
                         imageVector = Icons.Rounded.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (viewModel.shuffleEnabled) animatedColor else iconTint.copy(alpha = 0.7f)
+                        tint = if (viewModel.uiShuffleEnabled) animatedColor else iconTint.copy(alpha = 0.7f)
                     )
                 }
                 IconButton(onClick = { viewModel.smartPrevious() }) {
@@ -11954,7 +11955,7 @@ fun LandscapePlayerView(
                 ) {
                     IconButton(onClick = { viewModel.togglePlayPause() }) {
                         Icon(
-                            imageVector = if (viewModel.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            imageVector = if (viewModel.uiIsPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                             contentDescription = "Play/Pause",
                             tint = Color.White,
                             modifier = Modifier.size(28.dp)
@@ -11971,12 +11972,12 @@ fun LandscapePlayerView(
                 }
                 IconButton(onClick = { viewModel.toggleRepeatMode() }) {
                     Icon(
-                        imageVector = when (viewModel.repeatMode) {
+                        imageVector = when (viewModel.uiRepeatMode) {
                             RepeatMode.ONE -> Icons.Rounded.RepeatOne
                             else -> Icons.Rounded.Repeat
                         },
                         contentDescription = "Repeat",
-                        tint = if (viewModel.repeatMode != RepeatMode.NONE) animatedColor else iconTint.copy(alpha = 0.7f)
+                        tint = if (viewModel.uiRepeatMode != RepeatMode.NONE) animatedColor else iconTint.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -12031,8 +12032,8 @@ fun LandscapePlayerView(
 
 @Composable
 fun PlayerQueueSideContent(viewModel: PlayerViewModel) {
-    val queueState = viewModel.queueState
-    val currentTrack = viewModel.currentTrack
+    val queueState = viewModel.uiQueueState
+    val currentTrack = viewModel.uiCurrentTrack
     val listState = rememberLazyListState()
 
     LaunchedEffect(currentTrack) {
@@ -12156,17 +12157,17 @@ fun PlayerTrackDetailsSideContent(viewModel: PlayerViewModel, track: Track) {
                 onClick = { viewModel.toggleLike() },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (viewModel.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (viewModel.isLiked) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    containerColor = if (viewModel.uiIsLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (viewModel.uiIsLiked) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             ) {
                 Icon(
-                    if (viewModel.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    if (viewModel.uiIsLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                     null,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(if (viewModel.isLiked) stringResource(R.string.filter_liked) else stringResource(R.string.player_like_action))
+                Text(if (viewModel.uiIsLiked) stringResource(R.string.filter_liked) else stringResource(R.string.player_like_action))
             }
 
             OutlinedButton(
@@ -12194,7 +12195,7 @@ fun PhoneLandscapePlayerView(
     isBlurMode: Boolean,
     verticalDragModifier: Modifier = Modifier
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
 
     Row(
         modifier = Modifier
@@ -12246,11 +12247,11 @@ fun PhoneLandscapePlayerView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Spacer(Modifier.size(48.dp))
+                com.alananasss.kittytune.ui.profile.ConnectButton(tint = mainContentColor)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val contextStr = viewModel.currentContext
                     Text(
-                        text = stringResource(R.string.player_playing_now),
+                        text = viewModel.playbackDeviceLabel ?: stringResource(R.string.player_playing_now),
                         style = MaterialTheme.typography.labelMedium,
                         color = mainContentColor,
                         fontWeight = FontWeight.Bold,
@@ -12267,7 +12268,7 @@ fun PhoneLandscapePlayerView(
                     }
                 }
                 IconButton(onClick = {
-                    viewModel.currentTrack?.let {
+                    viewModel.uiCurrentTrack?.let {
                         viewModel.showTrackOptions(
                             it,
                             fromPlayer = true
@@ -12448,7 +12449,7 @@ fun SoundCloudPlayerView(
     animatedColor: Color,
     verticalDragModifier: Modifier = Modifier
 ) {
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
     val context = LocalContext.current
     val view = LocalView.current
     val prefs = remember { PlayerPreferences(context) }
@@ -12494,23 +12495,23 @@ fun SoundCloudPlayerView(
     var isScrubbing by remember { mutableStateOf(false) }
 
     val pagerState = androidx.compose.foundation.pager.rememberPagerState(
-        initialPage = viewModel.currentQueueIndex.coerceAtLeast(0),
-        pageCount = { viewModel.queueState.size.takeIf { it > 0 } ?: 1 }
+        initialPage = viewModel.uiCurrentQueueIndex.coerceAtLeast(0),
+        pageCount = { viewModel.uiQueueState.size.takeIf { it > 0 } ?: 1 }
     )
 
-    LaunchedEffect(viewModel.currentQueueIndex) {
-        if (viewModel.currentQueueIndex >= 0 && viewModel.currentQueueIndex != pagerState.currentPage && viewModel.currentQueueIndex < pagerState.pageCount) {
+    LaunchedEffect(viewModel.uiCurrentQueueIndex) {
+        if (viewModel.uiCurrentQueueIndex >= 0 && viewModel.uiCurrentQueueIndex != pagerState.currentPage && viewModel.uiCurrentQueueIndex < pagerState.pageCount) {
             try {
-                pagerState.animateScrollToPage(viewModel.currentQueueIndex)
+                pagerState.animateScrollToPage(viewModel.uiCurrentQueueIndex)
             } catch (e: Exception) {
-                pagerState.scrollToPage(viewModel.currentQueueIndex)
+                pagerState.scrollToPage(viewModel.uiCurrentQueueIndex)
             }
         }
     }
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.settledPage }.collect { settledPage ->
-            if (settledPage != viewModel.currentQueueIndex && settledPage in viewModel.queueState.indices) {
+            if (settledPage != viewModel.uiCurrentQueueIndex && settledPage in viewModel.uiQueueState.indices) {
                 viewModel.skipToQueueItem(settledPage)
             }
         }
@@ -12518,8 +12519,8 @@ fun SoundCloudPlayerView(
 
     var currentPlayingTrackId by remember { mutableStateOf(track.id) }
 
-    val totalDuration = if (viewModel.duration > 1000) viewModel.duration.toFloat() else 180000f
-    val currentPosition = if (isScrubbing) scrubbedMs else viewModel.currentPosition.toFloat()
+    val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else 180000f
+    val currentPosition = if (isScrubbing) scrubbedMs else viewModel.uiCurrentPosition.toFloat()
     val progressFrac = (currentPosition / totalDuration.coerceAtLeast(1f)).coerceIn(0f, 1f)
 
     val isNewTrack = track.id != currentPlayingTrackId
@@ -12543,11 +12544,11 @@ fun SoundCloudPlayerView(
             .fillMaxSize()
             .background(Color.Black),
         pageSpacing = 12.dp,
-        key = { page -> viewModel.queueState.getOrNull(page)?.id ?: page }
+        key = { page -> viewModel.uiQueueState.getOrNull(page)?.id ?: page }
     ) { page ->
-        val pageTrack = viewModel.queueState.getOrNull(page) ?: track
+        val pageTrack = viewModel.uiQueueState.getOrNull(page) ?: track
         val isSpotifyTrack = pageTrack.source == "spotify" || pageTrack.user?.urn?.startsWith("spotify") == true || pageTrack.artists?.isNotEmpty() == true
-        val isCurrentPage = page == viewModel.currentQueueIndex
+        val isCurrentPage = page == viewModel.uiCurrentQueueIndex
         val isUserPaused = !viewModel.playWhenReady && !viewModel.isLoading
         val isCoverBlurred = isUserPaused || (isCurrentPage && isScrubbing)
 
@@ -12902,7 +12903,7 @@ fun SoundCloudPlayerView(
                                     if (isCurrentPage) {
                                         viewModel.requestSkipNext()
                                     } else {
-                                        viewModel.skipToQueueItem((page + 1).coerceAtMost(viewModel.queueState.lastIndex))
+                                        viewModel.skipToQueueItem((page + 1).coerceAtMost(viewModel.uiQueueState.lastIndex))
                                     }
                                 },
                             contentAlignment = Alignment.Center
@@ -13010,13 +13011,13 @@ fun SoundCloudPlayerView(
                     when (effectiveSlot) {
                         PlayerActionButtonSlot.LIKE -> {
                             val isTrackLiked =
-                                if (isCurrentPage) viewModel.isLiked else com.alananasss.kittytune.data.LikeRepository.isTrackLiked(
+                                if (isCurrentPage) viewModel.uiIsLiked else com.alananasss.kittytune.data.LikeRepository.isTrackLiked(
                                     pageTrack.id
                                 )
                             val baseLikes = pageTrack.likesCount
                             val displayLikes = if (isCurrentPage) {
-                                if (viewModel.isLiked != pageTrack.isLiked) {
-                                    if (viewModel.isLiked) baseLikes + 1 else (baseLikes - 1).coerceAtLeast(0)
+                                if (viewModel.uiIsLiked != pageTrack.isLiked) {
+                                    if (viewModel.uiIsLiked) baseLikes + 1 else (baseLikes - 1).coerceAtLeast(0)
                                 } else baseLikes
                             } else baseLikes
 
@@ -13133,7 +13134,7 @@ fun SoundCloudPlayerView(
                                 Icon(
                                     imageVector = Icons.Rounded.Shuffle,
                                     contentDescription = null,
-                                    tint = if (viewModel.shuffleEnabled) scAccentColor else Color.White.copy(alpha = 0.65f),
+                                    tint = if (viewModel.uiShuffleEnabled) scAccentColor else Color.White.copy(alpha = 0.65f),
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -13145,9 +13146,9 @@ fun SoundCloudPlayerView(
                                 modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
-                                    imageVector = if (viewModel.repeatMode == RepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                                    imageVector = if (viewModel.uiRepeatMode == RepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
                                     contentDescription = null,
-                                    tint = if (viewModel.repeatMode != RepeatMode.NONE) scAccentColor else Color.White.copy(
+                                    tint = if (viewModel.uiRepeatMode != RepeatMode.NONE) scAccentColor else Color.White.copy(
                                         alpha = 0.65f
                                     ),
                                     modifier = Modifier.size(22.dp)
