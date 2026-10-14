@@ -49,15 +49,15 @@ import com.alananasss.kittytune.R
 @Composable
 fun TrackTrimDialog(viewModel: PlayerViewModel) {
     if (!viewModel.showTrimDialog) return
-    val track = viewModel.currentTrack ?: return
+    val track = viewModel.uiCurrentTrack ?: return
 
     // Edited as a draft and committed on save, so half-built spans never reach playback — a start with no end
     // yet would otherwise be a cut running to the end of the track, applied the moment it was typed.
     var mode by remember(track.id) { mutableStateOf(viewModel.currentTrim.mode) }
     var segments by remember(track.id) { mutableStateOf(viewModel.currentTrim.segments) }
 
-    val duration = viewModel.duration.coerceAtLeast(0L)
-    val position = viewModel.currentPosition.coerceIn(0L, if (duration > 0) duration else Long.MAX_VALUE)
+    val duration = viewModel.uiDuration.coerceAtLeast(0L)
+    val position = viewModel.uiCurrentPosition.coerceIn(0L, if (duration > 0) duration else Long.MAX_VALUE)
     val draft = TrackTrim.of(mode, segments)
 
     AlertDialog(

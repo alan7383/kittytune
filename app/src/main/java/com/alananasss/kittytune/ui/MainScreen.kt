@@ -224,13 +224,18 @@ fun MainScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                SessionManager.requestSessionRefresh(
-                    context = context,
-                    force = tokenManager.shouldRefreshAccessToken()
-                )
+                com.alananasss.kittytune.data.sync.ConnectManager.setForeground(true)
+                if (!SessionManager.showCaptchaFlow.value) {
+                    SessionManager.requestSessionRefresh(
+                        context = context,
+                        force = tokenManager.shouldRefreshAccessToken()
+                    )
+                }
                 showPopups = prefs.getAchievementPopupsEnabled()
                 AchievementManager.checkDailyStreak()
                 playerViewModel.syncWithCurrentPlayback()
+            } else if (event == Lifecycle.Event.ON_STOP) {
+                com.alananasss.kittytune.data.sync.ConnectManager.setForeground(false)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -402,7 +407,7 @@ fun MainScreen(
                 currentRoute == "storage" ||
                 currentRoute.startsWith("storage_downloads")
 
-        val isMiniPlayerVisible = playerViewModel.currentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
+        val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
         val snackbarPadding by animateDpAsState(
             targetValue = if (isMiniPlayerVisible) 90.dp else 16.dp,
@@ -578,7 +583,7 @@ fun MainScreen(
                     }
                 }
             }
-            val isSidePlayerVisible = windowSizeInfo.showTabletDock && playerViewModel.isSidePlayerOpen && !playerViewModel.isPlayerExpanded && playerViewModel.currentTrack != null
+            val isSidePlayerVisible = windowSizeInfo.showTabletDock && playerViewModel.isSidePlayerOpen && !playerViewModel.isPlayerExpanded && playerViewModel.uiCurrentTrack != null
             val sidePanelWidth = 420.dp
             val animatedSidePanelWidth by animateDpAsState(
                 targetValue = if (isSidePlayerVisible) sidePanelWidth else 0.dp,
@@ -1293,7 +1298,7 @@ fun MainScreen(
                         ) { backStackEntry ->
                             val requestedYear = backStackEntry.arguments?.getInt("year") ?: 2025
                             androidx.compose.runtime.LaunchedEffect(Unit) {
-                                if (playerViewModel.isPlaying) {
+                                if (playerViewModel.uiIsPlaying) {
                                     playerViewModel.pause()
                                 }
                             }

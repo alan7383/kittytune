@@ -2411,7 +2411,7 @@ fun PlaylistDetailScreen(
                                                         ) {
                                                             TrackListItem(
                                                                 track = track,
-                                                                currentlyPlayingTrack = playerViewModel.currentTrack,
+                                                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                                                 index = index,
                                                                 isDownloading = isDownloading,
                                                                 isDownloaded = isDownloaded,
@@ -2463,7 +2463,7 @@ fun PlaylistDetailScreen(
                                                 } else {
                                                     TrackListItem(
                                                         track = track,
-                                                        currentlyPlayingTrack = playerViewModel.currentTrack,
+                                                        currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                                         index = index,
                                                         isDownloading = isDownloading,
                                                         isDownloaded = isDownloaded,
@@ -2503,7 +2503,7 @@ fun PlaylistDetailScreen(
                                         } else {
                                             TrackListItem(
                                                 track = track,
-                                                currentlyPlayingTrack = playerViewModel.currentTrack,
+                                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                                 index = index,
                                                 isDownloading = isDownloading,
                                                 isDownloaded = isDownloaded,

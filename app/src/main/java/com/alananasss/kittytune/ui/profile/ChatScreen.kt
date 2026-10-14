@@ -69,7 +69,7 @@
         }
 
         var messageText by remember { mutableStateOf("") }
-        val isMiniPlayerVisible = playerViewModel.currentTrack != null
+        val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null
 
         val otherUserAvatar by remember {
             derivedStateOf {
