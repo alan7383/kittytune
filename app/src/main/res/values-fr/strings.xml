@@ -958,6 +958,10 @@
     <string name="pref_lyrics_apple_effect_sub">Remplit les lettres de façon fluide au lieu de sauter d\'un mot à l\'autre.</string>
     <string name="pref_lyrics_duet_title">Mode Duo</string>
     <string name="pref_lyrics_duet_desc">Aligner les paroles selon le chanteur (à gauche pour chanteur 1, à droite pour chanteur 2)</string>
+    <string name="pref_lyrics_backing_title">Chœurs à part</string>
+    <string name="pref_lyrics_backing_sub">Les mots entre parenthèses passent sur une ligne plus petite sous celle qui est chantée</string>
+    <string name="pref_lyrics_reveal_words_title">Mots un par un</string>
+    <string name="pref_lyrics_reveal_words_sub">Les lignes sans minutage par mot se remplissent vite mot par mot au lieu d\'un coup</string>
     <string name="menu_disable_duet_lyrics">Désactiver le mode duo</string>
     <string name="menu_enable_duet_lyrics">Activer le mode duo</string>
     <string name="pref_android_auto_synced_lyrics">Paroles synchronisées Android Auto</string>

@@ -80,6 +80,7 @@ fun PlayerInlineLyrics(
         isAppleMusicEffect = viewModel.isAppleMusicEffectEnabled || viewModel.lyricsUiStyle == LyricsUiStyle.ENHANCED,
         isWordSyncEnabled = viewModel.isWordSyncEnabled,
         isTranslationEnabled = viewModel.isLyricsTranslationEnabled,
+        splitBackingVocals = viewModel.lyricsSplitBackingVocals,
         glowFactor = viewModel.lyricsGlowFactor,
         maxLines = maxLines,
         onClick = onClick
@@ -99,6 +100,7 @@ fun PlayerInlineLyrics(
     isAppleMusicEffect: Boolean = false,
     isWordSyncEnabled: Boolean = true,
     isTranslationEnabled: Boolean = true,
+    splitBackingVocals: Boolean = true,
     glowFactor: Float = 1f,
     maxLines: Int = 2,
     onClick: (() -> Unit)? = null
@@ -245,10 +247,15 @@ fun PlayerInlineLyrics(
             label = "PlayerInlineLyricsLine"
         ) { line ->
             if (line != null) {
-                val rawCleanText = remember(line.text) { LyricsUtils.decodeHtmlEntities(line.text) }
-                val displayWords = remember(line.words, isWordSyncEnabled) {
-                    if (isWordSyncEnabled && line.words.isNotEmpty()) {
-                        line.words.map { it.copy(word = LyricsUtils.decodeHtmlEntities(it.word)) }
+                // Backing vocals on a smaller line under the sung one, as in the karaoke view, instead of in
+                // brackets inside it (issue #66).
+                val (mainLine, backingLine) = remember(line, splitBackingVocals) {
+                    if (splitBackingVocals) separateBackingVocals(line) else line to null
+                }
+                val rawCleanText = remember(mainLine.text) { LyricsUtils.decodeHtmlEntities(mainLine.text) }
+                val displayWords = remember(mainLine.words, isWordSyncEnabled) {
+                    if (isWordSyncEnabled && mainLine.words.isNotEmpty()) {
+                        mainLine.words.map { it.copy(word = LyricsUtils.decodeHtmlEntities(it.word)) }
                     } else emptyList()
                 }
                 val cleanTranslation = remember(line.translation) {
@@ -261,7 +268,7 @@ fun PlayerInlineLyrics(
                 ) {
                     if (isAppleMusicEffect) {
                         SmoothAppleMusicInlineLyricLine(
-                            line = line,
+                            line = mainLine,
                             rawCleanText = rawCleanText,
                             displayWords = displayWords,
                             currentPosMs = smoothPositionMs,
@@ -272,14 +279,14 @@ fun PlayerInlineLyrics(
                             maxLines = maxLines
                         )
                     } else {
-                        val annotatedText = remember(line, throttledPositionMs, textColor, isWordSyncEnabled) {
+                        val annotatedText = remember(mainLine, throttledPositionMs, textColor, isWordSyncEnabled) {
                             buildInlineLyricsAnnotatedString(
                                 rawCleanText = rawCleanText,
                                 displayWords = displayWords,
                                 positionMs = throttledPositionMs,
                                 textColor = textColor,
-                                lineStartMs = line.startTime,
-                                lineEndMs = line.endTime,
+                                lineStartMs = mainLine.startTime,
+                                lineEndMs = mainLine.endTime,
                                 glowFactor = glowFactor
                             )
                         }
@@ -289,6 +296,24 @@ fun PlayerInlineLyrics(
                             maxLines = maxLines,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    if (backingLine != null) {
+                        val backingText = remember(backingLine) { LyricsUtils.decodeHtmlEntities(backingLine.text) }
+                        Text(
+                            text = backingText,
+                            style = baseStyle.copy(
+                                fontSize = (effectiveFontSize.value * BACKING_SCALE).coerceIn(11f, 18f).sp,
+                                lineHeight = (effectiveFontSize.value * BACKING_SCALE * 1.3f).sp,
+                                textAlign = textAlign
+                            ),
+                            color = textColor.copy(alpha = 0.75f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 2.dp)
                         )
                     }
 
@@ -575,3 +600,6 @@ private fun buildInlineLyricsAnnotatedString(
         }
     }
 }
+
+/** How large a backing-vocal line is drawn against the line it is sung under. */
+private const val BACKING_SCALE = 0.72f

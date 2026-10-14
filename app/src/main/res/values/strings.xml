@@ -1054,6 +1054,10 @@
     <string name="pref_lyrics_apple_effect_sub">Fills letters smoothly instead of jumping from word to word.</string>
     <string name="pref_lyrics_duet_title">Duet mode</string>
     <string name="pref_lyrics_duet_desc">Align lyrics according to the singer (left for singer 1, right for singer 2)</string>
+    <string name="pref_lyrics_backing_title">Backing vocals apart</string>
+    <string name="pref_lyrics_backing_sub">Words in round brackets go on a smaller line under the one being sung</string>
+    <string name="pref_lyrics_reveal_words_title">Words light up one by one</string>
+    <string name="pref_lyrics_reveal_words_sub">Lines without word timing fill in quickly word by word instead of all at once</string>
     <string name="menu_disable_duet_lyrics">Disable duet lyrics</string>
     <string name="menu_enable_duet_lyrics">Enable duet lyrics</string>
     <string name="pref_android_auto_synced_lyrics">Android Auto Synchronized Lyrics</string>

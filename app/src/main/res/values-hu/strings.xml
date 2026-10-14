@@ -2413,6 +2413,10 @@
     <string name="pref_haptics_title">Haptikus rezgések</string>
     <string name="pref_lyrics_bounce_factor_title">Rugózási amplitúdó</string>
     <string name="pref_lyrics_duet_desc">Dalszöveg igazítása az énekeshez (balra az 1. énekes, jobbra a 2. énekes)</string>
+    <string name="pref_lyrics_backing_title">Háttérvokál külön</string>
+    <string name="pref_lyrics_backing_sub">A kerek zárójelben lévő szavak kisebb sorba kerülnek az éneklés alatt</string>
+    <string name="pref_lyrics_reveal_words_title">Szavanként kigyulladó sorok</string>
+    <string name="pref_lyrics_reveal_words_sub">A szóidőzítés nélküli sorok gyorsan, szavanként telnek meg egyszerre helyett</string>
     <string name="pref_lyrics_duet_title">Duett mód</string>
     <string name="menu_disable_duet_lyrics">Duett mód letiltása</string>
     <string name="menu_enable_duet_lyrics">Duett mód engedélyezése</string>

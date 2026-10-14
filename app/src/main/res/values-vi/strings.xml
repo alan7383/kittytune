@@ -959,6 +959,10 @@
     <string name="pref_lyrics_apple_effect_sub">Tô màu các chữ cái mượt mà thay vì nhảy giật từng từ.</string>
     <string name="pref_lyrics_duet_title">Chế độ song ca</string>
     <string name="pref_lyrics_duet_desc">Căn chỉnh lời bài hát theo ca sĩ (bên trái cho ca sĩ 1, bên phải cho ca sĩ 2)</string>
+    <string name="pref_lyrics_backing_title">Tách bè phụ</string>
+    <string name="pref_lyrics_backing_sub">Các từ trong ngoặc tròn hiển thị thành dòng nhỏ hơn bên dưới dòng đang hát</string>
+    <string name="pref_lyrics_reveal_words_title">Sáng lần lượt từng từ</string>
+    <string name="pref_lyrics_reveal_words_sub">Các dòng không có thời gian theo từ sẽ sáng nhanh lần lượt từng từ thay vì cùng lúc</string>
     <string name="menu_disable_duet_lyrics">Tắt chế độ song ca</string>
     <string name="menu_enable_duet_lyrics">Bật chế độ song ca</string>
     <string name="pref_android_auto_synced_lyrics">Lời bài hát đồng bộ trên Android Auto</string>

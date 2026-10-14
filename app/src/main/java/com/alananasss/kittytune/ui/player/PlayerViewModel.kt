@@ -435,6 +435,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         private set
     var isDuetViewEnabled by mutableStateOf(playerPrefs.getLyricsDuetViewEnabled())
         private set
+    var lyricsSplitBackingVocals by mutableStateOf(playerPrefs.getLyricsSplitBackingVocals())
+        private set
+    var lyricsRevealWords by mutableStateOf(playerPrefs.getLyricsRevealWords())
+        private set
     var duetBlacklist by mutableStateOf(playerPrefs.getLyricsDuetBlacklist())
         private set
     var lyricsUiStyle by mutableStateOf(playerPrefs.getLyricsUiStyle())
@@ -1779,6 +1783,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleDuetView(enabled: Boolean) {
         isDuetViewEnabled = enabled
         playerPrefs.setLyricsDuetViewEnabled(enabled)
+    }
+
+    fun updateLyricsSplitBackingVocals(enabled: Boolean) {
+        lyricsSplitBackingVocals = enabled
+        playerPrefs.setLyricsSplitBackingVocals(enabled)
+        lyricsRevision++
+    }
+
+    fun updateLyricsRevealWords(enabled: Boolean) {
+        lyricsRevealWords = enabled
+        playerPrefs.setLyricsRevealWords(enabled)
+        lyricsRevision++
     }
 
     fun isTrackDuetBlacklisted(trackId: Long): Boolean = duetBlacklist.contains(trackId.toString())

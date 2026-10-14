@@ -2406,6 +2406,10 @@
     <string name="pref_haptics_title">Тактильная отдача</string>
     <string name="pref_lyrics_bounce_factor_title">Амплитуда отскока</string>
     <string name="pref_lyrics_duet_desc">Выравнивать текст по вокалистам (слева для первого, справа для второго)</string>
+    <string name="pref_lyrics_backing_title">Бэк-вокал отдельно</string>
+    <string name="pref_lyrics_backing_sub">Слова в круглых скобках показываются отдельной строкой поменьше под основной</string>
+    <string name="pref_lyrics_reveal_words_title">Появление по словам</string>
+    <string name="pref_lyrics_reveal_words_sub">Строки без пословной синхронизации быстро заполняются по словам, а не сразу целиком</string>
     <string name="pref_lyrics_duet_title">Режим дуэта</string>
     <string name="menu_disable_duet_lyrics">Отключить режим дуэта</string>
     <string name="menu_enable_duet_lyrics">Включить режим дуэта</string>

@@ -193,6 +193,7 @@ fun ProfileScreen(
                             onEditClick = { showEditSheet = true },
                             playerViewModel = playerViewModel,
                             onNavigate = onNavigate,
+                            onOpenSection = { expandedSection = it },
                             profileViewModel = profileViewModel,
                             artistContext = artistPlaybackContext,
                             hasMotionVideo = hasMotionVideo,
@@ -952,6 +953,7 @@ fun ModernProfileHeader(
     onEditClick: () -> Unit,
     playerViewModel: PlayerViewModel,
     onNavigate: (String) -> Unit,
+    onOpenSection: (String) -> Unit = {},
     profileViewModel: ProfileViewModel,
     artistContext: PlaybackContext?,
     hasMotionVideo: Boolean = false,
@@ -959,13 +961,15 @@ fun ModernProfileHeader(
 ) {
     val context = LocalContext.current
     val prefs = remember(context) { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
-    val bgModel = user.bannerUrl ?: user.avatarUrl
+    // A SoundCloud banner first, then the streaming profile's header (duos named "A & B" have no profile under
+    // the joint name and keep the portrait), then the portrait itself.
+    val bgModel = user.bannerUrl ?: profileViewModel.spotifyArtist?.headerImageUrl ?: user.avatarUrl
     val showVideo = hasMotionVideo && !artistVideoUrl.isNullOrBlank()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(480.dp)
+            .height(if (isCurrentUser) 560.dp else 480.dp)
             .clipToBounds(),
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -1412,6 +1416,15 @@ fun ModernProfileHeader(
                         )
                     }
                 }
+                Spacer(Modifier.height(16.dp))
+                // What the listener has, as numbers to open: it was a page of buttons with nothing about the person.
+                OwnProfileStats(
+                    tracks = user.trackCount,
+                    likes = profileViewModel.likedTracks.size,
+                    playlists = profileViewModel.playlists.size,
+                    reposts = profileViewModel.repostedTracks.size,
+                    onOpen = onOpenSection,
+                )
             } else {
                 if (user.trackCount > 0 || profileViewModel.allTracks.isNotEmpty() || profileViewModel.popularTracks.isNotEmpty()) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -2594,6 +2607,45 @@ fun FullCommentListScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Four numbers for the listener's own page, each one opening what it counts. */
+@Composable
+private fun OwnProfileStats(tracks: Int, likes: Int, playlists: Int, reposts: Int, onOpen: (String) -> Unit) {
+    val items = listOf(
+        Triple(tracks, stringResource(R.string.profile_tracks), "tracks"),
+        Triple(likes, stringResource(R.string.profile_tab_likes), "likes"),
+        Triple(playlists, stringResource(R.string.lib_playlists), "playlists"),
+        Triple(reposts, stringResource(R.string.profile_tab_reposts), "reposts"),
+    )
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.forEach { (count, label, section) ->
+            Surface(
+                onClick = { onOpen(section) },
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.weight(1f),
+            ) {
+                Column(Modifier.padding(vertical = 14.dp, horizontal = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        NumberFormat.getIntegerInstance(java.util.Locale.getDefault()).format(count),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }

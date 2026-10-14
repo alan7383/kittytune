@@ -107,15 +107,19 @@ fun LyricsEnhancedView(
     }
 
     val isDuetEnabled = viewModel.isDuetActiveForTrack(viewModel.currentTrack)
+    val splitBacking = viewModel.lyricsSplitBackingVocals
+    val revealWords = viewModel.lyricsRevealWords
     val syncedLyrics = remember(
         viewModel.lyricsRevision,
         rawLines.size,
         isWordSyncedFormat,
         isDuetEnabled,
         showTranslations,
-        showPhonetics
+        showPhonetics,
+        splitBacking,
+        revealWords
     ) {
-        buildSyncedLyrics(rawLines, isWordSyncedFormat, isDuetEnabled)
+        buildSyncedLyrics(rawLines, isWordSyncedFormat, isDuetEnabled, splitBacking, revealWords)
     }
 
     val leadMs = if (isWordSyncedFormat) WORD_SYNC_LEAD_MS else LRC_LEAD_MS
@@ -486,10 +490,14 @@ private fun SyncedLyrics.findLastStartedLineIndex(time: Int): Int {
     return result
 }
 
-private fun buildSyncedLyrics(
+internal fun buildSyncedLyrics(
     lines: List<LyricLine>,
     isWordSynced: Boolean,
-    isDuetEnabled: Boolean = true
+    isDuetEnabled: Boolean = true,
+    /** Backing vocals in round brackets go on a line of their own; see [splitBackingVocals]. */
+    splitBacking: Boolean = false,
+    /** Line-timed lines light up word by word as they start; see [revealSyllables]. */
+    revealWords: Boolean = false
 ): SyncedLyrics {
     if (lines.isEmpty()) return SyncedLyrics(emptyList())
     val resultLines = mutableListOf<ISyncedLine>()
@@ -516,11 +524,19 @@ private fun buildSyncedLyrics(
         }
 
         if (isWordSynced && line.words.isNotEmpty()) {
-            val mainWords = line.words.filter { !it.isBackground }
-            val bgWords = line.words.filter { it.isBackground }
+            val markedBackground = line.words.filter { it.isBackground }
+            // Backing vocals the source wrote in brackets rather than marked, when the reader wants them apart.
+            val (ownWords, bracketGroups) = if (splitBacking && markedBackground.isEmpty()) {
+                splitBackingWords(line.words)
+            } else {
+                line.words to emptyList()
+            }
+            val mainWords = ownWords.filter { !it.isBackground }
+            val bgWords = markedBackground.ifEmpty { bracketGroups.flatten() }
+            val mainText = if (bracketGroups.isNotEmpty()) splitBackingVocals(line.text).first else line.text
 
             val wordsForMain = if (mainWords.isNotEmpty()) mainWords else line.words
-            val formattedMainWords = formatLyricWordContents(line.text, wordsForMain)
+            val formattedMainWords = formatLyricWordContents(mainText, wordsForMain)
             val mainSyllables = wordsForMain.mapIndexed { idx, word ->
                 val content = formattedMainWords.getOrElse(idx) { LyricsUtils.decodeHtmlEntities(word.word) }
                 KaraokeSyllable(
@@ -542,7 +558,11 @@ private fun buildSyncedLyrics(
             if (lineEnd <= lineStart) return@forEachIndexed
 
             val accompanimentLines = if (mainWords.isNotEmpty() && bgWords.isNotEmpty()) {
-                val formattedBgWords = formatLyricWordContents("", bgWords)
+                val formattedBgWords = if (bracketGroups.isNotEmpty()) {
+                    backingGroupContents(bracketGroups)
+                } else {
+                    formatLyricWordContents("", bgWords)
+                }
                 val bgSyllables = bgWords.mapIndexed { idx, word ->
                     val content = formattedBgWords.getOrElse(idx) { LyricsUtils.decodeHtmlEntities(word.word) }
                     KaraokeSyllable(
@@ -619,40 +639,82 @@ private fun buildSyncedLyrics(
                         end = lineEnd
                     )
                 )
-            } else if (alignment == KaraokeAlignment.End) {
-                // Mocharealm's KaraokeLyricsView only supports right-aligning KaraokeLine (not SyncedLine).
-                // For duet line-synced lines sung by singer 2, wrap into a single-syllable KaraokeLine.
-                val syllables = listOf(
-                    KaraokeSyllable(
-                        content = cleanLineText,
-                        start = line.startTime.toInt(),
-                        end = lineEnd,
-                        phonetic = null
-                    )
-                )
-                resultLines.add(
-                    KaraokeLine.MainKaraokeLine(
-                        syllables = syllables,
-                        translation = cleanTranslation,
-                        alignment = KaraokeAlignment.End,
-                        start = line.startTime.toInt(),
-                        end = lineEnd
-                    )
-                )
             } else {
-                resultLines.add(
-                    SyncedLine(
-                        content = cleanLineText,
-                        translation = cleanTranslation,
-                        start = line.startTime.toInt(),
-                        end = lineEnd
+                val lineStart = line.startTime.toInt()
+                val isRightDuet = alignment == KaraokeAlignment.End
+                val (mainText, backing) = if (splitBacking) splitBackingVocals(cleanLineText) else cleanLineText to null
+                if (!isRightDuet && backing == null && !revealWords) {
+                    resultLines.add(
+                        SyncedLine(
+                            content = cleanLineText,
+                            translation = cleanTranslation,
+                            start = lineStart,
+                            end = lineEnd
+                        )
                     )
-                )
+                } else {
+                    val syllables = when {
+                        revealWords -> revealSyllables(mainText, lineStart, lineEnd)
+                        // Word by word, so the line can wrap. As one syllable holding the whole line it could not
+                        // break anywhere, and a long right-aligned line ran off the left edge (issue #66).
+                        isRightDuet && backing == null -> buildWrappingKaraokeSyllables(
+                            content = cleanLineText,
+                            romanizedText = "",
+                            start = lineStart,
+                            end = lineEnd,
+                        )
+                        else -> instantSyllables(mainText, lineStart, lineEnd)
+                    }
+                    // Sung over the same line, so it shows while the line does, smaller and under it.
+                    val backingLine = backing?.let { text ->
+                        val backingStart = if (revealWords) {
+                            (lineStart + revealDurationMs(mainText)).coerceAtMost(lineEnd - 1)
+                        } else {
+                            lineStart
+                        }
+                        KaraokeLine.AccompanimentKaraokeLine(
+                            syllables = if (revealWords) revealSyllables(text, backingStart, lineEnd)
+                            else instantSyllables(text, lineStart, lineEnd),
+                            translation = null,
+                            alignment = alignment,
+                            start = lineStart,
+                            end = lineEnd,
+                            phonetic = null,
+                        )
+                    }
+                    resultLines.add(
+                        KaraokeLine.MainKaraokeLine(
+                            syllables = syllables,
+                            translation = cleanTranslation,
+                            alignment = alignment,
+                            start = lineStart,
+                            end = lineEnd,
+                            phonetic = null,
+                            accompanimentLines = backingLine?.let(::listOf),
+                        )
+                    )
+                }
             }
         }
     }
     return SyncedLyrics(lines = resultLines)
 }
+
+/**
+ * What each backing word shows: the word and a space, and a comma after the last word of a group when another
+ * group follows, so "(oh no)" and "(yeah)" read as "oh no, yeah".
+ */
+private fun backingGroupContents(groups: List<List<LyricWord>>): List<String> =
+    groups.flatMapIndexed { groupIndex, group ->
+        group.mapIndexed { wordIndex, word ->
+            val text = LyricsUtils.decodeHtmlEntities(word.text)
+            when {
+                wordIndex < group.lastIndex -> "$text "
+                groupIndex < groups.lastIndex -> text + BACKING_SEPARATOR
+                else -> text
+            }
+        }
+    }
 
 private fun buildWrappingKaraokeSyllables(
     content: String,

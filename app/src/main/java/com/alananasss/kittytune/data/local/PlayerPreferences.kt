@@ -353,6 +353,8 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_FONT = "lyrics_font"
         private const val KEY_LYRICS_DUET_VIEW = "lyrics_duet_view"
         private const val KEY_LYRICS_DUET_BLACKLIST = "lyrics_duet_blacklist"
+        private const val KEY_LYRICS_SPLIT_BACKING_VOCALS = "lyrics_split_backing_vocals"
+        private const val KEY_LYRICS_REVEAL_WORDS = "lyrics_reveal_words"
 
         private const val KEY_WAVE_MODE = "wave_mode"
 
@@ -999,6 +1001,14 @@ class PlayerPreferences(context: Context) {
 
     fun getLyricsDuetViewEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_DUET_VIEW, true)
     fun setLyricsDuetViewEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_DUET_VIEW, enabled) }
+
+    /** Backing vocals in round brackets drawn as their own smaller line under the sung one. */
+    fun getLyricsSplitBackingVocals(): Boolean = prefs.getBoolean(KEY_LYRICS_SPLIT_BACKING_VOCALS, true)
+    fun setLyricsSplitBackingVocals(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_SPLIT_BACKING_VOCALS, enabled) }
+
+    /** Lines timed by the line only light up word by word as they start, instead of all at once. */
+    fun getLyricsRevealWords(): Boolean = prefs.getBoolean(KEY_LYRICS_REVEAL_WORDS, false)
+    fun setLyricsRevealWords(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_REVEAL_WORDS, enabled) }
 
     fun getWaveMode(): String = prefs.getString(KEY_WAVE_MODE, null) ?: "BALANCED"
     fun setWaveMode(mode: String) = prefs.edit { putString(KEY_WAVE_MODE, mode) }

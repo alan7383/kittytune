@@ -635,7 +635,12 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 ) {
                     val isWordSync = viewModel.isWordSyncEnabled
                     val isAppleEffect = viewModel.isAppleMusicEffectEnabled
-                    val displayWords = if (isWordSync) line.words.orEmpty() else emptyList()
+                    // Backing vocals on a smaller line under the sung one, as in the enhanced view, instead of
+                    // in brackets inside it (issue #66).
+                    val (mainLine, backingLine) = remember(line, viewModel.lyricsSplitBackingVocals) {
+                        if (viewModel.lyricsSplitBackingVocals) separateBackingVocals(line) else line to null
+                    }
+                    val displayWords = if (isWordSync) mainLine.words.orEmpty() else emptyList()
                     // effective textAlign follows the same singer override
                     val lineTextAlign = when(effectiveSinger) {
                         LyricSinger.SINGER_1 -> TextAlign.Start
@@ -645,8 +650,8 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                     }
 
                     if (isActive && displayWords.isNotEmpty()) {
-                        val formattedWords = remember(displayWords, line.text) {
-                            formatLyricWordContents(line.text, displayWords)
+                        val formattedWords = remember(displayWords, mainLine.text) {
+                            formatLyricWordContents(mainLine.text, displayWords)
                         }
                         if (isAppleEffect) {
                             var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -746,7 +751,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                             )
                         } else null
                         Text(
-                            text = line.text,
+                            text = mainLine.text,
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
                                 fontSize = fontSize.sp,
@@ -757,6 +762,20 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                             color = textColor,
                             textAlign = lineTextAlign,
                             modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    if (backingLine != null) {
+                        Text(
+                            text = backingLine.text,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = (fontSize * 0.62f).sp,
+                                lineHeight = (fontSize * 0.62f * 1.3f).sp,
+                                fontFamily = lyricsFontFamily
+                            ),
+                            color = if (isActive) Color.White.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.45f),
+                            textAlign = lineTextAlign,
+                            modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
                         )
                     }
                     AnimatedVisibility(
@@ -1623,6 +1642,20 @@ fun QuickLyricsSettingsDialog(
                 subtitle = stringResource(R.string.pref_lyrics_duet_desc),
                 checked = viewModel.isDuetViewEnabled,
                 onCheckedChange = { viewModel.toggleDuetView(it) }
+            )
+
+            LyricsToggleRow(
+                title = stringResource(R.string.pref_lyrics_backing_title),
+                subtitle = stringResource(R.string.pref_lyrics_backing_sub),
+                checked = viewModel.lyricsSplitBackingVocals,
+                onCheckedChange = { viewModel.updateLyricsSplitBackingVocals(it) }
+            )
+
+            LyricsToggleRow(
+                title = stringResource(R.string.pref_lyrics_reveal_words_title),
+                subtitle = stringResource(R.string.pref_lyrics_reveal_words_sub),
+                checked = viewModel.lyricsRevealWords,
+                onCheckedChange = { viewModel.updateLyricsRevealWords(it) }
             )
 
             LyricsToggleRow(

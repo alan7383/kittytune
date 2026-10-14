@@ -488,12 +488,15 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch {
+            val sameArtistReload = isSpotifyProfile && spotifyArtist?.id == cleanId && user != null
             isSpotifyProfile = true
             isVkProfile = false
             vkPageUrl = null
             isCurrentUser = false
-            if (user == null) {
+            if (!sameArtistReload) {
+                // Opening another artist no longer shows the previous one while loading.
                 isLoading = true
+                user = null
                 popularTracks.clear()
             }
             allTracks.clear()
@@ -607,7 +610,8 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             vkPageUrl = null
             spotifyArtist = null
             val isDifferentUser = user?.id != userId
-            if (isDifferentUser && user == null) {
+            if (isDifferentUser) {
+                // Opening another artist no longer shows the previous one while loading.
                 isLoading = true
                 user = null
                 isCurrentUser = false

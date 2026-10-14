@@ -1046,6 +1046,10 @@
     <string name="pref_lyrics_apple_effect_sub">Füllt die Buchstaben fließend, statt von Wort zu Wort zu springen.</string>
     <string name="pref_lyrics_duet_title">Duett-Modus</string>
     <string name="pref_lyrics_duet_desc">Richtet den Songtext nach Sänger aus (links für Sänger 1, rechts für Sänger 2)</string>
+    <string name="pref_lyrics_backing_title">Backgroundgesang getrennt</string>
+    <string name="pref_lyrics_backing_sub">Wörter in runden Klammern stehen in einer kleineren Zeile unter der gesungenen</string>
+    <string name="pref_lyrics_reveal_words_title">Wort für Wort aufleuchten</string>
+    <string name="pref_lyrics_reveal_words_sub">Zeilen ohne Wort-Timing füllen sich schnell Wort für Wort statt auf einmal</string>
     <string name="menu_disable_duet_lyrics">Duett-Modus deaktivieren</string>
     <string name="menu_enable_duet_lyrics">Duett-Modus aktivieren</string>
     <string name="pref_android_auto_synced_lyrics">Synchronisierte Songtexte in Android Auto</string>
