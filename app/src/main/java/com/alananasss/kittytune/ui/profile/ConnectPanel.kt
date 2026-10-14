@@ -8,7 +8,6 @@ import android.media.AudioManager
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,16 +25,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -202,7 +196,8 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
             SpotifyDevicesGraphic(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp),
+                    .height(96.dp)
+                    .padding(vertical = 4.dp),
                 tint = MaterialTheme.colorScheme.onSurface
             )
 
@@ -766,135 +761,12 @@ fun SpotifyDevicesGraphic(
     modifier: Modifier = Modifier,
     tint: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    Canvas(modifier = modifier) {
-        val stroke = Stroke(
-            width = 2.6.dp.toPx(),
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round
-        )
-        val w = size.width
-        val h = size.height
-
-        // Maintain aspect ratio and center horizontally
-        val totalW = (h * 1.85f).coerceAtMost(w)
-        val startX = (w - totalW) / 2f
-
-        // 1. Desktop Monitor (Center-Back)
-        val monitorW = totalW * 0.44f
-        val monitorH = h * 0.54f
-        val monitorLeft = startX + totalW * 0.28f
-        val monitorTop = h * 0.08f
-
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(monitorLeft, monitorTop),
-            size = Size(monitorW, monitorH),
-            cornerRadius = CornerRadius(6.dp.toPx()),
-            style = stroke
-        )
-        // Stand stem
-        val neckX = monitorLeft + monitorW / 2f
-        drawLine(
-            color = tint,
-            start = Offset(neckX, monitorTop + monitorH),
-            end = Offset(neckX, h * 0.76f),
-            strokeWidth = stroke.width,
-            cap = StrokeCap.Round
-        )
-        // Stand base
-        val baseHalf = totalW * 0.09f
-        drawLine(
-            color = tint,
-            start = Offset(neckX - baseHalf, h * 0.76f),
-            end = Offset(neckX + baseHalf, h * 0.76f),
-            strokeWidth = stroke.width,
-            cap = StrokeCap.Round
-        )
-
-        // 2. Laptop (Front-Left)
-        val laptopW = totalW * 0.28f
-        val laptopH = h * 0.38f
-        val laptopLeft = startX + totalW * 0.12f
-        val laptopTop = h * 0.38f
-
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(laptopLeft, laptopTop),
-            size = Size(laptopW, laptopH),
-            cornerRadius = CornerRadius(5.dp.toPx()),
-            style = stroke
-        )
-        val laptopBaseLeft = laptopLeft - totalW * 0.03f
-        val laptopBaseRight = laptopLeft + laptopW + totalW * 0.03f
-        val laptopBaseY = laptopTop + laptopH + 2.dp.toPx()
-        drawLine(
-            color = tint,
-            start = Offset(laptopBaseLeft, laptopBaseY),
-            end = Offset(laptopBaseRight, laptopBaseY),
-            strokeWidth = 3.5.dp.toPx(),
-            cap = StrokeCap.Round
-        )
-
-        // 3. Hi-Fi Speaker (Right)
-        val speakerW = totalW * 0.17f
-        val speakerH = h * 0.42f
-        val speakerLeft = startX + totalW * 0.65f
-        val speakerTop = h * 0.34f
-
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(speakerLeft, speakerTop),
-            size = Size(speakerW, speakerH),
-            cornerRadius = CornerRadius(6.dp.toPx()),
-            style = stroke
-        )
-        val speakerCenterX = speakerLeft + speakerW / 2f
-        drawCircle(
-            color = tint,
-            radius = totalW * 0.036f,
-            center = Offset(speakerCenterX, speakerTop + speakerH * 0.35f),
-            style = stroke
-        )
-        drawCircle(
-            color = tint,
-            radius = totalW * 0.048f,
-            center = Offset(speakerCenterX, speakerTop + speakerH * 0.72f),
-            style = stroke
-        )
-        drawCircle(
-            color = tint,
-            radius = 2.5.dp.toPx(),
-            center = Offset(speakerCenterX, speakerTop + speakerH * 0.72f)
-        )
-
-        // 4. Tablet (Right-Front)
-        val tabletW = totalW * 0.12f
-        val tabletH = h * 0.30f
-        val tabletLeft = startX + totalW * 0.74f
-        val tabletTop = h * 0.46f
-
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(tabletLeft, tabletTop),
-            size = Size(tabletW, tabletH),
-            cornerRadius = CornerRadius(5.dp.toPx()),
-            style = stroke
-        )
-
-        // 5. Smartphone (Far Right Front)
-        val phoneW = totalW * 0.08f
-        val phoneH = h * 0.22f
-        val phoneLeft = startX + totalW * 0.83f
-        val phoneTop = h * 0.54f
-
-        drawRoundRect(
-            color = tint,
-            topLeft = Offset(phoneLeft, phoneTop),
-            size = Size(phoneW, phoneH),
-            cornerRadius = CornerRadius(4.dp.toPx()),
-            style = stroke
-        )
-    }
+    Icon(
+        painter = painterResource(R.drawable.ic_connect_devices_hero),
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier
+    )
 }
 
 /**
