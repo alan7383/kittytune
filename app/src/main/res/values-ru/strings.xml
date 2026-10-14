@@ -2529,7 +2529,9 @@
     <string name="sync_forget_all">Забыть все устройства</string>
     <string name="sync_forget_device">Забыть</string>
     <string name="sync_have_a_code">Вставить код вручную</string>
-    <string name="sync_intro">Телефон и компьютер обмениваются историей прослушиваний напрямую через локальную сеть. Данные никуда не выгружаются, аккаунт не требуется.</string>
+    <string name="sync_intro">Телефон и компьютер обмениваются историей, избранным и состоянием плеера напрямую через локальную сеть. Данные никуда не выгружаются, аккаунт не требуется.</string>
+    <string name="sync_playback_title">Очередь и позиция воспроизведения</string>
+    <string name="sync_playback_sub">Продолжать последний трек и очередь при открытии другого устройства</string>
     <string name="sync_just_now">только что</string>
     <string name="sync_last_synced">Последняя синхронизация: %1$s назад</string>
     <string name="sync_likes_sub">Мгновенный обмен любимыми треками и плейлистами между телефоном и ПК</string>
