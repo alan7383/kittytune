@@ -3051,4 +3051,11 @@
     <string name="connect_feedback_prepare_failed">Impossible de lire ce morceau sur l\'appareil sélectionné.</string>
     <string name="connect_error_server">Serveur indisponible : %1$s. Vérifiez l\'adresse dans les paramètres.</string>
     <string name="connect_error_connection">Erreur de connexion : %1$s</string>
+    <string name="connect_devices_hero">Se connecter à un appareil</string>
+    <string name="connect_listening_on">ÉCOUTE EN COURS SUR</string>
+    <string name="connect_this_phone">Ce téléphone</string>
+    <string name="connect_service_name">KittyTune Connect</string>
+    <string name="connect_cant_find">Vous ne trouvez pas votre appareil ?</string>
+    <string name="connect_pair_hint">Vérifiez que vos appareils sont sur le même réseau Wi-Fi et que KittyTune est ouvert.</string>
+    <string name="connect_pair_action">Associer un appareil</string>
 </resources>

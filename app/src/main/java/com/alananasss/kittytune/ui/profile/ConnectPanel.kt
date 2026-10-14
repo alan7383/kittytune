@@ -1,6 +1,14 @@
 package com.alananasss.kittytune.ui.profile
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,23 +17,39 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeDown
+import androidx.compose.material.icons.automirrored.rounded.VolumeMute
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.sync.ConnectManager
 import com.alananasss.kittytune.data.sync.ConnectPlatform
 import com.alananasss.kittytune.data.sync.SyncPeers
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
+import kotlin.math.roundToInt
 
 @Composable
 fun ConnectButton(
@@ -73,6 +97,7 @@ fun PlaybackDevicesSheet(onDismissRequest: () -> Unit) {
 
 @Composable
 fun ConnectPanel(onClose: (() -> Unit)? = null) {
+    val context = LocalContext.current
     val peers by ConnectManager.peers.collectAsState()
     val feedback by ConnectManager.feedback.collectAsState()
     val selected by ConnectManager.selectedDevice.collectAsState()
@@ -83,55 +108,75 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
     var error by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
     var showRelay by remember { mutableStateOf(false) }
+    var showSyncScreen by remember { mutableStateOf(false) }
+
+    val audioManager = remember(context) {
+        context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+    }
+
+    var localVolume by remember {
+        mutableFloatStateOf(
+            audioManager?.let { am ->
+                val cur = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                if (max > 0) cur.toFloat() / max.toFloat() else 0.5f
+            } ?: 0.5f
+        )
+    }
+
+    DisposableEffect(context) {
+        val filter = IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, intent: Intent?) {
+                audioManager?.let { am ->
+                    val cur = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                    val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                    if (max > 0) localVolume = cur.toFloat() / max.toFloat()
+                }
+            }
+        }
+        context.registerReceiver(receiver, filter)
+        onDispose {
+            runCatching { context.unregisterReceiver(receiver) }
+        }
+    }
 
     LaunchedEffect(Unit) { ConnectManager.refresh() }
+
+    val activeVolume = if (selected != null) {
+        peers[selected]?.snapshot?.volume ?: localVolume
+    } else {
+        localVolume
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .padding(bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars)
     ) {
-        // Sheet Header
+        // 1. Top Bar: Close '✕' on left, Title uppercase in center, Settings cog on right
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (selected != null) Icons.Rounded.CastConnected else Icons.Rounded.Devices,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Column {
-                    Text(
-                        text = stringResource(R.string.connect_devices_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = stringResource(R.string.connect_devices_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            IconButton(onClick = { onClose?.invoke() }) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = stringResource(R.string.btn_close),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
+
+            Text(
+                text = stringResource(R.string.slot_devices).uppercase(),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp,
+                color = MaterialTheme.colorScheme.onSurface
+            )
 
             IconButton(onClick = { showSettings = !showSettings }) {
                 Icon(
@@ -142,424 +187,727 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
             }
         }
 
-        // Active Remote Banner (if connected to another device)
-        if (selected != null) {
-            val currentPeer = SyncPeers.all().firstOrNull { it.deviceId == selected }
-            val peerName = currentPeer?.label ?: selected ?: ""
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.primaryContainer
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.CastConnected,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = stringResource(R.string.connect_connected_to, peerName),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    TextButton(
-                        onClick = { ConnectManager.switchOutput(null) },
-                        enabled = !busy
-                    ) {
-                        Text(
-                            text = stringResource(R.string.connect_resume_local),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-        }
-
-        // Current Local Device Tile
-        DeviceChoiceCard(
-            title = stringResource(R.string.connect_this_device),
-            subtitle = when {
-                independent -> stringResource(R.string.connect_independent_title)
-                selected == null -> stringResource(R.string.connect_playing_here)
-                else -> stringResource(R.string.connect_this_device_desc)
-            },
-            icon = Icons.Rounded.Smartphone,
-            isSelected = selected == null,
-            isEnabled = !busy,
-            onClick = {
-                if (!independent && selected != null) {
-                    ConnectManager.switchOutput(null)
-                }
-            }
-        )
-
-        // Paired Devices List
-        val known = SyncPeers.all()
-        if (known.isEmpty()) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerLow
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.DevicesOther,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(32.dp)
-                    )
-                    Column {
-                        Text(
-                            text = stringResource(R.string.connect_no_devices),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = stringResource(R.string.connect_no_devices_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(R.string.connect_paired_devices),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                known.sortedByDescending { peers[it.deviceId]?.connected == true }.forEach { peer ->
-                    val live = peers[peer.deviceId]
-                    val statusText = when {
-                        independent -> stringResource(R.string.connect_independent_desc)
-                        live?.connected != true -> stringResource(R.string.connect_status_offline)
-                        live.snapshot?.isPlaying == true -> {
-                            val trackTitle = live.snapshot.queue.getOrNull(live.snapshot.currentIndex)?.title.orEmpty()
-                            stringResource(R.string.connect_status_playing, trackTitle)
-                        }
-                        live.transport == "LAN" -> stringResource(R.string.connect_status_lan)
-                        else -> stringResource(R.string.connect_status_internet)
-                    }
-
-                    DeviceChoiceCard(
-                        title = peer.label,
-                        subtitle = statusText,
-                        icon = if (peer.platform == "android") Icons.Rounded.PhoneAndroid else Icons.Rounded.Computer,
-                        isSelected = selected == peer.deviceId,
-                        isEnabled = !busy && !independent && live?.connected == true,
-                        isOnline = live?.connected == true,
-                        onClick = { ConnectManager.switchOutput(peer.deviceId) }
-                    )
-                }
-            }
-        }
-
-        // Connection Errors or Busy Indicators
-        val connectionError = peers.values.firstOrNull { !it.connected && it.error.isNotBlank() }?.error
-        if (!independent && connectionError != null) {
-            val errorMsg = if (connectionError.startsWith("HTTP")) {
-                stringResource(R.string.connect_error_server, connectionError)
-            } else {
-                stringResource(R.string.connect_error_connection, connectionError)
-            }
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.errorContainer
-            ) {
-                Text(
-                    text = errorMsg,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-        }
-
-        if (busy) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(vertical = 4.dp)
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.5.dp
-                )
-                Text(
-                    text = stringResource(R.string.connect_moving_playback),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-
-        if (feedback.isNotBlank() && feedback != "✓") {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.errorContainer
-            ) {
-                Text(
-                    text = friendlyFeedback(feedback),
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(12.dp)
-                )
-            }
-        }
-
-        // Advanced Settings Expandable Panel
-        AnimatedVisibility(
-            visible = showSettings,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+        // 2. Scrollable Middle Body (Spotify-like Hero Graphic + Devices List)
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                HorizontalDivider()
-                Text(
-                    text = stringResource(R.string.settings_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            Spacer(modifier = Modifier.height(4.dp))
 
-                // Independent Playback Switch
+            // Spotify Hero Graphic: Desktop, Laptop, Speaker, Tablet, Smartphone
+            SpotifyDevicesGraphic(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(110.dp),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+
+            // Hero Title: "Se connecter à un appareil"
+            Text(
+                text = stringResource(R.string.connect_devices_hero),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+
+            // Active & Available Devices
+            val known = SyncPeers.all()
+            val isLocalActive = selected == null
+
+            // --- LOCAL DEVICE ("Ce téléphone") ---
+            SpotifyDeviceRow(
+                title = stringResource(R.string.connect_this_phone),
+                subtitle = when {
+                    independent -> stringResource(R.string.connect_independent_title)
+                    isLocalActive -> stringResource(R.string.connect_playing_here)
+                    else -> stringResource(R.string.connect_service_name)
+                },
+                icon = Icons.Rounded.Smartphone,
+                isActive = isLocalActive,
+                isOnline = true,
+                isEnabled = !busy,
+                isLoading = busy && isLocalActive,
+                onClick = {
+                    if (!independent && selected != null) {
+                        ConnectManager.switchOutput(null)
+                    }
+                }
+            )
+
+            // --- REMOTE PAIRED DEVICES ---
+            known.sortedByDescending { peers[it.deviceId]?.connected == true }.forEach { peer ->
+                val live = peers[peer.deviceId]
+                val isCurrentPeerActive = selected == peer.deviceId
+                val statusSubtitle = when {
+                    independent -> stringResource(R.string.connect_independent_desc)
+                    live?.connected != true -> stringResource(R.string.connect_status_offline)
+                    isCurrentPeerActive -> stringResource(R.string.connect_service_name)
+                    live.snapshot?.isPlaying == true -> {
+                        val trackTitle = live.snapshot.queue.getOrNull(live.snapshot.currentIndex)?.title.orEmpty()
+                        stringResource(R.string.connect_status_playing, trackTitle)
+                    }
+                    else -> stringResource(R.string.connect_service_name)
+                }
+
+                SpotifyDeviceRow(
+                    title = peer.label,
+                    subtitle = statusSubtitle,
+                    icon = getDeviceIcon(peer.platform, peer.label),
+                    isActive = isCurrentPeerActive,
+                    isOnline = live?.connected == true,
+                    isEnabled = !busy && !independent && live?.connected == true,
+                    isLoading = busy && isCurrentPeerActive,
+                    onClick = {
+                        ConnectManager.switchOutput(peer.deviceId)
+                    }
+                )
+            }
+
+            // --- IF NO PAIRED DEVICES FOUND ---
+            if (known.isEmpty()) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                            Text(
-                                text = stringResource(R.string.connect_independent_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = stringResource(R.string.connect_independent_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(
-                            checked = independent,
-                            enabled = !busy,
-                            onCheckedChange = ConnectManager::setIndependent
+                        Icon(
+                            imageVector = Icons.Rounded.DevicesFold,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
                         )
+                        Text(
+                            text = stringResource(R.string.connect_cant_find),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = stringResource(R.string.connect_pair_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        FilledTonalButton(
+                            onClick = { showSyncScreen = true },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.QrCodeScanner,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(R.string.connect_pair_action))
+                        }
                     }
                 }
+            } else {
+                // Button to pair more devices
+                TextButton(
+                    onClick = { showSyncScreen = true },
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.QrCodeScanner,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = stringResource(R.string.connect_pair_action),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
 
-                // Headphones Hand-off Switch (Mobile only)
-                if (ConnectPlatform.mobile) {
+            // Feedback / Error Messages
+            val connectionError = peers.values.firstOrNull { !it.connected && it.error.isNotBlank() }?.error
+            if (!independent && connectionError != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = stringResource(R.string.connect_error_connection, connectionError),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
+            if (feedback.isNotBlank() && feedback != "✓") {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Text(
+                        text = friendlyFeedback(feedback),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
+            // Advanced Settings Expandable Panel
+            AnimatedVisibility(
+                visible = showSettings,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        text = stringResource(R.string.settings_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    // Independent Playback Switch
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerLow
                     ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                                    Text(
-                                        text = stringResource(R.string.connect_headphones_title),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.connect_headphones_desc),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Switch(
-                                    checked = autoHeadphones,
-                                    enabled = !busy && !independent,
-                                    onCheckedChange = ConnectManager::setAutoHeadphones
-                                )
-                            }
-                            Text(
-                                text = stringResource(R.string.connect_headphones_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                }
-
-                // Internet Relay Expandable Section
-                OutlinedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { showRelay = !showRelay },
+                                .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                                 Text(
-                                    text = stringResource(R.string.connect_relay_title),
+                                    text = stringResource(R.string.connect_independent_title),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = stringResource(R.string.connect_relay_desc),
+                                    text = stringResource(R.string.connect_independent_desc),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                            Icon(
-                                imageVector = if (showRelay) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            Switch(
+                                checked = independent,
+                                enabled = !busy,
+                                onCheckedChange = ConnectManager::setIndependent
                             )
                         }
+                    }
 
-                        if (showRelay) {
-                            OutlinedTextField(
-                                value = url,
-                                onValueChange = { url = it; error = "" },
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.connect_relay_url_label)) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Button(
-                                onClick = {
-                                    runCatching { ConnectManager.relayUrl = url }.onFailure {
-                                        error = "error"
+                    // Headphones Hand-off Switch (Mobile only)
+                    if (ConnectPlatform.mobile) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerLow
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                        Text(
+                                            text = stringResource(R.string.connect_headphones_title),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.connect_headphones_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
-                                },
-                                modifier = Modifier.align(Alignment.End)
-                            ) {
-                                Text(stringResource(R.string.btn_save))
-                            }
-                            if (error.isNotBlank()) {
+                                    Switch(
+                                        checked = autoHeadphones,
+                                        enabled = !busy && !independent,
+                                        onCheckedChange = ConnectManager::setAutoHeadphones
+                                    )
+                                }
                                 Text(
-                                    text = stringResource(R.string.connect_relay_url_error),
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall
+                                    text = stringResource(R.string.connect_headphones_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                                 )
                             }
                         }
                     }
+
+                    // Internet Relay Expandable Section
+                    OutlinedCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showRelay = !showRelay },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.connect_relay_title),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.connect_relay_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Icon(
+                                    imageVector = if (showRelay) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            if (showRelay) {
+                                OutlinedTextField(
+                                    value = url,
+                                    onValueChange = { url = it; error = "" },
+                                    singleLine = true,
+                                    label = { Text(stringResource(R.string.connect_relay_url_label)) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Button(
+                                    onClick = {
+                                        runCatching { ConnectManager.relayUrl = url }.onFailure {
+                                            error = "error"
+                                        }
+                                    },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Text(stringResource(R.string.btn_save))
+                                }
+                                if (error.isNotBlank()) {
+                                    Text(
+                                        text = stringResource(R.string.connect_relay_url_error),
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // 3. Bottom Volume Slider (Exact Spotify Connect pattern)
+        SpotifyVolumeBar(
+            volume = activeVolume,
+            onVolumeChange = { newVol ->
+                if (selected != null) {
+                    ConnectManager.command(selected!!, "volume", (newVol * 1000).toLong())
+                } else {
+                    localVolume = newVol
+                    audioManager?.let { am ->
+                        val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        am.setStreamVolume(AudioManager.STREAM_MUSIC, (newVol * max).roundToInt(), 0)
+                    }
+                }
+            }
+        )
+    }
+
+    // Full screen dialog for Pairing / QR scanning
+    if (showSyncScreen) {
+        Dialog(
+            onDismissRequest = { showSyncScreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                SyncDevicesScreen(onBackClick = { showSyncScreen = false })
             }
         }
     }
 }
 
+/**
+ * Spotify-style Device Item Row with Material 3 styling
+ */
 @Composable
-private fun DeviceChoiceCard(
+private fun SpotifyDeviceRow(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    isSelected: Boolean,
-    isEnabled: Boolean,
+    isActive: Boolean,
     isOnline: Boolean = true,
+    isEnabled: Boolean = true,
+    isLoading: Boolean = false,
     onClick: () -> Unit
 ) {
+    val haptic = LocalView.current
+    val itemShape = RoundedCornerShape(16.dp)
+    val activeColor = MaterialTheme.colorScheme.primary
+    val contentColor = if (isActive) activeColor else MaterialTheme.colorScheme.onSurface
+    val subtitleColor = if (isActive) activeColor.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurfaceVariant
+    val iconColor = if (isActive) activeColor else if (!isOnline) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface
+
     Surface(
-        onClick = onClick,
-        enabled = isEnabled,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
+        onClick = {
+            if (isEnabled && !isLoading) {
+                haptic.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
+        },
+        enabled = isEnabled && !isLoading,
+        shape = itemShape,
+        color = if (isActive) activeColor.copy(alpha = 0.12f) else Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
-                .padding(14.dp)
-                .heightIn(min = 48.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = when {
-                        isSelected -> MaterialTheme.colorScheme.primary
-                        !isEnabled || !isOnline -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        else -> MaterialTheme.colorScheme.onSurface
-                    },
-                    modifier = Modifier.size(22.dp)
-                )
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(28.dp)
+            )
 
             Column(modifier = Modifier.weight(1f)) {
+                if (isActive) {
+                    Text(
+                        text = stringResource(R.string.connect_listening_on),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.2.sp,
+                        color = activeColor
+                    )
+                }
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+                    color = contentColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when {
-                        isSelected -> MaterialTheme.colorScheme.primary
-                        !isEnabled || !isOnline -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (!isActive) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
+                            contentDescription = null,
+                            tint = subtitleColor,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = subtitleColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
-            if (isSelected) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = activeColor
                 )
+            } else if (isActive) {
+                EqualizerWaveform(color = activeColor)
             }
         }
+    }
+}
+
+/**
+ * Animated 3-bar equalizer waveform mimicking Spotify's playing device indicator
+ */
+@Composable
+fun EqualizerWaveform(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "equalizer")
+    val bar1 by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(420, easing = LinearEasing), RepeatMode.Reverse),
+        label = "b1"
+    )
+    val bar2 by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 0.25f,
+        animationSpec = infiniteRepeatable(tween(560, easing = LinearEasing), RepeatMode.Reverse),
+        label = "b2"
+    )
+    val bar3 by infiniteTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0.95f,
+        animationSpec = infiniteRepeatable(tween(380, easing = LinearEasing), RepeatMode.Reverse),
+        label = "b3"
+    )
+
+    Row(
+        modifier = modifier.height(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        Box(
+            Modifier
+                .width(3.2.dp)
+                .fillMaxHeight(bar1)
+                .clip(RoundedCornerShape(1.6.dp))
+                .background(color)
+        )
+        Box(
+            Modifier
+                .width(3.2.dp)
+                .fillMaxHeight(bar2)
+                .clip(RoundedCornerShape(1.6.dp))
+                .background(color)
+        )
+        Box(
+            Modifier
+                .width(3.2.dp)
+                .fillMaxHeight(bar3)
+                .clip(RoundedCornerShape(1.6.dp))
+                .background(color)
+        )
+    }
+}
+
+/**
+ * Spotify-style bottom volume bar with dynamic speaker icon and M3 slider
+ */
+@Composable
+fun SpotifyVolumeBar(
+    volume: Float,
+    onVolumeChange: (Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val volumeIcon = when {
+        volume <= 0.01f -> Icons.AutoMirrored.Rounded.VolumeMute
+        volume < 0.5f -> Icons.AutoMirrored.Rounded.VolumeDown
+        else -> Icons.AutoMirrored.Rounded.VolumeUp
+    }
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Icon(
+            imageVector = volumeIcon,
+            contentDescription = stringResource(R.string.pref_volume_slider_title),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(24.dp)
+        )
+        Slider(
+            value = volume.coerceIn(0f, 1f),
+            onValueChange = onVolumeChange,
+            modifier = Modifier.weight(1f),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.onSurface,
+                activeTrackColor = MaterialTheme.colorScheme.onSurface,
+                inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            )
+        )
+    }
+}
+
+/**
+ * Clean vector illustration depicting a monitor, laptop, hi-fi speaker, tablet, and smartphone
+ */
+@Composable
+fun SpotifyDevicesGraphic(
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.onSurface
+) {
+    Canvas(modifier = modifier) {
+        val stroke = Stroke(
+            width = 2.6.dp.toPx(),
+            cap = StrokeCap.Round,
+            join = StrokeJoin.Round
+        )
+        val w = size.width
+        val h = size.height
+
+        // Maintain aspect ratio and center horizontally
+        val totalW = (h * 1.85f).coerceAtMost(w)
+        val startX = (w - totalW) / 2f
+
+        // 1. Desktop Monitor (Center-Back)
+        val monitorW = totalW * 0.44f
+        val monitorH = h * 0.54f
+        val monitorLeft = startX + totalW * 0.28f
+        val monitorTop = h * 0.08f
+
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(monitorLeft, monitorTop),
+            size = Size(monitorW, monitorH),
+            cornerRadius = CornerRadius(6.dp.toPx()),
+            style = stroke
+        )
+        // Stand stem
+        val neckX = monitorLeft + monitorW / 2f
+        drawLine(
+            color = tint,
+            start = Offset(neckX, monitorTop + monitorH),
+            end = Offset(neckX, h * 0.76f),
+            strokeWidth = stroke.width,
+            cap = StrokeCap.Round
+        )
+        // Stand base
+        val baseHalf = totalW * 0.09f
+        drawLine(
+            color = tint,
+            start = Offset(neckX - baseHalf, h * 0.76f),
+            end = Offset(neckX + baseHalf, h * 0.76f),
+            strokeWidth = stroke.width,
+            cap = StrokeCap.Round
+        )
+
+        // 2. Laptop (Front-Left)
+        val laptopW = totalW * 0.28f
+        val laptopH = h * 0.38f
+        val laptopLeft = startX + totalW * 0.12f
+        val laptopTop = h * 0.38f
+
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(laptopLeft, laptopTop),
+            size = Size(laptopW, laptopH),
+            cornerRadius = CornerRadius(5.dp.toPx()),
+            style = stroke
+        )
+        val laptopBaseLeft = laptopLeft - totalW * 0.03f
+        val laptopBaseRight = laptopLeft + laptopW + totalW * 0.03f
+        val laptopBaseY = laptopTop + laptopH + 2.dp.toPx()
+        drawLine(
+            color = tint,
+            start = Offset(laptopBaseLeft, laptopBaseY),
+            end = Offset(laptopBaseRight, laptopBaseY),
+            strokeWidth = 3.5.dp.toPx(),
+            cap = StrokeCap.Round
+        )
+
+        // 3. Hi-Fi Speaker (Right)
+        val speakerW = totalW * 0.17f
+        val speakerH = h * 0.42f
+        val speakerLeft = startX + totalW * 0.65f
+        val speakerTop = h * 0.34f
+
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(speakerLeft, speakerTop),
+            size = Size(speakerW, speakerH),
+            cornerRadius = CornerRadius(6.dp.toPx()),
+            style = stroke
+        )
+        val speakerCenterX = speakerLeft + speakerW / 2f
+        drawCircle(
+            color = tint,
+            radius = totalW * 0.036f,
+            center = Offset(speakerCenterX, speakerTop + speakerH * 0.35f),
+            style = stroke
+        )
+        drawCircle(
+            color = tint,
+            radius = totalW * 0.048f,
+            center = Offset(speakerCenterX, speakerTop + speakerH * 0.72f),
+            style = stroke
+        )
+        drawCircle(
+            color = tint,
+            radius = 2.5.dp.toPx(),
+            center = Offset(speakerCenterX, speakerTop + speakerH * 0.72f)
+        )
+
+        // 4. Tablet (Right-Front)
+        val tabletW = totalW * 0.12f
+        val tabletH = h * 0.30f
+        val tabletLeft = startX + totalW * 0.74f
+        val tabletTop = h * 0.46f
+
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(tabletLeft, tabletTop),
+            size = Size(tabletW, tabletH),
+            cornerRadius = CornerRadius(5.dp.toPx()),
+            style = stroke
+        )
+
+        // 5. Smartphone (Far Right Front)
+        val phoneW = totalW * 0.08f
+        val phoneH = h * 0.22f
+        val phoneLeft = startX + totalW * 0.83f
+        val phoneTop = h * 0.54f
+
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(phoneLeft, phoneTop),
+            size = Size(phoneW, phoneH),
+            cornerRadius = CornerRadius(4.dp.toPx()),
+            style = stroke
+        )
+    }
+}
+
+/**
+ * Determine device icon based on device platform and name
+ */
+fun getDeviceIcon(platform: String?, label: String): ImageVector {
+    val lower = (label + " " + (platform ?: "")).lowercase()
+    return when {
+        lower.contains("tv") || lower.contains("television") -> Icons.Rounded.Tv
+        lower.contains("speaker") || lower.contains("enceinte") || lower.contains("salon") || lower.contains("sdb") -> Icons.Rounded.Speaker
+        platform == "android" || lower.contains("phone") || lower.contains("téléphone") || lower.contains("pixel") || lower.contains("galaxy") -> Icons.Rounded.Smartphone
+        platform == "desktop" || lower.contains("pc") || lower.contains("computer") || lower.contains("ordinateur") || lower.contains("mac") || lower.contains("laptop") -> Icons.Rounded.Computer
+        else -> Icons.Rounded.Devices
     }
 }
 
