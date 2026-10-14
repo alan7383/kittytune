@@ -461,4 +461,59 @@ object LyricsMatcher {
 
         return pairs.filter { it.first.isNotBlank() && it.second.isNotBlank() }.distinct()
     }
+
+    /**
+     * The songs a title names: "your love / narcotic" is "your love" and "narcotic". A single song gives
+     * an empty list. Lyrics sites list each song on its own, so the whole title finds nothing.
+     *
+     * The desktop app's copy of these functions, kept identical: both sides must split the same
+     * title the same way, or a double-sided single only plays on one of them.
+     */
+    fun titleParts(title: String): List<String> {
+        if (!DOUBLE_TITLE_SLASH.containsMatchIn(title)) return emptyList()
+        return title.split(DOUBLE_TITLE_SLASH).map { it.trim() }.filter { it.isNotBlank() }
+    }
+
+    /**
+     * [query] with its run-together words spelled the way [knownTitles] spell them, or null when none matches.
+     *
+     * "NEWYORK" is how the song is titled on SoundCloud; Genius calls it "NEW-YORK" and LrcLib only finds it as
+     * "NEW YORK". The track's own title cannot tell where the words break, so another catalogue's spelling of the
+     * same title is used: a word of the query that is two or three of a known title's words run together is spelled
+     * out as those words (issue #66).
+     */
+    fun respellWith(query: String, knownTitles: List<String>): String? {
+        val titleWords = knownTitles.map { title ->
+            title.replace(Regex("""\(.*?\)|\[.*?]"""), " ")
+                .split(Regex("""[^\p{L}\p{Nd}']+""")).filter { it.isNotBlank() }
+        }
+        var changed = false
+        val respelled = query.trim().split(WHITESPACE_REGEX).joinToString(" ") { token ->
+            val compact = token.lowercase().filter { it.isLetterOrDigit() }
+            if (compact.length < MIN_RUN_TOGETHER) return@joinToString token
+            val spelled = titleWords.firstNotNullOfOrNull { words -> runSpelling(words, compact) }
+            if (spelled != null) changed = true
+            spelled ?: token
+        }
+        return respelled.takeIf { changed }
+    }
+
+    /** The two or three consecutive [words] that read [compact] when run together, joined with spaces. */
+    private fun runSpelling(words: List<String>, compact: String): String? {
+        for (start in words.indices) {
+            var joined = ""
+            for (end in start until minOf(words.size, start + 3)) {
+                joined += words[end].lowercase()
+                if (end > start && joined == compact) return words.subList(start, end + 1).joinToString(" ")
+                if (joined.length >= compact.length) break
+            }
+        }
+        return null
+    }
+
+    /** "your love / narcotic" and "your love // narcotic" both name two songs. */
+    private val DOUBLE_TITLE_SLASH = Regex("""\s+//?\s+""")
+
+    /** Shorter than this, a word is not worth looking for as several run together. */
+    private const val MIN_RUN_TOGETHER = 5
 }

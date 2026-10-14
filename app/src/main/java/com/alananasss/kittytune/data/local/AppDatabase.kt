@@ -506,7 +506,7 @@
             BeatInfoEntity::class,
             BlockedContent::class
         ],
-        version = 25,
+        version = 26,
         exportSchema = false
     )
     abstract class AppDatabase : RoomDatabase() {
@@ -646,6 +646,16 @@
                 }
             }
 
+            /**
+             * How energetic a track's body is, for choosing how to blend it (see AutomixManager);
+             * older rows have none and keep the default blend.
+             */
+            val MIGRATION_25_26 = object : Migration(25, 26) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE beat_info ADD COLUMN energy REAL")
+                }
+            }
+
             @Volatile private var INSTANCE: AppDatabase? = null
             fun getDatabase(context: Context): AppDatabase {
                 return INSTANCE ?: synchronized(this) {
@@ -654,7 +664,7 @@
                         AppDatabase::class.java,
                         "soundtune_db"
                     )
-                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
+                        .addMigrations(MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)
                         .fallbackToDestructiveMigration()
                         .build()
                     INSTANCE = instance

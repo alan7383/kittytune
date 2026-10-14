@@ -17,6 +17,8 @@ data class BeatInfoEntity(
     /** 0=C, 1=C#, ... 11=B. Null when track's tonal chroma signal was too weak to call a key. */
     val keyPitchClass: Int? = null,
     val keyIsMinor: Boolean? = null,
+    /** 0..1: how loud and driving the body of the track is, from its middle. Null for tracks analysed before this existed. */
+    val energy: Float? = null,
     /**
      * Time of the first beat 1. [firstBeatOffsetMs] only fixes *a* beat of the grid, which may
      * be beat 2, 3 or 4 — dropping a track there destroys the groove even at a perfect BPM match.
@@ -45,8 +47,11 @@ data class BeatInfoEntity(
          * 2: phrase confidence is recorded separately. Version 1 rows carry a downbeat margin
          * but no phrase margin, and treating a missing margin as "unsure" would demote every
          * one of them to bar quantization - including the ones that were confidently right.
+         *
+         * 3: the body's energy is recorded, so a blend can be sized for the pair (see
+         * AutomixManager). Rows without it cannot be sized and keep the default blend.
          */
-        const val CURRENT_ANALYSIS_VERSION = 2
+        const val CURRENT_ANALYSIS_VERSION = 3
     }
 }
 

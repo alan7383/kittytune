@@ -129,9 +129,17 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
+    // Language detection for the smart lyrics translation. The desktop uses the same engine
+    // (com.github.pemistahl:lingua:1.2.2 from Maven Central), whose full jar carries ~77 MB of
+    // n-gram models for every language and accuracy — impossible in an APK. This trimmed copy
+    // keeps the engine classes and the low-accuracy models of the 18 languages that share a
+    // script with another (Latin and Cyrillic); text in any other script is told apart by script
+    // alone, which the code does first anyway.
+    implementation(files("libs/lingua-lite-1.2.2.jar"))
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer.hls)
+    implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
