@@ -91,6 +91,9 @@ enum class CommentSort(val value: String, @param:StringRes val labelResId: Int) 
 
 enum class LyricsMode { SYNCED, PLAIN }
 
+/** How long a lyrics source gets before the others are judged without it. */
+private const val LYRICS_SOURCE_TIMEOUT_MS = 7_000L
+
 data class UnifiedLyricResult(
     val id: String,
     val name: String,
@@ -2287,12 +2290,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             .filter { playerPrefs.getLyricsProviderEnabled(it) }
             .ifEmpty { DefaultLyricsProviderOrder }
 
-        var best: LyricsCandidate? = null
-
-        for (providerId in orderedProviders) {
-            if (!isActive) return@coroutineScope null
-
-            val candidate = when (providerId) {
+        // Every source is asked at once, and the best answer wins: word timings, then line timings, then plain
+        // text, among results that are about this song. Asked one after another and stopped at the first usable
+        // answer, a plain text from the first source beat line-timed lyrics from the fifth (issue #66).
+        suspend fun candidateFrom(providerId: PreferredLyricsProvider): LyricsCandidate? {
+            return when (providerId) {
                 PreferredLyricsProvider.MUSIXMATCH -> {
                     val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
                     searchMusixmatchCandidates(query, target, trackDurationMs, variant).firstOrNull()
@@ -2321,12 +2323,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     )
                 }
             }
-
-            if (candidate != null && candidate.isUsable) {
-                best = candidate
-                break
-            }
         }
+
+        val answers = orderedProviders.map { providerId ->
+            async(Dispatchers.IO) {
+                withTimeoutOrNull(LYRICS_SOURCE_TIMEOUT_MS) { runCatching { candidateFrom(providerId) }.getOrNull() }
+            }
+        }.awaitAll()
+
+        // Word timings first, then line timings, then plain text, among results about this song; the earlier
+        // source in the configured order wins a tie.
+        var best: LyricsCandidate? = answers.withIndex()
+            .mapNotNull { (i, c) -> c?.takeIf { it.isUsable }?.let { i to it } }
+            .maxWithOrNull(
+                compareBy<Pair<Int, LyricsCandidate>> { (_, c) -> if (c.matchScore >= LyricsMatcher.CONFIDENT_MATCH) 1 else 0 }
+                    .thenBy { (_, c) -> c.syncTier }
+                    .thenBy { (_, c) -> c.rank }
+                    .thenByDescending { (i, _) -> i }
+            )?.second
 
 
         // Genius only once everything else has come up empty

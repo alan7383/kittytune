@@ -377,6 +377,15 @@ fun ProfileScreen(
                         }
                     }
 
+                    if (!profileViewModel.isCurrentUser) {
+                        item { Spacer(Modifier.height(16.dp)) }
+                        item(key = "artist_clips") {
+                            // The artist's music videos from YouTube, watched right here; nothing shows when
+                            // there are none, so a listener's own page is left alone.
+                            ArtistClipsSection(artistName = user.username.orEmpty())
+                        }
+                    }
+
                     if (profileViewModel.isSpotifyProfile) {
                         val hasDiscography = profileViewModel.popularReleases.isNotEmpty() ||
                                 profileViewModel.albums.isNotEmpty() ||

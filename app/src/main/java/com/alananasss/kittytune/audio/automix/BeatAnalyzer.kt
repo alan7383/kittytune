@@ -45,6 +45,8 @@ object BeatAnalyzer {
         /** 0=C, 1=C#, ... 11=B. Null when the chroma signal was too weak to call a key. */
         val keyPitchClass: Int? = null,
         val keyIsMinor: Boolean? = null,
+        /** 0..1, how loud and driving the body of the track is. */
+        val energy: Float? = null,
         /**
          * Time of the first beat 1 in the track. Downbeats are at
          * downbeatOffsetMs + k * 4 * (60000 / bpm).
@@ -204,6 +206,7 @@ object BeatAnalyzer {
             mixOutPointMs = mixOutPointMs,
             keyPitchClass = key?.first,
             keyIsMinor = key?.second,
+            energy = bodyEnergy(pcm.samples, bpm),
             downbeatOffsetMs = grid.downbeatOffsetMs,
             phraseOffsetMs = grid.phraseOffsetMs,
             downbeatConfidence = grid.downbeatConfidence,
@@ -448,6 +451,7 @@ object BeatAnalyzer {
                 mixOutPointMs = mixOutPointMs,
                 keyPitchClass = key?.first,
                 keyIsMinor = key?.second,
+                energy = bodyEnergy(pcm.samples, bpm),
                 downbeatOffsetMs = grid.downbeatOffsetMs,
                 phraseOffsetMs = grid.phraseOffsetMs,
                 downbeatConfidence = grid.downbeatConfidence,
@@ -636,6 +640,23 @@ object BeatAnalyzer {
             pos += chunk.size
         }
         return MonoPcm(samples, sampleRate)
+    }
+
+    /**
+     * How energetic the body of a track is, 0 to 1: how loud it is, and how fast.
+     *
+     * The loudness is the RMS of the analysed middle of the track against a loud master (0.25 is about as hot as
+     * mastered music gets), the pace the tempo against the usual range; loudness counts for two thirds. Both are
+     * crude, and meant only to tell a ballad from a club track so the blend can be chosen for the pair.
+     */
+    fun bodyEnergy(samples: FloatArray, bpm: Float): Float {
+        if (samples.isEmpty()) return 0f
+        var sum = 0.0
+        for (s in samples) sum += s * s
+        val rms = sqrt(sum / samples.size).toFloat()
+        val loud = (rms / 0.25f).coerceIn(0f, 1f)
+        val pace = ((bpm - MIN_CANONICAL_BPM) / (MAX_CANONICAL_BPM - MIN_CANONICAL_BPM)).coerceIn(0f, 1f)
+        return (0.65f * loud + 0.35f * pace).coerceIn(0f, 1f)
     }
 
     /** RMS energy per ENERGY_BLOCK_MS block. */
