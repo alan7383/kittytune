@@ -190,7 +190,7 @@
                                             PopularTrackRow(
                                                 track = track,
                                                 rank = absoluteIndex + 1,
-                                                currentlyPlayingTrack = playerViewModel.currentTrack,
+                                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                                 onClick = { playerViewModel.playPlaylist(unblockedTracks, absoluteIndex) },
                                                 onOptionClick = { playerViewModel.showTrackOptions(track) }
                                             )

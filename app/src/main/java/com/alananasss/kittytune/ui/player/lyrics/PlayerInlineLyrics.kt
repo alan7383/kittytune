@@ -70,8 +70,8 @@ fun PlayerInlineLyrics(
 ) {
     PlayerInlineLyrics(
         lyricsLines = viewModel.lyricsLines,
-        positionMs = viewModel.currentPosition + viewModel.lyricsOffset,
-        isPlaying = viewModel.isPlaying,
+        positionMs = viewModel.uiCurrentPosition + viewModel.lyricsOffset,
+        isPlaying = viewModel.uiIsPlaying,
         textColor = textColor,
         modifier = modifier,
         lyricsFont = viewModel.lyricsFont,

@@ -2609,7 +2609,9 @@
     <string name="trim_plays_for">Plays %1$s of %2$s</string>
     <string name="trim_clear">Remove trim</string>
     <string name="sync_title">Device sync</string>
-    <string name="sync_intro">Your phone and your computer exchange listening history directly over your local network. Nothing is uploaded anywhere, and there is no account.</string>
+    <string name="sync_intro">Your phone and your computer exchange listening history, favorites, and playback state directly over your local network. Nothing is uploaded anywhere, and there is no account.</string>
+    <string name="sync_playback_title">Queue and playback position</string>
+    <string name="sync_playback_sub">Continue the latest track and queue when opening another device</string>
     <string name="sync_device_name">Name of this device</string>
     <string name="sync_peer_code">Pairing code from your computer</string>
     <string name="sync_now">Sync now</string>

@@ -189,7 +189,7 @@ fun RecognitionHistoryScreen(
                         items(items) { item ->
                             HistoryItemRow(
                                 item = item,
-                                currentlyPlayingTrack = playerViewModel.currentTrack,
+                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
                                 onClick = {
                                     if (item.trackId != null) {
                                         val trackList = filteredItems.mapNotNull { historyItem ->

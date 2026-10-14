@@ -66,6 +66,7 @@ import com.alananasss.kittytune.data.sync.SyncClient
 import com.alananasss.kittytune.data.sync.SyncLikes
 import com.alananasss.kittytune.data.sync.SyncLog
 import com.alananasss.kittytune.data.sync.SyncPeers
+import com.alananasss.kittytune.data.sync.SyncPlayback
 import com.alananasss.kittytune.data.sync.SyncScheduler
 import com.alananasss.kittytune.data.sync.SyncService
 import com.alananasss.kittytune.ui.common.SettingsGroup
@@ -168,6 +169,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
                 .fillMaxSize(),
             contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp),
         ) {
+            item { ConnectPanel() }
             item {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -333,6 +335,7 @@ fun SyncOptionsScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
     val playerPrefs = remember { PlayerPreferences(context) }
     var likesSyncEnabled by remember { mutableStateOf(playerPrefs.getSyncLikesEnabled()) }
+    var playbackSyncEnabled by remember { mutableStateOf(SyncPlayback.enabled) }
 
     SettingsScaffold(title = stringResource(R.string.sync_options_title), onBackClick = onBackClick) { padding ->
         LazyColumn(
@@ -352,7 +355,7 @@ fun SyncOptionsScreen(onBackClick: () -> Unit) {
                         title = stringResource(R.string.sync_likes_title),
                         subtitle = stringResource(R.string.sync_likes_sub),
                         icon = Icons.Rounded.Favorite,
-                        shape = getSettingsShape(1, 0),
+                        shape = getSettingsShape(2, 0),
                         hasSwitch = true,
                         switchState = likesSyncEnabled,
                         onSwitchChange = {
@@ -365,6 +368,19 @@ fun SyncOptionsScreen(onBackClick: () -> Unit) {
                                     SyncScheduler.triggerImmediateSync("likes_toggled")
                                 }
                             }
+                        }
+                    )
+                    SettingsItem(
+                        title = stringResource(R.string.sync_playback_title),
+                        subtitle = stringResource(R.string.sync_playback_sub),
+                        icon = Icons.Rounded.Sync,
+                        shape = getSettingsShape(2, 1),
+                        hasSwitch = true,
+                        switchState = playbackSyncEnabled,
+                        onSwitchChange = {
+                            playbackSyncEnabled = it
+                            SyncPlayback.enabled = it
+                            if (it) SyncScheduler.triggerImmediateSync("playback enabled")
                         }
                     )
                 }
@@ -662,7 +678,7 @@ private fun agoLabel(context: android.content.Context, atMs: Long): String {
 private const val LOCAL_NETWORK_PERMISSION = "android.permission.ACCESS_LOCAL_NETWORK"
 
 private fun hasLocalNetworkAccess(context: android.content.Context): Boolean =
-    if (android.os.Build.VERSION.SDK_INT < 36) {
+    if (android.os.Build.VERSION.SDK_INT < 37) {
         true
     } else {
         androidx.core.content.ContextCompat.checkSelfPermission(context, LOCAL_NETWORK_PERMISSION) ==

@@ -33,7 +33,7 @@
         onClick: () -> Unit,
         modifier: Modifier = Modifier
     ) {
-        val track = viewModel.currentTrack ?: return
+        val track = viewModel.uiCurrentTrack ?: return
 
         val animatedProgress = remember { Animatable(0f) }
         var lastTrackKey by remember { mutableStateOf<Any?>(null) }
@@ -48,8 +48,8 @@
             }
 
             androidx.compose.runtime.snapshotFlow { 
-                if (viewModel.duration > 0) {
-                    viewModel.currentPosition.toFloat() / viewModel.duration.toFloat()
+                if (viewModel.uiDuration > 0) {
+                    viewModel.uiCurrentPosition.toFloat() / viewModel.uiDuration.toFloat()
                 } else 0f 
             }.collectLatest { tp ->
                 val delta = tp - animatedProgress.value
@@ -127,7 +127,7 @@
                         velocity = 25.dp
                     )
                     PremiumMarqueeText(
-                        text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                        text = viewModel.playbackDeviceLabel ?: track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         edgeGradientWidth = 8.dp,
@@ -136,10 +136,11 @@
                     )
                 }
 
+                com.alananasss.kittytune.ui.profile.ConnectButton()
                 IconButton(onClick = { viewModel.togglePlayPause() }) {
                     Icon(
-                        imageVector = if (viewModel.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = stringResource(if (viewModel.isPlaying) R.string.btn_pause else R.string.btn_play),
+                        imageVector = if (viewModel.uiIsPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = stringResource(if (viewModel.uiIsPlaying) R.string.btn_pause else R.string.btn_play),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
