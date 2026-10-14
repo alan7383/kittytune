@@ -3061,6 +3061,14 @@
     <string name="mix_start">Mix starten</string>
     <string name="mix_subtitle">Basiert auf dem, was du tatsächlich hörst, nicht nur auf dem, was du geliked hast.</string>
     <string name="mix_title">Dein Mix</string>
+    <string name="wave_title">Meine Welle</string>
+    <string name="wave_subtitle">Endlose Musik für dich. Sie lernt aus deinen Likes und Überspringungen.</string>
+    <string name="wave_nothing_yet">Noch nichts, woraus die Welle gebaut werden kann</string>
+    <string name="wave_mode_balanced">Gemischt</string>
+    <string name="wave_mode_favorites">Favoriten</string>
+    <string name="wave_mode_discover">Entdecken</string>
+    <string name="wave_mode_popular">Beliebt</string>
+    <string name="wave_now_playing">Gerade in deiner Welle</string>
     <string name="mix_track_count">%1$d Titel</string>
     <string name="mix_trusted_sources_sub">Bevorzuge Künstler mit mehr Followern. Deaktivieren, um Remixes, Bootlegs und kleinere Creator einzuschließen.</string>
     <string name="mix_trusted_sources_title">Vertrauenswürdige Quellen &amp; verifizierte Künstler</string>

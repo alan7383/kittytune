@@ -354,6 +354,8 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_DUET_VIEW = "lyrics_duet_view"
         private const val KEY_LYRICS_DUET_BLACKLIST = "lyrics_duet_blacklist"
 
+        private const val KEY_WAVE_MODE = "wave_mode"
+
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
         private const val KEY_CUSTOM_FONT_ENABLED = "custom_font_enabled"
@@ -997,6 +999,9 @@ class PlayerPreferences(context: Context) {
 
     fun getLyricsDuetViewEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_DUET_VIEW, true)
     fun setLyricsDuetViewEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_DUET_VIEW, enabled) }
+
+    fun getWaveMode(): String = prefs.getString(KEY_WAVE_MODE, null) ?: "BALANCED"
+    fun setWaveMode(mode: String) = prefs.edit { putString(KEY_WAVE_MODE, mode) }
 
     fun getLyricsDuetBlacklist(): Set<String> = prefs.getStringSet(KEY_LYRICS_DUET_BLACKLIST, emptySet()) ?: emptySet()
     fun setLyricsDuetBlacklist(blacklist: Set<String>) = prefs.edit { putStringSet(KEY_LYRICS_DUET_BLACKLIST, blacklist) }

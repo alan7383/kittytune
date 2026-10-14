@@ -2920,6 +2920,14 @@
     <string name="mix_start">Bắt đầu phối nhạc</string>
     <string name="mix_subtitle">Xây dựng từ những gì bạn thực sự nghe, không chỉ những bài bạn đã nhấn thích.</string>
     <string name="mix_title">Bản phối của bạn</string>
+    <string name="wave_title">Làn sóng của tôi</string>
+    <string name="wave_subtitle">Nhạc bất tận dành cho bạn. Học từ lượt thích và bỏ qua.</string>
+    <string name="wave_nothing_yet">Chưa có gì để tạo làn sóng</string>
+    <string name="wave_mode_balanced">Kết hợp</string>
+    <string name="wave_mode_favorites">Yêu thích</string>
+    <string name="wave_mode_discover">Khám phá</string>
+    <string name="wave_mode_popular">Phổ biến</string>
+    <string name="wave_now_playing">Hiện đang trong làn sóng của bạn</string>
     <string name="mix_track_count">%1$d bài hát</string>
     <string name="mix_trusted_sources_sub">Ưu tiên các nghệ sĩ có nhiều người theo dõi hơn. Tắt tùy chọn này để thoải mái khám phá các bản remix, bootleg và nghệ sĩ độc lập nhỏ.</string>
     <string name="mix_trusted_sources_title">Nguồn đáng tin cậy &amp; nghệ sĩ đã xác minh</string>

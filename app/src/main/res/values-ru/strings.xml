@@ -2919,6 +2919,14 @@
 
     <!-- YOUR MIX -->
     <string name="mix_title">Твой микс</string>
+    <string name="wave_title">Моя волна</string>
+    <string name="wave_subtitle">Бесконечная музыка под вас. Учится на лайках и пропусках.</string>
+    <string name="wave_nothing_yet">Пока не из чего собрать волну</string>
+    <string name="wave_mode_balanced">Всё вместе</string>
+    <string name="wave_mode_favorites">Любимое</string>
+    <string name="wave_mode_discover">Незнакомое</string>
+    <string name="wave_mode_popular">Популярное</string>
+    <string name="wave_now_playing">Сейчас в волне</string>
     <string name="mix_subtitle">Собран из того, что ты действительно слушаешь, а не из того, что уже лайкнул.</string>
     <string name="mix_start">Запустить микс</string>
     <string name="mix_building">Собираем микс…</string>

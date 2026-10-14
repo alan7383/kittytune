@@ -761,6 +761,13 @@ fun HomeContent(
 
         if (showHomeYourMix) {
             item {
+                // My Wave leads the home, as on the desktop: one press, endless music that listens back.
+                MyWaveCard(
+                    vm = playerViewModel,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+            }
+            item {
                 StartMixingCard(
                     playerViewModel = playerViewModel,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)

@@ -2945,6 +2945,14 @@
 
     <!-- YOUR MIX -->
     <string name="mix_title">Ton mix</string>
+    <string name="wave_title">Ma vague</string>
+    <string name="wave_subtitle">De la musique sans fin, pour vous. Elle apprend de vos j’aime et de vos sauts.</string>
+    <string name="wave_nothing_yet">Rien pour construire la vague pour l’instant</string>
+    <string name="wave_mode_balanced">Mélange</string>
+    <string name="wave_mode_favorites">Favoris</string>
+    <string name="wave_mode_discover">Découverte</string>
+    <string name="wave_mode_popular">Populaire</string>
+    <string name="wave_now_playing">En ce moment dans votre vague</string>
     <string name="mix_subtitle">Construit à partir de ce que tu écoutes vraiment, pas de ce que tu as déjà aimé.</string>
     <string name="mix_start">Lancer le mix</string>
     <string name="mix_building">Construction du mix…</string>

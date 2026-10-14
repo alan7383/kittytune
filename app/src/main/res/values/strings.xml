@@ -3044,6 +3044,14 @@
 
     <!-- YOUR MIX -->
     <string name="mix_title">Your mix</string>
+    <string name="wave_title">My Wave</string>
+    <string name="wave_subtitle">Endless music picked for you. It learns from your likes and skips.</string>
+    <string name="wave_nothing_yet">Nothing to build the wave from yet</string>
+    <string name="wave_mode_balanced">Mixed</string>
+    <string name="wave_mode_favorites">Favourites</string>
+    <string name="wave_mode_discover">Discover</string>
+    <string name="wave_mode_popular">Popular</string>
+    <string name="wave_now_playing">Now in your wave</string>
     <string name="mix_subtitle">Built from what you actually play, not what you already liked.</string>
     <string name="mix_start">Start mixing</string>
     <string name="mix_building">Building your mix…</string>
