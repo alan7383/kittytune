@@ -1184,6 +1184,8 @@ fun TabletFullScreenPlayerView(
     modifier: Modifier = Modifier
 ) {
     val track = viewModel.uiCurrentTrack ?: return
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val playerPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     var showEffectsSheet by remember { mutableStateOf(false) }
     var showQueueSheet by remember { mutableStateOf(false) }
 
@@ -1210,7 +1212,12 @@ fun TabletFullScreenPlayerView(
                         tint = mainContentColor
                     )
                 }
-                com.alananasss.kittytune.ui.profile.ConnectButton(tint = mainContentColor)
+                if (playerPrefs.getShowDevicesButtonTopBar()) {
+                    com.alananasss.kittytune.ui.profile.ConnectButton(
+                        tint = mainContentColor,
+                        onClick = { viewModel.showConnectSheet = true }
+                    )
+                }
                 IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = Icons.Filled.KeyboardArrowDown,

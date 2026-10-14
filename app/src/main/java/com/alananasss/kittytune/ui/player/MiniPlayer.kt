@@ -136,7 +136,15 @@
                     )
                 }
 
-                com.alananasss.kittytune.ui.profile.ConnectButton()
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val showMiniPlayerDevices = remember {
+                    com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonMiniPlayer()
+                }
+                if (showMiniPlayerDevices) {
+                    com.alananasss.kittytune.ui.profile.ConnectButton(
+                        onClick = { viewModel.showConnectSheet = true }
+                    )
+                }
                 IconButton(onClick = { viewModel.togglePlayPause() }) {
                     Icon(
                         imageVector = if (viewModel.uiIsPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,

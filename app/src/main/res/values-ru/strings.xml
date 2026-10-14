@@ -2952,4 +2952,47 @@
 
     <string name="misc_general_sub">Язык, начальный экран и обновления</string>
     <string name="misc_discord_sub">Отображение играющего трека в Discord</string>
+
+    <!-- Connect / Устройства воспроизведения -->
+    <string name="slot_devices">Устройства воспроизведения</string>
+    <string name="menu_playback_devices">Устройства воспроизведения</string>
+    <string name="connect_devices_title">Доступные устройства</string>
+    <string name="connect_devices_subtitle">Слушайте и управляйте музыкой на ваших устройствах</string>
+    <string name="connect_this_device">Это устройство</string>
+    <string name="connect_this_device_desc">Локальное воспроизведение</string>
+    <string name="connect_playing_here">Воспроизводится на этом устройстве</string>
+    <string name="connect_switch_here">Слушать здесь</string>
+    <string name="connect_paired_devices">Связанные устройства</string>
+    <string name="connect_no_devices">Нет связанных устройств</string>
+    <string name="connect_no_devices_desc">Свяжите телефон и компьютер в синхронизации устройств, чтобы переносить музыку.</string>
+    <string name="connect_open_sync">Синхронизация устройств</string>
+    <string name="connect_status_lan">В сети · Локальная сеть</string>
+    <string name="connect_status_internet">В сети · Интернет</string>
+    <string name="connect_status_offline">Не в сети</string>
+    <string name="connect_status_playing">Играет · %1$s</string>
+    <string name="connect_moving_playback">Переносим воспроизведение…</string>
+    <string name="connect_connected_to">Подключено к %1$s</string>
+    <string name="connect_resume_local">Продолжить на этом устройстве</string>
+    <string name="connect_independent_title">Играть отдельно</string>
+    <string name="connect_independent_desc">Свои трек и очередь. Управление с других устройств выключено.</string>
+    <string name="connect_headphones_title">Подхватывать в наушниках</string>
+    <string name="connect_headphones_desc">Подключение — перенос с ПК. Отключение — пауза.</string>
+    <string name="connect_headphones_hint">При открытом приложении. Bluetooth-колонки тоже могут определяться как наушники.</string>
+    <string name="connect_relay_title">Подключение через интернет</string>
+    <string name="connect_relay_desc">Адрес вашего сервера. Укажите одинаковый адрес на обоих устройствах.</string>
+    <string name="connect_relay_url_label">Адрес сервера</string>
+    <string name="connect_relay_url_error">Нужен адрес https:// или wss://</string>
+    <string name="connect_pref_group">Кнопка устройств (Connect)</string>
+    <string name="connect_pref_top_bar">Показывать кнопку устройств в шапке плеера</string>
+    <string name="connect_pref_mini_player">Показывать кнопку устройств в мини-плеере</string>
+    <string name="connect_pref_bottom_bar">Показывать кнопку устройств в нижней панели</string>
+    <string name="connect_pref_slots_hint">Вы также можете разместить кнопку устройств в панели действий плеера или в меню трех точек.</string>
+    <string name="connect_feedback_timeout">Устройство не ответило вовремя. Попробуйте ещё раз.</string>
+    <string name="connect_feedback_offline">Устройство не в сети.</string>
+    <string name="connect_feedback_auto_cancelled">Автоматический перенос отменён.</string>
+    <string name="connect_feedback_local_file">Этот локальный файл есть только на исходном устройстве.</string>
+    <string name="connect_feedback_track_changed">Трек сменился во время переноса. Выберите устройство ещё раз.</string>
+    <string name="connect_feedback_prepare_failed">Не удалось открыть трек на выбранном устройстве.</string>
+    <string name="connect_error_server">Сервер недоступен: %1$s. Проверьте адрес в настройках устройств.</string>
+    <string name="connect_error_connection">Ошибка соединения: %1$s</string>
 </resources>

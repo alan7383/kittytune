@@ -122,6 +122,7 @@ enum class PlayerActionButtonSlot(@StringRes val titleRes: Int) {
     SLEEP_TIMER(R.string.slot_sleep_timer),
     HAPTICS(R.string.slot_haptics),
     MORE(R.string.slot_more),
+    DEVICES(R.string.slot_devices),
     NONE(R.string.slot_none)
 }
 
@@ -249,6 +250,9 @@ class PlayerPreferences(context: Context) {
         const val KEY_MIX_PRIORITIZE_TRUSTED = "mix_prioritize_trusted"
         const val KEY_SHOW_HOME_LISTENING_STATS = "show_home_listening_stats"
         const val KEY_SHOW_HOME_YOUR_MIX = "show_home_your_mix"
+        const val KEY_SHOW_DEVICES_BUTTON_TOP_BAR = "show_devices_button_top_bar"
+        const val KEY_SHOW_DEVICES_BUTTON_MINI_PLAYER = "show_devices_button_mini_player"
+        const val KEY_SHOW_DEVICES_BUTTON_BOTTOM_BAR = "show_devices_button_bottom_bar"
 
         const val PLAYER_BAR_BUTTON_LIKE = "like"
         const val PLAYER_BAR_BUTTON_LYRICS = "lyrics"
@@ -2044,6 +2048,15 @@ class PlayerPreferences(context: Context) {
     fun setLastUsedPlaylistTitle(title: String?) {
         prefs.edit { putString(KEY_LAST_USED_PLAYLIST_TITLE, title) }
     }
+
+    fun getShowDevicesButtonTopBar(): Boolean = prefs.getBoolean(KEY_SHOW_DEVICES_BUTTON_TOP_BAR, true)
+    fun setShowDevicesButtonTopBar(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_DEVICES_BUTTON_TOP_BAR, enabled) }
+
+    fun getShowDevicesButtonMiniPlayer(): Boolean = prefs.getBoolean(KEY_SHOW_DEVICES_BUTTON_MINI_PLAYER, false)
+    fun setShowDevicesButtonMiniPlayer(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_DEVICES_BUTTON_MINI_PLAYER, enabled) }
+
+    fun getShowDevicesButtonBottomBar(): Boolean = prefs.getBoolean(KEY_SHOW_DEVICES_BUTTON_BOTTOM_BAR, false)
+    fun setShowDevicesButtonBottomBar(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_DEVICES_BUTTON_BOTTOM_BAR, enabled) }
 
     // ─── Settings search history ──────────────────────────────────────────────
 

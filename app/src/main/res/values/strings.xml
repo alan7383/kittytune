@@ -2527,6 +2527,7 @@
     <string name="sync_playback_sub">Continue the latest track and queue when opening another device</string>
     <string name="sync_device_name">Name of this device</string>
     <string name="sync_peer_code">Pairing code from your computer</string>
+    <string name="sync_have_a_code">Paste code manually</string>
     <string name="sync_now">Sync now</string>
     <string name="sync_bad_code">That is not a pairing code.</string>
     
@@ -3097,4 +3098,47 @@
 
     <string name="misc_general_sub">Language, startup screen and updates</string>
     <string name="misc_discord_sub">Show what you are listening to on Discord</string>
+
+    <!-- Connect / Playback devices -->
+    <string name="slot_devices">Playback devices</string>
+    <string name="menu_playback_devices">Playback devices</string>
+    <string name="connect_devices_title">Available devices</string>
+    <string name="connect_devices_subtitle">Listen and control playback across devices</string>
+    <string name="connect_this_device">This device</string>
+    <string name="connect_this_device_desc">Local playback</string>
+    <string name="connect_playing_here">Playing on this device</string>
+    <string name="connect_switch_here">Play here</string>
+    <string name="connect_paired_devices">Paired devices</string>
+    <string name="connect_no_devices">No devices paired</string>
+    <string name="connect_no_devices_desc">Pair your phone and computer in Device Sync to hand off playback instantly.</string>
+    <string name="connect_open_sync">Device Sync</string>
+    <string name="connect_status_lan">Online · Local network</string>
+    <string name="connect_status_internet">Online · Internet</string>
+    <string name="connect_status_offline">Offline</string>
+    <string name="connect_status_playing">Playing · %1$s</string>
+    <string name="connect_moving_playback">Moving playback…</string>
+    <string name="connect_connected_to">Connected to %1$s</string>
+    <string name="connect_resume_local">Resume on this device</string>
+    <string name="connect_independent_title">Play independently</string>
+    <string name="connect_independent_desc">Keep separate queue and disable remote control from other devices</string>
+    <string name="connect_headphones_title">Continue with headphones</string>
+    <string name="connect_headphones_desc">Connect to move playback from PC. Disconnect to pause.</string>
+    <string name="connect_headphones_hint">While the app is open. Reopen it after it is stopped to continue. Bluetooth speakers may also be reported as headphones.</string>
+    <string name="connect_relay_title">Internet connection (Relay)</string>
+    <string name="connect_relay_desc">Your server address. Use the same address on both devices.</string>
+    <string name="connect_relay_url_label">Server address</string>
+    <string name="connect_relay_url_error">Use an https:// or wss:// address</string>
+    <string name="connect_pref_group">Playback devices (Connect)</string>
+    <string name="connect_pref_top_bar">Show devices button in player header</string>
+    <string name="connect_pref_mini_player">Show devices button in mini-player</string>
+    <string name="connect_pref_bottom_bar">Show devices button in bottom bar</string>
+    <string name="connect_pref_slots_hint">You can also place the devices button in the player action bar slots or in the 3-dots menu.</string>
+    <string name="connect_feedback_timeout">Device did not respond in time. Try again.</string>
+    <string name="connect_feedback_offline">Device is offline.</string>
+    <string name="connect_feedback_auto_cancelled">Automatic transfer cancelled.</string>
+    <string name="connect_feedback_local_file">This local file is only available on the source device.</string>
+    <string name="connect_feedback_track_changed">Track changed during transfer. Choose the device again.</string>
+    <string name="connect_feedback_prepare_failed">Could not open the track on this device.</string>
+    <string name="connect_error_server">Server unavailable: %1$s. Check the address in device settings.</string>
+    <string name="connect_error_connection">Connection error: %1$s</string>
 </resources>

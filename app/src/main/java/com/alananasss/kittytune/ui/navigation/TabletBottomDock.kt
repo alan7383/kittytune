@@ -46,6 +46,8 @@ fun TabletBottomDock(
     onPlayerClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val playerPrefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val track = playerViewModel.uiCurrentTrack
     val isPlaying = playerViewModel.uiIsPlaying
     val showMiniPlayer = track != null && !playerViewModel.isSidePlayerOpen
@@ -258,7 +260,11 @@ fun TabletBottomDock(
                                 }
                             }
 
-                            com.alananasss.kittytune.ui.profile.ConnectButton()
+                            if (playerPrefs.getShowDevicesButtonMiniPlayer()) {
+                                com.alananasss.kittytune.ui.profile.ConnectButton(
+                                    onClick = { playerViewModel.showConnectSheet = true }
+                                )
+                            }
                             // Bouton Lecture / Pause
                             IconButton(
                                 onClick = { playerViewModel.togglePlayPause() },

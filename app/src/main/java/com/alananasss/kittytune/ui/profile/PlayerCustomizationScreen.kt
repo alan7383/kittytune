@@ -740,6 +740,63 @@ fun PlayerCustomizationScreen(
             }
 
             item {
+                var showDevicesTopBar by remember { mutableStateOf(prefs.getShowDevicesButtonTopBar()) }
+                var showDevicesMiniPlayer by remember { mutableStateOf(prefs.getShowDevicesButtonMiniPlayer()) }
+                var showDevicesBottomBar by remember { mutableStateOf(prefs.getShowDevicesButtonBottomBar()) }
+
+                val connectItems = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit>(
+                    { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.connect_pref_top_bar),
+                            subtitle = stringResource(R.string.connect_pref_slots_hint),
+                            icon = Icons.Rounded.Devices,
+                            hasSwitch = true,
+                            switchState = showDevicesTopBar,
+                            onSwitchChange = { checked ->
+                                showDevicesTopBar = checked
+                                prefs.setShowDevicesButtonTopBar(checked)
+                                onUpdated()
+                            }
+                        )
+                    },
+                    { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.connect_pref_mini_player),
+                            icon = Icons.Rounded.DevicesOther,
+                            hasSwitch = true,
+                            switchState = showDevicesMiniPlayer,
+                            onSwitchChange = { checked ->
+                                showDevicesMiniPlayer = checked
+                                prefs.setShowDevicesButtonMiniPlayer(checked)
+                                onUpdated()
+                            }
+                        )
+                    },
+                    { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.connect_pref_bottom_bar),
+                            icon = Icons.Rounded.Devices,
+                            hasSwitch = true,
+                            switchState = showDevicesBottomBar,
+                            onSwitchChange = { checked ->
+                                showDevicesBottomBar = checked
+                                prefs.setShowDevicesButtonBottomBar(checked)
+                                onUpdated()
+                            }
+                        )
+                    }
+                )
+
+                SettingsGroup(
+                    title = stringResource(R.string.connect_pref_group),
+                    items = connectItems
+                )
+            }
+
+            item {
                 val shareCodeSubtitle = when (shareCardCodeMode) {
                     1 -> stringResource(R.string.share_card_code_solid)
                     2 -> stringResource(R.string.share_card_code_halftone)
@@ -1277,6 +1334,7 @@ private fun getSlotIcon(slot: PlayerActionButtonSlot): ImageVector = when (slot)
     PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
     PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
     PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
+    PlayerActionButtonSlot.DEVICES -> Icons.Rounded.Devices
     PlayerActionButtonSlot.NONE -> Icons.Rounded.Block
 }
 

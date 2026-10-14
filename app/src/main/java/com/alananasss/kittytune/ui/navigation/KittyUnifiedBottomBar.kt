@@ -180,7 +180,15 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
-                        com.alananasss.kittytune.ui.profile.ConnectButton()
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val showBottomBarDevices = remember {
+                            com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonBottomBar()
+                        }
+                        if (showBottomBarDevices) {
+                            com.alananasss.kittytune.ui.profile.ConnectButton(
+                                onClick = { playerViewModel.showConnectSheet = true }
+                            )
+                        }
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -305,7 +313,15 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
-                        com.alananasss.kittytune.ui.profile.ConnectButton()
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val showBottomBarDevices = remember {
+                            com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonBottomBar()
+                        }
+                        if (showBottomBarDevices) {
+                            com.alananasss.kittytune.ui.profile.ConnectButton(
+                                onClick = { playerViewModel.showConnectSheet = true }
+                            )
+                        }
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,

@@ -225,12 +225,10 @@ fun MainScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 com.alananasss.kittytune.data.sync.ConnectManager.setForeground(true)
-                if (!SessionManager.showCaptchaFlow.value) {
-                    SessionManager.requestSessionRefresh(
-                        context = context,
-                        force = tokenManager.shouldRefreshAccessToken()
-                    )
-                }
+                SessionManager.requestSessionRefresh(
+                    context = context,
+                    force = tokenManager.shouldRefreshAccessToken()
+                )
                 showPopups = prefs.getAchievementPopupsEnabled()
                 AchievementManager.checkDailyStreak()
                 playerViewModel.syncWithCurrentPlayback()
@@ -1961,6 +1959,13 @@ fun MainScreen(
                 }
             )
         }
+
+        if (playerViewModel.showConnectSheet) {
+            com.alananasss.kittytune.ui.profile.PlaybackDevicesSheet(
+                onDismissRequest = { playerViewModel.showConnectSheet = false }
+            )
+        }
+
 
         playerViewModel.shareCardTrack?.let { cardTrack ->
             com.alananasss.kittytune.ui.share.ShareCardSheet(
