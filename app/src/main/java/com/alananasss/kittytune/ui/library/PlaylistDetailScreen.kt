@@ -1657,7 +1657,30 @@ fun PlaylistDetailScreen(
         if (!showAllPlaylists) {
             Scaffold(containerColor = Color.Transparent) { innerPadding ->
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                    if (!playlistCover.isNullOrEmpty()) {
+                    if (playlistId == "likes") {
+                        // The colour of the liked songs, from the top of their page: the covers' colours mixed and
+                        // drawn toward the theme, drifting and shimmering while the likes are playing, fading out
+                        // when they are not (desktop PR #77, mobile UI — the flat gradient stood here before).
+                        Box(modifier = Modifier.fillMaxWidth().height(500.dp)) {
+                            LikesAura(
+                                likes = rawTracks,
+                                playerViewModel = playerViewModel,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            backgroundColor.copy(alpha = 0.3f),
+                                            backgroundColor.copy(alpha = 0.8f),
+                                            backgroundColor
+                                        )
+                                    )
+                                )
+                            )
+                        }
+                    } else if (!playlistCover.isNullOrEmpty()) {
                         Box(modifier = Modifier.fillMaxWidth().height(500.dp)) {
                             AsyncImage(
                                 model = effectiveCoverModel,
