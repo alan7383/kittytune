@@ -3139,4 +3139,7 @@
     <string name="like_all_prompt_text">В альбоме %1$d треков, из них %2$d очень короткие или очень длинные: вступления, голосовые, долгая тишина.</string>
     <string name="like_all_prompt_skip_odd">Без странных</string>
     <string name="like_all_prompt_all">Лайкнуть все</string>
+    <string name="night_screen_title">Ночной экран</string>
+    <string name="night_screen_since">С момента, как включился ночной экран</string>
+    <string name="night_screen_tap_to_wake">Коснитесь где угодно, чтобы вернуться</string>
 </resources>

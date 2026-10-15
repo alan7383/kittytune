@@ -1526,6 +1526,25 @@ fun NewPlayerScreen(
         SleepTimerDialog(viewModel)
         TrackTrimDialog(viewModel)
         DjDevDebugSheet(viewModel)
+
+        // The night screen over the whole player: fades in over it, and everything under stays untouched.
+        if (viewModel.showNightScreen) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = true,
+                enter = androidx.compose.animation.fadeIn(
+                    androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
+                ),
+                exit = androidx.compose.animation.fadeOut(
+                    androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutLinearInEasing)
+                ),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                com.alananasss.kittytune.ui.player.NightScreen(
+                    viewModel = viewModel,
+                    onWake = { viewModel.showNightScreen = false },
+                )
+            }
+        }
     }
 }
 
@@ -2257,6 +2276,16 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     stringResource(R.string.sleep_timer_title),
                     id = "sleep_timer"
                 ) { viewModel.showSleepTimerDialog = true })
+            // The night screen: a true-black clock that keeps the screen awake and drifts, for leaving on.
+            add(
+                DockOptionItem(
+                    Icons.Rounded.DarkMode,
+                    stringResource(R.string.night_screen_title),
+                    id = "night_screen"
+                ) {
+                    viewModel.showMenuSheet = false
+                    viewModel.showNightScreen = true
+                })
             // Only for the track that is playing: the editor's whole method is "listen, mark here", so it
             // needs a playhead to mark from (issue #33).
             add(
@@ -11481,6 +11510,25 @@ fun OldPlayerScreen(
         SleepTimerDialog(viewModel)
         TrackTrimDialog(viewModel)
         DjDevDebugSheet(viewModel)
+
+        // The night screen over the whole player: fades in over it, and everything under stays untouched.
+        if (viewModel.showNightScreen) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = true,
+                enter = androidx.compose.animation.fadeIn(
+                    androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
+                ),
+                exit = androidx.compose.animation.fadeOut(
+                    androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutLinearInEasing)
+                ),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                com.alananasss.kittytune.ui.player.NightScreen(
+                    viewModel = viewModel,
+                    onWake = { viewModel.showNightScreen = false },
+                )
+            }
+        }
     }
 }
 

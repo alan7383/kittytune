@@ -3116,4 +3116,7 @@
     <string name="like_all_prompt_text">Album này có %1$d bài, trong đó %2$d bài rất ngắn hoặc rất dài: intro, ghi âm, im lặng dài.</string>
     <string name="like_all_prompt_skip_odd">Bỏ qua bài lạ</string>
     <string name="like_all_prompt_all">Thích tất cả</string>
+    <string name="night_screen_title">Màn hình đêm</string>
+    <string name="night_screen_since">Kể từ khi bật màn hình đêm</string>
+    <string name="night_screen_tap_to_wake">Chạm vào bất kể đâu để thức</string>
 </resources>

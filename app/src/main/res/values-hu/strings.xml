@@ -3136,4 +3136,7 @@
     <string name="like_all_prompt_text">Ennek az albumnak %1$d száma van, ebből %2$d nagyon rövid vagy nagyon hosszú: intró, hangjegyzet, hosszú csend.</string>
     <string name="like_all_prompt_skip_odd">A furcsák kihagyása</string>
     <string name="like_all_prompt_all">Mindet kedvelem</string>
+    <string name="night_screen_title">Éjszakai képernyő</string>
+    <string name="night_screen_since">Amióta az éjszakai képernyő bekapcsolt</string>
+    <string name="night_screen_tap_to_wake">Érintsd meg bárhol a felébresztéshez</string>
 </resources>
