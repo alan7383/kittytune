@@ -3250,4 +3250,7 @@
     <string name="home_releases_this_friday">Diesen Freitag</string>
     <string name="home_releases_last_friday">Letzter Freitag</string>
     <string name="home_releases_earlier">Früher</string>
+    <string name="sort_now">Aktuell gehört</string>
+    <string name="sort_all_time">Aller Zeiten</string>
+    <string name="sort_likes">Meiste Likes</string>
 </resources>

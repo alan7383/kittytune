@@ -818,13 +818,37 @@ fun ProfileScreen(
 
                     val contextForList = if (expandedSection == "likes") null else artistPlaybackContext
 
+                    // The orders the expanded lists can be put in (desktop PR #77): "popular" counts what is
+                    // played now rather than what has had the longest to collect plays, "tracks" newest first.
+                    val (sorts, initialSort, cardOrder) = when (expandedSection) {
+                        "popular" -> Triple(
+                            ArtistOrder.TrackSort.entries,
+                            ArtistOrder.TrackSort.NOW,
+                            profileViewModel.popularTracks.toList()
+                        )
+                        "tracks" -> Triple(
+                            listOf(
+                                ArtistOrder.TrackSort.NEWEST,
+                                ArtistOrder.TrackSort.OLDEST,
+                                ArtistOrder.TrackSort.NOW,
+                                ArtistOrder.TrackSort.ALL_TIME
+                            ),
+                            ArtistOrder.TrackSort.NEWEST,
+                            emptyList()
+                        )
+                        else -> Triple(emptyList<ArtistOrder.TrackSort>(), null, emptyList())
+                    }
+
                     FullListScreen(
                         title = title,
                         tracks = list,
                         onBack = { expandedSection = null },
                         playerViewModel = playerViewModel,
                         downloadProgress = downloadProgress,
-                        context = contextForList
+                        context = contextForList,
+                        sorts = sorts,
+                        initialSort = initialSort,
+                        cardOrder = cardOrder
                     )
                 }
             }
@@ -1880,9 +1904,18 @@ fun FullListScreen(
     onBack: () -> Unit,
     playerViewModel: PlayerViewModel,
     downloadProgress: Map<Long, Int>,
-    context: PlaybackContext?
+    context: PlaybackContext?,
+    // The orders the list can be put in (desktop PR #77): null leaves the list as the service gave it.
+    sorts: List<ArtistOrder.TrackSort> = emptyList(),
+    initialSort: ArtistOrder.TrackSort? = null,
+    // The page's own idea of what is popular, for [ArtistOrder.TrackSort.NOW] to lead with.
+    cardOrder: List<Track> = emptyList(),
 ) {
     val windowSizeInfo = com.alananasss.kittytune.ui.common.rememberWindowSizeInfo()
+    var sort by remember { mutableStateOf(initialSort) }
+    val ordered = remember(tracks, sort, cardOrder) {
+        sort?.let { ArtistOrder.sortTracks(it, tracks, cardOrder) } ?: tracks
+    }
 
     Scaffold(
         topBar = {
@@ -1942,6 +1975,48 @@ fun FullListScreen(
                         .padding(innerPadding)
                         .fillMaxSize()
                 ) {
+                    if (sorts.isNotEmpty()) {
+                        item {
+                            // How this list is ordered: plays now or over all time, newest or oldest, likes.
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(sorts) { option ->
+                                    val selected = option == sort
+                                    if (selected) {
+                                        Button(
+                                            onClick = { sort = option },
+                                            shapes = ButtonDefaults.shapes(),
+                                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                            modifier = Modifier.height(34.dp)
+                                        ) {
+                                            Text(
+                                                stringResource(option.labelRes),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
+                                    } else {
+                                        FilledTonalButton(
+                                            onClick = { sort = option },
+                                            shapes = ButtonDefaults.shapes(),
+                                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                            modifier = Modifier.height(34.dp)
+                                        ) {
+                                            Text(
+                                                stringResource(option.labelRes),
+                                                style = MaterialTheme.typography.labelLarge,
+                                                maxLines = 1,
+                                                softWrap = false
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                     item {
                         Row(
                             modifier = Modifier
@@ -1985,8 +2060,8 @@ fun FullListScreen(
                             }
                         }
                     }
-                    itemsIndexed(tracks) { index, track ->
-                        ProfileTrackItem(track, index, playerViewModel, downloadProgress, tracks, context)
+                    itemsIndexed(ordered) { index, track ->
+                        ProfileTrackItem(track, index, playerViewModel, downloadProgress, ordered, context)
                     }
                 }
             }
@@ -2030,6 +2105,12 @@ fun FullDiscographyScreen(
         "singles" -> profileViewModel.singles
         "compilations" -> profileViewModel.compilations
         else -> profileViewModel.popularReleases
+    }
+
+    // How the releases are ordered (desktop PR #77): newest first by default, or oldest, by title, by likes.
+    var releaseSort by remember { mutableStateOf(ArtistOrder.ReleaseSort.NEWEST) }
+    val orderedReleases = remember(displayedReleases, releaseSort) {
+        ArtistOrder.sortReleases(releaseSort, displayedReleases.toList())
     }
 
     Scaffold(
@@ -2124,6 +2205,46 @@ fun FullDiscographyScreen(
 
                 val topContentPadding = if (availableTabs.size > 1) 8.dp else innerPadding.calculateTopPadding() + 8.dp
 
+                // The order of the releases, right under the tabs it applies to.
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(ArtistOrder.ReleaseSort.entries) { option ->
+                        val selected = option == releaseSort
+                        if (selected) {
+                            Button(
+                                onClick = { releaseSort = option },
+                                shapes = ButtonDefaults.shapes(),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.height(34.dp)
+                            ) {
+                                Text(
+                                    stringResource(option.labelRes),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        } else {
+                            FilledTonalButton(
+                                onClick = { releaseSort = option },
+                                shapes = ButtonDefaults.shapes(),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.height(34.dp)
+                            ) {
+                                Text(
+                                    stringResource(option.labelRes),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 140.dp),
                     contentPadding = PaddingValues(
@@ -2136,11 +2257,28 @@ fun FullDiscographyScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(displayedReleases) { playlist ->
-                        SquareCard(playlist) {
-                            val entityId = playlist.permalink ?: ""
-                            if (entityId.isNotBlank()) {
-                                onNavigate("spotify_album:$entityId")
+                    items(orderedReleases) { playlist ->
+                        Column {
+                            SquareCard(playlist) {
+                                val entityId = playlist.permalink ?: ""
+                                if (entityId.isNotBlank()) {
+                                    onNavigate("spotify_album:$entityId")
+                                }
+                            }
+                            // When the record came out, written as a date: the year while it is this year's
+                            // release, "9 September 2025" once it is not (desktop PR #77).
+                            val dateText = remember(playlist.releaseDate, playlist.createdAt) {
+                                ReleaseDate.text(playlist.releaseDate ?: playlist.createdAt)
+                            }
+                            if (dateText.isNotEmpty()) {
+                                Text(
+                                    text = dateText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 4.dp, start = 2.dp)
+                                )
                             }
                         }
                     }

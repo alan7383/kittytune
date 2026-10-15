@@ -3294,4 +3294,7 @@
     <string name="home_releases_this_friday">This Friday</string>
     <string name="home_releases_last_friday">Last Friday</string>
     <string name="home_releases_earlier">Earlier</string>
+    <string name="sort_now">Played now</string>
+    <string name="sort_all_time">All time</string>
+    <string name="sort_likes">Most liked</string>
 </resources>

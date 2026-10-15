@@ -3109,4 +3109,7 @@
     <string name="home_releases_this_friday">Thứ Sáu này</string>
     <string name="home_releases_last_friday">Thứ Sáu trước</string>
     <string name="home_releases_earlier">Trước đó</string>
+    <string name="sort_now">Đang được nghe</string>
+    <string name="sort_all_time">Mọi thờс đại</string>
+    <string name="sort_likes">Nhiều lượt thích</string>
 </resources>

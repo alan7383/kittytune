@@ -3132,4 +3132,7 @@
     <string name="home_releases_this_friday">Эта пятница</string>
     <string name="home_releases_last_friday">Прошлая пятница</string>
     <string name="home_releases_earlier">Раньше</string>
+    <string name="sort_now">Слушают сейчас</string>
+    <string name="sort_all_time">За всё время</string>
+    <string name="sort_likes">По лайкам</string>
 </resources>
