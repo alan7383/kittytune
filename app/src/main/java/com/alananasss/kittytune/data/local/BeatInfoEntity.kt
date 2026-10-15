@@ -28,6 +28,8 @@ data class BeatInfoEntity(
     val downbeatConfidence: Float = 0f,
     /** 0..1 confidence that the 16-beat phrase boundary was identified correctly. */
     val phraseConfidence: Float = 0f,
+    /** How much body the track has, 0..1 (issue #66): loudness and pace, for sizing automix blends. */
+    val energy: Float? = null,
     /**
      * Version of the analyzer that produced this row. Rows below [CURRENT_ANALYSIS_VERSION] are
      * re-analyzed: a cached grid from an older analyzer is not wrong so much as incomplete, and
