@@ -109,7 +109,8 @@ data class UnifiedLyricResult(
     val rawContent: String? = null
 )
 
-class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+class PlayerViewModel(application: Application) : AndroidViewModel(application),
+    com.alananasss.kittytune.data.together.TogetherPlayer {
 
     private var remotePeer by mutableStateOf<ConnectPeerState?>(null)
     private var remotePosition by mutableLongStateOf(0L)
@@ -673,6 +674,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
          * remove is precisely what would make this feel half-finished.
          */
         const val TRIM_TICK_MS = 20L
+        const val TOGETHER_NAV_PREFIX = "together:"
+        private const val TOGETHER_MAX_DRIFT_MS = 2_000L
 
         /** How long each volume ramp takes. Short enough not to read as a gap, long enough to leave no click. */
         const val TRIM_FADE_MS = 90L
@@ -1375,6 +1378,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         SoundCloudTelemetryTracker.init(context)
         MusicManager.init(context)
         BlockManager.init(context)
+        com.alananasss.kittytune.data.together.Together.init(context)
+        com.alananasss.kittytune.data.together.Together.start(this)
 
         // Auto-skip when the current track is blocked
         BlockManager.onCurrentTrackBlocked = {
@@ -3650,6 +3655,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 currentUser = me
                 playerPrefs.setCachedUserId(me.id)
                 playerPrefs.setCachedUsername(me.username)
+                com.alananasss.kittytune.data.together.Together.defaultName = me.username ?: "Listener"
                 SoundCloudTelemetryTracker.updateCurrentUserId(me.id)
             } catch (_: Exception) {
             }
@@ -3679,6 +3685,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         context: PlaybackContext? = null,
         maintainPlayerState: Boolean = false,
         autoPlay: Boolean = true,
+        respectShuffle: Boolean = true,
     ) {
         if (!applyingConnectCommand && autoPlay && ConnectManager.selectedDevice.value != null && tracks.isNotEmpty()) {
             val index = startIndex.coerceIn(0, tracks.lastIndex)
@@ -3688,6 +3695,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             ConnectManager.command(ConnectManager.selectedDevice.value!!, "transfer", state = state)
             pendingSeekPosition = null
             return
+        }
+
+        // Leaving the app's own navigation for something that is not the shared playlist means leaving it.
+        if (!applyingTogether && context?.navigationId?.startsWith(TOGETHER_NAV_PREFIX) != true) {
+            com.alananasss.kittytune.data.together.Together.stopListening()
         }
 
         SyncPlayback.claimLocal()
@@ -3708,7 +3720,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val isHistoryContext =
             context?.navigationId == "history" || context?.navigationId?.startsWith("history") == true
 
-        if (shuffleEnabled) {
+        if (shuffleEnabled && respectShuffle) {
             val clickedTrack = cleanTracks[effectiveStartIndex]
             val rest =
                 cleanTracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
@@ -3917,6 +3929,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             prefetchWaveformsForQueue(index)
 
+            // The host's song changed: the shared playlist wants to know at once, not at the next tick.
+            com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
+
             if (addToHistory && currentContext?.navigationId?.startsWith("station:") != true && currentContext?.navigationId?.startsWith(
                     "yt_radio:"
                 ) != true
@@ -4017,6 +4032,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         if (manual && routeRemote("next")) return
         if (isAutoplayRadioLoading) return
+        if (manual && !applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_NEXT, currentPosition
+            )
+        }
 
         if (manual && player.currentPosition > 2000) {
             incrementPlayCount()
@@ -4262,6 +4282,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun smartPrevious() {
         if (routeRemote("previous")) return
+        if (!applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PREVIOUS, currentPosition
+            )
+        }
         val pos = maxOf(player.currentPosition, currentPosition)
         if (pos > 2000) {
             incrementPlayCount()
@@ -4435,6 +4460,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun togglePlayPause() {
         if (routeRemote(if (uiIsPlaying) "pause" else "play")) return
+        if (!applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                if (player.isPlaying) com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PAUSE
+                else com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PLAY,
+                currentPosition
+            )
+        }
         SyncPlayback.claimLocal()
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
             context,
@@ -4471,6 +4503,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun seekTo(position: Long) {
         if (routeRemote("seek", position)) { isScrubbing = false; return }
+        if (!applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_SEEK, position
+            )
+        }
         SyncPlayback.claimLocal()
         MusicManager.releasePrebuffered()
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
@@ -4483,6 +4520,169 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context).onPositionDiscontinuity(position)
         SoundCloudTelemetryTracker.onTrackSeeked(position)
         saveStateAsync(saveQueue = false)
+    }
+
+    // ─── Shared playlist ─────────────────────────────────────────────────────────────────────────────
+    // See [com.alananasss.kittytune.data.together.Together]. While the player follows the host, its own actions
+    // are not sent back out.
+
+    private var applyingTogether = false
+
+    // Bumped by every incoming host State so a stale deferred action knows it was overtaken; see
+    // followHost's 600 ms pause for why that matters.
+    private var togetherFollowGeneration = 0
+
+    /** How many "play next" requests have gone in after the song playing, so the next one goes after them. */
+    private var togetherNextOffset = 0
+
+    private fun togetherContext(): PlaybackContext {
+        val code = com.alananasss.kittytune.data.together.Together.active.value.orEmpty()
+        val name = com.alananasss.kittytune.data.together.Together.rooms.value[code]?.name.orEmpty()
+        return PlaybackContext(
+            displayText = name.ifBlank { getString(R.string.together_title) },
+            navigationId = TOGETHER_NAV_PREFIX + code
+        )
+    }
+
+    override fun sharedCurrent() = currentTrack?.let { com.alananasss.kittytune.data.together.SharedTrack.of(it) }
+    override fun sharedPositionMs() = currentPosition
+    override fun sharedIsPlaying() = isPlaying
+    override fun sharedUpcoming() =
+        _queue.drop(currentQueueIndex + 1).map { com.alananasss.kittytune.data.together.SharedTrack.of(it) }
+    override fun sharedAutomix() = playerPrefs.getAutomixEnabled()
+
+    override fun followHost(
+        track: com.alananasss.kittytune.data.together.SharedTrack,
+        positionMs: Long,
+        isPlaying: Boolean,
+        upcoming: List<com.alananasss.kittytune.data.together.SharedTrack>?,
+        automix: Boolean,
+    ) {
+        applyingTogether = true
+        try {
+            // Every State bumps this: a pending deferred pause from an older State is overtaken by
+            // any newer one, whether it pauses (applies it immediately below) or resumes (the
+            // stale pause must not fire after it).
+            val generation = ++togetherFollowGeneration
+            if (playerPrefs.getAutomixEnabled() != automix) playerPrefs.setAutomixEnabled(automix)
+            if (currentTrack?.id != track.id) {
+                pendingSeekPosition = positionMs
+                val tracks = listOf(track) + upcoming.orEmpty().filter { it.id != track.id }
+                playPlaylist(
+                    tracks.map { it.toTrack() }, 0, togetherContext(),
+                    maintainPlayerState = true, autoPlay = true, respectShuffle = false
+                )
+                // The 600 ms grace lets playPlaylist spin up before pausing into the host's state.
+                // It must not outlive a newer State: a host that resumed within the window had its
+                // older "paused" State still pause the follower afterwards, contradicting the
+                // fresher one — so the deferred pause only fires when no newer State has arrived.
+                if (!isPlaying) {
+                    viewModelScope.launch {
+                        delay(600)
+                        if (generation == togetherFollowGeneration) {
+                            applyingTogether = true
+                            try {
+                                pause()
+                            } finally {
+                                applyingTogether = false
+                            }
+                        }
+                    }
+                }
+                return
+            }
+            if (kotlin.math.abs(currentPosition - positionMs) > TOGETHER_MAX_DRIFT_MS) seekTo(positionMs)
+            if (isPlaying != this.isPlaying) togglePlayPause()
+            if (upcoming != null) {
+                val mine = _queue.drop(currentQueueIndex + 1).map { it.id }
+                if (mine != upcoming.map { it.id }) {
+                    clearUpcoming()
+                    appendToQueue(upcoming.map { it.toTrack() })
+                }
+            }
+        } finally {
+            applyingTogether = false
+        }
+    }
+
+    override fun hostControl(action: String, positionMs: Long) {
+        applyingTogether = true
+        try {
+            when (action) {
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PAUSE -> if (isPlaying) togglePlayPause()
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PLAY -> if (!isPlaying) togglePlayPause()
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_SEEK -> seekTo(positionMs)
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_NEXT -> playNext(manual = true)
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PREVIOUS -> smartPrevious()
+            }
+        } finally {
+            applyingTogether = false
+        }
+        com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
+    }
+
+    override fun hostPlayNext(track: com.alananasss.kittytune.data.together.SharedTrack) {
+        val at = (currentQueueIndex + 1 + togetherNextOffset).coerceIn(0, _queue.size)
+        val item = track.toTrack()
+        _queue.add(at, item)
+        _originalQueue.add(item)
+        togetherNextOffset++
+        updateQueueState()
+        if (MusicManager.player.mediaItemCount > 1) {
+            try {
+                MusicManager.player.removeMediaItem(1)
+            } catch (_: Exception) {
+            }
+        }
+        preloadNextTrack(currentQueueIndex + 1)
+        saveStateAsync(saveQueue = true)
+        com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
+    }
+
+    override fun hostPlay(tracks: List<com.alananasss.kittytune.data.together.SharedTrack>, index: Int) {
+        applyingTogether = true
+        try {
+            playPlaylist(
+                tracks.map { it.toTrack() }, index, togetherContext(),
+                maintainPlayerState = true, autoPlay = true, respectShuffle = false
+            )
+        } finally {
+            applyingTogether = false
+        }
+    }
+
+    /** Whether automix may be switched here: not by a listener following someone else's shared playlist. */
+    val mayChangeAutomix: Boolean get() = com.alananasss.kittytune.data.together.Together.mayChangeAutomix()
+
+    /** Drops everything after the song playing, in both the live queue and the unshuffled original. */
+    private fun clearUpcoming() {
+        while (_queue.size > currentQueueIndex + 1) _queue.removeAt(_queue.size - 1)
+        val playing = currentTrack?.id
+        if (playing != null) {
+            val idx = _originalQueue.indexOfFirst { it.id == playing }
+            if (idx >= 0 && idx + 1 < _originalQueue.size) {
+                _originalQueue.subList(idx + 1, _originalQueue.size).clear()
+            }
+        }
+        togetherNextOffset = 0
+        updateQueueState()
+        if (MusicManager.player.mediaItemCount > 1) {
+            try {
+                MusicManager.player.removeMediaItem(1)
+            } catch (_: Exception) {
+            }
+        }
+        saveStateAsync(saveQueue = true)
+    }
+
+    /** Adds [tracks] to the end of the live queue, as a shared playlist's host re-plays its own tail. */
+    private fun appendToQueue(tracks: List<Track>) {
+        val clean = com.alananasss.kittytune.data.BlockManager.filterBlocked(tracks)
+        if (clean.isEmpty()) return
+        _queue.addAll(clean)
+        _originalQueue.addAll(clean)
+        updateQueueState()
+        saveStateAsync(saveQueue = true)
     }
 
     /** Fetches the waveform_url for a track using the single-track endpoint (includes waveform_url). */
@@ -5302,6 +5502,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun emitUiEvent(msg: String) {
         viewModelScope.launch { _uiEvent.emit(msg) }
     }
+
 
     /** Captured on the UI thread; a live controller never overwrites the local player. */
     private fun connectVolume(): Float {

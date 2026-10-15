@@ -3203,4 +3203,38 @@
 
     <string name="misc_general_sub">Language, startup screen and updates</string>
     <string name="misc_discord_sub">Show what you are listening to on Discord</string>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
+    <!-- TOGETHER (shared playlists)                                                     -->
+    <!-- ═════════════════════════════════════════════════════════════════════════════════ -->
+    <string name="together_title">Together</string>
+    <string name="together_create">Create a shared playlist</string>
+    <string name="together_join">Join</string>
+    <string name="together_name_hint">Playlist name</string>
+    <string name="together_code_hint">ABCD-EFGH</string>
+    <string name="together_your_name">Your name</string>
+    <string name="together_code">Code %s</string>
+    <string name="together_code_copied">Code copied</string>
+    <string name="together_listening_now">Listening now: %s</string>
+    <string name="together_nobody">Nobody is listening</string>
+    <string name="together_offline">Reconnecting…</string>
+    <string name="together_suggestions">Suggestions</string>
+    <string name="together_suggested_by">Suggested by %s</string>
+    <string name="together_up_next">Up next</string>
+    <string name="together_tracks">Tracks</string>
+    <string name="together_empty">Nothing yet — search below and suggest the first track.</string>
+    <string name="together_add_tracks">Add tracks</string>
+    <string name="together_play_next">Play next</string>
+    <string name="together_suggest">Suggest</string>
+    <string name="together_accept">Accept</string>
+    <string name="together_decline">Decline</string>
+    <string name="together_preview">Preview</string>
+    <string name="together_listen">Listen along</string>
+    <string name="together_leave">Leave</string>
+    <string name="together_become_host">Take over</string>
+    <string name="together_host">Host</string>
+    <string name="together_forget">Forget</string>
+    <string name="together_automix_host_only">Only the host can switch automix</string>
+    <string name="together_bad_code">That code does not look right</string>
+    <string name="together_hint">Listen together, in step, across phones and desktop</string>
 </resources>
