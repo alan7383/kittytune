@@ -3244,4 +3244,7 @@
     <string name="chart_kind_trending">Trending</string>
     <string name="chart_plays">%,d plays</string>
     <string name="chart_failed">The chart would not load. Try again in a moment.</string>
+    <string name="artist_clips_title">Music videos</string>
+    <string name="artist_clip_views">views</string>
+    <string name="artist_clip_failed">This video can't be played</string>
 </resources>

@@ -176,6 +176,12 @@
         fun isKnownRestricted(track: Track): Boolean =
             isRestricted(track) || restrictedTrackIds.contains(track.id)
 
+        /**
+         * Touches the object so its NewPipe initializer has run; call before any direct extractor use
+         * (the artist clips search, for one).
+         */
+        fun ensureExtractorReady() = Unit
+
         suspend fun resolveStream(context: Context, track: Track, forDownload: Boolean = false): String? {
             return resolveStreamWithDrm(context, track, forDownload)?.url
         }

@@ -240,6 +240,16 @@ fun ProfileScreen(
                         }
                     }
 
+                    // The artist's music videos, on their page (issue #66): watch one without leaving.
+                    if (user.isArtist) {
+                        item {
+                            com.alananasss.kittytune.ui.profile.ArtistClipsSection(
+                                artistName = user.username.orEmpty(),
+                                playerViewModel = playerViewModel,
+                            )
+                        }
+                    }
+
                     if (!profileViewModel.isSpotifyProfile) {
                         if (profileViewModel.allTracks.isNotEmpty()) {
                             item {
