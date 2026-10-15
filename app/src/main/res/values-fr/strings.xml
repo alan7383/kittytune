@@ -3193,4 +3193,8 @@
     <string name="sort_now">Écoutés en ce moment</string>
     <string name="sort_all_time">De tous les temps</string>
     <string name="sort_likes">Les plus aimés</string>
+    <string name="like_all_prompt_title">Aimer ces titres ?</string>
+    <string name="like_all_prompt_text">Cet album compte %1$d titres, dont %2$d très courts ou très longs : intros, notes vocales, longs silences.</string>
+    <string name="like_all_prompt_skip_odd">Ignorer les bizarres</string>
+    <string name="like_all_prompt_all">Tout aimer</string>
 </resources>

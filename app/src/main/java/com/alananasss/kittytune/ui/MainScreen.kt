@@ -2040,6 +2040,10 @@ fun MainScreen(
             }
         }
 
+        // "Like all songs" asks first, wherever it was asked from (desktop PR #77): one host at the top of
+        // the window, so the album's menu and the library's playlist menu ask the same question.
+        com.alananasss.kittytune.ui.library.LikeAllPromptHost()
+
         if (playerViewModel.captchaUrl != null) {
             Dialog(
                 onDismissRequest = { playerViewModel.onCaptchaSolved() },
