@@ -3124,4 +3124,9 @@
     <string name="artist_clips_title">Videoklipek</string>
     <string name="artist_clip_views">%s megtekintés</string>
     <string name="artist_clip_failed">Ez a videó nem játszható le</string>
+    <string name="home_from_your_artists">Újdonságok a kedvenceidtől</string>
+    <string name="home_from_your_artists_sub">Amit a kedvenceid kiadtak, a kiádás péntekéje szerint</string>
+    <string name="home_releases_this_friday">E pénteken</string>
+    <string name="home_releases_last_friday">Múlt péntek</string>
+    <string name="home_releases_earlier">Korábban</string>
 </resources>

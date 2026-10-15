@@ -3289,4 +3289,9 @@
     <string name="chart_genre_latin">Latin</string>
     <string name="chart_genre_folk">Folk</string>
     <string name="wave_now_playing">Now in your wave</string>
+    <string name="home_from_your_artists">New from your artists</string>
+    <string name="home_from_your_artists_sub">What the artists you like have put out, by the Friday it came out</string>
+    <string name="home_releases_this_friday">This Friday</string>
+    <string name="home_releases_last_friday">Last Friday</string>
+    <string name="home_releases_earlier">Earlier</string>
 </resources>

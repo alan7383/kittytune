@@ -3127,4 +3127,9 @@
     <string name="artist_clips_title">Клипы</string>
     <string name="artist_clip_views">%s просмотров</string>
     <string name="artist_clip_failed">Этот клип не воспроизводится</string>
+    <string name="home_from_your_artists">Новое от ваших исполнителей</string>
+    <string name="home_from_your_artists_sub">Новинки от ваших исполнителей, по пятницам выхода</string>
+    <string name="home_releases_this_friday">Эта пятница</string>
+    <string name="home_releases_last_friday">Прошлая пятница</string>
+    <string name="home_releases_earlier">Раньше</string>
 </resources>

@@ -3185,4 +3185,9 @@
     <string name="together_hint">Écoutez ensemble, en rythme, entre téléphones et ordinateur</string>
     <string name="artist_monthly_listeners">%,d auditeurs par mois</string>
     <string name="chart_plays">%,d écoutes</string>
+    <string name="home_from_your_artists">Nouveautés de vos artistes</string>
+    <string name="home_from_your_artists_sub">Ce que les artistes que vous aimez ont publié, groupé par vendredi de sortie</string>
+    <string name="home_releases_this_friday">Ce vendredi</string>
+    <string name="home_releases_last_friday">Vendredi dernier</string>
+    <string name="home_releases_earlier">Plus tôt</string>
 </resources>
