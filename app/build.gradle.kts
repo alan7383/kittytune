@@ -144,6 +144,7 @@ dependencies {
     implementation(libs.androidx.glance.material3)
     implementation(libs.compose.markdown)
     implementation(libs.newpipe.extractor)
+    implementation(libs.paho.mqtt)
     implementation(libs.rhino)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
     implementation(project(":innertube"))

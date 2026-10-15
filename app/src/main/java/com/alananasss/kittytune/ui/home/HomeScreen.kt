@@ -1022,6 +1022,19 @@ fun ExplorerSection(onNavigate: (String) -> Unit) {
                 modifier = Modifier.weight(1f)
             )
         }
+
+        Row(
+            modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ExplorerButton(
+                icon = Icons.Rounded.Groups,
+                label = stringResource(R.string.together_title),
+                baseColor = MaterialTheme.colorScheme.tertiary,
+                onClick = { onNavigate("together") },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
