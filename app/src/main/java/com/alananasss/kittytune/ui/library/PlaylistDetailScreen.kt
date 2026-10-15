@@ -2945,13 +2945,9 @@ fun PlaylistOptionsSheet(
                             Icons.Rounded.Favorite,
                             context.getString(R.string.menu_like_all_songs)
                         ) {
-                            val likedCount = com.alananasss.kittytune.data.LikeRepository.addLikesBulk(tracks)
-                            val message = if (likedCount > 0) {
-                                context.getString(R.string.toast_like_all_done, likedCount)
-                            } else {
-                                context.getString(R.string.toast_like_all_nothing)
-                            }
-                            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                            // Asks first: a record often ends with a silence, a voice note or a drone
+                            // that nobody means to like (desktop PR #77).
+                            LikeAllPrompt.ask(tracks)
                             onDismiss()
                         })
                 }
