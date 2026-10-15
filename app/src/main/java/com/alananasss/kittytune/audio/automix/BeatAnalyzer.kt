@@ -59,6 +59,8 @@ object BeatAnalyzer {
         val downbeatConfidence: Float = 0f,
         /** 0..1 confidence that the 16-beat phrase boundary was identified correctly. */
         val phraseConfidence: Float = 0f,
+        /** How much body the track has: loudness and pace in one number, 0..1 (issue #66). */
+        val energy: Float? = null,
     )
 
     private const val TAG = "BeatAnalyzer"
@@ -208,6 +210,7 @@ object BeatAnalyzer {
             phraseOffsetMs = grid.phraseOffsetMs,
             downbeatConfidence = grid.downbeatConfidence,
             phraseConfidence = grid.phraseConfidence,
+            energy = bodyEnergy(pcm.samples, bpm),
         )
         return CachedAnalysis(result, complete = true)
     }
@@ -451,6 +454,7 @@ object BeatAnalyzer {
                 downbeatOffsetMs = grid.downbeatOffsetMs,
                 phraseOffsetMs = grid.phraseOffsetMs,
                 downbeatConfidence = grid.downbeatConfidence,
+                energy = bodyEnergy(pcm.samples, bpm),
             )
         } catch (e: Exception) {
             Log.w(TAG, "Beat analysis failed: ${e.message}")
@@ -636,6 +640,21 @@ object BeatAnalyzer {
             pos += chunk.size
         }
         return MonoPcm(samples, sampleRate)
+    }
+
+    /**
+     * How much body the track has, 0..1: two thirds loudness, one third pace (issue #66). Loud against quiet
+     * is the felt difference between a ballad and a banger; fast against slow, less so but not nothing. A
+     * track clipping at full scale reads 1.0, a -12 dB ambient drift reads around 0.25.
+     */
+    fun bodyEnergy(samples: FloatArray, bpm: Float): Float? {
+        if (samples.isEmpty() || bpm <= 0f) return null
+        var sumSquares = 0.0
+        for (s in samples) sumSquares += (s.toDouble() * s.toDouble())
+        val rms = kotlin.math.sqrt(sumSquares / samples.size).toFloat()
+        val loud = (rms / 0.25f).coerceIn(0f, 1f)
+        val pace = ((bpm - 70f) / (140f - 70f)).coerceIn(0f, 1f)
+        return (0.65f * loud + 0.35f * pace).coerceIn(0f, 1f)
     }
 
     /** RMS energy per ENERGY_BLOCK_MS block. */
