@@ -1803,6 +1803,11 @@ fun PlaylistDetailScreen(
                                             )
                                         }
                                     }
+                                    // An album sung mostly by one artist is credited to that artist, not the account
+                                    // that posted it: the tracks carry the real credit (desktop PR #77).
+                                    val headerArtistName = albumCreditFor(rawTracks.toList())
+                                        ?.takeIf { isAlbum && playlistUser?.urn?.startsWith("spotify") != true }
+                                        ?: playlistUser?.username
                                     if (isArtistView) {
                                         val providerBadge = when {
                                             isQobuzArtist -> stringResource(R.string.generic_artist) + " • Qobuz"
@@ -1848,7 +1853,7 @@ fun PlaylistDetailScreen(
                                             Text(
                                                 text = stringResource(
                                                     R.string.playlist_by_user,
-                                                    playlistUser!!.username ?: ""
+                                                    headerArtistName ?: ""
                                                 ),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.SemiBold,
@@ -1871,7 +1876,7 @@ fun PlaylistDetailScreen(
                                         Text(
                                             text = stringResource(
                                                 R.string.playlist_by_user,
-                                                playlistUser!!.username ?: ""
+                                                headerArtistName ?: ""
                                             ),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
