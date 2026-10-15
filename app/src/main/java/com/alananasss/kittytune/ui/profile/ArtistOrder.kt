@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.profile
 
+import com.alananasss.kittytune.R
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
 import java.time.LocalDate
@@ -13,7 +14,7 @@ import kotlin.math.max
  * collect them, not the one people play now. The default is how the page's own popular songs are ordered, which
  * is what the card showed, and a song counts for what it collects per day of its life.
  */
-internal object ArtistOrder {
+object ArtistOrder {
 
     enum class TrackSort(val labelRes: Int) {
         /** What is listened to now: the page's popular songs as the card shows them, then the rest by plays a day. */

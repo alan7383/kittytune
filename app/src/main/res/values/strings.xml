@@ -3246,7 +3246,7 @@
     <string name="chart_failed">The chart would not load. Try again in a moment.</string>
     <string name="artist_clips_title">Music videos</string>
     <string name="artist_clip_views">views</string>
-    <string name="artist_clip_failed">This video can't be played</string>
+    <string name="artist_clip_failed">This video can\'t be played</string>
     <string name="artist_monthly_listeners">%,d monthly listeners</string>
     <string name="wave_title">MyWave</string>
     <string name="wave_subtitle">Your radio, refreshed as you listen</string>

@@ -3162,13 +3162,13 @@
     <string name="together_code">Code %s</string>
     <string name="together_code_copied">Code copié</string>
     <string name="together_listening_now">Écoutent en ce moment : %s</string>
-    <string name="together_nobody">Personne n'écoute</string>
+    <string name="together_nobody">Personne n\'écoute</string>
     <string name="together_offline">Reconnexion…</string>
     <string name="together_suggestions">Suggestions</string>
     <string name="together_suggested_by">Suggéré par %s</string>
     <string name="together_up_next">À suivre</string>
     <string name="together_tracks">Titres</string>
-    <string name="together_empty">Rien pour l'instant — cherchez ci-dessous et suggérez le premier titre.</string>
+    <string name="together_empty">Rien pour l\'instant — cherchez ci-dessous et suggérez le premier titre.</string>
     <string name="together_add_tracks">Ajouter des titres</string>
     <string name="together_play_next">Lire ensuite</string>
     <string name="together_suggest">Suggérer</string>
@@ -3180,7 +3180,7 @@
     <string name="together_become_host">Prendre la main</string>
     <string name="together_host">Hôte</string>
     <string name="together_forget">Oublier</string>
-    <string name="together_automix_host_only">Seul l'hôte peut changer l'automix</string>
+    <string name="together_automix_host_only">Seul l\'hôte peut changer l\'automix</string>
     <string name="together_bad_code">Ce code ne semble pas correct</string>
     <string name="together_hint">Écoutez ensemble, en rythme, entre téléphones et ordinateur</string>
     <string name="artist_monthly_listeners">%,d auditeurs par mois</string>

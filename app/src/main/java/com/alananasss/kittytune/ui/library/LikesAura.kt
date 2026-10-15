@@ -261,7 +261,7 @@ private suspend fun dominantColorOf(context: Context, url: String): Int? {
             .filter { it.population > 0 }
             .maxByOrNull { it.population }
             ?.rgb
-    }
+    }.getOrNull()
 }
 
 /** Fewer covers sampled than on the desktop: the phone pays for each with a request. */
