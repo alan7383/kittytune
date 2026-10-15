@@ -3247,4 +3247,5 @@
     <string name="artist_clips_title">Music videos</string>
     <string name="artist_clip_views">views</string>
     <string name="artist_clip_failed">This video can't be played</string>
+    <string name="artist_monthly_listeners">%,d monthly listeners</string>
 </resources>
