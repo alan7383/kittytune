@@ -3104,4 +3104,9 @@
     <string name="artist_clips_title">Video âm nhạc</string>
     <string name="artist_clip_views">%s lượt xem</string>
     <string name="artist_clip_failed">Không thể phát video này</string>
+    <string name="home_from_your_artists">Mới từ nghệ sĩ của bạn</string>
+    <string name="home_from_your_artists_sub">Nghệ sĩ bạn thích mới phát hành, theo thứ Sáu ra mắt</string>
+    <string name="home_releases_this_friday">Thứ Sáu này</string>
+    <string name="home_releases_last_friday">Thứ Sáu trước</string>
+    <string name="home_releases_earlier">Trước đó</string>
 </resources>

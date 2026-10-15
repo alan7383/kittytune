@@ -3245,4 +3245,9 @@
     <string name="artist_clips_title">Musikvideos</string>
     <string name="artist_clip_views">%s Aufrufe</string>
     <string name="artist_clip_failed">Dieses Video kann nicht abgespielt werden</string>
+    <string name="home_from_your_artists">Neu von deinen Künstlern</string>
+    <string name="home_from_your_artists_sub">Was die Künstler, die du magst, veröffentlicht haben — nach ihrem Freitag</string>
+    <string name="home_releases_this_friday">Diesen Freitag</string>
+    <string name="home_releases_last_friday">Letzter Freitag</string>
+    <string name="home_releases_earlier">Früher</string>
 </resources>

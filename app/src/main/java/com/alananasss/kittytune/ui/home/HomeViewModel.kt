@@ -63,7 +63,7 @@
     )
 
     enum class SectionType {
-        TRACKS_ROW, ARTISTS_ROW, STATIONS_ROW, DISCOVERY_ROW, HIGHLIGHT_ROW
+        TRACKS_ROW, ARTISTS_ROW, STATIONS_ROW, DISCOVERY_ROW, HIGHLIGHT_ROW, ARTIST_UPDATES_ROW
     }
 
     data class HomeCacheData(
@@ -92,6 +92,13 @@
     class HomeViewModel(application: Application) : AndroidViewModel(application) {
         companion object {
             private val YOUTUBE_PATTERN = Pattern.compile("(?<=watch\\?v=|/videos/|embed/|youtu.be/|/v/|/e/|watch\\?v%3D|watch\\?feature=player_embedded&v=|%2Fvideos%2F|embed%\\u200C\\u200B2F|youtu.be%2F|%2Fv%2F)[^#&?\\n]*")
+
+            /** How many liked artists are asked for new songs. One request each, all at once. */
+            const val ARTIST_UPDATE_SOURCES = 10
+
+            private const val TRACKS_PER_ARTIST = 6
+            private const val MAX_PER_ARTIST = 3
+            private const val ARTIST_UPDATE_TOTAL = 30
         }
         private val api = RetrofitClient.create(application)
         private val prefs = application.getSharedPreferences("home_cache", Context.MODE_PRIVATE)
@@ -112,6 +119,11 @@
         var userProfile by mutableStateOf<User?>(null)
 
         val homeSections = mutableStateListOf<HomeSection>()
+
+        // Newest songs from the artists already in the liked list, for the "From your artists" shelf: the
+        // home screen keeps them apart so the shelf can be regrouped by release week as it renders, without
+        // the section list having to know anything about Fridays (ported from the desktop PR #77).
+        val likedArtistUpdates = mutableStateListOf<Track>()
         val historyFlow = HistoryRepository.getHistory()
 
         var isSearching by mutableStateOf(false)
@@ -1020,6 +1032,50 @@
             return "cached_home_data_$langCode"
         }
 
+        /**
+         * Newest songs from artists already present in the liked list (ported from the desktop PR #77).
+         *
+         * A handful of artists rather than all of them: the endpoint is one request per artist, and
+         * this runs on the home screen's critical path. Artists with nothing new simply contribute
+         * nothing, and the songs already liked are dropped so the shelf is only ever new ones.
+         */
+        private suspend fun fetchLikedArtistUpdates(localLikes: List<Track>): List<Track> {
+            val artists = localLikes.asSequence()
+                .mapNotNull { it.user?.takeIf { user -> user.id > 0 } }
+                .distinctBy { it.id }
+                .take(ARTIST_UPDATE_SOURCES)
+                .toList()
+            if (artists.isEmpty()) return emptyList()
+
+            val likedIds = localLikes.mapTo(HashSet()) { it.id }
+            val fetched = coroutineScope {
+                artists.map { artist ->
+                    async {
+                        runCatching { api.getUserTracks(artist.id, limit = TRACKS_PER_ARTIST).collection }
+                            .getOrDefault(emptyList())
+                    }
+                }.awaitAll()
+            }
+
+            // At most [MAX_PER_ARTIST] songs from any one artist, while the rest of the shelf stays in
+            // date order: one prolific uploader must not fill the whole shelf with their own newest five.
+            val perArtist = mutableMapOf<Long, Int>()
+            return fetched.flatten()
+                .filter { it.id > 0L && it.id !in likedIds }
+                .distinctBy { it.id }
+                // ISO 8601 sorts as text, so the newest really is last; a track with no date goes to
+                // the end rather than to the top on an empty string.
+                .sortedByDescending { it.createdAt ?: it.releaseDate ?: "" }
+                .filter { track ->
+                    val id = track.user?.id ?: 0L
+                    if (id == 0L) return@filter true
+                    val seen = perArtist.getOrDefault(id, 0)
+                    perArtist[id] = seen + 1
+                    seen < MAX_PER_ARTIST
+                }
+                .take(ARTIST_UPDATE_TOTAL)
+        }
+
         private fun loadFromCache() {
             try {
                 val json = prefs.getString(getHomeCacheKey(), null)
@@ -1035,6 +1091,7 @@
                                 SectionType.ARTISTS_ROW -> section.users
                                 SectionType.DISCOVERY_ROW -> section.tracks
                                 SectionType.HIGHLIGHT_ROW -> section.tracks
+                                SectionType.ARTIST_UPDATES_ROW -> section.tracks
                             }
                             if (content.isNotEmpty()) {
                                 val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(section.title, getApplication())
@@ -1512,6 +1569,7 @@
                     val historySectionDef = async { fetchHistoryBasedSection() }
                     val discoverySectionDef = async { fetchDiscoverySection(localLikes) }
                     val recommendationsDef = async { fetchTrackRecommendations(localLikes) }
+                    val artistUpdatesDef = async { fetchLikedArtistUpdates(localLikes) }
 
                     val genericSections = genericSectionsDef.await()
                     val personalSections = personalSectionsDef.await()
@@ -1522,6 +1580,23 @@
                     if (discoverySection != null) allSections.add(discoverySection)
                     if (recommendationsSection != null) allSections.add(recommendationsSection)
                     if (historySection != null) allSections.add(historySection)
+
+                    // The same shelf for a guest: new songs from the artists in their local likes,
+                    // grouped by release week on the screen (ported from the desktop PR #77).
+                    val artistUpdates = artistUpdatesDef.await()
+                    likedArtistUpdates.clear()
+                    likedArtistUpdates.addAll(artistUpdates)
+                    if (artistUpdates.isNotEmpty()) {
+                        allSections.add(
+                            HomeSection(
+                                title = getString(R.string.home_from_your_artists),
+                                subtitle = getString(R.string.home_from_your_artists_sub),
+                                content = artistUpdates,
+                                type = SectionType.ARTIST_UPDATES_ROW,
+                                id = "artist_updates"
+                            )
+                        )
+                    }
                     allSections.addAll(personalSections)
                     allSections.addAll(genericSections)
                 }
@@ -1596,6 +1671,7 @@
                     val historySectionDef = async { fetchHistoryBasedSection() }
                     val discoverySectionDef = async { fetchDiscoverySection(sourceLikes) }
                     val recommendationsDef = async { fetchTrackRecommendations(localLikes) }
+                    val artistUpdatesDef = async { fetchLikedArtistUpdates(localLikes) }
 
                     val discoverySection = discoverySectionDef.await()
                     if (discoverySection != null) allSections.add(discoverySection)
@@ -1610,6 +1686,23 @@
 
                     val historySection = historySectionDef.await()
                     if (historySection != null) allSections.add(historySection)
+
+                    // Straight after the history: what the artists the listener already plays have put
+                    // out since — grouped by release week on the screen (ported from the desktop PR #77).
+                    val artistUpdates = artistUpdatesDef.await()
+                    likedArtistUpdates.clear()
+                    likedArtistUpdates.addAll(artistUpdates)
+                    if (artistUpdates.isNotEmpty()) {
+                        allSections.add(
+                            HomeSection(
+                                title = getString(R.string.home_from_your_artists),
+                                subtitle = getString(R.string.home_from_your_artists_sub),
+                                content = artistUpdates,
+                                type = SectionType.ARTIST_UPDATES_ROW,
+                                id = "artist_updates"
+                            )
+                        )
+                    }
 
                     if (sourceLikes.isNotEmpty()) {
                         val personalSections = fetchPersonalizedSections(sourceLikes, me.username ?: getString(R.string.unknown_user))
