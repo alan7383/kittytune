@@ -3257,4 +3257,7 @@
     <string name="like_all_prompt_text">Dieses Album hat %1$d Titel, %2$d davon sehr kurz oder sehr lang: Intros, Sprachnotizen, lange Stille.</string>
     <string name="like_all_prompt_skip_odd">Die komischen auslassen</string>
     <string name="like_all_prompt_all">Alle liken</string>
+    <string name="night_screen_title">Nachtbildschirm</string>
+    <string name="night_screen_since">Seit der Nachtbildschirm an ist</string>
+    <string name="night_screen_tap_to_wake">Zum Aufwachen irgendwo tippen</string>
 </resources>

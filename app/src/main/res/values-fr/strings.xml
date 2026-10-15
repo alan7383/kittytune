@@ -3197,4 +3197,7 @@
     <string name="like_all_prompt_text">Cet album compte %1$d titres, dont %2$d très courts ou très longs : intros, notes vocales, longs silences.</string>
     <string name="like_all_prompt_skip_odd">Ignorer les bizarres</string>
     <string name="like_all_prompt_all">Tout aimer</string>
+    <string name="night_screen_title">Écran de nuit</string>
+    <string name="night_screen_since">Depuis l’allumage de l’écran de nuit</string>
+    <string name="night_screen_tap_to_wake">Touchez l’écran pour réveiller</string>
 </resources>

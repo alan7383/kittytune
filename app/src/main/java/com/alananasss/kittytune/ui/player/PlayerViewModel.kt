@@ -668,6 +668,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var sleepTimerRemainingMs by mutableLongStateOf(0L)
     var sleepTimerEndOfTrack by mutableStateOf(false)
     var showSleepTimerDialog by mutableStateOf(false)
+    // The night screen (desktop PR #77's sleep screen, mobile): a true-black clock left on while the
+    // music plays; opened from the player's menu, woken by a tap or the back button.
+    var showNightScreen by mutableStateOf(false)
     val isSleepTimerActive: Boolean get() = sleepTimerRemainingMs > 0L || sleepTimerEndOfTrack
     private var sleepTimerJob: Job? = null
     private var preFadeVolume: Float = 1f
