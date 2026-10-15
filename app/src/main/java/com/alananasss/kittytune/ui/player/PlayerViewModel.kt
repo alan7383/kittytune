@@ -637,6 +637,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }
         _sessionListenMs.longValue += session.listenedMs
 
+        // The wave learns from this listen, whatever the stats setting says: a skip that heard nothing
+        // of the song teaches it more than a completed play does (PR #77).
+        if (currentContext?.navigationId == MY_WAVE_NAV_ID) {
+            when (reason) {
+                "PLAY_COMPLETE" -> com.alananasss.kittytune.data.wave.WaveFeedback.onCompleted(track)
+                "SKIP_NEXT", "SKIP_PREVIOUS", "MANUAL_REPLAY" ->
+                    com.alananasss.kittytune.data.wave.WaveFeedback.onSkipped(track, session.listenedMs, track.durationMs ?: 0L)
+            }
+        }
+
         if (!playerPrefs.getListeningStatsEnabled()) return
 
         // Nothing heard at all is not a listen and not a skip — it is a track that was loaded. Recording it
@@ -677,7 +687,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
          */
         const val TRIM_TICK_MS = 20L
         const val TOGETHER_NAV_PREFIX = "together:"
+        const val MY_WAVE_NAV_ID = "my_wave"
         private const val TOGETHER_MAX_DRIFT_MS = 2_000L
+        private const val WAVE_LOW_WATER = 4
 
         /** One source gets this long to answer before the parallel lyrics race moves on without it. */
         private const val LYRICS_SOURCE_TIMEOUT_MS = 7_000L
@@ -4072,6 +4084,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
         val nextIndex = currentQueueIndex + 1
 
+        // The wave tops itself up before it runs dry (PR #77): the listener never sees the end.
+        if (!manual && nextIndex >= _queue.size - WAVE_LOW_WATER && currentContext?.navigationId == MY_WAVE_NAV_ID) {
+            viewModelScope.launch { refillWaveIfLow() }
+        }
+
         if (manual) {
             AchievementManager.trackSkipped()
             AchievementManager.increment("skipper_100")
@@ -4699,6 +4716,80 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         saveStateAsync(saveQueue = true)
     }
 
+    // ─── MyWave ─────────────────────────────────────────────────────────────────────────────
+    // See [com.alananasss.kittytune.data.wave.MyWave]: a personal radio that keeps playing.
+
+    val isMyWaveActive: Boolean get() = currentContext?.navigationId == MY_WAVE_NAV_ID
+
+    val waveMode: com.alananasss.kittytune.data.wave.MyWave.WaveMode
+        get() = playerPrefs.getWaveMode()
+
+    var isWaveLoading by mutableStateOf(false)
+        private set
+
+    private var waveJob: Job? = null
+
+    /** Starts the wave, or switches its mode; the current song, if any, keeps playing through it. */
+    fun startMyWave(mode: com.alananasss.kittytune.data.wave.MyWave.WaveMode = waveMode) {
+        val previousMode = playerPrefs.getWaveMode()
+        playerPrefs.setWaveMode(mode)
+        waveJob?.cancel()
+        if (isMyWaveActive && previousMode == mode) {
+            togglePlayPause()
+            return
+        }
+        waveJob = viewModelScope.launch {
+            isWaveLoading = true
+            try {
+                if (isMyWaveActive) {
+                    // Changing the mode mid-wave: replace what has not played yet, keep the song playing.
+                    val played = _queue.take(currentQueueIndex + 1).map { it.id }.toSet()
+                    val batch = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played)
+                    if (batch.isNotEmpty()) {
+                        clearUpcoming()
+                        appendToQueue(batch)
+                    }
+                } else {
+                    val played = _queue.take(currentQueueIndex + 1).map { it.id }.toSet()
+                    var batch = com.alananasss.kittytune.data.wave.MyWave.quickBatch(mode, played)
+                    if (batch.isEmpty()) batch = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played)
+                    if (batch.isEmpty()) {
+                        emitUiEvent(getString(R.string.wave_nothing_yet))
+                        return@launch
+                    }
+                    playPlaylist(
+                        tracks = batch,
+                        startIndex = 0,
+                        context = PlaybackContext(displayText = getString(R.string.wave_title), navigationId = MY_WAVE_NAV_ID),
+                        maintainPlayerState = isPlaying,
+                        autoPlay = true,
+                        respectShuffle = false,
+                    )
+                    val rest = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played + batch.map { it.id }.toSet())
+                    if (rest.isNotEmpty()) appendToQueue(rest)
+                }
+            } finally {
+                isWaveLoading = false
+            }
+        }
+    }
+
+    /** The queue under the wave is refilled before it runs out, so the wave never ends on its own. */
+    private suspend fun refillWaveIfLow() {
+        val mode = playerPrefs.getWaveMode()
+        val played = _queue.take(currentQueueIndex + 1).map { it.id }.toSet() +
+            _queue.drop(currentQueueIndex + 1).map { it.id }.toSet()
+        val batch = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played)
+        if (batch.isNotEmpty()) appendToQueue(batch)
+    }
+
+    /** A thumbs-down inside the wave: the track is blocked, the artist silenced, the next one plays. */
+    fun dislikeCurrentTrackInWave() {
+        val track = currentTrack ?: return
+        com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)
+        playNext(manual = true)
+    }
+
     /** Fetches the waveform_url for a track using the single-track endpoint (includes waveform_url). */
     suspend fun fetchWaveformUrl(trackId: Long): String? {
         return try {
@@ -4721,6 +4812,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
         if (isLiked) {
             LikeRepository.addLike(t)
+            com.alananasss.kittytune.data.wave.WaveFeedback.onLiked(t)
             AchievementManager.increment("liker_50")
             AchievementManager.increment("liker_1000")
             AchievementManager.increment("liker_5000")

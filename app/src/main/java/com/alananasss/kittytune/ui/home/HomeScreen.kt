@@ -768,6 +768,14 @@ fun HomeContent(
             }
         }
 
+        // MyWave: the personal radio, one press, always something on (PR #77).
+        item {
+            com.alananasss.kittytune.ui.home.MyWaveCard(
+                playerViewModel = playerViewModel,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+        }
+
         if (showHomeListeningStats) {
             item {
                 ListeningStatsCard(
