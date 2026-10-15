@@ -3237,4 +3237,6 @@
     <string name="together_automix_host_only">Only the host can switch automix</string>
     <string name="together_bad_code">That code does not look right</string>
     <string name="together_hint">Listen together, in step, across phones and desktop</string>
+    <string name="pref_lyrics_backing_vocals_title">Backing vocals</string>
+    <string name="pref_lyrics_backing_vocals_sub">Show the second phrase sung over the line, under it</string>
 </resources>
