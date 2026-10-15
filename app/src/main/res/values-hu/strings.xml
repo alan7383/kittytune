@@ -3129,4 +3129,7 @@
     <string name="home_releases_this_friday">E pénteken</string>
     <string name="home_releases_last_friday">Múlt péntek</string>
     <string name="home_releases_earlier">Korábban</string>
+    <string name="sort_now">Most hallgatott</string>
+    <string name="sort_all_time">Mindenkori</string>
+    <string name="sort_likes">Legkedveltebb</string>
 </resources>

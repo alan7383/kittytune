@@ -3190,4 +3190,7 @@
     <string name="home_releases_this_friday">Ce vendredi</string>
     <string name="home_releases_last_friday">Vendredi dernier</string>
     <string name="home_releases_earlier">Plus tôt</string>
+    <string name="sort_now">Écoutés en ce moment</string>
+    <string name="sort_all_time">De tous les temps</string>
+    <string name="sort_likes">Les plus aimés</string>
 </resources>
