@@ -3239,4 +3239,9 @@
     <string name="together_hint">Listen together, in step, across phones and desktop</string>
     <string name="pref_lyrics_backing_vocals_title">Backing vocals</string>
     <string name="pref_lyrics_backing_vocals_sub">Show the second phrase sung over the line, under it</string>
+    <string name="chart_kind_country">Country</string>
+    <string name="chart_kind_top">Top 50</string>
+    <string name="chart_kind_trending">Trending</string>
+    <string name="chart_plays">%,d plays</string>
+    <string name="chart_failed">The chart would not load. Try again in a moment.</string>
 </resources>

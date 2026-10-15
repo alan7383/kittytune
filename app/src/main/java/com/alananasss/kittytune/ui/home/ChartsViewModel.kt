@@ -1,128 +1,81 @@
-    package com.alananasss.kittytune.ui.home
+package com.alananasss.kittytune.ui.home
 
-    import android.app.Application
-    import androidx.compose.runtime.getValue
-    import androidx.compose.runtime.mutableStateListOf
-    import androidx.compose.runtime.mutableStateOf
-    import androidx.compose.runtime.setValue
-    import androidx.lifecycle.AndroidViewModel
-    import androidx.lifecycle.viewModelScope
-    import com.alananasss.kittytune.data.ChartsData
-    import com.alananasss.kittytune.data.network.RetrofitClient
-    import com.alananasss.kittytune.domain.Playlist
-    import com.alananasss.kittytune.domain.Track
-    import com.alananasss.kittytune.domain.User
-    import com.google.gson.Gson
-    import kotlinx.coroutines.async
-    import kotlinx.coroutines.awaitAll
-    import kotlinx.coroutines.coroutineScope
-    import kotlinx.coroutines.launch
+import android.app.Application
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.alananasss.kittytune.data.local.PlayerPreferences
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
-    data class ArtistRanking(
-        val user: User,
-        val score: Long, // Keep the score for sorting, but we will display the followers
-        val rank: Int
+/**
+ * The charts screen's state (issue #66, ported from desktop): one kind of chart at a time, for one
+ * country, one genre; a late answer for an old country must never replace the new one's, so the
+ * loading job is cancelled and the current kind re-checked when the answer lands.
+ */
+class ChartsViewModel(application: Application) : AndroidViewModel(application) {
+
+    var chartKind by mutableStateOf(ChartRepository.ChartKind.COUNTRY)
+        private set
+    var chartGenre by mutableStateOf(ChartRepository.chartGenres.first())
+        private set
+    var chartCountry by mutableStateOf(
+        ChartRepository.ChartCountry.forDevice(
+            application,
+            run {
+                val appLang = PlayerPreferences(application).getAppLanguage()
+                if (appLang == com.alananasss.kittytune.data.local.AppLanguage.SYSTEM)
+                    java.util.Locale.getDefault().language
+                else appLang.code
+            }
+        )
     )
+        private set
 
-    class ChartsViewModel(application: Application) : AndroidViewModel(application) {
-        private val api = RetrofitClient.create(application)
-        private val gson = com.alananasss.kittytune.utils.AppUtils.gson
+    val chartEntries = mutableStateListOf<ChartRepository.ChartEntry>()
+    var isChartLoading by mutableStateOf(false)
+        private set
 
-        var selectedCountryIndex by mutableStateOf(0)
-        val chartPlaylists = mutableStateListOf<Playlist>()
-        val topArtists = mutableStateListOf<ArtistRanking>()
+    private var chartJob: Job? = null
 
-        var isLoading by mutableStateOf(false)
+    init {
+        loadChart(chartKind, chartGenre)
+    }
 
-        init {
-            loadCountryCharts(0)
-        }
-
-        fun loadCountryCharts(index: Int) {
-            selectedCountryIndex = index
-            val countryData = ChartsData.charts[index]
-
-            viewModelScope.launch {
-                isLoading = true
-                chartPlaylists.clear()
-                topArtists.clear()
-
-                try {
-                    // Parallel playlist retrieval
-                    val playlists = coroutineScope {
-                        countryData.playlistUrls.map { url ->
-                            async {
-                                try {
-                                    val resolvedJson = api.resolveUrl(url)
-                                    val kind = resolvedJson.get("kind")?.asString
-                                    if (kind == "playlist") {
-                                        gson.fromJson(resolvedJson, Playlist::class.java)
-                                    } else {
-                                        null
-                                    }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                    null
-                                }
-                            }
-                        }.awaitAll().filterNotNull()
-                    }
-
-                    chartPlaylists.addAll(playlists)
-                    calculateTopArtists(playlists)
-
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
-                    isLoading = false
-                }
-            }
-        }
-
-        private fun calculateTopArtists(playlists: List<Playlist>) {
-            val userMap = mutableMapOf<Long, User>()
-            val playCounts = mutableMapOf<Long, Long>()
-
-            playlists.forEach { playlist ->
-                playlist.tracks?.forEach { track ->
-                    val user = track.user
-                    if (user != null && user.id > 0) {
-                        // Keep the user object as complete as possible
-                        if (!userMap.containsKey(user.id) || (user.followersCount > (userMap[user.id]?.followersCount ?: 0))) {
-                            userMap[user.id] = user
-                        }
-                        // Sort by popularity in the charts (plays) anyway
-                        val current = playCounts.getOrDefault(user.id, 0L)
-                        playCounts[user.id] = current + track.playbackCount.toLong()
-                    }
-                }
-            }
-
-            val sorted = playCounts.entries
-                .sortedByDescending { it.value }
-                .take(40)
-                .mapIndexed { index, entry ->
-                    val user = userMap[entry.key]!!
-                    ArtistRanking(
-                        user = user,
-                        score = entry.value,
-                        rank = index + 1
-                    )
-                }
-
-            topArtists.addAll(sorted)
-        }
-
-        fun fetchArtistTopTracks(userId: Long, onResult: (List<Track>) -> Unit) {
-            viewModelScope.launch {
-                try {
-                    val tracks = api.getUserTopTracks(userId, limit = 20).collection
-                    onResult(tracks)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    onResult(emptyList())
-                }
-            }
+    fun loadChart(kind: ChartRepository.ChartKind, genre: ChartRepository.ChartGenre) {
+        chartKind = kind
+        chartGenre = genre
+        chartJob?.cancel()
+        val country = chartCountry
+        val countryCode = currentCountryCode()
+        chartJob = viewModelScope.launch {
+            isChartLoading = true
+            val entries = ChartRepository.fetchChart(
+                getApplication(), kind, genre, CHART_LENGTH, countryCode,
+                if (kind == ChartRepository.ChartKind.COUNTRY) country else null,
+            )
+            chartEntries.clear()
+            chartEntries.addAll(entries)
+            isChartLoading = false
         }
     }
 
+    fun selectChartKind(kind: ChartRepository.ChartKind) = loadChart(kind, chartGenre)
+
+    fun selectChartCountry(country: ChartRepository.ChartCountry) {
+        chartCountry = country
+        loadChart(ChartRepository.ChartKind.COUNTRY, chartGenre)
+    }
+
+    fun selectChartGenre(genre: ChartRepository.ChartGenre) = loadChart(ChartRepository.ChartKind.TOP, genre)
+
+    /** The SoundCloud curated playlists only exist for the US and the UK. */
+    fun currentCountryCode(): String = if (chartCountry == ChartRepository.ChartCountry.UK) "UK" else "US"
+
+    companion object {
+        const val CHART_LENGTH = 50
+    }
+}
