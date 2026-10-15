@@ -514,6 +514,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         private set
     var isDuetViewEnabled by mutableStateOf(playerPrefs.getLyricsDuetViewEnabled())
         private set
+    var isSplitBackingVocalsEnabled by mutableStateOf(playerPrefs.getLyricsSplitBackingVocalsEnabled())
+        private set
     var duetBlacklist by mutableStateOf(playerPrefs.getLyricsDuetBlacklist())
         private set
     var lyricsUiStyle by mutableStateOf(playerPrefs.getLyricsUiStyle())
@@ -676,6 +678,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         const val TRIM_TICK_MS = 20L
         const val TOGETHER_NAV_PREFIX = "together:"
         private const val TOGETHER_MAX_DRIFT_MS = 2_000L
+
+        /** One source gets this long to answer before the parallel lyrics race moves on without it. */
+        private const val LYRICS_SOURCE_TIMEOUT_MS = 7_000L
 
         /** How long each volume ramp takes. Short enough not to read as a gap, long enough to leave no click. */
         const val TRIM_FADE_MS = 90L
@@ -1868,6 +1873,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         playerPrefs.setLyricsDuetViewEnabled(enabled)
     }
 
+    fun toggleSplitBackingVocals(enabled: Boolean) {
+        isSplitBackingVocalsEnabled = enabled
+        playerPrefs.setLyricsSplitBackingVocalsEnabled(enabled)
+    }
+
     fun isTrackDuetBlacklisted(trackId: Long): Boolean = duetBlacklist.contains(trackId.toString())
 
     fun toggleTrackDuetBlacklist(trackId: Long) {
@@ -2280,47 +2290,51 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             .filter { playerPrefs.getLyricsProviderEnabled(it) }
             .ifEmpty { DefaultLyricsProviderOrder }
 
-        var best: LyricsCandidate? = null
-
-        for (providerId in orderedProviders) {
-            if (!isActive) return@coroutineScope null
-
-            val candidate = when (providerId) {
-                PreferredLyricsProvider.MUSIXMATCH -> {
-                    val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
-                    searchMusixmatchCandidates(query, target, trackDurationMs, variant).firstOrNull()
-                }
-                PreferredLyricsProvider.LRCLIB -> {
-                    val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
-                    searchLrcLibCandidates(query, target, trackDurationMs).maxByOrNull { it.rank }
-                }
-                PreferredLyricsProvider.GENIUS -> {
-                    null // Checked at end as fallback
-                }
-                else -> {
-                    searchGenericProviderCandidate(
-                        prefProvider = providerId,
-                        target = target,
-                        trackDurationMs = trackDurationMs,
-                        trackId = track.id.toString(),
-                        albumTitle = track.publisherMetadata?.albumTitle,
-                    )
-                }
+        // Ask every source at once (issue #33 on desktop): sequential-with-first-usable let plain text
+        // from the first provider beat line-timed lyrics from the fifth. Identity (a confident match)
+        // now outranks sync tier, which outranks match rank, which outranks the user's provider order.
+        suspend fun candidateFrom(providerId: PreferredLyricsProvider): LyricsCandidate? = when (providerId) {
+            PreferredLyricsProvider.MUSIXMATCH -> {
+                val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
+                searchMusixmatchCandidates(query, target, trackDurationMs, variant).firstOrNull()
             }
-
-            if (candidate != null && candidate.isUsable) {
-                best = candidate
-                break
+            PreferredLyricsProvider.LRCLIB -> {
+                val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
+                searchLrcLibCandidates(query, target, trackDurationMs).maxByOrNull { it.rank }
+            }
+            PreferredLyricsProvider.GENIUS -> {
+                null // Checked at end as fallback: no timings, cannot compete in the race
+            }
+            else -> {
+                searchGenericProviderCandidate(
+                    prefProvider = providerId,
+                    target = target,
+                    trackDurationMs = trackDurationMs,
+                    trackId = track.id.toString(),
+                    albumTitle = track.publisherMetadata?.albumTitle,
+                )
             }
         }
 
+        val answers = orderedProviders.map { providerId ->
+            async(Dispatchers.IO) {
+                withTimeoutOrNull(LYRICS_SOURCE_TIMEOUT_MS) { runCatching { candidateFrom(providerId) }.getOrNull() }
+            }
+        }.awaitAll()
+
+        val best = answers.withIndex()
+            .mapNotNull { (i, c) -> c?.takeIf { it.isUsable }?.let { i to it } }
+            .maxWithOrNull(
+                compareBy<Pair<Int, LyricsCandidate>> { (_, c) -> if (c.matchScore >= LyricsMatcher.CONFIDENT_MATCH) 1 else 0 }
+                    .thenBy { (_, c) -> c.syncTier }
+                    .thenBy { (_, c) -> c.rank }
+                    .thenByDescending { (i, _) -> i } // earlier provider order wins ties
+            )?.second
 
         // Genius only once everything else has come up empty
-        if (best == null && playerPrefs.getLyricsProviderEnabled(PreferredLyricsProvider.GENIUS)) {
-            best = searchGeniusCandidate(queries, target)
-        }
-
-        val candidate = best ?: return@coroutineScope null
+        val candidate = best
+            ?: if (playerPrefs.getLyricsProviderEnabled(PreferredLyricsProvider.GENIUS)) searchGeniusCandidate(queries, target) else null
+            ?: return@coroutineScope null
         val syncedLines =
             if (candidate.syncTier >= LyricsMatcher.SYNC_TIER_LINE) candidate.lines else emptyList()
         LyricsPayload(

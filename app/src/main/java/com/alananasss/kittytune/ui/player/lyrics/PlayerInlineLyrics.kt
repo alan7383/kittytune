@@ -245,10 +245,18 @@ fun PlayerInlineLyrics(
             label = "PlayerInlineLyricsLine"
         ) { line ->
             if (line != null) {
-                val rawCleanText = remember(line.text) { LyricsUtils.decodeHtmlEntities(line.text) }
+                // Backing vocals — the bracketed second phrase — are the full screen's business; the one-line
+                // display shows only the words sung in front.
+                val mainText = remember(line) {
+                    if (line.words.isNotEmpty()) {
+                        val own = if (line.words.any { it.isBackground }) line.words.filterNot { it.isBackground } else line.words
+                        if (own.isNotEmpty() && own.size < line.words.size) own.joinToString("") { it.text }.trim() else line.text
+                    } else splitBackingVocals(line.text).first
+                }
+                val rawCleanText = remember(mainText) { LyricsUtils.decodeHtmlEntities(mainText) }
                 val displayWords = remember(line.words, isWordSyncEnabled) {
                     if (isWordSyncEnabled && line.words.isNotEmpty()) {
-                        line.words.map { it.copy(word = LyricsUtils.decodeHtmlEntities(it.word)) }
+                        line.words.map { it.copy(word = LyricsUtils.decodeHtmlEntities(it.word)) }.filter { !it.isBackground || line.words.all { w -> w.isBackground } }
                     } else emptyList()
                 }
                 val cleanTranslation = remember(line.translation) {
