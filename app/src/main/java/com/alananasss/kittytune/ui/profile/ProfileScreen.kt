@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -109,6 +110,7 @@ fun ProfileScreen(
     var expandedSection by remember { mutableStateOf<String?>(null) }
     var selectedDiscographyFilter by remember { mutableStateOf("popular") }
     var showEditSheet by remember { mutableStateOf(false) }
+    var showArtistShare by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val prefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
@@ -693,6 +695,10 @@ fun ProfileScreen(
 
                         IconButton(
                             onClick = {
+                                if (user.isArtist) {
+                                    // An artist shares as a card: name, followers, top songs (PR #77).
+                                    showArtistShare = true
+                                } else {
                                 val shareUrl = when {
                                     // VK profiles have no soundcloud.com address; sharing one was
                                     // handing testers a dead link.
@@ -723,6 +729,7 @@ fun ProfileScreen(
                                         context.getString(R.string.share_via)
                                     )
                                 )
+                                }
                             },
                             shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.iconButtonColors(
@@ -753,6 +760,26 @@ fun ProfileScreen(
                         }
                     )
                 }
+            }
+
+            // The artist's share card: name, followers, top songs, on the theme's accent (PR #77).
+            if (showArtistShare) {
+                val shareLink = when {
+                    user.permalinkUrl != null -> user.permalinkUrl
+                    profileViewModel.isSpotifyProfile -> "https://open.spotify.com/artist/${user.permalink}"
+                    else -> "https://soundcloud.com/${user.username?.replace(" ", "")?.lowercase() ?: "user"}"
+                }
+                com.alananasss.kittytune.ui.profile.ArtistShareDialog(
+                    card = com.alananasss.kittytune.ui.profile.ArtistShare.Card(
+                        name = user.username.orEmpty(),
+                        followers = followersLabel(user.followersCount.toLong().takeIf { it > 0 }),
+                        avatarUrl = user.avatarUrl,
+                        topTracks = profileViewModel.popularTracks.mapNotNull { it.title },
+                        accentArgb = MaterialTheme.colorScheme.primary.toArgb(),
+                        link = shareLink.orEmpty(),
+                    ),
+                    onDismiss = { showArtistShare = false },
+                )
             }
 
             AnimatedVisibility(
@@ -1238,6 +1265,20 @@ fun ModernProfileHeader(
                     verticalArrangement = Arrangement.Center,
                     itemVerticalAlignment = Alignment.CenterVertically,
                 ) {
+                    // Monthly listeners, the one number every artist page is judged by (PR #77), from
+                    // Spotify's public pages when the artist is known there.
+                    if (user.isArtist) {
+                        com.alananasss.kittytune.ui.common.MonthlyListenersText(
+                            artistName = user.username.orEmpty(),
+                        )
+                        if (user.followersCount > 0) {
+                            Text(
+                                text = " • ",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
                     Text(
                         text = "${
                             NumberFormat.getNumberInstance(Locale.US).format(user.followersCount)
