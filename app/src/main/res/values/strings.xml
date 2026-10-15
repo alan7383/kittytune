@@ -3248,4 +3248,11 @@
     <string name="artist_clip_views">views</string>
     <string name="artist_clip_failed">This video can't be played</string>
     <string name="artist_monthly_listeners">%,d monthly listeners</string>
+    <string name="wave_title">MyWave</string>
+    <string name="wave_subtitle">Your radio, refreshed as you listen</string>
+    <string name="wave_mode_balanced">Balanced</string>
+    <string name="wave_mode_favorites">Favorites</string>
+    <string name="wave_mode_discover">Discover</string>
+    <string name="wave_mode_popular">Popular</string>
+    <string name="wave_nothing_yet">Not enough listening yet to start the wave</string>
 </resources>
