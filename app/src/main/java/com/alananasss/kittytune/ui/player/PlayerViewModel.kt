@@ -63,6 +63,7 @@ import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.data.network.SoundCloudTelemetryTracker
 import com.alananasss.kittytune.domain.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricLine
+import com.alananasss.kittytune.ui.player.lyrics.LyricSinger
 import com.alananasss.kittytune.ui.player.lyrics.LyricsUtils
 import com.google.gson.Gson
 import kotlinx.coroutines.*
@@ -2439,7 +2440,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
         // Genius only once everything else has come up empty
         val candidate = best
-            ?: if (playerPrefs.getLyricsProviderEnabled(PreferredLyricsProvider.GENIUS)) searchGeniusCandidate(queries, target) else null
+            ?: (if (playerPrefs.getLyricsProviderEnabled(PreferredLyricsProvider.GENIUS)) searchGeniusCandidate(queries, target) else null)
             ?: return@coroutineScope null
         val syncedLines =
             if (candidate.syncTier >= LyricsMatcher.SYNC_TIER_LINE) candidate.lines else emptyList()

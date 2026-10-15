@@ -125,15 +125,16 @@ fun ChartsScreen(
                 }
             } else {
                 itemsIndexed(entries, key = { _, e -> "${e.rank}-${e.track.id}" }) { index, entry ->
+                    // The label is read here, where it is composable, not inside the click.
+                    val label = when (viewModel.chartKind) {
+                        ChartRepository.ChartKind.COUNTRY -> viewModel.chartCountry.deezerName
+                        ChartRepository.ChartKind.TOP -> stringResource(R.string.chart_kind_top)
+                        ChartRepository.ChartKind.TRENDING -> stringResource(R.string.chart_kind_trending)
+                    }
                     ChartTrackRow(
                         entry = entry,
                         isPlaying = playerViewModel.currentTrack?.id == entry.track.id,
                         onClick = {
-                            val label = when (viewModel.chartKind) {
-                                ChartRepository.ChartKind.COUNTRY -> viewModel.chartCountry.deezerName
-                                ChartRepository.ChartKind.TOP -> stringResource(R.string.chart_kind_top)
-                                ChartRepository.ChartKind.TRENDING -> stringResource(R.string.chart_kind_trending)
-                            }
                             playerViewModel.playPlaylist(
                                 tracks = entries.map { it.track },
                                 startIndex = index,

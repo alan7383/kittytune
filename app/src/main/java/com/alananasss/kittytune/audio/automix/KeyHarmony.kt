@@ -16,9 +16,9 @@ internal object KeyHarmony {
 
     /** "8A" (A minor), "12B" (E major); anything else — case, sharps, full names — is not the notation. */
     private fun parse(code: String?): ParsedKey? {
-        if (code == null) return null
+        if (code == null || code.length < 2) return null
         val text = code.trim().uppercase()
-        if (text.length != 2) return null
+        if (text.length !in 2..3) return null
         val number = text.dropLast(1).toIntOrNull() ?: return null
         if (number !in 1..12) return null
         return when (text.last()) {

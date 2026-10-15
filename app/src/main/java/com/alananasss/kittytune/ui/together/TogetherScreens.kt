@@ -217,7 +217,7 @@ private fun ActionCard(
                 keyboardActions = KeyboardActions(onDone = { onAction() }),
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(onClick = onAction, shape = ButtonDefaults.shapes, modifier = Modifier.fillMaxWidth()) { Text(button) }
+            Button(onClick = onAction, shapes = ButtonDefaults.shapes(), modifier = Modifier.fillMaxWidth()) { Text(button) }
         }
     }
 }

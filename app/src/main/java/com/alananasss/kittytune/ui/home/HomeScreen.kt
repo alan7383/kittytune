@@ -896,13 +896,14 @@ fun LazyListScope.RenderHomeSection(
                 // New songs from the artists the listener already plays, their shelf cut where the
                 // releases actually come out: on Fridays. A slim marker stands at each week's start,
                 // and a press plays the whole shelf from the song pressed (desktop PR #77, mobile UI).
+                // Grouped here rather than in the row's scope, which is not composable.
+                val tracks = section.content.filterIsInstance<Track>()
+                val groups = remember(tracks) { ReleaseWeeks.group(tracks) }
+                val language = com.alananasss.kittytune.utils.LocaleUtils.getLocale(context).language
                 StandardHorizontalSection(
                     title = locTitle,
                     subtitle = locSub
                 ) {
-                    val tracks = section.content.filterIsInstance<Track>()
-                    val groups = remember(tracks) { ReleaseWeeks.group(tracks) }
-                    val language = com.alananasss.kittytune.utils.LocaleUtils.getLocale(context).language
                     groups.forEach { group ->
                         item(key = "artist_updates_week_${group.week}") {
                             ReleaseWeekMarker(group, language)

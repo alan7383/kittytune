@@ -2,7 +2,7 @@ package com.alananasss.kittytune.data.wave
 
 import android.content.Context
 import com.alananasss.kittytune.KittyTuneApp
-import com.alananasss.kittytune.data.local.LikeRepository
+import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.data.mix.MixEngine
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.Track
@@ -43,8 +43,10 @@ object MyWave {
         val api = RetrofitClient.create(KittyTuneApp.instance)
         val seeds = LikeRepository.likedTracks.value.shuffled().take(2)
         val related = if (seeds.isNotEmpty()) {
-            seeds.flatMap { runCatching { api.getRelatedTracks(it.id, limit = 30).collection }.getOrDefault(emptyList()) }
-                .shuffled()
+            // try/catch rather than runCatching: a suspend call cannot sit inside runCatching's lambda.
+            seeds.flatMap { seed ->
+                try { api.getRelatedTracks(seed.id, limit = 30).collection } catch (e: Exception) { emptyList() }
+            }.shuffled()
         } else {
             api.getCharts(kind = "trending", genre = "soundcloud:genres:all-music", limit = size * 2)
                 .collection.mapNotNull { it.track }.shuffled()
@@ -207,7 +209,7 @@ object WaveFeedback {
 
     private fun saveScores(scores: Map<String, Float>) {
         // The most recent artists are the ones the wave still plays; the stale tail is cut first.
-        val trimmed = if (scores.size > MAX_ARTISTS) scores.entries.takeLast(MAX_ARTISTS).associate { it.key to it.value } else scores
+        val trimmed = if (scores.size > MAX_ARTISTS) scores.entries.toList().takeLast(MAX_ARTISTS).associate { it.key to it.value } else scores
         prefs()?.edit()?.putString(KEY_ARTIST_SCORES, gson.toJson(trimmed))?.apply()
     }
 
