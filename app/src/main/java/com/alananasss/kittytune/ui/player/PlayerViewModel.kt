@@ -516,6 +516,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         private set
     var isSplitBackingVocalsEnabled by mutableStateOf(playerPrefs.getLyricsSplitBackingVocalsEnabled())
         private set
+    var isRevealWordsEnabled by mutableStateOf(playerPrefs.getLyricsRevealWordsEnabled())
+        private set
     var duetBlacklist by mutableStateOf(playerPrefs.getLyricsDuetBlacklist())
         private set
     var lyricsUiStyle by mutableStateOf(playerPrefs.getLyricsUiStyle())
@@ -1890,6 +1892,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         playerPrefs.setLyricsSplitBackingVocalsEnabled(enabled)
     }
 
+    fun toggleRevealWords(enabled: Boolean) {
+        isRevealWordsEnabled = enabled
+        playerPrefs.setLyricsRevealWordsEnabled(enabled)
+    }
+
     fun isTrackDuetBlacklisted(trackId: Long): Boolean = duetBlacklist.contains(trackId.toString())
 
     fun toggleTrackDuetBlacklist(trackId: Long) {
@@ -1946,19 +1953,34 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private fun fetchTranslationsForCurrentLines(targetLang: String = lyricsTranslationLang) {
         translationJob?.cancel()
         if (lyricsLines.isEmpty()) return
+        val trackId = lastFetchedMxmTrackId
         val originalLines = lyricsLines.map { it.text }.filter { it.isNotBlank() }.distinct()
 
         isTranslatingLyrics = true
         translationJob = viewModelScope.launch(Dispatchers.IO) {
-            val translationMap =
-                com.alananasss.kittytune.data.network.FreeTranslator.translateMissing(originalLines, targetLang)
+            // The crowd's translations first when Musixmatch has them for this exact track: a human's reading
+            // of the line beats a machine's every time.
+            val known = mutableMapOf<String, String>()
+            if (trackId != null) {
+                try {
+                    val token = MusixmatchClient.getValidToken(context)
+                    val translationsRes = MusixmatchClient.api.getTranslations(trackId = trackId, lang = targetLang, token = token)
+                    translationsRes.message.body?.translationsList?.forEach { wrapper ->
+                        wrapper.translation?.let { t ->
+                            known[t.matchedLine.trim()] = t.description.trim()
+                        }
+                    }
+                } catch (_: Exception) {
+                }
+            }
+            // Only what the reader cannot read already: foreign sentences whole, foreign words in their own
+            // language's lines word by word, and nothing at all under lines in their own language.
+            val smart = com.alananasss.kittytune.util.SmartTranslation.forLines(originalLines, targetLang, known = known)
             withContext(Dispatchers.Main) {
                 for (i in lyricsLines.indices) {
                     val oldLine = lyricsLines[i]
-                    val newTranslation = translationMap[oldLine.text.trim()]
-                    if (newTranslation != null && !newTranslation.trim().equals(oldLine.text.trim(), ignoreCase = true)) {
-                        lyricsLines[i] = oldLine.copy(translation = newTranslation)
-                    }
+                    val newTranslation = smart[oldLine.text.trim()]
+                    lyricsLines[i] = oldLine.copy(translation = newTranslation)
                 }
                 isTranslatingLyrics = false
                 lyricsRevision++
@@ -2173,6 +2195,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         lyricsMode = if (payload.lines.isNotEmpty()) LyricsMode.SYNCED else LyricsMode.PLAIN
         isLyricsLoading = false
         lyricsRevision++
+        currentTrack?.let { refineLyricVoices(it) }
 
         if (isLyricsTranslationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.translation.isNullOrBlank() }) {
             fetchTranslationsForCurrentLines(lyricsTranslationLang)
@@ -2180,6 +2203,67 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         if (isRomanizationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.romanization.isNullOrBlank() }) {
             fetchRomanizationForCurrentLines()
         }
+    }
+
+    // --- Genius duet voices --------------------------------------------------------------------------
+
+    /** Who sings each line, per track, as worked out from Genius: an empty list when Genius could not tell. */
+    private val lyricVoicesCache = com.alananasss.kittytune.core.BoundedCache<Long, List<LyricSinger>>(64)
+    private var lyricVoicesJob: Job? = null
+
+    /**
+     * Gives the synced lines on screen the voice Genius says sings each of them, for the duet view: two artists
+     * on two sides, and no duet for a song one artist sings throughout. Runs after the lyrics are shown and only
+     * touches them if they are still the ones it looked at.
+     * See [com.alananasss.kittytune.data.lyrics.GeniusVoices] — the desktop app's version of the same
+     * idea, kept in step: a song is a duet on the phone exactly when it is one on the desktop.
+     */
+    private fun refineLyricVoices(track: Track) {
+        lyricVoicesJob?.cancel()
+        if (!isDuetViewEnabled || lyricsLines.isEmpty()) return
+        val lines = lyricsLines.toList()
+        lyricVoicesJob = viewModelScope.launch(Dispatchers.IO) {
+            val voices = lyricVoicesCache[track.id] ?: findLyricVoices(track, lines).also { lyricVoicesCache[track.id] = it }
+            if (voices.size != lines.size) return@launch
+            withContext(Dispatchers.Main) {
+                if (currentTrack?.id != track.id || lyricsLines.toList() != lines) return@withContext
+                val voiced = lines.mapIndexed { i, line -> line.copy(singer = voices[i], agent = null) }
+                lyricsLines.clear()
+                lyricsLines.addAll(voiced)
+                lyricsRevision++
+            }
+        }
+    }
+
+    /** The voices for [lines] from the track's Genius page, or an empty list when there is no page or no answer. */
+    private suspend fun findLyricVoices(track: Track, lines: List<LyricLine>): List<LyricSinger> {
+        val effectiveArtist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }
+        val (artist, title) = parseArtistAndTitle(track.title ?: "", effectiveArtist)
+        val songTitle = LyricsMatcher.titleParts(title).firstOrNull() ?: title
+        val target = LyricsMatcher.Target(
+            title = songTitle,
+            artist = artist,
+            durationMs = track.durationMs ?: 0L,
+            alternativeArtists = listOfNotNull(track.displayArtist, track.user?.username).filter { it.isNotBlank() },
+        )
+        val hit = com.alananasss.kittytune.data.network.GeniusClient.search("$songTitle $artist".trim())
+            .filter { LyricsMatcher.isAcceptable(it.title, it.artist, target) }
+            .maxByOrNull { LyricsMatcher.score(it.title, it.artist, 0.0, target) }
+            ?: return emptyList()
+        // The HTML, for the formatting that says who sings each line of a shared part; plain text as a fallback.
+        val page = com.alananasss.kittytune.data.network.GeniusClient.lyricsHtml(hit.id)
+            ?.let(com.alananasss.kittytune.data.lyrics.GeniusVoices::parseHtml)
+            ?: com.alananasss.kittytune.data.network.GeniusClient.lyrics(hit.id)
+                ?.let(com.alananasss.kittytune.data.lyrics.GeniusVoices::parsePlain)
+            ?: return emptyList()
+        // Who is credited, in order: the artist part of the title ("OD1NOKO + Kai Angel - song"), the account, the
+        // Genius credit, and anyone the title adds with "feat." — some uploads name the second artist only there.
+        val featured = Regex("""(?i)(?:\(|\[|\s)(?:feat\.?|ft\.?|featuring|with)\s+([^)\]]+)""")
+            .findAll(track.title.orEmpty()).flatMap { com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(it.groupValues[1]).asSequence() }.toList()
+        val credited = com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(artist) +
+            com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(effectiveArtist) +
+            com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(hit.artistNames.orEmpty()) + featured
+        return com.alananasss.kittytune.data.lyrics.GeniusVoices.voicesFor(lines, page, credited).orEmpty()
     }
 
     /** Lyrics tagged into the downloaded file, when the user asked for those to come first. */
@@ -2309,10 +2393,17 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             PreferredLyricsProvider.MUSIXMATCH -> {
                 val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
                 searchMusixmatchCandidates(query, target, trackDurationMs, variant).firstOrNull()
+                    // "NEWYORK" as SoundCloud titles it is only found spelled out: the spelling Genius gives it.
+                    ?: com.alananasss.kittytune.data.lyrics.TitleSpellings.respelled(query)?.let { respelled ->
+                        searchMusixmatchCandidates(respelled, target, trackDurationMs, variant).firstOrNull()
+                    }
             }
             PreferredLyricsProvider.LRCLIB -> {
                 val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
                 searchLrcLibCandidates(query, target, trackDurationMs).maxByOrNull { it.rank }
+                    ?: com.alananasss.kittytune.data.lyrics.TitleSpellings.respelled(query)?.let { respelled ->
+                        searchLrcLibCandidates(respelled, target, trackDurationMs).maxByOrNull { it.rank }
+                    }
             }
             PreferredLyricsProvider.GENIUS -> {
                 null // Checked at end as fallback: no timings, cannot compete in the race
@@ -2490,8 +2581,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
         val texts = lines.map { it.text }.filter { it.isNotBlank() }.distinct()
         val translations = if (wantsTranslation) {
-            com.alananasss.kittytune.data.network.FreeTranslator
-                .translateMissing(texts, variant.translationLang!!)
+            // Only the lines the reader cannot already read: foreign sentences whole, foreign words glossed
+            // word by word, nothing under their own lines.
+            com.alananasss.kittytune.util.SmartTranslation.forLines(texts, variant.translationLang!!)
         } else {
             emptyMap()
         }
