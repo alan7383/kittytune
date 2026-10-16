@@ -53,6 +53,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
     if (!viewModel.showDjDebugSheet) return
 
     val flowState by viewModel.djFlowController.flowState.collectAsState()
+    val beatTick by viewModel.djFlowController.beatTick.collectAsState()
     val currentTrack = viewModel.uiCurrentTrack
 
     val tempoMs = if (flowState.currentBpm > 0f) (60000f / flowState.currentBpm).toInt().coerceIn(250, 1500) else 500
@@ -136,6 +137,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
             item {
                 NextTrackTimingHeroCard(
                     flowState = flowState,
+                    beatTick = beatTick,
                     currentPosition = viewModel.uiCurrentPosition,
                     onTriggerTransition = { viewModel.djFlowController.triggerTransition() }
                 )
@@ -333,7 +335,7 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
 
                             // Live Beat Progress Sub-Bar (continuous sweep 0 -> 1 on every beat)
                             LinearProgressIndicator(
-                                progress = { flowState.beatProgress },
+                                progress = { beatTick.beatProgress },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(3.dp)
@@ -1008,12 +1010,13 @@ fun DjDevDebugSheet(viewModel: PlayerViewModel) {
 @Composable
 private fun NextTrackTimingHeroCard(
     flowState: DjFlowState,
+    beatTick: DjBeatTick,
     currentPosition: Long,
     onTriggerTransition: () -> Unit
 ) {
     val topMatch = flowState.nextTrackMatch
     val triggerTime = flowState.plannedTriggerTimeMs
-    val remainingMs = flowState.timeUntilTransitionMs ?: 0L
+    val remainingMs = beatTick.timeUntilTransitionMs ?: 0L
     val remainingSec = (remainingMs / 1000).coerceAtLeast(0)
     val barsLeft = flowState.barsUntilTransition ?: 0
     val beatsLeft = flowState.beatsUntilTransition ?: 0

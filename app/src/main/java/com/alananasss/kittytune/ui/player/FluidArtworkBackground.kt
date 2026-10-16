@@ -36,7 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import kotlinx.coroutines.Dispatchers
@@ -200,8 +200,8 @@ private suspend fun loadTexture(context: Context, url: String): Bitmap? = withCo
         .size(TEXTURE_PX)
         .allowHardware(false)
         .build()
-    val loader = ImageLoader(context)
-    val result = runCatching { loader.execute(request) }.getOrNull()
+    // The app's shared loader: a private one per texture came with its own executors and caches.
+    val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
     val bitmap = ((result as? SuccessResult)?.drawable as? BitmapDrawable)?.bitmap ?: return@withContext null
 
     synchronized(textureCache) {
@@ -224,6 +224,18 @@ private class AgslFluidRenderer {
     private val shader = RuntimeShader(FLUID_AGSL)
     private val paint = Paint()
 
+    // A shader wraps a bitmap in native code; minting two per frame at 30 fps was pure churn.
+    // Keyed by bitmap identity: the same two textures serve the whole crossfade.
+    private val shaderCache = LinkedHashMap<Bitmap, BitmapShader>()
+
+    private fun shaderFor(bitmap: Bitmap): BitmapShader = synchronized(shaderCache) {
+        shaderCache.remove(bitmap)?.let { shaderCache[bitmap] = it; return it }
+        val created = BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        shaderCache[bitmap] = created
+        while (shaderCache.size > 4) shaderCache.remove(shaderCache.keys.first())
+        created
+    }
+
     fun render(
         canvas: android.graphics.Canvas,
         width: Float,
@@ -236,8 +248,8 @@ private class AgslFluidRenderer {
         extraBlur: Boolean = false,
     ) {
         val copies = fluidCopies(width, height, seconds, seed)
-        val curShader = BitmapShader(current, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        val prevShader = BitmapShader(previous, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        val curShader = shaderFor(current)
+        val prevShader = shaderFor(previous)
         shader.setInputShader("curArt", curShader)
         shader.setInputShader("prevArt", prevShader)
         shader.setFloatUniform("curArtSize", current.width.toFloat(), current.height.toFloat())
@@ -263,12 +275,18 @@ private class AgslFluidRenderer {
 
 /**
  * The Apple Music background: four copies of [artworkUrl], turning, twisted and blurred.
+ *
+ * [motionSuppressed] freezes the slow drift — for when something opaque covers this background
+ * (the night screen): the layers underneath used to keep rendering at full tilt all night for
+ * nobody. Freezing is invisible by construction, and resuming is seamless because the clock's
+ * jump is capped.
  */
 @Composable
 fun FluidArtworkBackground(
     artworkUrl: String?,
     modifier: Modifier = Modifier,
     extraBlur: Boolean = false,
+    motionSuppressed: Boolean = false,
     fallback: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -304,7 +322,8 @@ fun FluidArtworkBackground(
     }
 
     var seconds by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(motionSuppressed) {
+        if (motionSuppressed) return@LaunchedEffect
         var last = System.nanoTime()
         var pending = 0f
         while (true) {
