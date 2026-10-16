@@ -154,26 +154,29 @@ object ChartRepository {
     private fun chartCacheFile(context: Context, key: String): File =
         File(File(context.cacheDir, "country_charts"), key.replace(Regex("[^A-Za-z0-9._-]"), "_") + ".json")
 
-    private suspend fun countryChartTracks(context: Context, country: ChartCountry?, limit: Int): List<Track> {
-        val key = "${country?.deezerName ?: "all"}/$limit"
-        countryCache[key]?.takeIf { System.currentTimeMillis() - it.first < COUNTRY_CACHE_MS }
-            ?.let { return it.second }
-        readChartFromDisk(context, key)?.let {
-            countryCache[key] = it
-            return it.second
-        }
-        val tracks = loadCountryChart(context, country, limit)
-        if (tracks.isNotEmpty()) {
-            val stamped = System.currentTimeMillis() to tracks
-            countryCache[key] = stamped
-            runCatching {
-                val file = chartCacheFile(context, key)
-                file.parentFile?.mkdirs()
-                file.writeText(gson.toJson(CachedChart(stamped.first, tracks)))
+    private suspend fun countryChartTracks(context: Context, country: ChartCountry?, limit: Int): List<Track> =
+        // The chart's disk cache is read and written here: on the main thread it froze the charts
+        // screen for the length of a JSON parse of fifty tracks on every open.
+        withContext(Dispatchers.IO) {
+            val key = "${country?.deezerName ?: "all"}/$limit"
+            countryCache[key]?.takeIf { System.currentTimeMillis() - it.first < COUNTRY_CACHE_MS }
+                ?.let { return@withContext it.second }
+            readChartFromDisk(context, key)?.let {
+                countryCache[key] = it
+                return@withContext it.second
             }
+            val tracks = loadCountryChart(context, country, limit)
+            if (tracks.isNotEmpty()) {
+                val stamped = System.currentTimeMillis() to tracks
+                countryCache[key] = stamped
+                runCatching {
+                    val file = chartCacheFile(context, key)
+                    file.parentFile?.mkdirs()
+                    file.writeText(gson.toJson(CachedChart(stamped.first, tracks)))
+                }
+            }
+            tracks
         }
-        return tracks
-    }
 
     private fun readChartFromDisk(context: Context, key: String): Pair<Long, List<Track>>? = runCatching {
         val file = chartCacheFile(context, key)

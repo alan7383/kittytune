@@ -5,6 +5,7 @@ import android.util.Log
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -70,9 +70,10 @@ object AiDetectionManager {
     private val _downloadState = MutableStateFlow<ModelDownloadState>(ModelDownloadState.NotDownloaded)
     val downloadState: StateFlow<ModelDownloadState> = _downloadState.asStateFlow()
 
-    private val scope = CoroutineScope(Dispatchers.Default)
-    private var ortEnv: OrtEnvironment? = null
-    private var ortSession: OrtSession? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    @Volatile private var ortEnv: OrtEnvironment? = null
+    @Volatile private var ortSession: OrtSession? = null
+    @Volatile private var sessionLoading = false
     private var analysisJob: Job? = null
 
     private val httpClient by lazy {
@@ -99,28 +100,37 @@ object AiDetectionManager {
 
     /**
      * Check if model files are on disk and load the session if so.
+     *
+     * Parsing the ~17 MB model into a session takes hundreds of milliseconds, so it happens on a background
+     * dispatcher: this is called on the main thread at startup, where it used to freeze the app's first frames.
+     * Analysis asked for before the session is up is skipped, exactly as when the model was not there yet.
      */
     fun init(context: Context) {
-        if (ortSession != null) return
+        if (ortSession != null || sessionLoading) return
         val ready = isModelReady(context)
         if (!ready) {
             _downloadState.value = ModelDownloadState.NotDownloaded
             return
         }
-        try {
-            val env = OrtEnvironment.getEnvironment()
-            ortEnv = env
-            val onnxFile = File(getModelsDir(context), ONNX_FILENAME)
-            val opts = OrtSession.SessionOptions().apply {
-                setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
-                setIntraOpNumThreads(2)
+        sessionLoading = true
+        scope.launch {
+            try {
+                val env = OrtEnvironment.getEnvironment()
+                val onnxFile = File(getModelsDir(context), ONNX_FILENAME)
+                val opts = OrtSession.SessionOptions().apply {
+                    setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+                    setIntraOpNumThreads(2)
+                }
+                ortEnv = env
+                ortSession = env.createSession(onnxFile.absolutePath, opts)
+                _downloadState.value = ModelDownloadState.Ready
+                Log.i(TAG, "ArtifactNet loaded from storage — input: ${ortSession!!.inputNames}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load ArtifactNet", e)
+                _downloadState.value = ModelDownloadState.Error(e.message ?: "Failed to initialize session")
+            } finally {
+                sessionLoading = false
             }
-            ortSession = env.createSession(onnxFile.absolutePath, opts)
-            _downloadState.value = ModelDownloadState.Ready
-            Log.i(TAG, "ArtifactNet loaded from storage — input: ${ortSession!!.inputNames}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to load ArtifactNet", e)
-            _downloadState.value = ModelDownloadState.Error(e.message ?: "Failed to initialize session")
         }
     }
 
@@ -156,9 +166,7 @@ object AiDetectionManager {
                 onnxTmp.renameTo(onnxFinal)
                 dataTmp.renameTo(dataFinal)
 
-                withContext(Dispatchers.Main) {
-                    init(context)
-                }
+                init(context)
             } catch (e: Exception) {
                 Log.e(TAG, "Model download failed", e)
                 onnxTmp.delete()

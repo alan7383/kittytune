@@ -124,7 +124,9 @@ object Together {
 
     private val relay by lazy { TogetherRelay("kt-" + memberId.take(12) + "-" + System.nanoTime().toString(36).takeLast(4)) }
 
-    private val _saved = MutableStateFlow(loadSaved())
+    // Loaded on the IO scope in start(): the saved playlists are prefs + Gson, and this object is
+    // first touched from the UI thread at startup, where parsing them janked the app's first frames.
+    private val _saved = MutableStateFlow<List<Saved>>(emptyList())
     val saved: StateFlow<List<Saved>> = _saved.asStateFlow()
 
     private val _rooms = MutableStateFlow<Map<String, Room>>(emptyMap())
@@ -165,6 +167,7 @@ object Together {
         if (started) return
         started = true
         scope.launch {
+            _saved.value = _saved.value.ifEmpty { loadSaved() }
             _saved.value.forEach { follow(it) }
             relay.incoming.collect { handle(it.code, it.message) }
         }

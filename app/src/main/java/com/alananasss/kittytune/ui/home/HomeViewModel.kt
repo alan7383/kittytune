@@ -179,11 +179,36 @@
         private var searchJob: Job? = null
         val personalizedCategories = mutableStateListOf<SearchCategory>()
 
-        val moodCategories get() = GenreData.getMoods(com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()))
-        val genreCategories get() = GenreData.getGenres(com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(getApplication()))
+        // Both lists are pure functions of the locale, but each read used to pay a full
+        // [LocaleUtils.updateBaseContextLocale] - a Configuration copy plus a new Context -
+        // and ~25 resource lookups, on every recomposition of the home screen that shows them.
+        private var categoriesLocaleTag: String? = null
+        private var cachedMoodCategories: List<SearchCategory> = emptyList()
+        private var cachedGenreCategories: List<SearchCategory> = emptyList()
+
+        private fun refreshCategoriesIfLocaleChanged() {
+            val app = getApplication<android.app.Application>()
+            val tag = com.alananasss.kittytune.utils.LocaleUtils.getLocale(app).toLanguageTag()
+            if (tag == categoriesLocaleTag && cachedGenreCategories.isNotEmpty()) return
+            val localized = com.alananasss.kittytune.utils.LocaleUtils.updateBaseContextLocale(app)
+            categoriesLocaleTag = tag
+            cachedMoodCategories = GenreData.getMoods(localized)
+            cachedGenreCategories = GenreData.getGenres(localized)
+        }
+
+        val moodCategories: List<SearchCategory>
+            get() {
+                refreshCategoriesIfLocaleChanged()
+                return cachedMoodCategories
+            }
+        val genreCategories: List<SearchCategory>
+            get() {
+                refreshCategoriesIfLocaleChanged()
+                return cachedGenreCategories
+            }
 
         init {
-            loadFromCache()
+            viewModelScope.launch { loadFromCache() }
             if (isOfflineMode) {
                 isLoading = false
             }
@@ -266,9 +291,11 @@
                 isOfflineMode = true
                 isRefreshing = false
                 if (homeSections.isEmpty()) {
-                    loadFromCache()
-                    if (homeSections.isEmpty()) {
-                        loadOfflineFallbackSections()
+                    viewModelScope.launch {
+                        loadFromCache()
+                        if (homeSections.isEmpty()) {
+                            loadOfflineFallbackSections()
+                        }
                     }
                 }
                 return
@@ -1076,7 +1103,7 @@
                 .take(ARTIST_UPDATE_TOTAL)
         }
 
-        private fun loadFromCache() {
+        private suspend fun loadFromCache() = withContext(Dispatchers.Default) {
             try {
                 val json = prefs.getString(getHomeCacheKey(), null)
                 if (json != null) {
@@ -1104,8 +1131,11 @@
             } catch (e: Exception) { e.printStackTrace() }
         }
 
+        // Reading and parsing the cached home feed on the main thread froze the app's first frames;
+        // it is a multi-hundred-millisecond Gson pass over every section. Same call order, off main.
+
         private fun saveToCache() {
-            viewModelScope.launch {
+            viewModelScope.launch(Dispatchers.Default) {
                 try {
                     val sectionsCache = homeSections.map { section -> HomeSectionCache(section.title, section.subtitle, section.type, section.content.filterIsInstance<Track>(), section.content.filterIsInstance<Playlist>(), section.content.filterIsInstance<User>(), section.id) }
                     val data = HomeCacheData(userProfile, sectionsCache)
@@ -1177,9 +1207,11 @@
                 isOfflineMode = true
                 isLoading = false
                 if (homeSections.isEmpty()) {
-                    loadFromCache()
-                    if (homeSections.isEmpty()) {
-                        loadOfflineFallbackSections()
+                    viewModelScope.launch {
+                        loadFromCache()
+                        if (homeSections.isEmpty()) {
+                            loadOfflineFallbackSections()
+                        }
                     }
                 }
                 return

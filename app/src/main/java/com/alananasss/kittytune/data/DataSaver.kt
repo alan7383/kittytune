@@ -33,11 +33,16 @@ object DataSaver {
      * the device is actually on one.
      */
     fun isActive(context: Context): Boolean {
-        val prefs = PlayerPreferences(context)
+        // The Coil interceptor asks this on every artwork request in the app; minting a
+        // PlayerPreferences each time was one allocation and a map lookup per image for
+        // two booleans that live in the same in-memory SharedPreferences anyway.
+        val prefs = saverPrefs ?: PlayerPreferences(context.applicationContext).also { saverPrefs = it }
         if (!prefs.getDataSaverEnabled()) return false
         if (prefs.getDataSaverMeteredOnly() && !NetworkUtils.isMobileData(context)) return false
         return true
     }
+
+    @Volatile private var saverPrefs: PlayerPreferences? = null
 
     /** SoundCloud quality preference as the resolver should see it. */
     fun effectiveSoundCloudQuality(context: Context): String =
