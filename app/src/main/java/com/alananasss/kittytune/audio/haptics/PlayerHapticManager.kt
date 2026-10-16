@@ -82,17 +82,24 @@ class PlayerHapticManager private constructor(context: Context) {
     private var lastKickTime: Long = 0
     private var lastSnareTime: Long = 0
 
-    // Continuous haptic state
-    private var currentBassIntensity = 0f
-    private var targetBassIntensity = 0f
+    // Continuous haptic state. Touched from both the audio analysis path and the haptic
+    // scheduler thread, so keep the cross-thread ones volatile.
+    @Volatile private var currentBassIntensity = 0f
+    @Volatile private var targetBassIntensity = 0f
     private var globalEnergyAvg = 0.15f
-    private var currentMotorState = MotorState.IDLE
+    @Volatile private var currentMotorState = MotorState.IDLE
 
     private enum class MotorState {
         IDLE, CONTINUOUS, TRANSIENT, DECAY
     }
 
     private var lastContinuousAmplitude = 0
+
+    // hasVibrator() is a binder round-trip; the answer never changes on a device, so it is
+    // cached once instead of being re-queried on every continuous update (~10/s) and every
+    // transient.
+    @Volatile
+    private var hasVibratorCached = false
 
     // Cross-OEM profile and controllers
     val deviceProfile: DeviceHapticProfile
@@ -182,6 +189,7 @@ class PlayerHapticManager private constructor(context: Context) {
     private val BEATS_PER_PHRASE = 16
 
     private var lastLoggedLead: Long = -1
+    private var lastLeadLogAt: Long = 0L
 
     private var lastTransientTime: Long = 0
     private var lastTriggeredKickTime: Long = 0
@@ -226,6 +234,7 @@ class PlayerHapticManager private constructor(context: Context) {
 
     init {
         hasAmplitudeControl = detectAmplitudeControl()
+        hasVibratorCached = getVibrator()?.hasVibrator() == true
         detectDeviceCapabilities()
         deviceProfile = DeviceHapticProfiler().buildProfile()
         updateCachedEffects()
@@ -363,7 +372,14 @@ class PlayerHapticManager private constructor(context: Context) {
     fun processPcmHaptics(subBass: Float, bass: Float, mid: Float, high: Float) {
         if (!isHapticsEnabled) return
 
-        scope.launch {
+        // Runs inline on the audio thread instead of being dispatched to a coroutine: the
+        // previous scope.launch per PCM buffer allocated a coroutine + closure on the hot path
+        // (10-100 buffers/s) and contended Dispatchers.Default, which is also where the AI
+        // detection inference runs. The math below is a handful of float ops over tiny fixed
+        // arrays - cheaper than the dispatch itself. Only the vibrator binder calls are posted
+        // to the dedicated haptic-sched thread, which preserves ordering with delayed
+        // transients and keeps IPC off the audio thread.
+        run {
             val frameEnergy = (subBass + bass + mid + high) / 4f
             if (frameEnergy > 0.01f) {
                 globalEnergyAvg = globalEnergyAvg * (1 - GAIN_ADJUST_SPEED) + frameEnergy * GAIN_ADJUST_SPEED
@@ -419,8 +435,11 @@ class PlayerHapticManager private constructor(context: Context) {
                 currentBassIntensity = currentBassIntensity * (1 - ENVELOPE_DECAY) + targetBassIntensity * ENVELOPE_DECAY
             }
 
+            val continuousIntensity = currentBassIntensity
             if (binderController.canUpdate(deviceProfile, now)) {
-                updateContinuousBassHaptic(currentBassIntensity)
+                hapticHandler.post {
+                    updateContinuousBassHaptic(continuousIntensity)
+                }
             }
 
             // Transient kick detection
@@ -476,7 +495,7 @@ class PlayerHapticManager private constructor(context: Context) {
         if (now - lastTransientTime < TRANSIENT_LOCKOUT_MS) return
 
         val vibrator = getVibrator() ?: return
-        if (!vibrator.hasVibrator()) return
+        if (!hasVibratorCached) return
 
         val userMultiplier = max(0f, min(1f, vibrationStrengthMultiplier))
         if (userMultiplier <= 0f) return
@@ -616,16 +635,19 @@ class PlayerHapticManager private constructor(context: Context) {
      * Fires a transient, delayed so it coincides with the sound that caused it.
      *
      * The guards below run immediately - they are rate limits on detection, which happens now -
-     * while only the vibration itself is postponed.
+     * while only the vibration itself is postponed. Everything is funneled through the
+     * haptic-sched thread (vibrator binder IPC never runs on the audio thread, and ordering
+     * with continuous rumble updates is preserved).
      */
     fun triggerTransientHaptic(intensity: Float, type: HapticType) {
         // Timing from the analysis, dynamics from the signal. The energy detector says there is
         // something here; the grid says whether a beat is actually due. A transient that lands
         // between beats is a fill, a vocal or a sample edge - real in the audio, but not what a
         // listener is tapping their foot to.
-        val leadForLog = latencyEstimator.currentLeadMs()
-        if (leadForLog != lastLoggedLead) {
-            lastLoggedLead = leadForLog
+        val nowForLog = System.currentTimeMillis()
+        if (nowForLog - lastLeadLogAt > 5_000L) {
+            lastLeadLogAt = nowForLog
+            val leadForLog = latencyEstimator.currentLeadMs()
             android.util.Log.d(
                 "HapticLatency",
                 "lead=$leadForLog ms  grid=${if (beatGrid != null) "yes" else "no"}  written=${writtenMediaMs()}"
@@ -661,10 +683,10 @@ class PlayerHapticManager private constructor(context: Context) {
 
         val lead = latencyEstimator.leadMs(System.currentTimeMillis())
         if (lead <= 0L) {
-            triggerTransientHapticNow(shaped, type, gesture)
-            return
+            hapticHandler.post { triggerTransientHapticNow(shaped, type, gesture) }
+        } else {
+            hapticHandler.postDelayed({ triggerTransientHapticNow(shaped, type, gesture) }, lead)
         }
-        hapticHandler.postDelayed({ triggerTransientHapticNow(shaped, type, gesture) }, lead)
     }
 
     private fun triggerTransientHapticNow(intensity: Float, type: HapticType, gesture: HapticGesture) {
@@ -714,7 +736,7 @@ class PlayerHapticManager private constructor(context: Context) {
     private fun performVibrationTransient(type: HapticType, intensity: Float, multiplier: Float, gesture: HapticGesture) {
         binderController.markTransient(System.currentTimeMillis())
         val vibrator = getVibrator() ?: return
-        if (!vibrator.hasVibrator()) return
+        if (!hasVibratorCached) return
 
         // Vendor-tuned primitives first. The motor's own model of a thump beats a rectangular
         // amplitude envelope, and the scale argument makes the strength actually follow the beat.
@@ -769,14 +791,17 @@ class PlayerHapticManager private constructor(context: Context) {
     }
 
     fun stopAllHaptics() {
-        stopContinuousHaptic()
+        // The vibrator cancel is a binder call: keep it off the caller's thread (this is invoked
+        // from the ExoPlayer playback thread on flushes) and run it on the scheduler thread so
+        // motor state stays single-threaded.
+        hapticHandler.post { stopContinuousHaptic() }
         currentBassIntensity = 0f
         targetBassIntensity = 0f
     }
 
     fun triggerTestVibration(strength0to100: Float) {
         val vibrator = getVibrator() ?: return
-        if (!vibrator.hasVibrator()) return
+        if (!hasVibratorCached) return
         val mult = (strength0to100 / 100f).coerceIn(0.1f, 1f)
         try {
             if (isOreoOrLater && hasAmplitudeControl) {
@@ -949,7 +974,7 @@ class PlayerHapticManager private constructor(context: Context) {
             if (strength <= 0f) return
 
             val vibrator = instance.getVibrator() ?: return
-            if (!vibrator.hasVibrator()) return
+            if (!instance.hasVibratorCached) return
 
             try {
                 val amp = (strength * 255).toInt().coerceIn(1, 255)

@@ -5455,24 +5455,22 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             viewModelScope.launch(Dispatchers.IO) { playerPrefs.savePosition(p) }
             return
         }
-        if (saveQueue) {
-            saveQueueJob?.cancel()
-            saveQueueJob = viewModelScope.launch(Dispatchers.Main) {
-                delay(500.milliseconds)
-                val freshT = currentTrack
-                val freshP = currentPosition
-                val freshC = currentContext
-                val freshS = shuffleEnabled
-                val freshR = repeatMode
-                val qSnapshot = _queue.toList()
-                withContext(Dispatchers.IO) {
-                    playerPrefs.savePlaybackState(freshT, freshP, qSnapshot, freshC, freshS, freshR)
-                }
-            }
-        } else {
-            val q = _queue.toList()
-            viewModelScope.launch(Dispatchers.IO) {
-                playerPrefs.savePlaybackState(t, p, q, c, s, r)
+        // All non-position saves are coalesced through the same 500ms debounced job:
+        // previously the saveQueue=false path (13 call sites: play/pause, track change, queue
+        // edits...) immediately re-serialized the ENTIRE queue to JSON and rewrote the prefs
+        // file on every single event. The debounced job reads fresh state when it fires, so
+        // exactly the same data lands on disk, minus the redundant writes.
+        saveQueueJob?.cancel()
+        saveQueueJob = viewModelScope.launch(Dispatchers.Main) {
+            delay(500.milliseconds)
+            val freshT = currentTrack
+            val freshP = currentPosition
+            val freshC = currentContext
+            val freshS = shuffleEnabled
+            val freshR = repeatMode
+            val qSnapshot = _queue.toList()
+            withContext(Dispatchers.IO) {
+                playerPrefs.savePlaybackState(freshT, freshP, qSnapshot, freshC, freshS, freshR)
             }
         }
     }
@@ -5559,13 +5557,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                                     if (nextTrack.id != currTrack.id) {
                                         com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(nextTrack, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.IMMEDIATE)
                                     }
-                                    val lookaheadTrack1 = _queue.getOrNull(currentQueueIndex + 2)
-                                    if (lookaheadTrack1 != null) {
-                                        com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(lookaheadTrack1, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.LOOKAHEAD)
-                                    }
-                                    val lookaheadTrack2 = _queue.getOrNull(currentQueueIndex + 3)
-                                    if (lookaheadTrack2 != null) {
-                                        com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(lookaheadTrack2, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.LOOKAHEAD)
+                                    // LOOKAHEAD decoding spins up full headless ExoPlayers
+                                    // (+ DRM sessions). Analyzing queue items +2/+3 the moment a
+                                    // 5-minute track starts used to burn CPU/RAM for minutes
+                                    // while nothing needs it yet; deferring until the current
+                                    // track is under ~2.5 minutes from its end keeps every
+                                    // transition seamlessly mixed (analysis takes ~10-20s) while
+                                    // not competing with playback for most of the song.
+                                    val remainingMs = if (dur > 0L) (dur - currentPosition).coerceAtLeast(0L) else 0L
+                                    if (remainingMs < 150_000L) {
+                                        val lookaheadTrack1 = _queue.getOrNull(currentQueueIndex + 2)
+                                        if (lookaheadTrack1 != null) {
+                                            com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(lookaheadTrack1, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.LOOKAHEAD)
+                                        }
+                                        val lookaheadTrack2 = _queue.getOrNull(currentQueueIndex + 3)
+                                        if (lookaheadTrack2 != null) {
+                                            com.alananasss.kittytune.audio.automix.AutomixManager.maybeAnalyzeBeat(lookaheadTrack2, com.alananasss.kittytune.audio.automix.BeatAnalysisPriority.LOOKAHEAD)
+                                        }
                                     }
                                     if (isGaplessAlbum) {
                                         com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()

@@ -48,8 +48,12 @@
     import com.alananasss.kittytune.data.LikeRepository
     import com.alananasss.kittytune.data.MusicManager
     import com.alananasss.kittytune.data.local.PlayerPreferences
-    import kotlinx.coroutines.MainScope
+    import com.alananasss.kittytune.ui.player.AudioEffectsState
+    import kotlinx.coroutines.CoroutineScope
+    import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.SupervisorJob
     import kotlinx.coroutines.launch
+    import kotlinx.coroutines.withContext
     import java.io.File
 
     // simple data class to type speeds without error
@@ -80,14 +84,51 @@
             val KEY_REVERB_ACTIVE = booleanPreferencesKey("reverb_active")
             val KEY_PITCH_ACTIVE = booleanPreferencesKey("pitch_active")
 
+            // One shared scope instead of a throwaway MainScope() per call: each update() used
+            // to leak a new scope, and every BUFFERING/READY transition fired one.
+            private val widgetUpdateScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+            private var lastUpdateSignature: String? = null
+            private var lastUpdateAt = 0L
+
+            // Effects are parsed from JSON on each update; during playback those updates can
+            // arrive in bursts, so the parsed state is memoised for a short window.
+            private var effectsCache: AudioEffectsState? = null
+            private var effectsCacheReadAt = 0L
+            private const val EFFECTS_CACHE_TTL_MS = 10_000L
+
+            /** Called by widget actions that just changed the effects so the next update re-reads them. */
+            fun invalidateEffectsCache() {
+                effectsCacheReadAt = 0L
+                lastUpdateSignature = null
+            }
+
+            private suspend fun getEffectsCached(context: Context): AudioEffectsState {
+                val cached = effectsCache
+                if (cached != null && System.currentTimeMillis() - effectsCacheReadAt < EFFECTS_CACHE_TTL_MS) {
+                    return cached
+                }
+                val fresh = withContext(Dispatchers.IO) { PlayerPreferences(context).getLastEffects() }
+                effectsCache = fresh
+                effectsCacheReadAt = System.currentTimeMillis()
+                return fresh
+            }
+
             fun update(context: Context) {
-                MainScope().launch {
+                widgetUpdateScope.launch {
                     val track = MusicManager.currentTrack
                     val isPlaying = try { MusicManager.player.isPlaying } catch(e: Exception) { false }
                     val isLiked = if (track != null) LikeRepository.isTrackLiked(track.id) else false
 
-                    val prefsRepo = PlayerPreferences(context)
-                    val effects = prefsRepo.getLastEffects()
+                    // Skip redundant refreshes: playback state changes fire in bursts (each
+                    // BUFFERING/READY transition, every like toggle), and each refresh costs a
+                    // DataStore write + AppWidgetManager IPC + a remote view relayout. Nothing
+                    // observable changes when the shown state is identical.
+                    val signature = "${track?.id}|$isPlaying|$isLiked"
+                    if (signature == lastUpdateSignature && System.currentTimeMillis() - lastUpdateAt < 10_000L) return@launch
+                    lastUpdateSignature = signature
+                    lastUpdateAt = System.currentTimeMillis()
+
+                    val effects = getEffectsCached(context)
 
                     val manager = GlanceAppWidgetManager(context)
 
