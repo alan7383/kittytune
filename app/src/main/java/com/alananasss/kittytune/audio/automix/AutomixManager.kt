@@ -10,6 +10,7 @@ import com.alananasss.kittytune.data.local.gridTrust
 import com.alananasss.kittytune.data.local.trustedAnchorMs
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Track
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -63,7 +64,7 @@ object AutomixManager {
     private val lookaheadAnalysisMutex = Mutex()
     private val failedSongIds = ConcurrentHashMap<String, Long>()
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var appContext: Context? = null
 
     private val _automixDebugInfo = MutableStateFlow<AutomixDebugInfo?>(null)

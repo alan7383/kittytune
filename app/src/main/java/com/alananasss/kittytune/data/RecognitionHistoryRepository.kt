@@ -4,6 +4,7 @@ import android.content.Context
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.RecognitionHistoryItem
 import com.alananasss.kittytune.domain.Track
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -11,7 +12,7 @@ import kotlinx.coroutines.launch
 
 object RecognitionHistoryRepository {
     private lateinit var database: AppDatabase
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun init(context: Context) {
         database = AppDatabase.getDatabase(context)

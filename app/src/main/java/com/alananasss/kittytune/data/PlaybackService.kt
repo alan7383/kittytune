@@ -22,6 +22,7 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.NotificationExtraButton
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.google.common.collect.ImmutableList
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -55,7 +56,7 @@ class PlaybackService : MediaLibraryService() {
 
     private var mediaSession: MediaLibrarySession? = null
     private var librarySessionCallback: KittyTuneMediaLibrarySessionCallback? = null
-    private val serviceScope = CoroutineScope(Dispatchers.Main)
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var updateJob: Job? = null
     private var discordJob: Job? = null
