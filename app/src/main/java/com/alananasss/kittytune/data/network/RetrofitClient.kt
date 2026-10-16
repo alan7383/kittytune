@@ -142,6 +142,9 @@ object RetrofitClient {
             val builder = OkHttpClient.Builder()
                 .addInterceptor(authInterceptor)
                 .addInterceptor(sessionRecoveryInterceptor)
+                // BODY-level logging serializes every request/response body to logcat on every
+                // API call (stream resolution, lyrics, waveforms...) during playback. Keep the
+                // wire visible in debug builds only.
                 .addInterceptor(HttpLoggingInterceptor().apply { level = loggingLevel })
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
