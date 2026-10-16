@@ -15,6 +15,7 @@
     import com.alananasss.kittytune.ui.common.AchievementNotificationManager
     import kotlinx.coroutines.CoroutineScope
     import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.SupervisorJob
     import kotlinx.coroutines.flow.MutableStateFlow
     import kotlinx.coroutines.flow.asStateFlow
     import kotlinx.coroutines.flow.update
@@ -55,7 +56,7 @@
         private const val PREFS_NAME = "achievements_prefs"
         private lateinit var prefs: SharedPreferences
         private lateinit var context: Context
-        private val scope = CoroutineScope(Dispatchers.Main)
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
         val definitions = listOf(
             Achievement("time_1h", AchievementCategory.TIME, R.string.ach_time_1h_title, R.string.ach_time_1h_desc, Icons.Rounded.Headphones, 3600, xpReward = 10),
