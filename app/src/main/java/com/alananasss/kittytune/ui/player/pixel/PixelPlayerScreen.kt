@@ -375,7 +375,8 @@ fun PixelPlayerScreen(
             PlayerBackgroundStyle.APPLE_MUSIC -> {
                 FluidArtworkBackground(
                     artworkUrl = track.fullResArtwork,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    animate = viewModel.uiIsPlaying
                 ) {
                     AsyncImage(
                         model = track.fullResArtwork,

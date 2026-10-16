@@ -126,11 +126,12 @@ class FastCaptureAudioSink(
         presentationTimeUs: Long,
         encodedAccessUnitCount: Int
     ): Boolean {
-        android.util.Log.d("FastCaptureAudioSink", "handleBuffer: remaining=${buffer.remaining()}, pts=$presentationTimeUs, capturedUs=$capturedDurationUs / $targetDurationUs")
+        // No per-buffer logging here: a single 18s decode at maximum speed passes hundreds of
+        // buffers through this method, each log line costs a String allocation + logcat write
+        // on the decode thread while music is playing.
         if (shouldCancel() || capturedDurationUs >= targetDurationUs) {
             buffer.position(buffer.limit())
             isEndedFlag = true
-            android.util.Log.d("FastCaptureAudioSink", "Target reached or cancelled -> onComplete()")
             onComplete()
             return true
         }
@@ -182,7 +183,6 @@ class FastCaptureAudioSink(
         buffer.position(buffer.limit())
 
         if (capturedDurationUs >= targetDurationUs) {
-            android.util.Log.d("FastCaptureAudioSink", "capturedDurationUs ($capturedDurationUs) >= targetDurationUs ($targetDurationUs) -> onComplete()")
             isEndedFlag = true
             onComplete()
         }
