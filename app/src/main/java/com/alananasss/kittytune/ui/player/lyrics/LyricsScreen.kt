@@ -167,7 +167,8 @@ fun LyricsScreen(
                 FluidArtworkBackground(
                     artworkUrl = currentTrack?.fullResArtwork,
                     modifier = Modifier.fillMaxSize(),
-                    extraBlur = true
+                    extraBlur = true,
+                    animate = viewModel.uiIsPlaying
                 ) {
                     LyricsMeshBackground { }
                 }
@@ -403,14 +404,19 @@ fun LyricsModeChip(
 
 @Composable
 fun SyncedLyricsView(viewModel: PlayerViewModel) {
-    val currentPosition = viewModel.uiCurrentPosition
-    val adjustedPosition = currentPosition + viewModel.lyricsOffset
+    // NOTE: playback position must NOT be read at this composable's top level. This whole
+    // panel (LazyColumn + every visible line) used to recompose on every position tick
+    // (2-25Hz); the 60fps interpolator below already drives the active-line highlighting,
+    // so the raw position is only needed once, for the initial scroll index.
     val lyrics = viewModel.lyricsLines
     // Opened on the line being sung, not on line one. Two minutes into a track the first frame
     // used to be the top of the song, which read as a jolt on every open before the follow logic
-    // caught up.
+    // caught up. One-shot read of the player position: untracked, so no recomposition hook.
+    val initialActiveIndex = remember(lyrics) {
+        LyricsUtils.activeLineIndex(lyrics, MusicManager.player.currentPosition + viewModel.lyricsOffset).coerceAtLeast(0)
+    }
     val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = LyricsUtils.activeLineIndex(lyrics, adjustedPosition).coerceAtLeast(0)
+        initialFirstVisibleItemIndex = initialActiveIndex
     )
     val fontSize = viewModel.lyricsFontSize
     val lyricsFontFamily = rememberLyricsFontFamily(viewModel.lyricsFont)
@@ -429,7 +435,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
         )
     }
 
-    var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
+    var smoothDrawPosition by remember { mutableFloatStateOf(MusicManager.player.currentPosition.coerceAtLeast(0L).toFloat()) }
 
     // High-precision smooth frame interpolation loop with PLL drift tracking
     LaunchedEffect(viewModel.uiCurrentTrack?.id) {
@@ -584,7 +590,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 .fadingEdge(fadeBrush),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            itemsIndexed(lyrics) { index, line ->
+            itemsIndexed(lyrics, key = { idx, line -> "${line.startTime}_$idx" }) { index, line ->
                 val isActive = index == activeIndex
                 val targetScale = 1.0f
                 val targetAlpha = if (isActive) 1.0f else (if (index < activeIndex) 0.45f else 0.70f)
@@ -592,6 +598,8 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 val scale by animateFloatAsState(targetScale, tween(400), label = "scale")
                 val alpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
 
+                // Hoisted out of the per-item content: it is identical for every line of the
+                // track and does not depend on the item, so it was pure per-item waste.
                 val isDuetActive = viewModel.isDuetActiveForTrack(viewModel.uiCurrentTrack)
                 val effectiveSinger = if (isDuetActive) {
                     line.singer.takeIf { it != LyricSinger.DEFAULT } ?: when (line.agent?.trim()?.lowercase()) {
@@ -715,9 +723,18 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                                 )
                             }
                         } else {
+                            // Word-sync highlight without the Apple effect: derive the number of
+                            // sung words from the smooth position so this line only recomposes
+                            // when a word boundary is crossed, not on every position tick.
+                            val sungWordCount by remember(displayWords) {
+                                derivedStateOf {
+                                    val pos = smoothDrawPosition + viewModel.lyricsOffset
+                                    displayWords.count { it.startTime <= pos }
+                                }
+                            }
                             val reconstructedText = buildAnnotatedString {
                                 displayWords.forEachIndexed { idx, word ->
-                                    val isWordActive = (viewModel.uiCurrentPosition + viewModel.lyricsOffset) >= word.startTime
+                                    val isWordActive = idx < sungWordCount
                                     val wordColor = if (isWordActive) Color.White else Color.White.copy(alpha = 0.5f)
                                     val wordText = formattedWords.getOrElse(idx) { word.word }
                                     withStyle(SpanStyle(color = wordColor)) { append(wordText) }

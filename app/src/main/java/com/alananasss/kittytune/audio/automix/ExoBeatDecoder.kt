@@ -62,7 +62,9 @@ object ExoBeatDecoder {
             onComplete = { latch.countDown() }
         )
 
-        val thread = HandlerThread("ExoBeatDecoder_${System.currentTimeMillis()}").apply { start() }
+        // Fixed thread name: a timestamped name created a new named thread (and cluttered
+        // thread dumps) for every decode pass.
+        val thread = HandlerThread("ExoBeatDecoder").apply { start() }
         val handler = Handler(thread.looper)
 
         var player: ExoPlayer? = null

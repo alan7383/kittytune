@@ -145,7 +145,15 @@ object RetrofitClient {
                 .addInterceptor(cookieInterceptor)
                 .addInterceptor(authInterceptor)
                 .addInterceptor(sessionRecoveryInterceptor)
-                .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+                // BODY-level logging serializes every request/response body to logcat on every
+                // API call (stream resolution, lyrics, waveforms...) during playback. Keep the
+                // wire visible in debug builds only.
+                .addInterceptor(HttpLoggingInterceptor().apply {
+                    level = if (com.alananasss.kittytune.BuildConfig.DEBUG)
+                        HttpLoggingInterceptor.Level.BASIC
+                    else
+                        HttpLoggingInterceptor.Level.NONE
+                })
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)

@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,7 +57,11 @@ class PlaybackService : MediaLibraryService() {
 
     private var mediaSession: MediaLibrarySession? = null
     private var librarySessionCallback: KittyTuneMediaLibrarySessionCallback? = null
-    private val serviceScope = CoroutineScope(Dispatchers.Main)
+    // SupervisorJob so one failed collector cannot silently kill the others; cancelled in
+    // onDestroy so a destroyed service stops multiplying every player event.
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var serviceListener: Player.Listener? = null
+    private var mediaController: androidx.media3.session.MediaController? = null
 
     private var updateJob: Job? = null
     private var discordJob: Job? = null
@@ -156,6 +162,7 @@ class PlaybackService : MediaLibraryService() {
             }
         }
 
+        this.serviceListener = serviceListener
         MusicManager.player.addListener(serviceListener)
 
         serviceScope.launch {
@@ -171,7 +178,9 @@ class PlaybackService : MediaLibraryService() {
         // Keep a connected controller so that Media3 automatically posts the notification
         val sessionToken = androidx.media3.session.SessionToken(this, android.content.ComponentName(this, PlaybackService::class.java))
         val controllerFuture = androidx.media3.session.MediaController.Builder(this, sessionToken).buildAsync()
-        controllerFuture.addListener({ controllerFuture.get() }, androidx.core.content.ContextCompat.getMainExecutor(this))
+        controllerFuture.addListener({
+            mediaController = try { controllerFuture.get() } catch (_: Exception) { null }
+        }, androidx.core.content.ContextCompat.getMainExecutor(this))
 
         // Android Auto synchronized lyrics observer
         serviceScope.launch {
@@ -179,10 +188,8 @@ class PlaybackService : MediaLibraryService() {
                 librarySessionCallback!!.isAutomotiveControllerConnected,
                 prefs.getAndroidAutoSyncedLyricsFlow()
             ) { automotiveConnected, lyricsEnabled ->
-                android.util.Log.d("KittyTuneAA", "combine flow: auto=$automotiveConnected, pref=$lyricsEnabled")
                 automotiveConnected && lyricsEnabled
             }.collectLatest { shouldRun ->
-                android.util.Log.d("KittyTuneAA", "automotiveLyricsObserver: shouldRun=$shouldRun")
                 automotiveLyricsJob?.cancel()
                 if (!shouldRun) {
                     automotiveLyricsJob = null
@@ -401,7 +408,6 @@ class PlaybackService : MediaLibraryService() {
                 rawItemMediaId.contains(mediaId) ||
                 rawItemMediaId.removePrefix("track:").substringBefore(":context:") == mediaId
 
-        android.util.Log.d("KittyTuneAA", "replaceSubtitle: rawId=$rawItemMediaId, target=$mediaId, matches=$matchesId, currentSub=${mediaItem.mediaMetadata.subtitle}, newSub=$subtitle, isLyric=$isLyric")
         if (!matchesId) return
         if (mediaItem.mediaMetadata.subtitle == subtitle && mediaItem.mediaMetadata.artist == subtitle) return
 
@@ -432,6 +438,10 @@ class PlaybackService : MediaLibraryService() {
             var lastSubtitle: CharSequence? = null
             var currentMediaId: String? = null
             var originalSubtitle: String? = null
+            // Network resolution is attempted at most ONCE per track: retrying every second in a
+            // loop was hammering the lyrics providers (and the radio's data plan) forever on
+            // tracks that simply have no lyrics. A track change resets the attempt.
+            var networkFetchAttemptedForMediaId: String? = null
 
             while (serviceScope.isActive && generation == automotiveLyricsGeneration) {
                 val currentTrack = MusicManager.currentTrack
@@ -455,7 +465,8 @@ class PlaybackService : MediaLibraryService() {
                     if (cached != null && cached.found && cached.lines.isNotEmpty()) {
                         MusicManager.currentLyricsFlow.value = cached.lines
                         lines = cached.lines
-                    } else {
+                    } else if (networkFetchAttemptedForMediaId != mediaId) {
+                        networkFetchAttemptedForMediaId = mediaId
                         withContext(Dispatchers.IO) {
                             try {
                                 val provider = com.alananasss.kittytune.data.lyrics.providers.LyricsProviders.get(
@@ -538,6 +549,15 @@ class PlaybackService : MediaLibraryService() {
     override fun onDestroy() {
         closeDiscordRpc()
         automotiveLyricsJob?.cancel()
+        // Release everything registered in onCreate: the player listener, the session-keeping
+        // controller, and the service scope. Without this, every service recreation stacked a
+        // new listener/collector pair on the singletons, progressively amplifying each player
+        // event into duplicated widget updates, notifications and Discord RPC calls.
+        serviceListener?.let { MusicManager.player.removeListener(it) }
+        mediaController?.release()
+        mediaController = null
+        serviceScope.cancel()
+        AchievementManager.flushPendingWrites()
         librarySessionCallback?.release()
         mediaSession?.run { release(); mediaSession = null }
         super.onDestroy()

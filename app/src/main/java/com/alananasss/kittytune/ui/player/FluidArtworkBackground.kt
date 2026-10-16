@@ -269,6 +269,8 @@ fun FluidArtworkBackground(
     artworkUrl: String?,
     modifier: Modifier = Modifier,
     extraBlur: Boolean = false,
+    /** When false (playback paused) the fluid animation freezes instead of redrawing at 30fps. */
+    animate: Boolean? = null,
     fallback: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -304,21 +306,28 @@ fun FluidArtworkBackground(
     }
 
     var seconds by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(Unit) {
-        var last = System.nanoTime()
-        var pending = 0f
-        while (true) {
-            // Paced by `delay` rather than by awaiting the next frame: awaiting a frame is itself a
-            // request for one, so the loop used to keep the display refreshing at full rate for the
-            // whole time this background was on screen. `delay` wakes on a timer and asks for
-            // nothing, and the published value is throttled to FRAME_SECONDS either way.
-            delay(FRAME_TICK_MS)
-            val now = System.nanoTime()
-            pending += ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
-            last = now
-            if (pending >= FRAME_SECONDS) {
-                seconds += pending
-                pending = 0f
+    // Defaults to animating when no explicit signal is given, so existing call sites keep
+    // their behavior. When a call site passes the playback state, the shader loop stops
+    // ticking while paused: the AGSL render + full-screen blur behind it used to keep the GPU
+    // busy at 30fps on a screen where nothing else moves. The animation resumes exactly where
+    // it froze.
+    LaunchedEffect(animate ?: true, current != null) {
+        if ((animate ?: true) && current != null) {
+            var last = System.nanoTime()
+            var pending = 0f
+            while (true) {
+                // Paced by `delay` rather than by awaiting the next frame: awaiting a frame is itself a
+                // request for one, so the loop used to keep the display refreshing at full rate for the
+                // whole time this background was on screen. `delay` wakes on a timer and asks for
+                // nothing, and the published value is throttled to FRAME_SECONDS either way.
+                delay(FRAME_TICK_MS)
+                val now = System.nanoTime()
+                pending += ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
+                last = now
+                if (pending >= FRAME_SECONDS) {
+                    seconds += pending
+                    pending = 0f
+                }
             }
         }
     }
