@@ -25,10 +25,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
@@ -61,6 +60,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -90,6 +90,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -228,6 +229,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
     var muted by remember(clip) { mutableStateOf(false) }
     var positionMs by remember(clip) { mutableLongStateOf(0L) }
     var durationMs by remember(clip) { mutableLongStateOf(0L) }
+    var videoAspectRatio by remember(clip) { mutableFloatStateOf(16f / 9f) }
 
     LaunchedEffect(clip) {
         streamUrl = ArtistClips.streamUrl(clip)
@@ -288,6 +290,13 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                if (videoSize.width > 0 && videoSize.height > 0) {
+                    val pixelRatio = if (videoSize.pixelWidthHeightRatio > 0f) videoSize.pixelWidthHeightRatio else 1f
+                    videoAspectRatio = (videoSize.width.toFloat() * pixelRatio) / videoSize.height.toFloat()
+                }
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 isPaused = !isPlaying && player.playbackState == Player.STATE_READY
             }
@@ -295,6 +304,11 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
                     durationMs = player.duration.coerceAtLeast(0L)
+                    if (player.videoSize.width > 0 && player.videoSize.height > 0) {
+                        val vs = player.videoSize
+                        val pixelRatio = if (vs.pixelWidthHeightRatio > 0f) vs.pixelWidthHeightRatio else 1f
+                        videoAspectRatio = (vs.width.toFloat() * pixelRatio) / vs.height.toFloat()
+                    }
                 }
                 if (playbackState == Player.STATE_ENDED) {
                     hasEnded = true
@@ -307,6 +321,11 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
             }
         }
         player.addListener(listener)
+        if (player.videoSize.width > 0 && player.videoSize.height > 0) {
+            val vs = player.videoSize
+            val pixelRatio = if (vs.pixelWidthHeightRatio > 0f) vs.pixelWidthHeightRatio else 1f
+            videoAspectRatio = (vs.width.toFloat() * pixelRatio) / vs.height.toFloat()
+        }
         onDispose {
             player.removeListener(listener)
             player.release()
@@ -473,26 +492,32 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    AndroidView(
-                        factory = { ctx ->
-                            TextureView(ctx).apply {
-                                player.setVideoTextureView(this)
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    if (streamUrl == null && !failed) {
-                        AsyncImage(
-                            model = clip.thumbnailUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                    // Preserves the natural video aspect ratio without stretching to screen width
+                    Box(
+                        modifier = Modifier.aspectRatio(videoAspectRatio),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        AndroidView(
+                            factory = { ctx ->
+                                TextureView(ctx).apply {
+                                    player.setVideoTextureView(this)
+                                }
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        )
+
+                        if (streamUrl == null && !failed) {
+                            AsyncImage(
+                                model = clip.thumbnailUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
                     }
 
                     if (failed) {
@@ -532,7 +557,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                             ),
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .statusBarsPadding()
+                                .safeDrawingPadding()
                                 .padding(16.dp)
                         ) {
                             Icon(
@@ -547,7 +572,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                     modifier = if (isFullscreen) {
                         Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding()
+                            .safeDrawingPadding()
                             .padding(horizontal = 24.dp, vertical = 12.dp)
                     } else {
                         Modifier.fillMaxWidth()
