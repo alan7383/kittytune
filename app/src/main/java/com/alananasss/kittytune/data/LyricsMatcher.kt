@@ -469,6 +469,34 @@ object LyricsMatcher {
     }
 
     /**
+     * Other spellings of a search to try when it finds nothing: the hyphens and other punctuation turned into
+     * spaces ("New-York" is two words to most lyrics searches), and a word typed run together ("NEWYORK")
+     * spelled out the way the track's own title has it. First is always [query] itself.
+     */
+    fun queryVariants(query: String, trackTitle: String): List<String> {
+        val variants = linkedSetOf(query.trim())
+        val spaced = query.replace(Regex("""[^\p{L}\p{Nd}\s']+"""), " ").replace(WHITESPACE_REGEX, " ").trim()
+        if (spaced.isNotEmpty()) variants += spaced
+        val titleWords = normalize(trackTitle).split(' ').filter { it.isNotBlank() }
+        if (titleWords.size >= 2) {
+            val spelledOut = spaced.split(' ').joinToString(" ") { token ->
+                val compact = normalize(token).replace(" ", "")
+                var replacement: String? = null
+                for (start in titleWords.indices) {
+                    var joined = ""
+                    for (end in start until minOf(titleWords.size, start + 3)) {
+                        joined += titleWords[end]
+                        if (end > start && joined == compact) replacement = titleWords.subList(start, end + 1).joinToString(" ")
+                    }
+                }
+                replacement ?: token
+            }
+            if (spelledOut.isNotEmpty()) variants += spelledOut
+        }
+        return variants.toList()
+    }
+
+    /**
      * [query] with its run-together words spelled the way [knownTitles] spell them, or null when none matches.
      *
      * "NEWYORK" is how the song is titled on SoundCloud; Genius calls it "NEW-YORK" and LrcLib only finds it as

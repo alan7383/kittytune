@@ -553,6 +553,23 @@
     <string name="lyrics_mode_plain">Plain</string>
     <string name="lyrics_copy_text">Copy text</string>
     <string name="lyrics_sync">Synchro</string>
+    <string name="lyrics_search_now_showing">Now showing: %1$s</string>
+    <string name="lyrics_search_progress">%1$d found, %2$d sources still searching</string>
+    <string name="lyrics_search_clear">Clear</string>
+    <string name="lyrics_provider_all">All Sources</string>
+    <string name="lyrics_badge_line_sync">Line-by-line timings</string>
+    <string name="lyrics_badge_word_sync">Word-by-word timings</string>
+    <string name="lyrics_badge_plain">Plain text</string>
+    <string name="lyrics_sync_drift_title">Drifting apart by the end?</string>
+    <string name="lyrics_sync_drift_hint">Sync the start and pin it, then pin a point near the end and sync it there. The offset changes evenly in between.</string>
+    <string name="lyrics_sync_drift_active">%1$s at %2$s, %3$s at %4$s, evenly in between. The buttons above change the point nearer to where you are.</string>
+    <string name="lyrics_sync_pin_start">Pin start here</string>
+    <string name="lyrics_sync_pin_end">Pin end here</string>
+    <string name="lyrics_sync_point_start">Start %1$s</string>
+    <string name="lyrics_sync_point_end">End %1$s</string>
+    <string name="lyrics_sync_single">Back to one offset</string>
+    <string name="lyrics_sync_end_too_close">Pin the end at least 20 seconds after the start</string>
+    <string name="dialog_upload_yaml_title">Upload custom lyrics</string>
 
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- MENUS & CONTEXT                                                                  -->

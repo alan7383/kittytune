@@ -30,6 +30,11 @@ interface LrcLibApiService {
     suspend fun searchLyrics(
         @Query("q") query: String
     ): List<LrcLibResponse>
+
+    @GET("get/{id}")
+    suspend fun getLyricsById(
+        @retrofit2.http.Path("id") id: Long
+    ): LrcLibResponse
 }
 
 object LrcLibClient {

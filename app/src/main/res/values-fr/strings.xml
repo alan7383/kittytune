@@ -519,6 +519,23 @@
     <string name="lyrics_mode_plain">Texte</string>
     <string name="lyrics_copy_text">Copier le texte</string>
     <string name="lyrics_sync">Synchro</string>
+    <string name="lyrics_search_now_showing">Affiché : %1$s</string>
+    <string name="lyrics_search_progress">%1$d trouvés, %2$d sources cherchent encore</string>
+    <string name="lyrics_search_clear">Effacer</string>
+    <string name="lyrics_provider_all">Tous les fournisseurs</string>
+    <string name="lyrics_badge_line_sync">Synchronisé à la ligne</string>
+    <string name="lyrics_badge_word_sync">Synchronisé au mot</string>
+    <string name="lyrics_badge_plain">Texte brut</string>
+    <string name="lyrics_sync_drift_title">Les paroles se décalent vers la fin ?</string>
+    <string name="lyrics_sync_drift_hint">Synchronisez le début et épinglez-le, puis épinglez un point vers la fin et synchronisez-le là. Le décalage évolue régulièrement entre les deux.</string>
+    <string name="lyrics_sync_drift_active">%1$s à %2$s, %3$s à %4$s, régulièrement entre les deux. Les boutons au-dessus modifient le point le plus proche.</string>
+    <string name="lyrics_sync_pin_start">Début ici</string>
+    <string name="lyrics_sync_pin_end">Fin ici</string>
+    <string name="lyrics_sync_point_start">Début %1$s</string>
+    <string name="lyrics_sync_point_end">Fin %1$s</string>
+    <string name="lyrics_sync_single">Revenir à un seul décalage</string>
+    <string name="lyrics_sync_end_too_close">La fin doit être au moins 20 secondes après le début</string>
+    <string name="dialog_upload_yaml_title">Importer des paroles personnalisées</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- MENUS & CONTEXT                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
