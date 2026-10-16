@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.player
 
+import com.alananasss.kittytune.ui.player.lyrics.stopAtLastLine
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -323,7 +324,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
     val fadeBrush = remember {
         Brush.verticalGradient(
             0f to Color.Transparent,
-            0.15f to Color.Black,
+            0.04f to Color.Black,
             0.85f to Color.Black,
             1f to Color.Transparent
         )
@@ -481,6 +482,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
             contentPadding = PaddingValues(top = topPadding, bottom = halfHeight),
             modifier = Modifier
                 .fillMaxSize()
+                .stopAtLastLine(listState)
                 .fadingEdge(fadeBrush),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
@@ -685,7 +687,7 @@ fun PlainLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
     val fadeBrush = remember {
         Brush.verticalGradient(
             0f to Color.Transparent,
-            0.15f to Color.Black,
+            0.04f to Color.Black,
             0.85f to Color.Black,
             1f to Color.Transparent
         )

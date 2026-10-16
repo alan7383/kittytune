@@ -449,5 +449,8 @@ object MusixmatchClient {
             emptyList()
         }
     }
+
+    suspend fun search(query: String): List<MxmTrack> =
+        search(com.alananasss.kittytune.KittyTuneApp.instance, query)
 }
 
