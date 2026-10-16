@@ -781,7 +781,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             djCustomCrossfadeDurationMs = crossfadeDurationMs
             djCustomStartPositionMs = djState.incomingDropPointMs
             djCustomTempoRatio = djState.sync.tempoRatio
-            djCustomPhaseOffsetMs = djState.sync.phaseOffsetMs
+            djCustomPhaseOffsetMs = djFlowController.livePhaseOffsetMs
             MusicManager.beginCrossfadeRequest()
             com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
             playNext(manual = false, isCrossfade = true)
@@ -6463,7 +6463,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                         djCustomPhaseOffsetMs = null
                         p
                     } else if (isDjFlowOn) {
-                        djState.sync.phaseOffsetMs
+                        djFlowController.livePhaseOffsetMs
                     } else 0L
 
                     val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
@@ -6656,7 +6656,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                             djCustomPhaseOffsetMs = null
                             p
                         } else if (djFlowController.flowState.value.isActive) {
-                            djFlowController.flowState.value.sync.phaseOffsetMs
+                            djFlowController.livePhaseOffsetMs
                         } else 0L
 
                         val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan

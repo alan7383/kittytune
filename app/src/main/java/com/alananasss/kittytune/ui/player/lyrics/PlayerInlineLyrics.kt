@@ -370,6 +370,9 @@ private fun SmoothAppleMusicInlineLyricLine(
     }
 
     var textLayoutResult by remember(reconstructedText) { mutableStateOf<TextLayoutResult?>(null) }
+    // Reused across draws: the karaoke clip path is rebuilt at display rate while playing, and a
+    // fresh native Path each frame was pure allocation churn under the GC.
+    val karaokePath = remember { Path() }
 
     Box(modifier = Modifier.fillMaxWidth()) {
         // Base dimmed text (unsung)
@@ -403,7 +406,7 @@ private fun SmoothAppleMusicInlineLyricLine(
                 .fillMaxWidth()
                 .drawWithContent {
                     val layout = textLayoutResult ?: return@drawWithContent
-                    val path = Path()
+                    val path = karaokePath.apply { reset() }
                     val textLen = reconstructedText.length
                     if (textLen == 0) return@drawWithContent
                     val safeTextLength = (textLen - 1).coerceAtLeast(0)

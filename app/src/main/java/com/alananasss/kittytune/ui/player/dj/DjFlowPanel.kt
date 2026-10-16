@@ -27,16 +27,19 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import kotlinx.coroutines.flow.StateFlow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.player.DjBeatTick
 import com.alananasss.kittytune.ui.player.DjFlowState
 import com.alananasss.kittytune.ui.player.EnergyMode
 import kotlin.math.roundToInt
@@ -45,15 +48,16 @@ import kotlin.math.roundToInt
  * Minimal Material 3 surface for the DJ Flow engine.
  *
  * Deliberately small. It exists to show the whole feature working through nothing but the public
- * API — it reads only [DjFlowState] and calls only the four callbacks below. If something cannot
- * be built here, the engine's public surface is missing it, and that is a bug in the engine
- * rather than a reason to reach into internals.
+ * API — it reads only [DjFlowState] and [DjBeatTick] and calls only the four callbacks below. If
+ * something cannot be built here, the engine's public surface is missing it, and that is a bug in
+ * the engine rather than a reason to reach into internals.
  *
  * The full developer console lives in `DjDevDebugSheet` and is not meant to ship.
  */
 @Composable
 fun DjFlowPanel(
     state: DjFlowState,
+    beatTick: StateFlow<DjBeatTick>,
     onToggleDj: (Boolean) -> Unit,
     onEnergyMode: (EnergyMode) -> Unit,
     onMixNow: () -> Unit,
@@ -84,7 +88,7 @@ fun DjFlowPanel(
             AnimatedVisibility(visible = state.isActive) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     NowPlayingRow(state)
-                    BeatPulse(state)
+                    BeatPulse(state, beatTick)
                     EnergyRow(state.energyMode, onEnergyMode)
                     NextUp(state, onMixNow)
                 }
@@ -131,9 +135,12 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
  * stays smooth even though position updates arrive in discrete ticks.
  */
 @Composable
-private fun BeatPulse(state: DjFlowState) {
+private fun BeatPulse(state: DjFlowState, beatTick: StateFlow<DjBeatTick>) {
+    // The tick is collected here, in the smallest scope that needs it, rather than in the panel:
+    // it changes at ticker rate, and the panel has no use for it.
+    val tick by beatTick.collectAsState()
     val pulse by animateFloatAsState(
-        targetValue = if (state.beatProgress < 0.25f) 1f else 0.55f,
+        targetValue = if (tick.beatProgress < 0.25f) 1f else 0.55f,
         label = "beatPulse",
     )
     Row(

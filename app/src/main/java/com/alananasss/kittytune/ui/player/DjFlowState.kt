@@ -86,6 +86,9 @@ data class DjFlowState(
     val beatInPhrase: Int = 1,
     val barInPhrase: Int = 1,
     val isDownbeat: Boolean = false,
+    // Superseded by [DjFlowController.beatTick]: these two change on every position tick, and
+    // carrying them here made the whole state emit at ticker rate. Left in place for source
+    // compatibility; the engine no longer writes them.
     val beatProgress: Float = 0.0f,
     // Infinite DJ Stream & Category Search
     val isInfiniteStreamEnabled: Boolean = true,
@@ -118,7 +121,18 @@ data class DjFlowState(
  */
 data class DjSyncState(
     val tempoRatio: Float = 1.0f,
+    // No longer written per tick — see [DjFlowController.livePhaseOffsetMs].
     val phaseOffsetMs: Long = 0L,
     val outgoingGrid: com.alananasss.kittytune.audio.automix.BeatPhaseLock.Grid? = null,
     val incomingGrid: com.alananasss.kittytune.audio.automix.BeatPhaseLock.Grid? = null,
+)
+
+/**
+ * The per-tick face of the beat: the sweep inside the current beat and the countdown to the next
+ * transition. Separate from [DjFlowState] so that listening to the beat display costs a small
+ * recomposition scope, not every screen that watches the DJ state.
+ */
+data class DjBeatTick(
+    val beatProgress: Float = 0f,
+    val timeUntilTransitionMs: Long? = null,
 )
