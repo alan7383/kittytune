@@ -25,7 +25,14 @@ internal object TogetherWire {
     private val gson = Gson()
     private val random = SecureRandom()
 
-    fun topicFor(code: String): String = "kittytune/together/" + sha256Hex("topic:" + normalizeCode(code)).take(32)
+    // Topic and key derivations are pure functions of the code, and a message is sent every few
+    // seconds per playlist: both are cached per code, bounded by how many playlists are followed.
+    private val topicCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val keyCache = java.util.concurrent.ConcurrentHashMap<String, SecretKeySpec>()
+
+    fun topicFor(code: String): String = topicCache.computeIfAbsent(normalizeCode(code)) {
+        "kittytune/together/" + sha256Hex("topic:" + it).take(32)
+    }
 
     fun seal(code: String, message: TogetherMessage): ByteArray {
         val json = gson.toJson(message.toJson()).toByteArray(Charsets.UTF_8)
@@ -56,7 +63,9 @@ internal object TogetherWire {
     /** "ABCDEFGH" as "ABCD-EFGH", for reading out. */
     fun displayCode(code: String): String = normalizeCode(code).chunked(4).joinToString("-")
 
-    private fun keyFor(code: String) = SecretKeySpec(sha256("key:kittytune-together:" + normalizeCode(code)), "AES")
+    private fun keyFor(code: String): SecretKeySpec = keyCache.computeIfAbsent(normalizeCode(code)) {
+        SecretKeySpec(sha256("key:kittytune-together:" + it), "AES")
+    }
 
     private fun sha256(text: String) = MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8))
 
@@ -148,7 +157,7 @@ sealed interface TogetherMessage {
     data class ClaimHost(override val from: String, override val sentAt: Long) : TogetherMessage
 
     fun toJson(): JsonObject {
-        val gson = Gson()
+        // The companion's shared instance: a fresh Gson per message was pure allocation churn.
         val obj = gson.toJsonTree(this).asJsonObject
         obj.addProperty("type", this::class.simpleName)
         return obj

@@ -65,6 +65,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -72,6 +74,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,6 +96,8 @@ import com.alananasss.kittytune.data.together.Together
 import com.alananasss.kittytune.data.together.TogetherWire
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
@@ -107,6 +112,18 @@ fun TogetherHomeScreen(onBack: () -> Unit, onOpen: (String) -> Unit) {
     var newName by remember { mutableStateOf("") }
     var joinCode by remember { mutableStateOf("") }
     var myName by remember { mutableStateOf(Together.myName) }
+
+    // The name is kept in memory while typing and persisted debounced, plus once more when this
+    // screen goes away: a SharedPreferences write per keystroke kept the disk busy for nothing.
+    LaunchedEffect(Unit) {
+        snapshotFlow { myName }.collectLatest { name ->
+            delay(800)
+            if (name != Together.myName) Together.myName = name
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose { Together.myName = myName }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -168,7 +185,7 @@ fun TogetherHomeScreen(onBack: () -> Unit, onOpen: (String) -> Unit) {
         item {
             OutlinedTextField(
                 value = myName,
-                onValueChange = { myName = it; Together.myName = it },
+                onValueChange = { myName = it },
                 label = { Text(stringResource(R.string.together_your_name)) },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
