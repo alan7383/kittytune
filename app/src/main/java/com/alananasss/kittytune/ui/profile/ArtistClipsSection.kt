@@ -69,10 +69,12 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.alananasss.kittytune.data.network.ProxyManager
+import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.artist.ArtistClips
@@ -214,16 +216,32 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
         }
     }
 
-    // Configure ExoPlayer with browser User-Agent and cross-protocol redirects to prevent HTTP 403
+    // Configure ExoPlayer with OkHttpDataSource (supports HTTP/2 and modern TLS) and proper YouTube client headers to prevent HTTP 403
     val player = remember(clip) {
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(15_000)
+        val okHttpClient = ProxyManager.getOkHttpClient().newBuilder()
+            .addInterceptor { chain ->
+                val req = chain.request()
+                val url = req.url.toString()
+                val builder = req.newBuilder()
+                if (url.contains("googlevideo.com") || url.contains("youtube.com")) {
+                    val ua = if (YoutubeParsingHelper.isAndroidStreamingUrl(url)) {
+                        YoutubeParsingHelper.getAndroidUserAgent(null)
+                    } else if (YoutubeParsingHelper.isVisionOsStreamingUrl(url)) {
+                        YoutubeParsingHelper.getVisionOsUserAgent(null)
+                    } else {
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    }
+                    builder.header("User-Agent", ua)
+                    builder.header("Accept", "*/*")
+                    builder.header("Origin", "https://www.youtube.com")
+                    builder.header("Referer", "https://www.youtube.com/")
+                }
+                chain.proceed(builder.build())
+            }
+            .build()
+        val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
         val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-        val mediaSourceFactory = DefaultMediaSourceFactory(context)
-            .setDataSourceFactory(dataSourceFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)

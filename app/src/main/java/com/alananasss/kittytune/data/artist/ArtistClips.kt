@@ -143,12 +143,17 @@ object ArtistClips {
             StreamResolver.ensureExtractorReady()
             val extractor = ServiceList.YouTube.getStreamExtractor(clip.url)
             extractor.fetchPage()
-            extractor.videoStreams
+            val progressive = extractor.videoStreams
                 .filter { it.url != null && it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP }
                 .map { it to (it.resolution.substringBefore('p').toIntOrNull() ?: 0) }
                 .filter { (_, height) -> height <= MAX_HEIGHT }
                 .maxByOrNull { (_, height) -> height }
                 ?.first?.url
+            val resolvedUrl = progressive ?: extractor.videoStreams.firstOrNull { it.url != null }?.url
+            if (resolvedUrl != null) {
+                Log.d("ArtistClips", "Resolved stream for '${clip.title}': ${resolvedUrl.take(80)}...")
+            }
+            resolvedUrl
         }.onFailure { Log.w("ArtistClips", "No stream for ${clip.url}: ${it.message}") }.getOrNull()
     }
 
