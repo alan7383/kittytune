@@ -23,6 +23,7 @@ mp3agic = "0.9.1"
 glance = "1.2.0"
 markdown = "0.3.1"
 newpipe = "v0.26.5"
+paho = "1.2.5"
 rhino = "1.9.1"
 desugar = "2.1.5"
 webkit = "1.17.1"
@@ -86,6 +87,7 @@ androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidge
 androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "markdown" }
 newpipe-extractor = { group = "com.github.TeamNewPipe", name = "NewPipeExtractor", version.ref = "newpipe" }
+paho-mqtt = { group = "org.eclipse.paho", name = "org.eclipse.paho.client.mqttv3", version.ref = "paho" }
 rhino = { group = "org.mozilla", name = "rhino", version.ref = "rhino" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs_nio", version.ref = "desugar" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }

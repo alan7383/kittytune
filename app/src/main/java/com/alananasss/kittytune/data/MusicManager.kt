@@ -29,6 +29,7 @@ import androidx.media3.exoplayer.drm.DrmSessionManagerProvider
 import androidx.media3.exoplayer.drm.FrameworkMediaDrm
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.alananasss.kittytune.data.network.RetrofitClient
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.domain.Track
@@ -379,7 +380,7 @@ object MusicManager {
     var onPreviousClick: (() -> Unit)? = null
     var onShuffleClick: (() -> Unit)? = null
     private var rainPlayer: RainPlayer? = null
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     fun init(context: Context) {
         if (_player1 != null) return

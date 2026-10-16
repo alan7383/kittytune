@@ -589,6 +589,14 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 val targetScale = 1.0f
                 val targetAlpha = if (isActive) 1.0f else (if (index < activeIndex) 0.45f else 0.70f)
 
+                // The backing vocals of the line — the second phrase sung over the first — shown under the
+                // main line while it is sung (issue #66): the words the source marked as background, or the
+                // ones in round brackets, split out with their own timing.
+                val splitBacking = viewModel.isSplitBackingVocalsEnabled
+                val (mainLine, backingLine) = remember(line, splitBacking) {
+                    if (splitBacking) separateBackingVocals(line) else line to null
+                }
+
                 val scale by animateFloatAsState(targetScale, tween(400), label = "scale")
                 val alpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
 
@@ -635,7 +643,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                 ) {
                     val isWordSync = viewModel.isWordSyncEnabled
                     val isAppleEffect = viewModel.isAppleMusicEffectEnabled
-                    val displayWords = if (isWordSync) line.words.orEmpty() else emptyList()
+                    val displayWords = if (isWordSync) mainLine.words.orEmpty() else emptyList()
                     // effective textAlign follows the same singer override
                     val lineTextAlign = when(effectiveSinger) {
                         LyricSinger.SINGER_1 -> TextAlign.Start
@@ -645,12 +653,16 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                     }
 
                     if (isActive && displayWords.isNotEmpty()) {
-                        val formattedWords = remember(displayWords, line.text) {
-                            formatLyricWordContents(line.text, displayWords)
+                        val formattedWords = remember(displayWords, mainLine.text) {
+                            formatLyricWordContents(mainLine.text, displayWords)
                         }
                         if (isAppleEffect) {
                             var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
                             val reconstructedText = remember(formattedWords) { formattedWords.joinToString("") }
+                            // Reused across draws: the karaoke clip path is rebuilt at display rate
+                            // while playing, and a fresh native Path each frame was pure allocation
+                            // churn under the GC.
+                            val karaokePath = remember { Path() }
                             val wordRanges = remember(formattedWords) {
                                 val ranges = mutableListOf<Pair<Int, Int>>()
                                 var currentLen = 0
@@ -688,7 +700,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                                     modifier = Modifier.fillMaxWidth().drawWithContent {
                                         val currentPos = smoothDrawPosition + viewModel.lyricsOffset
                                         val layout = textLayoutResult ?: return@drawWithContent
-                                        val path = Path()
+                                        val path = karaokePath.apply { reset() }
                                         val safeTextLength = (reconstructedText.length - 1).coerceAtLeast(0)
                                         for (i in displayWords.indices) {
                                             val w = displayWords[i]
@@ -746,7 +758,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                             )
                         } else null
                         Text(
-                            text = line.text,
+                            text = mainLine.text,
                             style = MaterialTheme.typography.headlineMedium.copy(
                                 fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Bold,
                                 fontSize = fontSize.sp,
@@ -758,6 +770,36 @@ fun SyncedLyricsView(viewModel: PlayerViewModel) {
                             textAlign = lineTextAlign,
                             modifier = Modifier.fillMaxWidth()
                         )
+                    }
+                    // The backing line: shown only while the line is sung, smaller and slightly apart, the way
+                    // a second voice answers the first rather than a caption.
+                    if (backingLine != null) {
+                        AnimatedVisibility(
+                            visible = isActive,
+                            enter = fadeIn(tween(BACKING_ANIM_MS)) + expandVertically(
+                                tween(BACKING_ANIM_MS),
+                                expandFrom = Alignment.Top
+                            ) + slideInVertically(tween(BACKING_ANIM_MS)) { -it / 3 },
+                            exit = fadeOut(tween(BACKING_ANIM_MS)) + shrinkVertically(
+                                tween(BACKING_ANIM_MS),
+                                shrinkTowards = Alignment.Top
+                            ),
+                        ) {
+                            Text(
+                                text = backingLine.text,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = (fontSize * 0.72f).sp,
+                                    lineHeight = (fontSize * 1.0f).sp,
+                                    fontFamily = lyricsFontFamily
+                                ),
+                                color = Color.White.copy(alpha = 0.8f),
+                                textAlign = lineTextAlign,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 4.dp)
+                            )
+                        }
                     }
                     AnimatedVisibility(
                         visible = viewModel.isRomanizationEnabled && !line.romanization.isNullOrBlank(),
@@ -1626,6 +1668,13 @@ fun QuickLyricsSettingsDialog(
             )
 
             LyricsToggleRow(
+                title = stringResource(R.string.pref_lyrics_backing_vocals_title),
+                subtitle = stringResource(R.string.pref_lyrics_backing_vocals_sub),
+                checked = viewModel.isSplitBackingVocalsEnabled,
+                onCheckedChange = { viewModel.toggleSplitBackingVocals(it) }
+            )
+
+            LyricsToggleRow(
                 title = stringResource(R.string.pref_lyrics_translation_title),
                 subtitle = stringResource(R.string.pref_lyrics_translation_sub),
                 checked = enableTranslation,
@@ -1864,3 +1913,6 @@ fun CustomLyricsDialog(
         }
     }
 }
+
+/** How long the backing-vocal line takes to appear under the line being sung, and to leave. */
+private const val BACKING_ANIM_MS = 420

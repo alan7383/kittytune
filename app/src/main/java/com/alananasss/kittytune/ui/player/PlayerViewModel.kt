@@ -63,6 +63,7 @@ import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.data.network.SoundCloudTelemetryTracker
 import com.alananasss.kittytune.domain.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricLine
+import com.alananasss.kittytune.ui.player.lyrics.LyricSinger
 import com.alananasss.kittytune.ui.player.lyrics.LyricsUtils
 import com.google.gson.Gson
 import kotlinx.coroutines.*
@@ -109,7 +110,8 @@ data class UnifiedLyricResult(
     val rawContent: String? = null
 )
 
-class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+class PlayerViewModel(application: Application) : AndroidViewModel(application),
+    com.alananasss.kittytune.data.together.TogetherPlayer {
 
     private var remotePeer by mutableStateOf<ConnectPeerState?>(null)
     private var remotePosition by mutableLongStateOf(0L)
@@ -513,6 +515,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         private set
     var isDuetViewEnabled by mutableStateOf(playerPrefs.getLyricsDuetViewEnabled())
         private set
+    var isSplitBackingVocalsEnabled by mutableStateOf(playerPrefs.getLyricsSplitBackingVocalsEnabled())
+        private set
+    var isRevealWordsEnabled by mutableStateOf(playerPrefs.getLyricsRevealWordsEnabled())
+        private set
     var duetBlacklist by mutableStateOf(playerPrefs.getLyricsDuetBlacklist())
         private set
     var lyricsUiStyle by mutableStateOf(playerPrefs.getLyricsUiStyle())
@@ -634,6 +640,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         _sessionListenMs.longValue += session.listenedMs
 
+        // The wave learns from this listen, whatever the stats setting says: a skip that heard nothing
+        // of the song teaches it more than a completed play does (PR #77).
+        if (currentContext?.navigationId == MY_WAVE_NAV_ID) {
+            when (reason) {
+                "PLAY_COMPLETE" -> com.alananasss.kittytune.data.wave.WaveFeedback.onCompleted(track)
+                "SKIP_NEXT", "SKIP_PREVIOUS", "MANUAL_REPLAY" ->
+                    com.alananasss.kittytune.data.wave.WaveFeedback.onSkipped(track, session.listenedMs, track.durationMs ?: 0L)
+            }
+        }
+
         if (!playerPrefs.getListeningStatsEnabled()) return
 
         // Nothing heard at all is not a listen and not a skip — it is a track that was loaded. Recording it
@@ -653,6 +669,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     var sleepTimerRemainingMs by mutableLongStateOf(0L)
     var sleepTimerEndOfTrack by mutableStateOf(false)
     var showSleepTimerDialog by mutableStateOf(false)
+    // The night screen (desktop PR #77's sleep screen, mobile): a true-black clock left on while the
+    // music plays; opened from the player's menu, woken by a tap or the back button.
+    var showNightScreen by mutableStateOf(false)
     val isSleepTimerActive: Boolean get() = sleepTimerRemainingMs > 0L || sleepTimerEndOfTrack
     private var sleepTimerJob: Job? = null
     private var preFadeVolume: Float = 1f
@@ -673,6 +692,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
          * remove is precisely what would make this feel half-finished.
          */
         const val TRIM_TICK_MS = 20L
+        const val TOGETHER_NAV_PREFIX = "together:"
+        const val MY_WAVE_NAV_ID = "my_wave"
+        private const val TOGETHER_MAX_DRIFT_MS = 2_000L
+        private const val WAVE_LOW_WATER = 4
+
+        /** One source gets this long to answer before the parallel lyrics race moves on without it. */
+        private const val LYRICS_SOURCE_TIMEOUT_MS = 7_000L
 
         /** How long each volume ramp takes. Short enough not to read as a gap, long enough to leave no click. */
         const val TRIM_FADE_MS = 90L
@@ -755,7 +781,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             djCustomCrossfadeDurationMs = crossfadeDurationMs
             djCustomStartPositionMs = djState.incomingDropPointMs
             djCustomTempoRatio = djState.sync.tempoRatio
-            djCustomPhaseOffsetMs = djState.sync.phaseOffsetMs
+            djCustomPhaseOffsetMs = djFlowController.livePhaseOffsetMs
             MusicManager.beginCrossfadeRequest()
             com.alananasss.kittytune.audio.automix.AutomixManager.setMixBeatsLeft(null)
             playNext(manual = false, isCrossfade = true)
@@ -1375,6 +1401,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         SoundCloudTelemetryTracker.init(context)
         MusicManager.init(context)
         BlockManager.init(context)
+        com.alananasss.kittytune.data.together.Together.init(context)
+        com.alananasss.kittytune.data.together.Together.start(this)
 
         // Auto-skip when the current track is blocked
         BlockManager.onCurrentTrackBlocked = {
@@ -1863,6 +1891,16 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         playerPrefs.setLyricsDuetViewEnabled(enabled)
     }
 
+    fun toggleSplitBackingVocals(enabled: Boolean) {
+        isSplitBackingVocalsEnabled = enabled
+        playerPrefs.setLyricsSplitBackingVocalsEnabled(enabled)
+    }
+
+    fun toggleRevealWords(enabled: Boolean) {
+        isRevealWordsEnabled = enabled
+        playerPrefs.setLyricsRevealWordsEnabled(enabled)
+    }
+
     fun isTrackDuetBlacklisted(trackId: Long): Boolean = duetBlacklist.contains(trackId.toString())
 
     fun toggleTrackDuetBlacklist(trackId: Long) {
@@ -1919,19 +1957,34 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun fetchTranslationsForCurrentLines(targetLang: String = lyricsTranslationLang) {
         translationJob?.cancel()
         if (lyricsLines.isEmpty()) return
+        val trackId = lastFetchedMxmTrackId
         val originalLines = lyricsLines.map { it.text }.filter { it.isNotBlank() }.distinct()
 
         isTranslatingLyrics = true
         translationJob = viewModelScope.launch(Dispatchers.IO) {
-            val translationMap =
-                com.alananasss.kittytune.data.network.FreeTranslator.translateMissing(originalLines, targetLang)
+            // The crowd's translations first when Musixmatch has them for this exact track: a human's reading
+            // of the line beats a machine's every time.
+            val known = mutableMapOf<String, String>()
+            if (trackId != null) {
+                try {
+                    val token = MusixmatchClient.getValidToken(context)
+                    val translationsRes = MusixmatchClient.api.getTranslations(trackId = trackId, lang = targetLang, token = token)
+                    translationsRes.message.body?.translationsList?.forEach { wrapper ->
+                        wrapper.translation?.let { t ->
+                            known[t.matchedLine.trim()] = t.description.trim()
+                        }
+                    }
+                } catch (_: Exception) {
+                }
+            }
+            // Only what the reader cannot read already: foreign sentences whole, foreign words in their own
+            // language's lines word by word, and nothing at all under lines in their own language.
+            val smart = com.alananasss.kittytune.util.SmartTranslation.forLines(originalLines, targetLang, known = known)
             withContext(Dispatchers.Main) {
                 for (i in lyricsLines.indices) {
                     val oldLine = lyricsLines[i]
-                    val newTranslation = translationMap[oldLine.text.trim()]
-                    if (newTranslation != null && !newTranslation.trim().equals(oldLine.text.trim(), ignoreCase = true)) {
-                        lyricsLines[i] = oldLine.copy(translation = newTranslation)
-                    }
+                    val newTranslation = smart[oldLine.text.trim()]
+                    lyricsLines[i] = oldLine.copy(translation = newTranslation)
                 }
                 isTranslatingLyrics = false
                 lyricsRevision++
@@ -2146,6 +2199,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         lyricsMode = if (payload.lines.isNotEmpty()) LyricsMode.SYNCED else LyricsMode.PLAIN
         isLyricsLoading = false
         lyricsRevision++
+        currentTrack?.let { refineLyricVoices(it) }
 
         if (isLyricsTranslationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.translation.isNullOrBlank() }) {
             fetchTranslationsForCurrentLines(lyricsTranslationLang)
@@ -2153,6 +2207,67 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         if (isRomanizationEnabled && lyricsLines.isNotEmpty() && lyricsLines.none { !it.romanization.isNullOrBlank() }) {
             fetchRomanizationForCurrentLines()
         }
+    }
+
+    // --- Genius duet voices --------------------------------------------------------------------------
+
+    /** Who sings each line, per track, as worked out from Genius: an empty list when Genius could not tell. */
+    private val lyricVoicesCache = com.alananasss.kittytune.core.BoundedCache<Long, List<LyricSinger>>(64)
+    private var lyricVoicesJob: Job? = null
+
+    /**
+     * Gives the synced lines on screen the voice Genius says sings each of them, for the duet view: two artists
+     * on two sides, and no duet for a song one artist sings throughout. Runs after the lyrics are shown and only
+     * touches them if they are still the ones it looked at.
+     * See [com.alananasss.kittytune.data.lyrics.GeniusVoices] — the desktop app's version of the same
+     * idea, kept in step: a song is a duet on the phone exactly when it is one on the desktop.
+     */
+    private fun refineLyricVoices(track: Track) {
+        lyricVoicesJob?.cancel()
+        if (!isDuetViewEnabled || lyricsLines.isEmpty()) return
+        val lines = lyricsLines.toList()
+        lyricVoicesJob = viewModelScope.launch(Dispatchers.IO) {
+            val voices = lyricVoicesCache[track.id] ?: findLyricVoices(track, lines).also { lyricVoicesCache[track.id] = it }
+            if (voices.size != lines.size) return@launch
+            withContext(Dispatchers.Main) {
+                if (currentTrack?.id != track.id || lyricsLines.toList() != lines) return@withContext
+                val voiced = lines.mapIndexed { i, line -> line.copy(singer = voices[i], agent = null) }
+                lyricsLines.clear()
+                lyricsLines.addAll(voiced)
+                lyricsRevision++
+            }
+        }
+    }
+
+    /** The voices for [lines] from the track's Genius page, or an empty list when there is no page or no answer. */
+    private suspend fun findLyricVoices(track: Track, lines: List<LyricLine>): List<LyricSinger> {
+        val effectiveArtist = track.displayArtist.ifBlank { track.user?.username.orEmpty() }
+        val (artist, title) = parseArtistAndTitle(track.title ?: "", effectiveArtist)
+        val songTitle = LyricsMatcher.titleParts(title).firstOrNull() ?: title
+        val target = LyricsMatcher.Target(
+            title = songTitle,
+            artist = artist,
+            durationMs = track.durationMs ?: 0L,
+            alternativeArtists = listOfNotNull(track.displayArtist, track.user?.username).filter { it.isNotBlank() },
+        )
+        val hit = com.alananasss.kittytune.data.network.GeniusClient.search("$songTitle $artist".trim())
+            .filter { LyricsMatcher.isAcceptable(it.title, it.artist, target) }
+            .maxByOrNull { LyricsMatcher.score(it.title, it.artist, 0.0, target) }
+            ?: return emptyList()
+        // The HTML, for the formatting that says who sings each line of a shared part; plain text as a fallback.
+        val page = com.alananasss.kittytune.data.network.GeniusClient.lyricsHtml(hit.id)
+            ?.let(com.alananasss.kittytune.data.lyrics.GeniusVoices::parseHtml)
+            ?: com.alananasss.kittytune.data.network.GeniusClient.lyrics(hit.id)
+                ?.let(com.alananasss.kittytune.data.lyrics.GeniusVoices::parsePlain)
+            ?: return emptyList()
+        // Who is credited, in order: the artist part of the title ("OD1NOKO + Kai Angel - song"), the account, the
+        // Genius credit, and anyone the title adds with "feat." — some uploads name the second artist only there.
+        val featured = Regex("""(?i)(?:\(|\[|\s)(?:feat\.?|ft\.?|featuring|with)\s+([^)\]]+)""")
+            .findAll(track.title.orEmpty()).flatMap { com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(it.groupValues[1]).asSequence() }.toList()
+        val credited = com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(artist) +
+            com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(effectiveArtist) +
+            com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(hit.artistNames.orEmpty()) + featured
+        return com.alananasss.kittytune.data.lyrics.GeniusVoices.voicesFor(lines, page, credited).orEmpty()
     }
 
     /** Lyrics tagged into the downloaded file, when the user asked for those to come first. */
@@ -2275,47 +2390,58 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             .filter { playerPrefs.getLyricsProviderEnabled(it) }
             .ifEmpty { DefaultLyricsProviderOrder }
 
-        var best: LyricsCandidate? = null
-
-        for (providerId in orderedProviders) {
-            if (!isActive) return@coroutineScope null
-
-            val candidate = when (providerId) {
-                PreferredLyricsProvider.MUSIXMATCH -> {
-                    val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
-                    searchMusixmatchCandidates(query, target, trackDurationMs, variant).firstOrNull()
-                }
-                PreferredLyricsProvider.LRCLIB -> {
-                    val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
-                    searchLrcLibCandidates(query, target, trackDurationMs).maxByOrNull { it.rank }
-                }
-                PreferredLyricsProvider.GENIUS -> {
-                    null // Checked at end as fallback
-                }
-                else -> {
-                    searchGenericProviderCandidate(
-                        prefProvider = providerId,
-                        target = target,
-                        trackDurationMs = trackDurationMs,
-                        trackId = track.id.toString(),
-                        albumTitle = track.publisherMetadata?.albumTitle,
-                    )
-                }
+        // Ask every source at once (issue #33 on desktop): sequential-with-first-usable let plain text
+        // from the first provider beat line-timed lyrics from the fifth. Identity (a confident match)
+        // now outranks sync tier, which outranks match rank, which outranks the user's provider order.
+        suspend fun candidateFrom(providerId: PreferredLyricsProvider): LyricsCandidate? = when (providerId) {
+            PreferredLyricsProvider.MUSIXMATCH -> {
+                val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
+                searchMusixmatchCandidates(query, target, trackDurationMs, variant).firstOrNull()
+                    // "NEWYORK" as SoundCloud titles it is only found spelled out: the spelling Genius gives it.
+                    ?: com.alananasss.kittytune.data.lyrics.TitleSpellings.respelled(query)?.let { respelled ->
+                        searchMusixmatchCandidates(respelled, target, trackDurationMs, variant).firstOrNull()
+                    }
             }
-
-            if (candidate != null && candidate.isUsable) {
-                best = candidate
-                break
+            PreferredLyricsProvider.LRCLIB -> {
+                val query = queries.firstOrNull() ?: "${target.title} ${target.artist}".trim()
+                searchLrcLibCandidates(query, target, trackDurationMs).maxByOrNull { it.rank }
+                    ?: com.alananasss.kittytune.data.lyrics.TitleSpellings.respelled(query)?.let { respelled ->
+                        searchLrcLibCandidates(respelled, target, trackDurationMs).maxByOrNull { it.rank }
+                    }
+            }
+            PreferredLyricsProvider.GENIUS -> {
+                null // Checked at end as fallback: no timings, cannot compete in the race
+            }
+            else -> {
+                searchGenericProviderCandidate(
+                    prefProvider = providerId,
+                    target = target,
+                    trackDurationMs = trackDurationMs,
+                    trackId = track.id.toString(),
+                    albumTitle = track.publisherMetadata?.albumTitle,
+                )
             }
         }
 
+        val answers = orderedProviders.map { providerId ->
+            async(Dispatchers.IO) {
+                withTimeoutOrNull(LYRICS_SOURCE_TIMEOUT_MS) { runCatching { candidateFrom(providerId) }.getOrNull() }
+            }
+        }.awaitAll()
+
+        val best = answers.withIndex()
+            .mapNotNull { (i, c) -> c?.takeIf { it.isUsable }?.let { i to it } }
+            .maxWithOrNull(
+                compareBy<Pair<Int, LyricsCandidate>> { (_, c) -> if (c.matchScore >= LyricsMatcher.CONFIDENT_MATCH) 1 else 0 }
+                    .thenBy { (_, c) -> c.syncTier }
+                    .thenBy { (_, c) -> c.rank }
+                    .thenByDescending { (i, _) -> i } // earlier provider order wins ties
+            )?.second
 
         // Genius only once everything else has come up empty
-        if (best == null && playerPrefs.getLyricsProviderEnabled(PreferredLyricsProvider.GENIUS)) {
-            best = searchGeniusCandidate(queries, target)
-        }
-
-        val candidate = best ?: return@coroutineScope null
+        val candidate = best
+            ?: (if (playerPrefs.getLyricsProviderEnabled(PreferredLyricsProvider.GENIUS)) searchGeniusCandidate(queries, target) else null)
+            ?: return@coroutineScope null
         val syncedLines =
             if (candidate.syncTier >= LyricsMatcher.SYNC_TIER_LINE) candidate.lines else emptyList()
         LyricsPayload(
@@ -2459,8 +2585,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         val texts = lines.map { it.text }.filter { it.isNotBlank() }.distinct()
         val translations = if (wantsTranslation) {
-            com.alananasss.kittytune.data.network.FreeTranslator
-                .translateMissing(texts, variant.translationLang!!)
+            // Only the lines the reader cannot already read: foreign sentences whole, foreign words glossed
+            // word by word, nothing under their own lines.
+            com.alananasss.kittytune.util.SmartTranslation.forLines(texts, variant.translationLang!!)
         } else {
             emptyMap()
         }
@@ -3650,6 +3777,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 currentUser = me
                 playerPrefs.setCachedUserId(me.id)
                 playerPrefs.setCachedUsername(me.username)
+                com.alananasss.kittytune.data.together.Together.defaultName = me.username ?: "Listener"
                 SoundCloudTelemetryTracker.updateCurrentUserId(me.id)
             } catch (_: Exception) {
             }
@@ -3679,6 +3807,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         context: PlaybackContext? = null,
         maintainPlayerState: Boolean = false,
         autoPlay: Boolean = true,
+        respectShuffle: Boolean = true,
     ) {
         if (!applyingConnectCommand && autoPlay && ConnectManager.selectedDevice.value != null && tracks.isNotEmpty()) {
             val index = startIndex.coerceIn(0, tracks.lastIndex)
@@ -3688,6 +3817,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             ConnectManager.command(ConnectManager.selectedDevice.value!!, "transfer", state = state)
             pendingSeekPosition = null
             return
+        }
+
+        // Leaving the app's own navigation for something that is not the shared playlist means leaving it.
+        if (!applyingTogether && context?.navigationId?.startsWith(TOGETHER_NAV_PREFIX) != true) {
+            com.alananasss.kittytune.data.together.Together.stopListening()
         }
 
         SyncPlayback.claimLocal()
@@ -3708,7 +3842,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         val isHistoryContext =
             context?.navigationId == "history" || context?.navigationId?.startsWith("history") == true
 
-        if (shuffleEnabled) {
+        if (shuffleEnabled && respectShuffle) {
             val clickedTrack = cleanTracks[effectiveStartIndex]
             val rest =
                 cleanTracks.filterIndexed { index, _ -> index != effectiveStartIndex }.shuffled()
@@ -3917,6 +4051,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
             prefetchWaveformsForQueue(index)
 
+            // The host's song changed: the shared playlist wants to know at once, not at the next tick.
+            com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
+
             if (addToHistory && currentContext?.navigationId?.startsWith("station:") != true && currentContext?.navigationId?.startsWith(
                     "yt_radio:"
                 ) != true
@@ -4017,6 +4154,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     ) {
         if (manual && routeRemote("next")) return
         if (isAutoplayRadioLoading) return
+        if (manual && !applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_NEXT, currentPosition
+            )
+        }
 
         if (manual && player.currentPosition > 2000) {
             incrementPlayCount()
@@ -4037,6 +4179,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         val nextIndex = currentQueueIndex + 1
+
+        // The wave tops itself up before it runs dry (PR #77): the listener never sees the end.
+        if (!manual && nextIndex >= _queue.size - WAVE_LOW_WATER && currentContext?.navigationId == MY_WAVE_NAV_ID) {
+            viewModelScope.launch { refillWaveIfLow() }
+        }
 
         if (manual) {
             AchievementManager.trackSkipped()
@@ -4262,6 +4409,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun smartPrevious() {
         if (routeRemote("previous")) return
+        if (!applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PREVIOUS, currentPosition
+            )
+        }
         val pos = maxOf(player.currentPosition, currentPosition)
         if (pos > 2000) {
             incrementPlayCount()
@@ -4435,6 +4587,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun togglePlayPause() {
         if (routeRemote(if (uiIsPlaying) "pause" else "play")) return
+        if (!applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                if (player.isPlaying) com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PAUSE
+                else com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PLAY,
+                currentPosition
+            )
+        }
         SyncPlayback.claimLocal()
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
             context,
@@ -4471,6 +4630,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun seekTo(position: Long) {
         if (routeRemote("seek", position)) { isScrubbing = false; return }
+        if (!applyingTogether && com.alananasss.kittytune.data.together.Together.active.value != null) {
+            com.alananasss.kittytune.data.together.Together.control(
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_SEEK, position
+            )
+        }
         SyncPlayback.claimLocal()
         MusicManager.releasePrebuffered()
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.triggerInteractionHaptic(
@@ -4483,6 +4647,243 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         com.alananasss.kittytune.audio.haptics.PlayerHapticManager.getInstance(context).onPositionDiscontinuity(position)
         SoundCloudTelemetryTracker.onTrackSeeked(position)
         saveStateAsync(saveQueue = false)
+    }
+
+    // ─── Shared playlist ─────────────────────────────────────────────────────────────────────────────
+    // See [com.alananasss.kittytune.data.together.Together]. While the player follows the host, its own actions
+    // are not sent back out.
+
+    private var applyingTogether = false
+
+    // Bumped by every incoming host State so a stale deferred action knows it was overtaken; see
+    // followHost's 600 ms pause for why that matters.
+    private var togetherFollowGeneration = 0
+
+    /** How many "play next" requests have gone in after the song playing, so the next one goes after them. */
+    private var togetherNextOffset = 0
+
+    private fun togetherContext(): PlaybackContext {
+        val code = com.alananasss.kittytune.data.together.Together.active.value.orEmpty()
+        val name = com.alananasss.kittytune.data.together.Together.rooms.value[code]?.name.orEmpty()
+        return PlaybackContext(
+            displayText = name.ifBlank { getString(R.string.together_title) },
+            navigationId = TOGETHER_NAV_PREFIX + code
+        )
+    }
+
+    override fun sharedCurrent() = currentTrack?.let { com.alananasss.kittytune.data.together.SharedTrack.of(it) }
+    override fun sharedPositionMs() = currentPosition
+    override fun sharedIsPlaying() = isPlaying
+    override fun sharedUpcoming() =
+        _queue.drop(currentQueueIndex + 1).map { com.alananasss.kittytune.data.together.SharedTrack.of(it) }
+    override fun sharedAutomix() = playerPrefs.getAutomixEnabled()
+
+    override fun followHost(
+        track: com.alananasss.kittytune.data.together.SharedTrack,
+        positionMs: Long,
+        isPlaying: Boolean,
+        upcoming: List<com.alananasss.kittytune.data.together.SharedTrack>?,
+        automix: Boolean,
+    ) {
+        applyingTogether = true
+        try {
+            // Every State bumps this: a pending deferred pause from an older State is overtaken by
+            // any newer one, whether it pauses (applies it immediately below) or resumes (the
+            // stale pause must not fire after it).
+            val generation = ++togetherFollowGeneration
+            if (playerPrefs.getAutomixEnabled() != automix) playerPrefs.setAutomixEnabled(automix)
+            if (currentTrack?.id != track.id) {
+                pendingSeekPosition = positionMs
+                val tracks = listOf(track) + upcoming.orEmpty().filter { it.id != track.id }
+                playPlaylist(
+                    tracks.map { it.toTrack() }, 0, togetherContext(),
+                    maintainPlayerState = true, autoPlay = true, respectShuffle = false
+                )
+                // The 600 ms grace lets playPlaylist spin up before pausing into the host's state.
+                // It must not outlive a newer State: a host that resumed within the window had its
+                // older "paused" State still pause the follower afterwards, contradicting the
+                // fresher one — so the deferred pause only fires when no newer State has arrived.
+                if (!isPlaying) {
+                    viewModelScope.launch {
+                        delay(600)
+                        if (generation == togetherFollowGeneration) {
+                            applyingTogether = true
+                            try {
+                                pause()
+                            } finally {
+                                applyingTogether = false
+                            }
+                        }
+                    }
+                }
+                return
+            }
+            if (kotlin.math.abs(currentPosition - positionMs) > TOGETHER_MAX_DRIFT_MS) seekTo(positionMs)
+            if (isPlaying != this.isPlaying) togglePlayPause()
+            if (upcoming != null) {
+                val mine = _queue.drop(currentQueueIndex + 1).map { it.id }
+                if (mine != upcoming.map { it.id }) {
+                    clearUpcoming()
+                    appendToQueue(upcoming.map { it.toTrack() })
+                }
+            }
+        } finally {
+            applyingTogether = false
+        }
+    }
+
+    override fun hostControl(action: String, positionMs: Long) {
+        applyingTogether = true
+        try {
+            when (action) {
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PAUSE -> if (isPlaying) togglePlayPause()
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PLAY -> if (!isPlaying) togglePlayPause()
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_SEEK -> seekTo(positionMs)
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_NEXT -> playNext(manual = true)
+                com.alananasss.kittytune.data.together.TogetherMessage.CONTROL_PREVIOUS -> smartPrevious()
+            }
+        } finally {
+            applyingTogether = false
+        }
+        com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
+    }
+
+    override fun hostPlayNext(track: com.alananasss.kittytune.data.together.SharedTrack) {
+        val at = (currentQueueIndex + 1 + togetherNextOffset).coerceIn(0, _queue.size)
+        val item = track.toTrack()
+        _queue.add(at, item)
+        _originalQueue.add(item)
+        togetherNextOffset++
+        updateQueueState()
+        if (MusicManager.player.mediaItemCount > 1) {
+            try {
+                MusicManager.player.removeMediaItem(1)
+            } catch (_: Exception) {
+            }
+        }
+        preloadNextTrack(currentQueueIndex + 1)
+        saveStateAsync(saveQueue = true)
+        com.alananasss.kittytune.data.together.Together.onHostPlaybackChanged()
+    }
+
+    override fun hostPlay(tracks: List<com.alananasss.kittytune.data.together.SharedTrack>, index: Int) {
+        applyingTogether = true
+        try {
+            playPlaylist(
+                tracks.map { it.toTrack() }, index, togetherContext(),
+                maintainPlayerState = true, autoPlay = true, respectShuffle = false
+            )
+        } finally {
+            applyingTogether = false
+        }
+    }
+
+    /** Whether automix may be switched here: not by a listener following someone else's shared playlist. */
+    val mayChangeAutomix: Boolean get() = com.alananasss.kittytune.data.together.Together.mayChangeAutomix()
+
+    /** Drops everything after the song playing, in both the live queue and the unshuffled original. */
+    private fun clearUpcoming() {
+        while (_queue.size > currentQueueIndex + 1) _queue.removeAt(_queue.size - 1)
+        val playing = currentTrack?.id
+        if (playing != null) {
+            val idx = _originalQueue.indexOfFirst { it.id == playing }
+            if (idx >= 0 && idx + 1 < _originalQueue.size) {
+                _originalQueue.subList(idx + 1, _originalQueue.size).clear()
+            }
+        }
+        togetherNextOffset = 0
+        updateQueueState()
+        if (MusicManager.player.mediaItemCount > 1) {
+            try {
+                MusicManager.player.removeMediaItem(1)
+            } catch (_: Exception) {
+            }
+        }
+        saveStateAsync(saveQueue = true)
+    }
+
+    /** Adds [tracks] to the end of the live queue, as a shared playlist's host re-plays its own tail. */
+    private fun appendToQueue(tracks: List<Track>) {
+        val clean = com.alananasss.kittytune.data.BlockManager.filterBlocked(tracks)
+        if (clean.isEmpty()) return
+        _queue.addAll(clean)
+        _originalQueue.addAll(clean)
+        updateQueueState()
+        saveStateAsync(saveQueue = true)
+    }
+
+    // ─── MyWave ─────────────────────────────────────────────────────────────────────────────
+    // See [com.alananasss.kittytune.data.wave.MyWave]: a personal radio that keeps playing.
+
+    val isMyWaveActive: Boolean get() = currentContext?.navigationId == MY_WAVE_NAV_ID
+
+    val waveMode: com.alananasss.kittytune.data.wave.MyWave.WaveMode
+        get() = playerPrefs.getWaveMode()
+
+    var isWaveLoading by mutableStateOf(false)
+        private set
+
+    private var waveJob: Job? = null
+
+    /** Starts the wave, or switches its mode; the current song, if any, keeps playing through it. */
+    fun startMyWave(mode: com.alananasss.kittytune.data.wave.MyWave.WaveMode = waveMode) {
+        val previousMode = playerPrefs.getWaveMode()
+        playerPrefs.setWaveMode(mode)
+        waveJob?.cancel()
+        if (isMyWaveActive && previousMode == mode) {
+            togglePlayPause()
+            return
+        }
+        waveJob = viewModelScope.launch {
+            isWaveLoading = true
+            try {
+                if (isMyWaveActive) {
+                    // Changing the mode mid-wave: replace what has not played yet, keep the song playing.
+                    val played = _queue.take(currentQueueIndex + 1).map { it.id }.toSet()
+                    val batch = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played)
+                    if (batch.isNotEmpty()) {
+                        clearUpcoming()
+                        appendToQueue(batch)
+                    }
+                } else {
+                    val played = _queue.take(currentQueueIndex + 1).map { it.id }.toSet()
+                    var batch = com.alananasss.kittytune.data.wave.MyWave.quickBatch(mode, played)
+                    if (batch.isEmpty()) batch = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played)
+                    if (batch.isEmpty()) {
+                        emitUiEvent(getString(R.string.wave_nothing_yet))
+                        return@launch
+                    }
+                    playPlaylist(
+                        tracks = batch,
+                        startIndex = 0,
+                        context = PlaybackContext(displayText = getString(R.string.wave_title), navigationId = MY_WAVE_NAV_ID),
+                        maintainPlayerState = isPlaying,
+                        autoPlay = true,
+                        respectShuffle = false,
+                    )
+                    val rest = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played + batch.map { it.id }.toSet())
+                    if (rest.isNotEmpty()) appendToQueue(rest)
+                }
+            } finally {
+                isWaveLoading = false
+            }
+        }
+    }
+
+    /** The queue under the wave is refilled before it runs out, so the wave never ends on its own. */
+    private suspend fun refillWaveIfLow() {
+        val mode = playerPrefs.getWaveMode()
+        val played = _queue.take(currentQueueIndex + 1).map { it.id }.toSet() +
+            _queue.drop(currentQueueIndex + 1).map { it.id }.toSet()
+        val batch = com.alananasss.kittytune.data.wave.MyWave.nextBatch(mode, played)
+        if (batch.isNotEmpty()) appendToQueue(batch)
+    }
+
+    /** A thumbs-down inside the wave: the track is blocked, the artist silenced, the next one plays. */
+    fun dislikeCurrentTrackInWave() {
+        val track = currentTrack ?: return
+        com.alananasss.kittytune.data.wave.WaveFeedback.onDisliked(track)
+        playNext(manual = true)
     }
 
     /** Fetches the waveform_url for a track using the single-track endpoint (includes waveform_url). */
@@ -4507,6 +4908,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
         if (isLiked) {
             LikeRepository.addLike(t)
+            com.alananasss.kittytune.data.wave.WaveFeedback.onLiked(t)
             AchievementManager.increment("liker_50")
             AchievementManager.increment("liker_1000")
             AchievementManager.increment("liker_5000")
@@ -5303,6 +5705,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch { _uiEvent.emit(msg) }
     }
 
+
     /** Captured on the UI thread; a live controller never overwrites the local player. */
     private fun connectVolume(): Float {
         val audio = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
@@ -6060,7 +6463,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                         djCustomPhaseOffsetMs = null
                         p
                     } else if (isDjFlowOn) {
-                        djState.sync.phaseOffsetMs
+                        djFlowController.livePhaseOffsetMs
                     } else 0L
 
                     val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan
@@ -6253,7 +6656,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                             djCustomPhaseOffsetMs = null
                             p
                         } else if (djFlowController.flowState.value.isActive) {
-                            djFlowController.flowState.value.sync.phaseOffsetMs
+                            djFlowController.livePhaseOffsetMs
                         } else 0L
 
                         val automixPlan = com.alananasss.kittytune.audio.automix.AutomixManager.currentAutomixPlan

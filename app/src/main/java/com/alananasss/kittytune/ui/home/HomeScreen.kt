@@ -768,6 +768,14 @@ fun HomeContent(
             }
         }
 
+        // MyWave: the personal radio, one press, always something on (PR #77).
+        item {
+            com.alananasss.kittytune.ui.home.MyWaveCard(
+                playerViewModel = playerViewModel,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+        }
+
         if (showHomeListeningStats) {
             item {
                 ListeningStatsCard(
@@ -880,6 +888,31 @@ fun LazyListScope.RenderHomeSection(
                     val tracks = section.content.filterIsInstance<Track>()
                     items(tracks) { track ->
                         HighlightTrackCard(track) { playerViewModel.playPlaylist(listOf(track), 0, null) }
+                    }
+                }
+            }
+
+            SectionType.ARTIST_UPDATES_ROW -> {
+                // New songs from the artists the listener already plays, their shelf cut where the
+                // releases actually come out: on Fridays. A slim marker stands at each week's start,
+                // and a press plays the whole shelf from the song pressed (desktop PR #77, mobile UI).
+                // Grouped here rather than in the row's scope, which is not composable.
+                val tracks = section.content.filterIsInstance<Track>()
+                val groups = remember(tracks) { ReleaseWeeks.group(tracks) }
+                val language = com.alananasss.kittytune.utils.LocaleUtils.getLocale(context).language
+                StandardHorizontalSection(
+                    title = locTitle,
+                    subtitle = locSub
+                ) {
+                    groups.forEach { group ->
+                        item(key = "artist_updates_week_${group.week}") {
+                            ReleaseWeekMarker(group, language)
+                        }
+                        items(group.tracks) { track ->
+                            TrackCardModern(track) {
+                                playerViewModel.playPlaylist(tracks, tracks.indexOf(track), null)
+                            }
+                        }
                     }
                 }
             }
@@ -1019,6 +1052,19 @@ fun ExplorerSection(onNavigate: (String) -> Unit) {
                 label = stringResource(R.string.explorer_moods_genres),
                 baseColor = MaterialTheme.colorScheme.secondary,
                 onClick = { onNavigate("genres") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ExplorerButton(
+                icon = Icons.Rounded.Groups,
+                label = stringResource(R.string.together_title),
+                baseColor = MaterialTheme.colorScheme.tertiary,
+                onClick = { onNavigate("together") },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1540,6 +1586,49 @@ fun StationCardLarge(playlist: Playlist, onClick: () -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+}
+
+/**
+ * Where one release week begins in the "From your artists" shelf: a slim standing marker on the theme's
+ * accent, the week's name and the Friday its songs came out on (desktop PR #77, mobile UI).
+ */
+@Composable
+private fun ReleaseWeekMarker(group: ReleaseWeeks.Group, language: String) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .height(160.dp)
+            .width(58.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(scheme.primary.copy(alpha = 0.14f))
+            .padding(horizontal = 6.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = when (group.week) {
+                ReleaseWeeks.Week.THIS_FRIDAY -> stringResource(R.string.home_releases_this_friday)
+                ReleaseWeeks.Week.LAST_FRIDAY -> stringResource(R.string.home_releases_last_friday)
+                ReleaseWeeks.Week.EARLIER -> stringResource(R.string.home_releases_earlier)
+            },
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            color = scheme.primary,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        group.since?.let { since ->
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = ReleaseWeeks.shortDate(since, language),
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.primary.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

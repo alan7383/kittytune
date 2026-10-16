@@ -532,6 +532,9 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
                         if (isAppleEffect) {
                             var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
                             val reconstructedText = remember(formattedWords) { formattedWords.joinToString("") }
+                            // Reused across draws: the karaoke sweep runs at display rate, and a
+                            // fresh native Path per frame was pure allocation churn under the GC.
+                            val karaokePath = remember { Path() }
                             val wordRanges = remember(formattedWords) {
                                 val ranges = mutableListOf<Pair<Int, Int>>()
                                 var currentLen = 0
@@ -569,7 +572,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
                                     modifier = Modifier.fillMaxWidth().drawWithContent {
                                         val currentPos = smoothDrawPosition + viewModel.lyricsOffset
                                         val layout = textLayoutResult ?: return@drawWithContent
-                                        val path = Path()
+                                        val path = karaokePath.apply { reset() }
                                         val safeTextLength = (reconstructedText.length - 1).coerceAtLeast(0)
                                         for (i in displayWords.indices) {
                                             val w = displayWords[i]
@@ -806,6 +809,7 @@ fun PlayerScreen(
         ) {
             com.alananasss.kittytune.ui.player.dj.DjFlowPanel(
                 state = djState,
+                beatTick = viewModel.djFlowController.beatTick,
                 onToggleDj = viewModel.djFlowController::enableDjMode,
                 onEnergyMode = viewModel.djFlowController::setEnergyMode,
                 onMixNow = { viewModel.djFlowController.triggerTransition() },
@@ -1031,9 +1035,12 @@ fun NewPlayerScreen(
             }
 
             PlayerBackgroundStyle.APPLE_MUSIC -> {
+                // The night screen covers this fully: freeze the drift while it is up, and save the
+                // 30 fps of AGSL blur nobody can see.
                 FluidArtworkBackground(
                     artworkUrl = track.fullResArtwork,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    motionSuppressed = viewModel.showNightScreen
                 ) {
                     AsyncImage(
                         model = track.fullResArtwork,
@@ -1526,6 +1533,25 @@ fun NewPlayerScreen(
         SleepTimerDialog(viewModel)
         TrackTrimDialog(viewModel)
         DjDevDebugSheet(viewModel)
+
+        // The night screen over the whole player: fades in over it, and everything under stays untouched.
+        if (viewModel.showNightScreen) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = true,
+                enter = androidx.compose.animation.fadeIn(
+                    androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
+                ),
+                exit = androidx.compose.animation.fadeOut(
+                    androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutLinearInEasing)
+                ),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                com.alananasss.kittytune.ui.player.NightScreen(
+                    viewModel = viewModel,
+                    onWake = { viewModel.showNightScreen = false },
+                )
+            }
+        }
     }
 }
 
@@ -2257,6 +2283,16 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     stringResource(R.string.sleep_timer_title),
                     id = "sleep_timer"
                 ) { viewModel.showSleepTimerDialog = true })
+            // The night screen: a true-black clock that keeps the screen awake and drifts, for leaving on.
+            add(
+                DockOptionItem(
+                    Icons.Rounded.DarkMode,
+                    stringResource(R.string.night_screen_title),
+                    id = "night_screen"
+                ) {
+                    viewModel.showMenuSheet = false
+                    viewModel.showNightScreen = true
+                })
             // Only for the track that is playing: the editor's whole method is "listen, mark here", so it
             // needs a playhead to mark from (issue #33).
             add(
@@ -3961,7 +3997,16 @@ fun WaveformPlayerProgress(
         }
     }
 
-    val currentPositionMs = if (isDragging) dragPosition else smoothDrawPosition
+    // The smoothing state below is written every frame while playing; it used to be read in this
+    // composable's body, which recomposed the whole waveform — AnimatedContent, gestures, badges —
+    // at display rate. Everything that needs it continuously now reads it in the draw phase or
+    // through a quantized derived value, so a frame of playback costs a redraw, not a recomposition.
+    val displayedPositionBucket by remember {
+        derivedStateOf { ((if (isDragging) dragPosition else smoothDrawPosition).toLong()) / 200L }
+    }
+    val displayedPositionSecond by remember {
+        derivedStateOf { ((if (isDragging) dragPosition else smoothDrawPosition).toLong()) / 1000L }
+    }
 
     LaunchedEffect(isDragging, if (isDragging) dragPosition else 0f) {
         if (isDragging) {
@@ -4023,13 +4068,13 @@ fun WaveformPlayerProgress(
         )
     }
 
-    LaunchedEffect(currentPositionMs.toLong() / 200L, sortedComments, showCommentsPopup, isDragging) {
+    LaunchedEffect(displayedPositionBucket, sortedComments, showCommentsPopup, isDragging) {
         if (isDragging || !showCommentsPopup || sortedComments.isEmpty()) {
             displayedComment = null
             return@LaunchedEffect
         }
 
-        val currentMs = currentPositionMs.toLong()
+        val currentMs = displayedPositionBucket * 200L
         val current = displayedComment
 
         if (current != null) {
@@ -4070,7 +4115,7 @@ fun WaveformPlayerProgress(
 
     var activeReaction by remember { mutableStateOf<PlayerViewModel.WaveformReactionParticle?>(null) }
 
-    val currentSecond = (currentPositionMs / 1000L).toLong()
+    val currentSecond = displayedPositionSecond
     var lastTriggeredReactionSecond by remember { mutableLongStateOf(-1L) }
 
     LaunchedEffect(currentSecond, viewModel.trackReactionUsers, isDragging) {
@@ -4215,12 +4260,6 @@ fun WaveformPlayerProgress(
 
             val centerX = canvasWidthPx / 2f
 
-            val progressFrac = if (totalDuration > 0f)
-                (currentPositionMs / totalDuration).coerceIn(0f, 1f)
-            else 0f
-
-            val waveformLeft = centerX - (progressFrac * totalWaveformPx)
-
             var lastHapticTime by remember { mutableLongStateOf(0L) }
 
             Canvas(
@@ -4279,6 +4318,13 @@ fun WaveformPlayerProgress(
                 val barsToDraw = resampledBars
                 val barCount = barsToDraw.size
 
+                // Read in the draw phase: a frame of playback invalidates the drawing only.
+                val drawPositionMs = if (isDragging) dragPosition else smoothDrawPosition
+                val progressFrac = if (totalDuration > 0f)
+                    (drawPositionMs / totalDuration).coerceIn(0f, 1f)
+                else 0f
+                val waveformLeft = centerX - (progressFrac * totalWaveformPx)
+
                 val firstVisible = ((-waveformLeft - barWidthPx) / stepPx).toInt().coerceIn(0, barCount - 1)
                 val lastVisible = (((canvasWidthPx - waveformLeft) / stepPx).toInt() + 1).coerceIn(0, barCount - 1)
 
@@ -4313,8 +4359,9 @@ fun WaveformPlayerProgress(
             if (!isDragging) {
                 val badgeOffsetY = with(density) { (134.dp.toPx() * 0.60f - 11.dp.toPx()).toDp() }
                 val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
+                val badgePositionMs = displayedPositionSecond * 1000L
                 val durStr = if (showRemaining) {
-                    com.alananasss.kittytune.utils.makeRemainingTimeString(currentPositionMs.toLong(), totalDuration.toLong())
+                    com.alananasss.kittytune.utils.makeRemainingTimeString(badgePositionMs, totalDuration.toLong())
                 } else {
                     makeTimeString(totalDuration.toLong())
                 }
@@ -4333,7 +4380,7 @@ fun WaveformPlayerProgress(
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = "${makeTimeString(currentPositionMs.toLong())}  |  $durStr",
+                        text = "${makeTimeString(badgePositionMs)}  |  $durStr",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold
@@ -11060,9 +11107,12 @@ fun OldPlayerScreen(
             }
 
             PlayerBackgroundStyle.APPLE_MUSIC -> {
+                // The night screen covers this fully: freeze the drift while it is up, and save the
+                // 30 fps of AGSL blur nobody can see.
                 FluidArtworkBackground(
                     artworkUrl = track.fullResArtwork,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    motionSuppressed = viewModel.showNightScreen
                 ) {
                     AsyncImage(
                         model = track.fullResArtwork,
@@ -11481,6 +11531,25 @@ fun OldPlayerScreen(
         SleepTimerDialog(viewModel)
         TrackTrimDialog(viewModel)
         DjDevDebugSheet(viewModel)
+
+        // The night screen over the whole player: fades in over it, and everything under stays untouched.
+        if (viewModel.showNightScreen) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = true,
+                enter = androidx.compose.animation.fadeIn(
+                    androidx.compose.animation.core.tween(320, easing = androidx.compose.animation.core.LinearOutSlowInEasing)
+                ),
+                exit = androidx.compose.animation.fadeOut(
+                    androidx.compose.animation.core.tween(220, easing = androidx.compose.animation.core.FastOutLinearInEasing)
+                ),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                com.alananasss.kittytune.ui.player.NightScreen(
+                    viewModel = viewModel,
+                    onWake = { viewModel.showNightScreen = false },
+                )
+            }
+        }
     }
 }
 
