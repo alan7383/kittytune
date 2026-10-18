@@ -157,9 +157,9 @@ object RetrofitClient {
                 .addInterceptor(cookieInterceptor)
                 .addInterceptor(authInterceptor)
                 .addInterceptor(sessionRecoveryInterceptor)
-                // Logging every response body buffered the whole payload and wrote it to logcat
-                // on the shared client's threads, during playback too. Debug builds keep enough
-                // to see what flows; release builds log nothing.
+                // BODY-level logging serializes every request/response body to logcat on every
+                // API call (stream resolution, lyrics, waveforms...) during playback. Keep the
+                // wire visible in debug builds only.
                 .addInterceptor(HttpLoggingInterceptor().apply {
                     level = if (com.alananasss.kittytune.BuildConfig.DEBUG) {
                         HttpLoggingInterceptor.Level.BASIC

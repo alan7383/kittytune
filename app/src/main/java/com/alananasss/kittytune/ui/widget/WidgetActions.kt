@@ -70,6 +70,7 @@
                 val newState = current.copy(speed = newSpeed)
                 MusicManager.applyEffects(newState)
                 prefs.saveEffects(newState)
+                MusicWidget.invalidateEffectsCache()
 
                 // if fast speed, achievement
                 if (newSpeed >= 1.2f) AchievementManager.increment("speed_demon", 1)
@@ -101,6 +102,7 @@
 
                 MusicManager.applyEffects(newState)
                 prefs.saveEffects(newState)
+                MusicWidget.invalidateEffectsCache()
                 MusicWidget.update(context)
             }
         }

@@ -15,7 +15,9 @@
     import com.alananasss.kittytune.ui.common.AchievementNotificationManager
     import kotlinx.coroutines.CoroutineScope
     import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.Job
     import kotlinx.coroutines.SupervisorJob
+    import kotlinx.coroutines.delay
     import kotlinx.coroutines.flow.MutableStateFlow
     import kotlinx.coroutines.flow.asStateFlow
     import kotlinx.coroutines.flow.update
@@ -54,9 +56,15 @@
 
     object AchievementManager {
         private const val PREFS_NAME = "achievements_prefs"
+        /** Progress counters are coalesced and flushed at most once per this interval. */
+        private const val FLUSH_INTERVAL_MS = 30_000L
         private lateinit var prefs: SharedPreferences
         private lateinit var context: Context
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+        /** Pending counter writes, coalesced so playback doesn't hammer the prefs XML file. */
+        private val pendingWrites = mutableMapOf<String, Int>()
+        private var flushJob: Job? = null
 
         val definitions = listOf(
             Achievement("time_1h", AchievementCategory.TIME, R.string.ach_time_1h_title, R.string.ach_time_1h_desc, Icons.Rounded.Headphones, 3600, xpReward = 10),
@@ -147,7 +155,39 @@
             _progressFlow.value = newMap
         }
 
+        /**
+         * Coalesces counter writes: instead of one full XML rewrite per counter per second of
+         * playback (up to ~12 apply()/s from addPlayTime), deltas accumulate in memory and are
+         * flushed as a single multi-put editor at most once per [FLUSH_INTERVAL_MS]. Values are
+         * absolute (last write wins), so coalescing is order-safe. Unlocks still persist
+         * immediately because they are rare, one-shot events.
+         */
+        private fun queueCounterWrite(key: String, value: Int) {
+            synchronized(pendingWrites) { pendingWrites[key] = value }
+            if (flushJob?.isActive != true) {
+                flushJob = scope.launch {
+                    delay(FLUSH_INTERVAL_MS)
+                    flushPendingWrites()
+                }
+            }
+        }
+
+        /** Flushes all pending counter writes in a single SharedPreferences transaction. */
+        fun flushPendingWrites() {
+            val snapshot = synchronized(pendingWrites) {
+                if (pendingWrites.isEmpty()) return
+                val copy = pendingWrites.toMap()
+                pendingWrites.clear()
+                copy
+            }
+            val editor = prefs.edit()
+            snapshot.forEach { (key, value) -> editor.putInt(key, value) }
+            editor.apply()
+        }
+
         fun resetAll() {
+            flushJob?.cancel()
+            synchronized(pendingWrites) { pendingWrites.clear() }
             prefs.edit().clear().apply()
             _isAllUnlocked.value = false
             loadProgress()
@@ -161,7 +201,7 @@
             if (newValue >= def.targetValue) {
                 unlock(id)
             } else {
-                prefs.edit().putInt("curr_$id", newValue).apply()
+                queueCounterWrite("curr_$id", newValue)
                 updateFlow(id, currentProgress.copy(currentValue = newValue))
             }
         }
@@ -174,8 +214,11 @@
             if (hour >= 22 || hour < 6) {
                 increment("night_shift_pro", seconds)
             } else {
-                if (_progressFlow.value["night_shift_pro"]?.isUnlocked == false) {
-                    prefs.edit().putInt("curr_night_shift_pro", 0).apply()
+                // Only rewrite the counter when it is actually non-zero: resetting an already
+                // reset counter every second was a permanent disk write during daytime playback.
+                val nightShift = _progressFlow.value["night_shift_pro"]
+                if (nightShift != null && !nightShift.isUnlocked && nightShift.currentValue != 0) {
+                    queueCounterWrite("curr_night_shift_pro", 0)
                     updateFlow("night_shift_pro", AchievementProgress("night_shift_pro", 0, false))
                 }
             }

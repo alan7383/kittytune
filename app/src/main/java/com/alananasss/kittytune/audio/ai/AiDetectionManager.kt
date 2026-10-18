@@ -10,6 +10,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -71,6 +72,8 @@ object AiDetectionManager {
     val downloadState: StateFlow<ModelDownloadState> = _downloadState.asStateFlow()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    /** Single-worker lane for ONNX inference so it cannot saturate the shared Default pool. */
+    private val inferenceDispatcher = Dispatchers.Default.limitedParallelism(1)
     @Volatile private var ortEnv: OrtEnvironment? = null
     @Volatile private var ortSession: OrtSession? = null
     @Volatile private var sessionLoading = false
@@ -222,7 +225,12 @@ object AiDetectionManager {
         }
         _result.value = Result(0f, false, Status.ANALYZING)
         analysisJob?.cancel()
-        analysisJob = scope.launch(Dispatchers.Default) {
+        // The inference runs on a single-worker slice of Dispatchers.Default: it is heavy
+        // enough (UNet forward pass) to occupy more than one Default worker, starving the
+        // coroutines that share that pool while music is playing. One worker keeps the
+        // analysis latency identical (the inference itself is single-threaded per run) without
+        // letting it compete for the whole pool.
+        analysisJob = scope.launch(inferenceDispatcher) {
             try {
                 val score = runDetection(session, pcmBytes, sampleRate, channelCount)
                 if (isActive) {

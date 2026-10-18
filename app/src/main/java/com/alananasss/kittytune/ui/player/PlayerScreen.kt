@@ -99,6 +99,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.regex.Pattern
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -304,14 +305,20 @@ fun PremiumMarqueeText(
 
 @Composable
 fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
-    val currentPosition = viewModel.uiCurrentPosition
-    val adjustedPosition = currentPosition + viewModel.lyricsOffset
+    // NOTE: playback position must NOT be read at this composable's top level. This whole
+    // panel (LazyColumn + every visible line) used to recompose on every position tick
+    // (2-25Hz); the 60fps interpolator below already drives the active-line highlighting,
+    // so the raw position is only needed once, for the initial scroll index.
     val lyrics = viewModel.lyricsLines
+    val lyricsOffset = viewModel.lyricsOffset
     // Opened on the line being sung, not on line one. Two minutes into a track the first frame
     // used to be the top of the song, which read as a jolt on every open before the follow logic
-    // caught up.
+    // caught up. One-shot read of the player position: untracked, so no recomposition hook.
+    val initialActiveIndex = remember(lyrics) {
+        LyricsUtils.activeLineIndex(lyrics, MusicManager.player.currentPosition + lyricsOffset).coerceAtLeast(0)
+    }
     val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = LyricsUtils.activeLineIndex(lyrics, adjustedPosition).coerceAtLeast(0)
+        initialFirstVisibleItemIndex = initialActiveIndex
     )
     val fontSize = viewModel.lyricsFontSize
     val lyricsFontFamily = com.alananasss.kittytune.ui.theme.rememberLyricsFontFamily(viewModel.lyricsFont)
@@ -330,7 +337,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
         )
     }
 
-    var smoothDrawPosition by remember { mutableFloatStateOf(currentPosition.toFloat()) }
+    var smoothDrawPosition by remember { mutableFloatStateOf(MusicManager.player.currentPosition.coerceAtLeast(0L).toFloat()) }
 
     // High-precision smooth frame interpolation loop with PLL drift tracking
     LaunchedEffect(viewModel.uiCurrentTrack?.id) {
@@ -486,7 +493,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
                 .fadingEdge(fadeBrush),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            itemsIndexed(lyrics) { index, line ->
+            itemsIndexed(lyrics, key = { idx, line -> "${line.startTime}_$idx" }) { index, line ->
                 val isActive = index == activeIndex
                 val targetScale = 1.0f
                 val targetAlpha = if (isActive) 1.0f else (if (index < activeIndex) 0.45f else 0.70f)
@@ -608,9 +615,18 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, showControls: Boolean = true) {
                                 )
                             }
                         } else {
+                            // Word-sync highlight without the Apple effect: derive the number of
+                            // sung words from the smooth position so this line only recomposes
+                            // when a word boundary is crossed, not on every interpolated frame.
+                            val sungWordCount by remember(displayWords) {
+                                derivedStateOf {
+                                    val pos = smoothDrawPosition + viewModel.lyricsOffset
+                                    displayWords.count { it.startTime <= pos }
+                                }
+                            }
                             val reconstructedText = buildAnnotatedString {
-                                displayWords.forEach { word ->
-                                    val isWordActive = (adjustedPosition) >= word.startTime
+                                displayWords.forEachIndexed { wordIdx, word ->
+                                    val isWordActive = wordIdx < sungWordCount
                                     val wordColor = if (isWordActive) Color.White else Color.White.copy(alpha = 0.5f)
                                     withStyle(SpanStyle(color = wordColor)) { append(LyricsUtils.decodeHtmlEntities(word.word)) }
                                 }
@@ -1042,7 +1058,8 @@ fun NewPlayerScreen(
                 FluidArtworkBackground(
                     artworkUrl = track.fullResArtwork,
                     modifier = Modifier.fillMaxSize(),
-                    motionSuppressed = viewModel.showNightScreen
+                    motionSuppressed = viewModel.showNightScreen,
+                    animate = viewModel.uiIsPlaying
                 ) {
                     AsyncImage(
                         model = track.fullResArtwork,
@@ -1471,7 +1488,19 @@ fun NewPlayerScreen(
                     }
                     Spacer(modifier = Modifier.weight(1f))
 
-                    val automixDebugOverlayEnabled = prefs.getAutomixDebugOverlayEnabled()
+                    // Memoised + observed: a synchronous SharedPreferences read on every
+                    // recomposition of this scope is pure overhead for a debug toggle.
+                    var automixDebugOverlayEnabled by remember { mutableStateOf(prefs.getAutomixDebugOverlayEnabled()) }
+                    DisposableEffect(Unit) {
+                        val sp = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+                        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                            if (key == PlayerPreferences.KEY_AUTOMIX_DEBUG_OVERLAY) {
+                                automixDebugOverlayEnabled = prefs.getAutomixDebugOverlayEnabled()
+                            }
+                        }
+                        sp.registerOnSharedPreferenceChangeListener(listener)
+                        onDispose { sp.unregisterOnSharedPreferenceChangeListener(listener) }
+                    }
                     if (automixDebugOverlayEnabled) {
                         com.alananasss.kittytune.ui.player.automix.AutomixDebugOverlay(
                             currentPositionMs = viewModel.uiCurrentPosition
@@ -3723,7 +3752,6 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
         lastValidDuration = viewModel.uiDuration.toFloat()
     }
     val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else lastValidDuration
-    val rawPosition = viewModel.uiCurrentPosition.toFloat()
 
     var currentTrackId by remember { mutableStateOf(viewModel.uiCurrentTrack?.id) }
     var isTransitioning by remember { mutableStateOf(false) }
@@ -3739,31 +3767,34 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
             isTransitioning = false
         }
     }
-    LaunchedEffect(rawPosition) {
-        if (isTransitioning && rawPosition < 2000f) isTransitioning = false
-    }
 
-    val targetPos = when {
-        isTransitioning -> 0f
-        rawPosition > totalDuration -> 0f
-        else -> rawPosition
-    }
+    // The position is observed through snapshotFlow instead of being read in the body:
+    // reading it recomposed this whole component on every playback tick, and keying the
+    // animation effect on the raw position restarted the tween twice per second forever.
+    // The collector below runs the exact same transition logic, without the recomposition.
+    LaunchedEffect(isTransitioning, isDragging, totalDuration) {
+        snapshotFlow {
+            val raw = viewModel.uiCurrentPosition.toFloat()
+            if (isTransitioning) 0f else if (raw > totalDuration) 0f else raw
+        }.collectLatest { rawPosition ->
+            if (isTransitioning && rawPosition < 2000f) isTransitioning = false
 
-    LaunchedEffect(targetPos, isDragging) {
-        if (isDragging) {
-            progressState.snapTo(dragPosition)
-        } else {
-            val diff = targetPos - progressState.value
-            val absDiff = kotlin.math.abs(diff)
-            when {
-                targetPos == 0f || (targetPos < 1000f && progressState.value > 2000f) ->
-                    progressState.snapTo(0f)
+            if (isDragging) {
+                progressState.snapTo(dragPosition)
+            } else {
+                val targetPos = rawPosition
+                val diff = targetPos - progressState.value
+                val absDiff = kotlin.math.abs(diff)
+                when {
+                    targetPos == 0f || (targetPos < 1000f && progressState.value > 2000f) ->
+                        progressState.snapTo(0f)
 
-                absDiff > 2000f ->
-                    progressState.animateTo(targetPos, tween(300, easing = FastOutSlowInEasing))
+                    absDiff > 2000f ->
+                        progressState.animateTo(targetPos, tween(300, easing = FastOutSlowInEasing))
 
-                diff > 0 ->
-                    progressState.animateTo(targetPos, tween(1000, easing = LinearEasing))
+                    diff > 0 ->
+                        progressState.animateTo(targetPos, tween(1000, easing = LinearEasing))
+                }
             }
         }
     }
@@ -3930,7 +3961,10 @@ fun WaveformPlayerProgress(
     if (viewModel.uiDuration > 1000) lastValidDuration = viewModel.uiDuration.toFloat()
     val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else lastValidDuration
 
-    val rawPosition = viewModel.uiCurrentPosition.toFloat()
+    // Playback position is deliberately NOT read in this composable's body: the smooth
+    // interpolation below repaints the waveform at frame rate, and any body-level read of the
+    // position state dragged the whole component (comments sorting, badge, canvas setup)
+    // through a recomposition on every playback tick as well.
     val isPlaying = viewModel.uiIsPlaying
 
     val currentTrack = viewModel.uiCurrentTrack
@@ -3968,12 +4002,12 @@ fun WaveformPlayerProgress(
 
     val speed = viewModel.effectsState.speed
 
-    var smoothDrawPosition by remember(waveformTrackId) { mutableFloatStateOf(rawPosition) }
+    var smoothDrawPosition by remember(waveformTrackId) { mutableFloatStateOf(MusicManager.player.currentPosition.coerceAtLeast(0L).toFloat()) }
     var isDragging by remember(waveformTrackId) { mutableStateOf(false) }
     var dragPosition by remember(waveformTrackId) { mutableFloatStateOf(0f) }
 
     LaunchedEffect(waveformTrackId) {
-        smoothDrawPosition = rawPosition
+        smoothDrawPosition = MusicManager.player.currentPosition.coerceAtLeast(0L).toFloat()
         dragPosition = 0f
         isDragging = false
     }
@@ -3990,13 +4024,19 @@ fun WaveformPlayerProgress(
         }
     }
 
-    LaunchedEffect(rawPosition, isPlaying) {
-        if (!isDragging) {
-            val drift = kotlin.math.abs(smoothDrawPosition - rawPosition)
-            if (!isPlaying || drift > 400f || rawPosition == 0f) {
-                smoothDrawPosition = rawPosition
+    // Drift correction: observe the published position through snapshotFlow so the correction
+    // runs only when the position actually changes, instead of restarting a LaunchedEffect on
+    // every recomposition and re-reading the state in the body.
+    LaunchedEffect(isPlaying, waveformTrackId) {
+        snapshotFlow { viewModel.uiCurrentPosition.toFloat() }
+            .collect { rawPos ->
+                if (!isDragging) {
+                    val drift = kotlin.math.abs(smoothDrawPosition - rawPos)
+                    if (!isPlaying || drift > 400f || rawPos == 0f) {
+                        smoothDrawPosition = rawPos
+                    }
+                }
             }
-        }
     }
 
     // The smoothing state below is written every frame while playing; it used to be read in this
@@ -4317,15 +4357,17 @@ fun WaveformPlayerProgress(
                 val baselineY = cH * 0.60f
                 val reflectGap = 1.5.dp.toPx()
 
-                val barsToDraw = resampledBars
-                val barCount = barsToDraw.size
-
-                // Read in the draw phase: a frame of playback invalidates the drawing only.
-                val drawPositionMs = if (isDragging) dragPosition else smoothDrawPosition
+                // Computed in the draw phase: reading the smooth position here invalidates
+                // only the canvas redraw (no recomposition) while still scrolling the
+                // waveform at the full interpolation frame rate.
+                val drawnPositionMs = if (isDragging) dragPosition else smoothDrawPosition
                 val progressFrac = if (totalDuration > 0f)
-                    (drawPositionMs / totalDuration).coerceIn(0f, 1f)
+                    (drawnPositionMs / totalDuration).coerceIn(0f, 1f)
                 else 0f
                 val waveformLeft = centerX - (progressFrac * totalWaveformPx)
+
+                val barsToDraw = resampledBars
+                val barCount = barsToDraw.size
 
                 val firstVisible = ((-waveformLeft - barWidthPx) / stepPx).toInt().coerceIn(0, barCount - 1)
                 val lastVisible = (((canvasWidthPx - waveformLeft) / stepPx).toInt() + 1).coerceIn(0, barCount - 1)
@@ -11114,7 +11156,8 @@ fun OldPlayerScreen(
                 FluidArtworkBackground(
                     artworkUrl = track.fullResArtwork,
                     modifier = Modifier.fillMaxSize(),
-                    motionSuppressed = viewModel.showNightScreen
+                    motionSuppressed = viewModel.showNightScreen,
+                    animate = viewModel.uiIsPlaying
                 ) {
                     AsyncImage(
                         model = track.fullResArtwork,
@@ -11474,7 +11517,19 @@ fun OldPlayerScreen(
                 }
                 Spacer(modifier = Modifier.weight(1f))
 
-                val automixDebugOverlayEnabled = prefs.getAutomixDebugOverlayEnabled()
+                // Memoised + observed: a synchronous SharedPreferences read on every
+                // recomposition of this scope is pure overhead for a debug toggle.
+                var automixDebugOverlayEnabled by remember { mutableStateOf(prefs.getAutomixDebugOverlayEnabled()) }
+                DisposableEffect(Unit) {
+                    val sp = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                        if (key == PlayerPreferences.KEY_AUTOMIX_DEBUG_OVERLAY) {
+                            automixDebugOverlayEnabled = prefs.getAutomixDebugOverlayEnabled()
+                        }
+                    }
+                    sp.registerOnSharedPreferenceChangeListener(listener)
+                    onDispose { sp.unregisterOnSharedPreferenceChangeListener(listener) }
+                }
                 if (automixDebugOverlayEnabled) {
                     com.alananasss.kittytune.ui.player.automix.AutomixDebugOverlay(
                         currentPositionMs = viewModel.uiCurrentPosition
@@ -11584,8 +11639,6 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
     }
     val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else lastValidDuration
 
-    val rawPosition = viewModel.uiCurrentPosition.toFloat()
-
     var currentTrackId by remember { mutableStateOf(viewModel.uiCurrentTrack?.id) }
     var isTransitioning by remember { mutableStateOf(false) }
 
@@ -11601,32 +11654,33 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
         }
     }
 
-    LaunchedEffect(rawPosition) {
-        if (isTransitioning && rawPosition < 2000f) {
-            isTransitioning = false
-        }
-    }
+    // The position is observed through snapshotFlow instead of being read in the body:
+    // the body read recomposed this component on every playback tick and the keyed effect
+    // restarted the tween twice per second forever. Same transition logic, no churn.
+    LaunchedEffect(isTransitioning, isDragging, totalDuration) {
+        snapshotFlow {
+            val raw = viewModel.uiCurrentPosition.toFloat()
+            if (isTransitioning) 0f else if (raw > totalDuration) 0f else raw
+        }.collectLatest { rawPosition ->
+            if (isTransitioning && rawPosition < 2000f) {
+                isTransitioning = false
+            }
 
-    val targetPos = when {
-        isTransitioning -> 0f
-        rawPosition > totalDuration -> 0f
-        else -> rawPosition
-    }
+            if (isDragging) {
+                progressState.snapTo(dragPosition)
+            } else {
+                val targetPos = rawPosition
+                val currentVal = progressState.value
+                val diff = targetPos - currentVal
+                val absDiff = kotlin.math.abs(diff)
 
-    LaunchedEffect(targetPos, isDragging) {
-        if (isDragging) {
-            progressState.snapTo(dragPosition)
-        } else {
-            val currentVal = progressState.value
-            val diff = targetPos - currentVal
-            val absDiff = kotlin.math.abs(diff)
-
-            if (targetPos == 0f || (targetPos < 1000f && currentVal > 2000f)) {
-                progressState.snapTo(0f)
-            } else if (absDiff > 2000f) {
-                progressState.animateTo(targetPos, tween(300, easing = FastOutSlowInEasing))
-            } else if (diff > 0) {
-                progressState.animateTo(targetPos, tween(1000, easing = LinearEasing))
+                if (targetPos == 0f || (targetPos < 1000f && currentVal > 2000f)) {
+                    progressState.snapTo(0f)
+                } else if (absDiff > 2000f) {
+                    progressState.animateTo(targetPos, tween(300, easing = FastOutSlowInEasing))
+                } else if (diff > 0) {
+                    progressState.animateTo(targetPos, tween(1000, easing = LinearEasing))
+                }
             }
         }
     }
@@ -12479,6 +12533,45 @@ private fun StaticWaveformPlaceholder(track: Track, viewModel: PlayerViewModel? 
     }
 }
 
+/**
+ * Cover artwork with the SoundCloud-style progress parallax. Isolated in its own composable
+ * so that reading the playback position invalidates only this artwork layer instead of the
+ * entire player screen.
+ */
+@Composable
+private fun SoundCloudParallaxArtwork(
+    model: Any?,
+    positionProvider: () -> Float,
+    totalDuration: Float,
+    isScrubbing: Boolean,
+    snapAnimation: Boolean,
+    isCurrentPage: Boolean,
+    enableParallax: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val progressFrac = if (enableParallax) {
+        (positionProvider() / totalDuration.coerceAtLeast(1f)).coerceIn(0f, 1f)
+    } else 0f
+
+    val animatedPanProgress by animateFloatAsState(
+        targetValue = progressFrac,
+        animationSpec = if (snapAnimation) snap() else tween(durationMillis = 1000, easing = LinearEasing),
+        label = "coverPan"
+    )
+
+    val effectivePanFrac = if (enableParallax) (if (isScrubbing) progressFrac else animatedPanProgress) else 0f
+    val pageProgressFrac = if (isCurrentPage) effectivePanFrac else 0f
+    val panBias = (pageProgressFrac * 2f - 1f) * 0.35f
+
+    AsyncImage(
+        model = model,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        alignment = androidx.compose.ui.BiasAlignment(panBias, 0f),
+        modifier = modifier
+    )
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SoundCloudPlayerView(
@@ -12560,8 +12653,6 @@ fun SoundCloudPlayerView(
     var currentPlayingTrackId by remember { mutableStateOf(track.id) }
 
     val totalDuration = if (viewModel.uiDuration > 1000) viewModel.uiDuration.toFloat() else 180000f
-    val currentPosition = if (isScrubbing) scrubbedMs else viewModel.uiCurrentPosition.toFloat()
-    val progressFrac = (currentPosition / totalDuration.coerceAtLeast(1f)).coerceIn(0f, 1f)
 
     val isNewTrack = track.id != currentPlayingTrackId
     if (isNewTrack) {
@@ -12570,13 +12661,12 @@ fun SoundCloudPlayerView(
         isScrubbing = false
     }
 
-    val animatedPanProgress by animateFloatAsState(
-        targetValue = progressFrac,
-        animationSpec = if (isScrubbing || isNewTrack) snap() else tween(durationMillis = 1000, easing = LinearEasing),
-        label = "coverPan"
-    )
-
-    val effectivePanFrac = if (enableParallax) (if (isScrubbing) progressFrac else animatedPanProgress) else 0f
+    // Playback position is read ONLY inside SoundCloudParallaxArtwork below: reading it in
+    // this scope recomposed the entire screen (pager, overlays, controls) on every position
+    // tick. The cover reads it through a provider lambda so only the artwork layer re-lays out.
+    val positionProvider: () -> Float = {
+        if (isScrubbing) scrubbedMs else viewModel.uiCurrentPosition.toFloat()
+    }
 
     androidx.compose.foundation.pager.HorizontalPager(
         state = pagerState,
@@ -12619,8 +12709,6 @@ fun SoundCloudPlayerView(
                     .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp, bottomStart = 28.dp, bottomEnd = 28.dp))
                     .background(Color(0xFF141414))
             ) {
-                val pageProgressFrac = if (isCurrentPage) effectivePanFrac else 0f
-                val panBias = if (enableParallax) (pageProgressFrac * 2f - 1f) * 0.35f else 0f
                 val imageScale = if (enableParallax) 1.06f else 1.0f
 
                 Box(
@@ -12645,11 +12733,14 @@ fun SoundCloudPlayerView(
                             .fillMaxSize()
                             .blur(animatedBlurRadius)
                     ) {
-                        AsyncImage(
+                        SoundCloudParallaxArtwork(
                             model = pageTrack.fullResArtwork,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            alignment = androidx.compose.ui.BiasAlignment(panBias, 0f),
+                            positionProvider = positionProvider,
+                            totalDuration = totalDuration,
+                            isScrubbing = isScrubbing,
+                            snapAnimation = isScrubbing || isNewTrack,
+                            isCurrentPage = isCurrentPage,
+                            enableParallax = enableParallax,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .scale(imageScale)
@@ -12832,12 +12923,13 @@ fun SoundCloudPlayerView(
                             .align(Alignment.Center)
                             .padding(bottom = 50.dp)
                     ) {
+                        val displayPosition = (if (isScrubbing) scrubbedMs else viewModel.uiCurrentPosition.toFloat()).toLong()
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
                             Text(
-                                text = makeTimeString(currentPosition.toLong()),
+                                text = makeTimeString(displayPosition),
                                 style = MaterialTheme.typography.displayMedium.copy(
                                     fontSize = 38.sp,
                                     fontWeight = FontWeight.Normal,
@@ -12855,7 +12947,7 @@ fun SoundCloudPlayerView(
                             )
                             val showRemaining by prefs.getShowRemainingTimeFlow().collectAsState(initial = prefs.getShowRemainingTime())
                             Text(
-                                text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(currentPosition.toLong(), totalDuration.toLong()) else makeTimeString(totalDuration.toLong()),
+                                text = if (showRemaining) com.alananasss.kittytune.utils.makeRemainingTimeString(displayPosition, totalDuration.toLong()) else makeTimeString(totalDuration.toLong()),
                                 style = MaterialTheme.typography.displayMedium.copy(
                                     fontSize = 38.sp,
                                     fontWeight = FontWeight.Normal,
