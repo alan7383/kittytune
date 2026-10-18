@@ -46,6 +46,27 @@ enum class LyricsUiStyle {
         }
     }
 }
+enum class LyricsDisplayStyle {
+    STANDARD,
+    SCALE,
+    FOCUS,
+    SCALE_FOCUS;
+
+    companion object {
+        fun fromString(name: String?): LyricsDisplayStyle = when (name) {
+            "SCALE" -> SCALE
+            "FOCUS" -> FOCUS
+            "SCALE_FOCUS" -> SCALE_FOCUS
+            else -> STANDARD
+        }
+    }
+}
+
+enum class FullPlayerBgStyle { APPLE_MUSIC, BLUR, GRADIENT, PURE_BLACK }
+enum class FullPlayerLayout { LYRICS_RIGHT, LYRICS_LEFT, LYRICS_CENTRED, COVER_AND_LINE }
+enum class FullPlayerInfoAlign { START, CENTER, END }
+enum class FullPlayerHeartSide { START, END }
+
 enum class LyricsFont { APPLE, APP_DEFAULT }
 enum class DiscordStatusDisplay { ACTIVITY, SOUNDCLOUD, ARTIST, SONG }
 
@@ -352,7 +373,23 @@ class PlayerPreferences(context: Context) {
         private const val KEY_LYRICS_LINE_SPACING = "lyrics_line_spacing"
         private const val KEY_LYRICS_FONT = "lyrics_font"
         private const val KEY_LYRICS_DUET_VIEW = "lyrics_duet_view"
+        private const val KEY_LYRICS_SPLIT_BACKING_VOCALS = "lyrics_split_backing_vocals"
+        private const val KEY_LYRICS_REVEAL_WORDS = "lyrics_reveal_words"
         private const val KEY_LYRICS_DUET_BLACKLIST = "lyrics_duet_blacklist"
+        private const val KEY_WAVE_MODE = "wave_mode"
+        private const val KEY_ONE_LINE_LYRICS = "one_line_lyrics"
+        private const val KEY_FULL_PLAYER_COVER_FEATHER = "full_player_cover_feather"
+        private const val KEY_FULL_PLAYER_COVER_FEATHER_AMOUNT = "full_player_cover_feather_amount"
+        private const val KEY_FULL_PLAYER_COVER_SCALE = "full_player_cover_scale"
+        private const val KEY_FULL_PLAYER_BG_STYLE = "full_player_bg_style"
+        private const val KEY_FULL_PLAYER_LAYOUT = "full_player_layout"
+        private const val KEY_FULL_PLAYER_INFO_ALIGN = "full_player_info_align"
+        private const val KEY_FULL_PLAYER_HEART_SIDE = "full_player_heart_side"
+        private const val KEY_LYRICS_DISPLAY_STYLE = "lyrics_display_style"
+        private const val KEY_LYRICS_HORIZONTAL_MARGIN = "lyrics_horizontal_margin"
+        private const val KEY_LYRICS_VERTICAL_OFFSET = "lyrics_vertical_offset"
+        private const val KEY_LYRICS_ACTIVE_SCALE = "lyrics_active_scale"
+        private const val KEY_LYRICS_WHEEL_LINES = "lyrics_wheel_lines"
 
         private const val KEY_DISCORD_ASSET_LOGO = "discord_asset_logo"
         private const val KEY_DISCORD_STATUS_DISPLAY = "discord_status_display"
@@ -998,6 +1035,20 @@ class PlayerPreferences(context: Context) {
     fun getLyricsDuetViewEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_DUET_VIEW, true)
     fun setLyricsDuetViewEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_DUET_VIEW, enabled) }
 
+    fun getLyricsSplitBackingVocalsEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_SPLIT_BACKING_VOCALS, true)
+    fun setLyricsSplitBackingVocalsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_SPLIT_BACKING_VOCALS, enabled) }
+
+    fun getLyricsRevealWordsEnabled(): Boolean = prefs.getBoolean(KEY_LYRICS_REVEAL_WORDS, true)
+    fun setLyricsRevealWordsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LYRICS_REVEAL_WORDS, enabled) }
+
+    fun getWaveMode(): com.alananasss.kittytune.data.wave.MyWave.WaveMode =
+        prefs.getString(KEY_WAVE_MODE, null)
+            ?.let { mode -> com.alananasss.kittytune.data.wave.MyWave.WaveMode.entries.find { it.name == mode } }
+            ?: com.alananasss.kittytune.data.wave.MyWave.WaveMode.BALANCED
+
+    fun setWaveMode(mode: com.alananasss.kittytune.data.wave.MyWave.WaveMode) =
+        prefs.edit { putString(KEY_WAVE_MODE, mode.name) }
+
     fun getLyricsDuetBlacklist(): Set<String> = prefs.getStringSet(KEY_LYRICS_DUET_BLACKLIST, emptySet()) ?: emptySet()
     fun setLyricsDuetBlacklist(blacklist: Set<String>) = prefs.edit { putStringSet(KEY_LYRICS_DUET_BLACKLIST, blacklist) }
     fun isTrackDuetBlacklisted(trackId: Long): Boolean = getLyricsDuetBlacklist().contains(trackId.toString())
@@ -1010,6 +1061,60 @@ class PlayerPreferences(context: Context) {
         }
         setLyricsDuetBlacklist(current)
     }
+
+    fun getOneLineLyricsEnabled(): Boolean = prefs.getBoolean(KEY_ONE_LINE_LYRICS, false)
+    fun setOneLineLyricsEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_ONE_LINE_LYRICS, enabled) }
+
+    fun getFullPlayerCoverFeather(): Boolean = prefs.getBoolean(KEY_FULL_PLAYER_COVER_FEATHER, false)
+    fun setFullPlayerCoverFeather(enabled: Boolean) = prefs.edit { putBoolean(KEY_FULL_PLAYER_COVER_FEATHER, enabled) }
+
+    fun getFullPlayerCoverFeatherAmount(): Float = getSafeFloat(KEY_FULL_PLAYER_COVER_FEATHER_AMOUNT, 0.6f).coerceIn(0f, 1f)
+    fun setFullPlayerCoverFeatherAmount(amount: Float) = prefs.edit { putFloat(KEY_FULL_PLAYER_COVER_FEATHER_AMOUNT, amount.coerceIn(0f, 1f)) }
+
+    fun getFullPlayerCoverScale(): Float = getSafeFloat(KEY_FULL_PLAYER_COVER_SCALE, 1f)
+    fun setFullPlayerCoverScale(scale: Float) = prefs.edit { putFloat(KEY_FULL_PLAYER_COVER_SCALE, scale) }
+
+    fun getFullPlayerBgStyle(): FullPlayerBgStyle {
+        val name = prefs.getString(KEY_FULL_PLAYER_BG_STYLE, FullPlayerBgStyle.APPLE_MUSIC.name)
+        return runCatching { FullPlayerBgStyle.valueOf(name!!) }.getOrDefault(FullPlayerBgStyle.APPLE_MUSIC)
+    }
+    fun setFullPlayerBgStyle(style: FullPlayerBgStyle) = prefs.edit { putString(KEY_FULL_PLAYER_BG_STYLE, style.name) }
+
+    fun getFullPlayerLayout(): FullPlayerLayout {
+        val name = prefs.getString(KEY_FULL_PLAYER_LAYOUT, FullPlayerLayout.LYRICS_RIGHT.name)
+        return runCatching { FullPlayerLayout.valueOf(name!!) }.getOrDefault(FullPlayerLayout.LYRICS_RIGHT)
+    }
+    fun setFullPlayerLayout(layout: FullPlayerLayout) = prefs.edit { putString(KEY_FULL_PLAYER_LAYOUT, layout.name) }
+
+    fun getFullPlayerInfoAlign(): FullPlayerInfoAlign {
+        val name = prefs.getString(KEY_FULL_PLAYER_INFO_ALIGN, FullPlayerInfoAlign.START.name)
+        return runCatching { FullPlayerInfoAlign.valueOf(name!!) }.getOrDefault(FullPlayerInfoAlign.START)
+    }
+    fun setFullPlayerInfoAlign(align: FullPlayerInfoAlign) = prefs.edit { putString(KEY_FULL_PLAYER_INFO_ALIGN, align.name) }
+
+    fun getFullPlayerHeartSide(): FullPlayerHeartSide {
+        val name = prefs.getString(KEY_FULL_PLAYER_HEART_SIDE, FullPlayerHeartSide.START.name)
+        return runCatching { FullPlayerHeartSide.valueOf(name!!) }.getOrDefault(FullPlayerHeartSide.START)
+    }
+    fun setFullPlayerHeartSide(side: FullPlayerHeartSide) = prefs.edit { putString(KEY_FULL_PLAYER_HEART_SIDE, side.name) }
+
+    fun getLyricsDisplayStyle(): LyricsDisplayStyle {
+        val name = prefs.getString(KEY_LYRICS_DISPLAY_STYLE, LyricsDisplayStyle.STANDARD.name)
+        return LyricsDisplayStyle.fromString(name)
+    }
+    fun setLyricsDisplayStyle(style: LyricsDisplayStyle) = prefs.edit { putString(KEY_LYRICS_DISPLAY_STYLE, style.name) }
+
+    fun getLyricsHorizontalMargin(): Float = getSafeFloat(KEY_LYRICS_HORIZONTAL_MARGIN, 0f)
+    fun setLyricsHorizontalMargin(margin: Float) = prefs.edit { putFloat(KEY_LYRICS_HORIZONTAL_MARGIN, margin) }
+
+    fun getLyricsVerticalOffset(): Float = getSafeFloat(KEY_LYRICS_VERTICAL_OFFSET, 0.38f)
+    fun setLyricsVerticalOffset(offset: Float) = prefs.edit { putFloat(KEY_LYRICS_VERTICAL_OFFSET, offset) }
+
+    fun getLyricsActiveScale(): Float = getSafeFloat(KEY_LYRICS_ACTIVE_SCALE, 1f)
+    fun setLyricsActiveScale(scale: Float) = prefs.edit { putFloat(KEY_LYRICS_ACTIVE_SCALE, scale) }
+
+    fun getLyricsWheelLines(): Float = getSafeFloat(KEY_LYRICS_WHEEL_LINES, 3f)
+    fun setLyricsWheelLines(lines: Float) = prefs.edit { putFloat(KEY_LYRICS_WHEEL_LINES, lines) }
 
     fun getLocalMediaEnabled(): Boolean = prefs.getBoolean(KEY_LOCAL_MEDIA_ENABLED, false)
     fun setLocalMediaEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_LOCAL_MEDIA_ENABLED, enabled) }

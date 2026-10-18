@@ -16,6 +16,8 @@
     import kotlinx.coroutines.CoroutineScope
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.Job
+    import kotlinx.coroutines.SupervisorJob
+    import kotlinx.coroutines.delay
     import kotlinx.coroutines.flow.MutableStateFlow
     import kotlinx.coroutines.flow.asStateFlow
     import kotlinx.coroutines.flow.update
@@ -58,7 +60,7 @@
         private const val FLUSH_INTERVAL_MS = 30_000L
         private lateinit var prefs: SharedPreferences
         private lateinit var context: Context
-        private val scope = CoroutineScope(Dispatchers.Main)
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
         /** Pending counter writes, coalesced so playback doesn't hammer the prefs XML file. */
         private val pendingWrites = mutableMapOf<String, Int>()

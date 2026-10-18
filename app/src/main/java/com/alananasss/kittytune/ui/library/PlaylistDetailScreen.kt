@@ -1657,7 +1657,30 @@ fun PlaylistDetailScreen(
         if (!showAllPlaylists) {
             Scaffold(containerColor = Color.Transparent) { innerPadding ->
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                    if (!playlistCover.isNullOrEmpty()) {
+                    if (playlistId == "likes") {
+                        // The colour of the liked songs, from the top of their page: the covers' colours mixed and
+                        // drawn toward the theme, drifting and shimmering while the likes are playing, fading out
+                        // when they are not (desktop PR #77, mobile UI — the flat gradient stood here before).
+                        Box(modifier = Modifier.fillMaxWidth().height(500.dp)) {
+                            LikesAura(
+                                likes = rawTracks,
+                                playerViewModel = playerViewModel,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Box(
+                                modifier = Modifier.fillMaxSize().background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            backgroundColor.copy(alpha = 0.3f),
+                                            backgroundColor.copy(alpha = 0.8f),
+                                            backgroundColor
+                                        )
+                                    )
+                                )
+                            )
+                        }
+                    } else if (!playlistCover.isNullOrEmpty()) {
                         Box(modifier = Modifier.fillMaxWidth().height(500.dp)) {
                             AsyncImage(
                                 model = effectiveCoverModel,
@@ -1780,6 +1803,11 @@ fun PlaylistDetailScreen(
                                             )
                                         }
                                     }
+                                    // An album sung mostly by one artist is credited to that artist, not the account
+                                    // that posted it: the tracks carry the real credit (desktop PR #77).
+                                    val headerArtistName = albumCreditFor(rawTracks.toList())
+                                        ?.takeIf { isAlbum && playlistUser?.urn?.startsWith("spotify") != true }
+                                        ?: playlistUser?.username
                                     if (isArtistView) {
                                         val providerBadge = when {
                                             isQobuzArtist -> stringResource(R.string.generic_artist) + " • Qobuz"
@@ -1825,7 +1853,7 @@ fun PlaylistDetailScreen(
                                             Text(
                                                 text = stringResource(
                                                     R.string.playlist_by_user,
-                                                    playlistUser!!.username ?: ""
+                                                    headerArtistName ?: ""
                                                 ),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.SemiBold,
@@ -1848,7 +1876,7 @@ fun PlaylistDetailScreen(
                                         Text(
                                             text = stringResource(
                                                 R.string.playlist_by_user,
-                                                playlistUser!!.username ?: ""
+                                                headerArtistName ?: ""
                                             ),
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.SemiBold,
@@ -2922,13 +2950,9 @@ fun PlaylistOptionsSheet(
                             Icons.Rounded.Favorite,
                             context.getString(R.string.menu_like_all_songs)
                         ) {
-                            val likedCount = com.alananasss.kittytune.data.LikeRepository.addLikesBulk(tracks)
-                            val message = if (likedCount > 0) {
-                                context.getString(R.string.toast_like_all_done, likedCount)
-                            } else {
-                                context.getString(R.string.toast_like_all_nothing)
-                            }
-                            android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                            // Asks first: a record often ends with a silence, a voice note or a drone
+                            // that nobody means to like (desktop PR #77).
+                            LikeAllPrompt.ask(tracks)
                             onDismiss()
                         })
                 }

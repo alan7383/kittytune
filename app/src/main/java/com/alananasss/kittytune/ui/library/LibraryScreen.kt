@@ -312,14 +312,10 @@ fun LibraryScreen(
                 }
                 return@launch
             }
-            val likedCount = LikeRepository.addLikesBulk(tracks)
+            // Asks first on the main thread: the shared prompt lets the reader skip the odd ones
+            // (a silence, a voice note, a drone) before everything goes in (desktop PR #77).
             kotlinx.coroutines.withContext(Dispatchers.Main) {
-                val message = if (likedCount > 0) {
-                    context.getString(R.string.toast_like_all_done, likedCount)
-                } else {
-                    context.getString(R.string.toast_like_all_nothing)
-                }
-                android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
+                com.alananasss.kittytune.ui.library.LikeAllPrompt.ask(tracks)
             }
         }
     }

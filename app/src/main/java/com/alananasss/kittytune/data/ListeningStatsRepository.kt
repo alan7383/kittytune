@@ -12,6 +12,7 @@ import com.alananasss.kittytune.data.sync.SyncKinds
 import com.alananasss.kittytune.data.sync.SyncLog
 import com.alananasss.kittytune.data.sync.SyncScheduler
 import com.alananasss.kittytune.domain.Track
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,7 +40,7 @@ import kotlinx.coroutines.launch
  */
 object ListeningStatsRepository {
     private lateinit var database: AppDatabase
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val dao get() = database.downloadDao()
 

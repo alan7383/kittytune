@@ -10,11 +10,13 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.domain.Track
 import com.metrolist.shazamkit.Shazam
 import com.metrolist.shazamkit.models.RecognitionResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import android.util.Log
 
 enum class RecognitionAudioSource {
@@ -63,7 +65,9 @@ class RecognitionViewModel(private val context: Context) : ViewModel() {
 
     private suspend fun checkRecognition(pcmData: ByteArray, durationMs: Long): RecognitionState.Success? {
         if (pcmData.size < 1000) return null
-        val signature = ShazamSignatureGenerator.fromI16(pcmData)
+        // The fingerprint is a few hundred FFT passes of pure CPU: off the main thread, where it
+        // stalled every tap of the listen button by 100-500 ms.
+        val signature = withContext(Dispatchers.Default) { ShazamSignatureGenerator.fromI16(pcmData) }
         val recognitionResult = Shazam.recognize(signature, durationMs)
         var successResult: RecognitionState.Success? = null
         recognitionResult.onSuccess { shazamResult ->

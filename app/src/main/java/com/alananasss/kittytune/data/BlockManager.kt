@@ -5,6 +5,7 @@ import android.util.Log
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.BlockedContent
 import com.alananasss.kittytune.domain.Track
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -31,7 +32,7 @@ object BlockManager {
     const val REASON_MANUAL = "MANUAL"
     const val REASON_AI_GENERATED = "AI_GENERATED"
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var db: AppDatabase? = null
 
     // ─── In-memory caches (thread-safe) ──────────────────────────────────────

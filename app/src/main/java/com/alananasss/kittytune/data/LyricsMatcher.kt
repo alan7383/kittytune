@@ -461,4 +461,81 @@ object LyricsMatcher {
 
         return pairs.filter { it.first.isNotBlank() && it.second.isNotBlank() }.distinct()
     }
+
+    /** A title split on a slash names two songs: "your love / narcotic". Empty when there is no slash. */
+    fun titleParts(title: String): List<String> {
+        if (!DOUBLE_TITLE_SLASH.containsMatchIn(title)) return emptyList()
+        return title.split(DOUBLE_TITLE_SLASH).map { it.trim() }.filter { it.isNotBlank() }
+    }
+
+    /**
+     * Other spellings of a search to try when it finds nothing: the hyphens and other punctuation turned into
+     * spaces ("New-York" is two words to most lyrics searches), and a word typed run together ("NEWYORK")
+     * spelled out the way the track's own title has it. First is always [query] itself.
+     */
+    fun queryVariants(query: String, trackTitle: String): List<String> {
+        val variants = linkedSetOf(query.trim())
+        val spaced = query.replace(Regex("""[^\p{L}\p{Nd}\s']+"""), " ").replace(WHITESPACE_REGEX, " ").trim()
+        if (spaced.isNotEmpty()) variants += spaced
+        val titleWords = normalize(trackTitle).split(' ').filter { it.isNotBlank() }
+        if (titleWords.size >= 2) {
+            val spelledOut = spaced.split(' ').joinToString(" ") { token ->
+                val compact = normalize(token).replace(" ", "")
+                var replacement: String? = null
+                for (start in titleWords.indices) {
+                    var joined = ""
+                    for (end in start until minOf(titleWords.size, start + 3)) {
+                        joined += titleWords[end]
+                        if (end > start && joined == compact) replacement = titleWords.subList(start, end + 1).joinToString(" ")
+                    }
+                }
+                replacement ?: token
+            }
+            if (spelledOut.isNotEmpty()) variants += spelledOut
+        }
+        return variants.toList()
+    }
+
+    /**
+     * [query] with its run-together words spelled the way [knownTitles] spell them, or null when none matches.
+     *
+     * "NEWYORK" is how the song is titled on SoundCloud; Genius calls it "NEW-YORK" and LrcLib only finds it as
+     * "NEW YORK". The track's own title cannot tell where the words break, so another catalogue's spelling of the
+     * same title is used: a word of the query that is two or three of a known title's words run together is spelled
+     * out as those words (issue #66).
+     */
+    fun respellWith(query: String, knownTitles: List<String>): String? {
+        val titleWords = knownTitles.map { title ->
+            title.replace(Regex("""\(.*?\)|\[.*?]"""), " ")
+                .split(Regex("""[^\p{L}\p{Nd}']+""")).filter { it.isNotBlank() }
+        }
+        var changed = false
+        val respelled = query.trim().split(WHITESPACE_REGEX).joinToString(" ") { token ->
+            val compact = token.lowercase().filter { it.isLetterOrDigit() }
+            if (compact.length < MIN_RUN_TOGETHER) return@joinToString token
+            val spelled = titleWords.firstNotNullOfOrNull { words -> runSpelling(words, compact) }
+            if (spelled != null) changed = true
+            spelled ?: token
+        }
+        return respelled.takeIf { changed }
+    }
+
+    /** The two or three consecutive [words] that read [compact] when run together, joined with spaces. */
+    private fun runSpelling(words: List<String>, compact: String): String? {
+        for (start in words.indices) {
+            var joined = ""
+            for (end in start until minOf(words.size, start + 3)) {
+                joined += words[end].lowercase()
+                if (end > start && joined == compact) return words.subList(start, end + 1).joinToString(" ")
+                if (joined.length >= compact.length) break
+            }
+        }
+        return null
+    }
+
+    /** "your love / narcotic" and "your love // narcotic" both name two songs. */
+    private val DOUBLE_TITLE_SLASH = Regex("""\s+//?\s+""")
+
+    /** Shorter than this, a word is not worth looking for as several run together. */
+    private const val MIN_RUN_TOGETHER = 5
 }

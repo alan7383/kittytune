@@ -41,6 +41,14 @@
 
         fun loadTrackDetails(trackId: Long) {
             if (trackId == 0L || this.track?.id == trackId) return
+
+            // A page opened a few minutes ago comes back as it was left, sort and scrolled-in pages
+            // included; after that it is asked for again, since likes and reposts keep arriving.
+            TrackDetailsCache.get(trackId)?.let { snapshot ->
+                restore(snapshot)
+                return
+            }
+
             viewModelScope.launch {
                 isLoading = true
                 // clean slate
@@ -77,12 +85,48 @@
                             relatedNextUrl = it.next_href
                         }
                     }
+                    TrackDetailsCache.put(
+                        trackId,
+                        TrackDetailsCache.Snapshot(
+                            track = track,
+                            likers = likers.toList(),
+                            reposters = reposters.toList(),
+                            playlists = inPlaylists.toList(),
+                            related = relatedTracks.toList(),
+                            likersNext = likersNextUrl,
+                            repostersNext = repostersNextUrl,
+                            playlistsNext = playlistsNextUrl,
+                            relatedNext = relatedNextUrl,
+                            playlistsByLikes = isPlaylistsSortedByLikes,
+                            takenAtMs = System.currentTimeMillis(),
+                        )
+                    )
                 } catch (e: Exception) {
                     e.printStackTrace()
                 } finally {
                     isLoading = false
                 }
             }
+        }
+
+        /** The page back from the cache: the lists, their cursors, and the playlist sort as it was left. */
+        private fun restore(snapshot: TrackDetailsCache.Snapshot) {
+            isLoading = true
+            track = snapshot.track
+            likers.clear()
+            likers.addAll(snapshot.likers)
+            likersNextUrl = snapshot.likersNext
+            reposters.clear()
+            reposters.addAll(snapshot.reposters)
+            repostersNextUrl = snapshot.repostersNext
+            inPlaylists.clear()
+            inPlaylists.addAll(snapshot.playlists)
+            playlistsNextUrl = snapshot.playlistsNext
+            relatedTracks.clear()
+            relatedTracks.addAll(snapshot.related)
+            relatedNextUrl = snapshot.relatedNext
+            isPlaylistsSortedByLikes = snapshot.playlistsByLikes
+            isLoading = false
         }
 
         fun loadMoreLikers() {
