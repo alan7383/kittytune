@@ -17,17 +17,29 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
     private var okHttpClient: OkHttpClient? = null
 
+    // Retrofit resolves every annotation by reflection when an interface implementation is created;
+    // doing that per call — including per track resolution — was pure startup cost.
+    @Volatile
+    private var soundCloudApi: SoundCloudApi? = null
+
     fun resetClient() {
         okHttpClient = null
+        soundCloudApi = null
     }
 
     fun create(context: Context = com.alananasss.kittytune.KittyTuneApp.instance): SoundCloudApi {
-        return Retrofit.Builder()
-            .baseUrl(Config.BASE_URL)
-            .client(getOkHttpClient(context))
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(SoundCloudApi::class.java)
+        soundCloudApi?.let { return it }
+        synchronized(this) {
+            soundCloudApi?.let { return it }
+            val api = Retrofit.Builder()
+                .baseUrl(Config.BASE_URL)
+                .client(getOkHttpClient(context))
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+                .create(SoundCloudApi::class.java)
+            soundCloudApi = api
+            return api
+        }
     }
 
     fun getOkHttpClient(context: Context = com.alananasss.kittytune.KittyTuneApp.instance): OkHttpClient {
@@ -149,10 +161,11 @@ object RetrofitClient {
                 // API call (stream resolution, lyrics, waveforms...) during playback. Keep the
                 // wire visible in debug builds only.
                 .addInterceptor(HttpLoggingInterceptor().apply {
-                    level = if (com.alananasss.kittytune.BuildConfig.DEBUG)
+                    level = if (com.alananasss.kittytune.BuildConfig.DEBUG) {
                         HttpLoggingInterceptor.Level.BASIC
-                    else
+                    } else {
                         HttpLoggingInterceptor.Level.NONE
+                    }
                 })
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)

@@ -64,6 +64,23 @@ class DjFlowController(
     private val _flowState = MutableStateFlow(DjFlowState())
     val flowState: StateFlow<DjFlowState> = _flowState.asStateFlow()
 
+    /**
+     * The beat values that change on every position tick — the sweep inside the beat and the
+     * countdown to the next transition. They used to live in [DjFlowState], where a 25 Hz update
+     * recomposed every screen listening to the state for the sake of one pulse and one sub-bar.
+     * [flowState] now changes per beat; only the beat display collects [beatTick].
+     */
+    private val _beatTick = MutableStateFlow(DjBeatTick())
+    val beatTick: StateFlow<DjBeatTick> = _beatTick.asStateFlow()
+
+    /**
+     * Live within-beat offset for the crossfade plumbing, read one-shot when a transition actually
+     * starts. Volatile rather than in [flowState] for the same reason as [beatTick].
+     */
+    @Volatile
+    var livePhaseOffsetMs: Long = 0L
+        private set
+
     private val beatCache = ConcurrentHashMap<String, BeatInfoEntity>()
     private var evaluationJob: Job? = null
     private var transitionJob: Job? = null
@@ -615,6 +632,8 @@ class DjFlowController(
             checkInfiniteReplenishment()
         }
 
+        _beatTick.value = DjBeatTick(beatProgress = beatProgress, timeUntilTransitionMs = timeUntilMs)
+        livePhaseOffsetMs = phaseOffsetMs
         _flowState.update {
             it.copy(
                 currentBar = barNumber,
@@ -622,11 +641,8 @@ class DjFlowController(
                 beatInPhrase = beatInPhrase,
                 barInPhrase = barInPhrase,
                 isDownbeat = isDownbeat,
-                beatProgress = beatProgress,
-                sync = it.sync.copy(phaseOffsetMs = phaseOffsetMs),
                 beatsUntilTransition = beatsLeft,
                 barsUntilTransition = barsLeft,
-                timeUntilTransitionMs = timeUntilMs,
                 transitionStyle = state.nextTrackMatch?.transitionStyle ?: TransitionStyle.HARMONIC_CLUB_BLEND
             )
         }

@@ -86,6 +86,16 @@ object GeniusClient {
     }
 
     /**
+     * The lyrics as Genius's HTML, which keeps the italics and bold that say who sings which line of a shared
+     * part. See [com.alananasss.kittytune.data.lyrics.GeniusVoices].
+     */
+    suspend fun lyricsHtml(songId: Long): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            api.song(songId, textFormat = "html").response?.song?.lyrics?.html?.takeIf { it.isNotBlank() }
+        }.getOrNull()
+    }
+
+    /**
      * Genius indents every line by one space and pads sections with runs of blank lines. Left
      * alone that shows up as a ragged left edge and gaping holes in the lyrics view.
      */
@@ -129,4 +139,4 @@ data class GeniusSongHit(
 data class GeniusSongResponse(val response: GeniusSongBody?)
 data class GeniusSongBody(val song: GeniusSongDetail?)
 data class GeniusSongDetail(val id: Long, val title: String?, val lyrics: GeniusLyrics?)
-data class GeniusLyrics(val plain: String?)
+data class GeniusLyrics(val plain: String?, val html: String? = null)

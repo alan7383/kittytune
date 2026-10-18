@@ -40,6 +40,7 @@ import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.MiniPlayerSwipeAction
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import com.alananasss.kittytune.ui.player.lyrics.FloatingLyricChip
 import com.alananasss.kittytune.ui.player.pixel.miniPlayerDismissHorizontalGesture
 import com.alananasss.kittytune.ui.player.pixel.rememberMiniPlayerDismissGestureHandler
 import androidx.compose.ui.platform.LocalContext
@@ -113,11 +114,16 @@ fun KittyUnifiedBottomBar(
                 }
         ) {
             if (track != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .clipToBounds()
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    FloatingLyricChip(
+                        vm = playerViewModel,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .clipToBounds()
                         .systemGestureExclusion()
                         .graphicsLayer {
                             translationX = offsetAnimatable.value
@@ -206,7 +212,8 @@ fun KittyUnifiedBottomBar(
                     )
                 }
             }
-            NavigationBar(
+        }
+        NavigationBar(
                 modifier = Modifier.fillMaxWidth(),
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp
@@ -243,11 +250,16 @@ fun KittyUnifiedBottomBar(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (track != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(64.dp)
-                        .clipToBounds()
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    FloatingLyricChip(
+                        vm = playerViewModel,
+                        modifier = Modifier.align(Alignment.TopCenter)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp)
+                            .clipToBounds()
                         .systemGestureExclusion()
                         .graphicsLayer {
                             translationX = offsetAnimatable.value
@@ -331,7 +343,8 @@ fun KittyUnifiedBottomBar(
                     )
                 }
             }
-            BoxWithConstraints(
+        }
+        BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .widthIn(max = 480.dp),

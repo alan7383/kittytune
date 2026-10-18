@@ -36,7 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import kotlinx.coroutines.Dispatchers
@@ -200,8 +200,8 @@ private suspend fun loadTexture(context: Context, url: String): Bitmap? = withCo
         .size(TEXTURE_PX)
         .allowHardware(false)
         .build()
-    val loader = ImageLoader(context)
-    val result = runCatching { loader.execute(request) }.getOrNull()
+    // The app's shared loader: a private one per texture came with its own executors and caches.
+    val result = runCatching { context.imageLoader.execute(request) }.getOrNull()
     val bitmap = ((result as? SuccessResult)?.drawable as? BitmapDrawable)?.bitmap ?: return@withContext null
 
     synchronized(textureCache) {
@@ -224,6 +224,18 @@ private class AgslFluidRenderer {
     private val shader = RuntimeShader(FLUID_AGSL)
     private val paint = Paint()
 
+    // A shader wraps a bitmap in native code; minting two per frame at 30 fps was pure churn.
+    // Keyed by bitmap identity: the same two textures serve the whole crossfade.
+    private val shaderCache = LinkedHashMap<Bitmap, BitmapShader>()
+
+    private fun shaderFor(bitmap: Bitmap): BitmapShader = synchronized(shaderCache) {
+        shaderCache.remove(bitmap)?.let { shaderCache[bitmap] = it; return it }
+        val created = BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        shaderCache[bitmap] = created
+        while (shaderCache.size > 4) shaderCache.remove(shaderCache.keys.first())
+        created
+    }
+
     fun render(
         canvas: android.graphics.Canvas,
         width: Float,
@@ -236,8 +248,8 @@ private class AgslFluidRenderer {
         extraBlur: Boolean = false,
     ) {
         val copies = fluidCopies(width, height, seconds, seed)
-        val curShader = BitmapShader(current, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-        val prevShader = BitmapShader(previous, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
+        val curShader = shaderFor(current)
+        val prevShader = shaderFor(previous)
         shader.setInputShader("curArt", curShader)
         shader.setInputShader("prevArt", prevShader)
         shader.setFloatUniform("curArtSize", current.width.toFloat(), current.height.toFloat())
@@ -263,12 +275,18 @@ private class AgslFluidRenderer {
 
 /**
  * The Apple Music background: four copies of [artworkUrl], turning, twisted and blurred.
+ *
+ * [motionSuppressed] freezes the slow drift — for when something opaque covers this background
+ * (the night screen): the layers underneath used to keep rendering at full tilt all night for
+ * nobody. Freezing is invisible by construction, and resuming is seamless because the clock's
+ * jump is capped.
  */
 @Composable
 fun FluidArtworkBackground(
     artworkUrl: String?,
     modifier: Modifier = Modifier,
     extraBlur: Boolean = false,
+    motionSuppressed: Boolean = false,
     /** When false (playback paused) the fluid animation freezes instead of redrawing at 30fps. */
     animate: Boolean? = null,
     fallback: @Composable () -> Unit,
@@ -308,26 +326,25 @@ fun FluidArtworkBackground(
     var seconds by remember { mutableFloatStateOf(0f) }
     // Defaults to animating when no explicit signal is given, so existing call sites keep
     // their behavior. When a call site passes the playback state, the shader loop stops
-    // ticking while paused: the AGSL render + full-screen blur behind it used to keep the GPU
-    // busy at 30fps on a screen where nothing else moves. The animation resumes exactly where
-    // it froze.
-    LaunchedEffect(animate ?: true, current != null) {
-        if ((animate ?: true) && current != null) {
-            var last = System.nanoTime()
-            var pending = 0f
-            while (true) {
-                // Paced by `delay` rather than by awaiting the next frame: awaiting a frame is itself a
-                // request for one, so the loop used to keep the display refreshing at full rate for the
-                // whole time this background was on screen. `delay` wakes on a timer and asks for
-                // nothing, and the published value is throttled to FRAME_SECONDS either way.
-                delay(FRAME_TICK_MS)
-                val now = System.nanoTime()
-                pending += ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
-                last = now
-                if (pending >= FRAME_SECONDS) {
-                    seconds += pending
-                    pending = 0f
-                }
+    // ticking while paused or when motion is suppressed: the AGSL render + full-screen blur
+    // behind it used to keep the GPU busy at 30fps on a screen where nothing else moves.
+    val shouldAnimate = (animate ?: true) && !motionSuppressed && current != null
+    LaunchedEffect(shouldAnimate) {
+        if (!shouldAnimate) return@LaunchedEffect
+        var last = System.nanoTime()
+        var pending = 0f
+        while (true) {
+            // Paced by `delay` rather than by awaiting the next frame: awaiting a frame is itself a
+            // request for one, so the loop used to keep the display refreshing at full rate for the
+            // whole time this background was on screen. `delay` wakes on a timer and asks for
+            // nothing, and the published value is throttled to FRAME_SECONDS either way.
+            delay(FRAME_TICK_MS)
+            val now = System.nanoTime()
+            pending += ((now - last) / 1_000_000_000f).coerceIn(0f, 0.1f)
+            last = now
+            if (pending >= FRAME_SECONDS) {
+                seconds += pending
+                pending = 0f
             }
         }
     }

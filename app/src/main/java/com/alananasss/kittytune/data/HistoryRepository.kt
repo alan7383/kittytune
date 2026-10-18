@@ -6,6 +6,7 @@ import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.data.local.HistoryItem
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.map
@@ -14,7 +15,7 @@ import kotlinx.coroutines.launch
 object HistoryRepository {
     private lateinit var database: AppDatabase
     private lateinit var appContext: Context
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun init(context: Context) {
         appContext = context.applicationContext

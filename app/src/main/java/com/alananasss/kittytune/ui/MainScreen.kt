@@ -785,6 +785,7 @@ fun MainScreen(
                                 id == "yearly_playback" -> navController.navigate("wrapped_hub")
                                 id == "listening_stats" -> navController.navigate("listening_stats")
                                 id == "charts" -> navController.navigate("charts")
+                                id == "together" -> navController.navigate("together")
                                 id == "genres" -> navController.navigate("genres")
                                 id == "new_releases" -> navController.navigate("new_releases")
                                 id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
@@ -959,6 +960,24 @@ fun MainScreen(
                                 }
                             },
                             playerViewModel = playerViewModel
+                        )
+                    }
+
+                    clippedComposable("together") {
+                        com.alananasss.kittytune.ui.together.TogetherHomeScreen(
+                            onBack = { navController.popBackStack() },
+                            onOpen = { code -> navController.navigate("together_room/$code") }
+                        )
+                    }
+
+                    clippedComposable(
+                        route = "together_room/{code}",
+                        arguments = listOf(navArgument("code") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        com.alananasss.kittytune.ui.together.TogetherScreen(
+                            code = backStackEntry.arguments?.getString("code") ?: "",
+                            playerViewModel = playerViewModel,
+                            onBack = { navController.popBackStack() }
                         )
                     }
 
@@ -2020,6 +2039,10 @@ fun MainScreen(
                 )
             }
         }
+
+        // "Like all songs" asks first, wherever it was asked from (desktop PR #77): one host at the top of
+        // the window, so the album's menu and the library's playlist menu ask the same question.
+        com.alananasss.kittytune.ui.library.LikeAllPromptHost()
 
         if (playerViewModel.captchaUrl != null) {
             Dialog(

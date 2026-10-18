@@ -11,6 +11,7 @@ import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -50,7 +51,7 @@ object ArtistProfileCache {
     }
 
     private val memory = ConcurrentHashMap<String, CachedArtistProfile>()
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun normalizeKey(rawKey: String): String {
         val trimmed = rawKey.trim()

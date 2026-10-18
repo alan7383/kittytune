@@ -29,6 +29,7 @@ import androidx.media3.exoplayer.drm.DrmSessionManagerProvider
 import androidx.media3.exoplayer.drm.FrameworkMediaDrm
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import com.alananasss.kittytune.data.network.RetrofitClient
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
 import com.alananasss.kittytune.data.local.AppDatabase
 import com.alananasss.kittytune.domain.Track
@@ -379,7 +380,7 @@ object MusicManager {
     var onPreviousClick: (() -> Unit)? = null
     var onShuffleClick: (() -> Unit)? = null
     private var rainPlayer: RainPlayer? = null
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     fun init(context: Context) {
         if (_player1 != null) return
@@ -404,9 +405,31 @@ object MusicManager {
         val token = com.alananasss.kittytune.data.SessionManager.harvestStoredSession(context.applicationContext) ?: tokenManager.getAccessToken()
         val customUserAgent = "SoundCloud/2025.12.10-release (Android 10; Android)"
 
-        val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
-            .setUserAgent(customUserAgent)
-            .setAllowCrossProtocolRedirects(true)
+        val okHttpClient = com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient().newBuilder()
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val urlStr = request.url.toString()
+                val builder = request.newBuilder()
+                if (urlStr.contains("googlevideo.com") || urlStr.contains("youtube.com")) {
+                    val ua = if (org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.isAndroidStreamingUrl(urlStr)) {
+                        org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getAndroidUserAgent(null)
+                    } else if (org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.isVisionOsStreamingUrl(urlStr)) {
+                        org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper.getVisionOsUserAgent(null)
+                    } else {
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+                    }
+                    builder.header("User-Agent", ua)
+                    builder.header("Accept", "*/*")
+                    builder.header("Origin", "https://www.youtube.com")
+                    builder.header("Referer", "https://www.youtube.com/")
+                } else if (request.header("User-Agent") == null) {
+                    builder.header("User-Agent", customUserAgent)
+                }
+                chain.proceed(builder.build())
+            }
+            .build()
+
+        val httpDataSourceFactory = androidx.media3.datasource.okhttp.OkHttpDataSource.Factory(okHttpClient)
 
         val defaultDataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
         val deezerAwareDataSourceFactory = com.alananasss.kittytune.audio.providers.deezer.DeezerAudioAwareDataSourceFactory(defaultDataSourceFactory)
