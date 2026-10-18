@@ -120,7 +120,11 @@ fun CanvasVideo(
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
-                    .setForceHighestSupportedBitrate(true)
+                    // This player renders a full-screen background that is blurred by 40dp on
+                    // top of being a decorative layer: maximum-bitrate decoding was burning GPU
+                    // and memory for detail nobody can see while the main audio player runs.
+                    // Capping at 720p keeps the visual result identical under that blur.
+                    .setMaxVideoSize(1280, 720)
                     .setPreferredVideoMimeType(MimeTypes.VIDEO_H264)
                     .build()
             )

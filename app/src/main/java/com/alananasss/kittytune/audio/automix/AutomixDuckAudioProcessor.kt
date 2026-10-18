@@ -107,6 +107,21 @@ class AutomixDuckAudioProcessor(
         val remaining = inputBuffer.remaining()
         if (remaining == 0) return
 
+        // Fast path: no duck requested and the eased blend has fully settled back to dry.
+        // With mix == 0 the output is bit-identical to the input (out = in + (filtered-in)*0),
+        // so the whole biquad loop is skipped and audio is copied through. This keeps the
+        // audio thread free of continuous DSP work for the ~99% of playback time where no
+        // AutoMix blend is active. Filter memory is reset so a later ramp-up starts clean.
+        if (targetMix <= 0f && currentMix < 1e-4f) {
+            currentMix = 0f
+            x1L = 0.0; x2L = 0.0; y1L = 0.0; y2L = 0.0
+            x1R = 0.0; x2R = 0.0; y1R = 0.0; y2R = 0.0
+            val outputBuffer = replaceOutputBuffer(remaining)
+            outputBuffer.put(inputBuffer)
+            outputBuffer.flip()
+            return
+        }
+
         val outputBuffer = replaceOutputBuffer(remaining)
 
         // Per-sample ease toward targetMix: at 44.1-48kHz this settles in a few ms, fast

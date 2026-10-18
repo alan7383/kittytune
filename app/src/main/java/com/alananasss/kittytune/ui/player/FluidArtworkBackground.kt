@@ -287,6 +287,8 @@ fun FluidArtworkBackground(
     modifier: Modifier = Modifier,
     extraBlur: Boolean = false,
     motionSuppressed: Boolean = false,
+    /** When false (playback paused) the fluid animation freezes instead of redrawing at 30fps. */
+    animate: Boolean? = null,
     fallback: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
@@ -322,8 +324,13 @@ fun FluidArtworkBackground(
     }
 
     var seconds by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(motionSuppressed) {
-        if (motionSuppressed) return@LaunchedEffect
+    // Defaults to animating when no explicit signal is given, so existing call sites keep
+    // their behavior. When a call site passes the playback state, the shader loop stops
+    // ticking while paused or when motion is suppressed: the AGSL render + full-screen blur
+    // behind it used to keep the GPU busy at 30fps on a screen where nothing else moves.
+    val shouldAnimate = (animate ?: true) && !motionSuppressed && current != null
+    LaunchedEffect(shouldAnimate) {
+        if (!shouldAnimate) return@LaunchedEffect
         var last = System.nanoTime()
         var pending = 0f
         while (true) {
