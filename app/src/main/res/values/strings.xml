@@ -1895,6 +1895,12 @@
     <string name="recognition_notif_channel_desc">Used during internal audio recognition</string>
     <string name="recognition_notif_stop">Stop</string>
     <string name="recognition_notif_track_found">Found: %1$s - %2$s</string>
+    <string name="recognition_recognized_at">Recognized at %1$s</string>
+    <string name="recognition_released">Released %1$s</string>
+    <string name="stat_plays">Plays</string>
+    <string name="stat_likes">Likes</string>
+    <string name="stat_reposts">Reposts</string>
+    <string name="stat_comments">Comments</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">Support KittyTune</string>
     <string name="about_kofi_desc">This project is entirely free and open-source. If you enjoy my work, please consider supporting its development by buying me a coffee on Ko-fi!</string>
@@ -3003,6 +3009,11 @@
     <string name="pref_seek_wheel">Scrubbing sensitivity</string>
     <string name="pref_screensaver_title">Dim on inactivity</string>
     <string name="pref_screensaver_desc">Dims playback view after inactivity</string>
+    <string name="screensaver_focus_mode">Screensaver &amp; Focus Mode</string>
+    <string name="screensaver_tap_to_wake">Tap anywhere to wake</string>
+    <string name="screensaver_since_sleep">Since sleep</string>
+    <string name="screensaver_session_stats">Session stats</string>
+    <string name="track_sorted_by_followers">Sorted by followers</string>
 
     <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
     <string name="yearly_playback_title">SoundCloud Wrapped</string>
@@ -3272,6 +3283,15 @@
     <string name="wave_mode_discover">Discover</string>
     <string name="wave_mode_popular">Popular</string>
     <string name="wave_nothing_yet">Not enough listening yet to start the wave</string>
+    <string name="home_clips_title">Clips</string>
+    <string name="home_from_your_artists">New from your artists</string>
+    <string name="chart_section_title">Charts</string>
+    <string name="artist_trailer">Teaser</string>
+    <string name="artist_trailer_tip">A teaser of each top song, twenty seconds apiece</string>
+    <string name="artist_trailer_playing">Teaser on</string>
+    <string name="artist_listen">Listen</string>
+    <string name="artist_listening">Listening</string>
+    <string name="artist_resume">Resume</string>
     <string name="pref_lyrics_reveal_words_title">Words light up one by one</string>
     <string name="pref_lyrics_reveal_words_sub">Lines without word timing fill in quickly word by word instead of all at once</string>
     <string name="chart_country_ru">Russia</string>
@@ -3306,7 +3326,6 @@
     <string name="chart_genre_latin">Latin</string>
     <string name="chart_genre_folk">Folk</string>
     <string name="wave_now_playing">Now in your wave</string>
-    <string name="home_from_your_artists">New from your artists</string>
     <string name="home_from_your_artists_sub">What the artists you like have put out, by the Friday it came out</string>
     <string name="home_releases_this_friday">This Friday</string>
     <string name="home_releases_last_friday">Last Friday</string>
@@ -3321,4 +3340,46 @@
     <string name="night_screen_title">Night screen</string>
     <string name="night_screen_since">Since the night screen came on</string>
     <string name="night_screen_tap_to_wake">Tap anywhere to wake</string>
+    <string name="search_top_result">Top result</string>
+    <string name="search_recent_searches">Recent searches</string>
+    <string name="search_clear_all">Clear all</string>
+    <string name="search_see_more">See more</string>
+    <string name="search_see_less">See less</string>
+    <string name="search_remove_recent">Remove from recent searches</string>
+    <string name="search_showing_results_for">Showing results for “%1$s”</string>
+    <string name="search_kind_artist">Artist</string>
+    <string name="search_kind_playlist">Playlist</string>
+    <string name="search_kind_track">Track · %1$s</string>
+    <string name="search_section_personalized">For You</string>
+    <string name="vk_import_title">Import from VK Music</string>
+    <string name="vk_import_sub">Paste a link to a playlist or an album</string>
+    <string name="vk_import_hint">Link to a VK playlist</string>
+    <string name="vk_import_paste">Paste</string>
+    <string name="vk_import_load">Find</string>
+    <string name="vk_import_note">Tracks are looked up on SoundCloud and YouTube Music by title, artist and length. No VK login needed.</string>
+    <string name="vk_import_platform">VK Music</string>
+    <string name="vk_import_platform_sub">Playlists and albums by link, no sign-in</string>
+    <string name="vk_import_not_vk">That is not a VK link.</string>
+    <string name="vk_import_not_playlist">There is no playlist in this link. Open the playlist in VK and copy its link.</string>
+    <string name="vk_import_private">VK will not open this playlist: it is private, or the link has no access key. In VK, press Share, then Copy link, and paste that here.</string>
+    <string name="vk_import_empty">This playlist is empty.</string>
+    <string name="vk_import_failed">Could not reach VK: %1$s</string>
+    <string name="vk_import_tracks">%1$d tracks</string>
+    <string name="vk_import_start">Import playlist</string>
+    <string name="vk_import_progress">Looking up tracks: %1$d of %2$d · %3$d found</string>
+    <string name="vk_import_done">Done: %1$d of %2$d tracks are in the playlist “%3$s”</string>
+    <string name="vk_import_missing">Not found (%1$d)</string>
+    <string name="vk_import_open">Open playlist</string>
+    <string name="vk_import_another">Import another</string>
+    <string name="queue_up_next">Up next</string>
+    <string name="queue_remove">Remove from queue</string>
+    <string name="queue_played">Already played</string>
+    <string name="queue_expand_played">Show already played tracks</string>
+    <string name="queue_collapse_played">Hide already played tracks</string>
+    <string name="queue_time_left">%1$s left</string>
+    <string name="queue_clear_upcoming">Clear what is up next</string>
+    <string name="time_hours_minutes">%1$dh %2$02dmin</string>
+    <string name="time_hours">%1$dh</string>
+    <string name="time_minutes">%1$d min</string>
+    <string name="time_seconds">%1$ds</string>
 </resources>

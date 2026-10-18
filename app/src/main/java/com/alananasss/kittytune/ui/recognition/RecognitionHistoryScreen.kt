@@ -149,7 +149,13 @@ fun RecognitionHistoryScreen(
             KittyOutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text(stringResource(R.string.search_history_hint)) },
+                placeholder = {
+                    Text(
+                        stringResource(R.string.search_history_hint),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
                 leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -186,7 +192,7 @@ fun RecognitionHistoryScreen(
                             )
                         }
 
-                        items(items) { item ->
+                        items(items, key = { it.id }) { item ->
                             HistoryItemRow(
                                 item = item,
                                 currentlyPlayingTrack = playerViewModel.uiCurrentTrack,

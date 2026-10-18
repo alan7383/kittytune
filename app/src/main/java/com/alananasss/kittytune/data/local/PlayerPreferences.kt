@@ -311,6 +311,7 @@ class PlayerPreferences(context: Context) {
         private const val KEY_AUTOPLAY_STATION = "autoplay_station_enabled"
         private const val KEY_AUDIO_QUALITY = "audio_quality_pref"
         private const val KEY_PERSISTENT_QUEUE = "persistent_queue_enabled"
+        private const val KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP = "queue_preserve_upcoming_on_jump"
         private const val KEY_START_DESTINATION = "start_destination_pref"
         private const val KEY_DYNAMIC_THEME = "dynamic_theme_enabled"
         private const val KEY_TRACK_DYNAMIC_THEME = "track_dynamic_theme_enabled"
@@ -1175,6 +1176,8 @@ class PlayerPreferences(context: Context) {
     fun setAudioQuality(quality: String) = prefs.edit { putString(KEY_AUDIO_QUALITY, quality) }
     fun getPersistentQueueEnabled(): Boolean = prefs.getBoolean(KEY_PERSISTENT_QUEUE, true)
     fun setPersistentQueueEnabled(enabled: Boolean) = prefs.edit { putBoolean(KEY_PERSISTENT_QUEUE, enabled) }
+    fun getQueuePreserveUpcomingOnJump(): Boolean = prefs.getBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, true)
+    fun setQueuePreserveUpcomingOnJump(enabled: Boolean) = prefs.edit { putBoolean(KEY_QUEUE_PRESERVE_UPCOMING_ON_JUMP, enabled) }
 
     fun getKeyColor(): Int = prefs.getInt(KEY_KEY_COLOR, 0)
     fun setKeyColor(color: Int) = prefs.edit { putInt(KEY_KEY_COLOR, color) }

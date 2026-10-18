@@ -1112,6 +1112,7 @@ object MusicManager {
                         }
 
                         val progress = i.toFloat() / steps
+                        com.alananasss.kittytune.audio.automix.AutomixManager.setMixProgress(progress)
                         val fadeOut: Float
                         val fadeIn: Float
 
@@ -1222,6 +1223,7 @@ object MusicManager {
                         com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
                     }
                 }
+                com.alananasss.kittytune.audio.automix.AutomixManager.setMixProgress(0f)
 
                 val currentParams = newPlayer.playbackParameters
                 if (currentParams != basePlaybackParams) {
@@ -1259,6 +1261,7 @@ object MusicManager {
                     liveTransitions = 0
                     fadingPlayer = null
                     isCrossfadingOut = false
+                    com.alananasss.kittytune.audio.automix.AutomixManager.setMixProgress(0f)
                 }
             }
         }

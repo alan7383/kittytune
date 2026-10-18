@@ -1762,6 +1762,12 @@
     <string name="recognition_notif_channel_desc">Wird während der internen Audioerkennung verwendet</string>
     <string name="recognition_notif_stop">Stopp</string>
     <string name="recognition_notif_track_found">Gefunden: %1$s - %2$s</string>
+    <string name="recognition_recognized_at">Erkannt um %1$s</string>
+    <string name="recognition_released">Erschienen %1$s</string>
+    <string name="stat_plays">Wiedergaben</string>
+    <string name="stat_likes">Likes</string>
+    <string name="stat_reposts">Reposts</string>
+    <string name="stat_comments">Kommentare</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">KittyTune unterstützen</string>
     <string name="about_kofi_desc">Dieses Projekt ist vollständig kostenlos und quelloffen. Wenn dir meine Arbeit gefällt, unterstütze ihre Entwicklung gerne mit einem Kaffee auf Ko-fi!</string>

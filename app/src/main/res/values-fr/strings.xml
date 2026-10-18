@@ -1659,6 +1659,12 @@
     <string name="recognition_notif_channel_desc">Affiche une notification pendant la reconnaissance de l\'audio interne</string>
     <string name="recognition_notif_stop">Arrêter</string>
     <string name="recognition_notif_track_found">Trouvé : %1$s - %2$s</string>
+    <string name="recognition_recognized_at">Reconnu à %1$s</string>
+    <string name="recognition_released">Sorti le %1$s</string>
+    <string name="stat_plays">Écoutes</string>
+    <string name="stat_likes">J’aime</string>
+    <string name="stat_reposts">Reposts</string>
+    <string name="stat_comments">Commentaires</string>
     <string name="cover_copy_link">Copier le lien</string>
     <string name="cover_saved">Image sauvegardée</string>
     <string name="cover_save_error">Erreur lors de la sauvegarde</string>
@@ -2795,6 +2801,11 @@
     <string name="pref_seek_wheel">Sensibilité du défilement</string>
     <string name="pref_screensaver_title">Écran de veille</string>
     <string name="pref_screensaver_desc">Assombrit le lecteur en cas d\'inactivité</string>
+    <string name="screensaver_focus_mode">Écran de veille et mode concentration</string>
+    <string name="screensaver_tap_to_wake">Toucher pour quitter</string>
+    <string name="screensaver_since_sleep">Depuis la mise en veille</string>
+    <string name="screensaver_session_stats">Statistiques de la session</string>
+    <string name="track_sorted_by_followers">Trié par abonnés</string>
 
     <string name="menu_block_track">Masquer le morceau</string>
     <string name="menu_unblock_track">Démasquer le morceau</string>
@@ -3217,4 +3228,15 @@
     <string name="night_screen_title">Écran de nuit</string>
     <string name="night_screen_since">Depuis l’allumage de l’écran de nuit</string>
     <string name="night_screen_tap_to_wake">Touchez l’écran pour réveiller</string>
+    <string name="queue_up_next">À suivre</string>
+    <string name="queue_remove">Retirer de la file</string>
+    <string name="queue_played">Déjà joué</string>
+    <string name="queue_expand_played">Afficher les titres déjà joués</string>
+    <string name="queue_collapse_played">Masquer les titres déjà joués</string>
+    <string name="queue_time_left">Encore %1$s</string>
+    <string name="queue_clear_upcoming">Vider la suite</string>
+    <string name="time_hours_minutes">%1$dh %2$02dmin</string>
+    <string name="time_hours">%1$dh</string>
+    <string name="time_minutes">%1$d min</string>
+    <string name="time_seconds">%1$ds</string>
 </resources>

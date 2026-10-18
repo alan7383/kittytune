@@ -22,8 +22,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -117,7 +119,14 @@ fun SearchLyricsView(
         CustomLyricsDialog(viewModel = viewModel, onDismiss = { showUpload = false })
     }
 
-    Column(modifier = modifier.fillMaxSize().entersGently(0.985f).background(MaterialTheme.colorScheme.surface)) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .entersGently(0.985f)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
         SearchField(
             query = query,
             onQueryChange = { query = it },
@@ -139,7 +148,7 @@ private fun SearchField(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
     ) {
         IconButton(onClick = onClose, shapes = IconButtonDefaults.shapes()) {
             Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.common_close), tint = MaterialTheme.colorScheme.onSurface)
@@ -279,7 +288,7 @@ private fun SearchResults(viewModel: PlayerViewModel, onUpload: () -> Unit) {
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(start = 16.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxSize(),
         ) {

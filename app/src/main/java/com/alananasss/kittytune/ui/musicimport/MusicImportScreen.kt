@@ -25,10 +25,13 @@ import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import androidx.compose.material.icons.rounded.AccountCircle
 
+import androidx.compose.material.icons.rounded.Link
+
 @Composable
 fun MusicImportScreen(
     onBackClick: () -> Unit,
     onPlatformSelected: (String) -> Unit,
+    onOpenPlaylist: (Long) -> Unit = {},
     onLoginClick: () -> Unit = {},
     viewModel: MusicImportViewModel = viewModel()
 ) {
@@ -40,6 +43,17 @@ fun MusicImportScreen(
     val isLoggedIn = remember(tokenManager) { tokenManager.hasAccessToken() && !tokenManager.isGuestMode() }
 
     var platformPendingAuth by remember { mutableStateOf<MusicApi?>(null) }
+    var showVkImport by remember { mutableStateOf(false) }
+
+    if (showVkImport) {
+        VkImportDialog(
+            onDismiss = { showVkImport = false },
+            onOpenPlaylist = {
+                showVkImport = false
+                onOpenPlaylist(it)
+            },
+        )
+    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshConnection()
@@ -115,6 +129,9 @@ fun MusicImportScreen(
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
+                    // VK needs no account of any kind, so it is offered without the SoundCloud login too.
+                    Spacer(modifier = Modifier.height(24.dp))
+                    SettingsGroup(items = listOf { shape -> VkImportItem(shape) { showVkImport = true } })
                 }
             } else {
                 LazyColumn(
@@ -132,7 +149,7 @@ fun MusicImportScreen(
                 item {
                     SettingsGroup(
                         title = stringResource(R.string.music_import_platforms_header),
-                        items = viewModel.platforms.map { platform ->
+                        items = viewModel.platforms.map<MusicApi, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { platform ->
                             { shape ->
                                 val visual = platform.visual()
                                 SettingsItem(
@@ -158,7 +175,7 @@ fun MusicImportScreen(
                                     }
                                 )
                             }
-                        }
+                        } + listOf { shape -> VkImportItem(shape) { showVkImport = true } }
                     )
                 }
 
@@ -227,4 +244,23 @@ fun MusicApi.labelRes(): Int = when (this) {
     MusicApi.TIDAL -> R.string.music_provider_tidal
     MusicApi.AMAZON_MUSIC -> R.string.music_provider_amazon_music
     MusicApi.BOOMPLAY -> R.string.music_provider_boomplay
+}
+
+/** VK sits in the platform list like the others; it opens a link field instead of a sign-in. */
+@Composable
+private fun VkImportItem(shape: androidx.compose.ui.graphics.Shape, onClick: () -> Unit) {
+    val state by VkImportSession.state.collectAsState()
+    SettingsItem(
+        shape = shape,
+        title = stringResource(R.string.vk_import_platform),
+        subtitle = stringResource(R.string.vk_import_platform_sub),
+        icon = Icons.Rounded.Link,
+        // An import keeps running with the dialog closed; this says so and is the way back to it.
+        trailingContent = if (state is VkImportState.Importing || state is VkImportState.Loading) {
+            { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
+        } else {
+            null
+        },
+        onClick = onClick,
+    )
 }

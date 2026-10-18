@@ -284,7 +284,7 @@ fun LibraryScreen(
             if (tracks.isNotEmpty()) {
                 kotlinx.coroutines.withContext(Dispatchers.Main) {
                     if (shuffle) {
-                        playerViewModel.playPlaylist(tracks.shuffled(), 0)
+                        playerViewModel.playPlaylistShuffled(tracks)
                     } else if (insertNext) {
                         playerViewModel.insertNext(tracks)
                     } else if (addToQueue) {
@@ -2089,6 +2089,19 @@ fun LibraryContentGrid(
                             isLoading = false
                         )
                     }
+                }
+            }
+
+            item(span = { GridItemSpan(1) }, key = "together") {
+                Box(modifier = Modifier.animateItem()) {
+                    StaticLibraryCard(
+                        title = stringResource(R.string.together_title),
+                        subtitle = "${stringResource(R.string.lib_playlists)} • ${stringResource(R.string.together_hint)}",
+                        icon = Icons.Rounded.Groups,
+                        isGrid = viewModel.isGridLayout,
+                        onClick = { onPlaylistClick("together") },
+                        isLoading = false
+                    )
                 }
             }
         }

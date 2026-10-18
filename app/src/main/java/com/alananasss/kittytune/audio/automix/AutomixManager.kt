@@ -40,6 +40,9 @@ object AutomixManager {
     /** An energy gap this wide shortens the blend: the pair is a mood change, not a weave. */
     private const val BIG_ENERGY_GAP = 0.35f
 
+    /** A mix-out point further than this from the end is from another upload and not believed. */
+    private const val MAX_BELIEVABLE_OUTRO_MS = 60_000L
+
     /** The key's name, as musicians say it: pitch class 7 minor is "A min". */
     fun keyName(pitchClass: Int?, isMinor: Boolean?): String? {
         if (pitchClass == null || isMinor == null) return null
@@ -76,6 +79,9 @@ object AutomixManager {
     private val _mixBeatsLeft = MutableStateFlow<Int?>(null)
     val mixBeatsLeft = _mixBeatsLeft.asStateFlow()
 
+    private val _mixProgress = MutableStateFlow(0f)
+    val mixProgress = _mixProgress.asStateFlow()
+
     private val _onBeatAnalysisCompleted = MutableSharedFlow<String>(extraBufferCapacity = 64)
     val onBeatAnalysisCompleted = _onBeatAnalysisCompleted.asSharedFlow()
 
@@ -101,9 +107,14 @@ object AutomixManager {
         _mixBeatsLeft.value = beats
     }
 
+    fun setMixProgress(progress: Float) {
+        _mixProgress.value = progress.coerceIn(0f, 1f)
+    }
+
     fun clearPlan() {
         currentAutomixPlan = null
         _mixBeatsLeft.value = null
+        _mixProgress.value = 0f
         if (!_isAutomixing.value) {
             _automixDebugInfo.value = null
         }
@@ -387,47 +398,6 @@ object AutomixManager {
             KeyHarmony.between(camelotCode(outBeat.keyPitchClass, outBeat.keyIsMinor), camelotCode(inBeat.keyPitchClass, inBeat.keyIsMinor))
         } else KeyHarmony.Fit.UNKNOWN
 
-        // In Auto mode the blend follows the music: keys that fit earn a longer blend, keys that clash and a
-        // big energy gap both cut it short, so the seam never asks more of the pair than it can hold.
-        if (overlapMode == 0) {
-            val energyGap = if (outBeat.energy != null && inBeat.energy != null) {
-                abs(outBeat.energy - inBeat.energy)
-            } else 0f
-            overlapMs = when (keyFit) {
-                KeyHarmony.Fit.SAME, KeyHarmony.Fit.NEIGHBOUR -> (overlapMs * 1.2f).toLong()
-                KeyHarmony.Fit.CLASH -> minOf(overlapMs, SHORT_BLEND_MS)
-                else -> overlapMs
-            }
-            if (energyGap > BIG_ENERGY_GAP) overlapMs = (overlapMs * 0.7f).toLong()
-            overlapMs = overlapMs.coerceIn(4_000L, 20_000L)
-        }
-
-        // Dynamic mix-out: start the transition where the song's body ends (outro begins)
-        val latestTrigger = trackDuration - overlapMs
-        val mixOut = if (prefs.getAutomixDynamicMixPointsEnabled()) {
-            outBeat.mixOutPointMs?.takeIf { it > 0 }
-        } else null
-        val effectiveTrigger = mixOut?.coerceAtMost(latestTrigger) ?: latestTrigger
-
-        // Snap the fade start onto an 8-beat phrase boundary of the outgoing track's grid.
-        // The anchor is a classified downbeat, so "phrase boundary" means an actual beat 1 -
-        // quantizing against the raw beat grid lands the fade 1-3 beats off the One.
-        // Half the track's trusted granularity: the fade start wants to be finer than a full
-        // phrase, but never finer than the grid can actually support.
-        val phraseMs = periodMs * max(2, outBeat.gridTrust.quantizeBeats / 2)
-        val outAnchorMs = outBeat.trustedAnchorMs
-        val anchor = max(effectiveTrigger, currentPosition + 1000)
-        val k = ((anchor - outAnchorMs) / phraseMs).toLong()
-        var triggerTime = (outAnchorMs + k * phraseMs).toLong()
-        if (triggerTime < anchor) triggerTime = (outAnchorMs + (k + 1) * phraseMs).toLong()
-
-        val roomMs = trackDuration - 500 - triggerTime
-        val effectiveOverlapMs = overlapMs.coerceAtMost(roomMs)
-        if (effectiveOverlapMs < 3000L || triggerTime >= trackDuration - 3000) {
-            _automixDebugInfo.value = partialDebug.copy(status = "fallback: trigger out of range")
-            return AutomixPlanResult(plan = null, pairAnalyzed = true)
-        }
-
         // Fold octave errors, then cap pitch-preserving stretch at ±8%
         var tempoRatio = 1f
         if (prefs.getAutomixTempoMatchEnabled()) {
@@ -453,6 +423,55 @@ object AutomixManager {
                     pitchRatio = 2.0.pow(semitoneShift / 12.0).toFloat()
                 }
             }
+        }
+
+        // In Auto mode the blend follows the music: keys that fit earn a longer blend, keys that clash and a
+        // big energy gap both cut it short, so the seam never asks more of the pair than it can hold.
+        // When harmonic correction aligned the keys, effectiveFit is treated as SAME (PR #77).
+        if (overlapMode == 0) {
+            val effectiveFit = if (pitchRatio != 1f) KeyHarmony.Fit.SAME else keyFit
+            val energyGap = if (outBeat.energy != null && inBeat.energy != null) {
+                abs(outBeat.energy - inBeat.energy)
+            } else 0f
+            overlapMs = when (effectiveFit) {
+                KeyHarmony.Fit.SAME, KeyHarmony.Fit.NEIGHBOUR -> (overlapMs * 1.2f).toLong()
+                KeyHarmony.Fit.CLASH -> minOf(overlapMs, SHORT_BLEND_MS)
+                else -> overlapMs
+            }
+            if (energyGap > BIG_ENERGY_GAP) overlapMs = (overlapMs * 0.7f).toLong()
+            overlapMs = overlapMs.coerceIn(4_000L, 20_000L)
+        }
+
+        // Dynamic mix-out: start the transition where the song's body ends (outro begins)
+        val latestTrigger = trackDuration - overlapMs
+        val mixOut = if (prefs.getAutomixDynamicMixPointsEnabled()) {
+            outBeat.mixOutPointMs?.takeIf { it > 0 && it >= trackDuration - MAX_BELIEVABLE_OUTRO_MS }
+        } else null
+        val effectiveTrigger = mixOut?.coerceAtMost(latestTrigger) ?: latestTrigger
+
+        // Snap the fade start onto an 8-beat phrase boundary of the outgoing track's grid.
+        // The anchor is a classified downbeat, so "phrase boundary" means an actual beat 1 -
+        // quantizing against the raw beat grid lands the fade 1-3 beats off the One.
+        // Half the track's trusted granularity: the fade start wants to be finer than a full
+        // phrase, but never finer than the grid can actually support.
+        val phraseMs = periodMs * max(2, outBeat.gridTrust.quantizeBeats / 2)
+        val outAnchorMs = outBeat.trustedAnchorMs
+        val anchor = max(effectiveTrigger, currentPosition + 1000)
+        val k = ((anchor - outAnchorMs) / phraseMs).toLong()
+        var triggerTime = (outAnchorMs + k * phraseMs).toLong()
+        if (triggerTime < anchor) triggerTime = (outAnchorMs + (k + 1) * phraseMs).toLong()
+        // Where the loud part ends (a mix-out point is known), the phrase boundary nearest to it is taken, not the next one
+        // after it: the blend then covers the last bars of the drop going out, and does not begin in the empty tail.
+        if (mixOut != null) {
+            val nearest = (outAnchorMs + Math.round((anchor - outAnchorMs) / phraseMs) * phraseMs).toLong()
+            if (nearest >= currentPosition + 1000) triggerTime = nearest
+        }
+
+        val roomMs = trackDuration - 500 - triggerTime
+        val effectiveOverlapMs = overlapMs.coerceAtMost(roomMs)
+        if (effectiveOverlapMs < 3000L || triggerTime >= trackDuration - 3000) {
+            _automixDebugInfo.value = partialDebug.copy(status = "fallback: trigger out of range")
+            return AutomixPlanResult(plan = null, pairAnalyzed = true)
         }
 
         // Start offset: Auto (dynamic intro skip), Beginning (0:00), or Custom offset (snapped to downbeats)

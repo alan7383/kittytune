@@ -75,7 +75,12 @@ fun ListeningStatsCard(
         }
     }
 
-    val stats = summary ?: return
+    // While the numbers are read, a card-sized blank holds the place: the card used to arrive late and push everything under
+    // it down, which showed as the page jumping while it was being scrolled.
+    val stats = summary ?: run {
+        Box(modifier.fillMaxWidth().height(170.dp).clip(RoundedCornerShape(24.dp)).background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f)))
+        return
+    }
     if (stats.listenedMs <= 0L) return
 
     Surface(

@@ -211,6 +211,9 @@
         @Query("DELETE FROM play_history WHERE originalUrl = 'your_mix' OR originalUrl LIKE '%your_mix%' OR id = 'your_mix' OR id LIKE '%your_mix%'")
         suspend fun deleteMixHistory()
 
+        @Query("DELETE FROM play_history WHERE originalUrl = 'my_wave' OR originalUrl LIKE '%my_wave%' OR id = 'my_wave' OR id LIKE '%my_wave%' OR id LIKE '%wave%' OR title = 'MyWave' OR title LIKE '%MyWave%'")
+        suspend fun deleteWaveHistory()
+
         // listening stats
         //
         // Every aggregate below asks the same question — was enough of this track heard? — instead of

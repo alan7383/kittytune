@@ -2247,8 +2247,8 @@ fun PlaylistDetailScreen(
                                                     }
                                                     FilledTonalButton(
                                                         onClick = {
-                                                            playerViewModel.playPlaylist(
-                                                                tracksToDisplay.toList().shuffled(),
+                                                            playerViewModel.playPlaylistShuffled(
+                                                                tracksToDisplay.toList(),
                                                                 context = playbackContext
                                                             )
                                                         },
@@ -2924,7 +2924,7 @@ fun PlaylistOptionsSheet(
                 DockOptionItem(
                     Icons.Default.Shuffle,
                     context.getString(R.string.btn_shuffle)
-                ) { playerViewModel.playPlaylist(tracks.shuffled(), 0); onDismiss() }
+                ) { playerViewModel.playPlaylistShuffled(tracks); onDismiss() }
             ).apply {
                 if (!isYoutubeRadio) {
                     add(

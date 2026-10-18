@@ -1633,6 +1633,12 @@
     <string name="recognition_notif_channel_desc">Được dùng khi nhận diện âm thanh nội bộ thiết bị</string>
     <string name="recognition_notif_stop">Dừng</string>
     <string name="recognition_notif_track_found">Đã tìm thấy: %1$s - %2$s</string>
+    <string name="recognition_recognized_at">Nhận diện lúc %1$s</string>
+    <string name="recognition_released">Phát hành %1$s</string>
+    <string name="stat_plays">Lượt nghe</string>
+    <string name="stat_likes">Lượt thích</string>
+    <string name="stat_reposts">Đăng lại</string>
+    <string name="stat_comments">Bình luận</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">Ủng hộ KittyTune</string>
     <string name="about_kofi_desc">Dự án này hoàn toàn miễn phí và có mã nguồn mở. Nếu bạn yêu thích sản phẩm, hãy cân nhắc ủng hộ sự phát triển bằng cách mời tôi một ly cà phê trên Ko-fi!</string>

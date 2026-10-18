@@ -409,6 +409,11 @@ interface SoundCloudApi {
         @Body request: GraphQlRequest
     ): GraphQlUserProfileResponse
 
+    @POST("https://graph.soundcloud.com/graphql")
+    suspend fun getFeaturedPlaylistsGraphQL(
+        @Body request: FeaturedPlaylistsGraphQlRequest
+    ): FeaturedPlaylistsGraphQlResponse
+
     @GET("users/{userId}")
     suspend fun getUser(@Path("userId") userId: Long): User
 

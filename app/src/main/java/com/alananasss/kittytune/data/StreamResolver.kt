@@ -17,6 +17,7 @@
     import com.alananasss.kittytune.utils.Config
     import com.alananasss.kittytune.utils.NetworkUtils
     import kotlinx.coroutines.Dispatchers
+    import kotlinx.coroutines.async
     import kotlinx.coroutines.withContext
     import okhttp3.Cookie
     import okhttp3.CookieJar
@@ -440,13 +441,9 @@
                 .filter { it.isNotBlank() }
             val artists = (explicitArtists + listOf(artist) + splitArtists).filter { it.isNotBlank() }.distinct()
 
-            val attempted = mutableSetOf<AudioProviderOrderItem>()
-            for (provider in order) {
-                if (!attempted.add(provider)) continue
-                if (provider in effectiveDisabled) {
-                    Log.d(TAG, "Provider $provider is disabled, skipping for '${track.title}'")
-                    continue
-                }
+            val enabled = order.distinct().filter { it !in effectiveDisabled }
+
+            suspend fun resolveWith(provider: AudioProviderOrderItem): ResolvedStream? {
                 try {
                     when (provider) {
                         AudioProviderOrderItem.QOBUZ -> {
@@ -565,11 +562,54 @@
                         }
                     }
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     Log.w(TAG, "Provider $provider failed for '${track.title}': ${e.message}")
                 }
+                return null
             }
-            return null
+
+            return raceInOrder(enabled.map { provider -> suspend { resolveWith(provider) } })
         }
+
+        /**
+         * Runs [attempts] at once and returns the result of the first one, in list order, that answers with
+         * something, without waiting forever on the ones ahead of an answer: once a later attempt has answered,
+         * those ahead of it get [PROVIDER_PRIORITY_GRACE_MS] more. The rest are cancelled.
+         */
+        internal suspend fun <T : Any> raceInOrder(
+            attempts: List<suspend () -> T?>,
+            graceMs: Long = PROVIDER_PRIORITY_GRACE_MS,
+        ): T? = kotlinx.coroutines.coroutineScope {
+            val running = attempts.map { attempt -> async(Dispatchers.IO) { attempt() } }
+            var answeredBelowAtMs: Long? = null
+            try {
+                while (true) {
+                    var waitingAbove = false
+                    for (attempt in running) {
+                        if (!attempt.isCompleted) {
+                            waitingAbove = true
+                            continue
+                        }
+                        @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+                        val result = runCatching { attempt.getCompleted() }.getOrNull() ?: continue
+                        if (!waitingAbove) return@coroutineScope result
+                        val since = answeredBelowAtMs ?: System.currentTimeMillis().also { answeredBelowAtMs = it }
+                        if (System.currentTimeMillis() - since >= graceMs) return@coroutineScope result
+                        break
+                    }
+                    if (running.all { it.isCompleted }) return@coroutineScope null
+                    kotlinx.coroutines.delay(RACE_POLL_MS)
+                }
+                null
+            } finally {
+                running.forEach { it.cancel() }
+            }
+        }
+
+        /** How long sources above an answer still get to answer, so the user's order mostly holds. */
+        private const val PROVIDER_PRIORITY_GRACE_MS = 1_500L
+
+        private const val RACE_POLL_MS = 40L
 
         private suspend fun resolveViaNewPipe(context: Context, track: Track): String? {
             return try {
