@@ -126,5 +126,39 @@ fun rememberPlaylistTotalDuration(ms: Long): String {
     }
 }
 
+/**
+ * Localized duration string formatted for remaining queue time:
+ * - hours and minutes: e.g. "2h 14min"
+ * - minutes only: e.g. "45 min"
+ * - seconds under a minute: e.g. "30s"
+ */
+fun formatQueueDuration(
+    durationMs: Long,
+    resolveString: (Int, Array<out Any>) -> String
+): String {
+    if (durationMs <= 0L) return resolveString(R.string.time_minutes, arrayOf(0))
+    val totalSeconds = (durationMs + 500) / 1000
+    val totalMinutes = totalSeconds / 60
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    val seconds = totalSeconds % 60
+
+    return when {
+        hours > 0 -> {
+            if (minutes > 0) resolveString(R.string.time_hours_minutes, arrayOf(hours, minutes))
+            else resolveString(R.string.time_hours, arrayOf(hours))
+        }
+        totalMinutes > 0 -> resolveString(R.string.time_minutes, arrayOf(totalMinutes))
+        else -> resolveString(R.string.time_seconds, arrayOf(seconds))
+    }
+}
+
+fun formatQueueDuration(context: Context, durationMs: Long): String =
+    formatQueueDuration(durationMs) { resId, args ->
+        if (args.isEmpty()) context.getString(resId)
+        else context.getString(resId, *args)
+    }
+
+
 
 

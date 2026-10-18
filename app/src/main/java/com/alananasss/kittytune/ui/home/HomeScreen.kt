@@ -2,6 +2,7 @@ package com.alananasss.kittytune.ui.home
 
 import android.net.Uri
 import androidx.activity.compose.BackHandler
+import com.alananasss.kittytune.ui.player.PlaybackContext
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -134,6 +135,15 @@ fun HomeScreen(
     val searchFieldState = remember { TextFieldState() }
     val searchFieldInteractions = remember { MutableInteractionSource() }
     val isSearchFieldFocused by searchFieldInteractions.collectIsFocusedAsState()
+
+    val homeClips by com.alananasss.kittytune.data.artist.ArtistClips.homeClips.collectAsState()
+    val likes by com.alananasss.kittytune.data.LikeRepository.likedTracks.collectAsState()
+
+    LaunchedEffect(likes) {
+        if (likes.isNotEmpty() && com.alananasss.kittytune.data.artist.ArtistClips.homeClips.value.isEmpty()) {
+            com.alananasss.kittytune.data.artist.ArtistClips.loadHomeClips(likes)
+        }
+    }
 
     val isKeyboardOpen = WindowInsets.isImeVisible
 
@@ -402,6 +412,11 @@ fun HomeScreen(
                                         .padding(top = 4.dp, bottom = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    SearchSourceSelector(
+                                        selectedSource = homeViewModel.activeSearchSource,
+                                        onSelect = homeViewModel::onSearchSourceChanged
+                                    )
+                                    Spacer(Modifier.width(8.dp))
                                     AnimatedVisibility(
                                         visible = homeViewModel.activeSearchSource in listOf(
                                             SearchSource.SOUNDCLOUD,
@@ -410,8 +425,8 @@ fun HomeScreen(
                                             SearchSource.TIDAL,
                                             SearchSource.QOBUZ
                                         ),
-                                        enter = fadeIn(),
-                                        exit = fadeOut(),
+                                        enter = fadeIn() + expandHorizontally(),
+                                        exit = fadeOut() + shrinkHorizontally(),
                                         modifier = Modifier.weight(1f)
                                     ) {
                                         SearchFilters(
@@ -422,11 +437,6 @@ fun HomeScreen(
                                     if (homeViewModel.activeSearchSource == SearchSource.YOUTUBE || homeViewModel.activeSearchSource == SearchSource.VK) {
                                         Spacer(Modifier.weight(1f))
                                     }
-                                    Spacer(Modifier.width(8.dp))
-                                    SearchSourceSelector(
-                                        selectedSource = homeViewModel.activeSearchSource,
-                                        onSelect = homeViewModel::onSearchSourceChanged
-                                    )
                                 }
 
                                 // Determine the search display state for AnimatedContent
@@ -460,9 +470,10 @@ fun HomeScreen(
                                 ) { state ->
                                     when {
                                         state == "categories" -> {
-                                            SearchCategoriesGrid(
-                                                moods = homeViewModel.moodCategories,
-                                                genres = homeViewModel.genreCategories,
+                                            SearchLanding(
+                                                homeViewModel = homeViewModel,
+                                                playerViewModel = playerViewModel,
+                                                onNavigate = onNavigate,
                                                 onCategoryClick = { category: SearchCategory ->
                                                     val encodedTitle = Uri.encode(category.title)
                                                     val encodedQuery = Uri.encode(category.query)
@@ -578,6 +589,7 @@ fun HomeContent(
     var isSupportBannerVisible by remember { mutableStateOf(isBannerEligible) }
     val showHomeYourMix by prefs.getShowHomeYourMixFlow().collectAsState(initial = prefs.getShowHomeYourMix())
     val showHomeListeningStats by prefs.getShowHomeListeningStatsFlow().collectAsState(initial = prefs.getShowHomeListeningStats())
+    val homeClips by com.alananasss.kittytune.data.artist.ArtistClips.homeClips.collectAsState()
 
     val scrollState = rememberLazyListState()
     val allSections = homeViewModel.homeSections
@@ -673,7 +685,15 @@ fun HomeContent(
             }
         }
 
-        val cleanHistory = history.filter { it.id != "playlist:0" && !it.title.equals("history", ignoreCase = true) }
+        val cleanHistory = history.filter {
+            it.id != "playlist:0" &&
+            !it.title.equals("history", ignoreCase = true) &&
+            !it.title.equals("MyWave", ignoreCase = true) &&
+            !it.title.contains("MyWave", ignoreCase = true) &&
+            !it.id.contains("my_wave", ignoreCase = true) &&
+            !it.id.contains("wave", ignoreCase = true) &&
+            it.originalUrl != "my_wave"
+        }
         if (cleanHistory.isNotEmpty()) {
             item {
                 StandardHorizontalSection(
@@ -759,15 +779,6 @@ fun HomeContent(
             }
         }
 
-        if (showHomeYourMix) {
-            item {
-                StartMixingCard(
-                    playerViewModel = playerViewModel,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                )
-            }
-        }
-
         // MyWave: the personal radio, one press, always something on (PR #77).
         item {
             com.alananasss.kittytune.ui.home.MyWaveCard(
@@ -782,6 +793,44 @@ fun HomeContent(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                     onNavigateToStats = { onNavigate("listening_stats") },
                     onNavigateToYearlyPlayback = { onNavigate("yearly_playback") }
+                )
+            }
+        }
+
+        // Country charts preview
+        item {
+            HomeChartPreview(
+                playerViewModel = playerViewModel,
+                onOpenCharts = { onNavigate("charts") },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            )
+        }
+
+        // Home clips shelf
+        if (homeClips.isNotEmpty()) {
+            item {
+                com.alananasss.kittytune.ui.profile.HomeClipsShelf(
+                    playerViewModel = playerViewModel,
+                    clips = homeClips,
+                )
+            }
+        }
+
+        // From your artists (grouped by release weeks)
+        if (homeViewModel.likedArtistUpdates.isNotEmpty()) {
+            item {
+                FromYourArtistsSection(
+                    tracks = homeViewModel.likedArtistUpdates.toList(),
+                    playerViewModel = playerViewModel,
+                )
+            }
+        }
+
+        if (showHomeYourMix) {
+            item {
+                StartMixingCard(
+                    playerViewModel = playerViewModel,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
         }
@@ -1056,16 +1105,80 @@ fun ExplorerSection(onNavigate: (String) -> Unit) {
             )
         }
 
+        Spacer(Modifier.height(16.dp))
+
+        TogetherCard(
+            onClick = { onNavigate("together") },
+            modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+fun TogetherCard(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(24.dp),
+        color = scheme.surfaceContainerHigh,
+        modifier = modifier.fillMaxWidth()
+    ) {
         Row(
-            modifier = if (windowSizeInfo.isTablet) Modifier.widthIn(max = 480.dp) else Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            ExplorerButton(
-                icon = Icons.Rounded.Groups,
-                label = stringResource(R.string.together_title),
-                baseColor = MaterialTheme.colorScheme.tertiary,
-                onClick = { onNavigate("together") },
-                modifier = Modifier.weight(1f)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = scheme.primaryContainer,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Rounded.Groups,
+                        contentDescription = null,
+                        modifier = Modifier.size(26.dp),
+                        tint = scheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = stringResource(R.string.together_title),
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = scheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.together_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = scheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
     }
@@ -2124,6 +2237,13 @@ fun SearchResultsList(
             val hasArtists = homeViewModel.searchResultsSpotifyArtists.isNotEmpty()
             val hasPlaylistsOrAlbums = homeViewModel.searchResultsSpotifyPlaylists.isNotEmpty() || homeViewModel.searchResultsSpotifyAlbums.isNotEmpty()
 
+            val spotifyTopArtist = remember(homeViewModel.searchResultsSpotifyArtists.size, homeViewModel.searchQuery) {
+                com.alananasss.kittytune.domain.TopResultRanker.findTopArtist(
+                    homeViewModel.searchResultsSpotifyArtists.map { it.toUser() },
+                    homeViewModel.searchQuery
+                )
+            }
+
             if (!hasTracks && !hasArtists && !hasPlaylistsOrAlbums) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -2137,6 +2257,31 @@ fun SearchResultsList(
                     contentPadding = PaddingValues(bottom = 180.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    // TOP RESULT HERO CARD
+                    if (spotifyTopArtist != null && activeFilter == SearchFilter.ALL) {
+                        item {
+                            val idx = globalIndex++
+                            StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                                SearchTopMatchHeroCard(
+                                    user = spotifyTopArtist,
+                                    isSpotify = true,
+                                    onArtistClick = {
+                                        homeViewModel.noteOpenedArtist(spotifyTopArtist)
+                                        onNavigate("spotify_artist:${spotifyTopArtist.id}")
+                                    },
+                                    onPlayClick = {
+                                        if (homeViewModel.searchResultsSpotify.isNotEmpty()) {
+                                            playerViewModel.playPlaylist(homeViewModel.searchResultsSpotify, 0)
+                                        } else {
+                                            homeViewModel.noteOpenedArtist(spotifyTopArtist)
+                                            onNavigate("spotify_artist:${spotifyTopArtist.id}")
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
                     // ARTISTS SECTION
                     if (hasArtists && (activeFilter == SearchFilter.ALL || activeFilter == SearchFilter.ARTISTS)) {
                         if (activeFilter == SearchFilter.ALL) {
@@ -2158,7 +2303,9 @@ fun SearchResultsList(
                                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
                                         items(homeViewModel.searchResultsSpotifyArtists) { artist ->
-                                            ArtistCircle(artist.toUser()) {
+                                            val u = artist.toUser()
+                                            ArtistCircle(u) {
+                                                homeViewModel.noteOpenedArtist(u)
                                                 onNavigate("spotify_artist:${artist.id}")
                                             }
                                         }
@@ -2168,11 +2315,13 @@ fun SearchResultsList(
                         } else if (activeFilter == SearchFilter.ARTISTS) {
                             items(homeViewModel.searchResultsSpotifyArtists) { artist ->
                                 val idx = globalIndex++
+                                val u = artist.toUser()
                                 StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clickable {
+                                                homeViewModel.noteOpenedArtist(u)
                                                 onNavigate("spotify_artist:${artist.id}")
                                             }
                                             .padding(16.dp),
@@ -2242,7 +2391,10 @@ fun SearchResultsList(
                                     isDownloading = false,
                                     isDownloaded = isDownloaded,
                                     downloadProgress = 0,
-                                    onClick = { playerViewModel.playPlaylist(listOf(track), 0) },
+                                    onClick = {
+                                        homeViewModel.noteOpenedTrack(track)
+                                        playerViewModel.playPlaylist(listOf(track), 0)
+                                    },
                                     onOptionClick = { playerViewModel.showTrackOptions(track) }
                                 )
                             }
@@ -2275,6 +2427,7 @@ fun SearchResultsList(
                                          items(allPlaylists) { playlist ->
                                             SquareCard(playlist) {
                                                 val navId = playlist.urn ?: if (playlist.isAlbum) "spotify:album:${playlist.permalink ?: playlist.id}" else "spotify:playlist:${playlist.permalink ?: playlist.id}"
+                                                homeViewModel.noteOpenedPlaylist(playlist, navId)
                                                 onNavigate(navId)
                                             }
                                         }
@@ -2292,6 +2445,7 @@ fun SearchResultsList(
                                         onOptionClick = { selectedPlaylistForMenu = playlist },
                                         onClick = {
                                             val navId = playlist.urn ?: if (playlist.isAlbum) "spotify:album:${playlist.permalink ?: playlist.id}" else "spotify:playlist:${playlist.permalink ?: playlist.id}"
+                                            homeViewModel.noteOpenedPlaylist(playlist, navId)
                                             onNavigate(navId)
                                         }
                                     )
@@ -2359,6 +2513,14 @@ fun SearchResultsList(
                 }
             }
             LaunchedEffect(shouldLoadMore) { if (shouldLoadMore && !homeViewModel.isSearchLoadingMore) homeViewModel.loadMoreSearchResults() }
+
+            val soundCloudTopArtist = remember(homeViewModel.searchResultsArtists.size, homeViewModel.searchQuery) {
+                com.alananasss.kittytune.domain.TopResultRanker.findTopArtist(
+                    homeViewModel.searchResultsArtists,
+                    homeViewModel.searchQuery
+                ) { com.alananasss.kittytune.data.search.SearchPicks.timesPicked(homeViewModel.searchQuery, it.id) }
+            }
+
             LazyColumn(
                 state = listState,
                 contentPadding = PaddingValues(bottom = 180.dp),
@@ -2366,6 +2528,43 @@ fun SearchResultsList(
             ) {
                 var globalIndex = 0
                 val isScrolling = listState.isScrollInProgress
+
+                val corrected = homeViewModel.searchCorrectedQuery
+                if (corrected != null && homeViewModel.searchQuery.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = stringResource(R.string.search_showing_results_for, corrected),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+
+                if (soundCloudTopArtist != null && activeFilter == SearchFilter.ALL) {
+                    item {
+                        val idx = globalIndex++
+                        StaggeredItem(idx, key = homeViewModel.searchQuery, isScrolling = isScrolling) {
+                            SearchTopMatchHeroCard(
+                                user = soundCloudTopArtist,
+                                isSpotify = false,
+                                onArtistClick = {
+                                    homeViewModel.noteOpenedArtist(soundCloudTopArtist)
+                                    onNavigate(soundCloudTopArtist.profileNavId)
+                                },
+                                onPlayClick = {
+                                    if (homeViewModel.searchResultsTracks.isNotEmpty()) {
+                                        playerViewModel.playPlaylist(homeViewModel.searchResultsTracks, 0)
+                                    } else {
+                                        homeViewModel.noteOpenedArtist(soundCloudTopArtist)
+                                        onNavigate(soundCloudTopArtist.profileNavId)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+
                 if (homeViewModel.searchResultsArtists.isNotEmpty()) {
                     if (activeFilter == SearchFilter.ALL) item {
                         val idx = globalIndex++; StaggeredItem(
@@ -2389,36 +2588,57 @@ fun SearchResultsList(
                         Row(
                             modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onNavigate(artist.profileNavId) }
+                            .clickable {
+                                homeViewModel.noteOpenedArtist(artist)
+                                onNavigate(artist.profileNavId)
+                            }
                             .padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             ArtistAvatar(
                                 avatarUrl = artist.avatarUrl, enableViewer = false, modifier = Modifier
                                     .size(56.dp)
                                     .clip(CircleShape)
-                            ); Spacer(Modifier.width(16.dp)); Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            )
+                            val profile = com.alananasss.kittytune.ui.common.rememberArtistProfile(artist.username)
+                            Spacer(Modifier.width(16.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        artist.username ?: stringResource(R.string.unknown_artist),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (artist.verified || profile?.isVerified == true) {
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(
+                                            Icons.Rounded.Verified,
+                                            contentDescription = null,
+                                            tint = if (artist.urn?.startsWith("spotify") == true) Color(0xFF1DB954) else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                                val followersCount = artist.followersCount
+                                val followersText = listOfNotNull(
+                                    profile?.monthlyListeners?.let { stringResource(R.string.artist_monthly_listeners, it) },
+                                    followersCount.takeIf { it > 0 }?.let {
+                                        "${java.text.NumberFormat.getNumberInstance(java.util.Locale.getDefault()).format(it)} ${stringResource(R.string.profile_followers)}"
+                                    },
+                                    artist.trackCount.takeIf { it > 0 }?.let {
+                                        "$it ${stringResource(R.string.profile_tracks).lowercase()}"
+                                    }
+                                ).joinToString(" · ").ifBlank { stringResource(R.string.lib_artists) }
                                 Text(
-                                    artist.username ?: stringResource(R.string.unknown_artist),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                ); if (artist.verified) {
-                                Spacer(Modifier.width(4.dp)); Icon(
-                                    Icons.Rounded.Verified,
-                                    null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
+                                    text = followersText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
-                            }; Text(
-                            text = "${artist.followersCount} ${stringResource(R.string.profile_followers)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        }
                         }
                     }
-                    }
-                    else item {
+                }
+                else item {
                         val idx = globalIndex++; StaggeredItem(
                         idx,
                         key = homeViewModel.searchQuery,
@@ -2427,7 +2647,14 @@ fun SearchResultsList(
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) { items(homeViewModel.searchResultsArtists) { artist -> ArtistCircle(artist) { onNavigate(artist.profileNavId) } } }
+                        ) {
+                            items(homeViewModel.searchResultsArtists) { artist ->
+                                ArtistCircle(artist) {
+                                    homeViewModel.noteOpenedArtist(artist)
+                                    onNavigate(artist.profileNavId)
+                                }
+                            }
+                        }
                     }
                     }
                 }
@@ -2459,7 +2686,10 @@ fun SearchResultsList(
                             isDownloading = downloadProgress[track.id] != null,
                             isDownloaded = downloadedIds.contains(track.id),
                             downloadProgress = downloadProgress[track.id] ?: 0,
-                            onClick = { playerViewModel.playPlaylist(listOf(track), 0) },
+                            onClick = {
+                                homeViewModel.noteOpenedTrack(track)
+                                playerViewModel.playPlaylist(listOf(track), 0)
+                            },
                             onOptionClick = { playerViewModel.showTrackOptions(track) })
                     }
                     }
@@ -2487,7 +2717,10 @@ fun SearchResultsList(
                                 isGrid = false,
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 onOptionClick = { selectedPlaylistForMenu = playlist },
-                                onClick = { onNavigate(playlist.id.toString()) }
+                                onClick = {
+                                    homeViewModel.noteOpenedPlaylist(playlist, playlist.id.toString())
+                                    onNavigate(playlist.id.toString())
+                                }
                             )
                         }
                     }
@@ -2503,6 +2736,7 @@ fun SearchResultsList(
                         ) {
                             items(homeViewModel.searchResultsPlaylists) { playlist ->
                                 SquareCard(playlist) {
+                                    homeViewModel.noteOpenedPlaylist(playlist, playlist.id.toString())
                                     onNavigate(
                                         playlist.id.toString()
                                     )
@@ -2606,7 +2840,7 @@ fun SearchResultsList(
                         if (tracks.isNotEmpty()) {
                             kotlinx.coroutines.withContext(Dispatchers.Main) {
                                 if (shuffle) {
-                                    playerViewModel.playPlaylist(tracks.shuffled(), 0)
+                                    playerViewModel.playPlaylistShuffled(tracks)
                                 } else if (insertNext) {
                                     playerViewModel.insertNext(tracks)
                                 } else if (addToQueue) {
@@ -2774,6 +3008,7 @@ fun ProviderSearchResults(
                             ) {
                                 items(artists) { artist ->
                                     ArtistCircle(artist) {
+                                        homeViewModel.noteOpenedArtist(artist)
                                         onNavigate(artist.urn ?: artist.id.toString())
                                     }
                                 }
@@ -2788,6 +3023,7 @@ fun ProviderSearchResults(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
+                                        homeViewModel.noteOpenedArtist(artist)
                                         onNavigate(artist.urn ?: artist.id.toString())
                                     }
                                     .padding(16.dp),
@@ -2839,7 +3075,10 @@ fun ProviderSearchResults(
                             isDownloading = false,
                             isDownloaded = isDownloaded,
                             downloadProgress = 0,
-                            onClick = { playerViewModel.playPlaylist(tracks, index) },
+                            onClick = {
+                                homeViewModel.noteOpenedTrack(track)
+                                playerViewModel.playPlaylist(tracks, index)
+                            },
                             onOptionClick = { playerViewModel.showTrackOptions(track) }
                         )
                     }
@@ -2868,7 +3107,9 @@ fun ProviderSearchResults(
                             ) {
                                 items(allPlaylists) { playlist ->
                                     SquareCard(playlist) {
-                                        onNavigate(playlist.urn ?: playlist.permalink ?: playlist.id.toString())
+                                        val dest = playlist.urn ?: playlist.permalink ?: playlist.id.toString()
+                                        homeViewModel.noteOpenedPlaylist(playlist, dest)
+                                        onNavigate(dest)
                                     }
                                 }
                             }
@@ -2884,7 +3125,9 @@ fun ProviderSearchResults(
                                 modifier = Modifier.padding(horizontal = 16.dp),
                                 onOptionClick = { onPlaylistOptionClick(playlist) },
                                 onClick = {
-                                    onNavigate(playlist.urn ?: playlist.permalink ?: playlist.id.toString())
+                                    val dest = playlist.urn ?: playlist.permalink ?: playlist.id.toString()
+                                    homeViewModel.noteOpenedPlaylist(playlist, dest)
+                                    onNavigate(dest)
                                 }
                             )
                         }
@@ -3208,6 +3451,153 @@ fun OfflineHomeView(
             Icon(Icons.Rounded.Download, null)
             Spacer(Modifier.width(12.dp))
             Text(stringResource(R.string.home_offline_btn_downloads), fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun HomeChartPreview(
+    playerViewModel: PlayerViewModel,
+    onOpenCharts: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val country = remember {
+        val appLang = com.alananasss.kittytune.data.local.PlayerPreferences(context).getAppLanguage()
+        val lang = if (appLang == com.alananasss.kittytune.data.local.AppLanguage.SYSTEM)
+            java.util.Locale.getDefault().language
+        else appLang.code
+        ChartRepository.ChartCountry.forDevice(context, lang)
+    }
+    val entriesState by androidx.compose.runtime.produceState<List<ChartRepository.ChartEntry>>(initialValue = emptyList(), country) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            ChartRepository.fetchChart(
+                context = context,
+                kind = ChartRepository.ChartKind.COUNTRY,
+                genre = ChartRepository.chartGenres.first(),
+                limit = 5,
+                countryCode = country.code,
+                country = country,
+            )
+        }
+    }
+    if (entriesState.isEmpty()) return
+
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(vertical = 12.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onOpenCharts)
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = stringResource(R.string.chart_section_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = stringResource(R.string.btn_see_all),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            entriesState.forEachIndexed { index, entry ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            playerViewModel.playPlaylist(
+                                tracks = entriesState.map { it.track },
+                                startIndex = index,
+                                context = PlaybackContext(
+                                    displayText = context.getString(R.string.chart_section_title),
+                                    navigationId = "charts",
+                                ),
+                            )
+                        }
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = entry.rank.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
+                        color = if (entry.rank <= 3) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(32.dp),
+                    )
+                    AsyncImage(
+                        model = entry.track.artworkUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = entry.track.title.orEmpty(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = entry.track.displayArtist.ifBlank { entry.track.user?.username.orEmpty() },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FromYourArtistsSection(
+    tracks: List<Track>,
+    playerViewModel: PlayerViewModel,
+    modifier: Modifier = Modifier,
+) {
+    if (tracks.isEmpty()) return
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val groups = remember(tracks) { ReleaseWeeks.group(tracks) }
+    val displayTracks = remember(groups) { groups.flatMap { it.tracks }.take(16) }
+    if (displayTracks.isEmpty()) return
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        StandardHorizontalSection(
+            title = stringResource(R.string.home_from_your_artists),
+            subtitle = null,
+        ) {
+            items(displayTracks) { track ->
+                TrackCardModern(
+                    track = track,
+                    onClick = {
+                        val index = displayTracks.indexOfFirst { it.id == track.id }.coerceAtLeast(0)
+                        playerViewModel.playPlaylist(
+                            tracks = displayTracks,
+                            startIndex = index,
+                            context = PlaybackContext(
+                                displayText = context.getString(R.string.home_from_your_artists),
+                                navigationId = "home",
+                            ),
+                        )
+                    },
+                )
+            }
         }
     }
 }

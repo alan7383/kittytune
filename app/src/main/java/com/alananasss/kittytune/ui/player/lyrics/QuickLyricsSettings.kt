@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -80,6 +81,7 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.FunFactDot
+import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import com.alananasss.kittytune.ui.common.SettingsSwitch
 import com.alananasss.kittytune.ui.common.Tip
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -119,65 +121,63 @@ fun QuickLyricsSettingsDialog(
         )
     }
 
-    BackHandler(onBack = onDismiss)
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        BoxWithConstraints {
-            Surface(
-                shape = RoundedCornerShape(28.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 6.dp,
-                modifier = Modifier
-                    .width(min(PANEL_MAX_WIDTH, maxWidth * 0.94f))
-                    .heightIn(max = min(PANEL_MAX_HEIGHT, maxHeight * 0.94f)),
+    KittyModalBottomSheet(
+        onDismissRequest = onDismiss,
+        dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle() },
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 24.dp)
+                .navigationBarsPadding()
+        ) {
+            Header(
+                onSearch = {
+                    onDismiss()
+                    viewModel.isSearchingLyrics = true
+                },
+                onFocusMode = onFocusMode?.let { start -> { onDismiss(); start() } },
+                onDismiss = onDismiss,
+            )
+            Spacer(Modifier.height(14.dp))
+            val scroll = rememberScrollState()
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+                    .verticalScroll(scroll)
             ) {
-                Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp)) {
-                    Header(
-                        onSearch = {
-                            onDismiss()
-                            viewModel.isSearchingLyrics = true
-                        },
-                        onFocusMode = onFocusMode?.let { start -> { onDismiss(); start() } },
-                        onDismiss = onDismiss,
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    val scroll = rememberScrollState()
+                SyncCard(viewModel)
+                Spacer(Modifier.height(14.dp))
+                ExpressiveConnectedButtonGroup(
+                    options = QuickTab.entries,
+                    selectedOption = tab,
+                    onOptionSelected = { tab = it },
+                    iconProvider = { Icon(it.icon, null, modifier = Modifier.size(18.dp)) },
+                    labelProvider = {
+                        Text(str(it.labelKey), style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
+                    },
+                )
+                Spacer(Modifier.height(12.dp))
+                AnimatedContent(
+                    targetState = tab,
+                    transitionSpec = { fadeIn(tween(180, delayMillis = 60)) togetherWith fadeOut(tween(120)) },
+                    label = "quickLyricsTab",
+                ) { shown ->
                     Column(
-                        Modifier
-                            .weight(1f, fill = false)
-                            .verticalScroll(scroll)
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        SyncCard(viewModel)
-                        Spacer(Modifier.height(14.dp))
-                        ExpressiveConnectedButtonGroup(
-                            options = QuickTab.entries,
-                            selectedOption = tab,
-                            onOptionSelected = { tab = it },
-                            iconProvider = { Icon(it.icon, null, modifier = Modifier.size(18.dp)) },
-                            labelProvider = {
-                                Text(str(it.labelKey), style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
-                            },
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        AnimatedContent(
-                            targetState = tab,
-                            transitionSpec = { fadeIn(tween(180, delayMillis = 60)) togetherWith fadeOut(tween(120)) },
-                            label = "quickLyricsTab",
-                        ) { shown ->
-                            Column(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                when (shown) {
-                                    QuickTab.LOOK -> LookTab(viewModel, knobs, isFullScreen)
-                                    QuickTab.LAYOUT -> LayoutTab(viewModel, knobs)
-                                    QuickTab.FEATURES -> FeaturesTab(
-                                        viewModel,
-                                        isFullScreen,
-                                        onPickLanguage = { showLanguagePicker = true },
-                                        onOpenSources = { showSourceOrder = true },
-                                    )
-                                }
-                            }
+                        when (shown) {
+                            QuickTab.LOOK -> LookTab(viewModel, knobs, isFullScreen)
+                            QuickTab.LAYOUT -> LayoutTab(viewModel, knobs)
+                            QuickTab.FEATURES -> FeaturesTab(
+                                viewModel,
+                                isFullScreen,
+                                onPickLanguage = { showLanguagePicker = true },
+                                onOpenSources = { showSourceOrder = true },
+                            )
                         }
                     }
                 }

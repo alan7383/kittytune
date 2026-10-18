@@ -27,6 +27,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import com.alananasss.kittytune.ui.player.slider.drawMixGlowBand
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -79,7 +80,9 @@ fun WavySliderExpressive(
     waveAmplitudeWhenPlaying: Dp = 4.dp,
     thumbLineHeightWhenInteracting: Dp = 24.dp,
     semanticsLabel: String? = null,
-    semanticsProgressStep: Float = 0.01f
+    semanticsProgressStep: Float = 0.01f,
+    mix: com.alananasss.kittytune.ui.player.slider.MixTransition? = null,
+    mixColor: Color = activeTrackColor,
 ) {
     val density = LocalDensity.current
     val strokeWidthPx = with(density) { strokeWidth.toPx() }
@@ -272,6 +275,17 @@ fun WavySliderExpressive(
             val minThumbCenter = (currentWidth / 2f).coerceAtMost(size.width / 2f)
             val maxThumbCenter = (size.width - currentWidth / 2f).coerceAtLeast(minThumbCenter)
             val thumbX = rawThumbX.coerceIn(minThumbCenter, maxThumbCenter)
+
+            mix?.let { transition ->
+                val glow = transition.glowIntensity()
+                if (glow > 0.01f) drawMixGlowBand(
+                    startX = thumbX,
+                    endX = trackEnd,
+                    centerY = thumbY,
+                    color = mixColor,
+                    intensity = glow
+                )
+            }
 
             drawRoundRect(
                 color = thumbColor,

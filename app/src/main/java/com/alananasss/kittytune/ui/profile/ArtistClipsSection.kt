@@ -56,6 +56,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -123,6 +124,35 @@ fun ArtistClipsSection(artistName: String, playerViewModel: PlayerViewModel) {
 
     Column(Modifier.fillMaxWidth()) {
         SectionTitle(title = stringResource(R.string.artist_clips_title))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            items(clips, key = { it.url }) { clip ->
+                ClipCard(clip, onClick = { watching = clip })
+            }
+        }
+    }
+
+    watching?.let { clip ->
+        ClipPlayerDialog(clip = clip, playerViewModel = playerViewModel, onDismiss = { watching = null })
+    }
+}
+
+/**
+ * Clips on the home page: the videos of the artists the listener plays most (round 3 of the tester's list, 24). The
+ * artists come from the liked songs, the most liked first, and each one's clips are looked up once and kept.
+ */
+@Composable
+fun HomeClipsShelf(
+    playerViewModel: PlayerViewModel,
+    clips: List<Clip> = ArtistClips.homeClips.collectAsState().value,
+) {
+    var watching by remember { mutableStateOf<Clip?>(null) }
+    if (clips.isEmpty()) return
+
+    Column(Modifier.fillMaxWidth()) {
+        SectionTitle(title = stringResource(R.string.home_clips_title))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),

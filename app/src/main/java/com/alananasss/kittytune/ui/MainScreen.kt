@@ -1421,6 +1421,9 @@ fun MainScreen(
                             onPlatformSelected = { platform ->
                                 navController.navigate("music_import/$platform")
                             },
+                            onOpenPlaylist = { playlistId ->
+                                navController.navigate("playlist_detail/$playlistId")
+                            },
                             onLoginClick = { navController.navigate(Screen.Login.route) }
                         )
                     }

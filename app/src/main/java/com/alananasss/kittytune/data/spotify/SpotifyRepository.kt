@@ -475,7 +475,8 @@ object SpotifyRepository {
                 val visuals = artistUnion.optJSONObject("visuals")
                 val avatarUrl = extractImageFromSources(visuals?.optJSONObject("avatarImage")?.optJSONArray("sources"))
                 val headerImageUrl =
-                    extractImageFromSources(visuals?.optJSONObject("headerImage")?.optJSONArray("sources"))
+                    extractImageFromSources(artistUnion.optJSONObject("headerImage")?.optJSONObject("data")?.optJSONArray("sources"))
+                        ?: extractImageFromSources(visuals?.optJSONObject("headerImage")?.optJSONArray("sources"))
 
                 val stats = artistUnion.optJSONObject("stats")
                 val monthlyListeners = stats?.optLong("monthlyListeners")
@@ -1177,7 +1178,7 @@ object SpotifyRepository {
         for (i in 0 until sources.length()) {
             val s = sources.optJSONObject(i) ?: continue
             val url = s.optString("url")
-            val width = s.optInt("width", 0)
+            val width = s.optInt("width", s.optInt("maxWidth", 0))
             if (url.isNotBlank() && (bestUrl == null || width > maxWidth)) {
                 bestUrl = url
                 maxWidth = width

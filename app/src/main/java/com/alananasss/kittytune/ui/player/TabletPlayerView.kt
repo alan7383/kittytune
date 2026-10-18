@@ -943,6 +943,21 @@ private fun DesktopCommentRow(
                 }
             )
 
+            // WordGloss: foreign words with translations in mixed comments
+            val glosses by produceState(emptyList<Pair<String, String>>(), comment.body, langCode) {
+                value = if (!com.alananasss.kittytune.util.WordGloss.isMixed(comment.body, langCode)) emptyList()
+                else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.alananasss.kittytune.util.WordGloss.glossFor(comment.body, langCode)
+                }
+            }
+            if (glosses.isNotEmpty()) {
+                Text(
+                    text = com.alananasss.kittytune.util.WordGloss.line(glosses),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             if (translatedText == null && !isTranslating && !isTargetLanguage) {
                 Text(
                     text = stringResource(R.string.comment_translate, langName),

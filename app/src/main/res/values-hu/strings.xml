@@ -1408,6 +1408,12 @@
     <string name="recognition_notif_channel_desc">A belső hangfelismerés során használatos</string>
     <string name="recognition_notif_stop">Leállítás</string>
     <string name="recognition_notif_track_found">Találat: %1$s - %2$s</string>
+    <string name="recognition_recognized_at">Felismerve: %1$s</string>
+    <string name="recognition_released">Megjelent: %1$s</string>
+    <string name="stat_plays">Lejátszás</string>
+    <string name="stat_likes">Kedvelés</string>
+    <string name="stat_reposts">Megosztás</string>
+    <string name="stat_comments">Hozzászólás</string>
     <string name="cover_copy_link">Hivatkozás másolása</string>
     <string name="cover_saved">Kép mentve</string>
     <string name="cover_save_error">Hiba a kép mentésekor</string>

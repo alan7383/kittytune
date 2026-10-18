@@ -54,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -113,6 +114,7 @@ fun ProfileScreen(
     var showArtistShare by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val prefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
 
     LaunchedEffect(userId) {
@@ -198,7 +200,16 @@ fun ProfileScreen(
                             profileViewModel = profileViewModel,
                             artistContext = artistPlaybackContext,
                             hasMotionVideo = hasMotionVideo,
-                            artistVideoUrl = artistVideoUrl
+                            artistVideoUrl = artistVideoUrl,
+                            onSectionClick = { section ->
+                                if (section == "playlists") {
+                                    coroutineScope.launch {
+                                        listState.animateScrollToItem(1)
+                                    }
+                                } else {
+                                    expandedSection = section
+                                }
+                            }
                         )
                     }
 
@@ -1006,6 +1017,34 @@ fun ArtistAvatar(modifier: Modifier = Modifier, avatarUrl: String?, enableViewer
     }
 }
 
+/**
+ * An artist's top releases laid side by side and blurred into a soft, textured wash behind the header.
+ * Ported from desktop PR #77.
+ */
+@Composable
+private fun ArtistCoverCollage(covers: List<String>, modifier: Modifier = Modifier) {
+    Box(modifier.clipToBounds()) {
+        Row(
+            Modifier
+                .fillMaxSize()
+                .blur(64.dp)
+                .graphicsLayer { scaleX = 1.35f; scaleY = 1.35f }
+        ) {
+            covers.take(4).forEach { url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                )
+            }
+        }
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
+    }
+}
+
 @Composable
 fun ModernProfileHeader(
     user: User,
@@ -1016,11 +1055,18 @@ fun ModernProfileHeader(
     profileViewModel: ProfileViewModel,
     artistContext: PlaybackContext?,
     hasMotionVideo: Boolean = false,
-    artistVideoUrl: String? = null
+    artistVideoUrl: String? = null,
+    onSectionClick: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val prefs = remember(context) { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
-    val bgModel = user.bannerUrl ?: user.avatarUrl
+    val streamingBanner = com.alananasss.kittytune.ui.common.rememberArtistBanner(user.username)
+    val banner = user.bannerUrl ?: streamingBanner ?: profileViewModel.spotifyArtist?.headerImageUrl
+    val profile = com.alananasss.kittytune.ui.common.rememberArtistProfile(user.username)
+    val portrait = user.avatarUrl.takeIf { !it.isDefaultAvatar() }?.getHighResAvatarUrl() ?: profile?.avatarUrl ?: user.avatarUrl
+    val heroCovers = remember(profileViewModel.popularTracks.size) {
+        profileViewModel.popularTracks.mapNotNull { it.fullResArtwork.takeIf { url -> url.isNotBlank() } }.distinct().take(4)
+    }
     val showVideo = hasMotionVideo && !artistVideoUrl.isNullOrBlank()
 
     Box(
@@ -1030,25 +1076,39 @@ fun ModernProfileHeader(
             .clipToBounds(),
         contentAlignment = Alignment.BottomCenter
     ) {
-        if (bgModel != null || showVideo) {
+        if (banner != null || portrait != null || heroCovers.isNotEmpty() || showVideo) {
             Box(modifier = Modifier.fillMaxSize()) {
-                if (bgModel != null) {
-                    AsyncImage(
-                        model = bgModel,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .blur(if (showVideo) 20.dp else 60.dp)
-                            .alpha(0.6f)
-                    )
-                }
                 if (showVideo && !artistVideoUrl.isNullOrBlank()) {
                     com.alananasss.kittytune.ui.player.cover.CanvasVideo(
                         canvasUrl = artistVideoUrl,
                         isPlaying = true,
                         modifier = Modifier.fillMaxSize()
                     )
+                } else {
+                    when {
+                        banner != null -> {
+                            AsyncImage(
+                                model = banner,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                        heroCovers.size >= 3 -> {
+                            ArtistCoverCollage(heroCovers, Modifier.fillMaxSize())
+                        }
+                        portrait != null -> {
+                            AsyncImage(
+                                model = portrait,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .blur(60.dp)
+                                    .alpha(0.6f)
+                            )
+                        }
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -1384,9 +1444,8 @@ fun ModernProfileHeader(
                     Button(
                         onClick = {
                             if (profileViewModel.popularTracks.isNotEmpty()) {
-                                playerViewModel.playPlaylist(
-                                    tracks = profileViewModel.popularTracks.toList().shuffled(),
-                                    startIndex = 0,
+                                playerViewModel.playPlaylistShuffled(
+                                    tracks = profileViewModel.popularTracks.toList(),
                                     context = artistContext
                                 )
                             }
@@ -1440,6 +1499,28 @@ fun ModernProfileHeader(
                         )
                     }
                 }
+
+                val isSpotifyTrailer = playerViewModel.isTrailerActive && artistContext != null && playerViewModel.currentContext?.navigationId?.endsWith(artistContext.navigationId) == true
+                val spotifyTrailerTracks = if (profileViewModel.popularTracks.isNotEmpty()) profileViewModel.popularTracks.toList() else profileViewModel.allTracks.toList()
+                if (spotifyTrailerTracks.isNotEmpty() || isSpotifyTrailer) {
+                    FilledTonalButton(
+                        onClick = {
+                            if (isSpotifyTrailer) playerViewModel.togglePlayPause()
+                            else artistContext?.let { playerViewModel.playTrailer(spotifyTrailerTracks, it) }
+                        },
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(50.dp),
+                    ) {
+                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(if (!isSpotifyTrailer) R.string.artist_trailer else if (playerViewModel.isPlaying) R.string.artist_trailer_playing else R.string.artist_resume),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             } else if (isCurrentUser) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1487,14 +1568,21 @@ fun ModernProfileHeader(
                         )
                     }
                 }
+                Spacer(Modifier.height(14.dp))
+                OwnProfileStats(
+                    tracks = user.trackCount,
+                    likes = profileViewModel.likedTracks.size,
+                    playlists = profileViewModel.playlists.size,
+                    reposts = profileViewModel.repostedTracks.size,
+                    onOpen = onSectionClick
+                )
             } else {
                 if (user.trackCount > 0 || profileViewModel.allTracks.isNotEmpty() || profileViewModel.popularTracks.isNotEmpty()) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Button(
                             onClick = {
-                                playerViewModel.playPlaylist(
-                                    tracks = profileViewModel.allTracks.toList().shuffled(),
-                                    startIndex = 0,
+                                playerViewModel.playPlaylistShuffled(
+                                    tracks = profileViewModel.allTracks.toList(),
                                     context = artistContext
                                 )
                             },
@@ -1536,6 +1624,28 @@ fun ModernProfileHeader(
                             ); Spacer(Modifier.width(8.dp));
                             Text(
                                 stringResource(R.string.radio),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    val isScTrailer = playerViewModel.isTrailerActive && artistContext != null && playerViewModel.currentContext?.navigationId?.endsWith(artistContext.navigationId) == true
+                    val scTrailerTracks = if (profileViewModel.popularTracks.isNotEmpty()) profileViewModel.popularTracks.toList() else profileViewModel.allTracks.toList()
+                    if (scTrailerTracks.isNotEmpty() || isScTrailer) {
+                        FilledTonalButton(
+                            onClick = {
+                                if (isScTrailer) playerViewModel.togglePlayPause()
+                                else artistContext?.let { playerViewModel.playTrailer(scTrailerTracks, it) }
+                            },
+                            shapes = ButtonDefaults.shapes(),
+                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(50.dp),
+                        ) {
+                            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                stringResource(if (!isScTrailer) R.string.artist_trailer else if (playerViewModel.isPlaying) R.string.artist_trailer_playing else R.string.artist_resume),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -2043,7 +2153,7 @@ fun FullListScreen(
                                 )
                             }
                             FilledTonalButton(
-                                onClick = { playerViewModel.playPlaylist(tracks.shuffled(), context = context) },
+                                onClick = { playerViewModel.playPlaylistShuffled(tracks, context = context) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(50.dp),
@@ -2783,6 +2893,54 @@ fun FullCommentListScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** Four numbers for the listener's own page, each one opening what it counts. (PR #77) */
+@Composable
+private fun OwnProfileStats(
+    tracks: Int,
+    likes: Int,
+    playlists: Int,
+    reposts: Int,
+    onOpen: (String) -> Unit
+) {
+    val items = listOf(
+        Triple(tracks, stringResource(R.string.profile_tracks), "tracks"),
+        Triple(likes, stringResource(R.string.profile_tab_likes), "likes"),
+        Triple(playlists, stringResource(R.string.lib_playlists), "playlists"),
+        Triple(reposts, stringResource(R.string.profile_tab_reposts), "reposts"),
+    )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.forEach { (count, label, section) ->
+            Surface(
+                onClick = { onOpen(section) },
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                modifier = Modifier.weight(1f),
+            ) {
+                Column(
+                    Modifier.padding(vertical = 12.dp, horizontal = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        NumberFormat.getIntegerInstance(Locale.getDefault()).format(count),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }

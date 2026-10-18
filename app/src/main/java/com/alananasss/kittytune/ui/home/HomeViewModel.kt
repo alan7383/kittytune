@@ -99,6 +99,8 @@
             private const val TRACKS_PER_ARTIST = 6
             private const val MAX_PER_ARTIST = 3
             private const val ARTIST_UPDATE_TOTAL = 30
+            private const val WARMED_RESULTS = 2
+            private const val WARM_AFTER_IDLE_MS = 700L
         }
         private val api = RetrofitClient.create(application)
         private val prefs = application.getSharedPreferences("home_cache", Context.MODE_PRIVATE)
@@ -176,6 +178,86 @@
         private var playlistsNextUrl: String? = null
         var isSearchLoadingMore by mutableStateOf(false)
 
+        var searchCorrectedQuery by mutableStateOf<String?>(null)
+        val recentSearches = mutableStateListOf<String>()
+        val recentVisits = com.alananasss.kittytune.data.search.RecentVisits.visits
+
+        private fun recordSearch(query: String) {
+            viewModelScope.launch { com.alananasss.kittytune.data.RecentSearchRepository.record(query) }
+        }
+
+        fun forgetSearch(query: String) {
+            viewModelScope.launch { com.alananasss.kittytune.data.RecentSearchRepository.forget(query) }
+        }
+
+        fun clearRecentSearches() {
+            viewModelScope.launch { com.alananasss.kittytune.data.RecentSearchRepository.clear() }
+            com.alananasss.kittytune.data.search.RecentVisits.clear()
+        }
+
+        fun forgetVisit(visit: com.alananasss.kittytune.data.search.RecentVisits.Visit) =
+            com.alananasss.kittytune.data.search.RecentVisits.forget(visit)
+
+        private fun noteOpened(visit: com.alananasss.kittytune.data.search.RecentVisits.Visit) {
+            com.alananasss.kittytune.data.search.RecentVisits.record(visit)
+            searchQuery.trim().takeIf { it.isNotEmpty() }?.let(::forgetSearch)
+        }
+
+        fun noteOpenedArtist(user: User) {
+            com.alananasss.kittytune.data.search.SearchPicks.record(searchQuery, user.id)
+            noteOpened(
+                com.alananasss.kittytune.data.search.RecentVisits.Visit(
+                    kind = com.alananasss.kittytune.data.search.RecentVisits.Kind.ARTIST,
+                    key = user.profileNavId,
+                    title = user.username.orEmpty(),
+                    subtitle = null,
+                    imageUrl = user.avatarUrl,
+                    destination = user.profileNavId,
+                    track = null,
+                    isVerified = user.verified,
+                    at = System.currentTimeMillis(),
+                )
+            )
+        }
+
+        fun noteOpenedTrack(track: Track) {
+            noteOpened(
+                com.alananasss.kittytune.data.search.RecentVisits.Visit(
+                    kind = com.alananasss.kittytune.data.search.RecentVisits.Kind.TRACK,
+                    key = track.id.toString(),
+                    title = track.title.orEmpty(),
+                    subtitle = track.displayArtist.ifBlank { track.user?.username.orEmpty() },
+                    imageUrl = track.fullResArtwork,
+                    destination = null,
+                    track = track.copy(description = null, tagList = null, caption = null, waveformUrl = null, media = null),
+                    isVerified = track.user?.verified == true,
+                    at = System.currentTimeMillis(),
+                )
+            )
+        }
+
+        fun noteOpenedPlaylist(playlist: Playlist, destination: String) {
+            noteOpened(
+                com.alananasss.kittytune.data.search.RecentVisits.Visit(
+                    kind = com.alananasss.kittytune.data.search.RecentVisits.Kind.PLAYLIST,
+                    key = destination,
+                    title = playlist.title.orEmpty(),
+                    subtitle = playlist.user?.username,
+                    imageUrl = playlist.artworkUrl ?: playlist.calculatedArtworkUrl,
+                    destination = destination,
+                    track = null,
+                    isVerified = false,
+                    at = System.currentTimeMillis(),
+                )
+            )
+        }
+
+        fun runRecentSearch(query: String) {
+            searchQuery = query
+            searchJob?.cancel()
+            searchJob = viewModelScope.launch { performSearch(query) }
+        }
+
         private var searchJob: Job? = null
         val personalizedCategories = mutableStateListOf<SearchCategory>()
 
@@ -211,6 +293,12 @@
             viewModelScope.launch { loadFromCache() }
             if (isOfflineMode) {
                 isLoading = false
+            }
+            viewModelScope.launch {
+                com.alananasss.kittytune.data.RecentSearchRepository.recent().collect { terms ->
+                    recentSearches.clear()
+                    recentSearches.addAll(terms)
+                }
             }
 
             viewModelScope.launch {
@@ -526,6 +614,8 @@
 
         private suspend fun performSearch(query: String) {
             isSearchLoading = true; clearSearchResults()
+            searchCorrectedQuery = null
+            recordSearch(query)
             val isOffline = !NetworkUtils.isInternetAvailable(getApplication())
             if (isOffline) {
                 performOfflineSearch(query)
@@ -550,6 +640,38 @@
                 performOfflineSearch(query)
             } finally {
                 isSearchLoading = false
+            }
+            warmTopResults(query)
+        }
+
+        private var warmStreamsJob: kotlinx.coroutines.Job? = null
+
+        /**
+         * Looks up where the first results stream from while the reader is still reading the list, so pressing
+         * one starts at once instead of after the sources have been asked (issue #66). Only once the query has
+         * stood still for a moment, so typing does not set it off at every letter.
+         */
+        private fun warmTopResults(query: String) {
+            warmStreamsJob?.cancel()
+            val top = when (activeSearchSource) {
+                SearchSource.SOUNDCLOUD -> searchResultsTracks
+                SearchSource.SPOTIFY -> searchResultsSpotify
+                SearchSource.DEEZER -> searchResultsDeezerTracks
+                SearchSource.TIDAL -> searchResultsTidalTracks
+                SearchSource.QOBUZ -> searchResultsQobuzTracks
+                SearchSource.YOUTUBE -> searchResultsYoutube
+                SearchSource.VK -> searchResultsVk
+                else -> emptyList()
+            }.take(WARMED_RESULTS).toList()
+            if (top.isEmpty()) return
+            warmStreamsJob = viewModelScope.launch {
+                delay(WARM_AFTER_IDLE_MS)
+                if (searchQuery.trim() != query.trim()) return@launch
+                withContext(Dispatchers.IO) {
+                    top.forEach { track ->
+                        runCatching { com.alananasss.kittytune.data.StreamResolver.resolveStreamWithDrm(getApplication(), track) }
+                    }
+                }
             }
         }
 
@@ -960,7 +1082,21 @@
                 }
             }
         }
-        private suspend fun performSoundCloudSearch(query: String) {
+        private suspend fun retryWithRepairedQuery(query: String) {
+            val found = searchResultsTracks.map { (it.title.orEmpty()) to it.displayArtist.ifBlank { it.user?.username.orEmpty() } }
+            if (!SearchQueryRepair.needsRepair(query, found)) return
+            val candidates = runCatching {
+                com.alananasss.kittytune.data.deezer.DeezerSearchRepository.searchTracks(query, limit = 10)
+            }.getOrDefault(emptyList()).map { it.title.orEmpty() to it.displayArtist.ifBlank { it.user?.username.orEmpty() } }
+            val repaired = SearchQueryRepair.repairedQuery(query, candidates) ?: return
+            if (searchQuery.trim() != query.trim()) return
+            searchResultsTracks.clear(); searchResultsArtists.clear(); searchResultsPlaylists.clear()
+            tracksNextUrl = null; artistsNextUrl = null; playlistsNextUrl = null
+            searchCorrectedQuery = repaired
+            performSoundCloudSearch(repaired, isRetry = true)
+        }
+
+        private suspend fun performSoundCloudSearch(query: String, isRetry: Boolean = false) {
             coroutineScope {
                 when (activeFilter) {
                     SearchFilter.ALL -> {
@@ -982,6 +1118,9 @@
                         val response = api.searchPlaylists(query, limit = 30); searchResultsPlaylists.addAll(response.collection); playlistsNextUrl = response.next_href
                     }
                 }
+            }
+            if (!isRetry && activeFilter != SearchFilter.ARTISTS && activeFilter != SearchFilter.PLAYLISTS) {
+                retryWithRepairedQuery(query)
             }
         }
 

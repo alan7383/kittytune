@@ -25,6 +25,7 @@ object HistoryRepository {
             database.downloadDao().deleteHistoryItem("playlist:history")
             database.downloadDao().deleteHistoryItem("history")
             database.downloadDao().deleteMixHistory()
+            database.downloadDao().deleteWaveHistory()
         }
     }
 
@@ -57,7 +58,15 @@ object HistoryRepository {
             playlist.permalinkUrl == "your_mix" ||
             playlist.urn == "your_mix" ||
             playlist.permalinkUrl?.contains("your_mix") == true ||
-            playlist.urn?.contains("your_mix") == true
+            playlist.urn?.contains("your_mix") == true ||
+            playlist.title.equals("MyWave", ignoreCase = true) ||
+            playlist.title?.contains("MyWave", ignoreCase = true) == true ||
+            playlist.permalinkUrl == "my_wave" ||
+            playlist.urn == "my_wave" ||
+            playlist.permalinkUrl?.contains("my_wave") == true ||
+            playlist.urn?.contains("my_wave") == true ||
+            playlist.permalinkUrl?.contains("wave") == true ||
+            playlist.urn?.contains("wave") == true
         ) {
             return
         }
@@ -160,7 +169,16 @@ object HistoryRepository {
             item.title.equals("your mix", ignoreCase = true) ||
             item.title.equals("ton mix", ignoreCase = true) ||
             item.title.equals("dein mix", ignoreCase = true) ||
-            item.title.equals("твой микс", ignoreCase = true)
+            item.title.equals("твой микс", ignoreCase = true) ||
+            item.originalUrl == "my_wave" ||
+            item.originalUrl?.contains("my_wave") == true ||
+            item.originalUrl?.contains("wave") == true ||
+            item.id == "my_wave" ||
+            item.id.contains("my_wave") ||
+            item.id.contains("wave") ||
+            item.title.equals("mywave", ignoreCase = true) ||
+            item.title.contains("mywave", ignoreCase = true) ||
+            item.title.equals("my wave", ignoreCase = true)
         }.map { item ->
             if (item.type == "PLAYLIST" && item.numericId < 0) {
                 val local = database.downloadDao().getPlaylist(item.numericId)

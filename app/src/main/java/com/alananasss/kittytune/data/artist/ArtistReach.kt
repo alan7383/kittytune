@@ -37,19 +37,23 @@ object ArtistReach {
     /** Four searches at a time is plenty; the calls are cheap and the result cached either way. */
     private val gate = Semaphore(MAX_PARALLEL)
 
-    suspend fun profileOf(name: String): Profile? {
-        val key = LyricsMatcher.normalize(name).replace(" ", "")
+    suspend fun profileOf(name: String?): Profile? {
+        val trimmed = name?.trim().orEmpty()
+        if (trimmed.isEmpty()) return null
+        val key = LyricsMatcher.normalize(trimmed).replace(" ", "")
         if (key.isEmpty()) return null
         synchronized(cache) { cache[key] }?.let { return it }
-        val profile = withContext(Dispatchers.IO) { gate.withPermit { fetchProfile(name) } }
+        val profile = withContext(Dispatchers.IO) { gate.withPermit { fetchProfile(trimmed) } }
         synchronized(cache) { cache[key] = profile }
         return profile
     }
 
     /** The artist's streaming header image, or a duo member's when they share the page. */
-    suspend fun bannerOf(name: String): String? {
-        profileOf(name)?.headerImageUrl?.let { return it }
-        val members = ArtistClips.splitNames(name.replace('/', '&'))
+    suspend fun bannerOf(name: String?): String? {
+        val trimmed = name?.trim().orEmpty()
+        if (trimmed.isEmpty()) return null
+        profileOf(trimmed)?.headerImageUrl?.let { return it }
+        val members = com.alananasss.kittytune.data.lyrics.GeniusVoices.splitNames(trimmed.replace('/', '&')).filter { it.isNotBlank() }
         for (member in members) {
             profileOf(member)?.headerImageUrl?.let { return it }
         }

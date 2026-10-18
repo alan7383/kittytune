@@ -1406,6 +1406,12 @@
     <string name="recognition_notif_channel_desc">Используется во время распознавания звука устройства</string>
     <string name="recognition_notif_stop">Остановить</string>
     <string name="recognition_notif_track_found">Найдено: %1$s - %2$s</string>
+    <string name="recognition_recognized_at">Распознано в %1$s</string>
+    <string name="recognition_released">Вышел %1$s</string>
+    <string name="stat_plays">Прослушивания</string>
+    <string name="stat_likes">Лайки</string>
+    <string name="stat_reposts">Репосты</string>
+    <string name="stat_comments">Комментарии</string>
     <!-- About Screen Redesign -->
     <string name="about_kofi_title">Поддержка KittyTune</string>
     <string name="about_kofi_desc">Этот проект совершенно бесплатный и имеет открытый исходный код. Если вам понравится моя работа, пожалуйста, поддержите его развитие, купив мне кофе на Ko-fi!</string>

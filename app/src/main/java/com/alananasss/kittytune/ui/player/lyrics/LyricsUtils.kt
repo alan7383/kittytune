@@ -515,6 +515,12 @@ object LyricsUtils {
             val singer: LyricSinger = LyricSinger.DEFAULT
         )
 
+        fun seekTargetFor(line: LyricLine, lyricsOffsetMs: Long, durationMs: Long): Long? {
+            val target = line.startTime - lyricsOffsetMs
+            if (durationMs > 0L && target >= durationMs) return null
+            return target.coerceAtLeast(0L)
+        }
+
         fun extractLocalLyrics(filePath: String): String? {
             return try {
                 val file = File(filePath)

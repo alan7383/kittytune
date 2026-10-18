@@ -19,15 +19,24 @@ import com.alananasss.kittytune.data.artist.ArtistReach
  * hidden until known, so the layout never jumps for artists Spotify does not know.
  */
 @Composable
-fun rememberArtistProfile(artistName: String): ArtistReach.Profile? =
+fun rememberArtistProfile(artistName: String?): ArtistReach.Profile? =
     produceState<ArtistReach.Profile?>(initialValue = null, artistName) {
         value = ArtistReach.profileOf(artistName)
     }.value
 
+/** A banner for [artistName] from their streaming profile, or a member's for a duo; null before it is found and when there is none. */
+@Composable
+fun rememberArtistBanner(artistName: String?): String? =
+    produceState<String?>(initialValue = null, artistName) {
+        value = ArtistReach.bannerOf(artistName)
+    }.value
+
 @Composable
 fun MonthlyListenersText(
-    artistName: String,
+    artistName: String?,
     modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
+    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
     val profile = rememberArtistProfile(artistName)
     val listeners = profile?.monthlyListeners
@@ -35,9 +44,9 @@ fun MonthlyListenersText(
         if (listeners != null) {
             Text(
                 stringResource(R.string.artist_monthly_listeners, listeners),
-                style = MaterialTheme.typography.bodyMedium,
+                style = style,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = color,
             )
         }
     }

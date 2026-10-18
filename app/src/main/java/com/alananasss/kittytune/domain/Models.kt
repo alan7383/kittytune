@@ -425,6 +425,34 @@ data class GraphQlUserProfileData(
     @SerializedName("user") val user: User?
 )
 
+data class FeaturedPlaylistsGraphQlRequest(
+    @SerializedName("operationName") val operationName: String = "FeaturedPlaylists",
+    @SerializedName("query") val query: String = "query FeaturedPlaylists(\$input: FeaturedPlaylistsInput!) { featuredPlaylists(input: \$input) { urn } }",
+    @SerializedName("variables") val variables: FeaturedPlaylistsVariables
+)
+
+data class FeaturedPlaylistsVariables(
+    @SerializedName("input") val input: FeaturedPlaylistsInput
+)
+
+data class FeaturedPlaylistsInput(
+    @SerializedName("trackUrn") val trackUrn: String,
+    @SerializedName("filter") val filter: String = "PLAYLIST",
+    @SerializedName("limit") val limit: Int = 100
+)
+
+data class FeaturedPlaylistsGraphQlResponse(
+    @SerializedName("data") val data: FeaturedPlaylistsData?
+)
+
+data class FeaturedPlaylistsData(
+    @SerializedName("featuredPlaylists") val featuredPlaylists: List<FeaturedPlaylistUrn>?
+)
+
+data class FeaturedPlaylistUrn(
+    @SerializedName("urn") val urn: String?
+)
+
 data class TrackPublisherMetadata(
     @SerializedName("artist") val artist: String? = null,
     @SerializedName("album_title") val albumTitle: String? = null,

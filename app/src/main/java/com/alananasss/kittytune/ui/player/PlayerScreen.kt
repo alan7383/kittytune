@@ -83,6 +83,8 @@ import com.alananasss.kittytune.ui.player.lyrics.LyricsUtils
 import com.alananasss.kittytune.ui.player.slider.PlayerSliderTrack
 import com.alananasss.kittytune.ui.player.slider.WavySlider
 import com.alananasss.kittytune.ui.player.slider.SquigglySlider
+import com.alananasss.kittytune.ui.player.slider.rememberMixTransition
+import com.alananasss.kittytune.ui.player.slider.mixGlow
 import com.alananasss.kittytune.domain.Comment
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
@@ -853,8 +855,20 @@ fun PlayerScreen(
                 onClose = { viewModel.hideAiSkipUndoBar() }
             )
         }
-    }
 
+        androidx.compose.animation.AnimatedVisibility(
+            visible = viewModel.isSleepScreenOpen,
+            modifier = Modifier.fillMaxSize().zIndex(50f),
+            enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(600)),
+            exit = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(300))
+        ) {
+            SleepScreen(
+                viewModel = viewModel,
+                accent = MaterialTheme.colorScheme.primary,
+                onWake = { viewModel.isSleepScreenOpen = false }
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -3535,166 +3549,6 @@ fun SleepTimerDialog(viewModel: PlayerViewModel) {
 }
 
 @Composable
-fun QueueContent(
-    viewModel: PlayerViewModel,
-    isQueueOpen: Boolean,
-    onCloseQueue: () -> Unit,
-    onOpenExpandedQueue: () -> Unit
-) {
-    val view = LocalView.current
-    val listState = rememberLazyListState()
-
-    val reorderableState = rememberReorderableLazyListState(
-        lazyListState = listState,
-        onMove = { from, to ->
-            viewModel.moveQueueItem(from.index, to.index)
-            view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
-        }
-    )
-
-    LaunchedEffect(isQueueOpen, viewModel.uiCurrentTrack) {
-        if (isQueueOpen) {
-            val track = viewModel.uiCurrentTrack
-            if (track != null && viewModel.uiQueueState.isNotEmpty()) {
-                val index = viewModel.uiQueueState.indexOfFirst { it.id == track.id }
-                if (index >= 0) listState.scrollToItem(kotlin.math.max(0, index - 2))
-            }
-        }
-    }
-
-    val windowSizeInfo = rememberWindowSizeInfo()
-    val isPhoneLandscape = windowSizeInfo.isLandscape && !windowSizeInfo.isTablet
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (isPhoneLandscape) Modifier.fillMaxHeight() else Modifier.fillMaxHeight(0.7f))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .pointerInput(Unit) { detectTapGestures { } }
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .padding(top = 24.dp, bottom = 16.dp, start = 24.dp, end = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.player_queue),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                modifier = Modifier.weight(1f)
-            )
-
-            IconButton(
-                onClick = {
-                    onCloseQueue()
-                    onOpenExpandedQueue()
-                },
-                shapes = IconButtonDefaults.shapes()
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.OpenInFull,
-                    contentDescription = "Expand Queue",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        LazyColumn(
-            state = listState,
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            itemsIndexed(items = viewModel.uiQueueState, key = { _, track -> track.id }) { index, track ->
-                ReorderableItem(
-                    state = reorderableState,
-                    key = track.id
-                ) { isDragging ->
-
-                    val isCurrent = track.id == viewModel.uiCurrentTrack?.id
-                    val elevation by animateDpAsState(if (isDragging) 8.dp else 0.dp, label = "elevation")
-                    val backgroundColor =
-                        if (isDragging) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainer
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(72.dp)
-                            .shadow(elevation)
-                            .background(backgroundColor)
-                            .combinedClickable(
-                                onClick = { viewModel.skipToQueueItem(index) },
-                                onLongClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                    viewModel.showTrackOptions(track, fromPlayer = true)
-                                }
-                            )
-                            .padding(horizontal = 24.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        AsyncImage(
-                            model = track.fullResArtwork,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                        )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = track.title ?: stringResource(R.string.generic_title),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = track.displayArtist.ifBlank { track.user?.username ?: stringResource(R.string.generic_artist) },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                if (track.user?.verified == true) {
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(
-                                        Icons.Rounded.Verified,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Icon(
-                            imageVector = Icons.Rounded.DragHandle,
-                            contentDescription = stringResource(R.string.desc_move),
-                            tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                                alpha = 0.5f
-                            ),
-                            modifier = Modifier
-                                .size(32.dp)
-                                .draggableHandle(
-                                    onDragStarted = {
-                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                    },
-                                    onDragStopped = {
-                                        view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
-                                    }
-                                )
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun PlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
@@ -3805,6 +3659,11 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
         inactiveTrackColor = textColor.copy(alpha = 0.2f)
     )
 
+    val mix = rememberMixTransition()
+    val behindGlow = Modifier.fillMaxWidth().mixGlow(mix, textColor) {
+        if (totalDuration > 0f) (sliderPosition.coerceIn(0f, totalDuration) / totalDuration) else 0f
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         when (sliderStyle) {
             PlayerSliderStyle.BAR -> {
@@ -3822,7 +3681,7 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                         isDragging = false
                     },
                     colors = sliderColors,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = behindGlow
                 )
             }
             PlayerSliderStyle.WAVY -> {
@@ -3845,6 +3704,8 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                     },
                     colors = sliderColors,
                     isPlaying = viewModel.uiIsPlaying,
+                    mix = mix,
+                    mixColor = textColor,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -3894,7 +3755,7 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                         )
                     },
                     colors = sliderColors,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = behindGlow
                 )
             }
             PlayerSliderStyle.SQUIGGLY -> {
@@ -3913,7 +3774,7 @@ private fun ClassicPlayerProgress(viewModel: PlayerViewModel, textColor: Color) 
                     },
                     colors = sliderColors,
                     isPlaying = viewModel.uiIsPlaying,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = behindGlow
                 )
             }
         }
@@ -9897,49 +9758,14 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
                 }
                 items(count = comments.size, key = { index -> comments[index].id }) { index ->
                     val comment = comments[index]
-                    Column {
-                        val userId = comment.user?.id ?: 0L
-                        CommentRowItem(
-                            comment = comment,
-                            isMine = (userId == myId),
-                            isReply = false,
-                            isGuest = isGuest,
-                            onNavigateToProfile = { if (userId != 0L) viewModel.navigateToArtist(userId) },
-                            onSeekTo = { pos ->
-                                val t = viewModel.selectedTrackForSheet; if (t != null) {
-                                if (t.id == viewModel.uiCurrentTrack?.id) viewModel.seekTo(pos) else viewModel.playTrackAtPosition(
-                                    t,
-                                    pos
-                                )
-                            }
-                            },
-                            onToggleLike = { viewModel.toggleCommentLike(comment) },
-                            onReply = { viewModel.startReplying(comment) },
-                            onDelete = { commentToDelete = comment })
-                        comment.replies?.forEach { reply ->
-                            val rUserId = reply.user?.id ?: 0L
-                            CommentRowItem(
-                                comment = reply,
-                                isMine = (rUserId == myId),
-                                isReply = true,
-                                isGuest = isGuest,
-                                onNavigateToProfile = { if (rUserId != 0L) viewModel.navigateToArtist(rUserId) },
-                                onSeekTo = { pos ->
-                                    val t = viewModel.selectedTrackForSheet; if (t != null) {
-                                    if (t.id == viewModel.uiCurrentTrack?.id) viewModel.seekTo(
-                                        reply.trackTimestamp ?: 0
-                                    ) else viewModel.playTrackAtPosition(t, reply.trackTimestamp ?: 0)
-                                }
-                                },
-                                onToggleLike = { viewModel.toggleCommentLike(reply) },
-                                onReply = { viewModel.startReplying(comment) },
-                                onDelete = { commentToDelete = reply })
-                        }
-                        HorizontalDivider(
-                            modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
-                        )
-                    }
+                    CommentThreadCard(
+                        comment = comment,
+                        viewModel = viewModel,
+                        myId = myId,
+                        isGuest = isGuest,
+                        onDeleteComment = { commentToDelete = it },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)
+                    )
                 }
                 if (viewModel.commentNextHref != null) {
                     item {
@@ -9953,39 +9779,123 @@ fun CommentsSheetContent(viewModel: PlayerViewModel, onClose: () -> Unit) {
     }
 }
 
+/**
+ * One comment thread card: the parent comment and, below it, its replies connected by a thread line.
+ * Matches desktop PR #77 architecture adapted to touch/Material 3 mobile UI.
+ */
 @Composable
-fun CommentRowItem(
+fun CommentThreadCard(
     comment: Comment,
-    isMine: Boolean,
-    isReply: Boolean,
+    viewModel: PlayerViewModel,
+    myId: Long,
     isGuest: Boolean,
-    onNavigateToProfile: () -> Unit,
-    onSeekTo: (Long) -> Unit,
-    onToggleLike: () -> Unit,
-    onReply: () -> Unit,
+    onDeleteComment: (Comment) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            CommentRowUI(
+                comment = comment,
+                viewModel = viewModel,
+                myId = myId,
+                isGuest = isGuest,
+                isReply = false,
+                onDelete = { onDeleteComment(comment) }
+            )
+
+            if (!comment.replies.isNullOrEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(38.dp)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.TopCenter
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(1.dp))
+                                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        comment.replies.forEach { reply ->
+                            CommentRowUI(
+                                comment = reply,
+                                viewModel = viewModel,
+                                myId = myId,
+                                isGuest = isGuest,
+                                isReply = true,
+                                onDelete = { onDeleteComment(reply) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CommentRowUI(
+    comment: Comment,
+    viewModel: PlayerViewModel,
+    myId: Long,
+    isGuest: Boolean,
+    isReply: Boolean,
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
-    val avatarUrl = comment.user?.avatarUrl
-    val username = comment.user?.username ?: stringResource(R.string.comment_anonymous)
-    val isVisuallyReply = isReply || comment.body.trim().startsWith("@")
-    val startPadding = if (isVisuallyReply) 56.dp else 16.dp
-    val avatarSize = if (isVisuallyReply) 40.dp else 48.dp
+    val avatarSize = if (isReply) 28.dp else 38.dp
+    val userId = comment.user?.id ?: 0L
+    val isMine = (userId != 0L && userId == myId)
     val loginToInteractMsg = stringResource(R.string.login_to_interact)
+    val scope = rememberCoroutineScope()
 
     var translatedText by remember { mutableStateOf<String?>(null) }
     var showTranslation by remember { mutableStateOf(false) }
     var isTranslating by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
-    Row(modifier = Modifier.fillMaxWidth().padding(start = startPadding, end = 16.dp, top = 12.dp, bottom = 12.dp)) {
+    val currentLocale = java.util.Locale.getDefault()
+    val langCode = currentLocale.language
+    val langName = remember(currentLocale) {
+        currentLocale.getDisplayLanguage(currentLocale)
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(currentLocale) else it.toString() }
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         Box(
-            modifier = Modifier.size(avatarSize).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable { onNavigateToProfile() }, contentAlignment = Alignment.Center
+            modifier = Modifier
+                .size(avatarSize)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clickable { if (userId != 0L) viewModel.navigateToArtist(userId) },
+            contentAlignment = Alignment.Center
         ) {
-            if (!avatarUrl.isNullOrEmpty()) {
+            if (!comment.user?.avatarUrl.isNullOrEmpty()) {
                 AsyncImage(
-                    model = avatarUrl,
+                    model = comment.user?.avatarUrl,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
@@ -9994,72 +9904,121 @@ fun CommentRowItem(
                 Icon(
                     Icons.Default.Person,
                     contentDescription = stringResource(R.string.comment_default_avatar),
-                    modifier = Modifier.size(if (isVisuallyReply) 24.dp else 28.dp),
+                    modifier = Modifier.size(if (isReply) 16.dp else 22.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // Header: Name, verified, timestamp, relative time
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(
-                    text = username,
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                    text = comment.user?.username ?: stringResource(R.string.comment_anonymous),
+                    style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = if (isVisuallyReply) 13.sp else 14.sp
+                        fontSize = if (isReply) 13.sp else 14.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false).clickable { onNavigateToProfile() })
-                Spacer(Modifier.width(8.dp))
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .clickable { if (userId != 0L) viewModel.navigateToArtist(userId) }
+                )
                 if (comment.user?.verified == true) {
                     Icon(
                         Icons.Rounded.Verified,
-                        null,
+                        contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(12.dp)
                     )
-                    Spacer(Modifier.width(4.dp))
                 }
+                comment.trackTimestamp?.let { ts ->
+                    if (ts > 0) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                            modifier = Modifier.clickable {
+                                val t = viewModel.selectedTrackForSheet
+                                if (t != null) {
+                                    if (t.id == viewModel.uiCurrentTrack?.id) viewModel.seekTo(ts)
+                                    else viewModel.playTrackAtPosition(t, ts)
+                                } else {
+                                    viewModel.seekTo(ts)
+                                }
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Rounded.PlayArrow,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(10.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.width(2.dp))
+                                Text(
+                                    text = makeTimeString(ts),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                    }
+                }
+                val relTime = getRelativeTime(comment.createdAt, context)
+                if (relTime.isNotBlank()) {
+                    Text(
+                        text = relTime,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+
+            // Body text
+            val displayBody = if (showTranslation && !translatedText.isNullOrEmpty()) translatedText!! else comment.body
+            CommentBodyText(
+                body = displayBody,
+                onMentionClick = { mention ->
+                    viewModel.resolveAndNavigateToArtist(mention)
+                }
+            )
+
+            // WordGloss: foreign words with translations in mixed comments
+            val glosses by produceState(emptyList<Pair<String, String>>(), comment.body, langCode) {
+                value = if (!com.alananasss.kittytune.util.WordGloss.isMixed(comment.body, langCode)) emptyList()
+                else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.alananasss.kittytune.util.WordGloss.glossFor(comment.body, langCode)
+                }
+            }
+            if (glosses.isNotEmpty()) {
                 Text(
-                    text = getRelativeTime(comment.createdAt, context),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = com.alananasss.kittytune.util.WordGloss.line(glosses),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = if (showTranslation && !translatedText.isNullOrEmpty()) translatedText!! else comment.body,
-                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 20.sp, fontSize = 15.sp),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
-            )
 
-            val currentLocale = java.util.Locale.getDefault()
-            val langName = remember(currentLocale) {
-                currentLocale.getDisplayLanguage(currentLocale)
-                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(currentLocale) else it.toString() }
-            }
-            val langCode = currentLocale.language
-            val context = LocalContext.current
-
-            var isTargetLanguage by remember(comment.body, langCode) { mutableStateOf(false) }
-            LaunchedEffect(comment.body, langCode) {
-                val cleanText = comment.body.replace(Regex("[^\\p{L}\\p{Nd}\\s]"), "").trim()
-                if (cleanText.isBlank()) {
-                    isTargetLanguage = true
-                } else {
-                    val languageIdentifier = com.google.mlkit.nl.languageid.LanguageIdentification.getClient()
-                    languageIdentifier.identifyLanguage(cleanText)
-                        .addOnSuccessListener { language ->
-                            if (language == langCode || language == "und") {
-                                isTargetLanguage = true
-                            }
-                        }
+            // Translation support
+            val needsTranslation by produceState(false, comment.body, langCode) {
+                value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.alananasss.kittytune.util.LanguageDetection.needsTranslation(comment.body, langCode)
                 }
             }
-
-            if (translatedText == null && !isTranslating && !isTargetLanguage) {
+            if (translatedText == null && !isTranslating && needsTranslation) {
                 Text(
                     text = stringResource(R.string.comment_translate, langName),
                     style = MaterialTheme.typography.labelSmall,
@@ -10109,72 +10068,75 @@ fun CommentRowItem(
                         .padding(vertical = 2.dp)
                 )
             }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (comment.trackTimestamp != null) {
-                    Surface(
-                        onClick = { onSeekTo(comment.trackTimestamp) },
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Rounded.PlayArrow,
-                                null,
-                                modifier = Modifier.size(12.dp)
-                            ); Spacer(Modifier.width(4.dp)); Text(
-                            text = makeTimeString(comment.trackTimestamp),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.weight(1f))
+
+            // Actions: like, reply, delete
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 2.dp)
+            ) {
                 if (isMine) {
-                    IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(28.dp)
+                    ) {
                         Icon(
                             Icons.Outlined.Delete,
                             contentDescription = "Delete",
                             tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
-                    }; Spacer(Modifier.width(4.dp))
+                    }
                 }
-                IconButton(onClick = {
-                    if (isGuest) Toast.makeText(context, loginToInteractMsg, Toast.LENGTH_SHORT).show() else onReply()
-                }, modifier = Modifier.size(32.dp)) {
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable {
+                            if (isGuest) Toast.makeText(context, loginToInteractMsg, Toast.LENGTH_SHORT).show()
+                            else viewModel.startReplying(comment)
+                        }
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                ) {
                     Icon(
                         Icons.AutoMirrored.Rounded.Reply,
                         contentDescription = "Reply",
                         tint = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = stringResource(R.string.comment_reply),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(Modifier.width(8.dp))
+
+                Spacer(Modifier.weight(1f))
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).clickable {
-                        if (isGuest) Toast.makeText(context, loginToInteractMsg, Toast.LENGTH_SHORT)
-                            .show() else onToggleLike()
-                    }.padding(4.dp)
-                ) {
-                    val icon = if (comment.isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
-                    val tint =
-                        if (comment.isLiked) Color(0xFFFF4081) else MaterialTheme.colorScheme.onSurfaceVariant.let {
-                            if (isGuest) it.copy(alpha = 0.3f) else it
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .clickable {
+                            if (isGuest) Toast.makeText(context, loginToInteractMsg, Toast.LENGTH_SHORT).show()
+                            else viewModel.toggleCommentLike(comment)
                         }
+                        .padding(4.dp)
+                ) {
+                    val isLiked = comment.isLiked
                     Icon(
-                        imageVector = icon,
-                        contentDescription = stringResource(R.string.player_like_action),
-                        tint = tint,
-                        modifier = Modifier.size(16.dp)
+                        imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        contentDescription = "Like",
+                        tint = if (isLiked) Color(0xFFFF4081) else MaterialTheme.colorScheme.onSurfaceVariant.let {
+                            if (isGuest) it.copy(alpha = 0.3f) else it
+                        },
+                        modifier = Modifier.size(15.dp)
                     )
                     if (comment.likesCount > 0) {
-                        Spacer(Modifier.width(4.dp)); Text(
+                        Spacer(Modifier.width(4.dp))
+                        Text(
                             text = formatNumber(comment.likesCount),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -10185,6 +10147,59 @@ fun CommentRowItem(
         }
     }
 }
+
+@Composable
+private fun CommentBodyText(body: String, onMentionClick: (String) -> Unit) {
+    val mentionPattern = remember { """@[\w-]+""".toRegex() }
+    val urlPattern = remember { """https?://[^\s]+""".toRegex() }
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    val annotatedString = remember(body, tertiaryColor, primaryColor) {
+        buildAnnotatedString {
+            append(body)
+            for (match in mentionPattern.findAll(body)) {
+                val username = match.value.removePrefix("@")
+                addLink(
+                    LinkAnnotation.Clickable(
+                        tag = "MENTION",
+                        styles = TextLinkStyles(
+                            style = SpanStyle(
+                                color = tertiaryColor,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        ),
+                        linkInteractionListener = { onMentionClick(username) }
+                    ),
+                    match.range.first, match.range.last + 1
+                )
+            }
+            for (match in urlPattern.findAll(body)) {
+                addLink(
+                    LinkAnnotation.Url(
+                        url = match.value,
+                        styles = TextLinkStyles(
+                            style = SpanStyle(
+                                color = primaryColor,
+                                textDecoration = TextDecoration.Underline
+                            )
+                        )
+                    ),
+                    match.range.first, match.range.last + 1
+                )
+            }
+        }
+    }
+
+    androidx.compose.foundation.text.selection.SelectionContainer {
+        Text(
+            text = annotatedString,
+            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp, fontSize = 14.sp),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+        )
+    }
+}
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -11691,6 +11706,11 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
         inactiveTrackColor = textColor.copy(alpha = 0.2f)
     )
 
+    val mix = rememberMixTransition()
+    val behindGlow = Modifier.fillMaxWidth().mixGlow(mix, textColor) {
+        if (totalDuration > 0f) (sliderPosition.coerceIn(0f, totalDuration) / totalDuration) else 0f
+    }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         when (sliderStyle) {
             PlayerSliderStyle.BAR -> {
@@ -11708,7 +11728,7 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
                         isDragging = false
                     },
                     colors = sliderColors,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = behindGlow
                 )
             }
             PlayerSliderStyle.WAVY -> {
@@ -11731,6 +11751,8 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
                     },
                     colors = sliderColors,
                     isPlaying = viewModel.uiIsPlaying,
+                    mix = mix,
+                    mixColor = textColor,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -11780,7 +11802,7 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
                         )
                     },
                     colors = sliderColors,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = behindGlow
                 )
             }
             PlayerSliderStyle.SQUIGGLY -> {
@@ -11799,7 +11821,7 @@ fun OldPlayerProgress(viewModel: PlayerViewModel, textColor: Color) {
                     },
                     colors = sliderColors,
                     isPlaying = viewModel.uiIsPlaying,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = behindGlow
                 )
             }
         }
