@@ -88,6 +88,7 @@ import com.alananasss.kittytune.ui.player.slider.mixGlow
 import com.alananasss.kittytune.domain.Comment
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
+import com.alananasss.kittytune.domain.getHighResAvatarUrl
 import com.alananasss.kittytune.ui.library.TrackSortBy
 import com.alananasss.kittytune.ui.player.lyrics.WrongLyricsButton
 import com.alananasss.kittytune.ui.player.lyrics.LyricLine
@@ -1634,7 +1635,16 @@ fun PlayerHeader(
                     )
                 }
             }
-            com.alananasss.kittytune.ui.profile.ConnectButton(tint = contentColor)
+            val androidContext = androidx.compose.ui.platform.LocalContext.current
+            val showTopBarDevices = remember {
+                com.alananasss.kittytune.data.local.PlayerPreferences(androidContext).getShowDevicesButtonTopBar()
+            }
+            if (showTopBarDevices) {
+                com.alananasss.kittytune.ui.profile.ConnectButton(
+                    tint = contentColor,
+                    onClick = { viewModel.showConnectSheet = true }
+                )
+            }
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.btn_close), tint = contentColor)
             }
@@ -2032,7 +2042,7 @@ fun SocialProofBanner(
         ) {
             displayLikers.forEachIndexed { index, user ->
                 val fallbackTeal = Color(0xFF00897B)
-                val avatarUrl = user.avatarUrl?.replace("large", "t500x500")
+                val avatarUrl = user.avatarUrl.getHighResAvatarUrl() ?: user.avatarUrl
 
                 Box(
                     modifier = Modifier
@@ -2338,6 +2348,15 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
                     viewModel.showMenuSheet = false
                     viewModel.showNightScreen = true
                 })
+            add(
+                DockOptionItem(
+                    Icons.Rounded.Devices,
+                    stringResource(R.string.menu_playback_devices),
+                    id = "devices"
+                ) {
+                    viewModel.showMenuSheet = false
+                    viewModel.showConnectSheet = true
+                })
             // Only for the track that is playing: the editor's whole method is "listen, mark here", so it
             // needs a playhead to mark from (issue #33).
             add(
@@ -2519,6 +2538,9 @@ fun MenuSheetContent(viewModel: PlayerViewModel) {
             if (item.text == stringResource(R.string.sleep_timer_title) && viewModel.isSleepTimerActive) {
                 tint = activeColor
                 text = viewModel.formatSleepTimerRemaining()
+            }
+            if (item.id == "devices" && com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null) {
+                tint = activeColor
             }
             if (item.id == "download" && isDownloaded) {
                 tint = MaterialTheme.colorScheme.error
@@ -4672,6 +4694,7 @@ private fun PlayerSlotButton(
         PlayerActionButtonSlot.FULLSCREEN_LYRICS -> viewModel.showLyricsSheet
         PlayerActionButtonSlot.SLEEP_TIMER -> viewModel.isSleepTimerActive
         PlayerActionButtonSlot.HAPTICS -> viewModel.isHapticsEnabled
+        PlayerActionButtonSlot.DEVICES -> com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null
         else -> false
     }
 
@@ -4691,6 +4714,7 @@ private fun PlayerSlotButton(
         PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
         PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
         PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
+        PlayerActionButtonSlot.DEVICES -> Icons.Rounded.Devices
         PlayerActionButtonSlot.NONE -> null
     }
 
@@ -4735,6 +4759,7 @@ private fun PlayerSlotButton(
                     PlayerActionButtonSlot.MORE -> {
                         viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) }
                     }
+                    PlayerActionButtonSlot.DEVICES -> viewModel.showConnectSheet = true
                     PlayerActionButtonSlot.NONE, PlayerActionButtonSlot.LYRICS -> {}
                 }
             }
@@ -10211,6 +10236,11 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
     // VK exposes no play/like/repost counters and has no comment or "similar tracks" endpoint, so
     // those SoundCloud-only blocks are hidden instead of being rendered as a row of zeros.
     val isVkTrack = track.source == "vk"
+    val isDeezerTrack = track.source == "deezer" || track.user?.urn?.startsWith("deezer:") == true || track.permalinkUrl?.contains("deezer.com") == true
+    val isTidalTrack = track.source == "tidal" || track.user?.urn?.startsWith("tidal:") == true || track.permalinkUrl?.contains("tidal.com") == true
+    val isQobuzTrack = track.source == "qobuz" || track.user?.urn?.startsWith("qobuz:") == true || track.permalinkUrl?.contains("qobuz.com") == true
+    val isYtTrack = track.source in listOf("youtube", "youtube_music") || track.permalinkUrl?.contains("youtube.com") == true || track.permalinkUrl?.contains("youtu.be") == true
+    val isExternalStreamTrack = isDeezerTrack || isTidalTrack || isQobuzTrack || isYtTrack
     val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
     val displayFormat = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
     val releaseDateStr = remember(track.releaseDate, track.createdAt) {
@@ -10693,6 +10723,31 @@ fun DetailsSheetContent(track: Track, onClose: () -> Unit, onOpenComments: () ->
                     DetailInfoRow(stringResource(R.string.detail_stats_artist), track.displayArtist)
                 }
                 DetailInfoRow(stringResource(R.string.detail_stats_source), "VKontakte")
+                Spacer(Modifier.height(32.dp))
+            }
+        } else if (isExternalStreamTrack) {
+            item {
+                DetailInfoRow(stringResource(R.string.detail_duration), makeTimeString(track.actualDurationMs))
+                if (!track.publisherMetadata?.albumTitle.isNullOrBlank()) {
+                    DetailInfoRow(
+                        stringResource(R.string.profile_tab_albums),
+                        track.publisherMetadata!!.albumTitle!!
+                    )
+                }
+                if (!track.displayArtist.isBlank()) {
+                    DetailInfoRow(stringResource(R.string.detail_stats_artist), track.displayArtist)
+                }
+                val sourceLabel = when {
+                    isDeezerTrack -> "Deezer"
+                    isTidalTrack -> "TIDAL"
+                    isQobuzTrack -> "Qobuz"
+                    isYtTrack -> "YouTube Music"
+                    else -> track.source?.replaceFirstChar { it.uppercase() } ?: "External"
+                }
+                DetailInfoRow(stringResource(R.string.detail_stats_source), sourceLabel)
+                track.publisherMetadata?.isrc?.takeIf { it.isNotBlank() }?.let { isrc ->
+                    DetailInfoRow("ISRC", isrc)
+                }
                 Spacer(Modifier.height(32.dp))
             }
         } else {
@@ -12363,7 +12418,18 @@ fun PhoneLandscapePlayerView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                com.alananasss.kittytune.ui.profile.ConnectButton(tint = mainContentColor)
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val showDevicesInTopBar = remember {
+                    com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonTopBar()
+                }
+                if (showDevicesInTopBar) {
+                    com.alananasss.kittytune.ui.profile.ConnectButton(
+                        tint = mainContentColor,
+                        onClick = { viewModel.showConnectSheet = true }
+                    )
+                } else {
+                    Spacer(modifier = Modifier.size(40.dp))
+                }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val contextStr = viewModel.currentContext
                     Text(
@@ -13379,6 +13445,21 @@ fun SoundCloudPlayerView(
                                     imageVector = Icons.Rounded.MoreVert,
                                     contentDescription = null,
                                     tint = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+
+                        PlayerActionButtonSlot.DEVICES -> {
+                            val isConnected = com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null
+                            IconButton(
+                                onClick = { viewModel.showConnectSheet = true },
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isConnected) Icons.Rounded.CastConnected else Icons.Rounded.Devices,
+                                    contentDescription = stringResource(R.string.slot_devices),
+                                    tint = if (isConnected) Color(0xFFFF5500) else Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }

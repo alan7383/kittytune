@@ -40,6 +40,26 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
 
         com.alananasss.kittytune.data.network.ProxyManager.init(this)
 
+        // In-app DPI bypass (zapret): no folder, no VPN, no proxy. Installs the fragmenting
+        // socket factories and restores the bypass domain list into the dynamic policy.
+        com.alananasss.kittytune.data.zapret.ZapretManager.init(this)
+        coil.Coil.setImageLoader(this)
+        com.zionhuang.innertube.YouTube.okHttpClient =
+            com.alananasss.kittytune.data.network.ProxyManager.getOkHttpClient(this)
+        com.zionhuang.innertube.YouTube.socketFactory =
+            com.alananasss.kittytune.data.zapret.ZapretManager.bypassSocketFactory()
+        // Recognition (Shazam) and KuGou lyrics run on their own Ktor engines in library
+        // modules: same dynamic factory, set once, follows toggles without rebuilds.
+        com.metrolist.shazamkit.Shazam.socketFactory =
+            com.alananasss.kittytune.data.zapret.ZapretManager.bypassSocketFactory()
+        com.zionhuang.kugou.KuGou.socketFactory =
+            com.alananasss.kittytune.data.zapret.ZapretManager.bypassSocketFactory()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            runCatching {
+                com.alananasss.kittytune.data.zapret.ZapretManager.autoConfigureOnce(this@KittyTuneApp)
+            }
+        }
+
         // Paired once, in step from then on. Costs nothing until something is paired: no port is opened
         // and no timer runs on an install that has never paired (issue #33).
         if (!com.alananasss.kittytune.data.sync.SyncPeers.isEmpty()) {
@@ -73,22 +93,67 @@ class KittyTuneApp : Application(), ImageLoaderFactory {
                 } else {
                     add(GifDecoder.Factory())
                 }
-                // Data saver choke point for artwork: every image request in the app goes
-                // through this interceptor, so a single URL rewrite here lightens covers in
-                // lists, players, playlists and widgets at once — no UI call site touched.
+                // Data saver & CDN header support: ensures browser User-Agent / Referer
+                // so CDNs (SoundCloud CloudFront, Google, picsum) do not block requests.
                 add(object : coil.intercept.Interceptor {
                     override suspend fun intercept(chain: coil.intercept.Interceptor.Chain): coil.request.ImageResult {
-                        if (!com.alananasss.kittytune.data.DataSaver.isActive(this@KittyTuneApp)) {
-                            return chain.proceed(chain.request)
-                        }
-                        val data = chain.request.data
-                        if (data is String) {
-                            val light = com.alananasss.kittytune.data.DataSaver.lightArtwork(data)
-                            if (light != null && light != data) {
-                                return chain.proceed(chain.request.newBuilder().data(light).build())
+                        var req = chain.request
+                        var urlStr = (req.data as? String)?.takeIf { it.startsWith("http") }
+                        if (urlStr != null) {
+                            var modifiedUrl = urlStr
+                            if (modifiedUrl.contains("default_avatar") && modifiedUrl.contains("t500x500")) {
+                                modifiedUrl = modifiedUrl.replace("t500x500", "large")
+                            }
+                            if (modifiedUrl.contains("{size}")) {
+                                modifiedUrl = modifiedUrl.replace("{size}", "t500x500")
+                            }
+                            if (modifiedUrl.contains("{format}")) {
+                                modifiedUrl = modifiedUrl.replace("{format}", "t500x500")
+                            }
+
+                            val headersBuilder = req.headers.newBuilder()
+                            var headersChanged = false
+                            if (req.headers["User-Agent"].isNullOrBlank()) {
+                                headersBuilder.set("User-Agent", "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+                                headersChanged = true
+                            }
+                            if (modifiedUrl.contains("sndcdn.com") && req.headers["Referer"].isNullOrBlank()) {
+                                headersBuilder.set("Referer", "https://soundcloud.com/")
+                                headersChanged = true
+                            }
+                            if (modifiedUrl.contains("scdn.co") && req.headers["Referer"].isNullOrBlank()) {
+                                headersBuilder.set("Referer", "https://open.spotify.com/")
+                                headersChanged = true
+                            }
+                            if (headersChanged || modifiedUrl != urlStr) {
+                                req = req.newBuilder()
+                                    .headers(headersBuilder.build())
+                                    .data(modifiedUrl)
+                                    .build()
+                                urlStr = modifiedUrl
                             }
                         }
-                        return chain.proceed(chain.request)
+
+                        if (com.alananasss.kittytune.data.DataSaver.isActive(this@KittyTuneApp)) {
+                            val data = req.data
+                            if (data is String) {
+                                val light = com.alananasss.kittytune.data.DataSaver.lightArtwork(data)
+                                if (light != null && light != data) {
+                                    req = req.newBuilder().data(light).build()
+                                }
+                            }
+                        }
+
+                        val result = chain.proceed(req)
+                        if (result is coil.request.ErrorResult && urlStr != null && urlStr.contains("-t500x500.")) {
+                            val fallbackUrl = urlStr.replace("-t500x500.", "-large.")
+                            val fallbackReq = req.newBuilder().data(fallbackUrl).build()
+                            val fallbackResult = chain.proceed(fallbackReq)
+                            if (fallbackResult is coil.request.SuccessResult) {
+                                return fallbackResult
+                            }
+                        }
+                        return result
                     }
                 })
             }

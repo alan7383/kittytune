@@ -72,10 +72,12 @@ import com.alananasss.kittytune.data.PlaybackService
 import com.alananasss.kittytune.data.WaveformRepository
 import com.alananasss.kittytune.data.local.NotificationExtraButton
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
+import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerDesign
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.PlayerProgressMode
 import com.alananasss.kittytune.data.local.PlayerSliderStyle
+import com.alananasss.kittytune.data.local.TrackSourceBadgeStyle
 import com.alananasss.kittytune.data.local.WaveformColorMode
 import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
@@ -109,6 +111,10 @@ fun PlayerCustomizationScreen(
         )
     }
     var sliderStyle by remember { mutableStateOf(prefs.getPlayerSliderStyle()) }
+    var backgroundStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
+    var sourceBadgeStyle by remember { mutableStateOf(prefs.getTrackSourceBadgeStyle()) }
+    var showBackgroundStyleDialog by remember { mutableStateOf(false) }
+    var showSourceBadgeStyleDialog by remember { mutableStateOf(false) }
     var showRemainingTime by remember { mutableStateOf(prefs.getShowRemainingTime()) }
 
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
@@ -132,8 +138,8 @@ fun PlayerCustomizationScreen(
 
     var notifExtraButton by remember { mutableStateOf(prefs.getNotificationExtraButton()) }
     var showNotifExtraButtonDialog by remember { mutableStateOf(false) }
-    var miniPlayerSwipeAction by remember { mutableStateOf(prefs.getMiniPlayerSwipeAction()) }
-    var showMiniPlayerSwipeActionDialog by remember { mutableStateOf(false) }
+    var shareCardCodeMode by remember { mutableIntStateOf(prefs.getShareCardCodeMode()) }
+    var showShareCardCodeDialog by remember { mutableStateOf(false) }
 
     var previewSliderProgress by remember { mutableFloatStateOf(0.42f) }
     var isPreviewPlaying by remember { mutableStateOf(true) }
@@ -181,11 +187,11 @@ fun PlayerCustomizationScreen(
             "player_design_page" to 0,
             "pref_slider_style" to 1,
             "pref_show_remaining_time" to 2,
-            "pref_animated_covers" to 3,
-            "pref_animated_covers_fade_ui" to 3,
-            "pref_animated_artist_profiles" to 3,
             "notif_player_extra_button" to 5,
-            "mini_player_swipe_action" to 6
+            "pref_player_style" to 4,
+            "pref_track_source_badge" to 4,
+            "pref_full_player_source" to 4,
+            "share_card_code" to 6,
         )
     )
 
@@ -554,53 +560,28 @@ fun PlayerCustomizationScreen(
                     add { shape ->
                         SettingsItem(
                             shape = shape,
-                            title = stringResource(R.string.pref_animated_covers),
-                            subtitle = stringResource(R.string.pref_animated_covers_desc),
-                            icon = Icons.Rounded.Movie,
-                            hasSwitch = true,
-                            switchState = animatedCovers,
-                            onSwitchChange = {
-                                animatedCovers = it
-                                prefs.setAnimatedCoversEnabled(it)
-                                onUpdated()
-                            },
-                            highlightKey = "pref_animated_covers"
+                            title = stringResource(R.string.pref_player_style),
+                            subtitle = stringResource(
+                                when (backgroundStyle) {
+                                    PlayerBackgroundStyle.THEME -> R.string.style_theme
+                                    PlayerBackgroundStyle.GRADIENT -> R.string.style_gradient
+                                    PlayerBackgroundStyle.BLUR -> R.string.style_blur
+                                    PlayerBackgroundStyle.APPLE_MUSIC -> R.string.style_apple_music
+                                }
+                            ),
+                            icon = Icons.Rounded.Style,
+                            onClick = { showBackgroundStyleDialog = true },
+                            highlightKey = "pref_player_style"
                         )
                     }
-
-                    if (animatedCovers) {
-                        add { shape ->
-                            SettingsItem(
-                                shape = shape,
-                                title = stringResource(R.string.pref_animated_covers_fade_ui),
-                                subtitle = stringResource(R.string.pref_animated_covers_fade_ui_desc),
-                                icon = Icons.Rounded.BlurLinear,
-                                hasSwitch = true,
-                                switchState = animatedCoversFadeUi,
-                                onSwitchChange = {
-                                    animatedCoversFadeUi = it
-                                    prefs.setAnimatedCoversFadeUiEnabled(it)
-                                    onUpdated()
-                                },
-                                highlightKey = "pref_animated_covers_fade_ui"
-                            )
-                        }
-                    }
-
                     add { shape ->
                         SettingsItem(
                             shape = shape,
-                            title = stringResource(R.string.pref_animated_artist_profiles),
-                            subtitle = stringResource(R.string.pref_animated_artist_profiles_desc),
-                            icon = Icons.Rounded.AccountBox,
-                            hasSwitch = true,
-                            switchState = animatedArtistProfiles,
-                            onSwitchChange = {
-                                animatedArtistProfiles = it
-                                prefs.setAnimatedArtistProfilesEnabled(it)
-                                onUpdated()
-                            },
-                            highlightKey = "pref_animated_artist_profiles"
+                            title = stringResource(R.string.pref_track_source_badge_title),
+                            subtitle = stringResource(sourceBadgeStyle.titleRes),
+                            icon = Icons.Rounded.Badge,
+                            onClick = { showSourceBadgeStyleDialog = true },
+                            highlightKey = "pref_track_source_badge"
                         )
                     }
 
@@ -758,26 +739,83 @@ fun PlayerCustomizationScreen(
                 )
             }
 
-            item(key = "mini_player_swipe_settings") {
-                val miniItems = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit> { shape ->
-                    SettingsItem(
-                        shape = shape,
-                        title = stringResource(R.string.pref_mini_player_swipe_action_title),
-                        subtitle = when (miniPlayerSwipeAction) {
-                            com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK ->
-                                stringResource(R.string.pref_mini_player_swipe_action_change_track)
-                            com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS ->
-                                stringResource(R.string.pref_mini_player_swipe_action_dismiss)
-                        },
-                        trailingText = stringResource(R.string.player_slot_change),
-                        onClick = { showMiniPlayerSwipeActionDialog = true },
-                        highlightKey = "mini_player_swipe_action"
-                    )
-                }
+            item {
+                var showDevicesTopBar by remember { mutableStateOf(prefs.getShowDevicesButtonTopBar()) }
+                var showDevicesMiniPlayer by remember { mutableStateOf(prefs.getShowDevicesButtonMiniPlayer()) }
+                var showDevicesBottomBar by remember { mutableStateOf(prefs.getShowDevicesButtonBottomBar()) }
+
+                val connectItems = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit>(
+                    { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.connect_pref_top_bar),
+                            subtitle = stringResource(R.string.connect_pref_slots_hint),
+                            icon = Icons.Rounded.Devices,
+                            hasSwitch = true,
+                            switchState = showDevicesTopBar,
+                            onSwitchChange = { checked ->
+                                showDevicesTopBar = checked
+                                prefs.setShowDevicesButtonTopBar(checked)
+                                onUpdated()
+                            }
+                        )
+                    },
+                    { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.connect_pref_mini_player),
+                            icon = Icons.Rounded.DevicesOther,
+                            hasSwitch = true,
+                            switchState = showDevicesMiniPlayer,
+                            onSwitchChange = { checked ->
+                                showDevicesMiniPlayer = checked
+                                prefs.setShowDevicesButtonMiniPlayer(checked)
+                                onUpdated()
+                            }
+                        )
+                    },
+                    { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.connect_pref_bottom_bar),
+                            icon = Icons.Rounded.Devices,
+                            hasSwitch = true,
+                            switchState = showDevicesBottomBar,
+                            onSwitchChange = { checked ->
+                                showDevicesBottomBar = checked
+                                prefs.setShowDevicesButtonBottomBar(checked)
+                                onUpdated()
+                            }
+                        )
+                    }
+                )
 
                 SettingsGroup(
-                    title = stringResource(R.string.pref_mini_player_title),
-                    items = miniItems
+                    title = stringResource(R.string.connect_pref_group),
+                    items = connectItems
+                )
+            }
+
+            item {
+                val shareCodeSubtitle = when (shareCardCodeMode) {
+                    1 -> stringResource(R.string.share_card_code_solid)
+                    2 -> stringResource(R.string.share_card_code_halftone)
+                    else -> stringResource(R.string.share_card_code_auto)
+                }
+                SettingsGroup(
+                    title = stringResource(R.string.share_card_settings_group),
+                    items = listOf { shape ->
+                        SettingsItem(
+                            shape = shape,
+                            title = stringResource(R.string.share_card_code_title),
+                            subtitle = stringResource(
+                                R.string.share_card_code_subtitle
+                            ) + " • " + shareCodeSubtitle,
+                            icon = Icons.Rounded.QrCode2,
+                            onClick = { showShareCardCodeDialog = true },
+                            highlightKey = "share_card_code"
+                        )
+                    }
                 )
             }
 
@@ -950,6 +988,87 @@ fun PlayerCustomizationScreen(
         )
     }
 
+    if (showBackgroundStyleDialog) {
+        val styles = PlayerBackgroundStyle.entries
+        AlertDialog(
+            onDismissRequest = { showBackgroundStyleDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_player_style),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    styles.forEachIndexed { idx, style ->
+                        val isSelected = backgroundStyle == style
+                        SettingsItem(
+                            shape = getSettingsShape(styles.size, idx),
+                            title = stringResource(
+                                when (style) {
+                                    PlayerBackgroundStyle.THEME -> R.string.style_theme
+                                    PlayerBackgroundStyle.GRADIENT -> R.string.style_gradient
+                                    PlayerBackgroundStyle.BLUR -> R.string.style_blur
+                                    PlayerBackgroundStyle.APPLE_MUSIC -> R.string.style_apple_music
+                                }
+                            ),
+                            trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
+                            onClick = {
+                                backgroundStyle = style
+                                prefs.setPlayerStyle(style)
+                                showBackgroundStyleDialog = false
+                                onUpdated()
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showBackgroundStyleDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
+    if (showSourceBadgeStyleDialog) {
+        val badgeStyles = TrackSourceBadgeStyle.entries
+        AlertDialog(
+            onDismissRequest = { showSourceBadgeStyleDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.pref_track_source_badge_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    badgeStyles.forEachIndexed { idx, style ->
+                        val isSelected = sourceBadgeStyle == style
+                        SettingsItem(
+                            shape = getSettingsShape(badgeStyles.size, idx),
+                            title = stringResource(style.titleRes),
+                            trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
+                            onClick = {
+                                sourceBadgeStyle = style
+                                prefs.setTrackSourceBadgeStyle(style)
+                                showSourceBadgeStyleDialog = false
+                                onUpdated()
+                            }
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSourceBadgeStyleDialog = false }) {
+                    Text(stringResource(R.string.btn_cancel))
+                }
+            }
+        )
+    }
+
     if (showWaveformColorDialog) {
         WaveformColorDialog(
             currentMode = waveformColorMode,
@@ -1018,89 +1137,59 @@ fun PlayerCustomizationScreen(
         )
     }
 
-    if (showMiniPlayerSwipeActionDialog) {
+    if (showShareCardCodeDialog) {
+        val labels = listOf(
+            stringResource(R.string.share_card_code_auto) to stringResource(R.string.share_card_code_auto_desc),
+            stringResource(R.string.share_card_code_solid) to stringResource(R.string.share_card_code_solid_desc),
+            stringResource(R.string.share_card_code_halftone) to stringResource(R.string.share_card_code_halftone_desc),
+        )
         AlertDialog(
-            onDismissRequest = { showMiniPlayerSwipeActionDialog = false },
-            title = {
-                Text(
-                    text = stringResource(R.string.pref_mini_player_swipe_action_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            },
+            onDismissRequest = { showShareCardCodeDialog = false },
+            title = { Text(stringResource(R.string.share_card_code_title)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK)
-                                miniPlayerSwipeAction = com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK
-                                showMiniPlayerSwipeActionDialog = false
-                                onUpdated()
+                Column {
+                    labels.forEachIndexed { index, (label, desc) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                    onUpdated()
+                                }
+                                .padding(vertical = 8.dp)
+                        ) {
+                            RadioButton(
+                                selected = shareCardCodeMode == index,
+                                onClick = {
+                                    shareCardCodeMode = index
+                                    prefs.setShareCardCodeMode(index)
+                                    showShareCardCodeDialog = false
+                                    onUpdated()
+                                },
+                            )
+                            Column(modifier = Modifier.padding(start = 4.dp)) {
+                                Text(label, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    desc,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.CHANGE_TRACK,
-                            onClick = null
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_change_track_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                prefs.setMiniPlayerSwipeAction(com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS)
-                                miniPlayerSwipeAction = com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS
-                                showMiniPlayerSwipeActionDialog = false
-                                onUpdated()
-                            }
-                            .padding(vertical = 10.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = miniPlayerSwipeAction == com.alananasss.kittytune.data.local.MiniPlayerSwipeAction.DISMISS,
-                            onClick = null
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = stringResource(R.string.pref_mini_player_swipe_action_dismiss_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showMiniPlayerSwipeActionDialog = false }) {
+                TextButton(onClick = { showShareCardCodeDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
-            }
+            },
         )
     }
+
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -1245,6 +1334,7 @@ private fun getSlotIcon(slot: PlayerActionButtonSlot): ImageVector = when (slot)
     PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
     PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
     PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
+    PlayerActionButtonSlot.DEVICES -> Icons.Rounded.Devices
     PlayerActionButtonSlot.NONE -> Icons.Rounded.Block
 }
 

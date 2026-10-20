@@ -47,6 +47,8 @@ internal fun rememberSettingsSearchCatalog(
         var lyricsUnderCover = prefs.getLyricsUnderCoverEnabled()
         var showRemainingTime = prefs.getShowRemainingTime()
         var fullPlayerSource = prefs.getFullPlayerSourceIndicatorEnabled()
+        var backgroundStyle = prefs.getPlayerStyle()
+        var sourceBadgeStyle = prefs.getTrackSourceBadgeStyle()
         var verticalVolume = prefs.getVerticalVolumeSlider()
         var crossfade = prefs.getCrossfadeEnabled()
         var automix = prefs.getAutomixEnabled()
@@ -56,6 +58,8 @@ internal fun rememberSettingsSearchCatalog(
         var savePosition = prefs.getSavePositionEnabled()
         var youtubeFallback = prefs.getYouTubeFallbackEnabled()
         var hideYoutubeVideos = prefs.getHideYoutubeVideos()
+        var scHistorySync = prefs.getSoundCloudHistorySyncEnabled()
+        var downloadDrm = prefs.getDownloadDrmStreamsEnabled()
         var discordRpc = prefs.getDiscordRpcEnabled()
         var dataSaver = prefs.getDataSaverEnabled()
         var achievementPopups = prefs.getAchievementPopupsEnabled()
@@ -91,6 +95,17 @@ internal fun rememberSettingsSearchCatalog(
                 route = "player_design_settings",
                 keywordsRes = R.string.keywords_player,
                 keywords = listOf("wavy", "slim", "squiggly", "dj flow")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.share_card_code_title,
+                subtitleRes = R.string.share_card_code_subtitle,
+                categoryName = catInterface,
+                icon = Icons.Rounded.QrCode2,
+                route = "player_design_settings",
+                highlightKey = "share_card_code",
+                keywords = listOf("share", "partage", "qr", "code", "card", "carte", "cover")
             ),
             createSearchEntry(
                 context = context,
@@ -240,6 +255,33 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.pref_player_style,
+                subtitleRes = when (backgroundStyle) {
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.THEME -> R.string.style_theme
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.GRADIENT -> R.string.style_gradient
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.BLUR -> R.string.style_blur
+                    com.alananasss.kittytune.data.local.PlayerBackgroundStyle.APPLE_MUSIC -> R.string.style_apple_music
+                },
+                categoryName = catInterface,
+                icon = Icons.Rounded.Style,
+                route = "player_design_settings",
+                highlightKey = "pref_player_style",
+                keywords = listOf("background", "style", "theme", "gradient", "blur", "fond", "arrière-plan")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_track_source_badge_title,
+                subtitleRes = R.string.pref_track_source_badge_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Badge,
+                route = "player_design_settings",
+                highlightKey = "pref_track_source_badge",
+                keywords = listOf("source", "badge", "provider", "icon", "logo", "plateforme")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_volume_slider_title,
                 subtitleRes = R.string.volume_vertical,
                 categoryName = catInterface,
@@ -383,6 +425,17 @@ internal fun rememberSettingsSearchCatalog(
                 route = "appearance_settings",
                 highlightKey = "pref_library_category_layout",
                 keywordsRes = R.string.keywords_library_layout
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_track_removal_title,
+                subtitleRes = R.string.pref_track_removal_subtitle,
+                categoryName = catInterface,
+                icon = Icons.Rounded.DeleteSweep,
+                route = "appearance_settings",
+                highlightKey = "pref_track_removal",
+                keywords = listOf("remove", "delete", "supprimer", "retirer", "swipe", "glisser", "playlist", "track", "titre", "menu")
             ),
             createSearchEntry(
                 context = context,
@@ -652,6 +705,56 @@ internal fun rememberSettingsSearchCatalog(
                 highlightKey = "sleep_timer_fade",
                 keywordsRes = R.string.keywords_sleep_timer
             ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_download_drm,
+                subtitleRes = R.string.pref_download_drm_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.EnhancedEncryption,
+                route = "audio_quality_settings",
+                highlightKey = "pref_download_drm",
+                keywords = listOf("drm", "download", "télécharger", "telecharger", "widevine", "encrypted", "mp3", "youtube fallback"),
+                hasSwitch = true,
+                switchState = downloadDrm,
+                onSwitchChange = {
+                    downloadDrm = it
+                    prefs.setDownloadDrmStreamsEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_precise_speed,
+                subtitleRes = R.string.pref_precise_speed_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.Speed,
+                route = "audio_playback_settings",
+                highlightKey = "pref_precise_speed",
+                keywords = listOf("speed", "vitesse", "playback speed", "tempo", "pitch"),
+                hasSwitch = true,
+                switchState = playerViewModel.isPreciseSpeedEnabled,
+                onSwitchChange = { playerViewModel.togglePreciseSpeedEnabled(it) }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_sc_sync_title,
+                subtitleRes = R.string.pref_sc_sync_sub,
+                categoryName = catAudio,
+                icon = Icons.Rounded.Sync,
+                route = "audio_playback_settings",
+                highlightKey = "pref_sc_sync",
+                keywords = listOf("soundcloud", "history", "sync", "historique", "scrobble"),
+                hasSwitch = true,
+                switchState = scHistorySync,
+                onSwitchChange = {
+                    scHistorySync = it
+                    prefs.setSoundCloudHistorySyncEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
 
             // SOURCES
             createSearchEntry(
@@ -885,6 +988,17 @@ internal fun rememberSettingsSearchCatalog(
                 route = "proxy_settings",
                 keywordsRes = R.string.keywords_proxy,
                 keywords = listOf("ip", "port", "socks", "http", "dns", "vpn")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.zapret_title,
+                subtitleRes = R.string.network_zapret_sub,
+                categoryName = catNetwork,
+                icon = Icons.Rounded.Security,
+                route = "zapret_settings",
+                keywordsRes = R.string.keywords_zapret,
+                keywords = listOf("dpi", "bypass", "desync", "sni", "censorship", "запрет", "обход")
             ),
 
             // MISC

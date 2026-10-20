@@ -9,6 +9,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 /**
  * Resolves TIDAL animated album covers (MP4 video covers) via TIDAL catalog API.
@@ -28,7 +29,7 @@ object TidalAnimatedCoverProvider {
     private val negativeCache = ConcurrentHashMap<String, Long>()
     private const val NEGATIVE_CACHE_TTL_MS = 5 * 60 * 1000L
 
-    private val client = OkHttpClient.Builder()
+    private val client = ZapretManager.newBuilder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(6, TimeUnit.SECONDS)
         .build()

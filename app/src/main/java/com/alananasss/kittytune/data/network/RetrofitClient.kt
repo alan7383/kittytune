@@ -1,11 +1,11 @@
 package com.alananasss.kittytune.data.network
 
 import android.content.Context
-import android.webkit.CookieManager
+import com.alananasss.kittytune.BuildConfig
 import com.alananasss.kittytune.data.SessionManager
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.utils.Config
-import okhttp3.HttpUrl
+import com.google.gson.GsonBuilder
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -31,10 +31,13 @@ object RetrofitClient {
         soundCloudApi?.let { return it }
         synchronized(this) {
             soundCloudApi?.let { return it }
+            val gson = GsonBuilder()
+                .setStrictness(com.google.gson.Strictness.LENIENT)
+                .create()
             val api = Retrofit.Builder()
                 .baseUrl(Config.BASE_URL)
                 .client(getOkHttpClient(context))
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create(gson))
                 .build()
                 .create(SoundCloudApi::class.java)
             soundCloudApi = api
@@ -46,17 +49,6 @@ object RetrofitClient {
         if (okHttpClient == null) {
             val appContext = context.applicationContext
             val tokenManager = TokenManager(appContext)
-
-            val cookieInterceptor = Interceptor { chain ->
-                val originalRequest = chain.request()
-                val requestBuilder = originalRequest.newBuilder()
-
-                cookieHeaderFor(originalRequest.url, appContext)?.let { cookies ->
-                    requestBuilder.header("Cookie", cookies)
-                }
-
-                chain.proceed(requestBuilder.build())
-            }
 
             val authInterceptor = Interceptor { chain ->
                 val originalRequest = chain.request()
@@ -91,12 +83,11 @@ object RetrofitClient {
                 val buildVersion = "2025.12.10-release"
                 val androidRelease = android.os.Build.VERSION.RELEASE ?: "10"
                 val deviceModel = android.os.Build.MODEL ?: "Android"
-                val customUserAgent = "SoundCloud/$buildVersion (Android $androidRelease; $deviceModel)"
                 val acceptLanguage = com.alananasss.kittytune.utils.LocaleUtils.getAcceptLanguage(appContext)
 
                 val requestBuilder = originalRequest.newBuilder()
                     .url(newUrl)
-                    .header("User-Agent", customUserAgent)
+                    .header("User-Agent", "SoundCloud/$buildVersion (Android $androidRelease; $deviceModel)")
                     .header("Accept", "application/json")
                     .header("Accept-Language", acceptLanguage)
                     .header("App-Version", "330120")
@@ -153,20 +144,19 @@ object RetrofitClient {
                 }
             }
 
+            val loggingLevel = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BASIC
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+
             val builder = OkHttpClient.Builder()
-                .addInterceptor(cookieInterceptor)
                 .addInterceptor(authInterceptor)
                 .addInterceptor(sessionRecoveryInterceptor)
                 // BODY-level logging serializes every request/response body to logcat on every
                 // API call (stream resolution, lyrics, waveforms...) during playback. Keep the
                 // wire visible in debug builds only.
-                .addInterceptor(HttpLoggingInterceptor().apply {
-                    level = if (com.alananasss.kittytune.BuildConfig.DEBUG) {
-                        HttpLoggingInterceptor.Level.BASIC
-                    } else {
-                        HttpLoggingInterceptor.Level.NONE
-                    }
-                })
+                .addInterceptor(HttpLoggingInterceptor().apply { level = loggingLevel })
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
@@ -189,31 +179,4 @@ object RetrofitClient {
             !path.contains("/track_reposts") &&
             !path.contains("/conversations")
     }
-
-    private fun cookieHeaderFor(url: HttpUrl, context: Context): String? {
-        val cookieManager = CookieManager.getInstance()
-        val candidates = listOf(
-            "${url.scheme}://${url.host}",
-            "https://soundcloud.com",
-            "https://m.soundcloud.com"
-        )
-
-        val cookieParts = linkedSetOf<String>()
-        candidates.forEach { candidate ->
-            cookieManager.getCookie(candidate)
-                ?.split(";")
-                ?.map { it.trim() }
-                ?.filter { it.isNotEmpty() }
-                ?.let(cookieParts::addAll)
-        }
-
-        val cookieDataDome = cookieParts.firstOrNull { it.startsWith("datadome=") }
-        val storedDataDome = SessionManager.getStoredDataDomeCookie(context)
-        val regularParts = cookieParts.filterNot { it.startsWith("datadome=") }.toMutableList()
-
-        (cookieDataDome ?: storedDataDome)?.let { regularParts.add(it.substringBefore(";")) }
-
-        return regularParts.joinToString("; ").takeIf { it.isNotBlank() }
-    }
 }
-

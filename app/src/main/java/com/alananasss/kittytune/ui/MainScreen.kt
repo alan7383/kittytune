@@ -11,6 +11,7 @@ import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.alananasss.kittytune.ui.common.SafeWebView
 import androidx.activity.compose.BackHandler
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.compose.animation.*
@@ -76,6 +77,9 @@ import com.alananasss.kittytune.R
 
 import com.alananasss.kittytune.ui.navigation.Screen
 import com.alananasss.kittytune.ui.navigation.clippedComposable
+import com.alananasss.kittytune.ui.navigation.AyuBackGestureBridge
+import com.alananasss.kittytune.ui.navigation.AyuBackState
+import com.alananasss.kittytune.ui.navigation.LocalAyuBackState
 import com.alananasss.kittytune.ui.player.*
 import com.alananasss.kittytune.ui.profile.integrations.*
 import com.alananasss.kittytune.ui.player.lyrics.LyricsScreen
@@ -120,6 +124,15 @@ private fun Context.findActivity(): Activity? = when (this) {
     else -> null
 }
 
+/**
+ * How long `AnimatedContent` must keep the popped destination composed. AyuGram's commit animation
+ * runs for 375ms ([com.alananasss.kittytune.ui.navigation.AyuBack.POST_COMMIT_DURATION_MS]).
+ * 450ms = 375ms + ~1 frame startup delay + rendering jitter headroom on slow devices.
+ * The closing screen must stay composed for the *entire* animation; if `AnimatedContent` disposes
+ * it early, the dismissed screen flashes back on top of the revealed one for the remaining frames.
+ */
+private const val AYU_BACK_KEEP_ALIVE_MS = 450
+
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -155,11 +168,7 @@ fun MainScreen(
             }
         )
     }
-    var isGuestLoading by remember { mutableStateOf(false) }
     var showProfileMenu by remember { mutableStateOf(false) }
-    var instantiateWebView by remember { mutableStateOf(false) }
-
-    val isClientIdValid by SessionManager.isClientIdValid.collectAsState()
     val allAchievementsUnlocked by AchievementManager.isAllUnlocked.collectAsState()
     var showCompletionScreen by remember { mutableStateOf(false) }
     var showPopups by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
@@ -216,12 +225,10 @@ fun MainScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 com.alananasss.kittytune.data.sync.ConnectManager.setForeground(true)
-                if (!SessionManager.showCaptchaFlow.value) {
-                    SessionManager.requestSessionRefresh(
-                        context = context,
-                        force = tokenManager.shouldRefreshAccessToken()
-                    )
-                }
+                SessionManager.requestSessionRefresh(
+                    context = context,
+                    force = tokenManager.shouldRefreshAccessToken()
+                )
                 showPopups = prefs.getAchievementPopupsEnabled()
                 AchievementManager.checkDailyStreak()
                 playerViewModel.syncWithCurrentPlayback()
@@ -235,7 +242,6 @@ fun MainScreen(
 
     LaunchedEffect(Unit) {
         AchievementNotificationManager.notifications.collect { notification ->
-            // Respect the showPopups setting for achievements, but always show sleep timer (emoji "🌙")
             if (showPopups || notification.iconEmoji == "🌙") {
                 currentNotification = notification
                 delay(5000)
@@ -278,77 +284,8 @@ fun MainScreen(
         }
     }
 
-    if (instantiateWebView) {
-        val showCaptchaWebView by SessionManager.showCaptchaFlow.collectAsState()
-
-        Box(
-            modifier = if (showCaptchaWebView) {
-                Modifier.fillMaxSize().zIndex(100f)
-            } else {
-                Modifier.offset(x = (-10000).dp, y = (-10000).dp).size(800.dp).zIndex(-1f)
-            }
-        ) {
-            AndroidView(
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        SessionManager.attachGhost(this, ctx)
-                    }
-                },
-                modifier = if (showCaptchaWebView) {
-                    Modifier.fillMaxSize().background(Color.White)
-                } else {
-                    Modifier.fillMaxSize()
-                }
-            )
-
-            AnimatedVisibility(
-                visible = showCaptchaWebView,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 48.dp)
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    shadowElevation = 8.dp,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Button(
-                            onClick = { SessionManager.retryPendingAction() },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(stringResource(R.string.captcha_done), fontWeight = FontWeight.Bold)
-                        }
-                        FilledTonalButton(
-                            onClick = { SessionManager.cancelCaptcha() },
-                            colors = ButtonDefaults.filledTonalButtonColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        ) {
-                            Text(stringResource(R.string.btn_cancel))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     LaunchedEffect(Unit) {
         delay(200)
-        SessionManager.harvestStoredSession(context)
-
         val hasToken = !tokenManager.getAccessToken().isNullOrEmpty()
 
         if (hasToken) {
@@ -359,20 +296,6 @@ fun MainScreen(
             playerViewModel.fetchUserProfile()
             if (startDestination == Screen.Welcome.route && prefs.isSetupCompleted()) {
                 navigateToAuthenticatedStart()
-            }
-        }
-        instantiateWebView = true
-    }
-
-    LaunchedEffect(isGuestLoading, isClientIdValid) {
-        if (isGuestLoading && isClientIdValid) {
-            val tm = TokenManager(context)
-            tm.setGuestMode(true)
-            homeViewModel.loadData()
-            delay(500)
-            isGuestLoading = false
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Welcome.route) { inclusive = true }
             }
         }
     }
@@ -422,7 +345,6 @@ fun MainScreen(
         playerViewModel.isSidePlayerOpen = false
     }
 
-    // Update Manager Logic Moved from MainActivity
     val updateStatus by UpdateManager.status.collectAsState()
     val downloadProgress by UpdateManager.downloadProgress.collectAsState()
     val totalDownloadSize by UpdateManager.downloadSize.collectAsState()
@@ -437,6 +359,8 @@ fun MainScreen(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val backDensity = LocalDensity.current
+    val ayuBackState = remember(backDensity.density) { AyuBackState(backDensity.density) }
     LaunchedEffect(Unit) {
         playerViewModel.uiEvent.collect { message ->
             snackbarHostState.showSnackbar(message)
@@ -458,12 +382,15 @@ fun MainScreen(
                 currentRoute == "music_import_transfer" ||
                 currentRoute == Screen.Recognition.route ||
                 currentRoute == "proxy_settings" ||
+                currentRoute == "zapret_settings" ||
                 currentRoute == "discord_login" ||
                 currentRoute == "vk_login" ||
                 currentRoute == "deezer_login" ||
                 currentRoute == "tidal_login" ||
                 currentRoute.startsWith("yearly_playback") ||
-                currentRoute.startsWith("listening_stats")
+                currentRoute.startsWith("listening_stats") ||
+                currentRoute == "storage" ||
+                currentRoute.startsWith("storage_downloads")
 
         val hideNavRail = currentRoute == Screen.Login.route ||
                 currentRoute.startsWith("login") ||
@@ -474,7 +401,9 @@ fun MainScreen(
                 currentRoute == "deezer_login" ||
                 currentRoute == "tidal_login" ||
                 currentRoute.startsWith("yearly_playback") ||
-                currentRoute.startsWith("listening_stats")
+                currentRoute.startsWith("listening_stats") ||
+                currentRoute == "storage" ||
+                currentRoute.startsWith("storage_downloads")
 
         val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -506,15 +435,12 @@ fun MainScreen(
             },
             bottomBar = {
             },
-            // Disable automatic window-inset injection so full-screen routes (YearlyPlayback,
-            // player, etc.) can draw edge-to-edge without a background bleed at the bottom/sides.
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { _ ->
             val allTabKeys = listOf("home", "search", "genres", "library")
             val bottomNavItemsKeys by prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems())
             val bottomNavOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
 
-            // The bar follows the persistent user-reordered tab order, while bottomNavItemsKeys decides visibility.
             val orderedTabKeys = remember(bottomNavOrder) {
                 (bottomNavOrder.filter { it in allTabKeys } +
                     allTabKeys.filter { it !in bottomNavOrder }).distinct()
@@ -535,6 +461,20 @@ fun MainScreen(
                     route = screen.route,
                     visible = bottomNavItemsKeys.contains(key)
                 )
+            }
+
+            val mainTabRoutes = remember(orderedTabKeys) {
+                orderedTabKeys.mapNotNull { key ->
+                    when (key) {
+                        "home" -> Screen.Home.route
+                        "genres" -> Screen.Explore.route
+                        "library" -> Screen.Library.route
+                        else -> null
+                    }
+                }.distinct()
+            }
+            LaunchedEffect(mainTabRoutes) {
+                ayuBackState.tabRoutes = mainTabRoutes
             }
 
             val selectedRoute = tabs.find { tab ->
@@ -688,1054 +628,1178 @@ fun MainScreen(
                     }
                     val bottomBarHeightPx = with(density) { if (windowSizeInfo.showTabletDock) 130.dp.toPx() else 150.dp.toPx() }
 
-                    NavHost(
-                        navController = navController,
-                        startDestination = startDestination,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .then(
-                                if (!isFullScreenRoute) {
-                                    Modifier.progressiveBlur(
-                                        blurRadius = 40f,
-                                        height = statusBarHeightPx * 1.15f,
-                                        direction = BlurDirection.TOP
-                                    )
-                                } else {
-                                    Modifier
+                    AyuBackGestureBridge(
+                        navController,
+                        ayuBackState,
+                        gesturesEnabled = !playerViewModel.isPlayerExpanded && !playerViewModel.showLyricsSheet
+                    )
+
+                    androidx.compose.runtime.CompositionLocalProvider(
+                        LocalAyuBackState provides ayuBackState
+                    ) {
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .then(
+                                    if (!isFullScreenRoute) {
+                                        Modifier.progressiveBlur(
+                                            blurRadius = 40f,
+                                            height = statusBarHeightPx * 1.15f,
+                                            direction = BlurDirection.TOP
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                                .then(
+                                    if (actualBottomMenuBlurEnabled && !isFullScreenRoute && (windowSizeInfo.showPhoneBottomBar || windowSizeInfo.showTabletDock)) {
+                                        Modifier.progressiveBlur(
+                                            blurRadius = 40f,
+                                            height = bottomBarHeightPx,
+                                            direction = BlurDirection.BOTTOM
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                ),
+                        enterTransition = {
+                            fadeIn(
+                                animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
+                                initialAlpha = 1f
+                            )
+                        },
+                        exitTransition = {
+                            fadeOut(
+                                animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
+                                targetAlpha = 1f
+                            )
+                        },
+                        popEnterTransition = {
+                            fadeIn(
+                                animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
+                                initialAlpha = 1f
+                            )
+                        },
+                        popExitTransition = {
+                            fadeOut(
+                                animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
+                                targetAlpha = 1f
+                            )
+                        },
+                        predictivePopEnterTransition = {
+                            fadeIn(
+                                animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
+                                initialAlpha = 1f
+                            )
+                        },
+                        predictivePopExitTransition = {
+                            fadeOut(
+                                animationSpec = tween(AYU_BACK_KEEP_ALIVE_MS),
+                                targetAlpha = 1f
+                            )
+                        }
+                    ) {
+                        clippedComposable(Screen.Welcome.route) { backStackEntry ->
+                            val justLoggedIn by backStackEntry.savedStateHandle
+                                .getStateFlow("login_success", false)
+                                .collectAsState()
+
+                            WelcomeScreen(
+                                onLoginClick = { navController.navigate("login?fromSetup=true") },
+                                justLoggedIn = justLoggedIn,
+                                onClearJustLoggedIn = {
+                                    backStackEntry.savedStateHandle["login_success"] = false
+                                },
+                                onGuestClick = {
+                                    val tm = TokenManager(context)
+                                    tm.setGuestMode(true)
+                                    prefs.setSetupCompleted(true)
+                                    homeViewModel.loadData()
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(Screen.Welcome.route) { inclusive = true }
+                                    }
+                                },
+                                onSetupComplete = {
+                                    prefs.setSetupCompleted(true)
+                                    val tm = TokenManager(context)
+                                    if (tm.getAccessToken().isNullOrEmpty()) {
+                                        tm.setGuestMode(true)
+                                    } else {
+                                        tm.setGuestMode(false)
+                                    }
+                                    homeViewModel.loadData()
+                                    playerViewModel.fetchUserProfile()
+                                    val targetRoute = if (prefs.getStartDestination() == StartDestination.LIBRARY) {
+                                        Screen.Library.route
+                                    } else {
+                                        Screen.Home.route
+                                    }
+                                    navController.navigate(targetRoute) {
+                                        popUpTo(Screen.Welcome.route) { inclusive = true }
+                                    }
                                 }
                             )
-                            .then(
-                                if (actualBottomMenuBlurEnabled && !isFullScreenRoute && (windowSizeInfo.showPhoneBottomBar || windowSizeInfo.showTabletDock)) {
-                                    Modifier.progressiveBlur(
-                                        blurRadius = 40f,
-                                        height = bottomBarHeightPx,
-                                        direction = BlurDirection.BOTTOM
-                                    )
-                                } else {
-                                    Modifier
-                                }
-                            ),
-                    enterTransition = {
-                        slideInHorizontally(initialOffsetX = { it })
-                    },
-                    exitTransition = {
-                        slideOutHorizontally(targetOffsetX = { -it / 4 }) + fadeOut()
-                    },
-                    popEnterTransition = {
-                        slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
-                    },
-                    popExitTransition = {
-                        slideOutHorizontally(targetOffsetX = { it })
-                    },
-                    predictivePopEnterTransition = {
-                        slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
-                    },
-                    predictivePopExitTransition = {
-                        slideOutHorizontally(targetOffsetX = { it })
-                    }
-                ) {
-                    clippedComposable(Screen.Welcome.route) { backStackEntry ->
-                        val justLoggedIn by backStackEntry.savedStateHandle
-                            .getStateFlow("login_success", false)
-                            .collectAsState()
+                        }
 
-                        WelcomeScreen(
-                            onLoginClick = { navController.navigate("login?fromSetup=true") },
-                            justLoggedIn = justLoggedIn,
-                            onClearJustLoggedIn = {
-                                backStackEntry.savedStateHandle["login_success"] = false
-                            },
-                            onGuestClick = {
-                                val tm = TokenManager(context)
-                                tm.setGuestMode(true)
-                                prefs.setSetupCompleted(true)
-                                homeViewModel.loadData()
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(Screen.Welcome.route) { inclusive = true }
-                                }
-                            },
-                            onSetupComplete = {
-                                prefs.setSetupCompleted(true)
-                                val tm = TokenManager(context)
-                                if (tm.getAccessToken().isNullOrEmpty()) {
-                                    tm.setGuestMode(true)
-                                } else {
-                                    tm.setGuestMode(false)
-                                }
-                                homeViewModel.loadData()
-                                playerViewModel.fetchUserProfile()
-                                val targetRoute = if (prefs.getStartDestination() == StartDestination.LIBRARY) {
-                                    Screen.Library.route
-                                } else {
-                                    Screen.Home.route
-                                }
-                                navController.navigate(targetRoute) {
-                                    popUpTo(Screen.Welcome.route) { inclusive = true }
-                                }
-                            }
-                        )
-                    }
-
-                    clippedComposable(Screen.Home.route) {
-                        HomeScreen(playerViewModel, homeViewModel, onNavigate = { id ->
-                            when {
-                                id == "login_required" || id == "my_profile_menu" -> {
-                                    showProfileMenu = true
-                                }
-                                id == "yearly_playback" -> navController.navigate("wrapped_hub")
-                                id == "listening_stats" -> navController.navigate("listening_stats")
-                                id == "charts" -> navController.navigate("charts")
-                                id == "together" -> navController.navigate("together")
-                                id == "genres" -> navController.navigate("genres")
-                                id == "new_releases" -> navController.navigate("new_releases")
-                                id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
-                                id == "recognition" -> navController.navigate("recognition")
-                                id == "recognition_history" -> navController.navigate("recognition_history")
-                                id == "likes" -> navController.navigate("playlist_detail/likes")
-                                id == "downloads" -> navController.navigate("playlist_detail/downloads")
-                                id.startsWith("spotify_artist:") -> {
-                                    navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
-                                }
-                                id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
-                                    navController.navigate("playlist_detail/$id")
-                                }
-                                id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
-                                    navController.navigate("playlist_detail/$id")
-                                }
-                                id.startsWith("profile:") -> {
-                                    val target = id.removePrefix("profile:")
-                                    if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
-                                        val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
-                                        navController.navigate("spotify_artist/$clean")
-                                    } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
-                                        navController.navigate("playlist_detail/$target")
-                                    } else {
-                                        navController.navigate("profile/$target")
-                                    }
-                                }
-                                id.startsWith("profile/") || id.startsWith("playlist_detail/") || id.startsWith("genre_playlists/") || id.startsWith("tag/") -> {
-                                    navController.navigate(id)
-                                }
-                                id.startsWith("yt_radio:") -> {
-                                    val rawUrl = id.removePrefix("yt_radio:")
-                                    val encodedUrl = android.net.Uri.encode(rawUrl)
-                                    navController.navigate("playlist_detail/yt_radio:$encodedUrl")
-                                }
-                                id.startsWith("station:") || id.startsWith("station_artist:") -> {
-                                    navController.navigate("playlist_detail/$id")
-                                }
-                                else -> {
-                                    navController.navigate("playlist_detail/$id")
-                                }
-                            }
-                        })
-                    }
-
-                    clippedComposable(Screen.Library.route) {
-                        LibraryScreen(
-                            onLoginClick = { navController.navigate(Screen.Login.route) },
-                            onProfileClick = { showProfileMenu = true },
-                            onHistoryClick = { navController.navigate(Screen.History.route) },
-                            onImportClick = { navController.navigate("music_import") },
-                            onUploadClick = { navController.navigate("upload") },
-                            onPlaylistClick = { id ->
+                        clippedComposable(Screen.Home.route) {
+                            HomeScreen(playerViewModel, homeViewModel, onNavigate = { id ->
                                 when {
-                                    id.startsWith("spotify_artist:") -> {
-                                        navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                    id == "login_required" || id == "my_profile_menu" -> {
+                                        showProfileMenu = true
                                     }
-                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
-                                        navController.navigate("playlist_detail/$id")
-                                    }
-                                    id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
-                                        navController.navigate("playlist_detail/$id")
-                                    }
-                                    id.startsWith("profile:") -> {
-                                        val target = id.removePrefix("profile:")
-                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
-                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
-                                            navController.navigate("spotify_artist/$clean")
-                                        } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
-                                            navController.navigate("playlist_detail/$target")
-                                        } else {
-                                            navController.navigate("profile/$target")
-                                        }
-                                    }
-                                    else -> navController.navigate("playlist_detail/$id")
-                                }
-                            },
-                            onLikedTracksClick = { navController.navigate("playlist_detail/likes") },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "login?fromSetup={fromSetup}",
-                        arguments = listOf(
-                            navArgument("fromSetup") {
-                                type = NavType.BoolType
-                                defaultValue = false
-                            }
-                        )
-                    ) { backStackEntry ->
-                        val fromSetup = backStackEntry.arguments?.getBoolean("fromSetup") ?: false
-                        LoginScreen(
-                            onLoginSuccess = {
-                                SessionManager.requestSessionRefresh(context, force = true)
-                                playerViewModel.fetchUserProfile()
-                                homeViewModel.loadData()
-                                if (fromSetup) {
-                                    runCatching {
-                                        navController.getBackStackEntry(Screen.Welcome.route).savedStateHandle["login_success"] = true
-                                    }.onFailure {
-                                        navController.previousBackStackEntry?.savedStateHandle?.set("login_success", true)
-                                    }
-                                    navController.popBackStack()
-                                } else {
-                                    navController.navigate(Screen.Home.route) { popUpTo(0) }
-                                }
-                            },
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("expanded_queue") {
-                        ExpandedQueueScreen(
-                            viewModel = playerViewModel,
-                            onClose = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("genres") {
-                        GenresScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigate = { route -> navController.navigate(route) }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "genre_detail/{genreName}/{genreQuery}",
-                        arguments = listOf(
-                            navArgument("genreName") { type = NavType.StringType },
-                            navArgument("genreQuery") { type = NavType.StringType }
-                        )
-                    ) { backStackEntry ->
-                        GenreDetailScreen(
-                            genreName = backStackEntry.arguments?.getString("genreName") ?: "",
-                            genreQuery = backStackEntry.arguments?.getString("genreQuery") ?: "",
-                            onBackClick = { navController.popBackStack() },
-                            onNavigate = { route -> navController.navigate(route) },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("charts") {
-                        ChartsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onPlaylistClick = { playlistId ->
-                                navController.navigate("playlist_detail/$playlistId")
-                            },
-                            onNavigate = { route ->
-                                when {
-                                    route.startsWith("spotify_artist:") -> {
-                                        navController.navigate("spotify_artist/${route.removePrefix("spotify_artist:")}")
-                                    }
-                                    route.startsWith("spotify_radio:") || route.startsWith("station_spotify:") -> {
-                                        navController.navigate("playlist_detail/$route")
-                                    }
-                                    route.startsWith("profile:") -> {
-                                        val target = route.removePrefix("profile:")
-                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
-                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
-                                            navController.navigate("spotify_artist/$clean")
-                                        } else {
-                                            navController.navigate("profile/$target")
-                                        }
-                                    }
-                                    route.startsWith("station_artist:") -> {
-                                        navController.navigate("playlist_detail/$route")
-                                    }
-                                    else -> {
-                                        navController.navigate(route)
-                                    }
-                                }
-                            },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("together") {
-                        com.alananasss.kittytune.ui.together.TogetherHomeScreen(
-                            onBack = { navController.popBackStack() },
-                            onOpen = { code -> navController.navigate("together_room/$code") }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "together_room/{code}",
-                        arguments = listOf(navArgument("code") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        com.alananasss.kittytune.ui.together.TogetherScreen(
-                            code = backStackEntry.arguments?.getString("code") ?: "",
-                            playerViewModel = playerViewModel,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("new_releases") {
-                        NewReleasesScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onPlaylistClick = { playlistId ->
-                                navController.navigate("playlist_detail/$playlistId")
-                            },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "playlist_detail/{playlistId}",
-                        arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
-                    ) {
-                        PlaylistDetailScreen(
-                            playlistId = it.arguments?.getString("playlistId") ?: "",
-                            onBackClick = { navController.popBackStack() },
-                            onNavigate = { id ->
-                                when {
-                                    id.startsWith("tag:") -> {
-                                        navController.navigate("tag/${id.removePrefix("tag:")}")
-                                    }
-                                    id.startsWith("spotify_artist:") -> {
-                                        navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
-                                    }
-                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
-                                        navController.navigate("playlist_detail/$id")
-                                    }
-                                    id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
-                                        navController.navigate("playlist_detail/$id")
-                                    }
-                                    id.startsWith("profile:") -> {
-                                        val target = id.removePrefix("profile:")
-                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
-                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
-                                            navController.navigate("spotify_artist/$clean")
-                                        } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
-                                            navController.navigate("playlist_detail/$target")
-                                        } else {
-                                            navController.navigate("profile/$target")
-                                        }
-                                    }
-                                    id.startsWith("playlist_fans/") || id.startsWith("playlist_detail/") || id.startsWith("profile/") -> {
-                                        navController.navigate(id)
-                                    }
-                                    else -> {
-                                        navController.navigate("playlist_detail/$id")
-                                    }
-                                }
-                            },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "genre_playlists/{genreTitle}/{query}",
-                        arguments = listOf(
-                            navArgument("genreTitle") { type = NavType.StringType },
-                            navArgument("query") { type = NavType.StringType }
-                        )
-                    ) { backStackEntry ->
-                        GenrePlaylistsScreen(
-                            genreTitle = backStackEntry.arguments?.getString("genreTitle") ?: "",
-                            query = backStackEntry.arguments?.getString("query") ?: "",
-                            onBackClick = { navController.popBackStack() },
-                            onPlaylistClick = { playlistId ->
-                                navController.navigate("playlist_detail/$playlistId")
-                            }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "spotify_artist/{artistId}",
-                        arguments = listOf(navArgument("artistId") { type = NavType.StringType })
-                    ) {
-                        ProfileScreen(
-                            userId = "spotify_artist:${it.arguments?.getString("artistId") ?: ""}",
-                            onBackClick = { navController.popBackStack() },
-                            playerViewModel = playerViewModel,
-                            onNavigate = { id ->
-                                when {
-                                    id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
-                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
-                                    id.startsWith("profile:") -> {
-                                        val target = id.removePrefix("profile:")
-                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
-                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
-                                            navController.navigate("spotify_artist/$clean")
-                                        } else {
-                                            navController.navigate("profile/$target")
-                                        }
-                                    }
-                                    id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
-                                    else -> navController.navigate("playlist_detail/$id")
-                                }
-                            }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "profile/{userId}",
-                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
-                    ) {
-                        ProfileScreen(
-                            it.arguments?.getString("userId") ?: "",
-                            { navController.popBackStack() },
-                            playerViewModel,
-                            onNavigate = { id ->
-                                when {
-                                    id == Screen.Upload.route || id == "upload" -> navController.navigate(Screen.Upload.route)
+                                    id == "yearly_playback" -> navController.navigate("wrapped_hub")
+                                    id == "listening_stats" -> navController.navigate("listening_stats")
+                                    id == "charts" -> navController.navigate("charts")
+                                    id == "together" -> navController.navigate("together")
+                                    id == "genres" -> navController.navigate("genres")
+                                    id == "new_releases" -> navController.navigate("new_releases")
                                     id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
-                                    id == "notifications" -> navController.navigate("notifications")
-                                    id == "conversations" -> navController.navigate("conversations")
+                                    id == "recognition" -> navController.navigate("recognition")
                                     id == "recognition_history" -> navController.navigate("recognition_history")
                                     id == "likes" -> navController.navigate("playlist_detail/likes")
                                     id == "downloads" -> navController.navigate("playlist_detail/downloads")
-                                    id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
-                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
+                                    id.startsWith("spotify_artist:") -> {
+                                        navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                    }
+                                    id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
+                                    id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
                                     id.startsWith("profile:") -> {
                                         val target = id.removePrefix("profile:")
                                         if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
                                             val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
                                             navController.navigate("spotify_artist/$clean")
+                                        } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
+                                            navController.navigate("playlist_detail/$target")
                                         } else {
                                             navController.navigate("profile/$target")
                                         }
                                     }
-                                    id.startsWith("followers:") -> navController.navigate("followers/${id.removePrefix("followers:")}")
-                                    id.startsWith("followings:") -> navController.navigate("followings/${id.removePrefix("followings:")}")
-                                    id.startsWith("station:") || id.startsWith("station_artist:") -> navController.navigate("playlist_detail/$id")
-                                    id.startsWith("tag:") -> navController.navigate("tag/${id.removePrefix("tag:")}")
-                                    id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
-                                    else -> navController.navigate("playlist_detail/$id")
-                                }
-                            }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "followers/{userId}",
-                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
-                    ) {
-                        val uidStr = it.arguments?.getString("userId") ?: ""
-                        com.alananasss.kittytune.ui.profile.UserListScreen(
-                            userId = uidStr.toLongOrNull() ?: 0L,
-                            type = "followers",
-                            onBack = { navController.popBackStack() },
-                            onUserClick = { uid -> navController.navigate("profile/$uid") }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "followings/{userId}",
-                        arguments = listOf(navArgument("userId") { type = NavType.StringType })
-                    ) {
-                        val uidStr = it.arguments?.getString("userId") ?: ""
-                        com.alananasss.kittytune.ui.profile.UserListScreen(
-                            userId = uidStr.toLongOrNull() ?: 0L,
-                            type = "followings",
-                            onBack = { navController.popBackStack() },
-                            onUserClick = { uid -> navController.navigate("profile/$uid") }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "tag/{tagName}",
-                        arguments = listOf(navArgument("tagName") { type = NavType.StringType })
-                    ) {
-                        TagScreen(
-                            it.arguments?.getString("tagName") ?: "",
-                            { navController.popBackStack() },
-                            playerViewModel
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "track_detail/{trackId}?tab={tabIndex}",
-                        arguments = listOf(
-                            navArgument("trackId") { type = NavType.LongType },
-                            navArgument("tabIndex") { type = NavType.IntType; defaultValue = 0 }
-                        )
-                    ) {
-                        TrackDetailScreen(
-                            it.arguments?.getLong("trackId") ?: 0L,
-                            it.arguments?.getInt("tabIndex") ?: 0,
-                            { navController.popBackStack() },
-                            onNavigate = { id ->
-                                if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
-                                else navController.navigate("playlist_detail/$id")
-                            },
-                            playerViewModel
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "playlist_fans/{playlistId}?tab={tabIndex}",
-                        arguments = listOf(
-                            navArgument("playlistId") { type = NavType.StringType },
-                            navArgument("tabIndex") { type = NavType.IntType; defaultValue = 0 }
-                        )
-                    ) { entry ->
-                        PlaylistFansScreen(
-                            playlistId = entry.arguments?.getString("playlistId") ?: "",
-                            initialTab = entry.arguments?.getInt("tabIndex") ?: 0,
-                            onBackClick = { navController.popBackStack() },
-                            onNavigate = { id ->
-                                if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
-                            }
-                        )
-                    }
-
-                    clippedComposable("notifications") {
-                        NotificationsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigate = { id ->
-                                if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
-                                else navController.navigate(id)
-                            }
-                        )
-                    }
-
-                    clippedComposable("conversations") {
-                        ConversationsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onConversationClick = { conversationId, otherUserId, username ->
-                                navController.navigate("chat/$conversationId/$otherUserId/$username")
-                            }
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "chat/{conversationId}/{otherUserId}/{username}",
-                        arguments = listOf(
-                            navArgument("conversationId") { type = NavType.StringType },
-                            navArgument("otherUserId") { type = NavType.StringType },
-                            navArgument("username") { type = NavType.StringType }
-                        )
-                    ) { entry ->
-                        ChatScreen(
-                            conversationId = entry.arguments?.getString("conversationId") ?: "",
-                            otherUserId = entry.arguments?.getString("otherUserId") ?: "",
-                            username = entry.arguments?.getString("username") ?: "",
-                            onBackClick = { navController.popBackStack() },
-                            onProfileClick = { userId ->
-                                navController.navigate("profile/$userId")
-                            },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("achievements") {
-                        AchievementsScreen { navController.popBackStack() }
-                    }
-
-                    clippedComposable("listening_stats") {
-                        val tokenManager = remember { TokenManager(context) }
-                        val isGuest = tokenManager.isGuestMode()
-                        ListeningStatsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onTrackClick = { track ->
-                                if (track.source == "soundcloud") {
-                                    val stubTrack = com.alananasss.kittytune.domain.Track(
-                                        id = track.trackId,
-                                        title = track.title,
-                                        user = com.alananasss.kittytune.domain.User(0, track.artistName, null),
-                                        artworkUrl = track.artworkUrl,
-                                        durationMs = 0L
-                                    )
-                                    playerViewModel.playPlaylist(listOf(stubTrack), 0)
-                                }
-                            },
-                            onArtistClick = { artist ->
-                                if (artist.source == "spotify" && !artist.permalink.isNullOrBlank()) {
-                                    playerViewModel.navigateToSpotifyArtist(
-                                        artist.permalink.removePrefix("spotify:artist:")
-                                    )
-                                } else {
-                                    playerViewModel.resolveAndNavigateToArtist(artist.name, artist.artistId)
-                                }
-                            },
-                            onNavigateToYearlyPlayback = { navController.navigate("wrapped_hub") },
-                            isGuest = isGuest
-                        )
-                    }
-
-                    clippedComposable(
-                        route = "yearly_playback?year={year}",
-                        arguments = listOf(
-                            navArgument("year") {
-                                type = NavType.IntType
-                                defaultValue = 2025
-                            }
-                        )
-                    ) { backStackEntry ->
-                        val requestedYear = backStackEntry.arguments?.getInt("year") ?: 2025
-                        androidx.compose.runtime.LaunchedEffect(Unit) {
-                            if (playerViewModel.uiIsPlaying) {
-                                playerViewModel.pause()
-                            }
-                        }
-                        com.alananasss.kittytune.ui.yearlyplayback.YearlyPlaybackScreen(
-                            year = requestedYear,
-                            onClose = { navController.popBackStack() },
-                            onOpenStats = {
-                                navController.popBackStack()
-                                navController.navigate("listening_stats")
-                            },
-                            onNavigateToPlaylist = { playlistUrn ->
-                                val target = if (playlistUrn.startsWith("soundcloud:system-playlists:")) {
-                                    "system_playlist:$playlistUrn"
-                                } else {
-                                    playlistUrn.removePrefix("soundcloud:playlists:").removePrefix("spotify:playlist:")
-                                }
-                                navController.navigate("playlist_detail/$target")
-                            }
-                        )
-                    }
-
-                    clippedComposable("wrapped_hub") {
-                        val tokenManager = remember { TokenManager(context) }
-                        val isGuest = tokenManager.isGuestMode()
-                        WrappedHubScreen(
-                            user = homeViewModel.userProfile,
-                            isGuest = isGuest,
-                            onBackClick = { navController.popBackStack() },
-                            onLaunchStory = { year ->
-                                navController.navigate("yearly_playback?year=$year")
-                            },
-                            onOpenPlaylist = { playlistUrn ->
-                                val target = if (playlistUrn.startsWith("soundcloud:system-playlists:")) {
-                                    "system_playlist:$playlistUrn"
-                                } else {
-                                    playlistUrn.removePrefix("soundcloud:playlists:").removePrefix("spotify:playlist:")
-                                }
-                                navController.navigate("playlist_detail/$target")
-                            }
-                        )
-                    }
-
-                    clippedComposable("yearly_playback") {
-                        val tokenManager = remember { TokenManager(context) }
-                        val isGuest = tokenManager.isGuestMode()
-                        WrappedHubScreen(
-                            user = homeViewModel.userProfile,
-                            isGuest = isGuest,
-                            onBackClick = { navController.popBackStack() },
-                            onLaunchStory = { year ->
-                                navController.navigate("yearly_playback?year=$year")
-                            },
-                            onOpenPlaylist = { playlistUrn ->
-                                val target = if (playlistUrn.startsWith("soundcloud:system-playlists:")) {
-                                    "system_playlist:$playlistUrn"
-                                } else {
-                                    playlistUrn.removePrefix("soundcloud:playlists:").removePrefix("spotify:playlist:")
-                                }
-                                navController.navigate("playlist_detail/$target")
-                            }
-                        )
-                    }
-
-                    clippedComposable(Screen.Recognition.route) {
-                        RecognitionScreen(
-                            onBackClick = { navController.popBackStack() },
-                            playerViewModel = playerViewModel,
-                            onNavigate = { dest -> navController.navigate(dest) }
-                        )
-                    }
-                    clippedComposable(Screen.RecognitionHistory.route) {
-                        com.alananasss.kittytune.ui.recognition.RecognitionHistoryScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigate = { dest -> navController.navigate(dest) },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-                    clippedComposable(Screen.History.route) {
-                        com.alananasss.kittytune.ui.history.HistoryScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigate = { dest ->
-                                when {
-                                    dest == Screen.Home.route || dest == "home" -> navController.navigate(Screen.Home.route)
-                                    dest.startsWith("spotify_artist:") -> {
-                                        navController.navigate("spotify_artist/${dest.removePrefix("spotify_artist:")}")
+                                    id.startsWith("profile/") || id.startsWith("playlist_detail/") || id.startsWith("genre_playlists/") || id.startsWith("tag/") -> {
+                                        navController.navigate(id)
                                     }
-                                    dest.startsWith("spotify_radio:") || dest.startsWith("station_spotify:") -> {
-                                        navController.navigate("playlist_detail/$dest")
+                                    id.startsWith("yt_radio:") -> {
+                                        val rawUrl = id.removePrefix("yt_radio:")
+                                        val encodedUrl = android.net.Uri.encode(rawUrl)
+                                        navController.navigate("playlist_detail/yt_radio:$encodedUrl")
                                     }
-                                    dest.startsWith("profile:") -> {
-                                        val target = dest.removePrefix("profile:")
-                                        if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
-                                            val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
-                                            navController.navigate("spotify_artist/$clean")
-                                        } else {
-                                            navController.navigate("profile/$target")
-                                        }
-                                    }
-                                    dest.startsWith("playlist_detail/") || dest.startsWith("profile/") || dest.startsWith("tag/") || dest.startsWith("genre_playlists/") || dest.startsWith("track_detail/") -> {
-                                        navController.navigate(dest)
-                                    }
-                                    dest.startsWith("tag:") -> {
-                                        val tagName = dest.removePrefix("tag:")
-                                        navController.navigate("tag/$tagName")
+                                    id.startsWith("station:") || id.startsWith("station_artist:") -> {
+                                        navController.navigate("playlist_detail/$id")
                                     }
                                     else -> {
-                                        navController.navigate("playlist_detail/$dest")
+                                        navController.navigate("playlist_detail/$id")
                                     }
                                 }
-                            },
-                            playerViewModel = playerViewModel
-                        )
-                    }
+                            })
+                        }
 
-                    clippedComposable("settings") {
-                        SettingsScreen(navController, { navController.popBackStack() }, playerViewModel)
-                    }
+                        clippedComposable(Screen.Library.route) {
+                            LibraryScreen(
+                                onLoginClick = { navController.navigate(Screen.Login.route) },
+                                onProfileClick = { showProfileMenu = true },
+                                onHistoryClick = { navController.navigate(Screen.History.route) },
+                                onImportClick = { navController.navigate("music_import") },
+                                onUploadClick = { navController.navigate("upload") },
+                                onPlaylistClick = { id ->
+                                    when {
+                                        id == "together" -> navController.navigate("together")
+                                        id.startsWith("spotify_artist:") -> {
+                                            navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                        }
+                                        id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
+                                            navController.navigate("playlist_detail/$id")
+                                        }
+                                        id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
+                                            navController.navigate("playlist_detail/$id")
+                                        }
+                                        id.startsWith("profile:") -> {
+                                            val target = id.removePrefix("profile:")
+                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                                navController.navigate("spotify_artist/$clean")
+                                            } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
+                                                navController.navigate("playlist_detail/$target")
+                                            } else {
+                                                navController.navigate("profile/$target")
+                                            }
+                                        }
+                                        else -> navController.navigate("playlist_detail/$id")
+                                    }
+                                },
+                                onLikedTracksClick = { navController.navigate("playlist_detail/likes") },
+                                playerViewModel = playerViewModel
+                            )
+                        }
 
-                    clippedComposable("settings_search") {
-                        SettingsSearchScreen(
-                            navController = navController,
-                            onBackClick = { navController.popBackStack() },
-                            playerViewModel = playerViewModel
-                        )
-                    }
+                        clippedComposable(
+                            route = "login?fromSetup={fromSetup}",
+                            arguments = listOf(
+                                navArgument("fromSetup") {
+                                    type = NavType.BoolType
+                                    defaultValue = false
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val fromSetup = backStackEntry.arguments?.getBoolean("fromSetup") ?: false
+                            LoginScreen(
+                                onLoginSuccess = {
+                                    SessionManager.requestSessionRefresh(context, force = true)
+                                    playerViewModel.fetchUserProfile()
+                                    homeViewModel.loadData()
+                                    if (fromSetup) {
+                                        runCatching {
+                                            navController.getBackStackEntry(Screen.Welcome.route).savedStateHandle["login_success"] = true
+                                        }.onFailure {
+                                            navController.previousBackStackEntry?.savedStateHandle?.set("login_success", true)
+                                        }
+                                        navController.popBackStack()
+                                    } else {
+                                        navController.navigate(Screen.Home.route) { popUpTo(0) }
+                                    }
+                                },
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
 
-                    clippedComposable(Screen.Upload.route) {
-                        UploadScreen(
-                            onBackClick = {
-                                playerViewModel.trackToEdit = null
-                                navController.popBackStack()
-                            },
-                            onLoginClick = { navController.navigate(Screen.Login.route) },
-                            trackToEdit = playerViewModel.trackToEdit
-                        )
-                    }
+                        clippedComposable("expanded_queue") {
+                            ExpandedQueueScreen(
+                                viewModel = playerViewModel,
+                                onClose = { navController.popBackStack() }
+                            )
+                        }
 
-                    clippedComposable("music_import") {
-                        MusicImportScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onPlatformSelected = { platform ->
-                                navController.navigate("music_import/$platform")
-                            },
-                            onOpenPlaylist = { playlistId ->
-                                navController.navigate("playlist_detail/$playlistId")
-                            },
-                            onLoginClick = { navController.navigate(Screen.Login.route) }
-                        )
-                    }
+                        clippedComposable("genres") {
+                            GenresScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { route -> navController.navigate(route) }
+                            )
+                        }
 
-                    clippedComposable(
-                        route = "music_import/{platform}",
-                        arguments = listOf(navArgument("platform") { type = NavType.StringType })
-                    ) { entry ->
-                        val platform = entry.arguments?.getString("platform") ?: ""
-                        MusicImportSelectionScreen(
-                            platformProviderName = platform,
-                            onBackClick = { navController.popBackStack() },
-                            onStartTransfer = { navController.navigate("music_import_transfer") }
-                        )
-                    }
+                        clippedComposable(
+                            route = "genre_detail/{genreName}/{genreQuery}",
+                            arguments = listOf(
+                                navArgument("genreName") { type = NavType.StringType },
+                                navArgument("genreQuery") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            GenreDetailScreen(
+                                genreName = backStackEntry.arguments?.getString("genreName") ?: "",
+                                genreQuery = backStackEntry.arguments?.getString("genreQuery") ?: "",
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { route -> navController.navigate(route) },
+                                playerViewModel = playerViewModel
+                            )
+                        }
 
-                    clippedComposable("music_import_transfer") {
-                        MusicImportTransferScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onDone = {
-                                navController.popBackStack(
-                                    navController.graph.findStartDestination().id,
-                                    inclusive = false
-                                )
+                        clippedComposable("charts") {
+                            ChartsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onPlaylistClick = { playlistId ->
+                                    navController.navigate("playlist_detail/$playlistId")
+                                },
+                                onNavigate = { route ->
+                                    when {
+                                        route.startsWith("spotify_artist:") -> {
+                                            navController.navigate("spotify_artist/${route.removePrefix("spotify_artist:")}")
+                                        }
+                                        route.startsWith("spotify_radio:") || route.startsWith("station_spotify:") -> {
+                                            navController.navigate("playlist_detail/$route")
+                                        }
+                                        route.startsWith("profile:") -> {
+                                            val target = route.removePrefix("profile:")
+                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                                navController.navigate("spotify_artist/$clean")
+                                            } else {
+                                                navController.navigate("profile/$target")
+                                            }
+                                        }
+                                        route.startsWith("station_artist:") -> {
+                                            navController.navigate("playlist_detail/$route")
+                                        }
+                                        else -> {
+                                            navController.navigate(route)
+                                        }
+                                    }
+                                },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("together") {
+                            com.alananasss.kittytune.ui.together.TogetherHomeScreen(
+                                onBack = { navController.popBackStack() },
+                                onOpen = { code -> navController.navigate("together_room/$code") }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "together_room/{code}",
+                            arguments = listOf(navArgument("code") { type = NavType.StringType })
+                        ) { backStackEntry ->
+                            com.alananasss.kittytune.ui.together.TogetherScreen(
+                                code = backStackEntry.arguments?.getString("code") ?: "",
+                                playerViewModel = playerViewModel,
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("new_releases") {
+                            NewReleasesScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onPlaylistClick = { playlistId ->
+                                    navController.navigate("playlist_detail/$playlistId")
+                                },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "playlist_detail/{playlistId}",
+                            arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
+                        ) {
+                            PlaylistDetailScreen(
+                                playlistId = it.arguments?.getString("playlistId") ?: "",
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { id ->
+                                    when {
+                                        id.startsWith("tag:") -> {
+                                            navController.navigate("tag/${id.removePrefix("tag:")}")
+                                        }
+                                        id.startsWith("spotify_artist:") -> {
+                                            navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                        }
+                                        id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
+                                            navController.navigate("playlist_detail/$id")
+                                        }
+                                        id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
+                                            navController.navigate("playlist_detail/$id")
+                                        }
+                                        id.startsWith("profile:") -> {
+                                            val target = id.removePrefix("profile:")
+                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                                navController.navigate("spotify_artist/$clean")
+                                            } else if (target.startsWith("deezer:") || target.startsWith("tidal:") || target.startsWith("qobuz:")) {
+                                                navController.navigate("playlist_detail/$target")
+                                            } else {
+                                                navController.navigate("profile/$target")
+                                            }
+                                        }
+                                        id.startsWith("playlist_fans/") || id.startsWith("playlist_detail/") || id.startsWith("profile/") || id == "downloaded_playlists" -> {
+                                            navController.navigate(id)
+                                        }
+                                        else -> {
+                                            navController.navigate("playlist_detail/$id")
+                                        }
+                                    }
+                                },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable(route = "downloaded_playlists") {
+                            com.alananasss.kittytune.ui.library.DownloadedPlaylistsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { id ->
+                                    navController.navigate("playlist_detail/$id")
+                                }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "genre_playlists/{genreTitle}/{query}",
+                            arguments = listOf(
+                                navArgument("genreTitle") { type = NavType.StringType },
+                                navArgument("query") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            GenrePlaylistsScreen(
+                                genreTitle = backStackEntry.arguments?.getString("genreTitle") ?: "",
+                                query = backStackEntry.arguments?.getString("query") ?: "",
+                                onBackClick = { navController.popBackStack() },
+                                onPlaylistClick = { playlistId ->
+                                    navController.navigate("playlist_detail/$playlistId")
+                                }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "spotify_artist/{artistId}",
+                            arguments = listOf(navArgument("artistId") { type = NavType.StringType })
+                        ) {
+                            ProfileScreen(
+                                userId = "spotify_artist:${it.arguments?.getString("artistId") ?: ""}",
+                                onBackClick = { navController.popBackStack() },
+                                playerViewModel = playerViewModel,
+                                onNavigate = { id ->
+                                    when {
+                                        id.startsWith("profile_section/") -> navController.navigate(id)
+                                        id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                        id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
+                                        id.startsWith("profile:") -> {
+                                            val target = id.removePrefix("profile:")
+                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                                navController.navigate("spotify_artist/$clean")
+                                            } else {
+                                                navController.navigate("profile/$target")
+                                            }
+                                        }
+                                        id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
+                                        else -> navController.navigate("playlist_detail/$id")
+                                    }
+                                }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "profile/{userId}",
+                            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                        ) {
+                            ProfileScreen(
+                                it.arguments?.getString("userId") ?: "",
+                                { navController.popBackStack() },
+                                playerViewModel,
+                                onNavigate = { id ->
+                                    when {
+                                        id.startsWith("profile_section/") -> navController.navigate(id)
+                                        id == Screen.Upload.route || id == "upload" -> navController.navigate(Screen.Upload.route)
+                                        id == "history" || id == Screen.History.route -> navController.navigate(Screen.History.route)
+                                        id == "notifications" -> navController.navigate("notifications")
+                                        id == "conversations" -> navController.navigate("conversations")
+                                        id == "recognition_history" -> navController.navigate("recognition_history")
+                                        id == "likes" -> navController.navigate("playlist_detail/likes")
+                                        id == "downloads" -> navController.navigate("playlist_detail/downloads")
+                                        id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                        id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
+                                        id.startsWith("profile:") -> {
+                                            val target = id.removePrefix("profile:")
+                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                                navController.navigate("spotify_artist/$clean")
+                                            } else {
+                                                navController.navigate("profile/$target")
+                                            }
+                                        }
+                                        id.startsWith("followers:") -> navController.navigate("followers/${id.removePrefix("followers:")}")
+                                        id.startsWith("followings:") -> navController.navigate("followings/${id.removePrefix("followings:")}")
+                                        id.startsWith("station:") || id.startsWith("station_artist:") -> navController.navigate("playlist_detail/$id")
+                                        id.startsWith("tag:") -> navController.navigate("tag/${id.removePrefix("tag:")}")
+                                        id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
+                                        else -> navController.navigate("playlist_detail/$id")
+                                    }
+                                }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "profile_section/{userId}/{section}?filter={filter}",
+                            arguments = listOf(
+                                navArgument("userId") { type = NavType.StringType },
+                                navArgument("section") { type = NavType.StringType },
+                                navArgument("filter") {
+                                    type = NavType.StringType
+                                    nullable = true
+                                    defaultValue = null
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val rawUserId = backStackEntry.arguments?.getString("userId") ?: ""
+                            val userId = runCatching {
+                                java.net.URLDecoder.decode(rawUserId, "UTF-8")
+                            }.getOrDefault(rawUserId)
+                            val section = backStackEntry.arguments?.getString("section") ?: ""
+                            val filter = backStackEntry.arguments?.getString("filter")
+
+                            val parentEntry = remember(backStackEntry) {
+                                runCatching { navController.previousBackStackEntry }.getOrNull()
                             }
-                        )
-                    }
+                            val isProfileParent = parentEntry?.destination?.route?.let { route ->
+                                route.startsWith("profile/") || route.startsWith("spotify_artist/")
+                            } == true
 
-                    clippedComposable("backup_restore") {
-                        BackupRestoreScreen(onBackClick = { navController.popBackStack() })
-                    }
-
-                    clippedComposable("audio_settings") {
-                        AudioSettingsScreen(
-                            navController = navController,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("audio_playback_settings") {
-                        AudioPlaybackSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("audio_quality_settings") {
-                        AudioQualitySettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToDrmExplanation = { navController.navigate("drm_explanation") },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("audio_transitions_settings") {
-                        AudioTransitionsSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("audio_sleep_settings") {
-                        AudioSleepTimerSettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("haptic_settings") {
-                        com.alananasss.kittytune.ui.profile.HapticSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("content_filter_settings") {
-                        com.alananasss.kittytune.ui.profile.BlockedContentSettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("drm_explanation") {
-                        DrmExplanationScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("lyrics_settings") {
-                        LyricsSettingsScreen({ navController.popBackStack() }, playerViewModel)
-                    }
-
-                    clippedComposable("local_media_settings") {
-                        LocalMediaSettingsScreen { navController.popBackStack() }
-                    }
-
-                    clippedComposable("appearance_settings") {
-                        AppearanceSettingsScreen(
-                            onNavigateToColors = { navController.navigate("color_palette") },
-                            onNavigateToBottomBarSettings = { navController.navigate("bottom_bar_settings") },
-                            onNavigateToAppIconSettings = { navController.navigate("app_icon_settings") },
-                            onNavigateToPlayerCustomization = { navController.navigate("player_design_settings") },
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("app_icon_settings") {
-                        AppIconSettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("bottom_bar_settings") {
-                        BottomBarSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToFabSettings = { navController.navigate("fab_settings") },
-                            playerViewModel = playerViewModel
-                        )
-                    }
-
-                    clippedComposable("fab_settings") {
-                        FabSettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("color_palette") {
-                        ColorPaletteScreen(onBackClick = { navController.popBackStack() })
-                    }
-
-                    clippedComposable("about") {
-                        AboutScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onLicensesClick = { navController.navigate("licenses") },
-                            onCreditsClick = { navController.navigate("credits") }
-                        )
-                    }
-
-                    clippedComposable("credits") {
-                        CreditsScreen(onBackClick = { navController.popBackStack() })
-                    }
-
-                    clippedComposable("licenses") {
-                        LicensesScreen(onBackClick = { navController.popBackStack() })
-                    }
-
-                    clippedComposable("storage") {
-                        StorageScreen(onBackClick = { navController.popBackStack() })
-                    }
-
-                    clippedComposable("discord_settings") {
-                        DiscordSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToLogin = { navController.navigate("discord_login") }
-                        )
-                    }
-
-                    clippedComposable("discord_login") {
-                        DiscordLoginScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onLoginSuccess = {
-                                navController.popBackStack()
+                            val profileViewModel: ProfileViewModel = if (isProfileParent) {
+                                viewModel(parentEntry!!)
+                            } else {
+                                viewModel()
                             }
-                        )
-                    }
 
-                    clippedComposable("sync_settings") {
-                        SyncSettingsScreen(
-                            navController = navController,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                            ProfileSectionScreen(
+                                userId = userId,
+                                section = section,
+                                initialFilter = filter,
+                                onBackClick = { navController.popBackStack() },
+                                playerViewModel = playerViewModel,
+                                onNavigate = { id ->
+                                    when {
+                                        id.startsWith("profile_section/") -> navController.navigate(id)
+                                        id.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${id.removePrefix("spotify_artist:")}")
+                                        id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$id")
+                                        id.startsWith("profile:") -> {
+                                            val target = id.removePrefix("profile:")
+                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                                navController.navigate("spotify_artist/$clean")
+                                            } else {
+                                                navController.navigate("profile/$target")
+                                            }
+                                        }
+                                        id.startsWith("playlist_detail/") || id.startsWith("profile/") -> navController.navigate(id)
+                                        else -> navController.navigate("playlist_detail/$id")
+                                    }
+                                },
+                                profileViewModel = profileViewModel
+                            )
+                        }
 
-                    clippedComposable("sync_devices_settings") {
-                        SyncDevicesScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable(
+                            route = "followers/{userId}",
+                            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                        ) {
+                            val uidStr = it.arguments?.getString("userId") ?: ""
+                            com.alananasss.kittytune.ui.profile.UserListScreen(
+                                userId = uidStr.toLongOrNull() ?: 0L,
+                                type = "followers",
+                                onBack = { navController.popBackStack() },
+                                onUserClick = { uid -> navController.navigate("profile/$uid") }
+                            )
+                        }
 
-                    clippedComposable("sync_options_settings") {
-                        SyncOptionsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable(
+                            route = "followings/{userId}",
+                            arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                        ) {
+                            val uidStr = it.arguments?.getString("userId") ?: ""
+                            com.alananasss.kittytune.ui.profile.UserListScreen(
+                                userId = uidStr.toLongOrNull() ?: 0L,
+                                type = "followings",
+                                onBack = { navController.popBackStack() },
+                                onUserClick = { uid -> navController.navigate("profile/$uid") }
+                            )
+                        }
 
-                    clippedComposable("sync_advanced_settings") {
-                        SyncAdvancedScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable(
+                            route = "tag/{tagName}",
+                            arguments = listOf(navArgument("tagName") { type = NavType.StringType })
+                        ) {
+                            TagScreen(
+                                it.arguments?.getString("tagName") ?: "",
+                                { navController.popBackStack() },
+                                playerViewModel
+                            )
+                        }
 
-                    clippedComposable("proxy_settings") {
-                        ProxySettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable(
+                            route = "track_detail/{trackId}?tab={tabIndex}",
+                            arguments = listOf(
+                                navArgument("trackId") { type = NavType.LongType },
+                                navArgument("tabIndex") { type = NavType.IntType; defaultValue = 0 }
+                            )
+                        ) {
+                            TrackDetailScreen(
+                                it.arguments?.getLong("trackId") ?: 0L,
+                                it.arguments?.getInt("tabIndex") ?: 0,
+                                { navController.popBackStack() },
+                                onNavigate = { id ->
+                                    if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
+                                    else navController.navigate("playlist_detail/$id")
+                                },
+                                playerViewModel
+                            )
+                        }
 
-                    clippedComposable("interface_settings") {
-                        InterfaceSettingsScreen(
-                            navController = navController,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable(
+                            route = "playlist_fans/{playlistId}?tab={tabIndex}",
+                            arguments = listOf(
+                                navArgument("playlistId") { type = NavType.StringType },
+                                navArgument("tabIndex") { type = NavType.IntType; defaultValue = 0 }
+                            )
+                        ) { entry ->
+                            PlaylistFansScreen(
+                                playlistId = entry.arguments?.getString("playlistId") ?: "",
+                                initialTab = entry.arguments?.getInt("tabIndex") ?: 0,
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { id ->
+                                    if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
+                                }
+                            )
+                        }
 
-                    clippedComposable("sources_settings") {
-                        SourcesSettingsScreen(
-                            navController = navController,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable("notifications") {
+                            NotificationsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { id ->
+                                    if (id.startsWith("profile:")) navController.navigate("profile/${id.removePrefix("profile:")}")
+                                    else navController.navigate(id)
+                                }
+                            )
+                        }
 
-                    clippedComposable("storage_settings") {
-                        StorageSettingsScreen(
-                            navController = navController,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable("conversations") {
+                            ConversationsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onConversationClick = { conversationId, otherUserId, username ->
+                                    navController.navigate("chat/$conversationId/$otherUserId/$username")
+                                }
+                            )
+                        }
 
-                    clippedComposable("player_design_settings") {
-                        PlayerCustomizationScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable(
+                            route = "chat/{conversationId}/{otherUserId}/{username}",
+                            arguments = listOf(
+                                navArgument("conversationId") { type = NavType.StringType },
+                                navArgument("otherUserId") { type = NavType.StringType },
+                                navArgument("username") { type = NavType.StringType }
+                            )
+                        ) { entry ->
+                            ChatScreen(
+                                conversationId = entry.arguments?.getString("conversationId") ?: "",
+                                otherUserId = entry.arguments?.getString("otherUserId") ?: "",
+                                username = entry.arguments?.getString("username") ?: "",
+                                onBackClick = { navController.popBackStack() },
+                                onProfileClick = { userId ->
+                                    navController.navigate("profile/$userId")
+                                },
+                                playerViewModel = playerViewModel
+                            )
+                        }
 
-                    clippedComposable("misc_settings") {
-                        MiscSettingsScreen(
-                            navController = navController,
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable("achievements") {
+                            AchievementsScreen { navController.popBackStack() }
+                        }
 
-                    clippedComposable("misc_general_settings") {
-                        MiscGeneralSettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable("listening_stats") {
+                            val tokenManager = remember { TokenManager(context) }
+                            val isGuest = tokenManager.isGuestMode()
+                            ListeningStatsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onTrackClick = { track ->
+                                    if (track.source == "soundcloud") {
+                                        val stubTrack = com.alananasss.kittytune.domain.Track(
+                                            id = track.trackId,
+                                            title = track.title,
+                                            user = com.alananasss.kittytune.domain.User(0, track.artistName, null),
+                                            artworkUrl = track.artworkUrl,
+                                            durationMs = 0L
+                                        )
+                                        playerViewModel.playPlaylist(listOf(stubTrack), 0)
+                                    }
+                                },
+                                onArtistClick = { artist ->
+                                    if (artist.source == "spotify" && !artist.permalink.isNullOrBlank()) {
+                                        playerViewModel.navigateToSpotifyArtist(
+                                            artist.permalink.removePrefix("spotify:artist:")
+                                        )
+                                    } else {
+                                        playerViewModel.resolveAndNavigateToArtist(artist.name, artist.artistId)
+                                    }
+                                },
+                                onNavigateToYearlyPlayback = { navController.navigate("wrapped_hub") },
+                                isGuest = isGuest
+                            )
+                        }
 
-                    clippedComposable("accounts_settings") {
-                        AccountsSettingsScreen(
-                            currentUser = homeViewModel.userProfile,
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToSoundCloud = { navController.navigate("soundcloud_account_settings") },
-                            onNavigateToVk = { navController.navigate("vk_account_settings") },
-                            onNavigateToDiscord = { navController.navigate("discord_settings") },
-                            onNavigateToProviderOrder = { navController.navigate("provider_order_settings") },
-                            onNavigateToQobuz = { navController.navigate("qobuz_settings") },
-                            onNavigateToTidal = { navController.navigate("tidal_settings") },
-                            onNavigateToDeezer = { navController.navigate("deezer_settings") }
-                        )
-                    }
-
-                    clippedComposable("provider_order_settings") {
-                        ProviderOrderScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("qobuz_settings") {
-                        QobuzSettingsScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("tidal_settings") {
-                        TidalSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToLogin = { navController.navigate("tidal_login") }
-                        )
-                    }
-
-                    clippedComposable("deezer_settings") {
-                        DeezerSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToLogin = { navController.navigate("deezer_login") }
-                        )
-                    }
-
-                    clippedComposable("deezer_login") {
-                        DeezerLoginScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("tidal_login") {
-                        TidalLoginScreen(
-                            onBackClick = { navController.popBackStack() }
-                        )
-                    }
-
-                    clippedComposable("soundcloud_account_settings") {
-                        SoundCloudAccountSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToLogin = { navController.navigate(Screen.Login.route) },
-                            onNavigateToProfile = { userId ->
-                                navController.navigate("profile/$userId")
+                        clippedComposable(
+                            route = "yearly_playback?year={year}",
+                            arguments = listOf(
+                                navArgument("year") {
+                                    type = NavType.IntType
+                                    defaultValue = 2025
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val requestedYear = backStackEntry.arguments?.getInt("year") ?: 2025
+                            androidx.compose.runtime.LaunchedEffect(Unit) {
+                                if (playerViewModel.uiIsPlaying) {
+                                    playerViewModel.pause()
+                                }
                             }
-                        )
-                    }
+                            com.alananasss.kittytune.ui.yearlyplayback.YearlyPlaybackScreen(
+                                year = requestedYear,
+                                onClose = { navController.popBackStack() },
+                                onOpenStats = {
+                                    navController.popBackStack()
+                                    navController.navigate("listening_stats")
+                                },
+                                onNavigateToPlaylist = { playlistUrn ->
+                                    val target = if (playlistUrn.startsWith("soundcloud:system-playlists:")) {
+                                        "system_playlist:$playlistUrn"
+                                    } else {
+                                        playlistUrn.removePrefix("soundcloud:playlists:").removePrefix("spotify:playlist:")
+                                    }
+                                    navController.navigate("playlist_detail/$target")
+                                }
+                            )
+                        }
 
-                    clippedComposable("vk_account_settings") {
-                        VkAccountSettingsScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onNavigateToWebViewLogin = { navController.navigate("vk_login") }
-                        )
-                    }
+                        clippedComposable("wrapped_hub") {
+                            val tokenManager = remember { TokenManager(context) }
+                            val isGuest = tokenManager.isGuestMode()
+                            WrappedHubScreen(
+                                user = homeViewModel.userProfile,
+                                isGuest = isGuest,
+                                onBackClick = { navController.popBackStack() },
+                                onLaunchStory = { year ->
+                                    navController.navigate("yearly_playback?year=$year")
+                                },
+                                onOpenPlaylist = { playlistUrn ->
+                                    val target = if (playlistUrn.startsWith("soundcloud:system-playlists:")) {
+                                        "system_playlist:$playlistUrn"
+                                    } else {
+                                        playlistUrn.removePrefix("soundcloud:playlists:").removePrefix("spotify:playlist:")
+                                    }
+                                    navController.navigate("playlist_detail/$target")
+                                }
+                            )
+                        }
 
-                    clippedComposable("vk_login") {
-                        VkLoginScreen(
-                            onBackClick = { navController.popBackStack() },
-                            onLoginSuccess = { navController.popBackStack() }
-                        )
-                    }
+                        clippedComposable("yearly_playback") {
+                            val tokenManager = remember { TokenManager(context) }
+                            val isGuest = tokenManager.isGuestMode()
+                            WrappedHubScreen(
+                                user = homeViewModel.userProfile,
+                                isGuest = isGuest,
+                                onBackClick = { navController.popBackStack() },
+                                onLaunchStory = { year ->
+                                    navController.navigate("yearly_playback?year=$year")
+                                },
+                                onOpenPlaylist = { playlistUrn ->
+                                    val target = if (playlistUrn.startsWith("soundcloud:system-playlists:")) {
+                                        "system_playlist:$playlistUrn"
+                                    } else {
+                                        playlistUrn.removePrefix("soundcloud:playlists:").removePrefix("spotify:playlist:")
+                                    }
+                                    navController.navigate("playlist_detail/$target")
+                                }
+                            )
+                        }
 
-                }
+                        clippedComposable(Screen.Recognition.route) {
+                            RecognitionScreen(
+                                onBackClick = { navController.popBackStack() },
+                                playerViewModel = playerViewModel,
+                                onNavigate = { dest -> navController.navigate(dest) }
+                            )
+                        }
+                        clippedComposable(Screen.RecognitionHistory.route) {
+                            com.alananasss.kittytune.ui.recognition.RecognitionHistoryScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { dest -> navController.navigate(dest) },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+                        clippedComposable(Screen.History.route) {
+                            com.alananasss.kittytune.ui.history.HistoryScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigate = { dest ->
+                                    when {
+                                        dest == Screen.Home.route || dest == "home" -> navController.navigate(Screen.Home.route)
+                                        dest.startsWith("spotify_artist:") -> {
+                                            navController.navigate("spotify_artist/${dest.removePrefix("spotify_artist:")}")
+                                        }
+                                        dest.startsWith("spotify_radio:") || dest.startsWith("station_spotify:") -> {
+                                            navController.navigate("playlist_detail/$dest")
+                                        }
+                                        dest.startsWith("profile:") -> {
+                                            val target = dest.removePrefix("profile:")
+                                            if (target.startsWith("spotify:artist:") || target.startsWith("spotify_artist:")) {
+                                                val clean = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(target)
+                                                navController.navigate("spotify_artist/$clean")
+                                            } else {
+                                                navController.navigate("profile/$target")
+                                            }
+                                        }
+                                        dest.startsWith("playlist_detail/") || dest.startsWith("profile/") || dest.startsWith("tag/") || dest.startsWith("genre_playlists/") || dest.startsWith("track_detail/") -> {
+                                            navController.navigate(dest)
+                                        }
+                                        dest.startsWith("tag:") -> {
+                                            val tagName = dest.removePrefix("tag:")
+                                            navController.navigate("tag/$tagName")
+                                        }
+                                        else -> {
+                                            navController.navigate("playlist_detail/$dest")
+                                        }
+                                    }
+                                },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("settings") {
+                            SettingsScreen(navController, { navController.popBackStack() }, playerViewModel)
+                        }
+
+                        clippedComposable("settings_search") {
+                            SettingsSearchScreen(
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable(Screen.Upload.route) {
+                            UploadScreen(
+                                onBackClick = {
+                                    playerViewModel.trackToEdit = null
+                                    navController.popBackStack()
+                                },
+                                onLoginClick = { navController.navigate(Screen.Login.route) },
+                                trackToEdit = playerViewModel.trackToEdit
+                            )
+                        }
+
+                        clippedComposable("music_import") {
+                            MusicImportScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onPlatformSelected = { platform ->
+                                    navController.navigate("music_import/$platform")
+                                },
+                                onLoginClick = { navController.navigate(Screen.Login.route) }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "music_import/{platform}",
+                            arguments = listOf(navArgument("platform") { type = NavType.StringType })
+                        ) { entry ->
+                            val platform = entry.arguments?.getString("platform") ?: ""
+                            MusicImportSelectionScreen(
+                                platformProviderName = platform,
+                                onBackClick = { navController.popBackStack() },
+                                onStartTransfer = { navController.navigate("music_import_transfer") }
+                            )
+                        }
+
+                        clippedComposable("music_import_transfer") {
+                            MusicImportTransferScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onDone = {
+                                    navController.popBackStack(
+                                        navController.graph.findStartDestination().id,
+                                        inclusive = false
+                                    )
+                                }
+                            )
+                        }
+
+                        clippedComposable("backup_restore") {
+                            BackupRestoreScreen(onBackClick = { navController.popBackStack() })
+                        }
+
+                        clippedComposable("audio_settings") {
+                            AudioSettingsScreen(
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("audio_playback_settings") {
+                            AudioPlaybackSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("audio_quality_settings") {
+                            AudioQualitySettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToDrmExplanation = { navController.navigate("drm_explanation") },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("audio_transitions_settings") {
+                            AudioTransitionsSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("audio_sleep_settings") {
+                            AudioSleepTimerSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("haptic_settings") {
+                            com.alananasss.kittytune.ui.profile.HapticSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("content_filter_settings") {
+                            com.alananasss.kittytune.ui.profile.BlockedContentSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("drm_explanation") {
+                            DrmExplanationScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("lyrics_settings") {
+                            LyricsSettingsScreen({ navController.popBackStack() }, playerViewModel)
+                        }
+
+                        clippedComposable("local_media_settings") {
+                            LocalMediaSettingsScreen { navController.popBackStack() }
+                        }
+
+                        clippedComposable("appearance_settings") {
+                            AppearanceSettingsScreen(
+                                onNavigateToColors = { navController.navigate("color_palette") },
+                                onNavigateToBottomBarSettings = { navController.navigate("bottom_bar_settings") },
+                                onNavigateToAppIconSettings = { navController.navigate("app_icon_settings") },
+                                onNavigateToPlayerCustomization = { navController.navigate("player_design_settings") },
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("app_icon_settings") {
+                            AppIconSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("bottom_bar_settings") {
+                            BottomBarSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToFabSettings = { navController.navigate("fab_settings") },
+                                playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("fab_settings") {
+                            FabSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("color_palette") {
+                            ColorPaletteScreen(onBackClick = { navController.popBackStack() })
+                        }
+
+                        clippedComposable("about") {
+                            AboutScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onLicensesClick = { navController.navigate("licenses") },
+                                onCreditsClick = { navController.navigate("credits") }
+                            )
+                        }
+
+                        clippedComposable("credits") {
+                            CreditsScreen(onBackClick = { navController.popBackStack() })
+                        }
+
+                        clippedComposable("licenses") {
+                            LicensesScreen(onBackClick = { navController.popBackStack() })
+                        }
+
+                        clippedComposable("storage") {
+                            StorageScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToPlaylist = { route -> navController.navigate(route) },
+                                onNavigateToDownloads = { tab -> navController.navigate("storage_downloads?tab=$tab") }
+                            )
+                        }
+
+                        clippedComposable(
+                            route = "storage_downloads?tab={tab}",
+                            arguments = listOf(
+                                navArgument("tab") {
+                                    type = NavType.IntType
+                                    defaultValue = 0
+                                }
+                            )
+                        ) { backStackEntry ->
+                            val tab = backStackEntry.arguments?.getInt("tab") ?: 0
+                            StorageDownloadsScreen(
+                                initialTab = tab,
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToPlaylist = { route -> navController.navigate(route) }
+                            )
+                        }
+
+                        clippedComposable("discord_settings") {
+                            DiscordSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToLogin = { navController.navigate("discord_login") }
+                            )
+                        }
+
+                        clippedComposable("discord_login") {
+                            DiscordLoginScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onLoginSuccess = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+
+                        clippedComposable("sync_settings") {
+                            SyncSettingsScreen(
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("sync_devices_settings") {
+                            SyncDevicesScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("sync_options_settings") {
+                            SyncOptionsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("sync_advanced_settings") {
+                            SyncAdvancedScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("proxy_settings") {
+                            ProxySettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("zapret_settings") {
+                            ZapretSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("interface_settings") {
+                            InterfaceSettingsScreen(
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("sources_settings") {
+                            SourcesSettingsScreen(
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("storage_settings") {
+                            StorageSettingsScreen(
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("player_design_settings") {
+                            PlayerCustomizationScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("misc_settings") {
+                            MiscSettingsScreen(
+                                navController = navController,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("misc_general_settings") {
+                            MiscGeneralSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("accounts_settings") {
+                            AccountsSettingsScreen(
+                                currentUser = homeViewModel.userProfile,
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToSoundCloud = { navController.navigate("soundcloud_account_settings") },
+                                onNavigateToVk = { navController.navigate("vk_account_settings") },
+                                onNavigateToDiscord = { navController.navigate("discord_settings") },
+                                onNavigateToProviderOrder = { navController.navigate("provider_order_settings") },
+                                onNavigateToQobuz = { navController.navigate("qobuz_settings") },
+                                onNavigateToTidal = { navController.navigate("tidal_settings") },
+                                onNavigateToDeezer = { navController.navigate("deezer_settings") }
+                            )
+                        }
+
+                        clippedComposable("provider_order_settings") {
+                            ProviderOrderScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("qobuz_settings") {
+                            QobuzSettingsScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("tidal_settings") {
+                            TidalSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToLogin = { navController.navigate("tidal_login") }
+                            )
+                        }
+
+                        clippedComposable("deezer_settings") {
+                            DeezerSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToLogin = { navController.navigate("deezer_login") }
+                            )
+                        }
+
+                        clippedComposable("deezer_login") {
+                            DeezerLoginScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("tidal_login") {
+                            TidalLoginScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        clippedComposable("soundcloud_account_settings") {
+                            SoundCloudAccountSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                                onNavigateToProfile = { userId ->
+                                    navController.navigate("profile/$userId")
+                                }
+                            )
+                        }
+
+                        clippedComposable("vk_account_settings") {
+                            VkAccountSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToWebViewLogin = { navController.navigate("vk_login") }
+                            )
+                        }
+
+                        clippedComposable("vk_login") {
+                            VkLoginScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onLoginSuccess = { navController.popBackStack() }
+                            )
+                        }
+
+                        }
+                    }
 
                 Column(
                     modifier = Modifier
@@ -1813,7 +1877,6 @@ fun MainScreen(
                 }
             }
 
-            // Tablet Side Player Panel (Smoothly animates layout width in sync with main content)
             if (animatedSidePanelWidth > 0.dp) {
                 val panelAlpha = (animatedSidePanelWidth / sidePanelWidth).coerceIn(0f, 1f)
                 Box(
@@ -1849,6 +1912,10 @@ fun MainScreen(
             }
         }
     }
+
+        val navStackIds = navController.currentBackStack.collectAsState().value.map { it.id }
+        BackHandler(enabled = ayuBackState.shouldVetoBack(navStackIds)) {
+        }
 
         AnimatedVisibility(
             visible = playerViewModel.isPlayerExpanded,
@@ -1912,6 +1979,13 @@ fun MainScreen(
                 }
             )
         }
+
+        if (playerViewModel.showConnectSheet) {
+            com.alananasss.kittytune.ui.profile.PlaybackDevicesSheet(
+                onDismissRequest = { playerViewModel.showConnectSheet = false }
+            )
+        }
+
 
         playerViewModel.shareCardTrack?.let { cardTrack ->
             com.alananasss.kittytune.ui.share.ShareCardSheet(
@@ -2043,10 +2117,6 @@ fun MainScreen(
             }
         }
 
-        // "Like all songs" asks first, wherever it was asked from (desktop PR #77): one host at the top of
-        // the window, so the album's menu and the library's playlist menu ask the same question.
-        com.alananasss.kittytune.ui.library.LikeAllPromptHost()
-
         if (playerViewModel.captchaUrl != null) {
             Dialog(
                 onDismissRequest = { playerViewModel.onCaptchaSolved() },
@@ -2069,7 +2139,7 @@ fun MainScreen(
                         .fillMaxSize()) {
                         AndroidView(
                             factory = { ctx ->
-                                WebView(ctx).apply {
+                                SafeWebView(ctx).apply {
                                     @SuppressLint("SetJavaScriptEnabled")
                                     settings.javaScriptEnabled = true
                                     settings.domStorageEnabled = true

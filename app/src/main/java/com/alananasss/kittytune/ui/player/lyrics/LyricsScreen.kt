@@ -535,6 +535,8 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                     else -> Alignment.CenterHorizontally
                 }
 
+                // Hoisted out of the per-item content: it is identical for every line of the
+                // track and does not depend on the item, so it was pure per-item waste.
                 val isDuetActive = viewModel.isDuetActiveForTrack(viewModel.uiCurrentTrack)
                 val effectiveSinger = if (isDuetActive) {
                     line.singer?.takeIf { it != LyricSinger.DEFAULT }

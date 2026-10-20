@@ -15,6 +15,7 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 data class QobuzSearchResult(
     val tracks: List<Track> = emptyList(),
@@ -26,7 +27,7 @@ data class QobuzSearchResult(
 object QobuzSearchRepository {
     private const val DEFAULT_BASE = "https://qobuz-dll.vercel.app"
 
-    private val client = OkHttpClient.Builder()
+    private val client = ZapretManager.newBuilder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(25, TimeUnit.SECONDS)
         .build()
@@ -127,7 +128,31 @@ object QobuzSearchRepository {
             val artist = data.optJSONObject("artist") ?: continue
 
             val topTracksArray = artist.optJSONArray("top_tracks")
-            val topTracks = topTracksArray?.mapObjects { it.toQobuzTrack() } ?: emptyList()
+            var topTracks = topTracksArray?.mapObjects { it.toQobuzTrack() } ?: emptyList()
+            if (topTracks.isEmpty()) {
+                val releases = artist.optJSONArray("releases")
+                if (releases != null) {
+                    val fallbackTracks = mutableListOf<Track>()
+                    for (i in 0 until releases.length()) {
+                        val rel = releases.optJSONObject(i) ?: continue
+                        val items = rel.optJSONArray("items") ?: continue
+                        for (j in 0 until minOf(items.length(), 2)) {
+                            val albumItem = items.optJSONObject(j) ?: continue
+                            val albumId = albumItem.optString("id").takeIf { it.isNotBlank() } ?: continue
+                            val album = getAlbum(context, albumId)
+                            val albumTracks = album?.tracks
+                            if (!albumTracks.isNullOrEmpty()) {
+                                fallbackTracks.addAll(albumTracks)
+                                if (fallbackTracks.size >= 25) break
+                            }
+                        }
+                        if (fallbackTracks.isNotEmpty()) break
+                    }
+                    if (fallbackTracks.isNotEmpty()) {
+                        topTracks = fallbackTracks.distinctBy { it.id }
+                    }
+                }
+            }
 
             val name = artist.extractName() ?: artist.optString("name")
             val picture = extractArtistPicture(artist) ?: topTracks.firstOrNull()?.artworkUrl

@@ -380,7 +380,7 @@ object SoundCloudTelemetryTracker {
      * HTTP POST to telemetry.soundcloud.com/v1/events with OAuth token and SoundCloud mobile User-Agent.
      */
     private fun postTelemetryBatch(jsonPayload: String, token: String?) {
-        val client = directHttpClient ?: OkHttpClient()
+        val client = directHttpClient ?: com.alananasss.kittytune.data.zapret.ZapretManager.newClient()
 
         val buildVersion = "2025.12.10-release"
         val androidRelease = android.os.Build.VERSION.RELEASE ?: "14"
@@ -401,7 +401,7 @@ object SoundCloudTelemetryTracker {
         try {
             val response = client.newCall(requestBuilder.build()).execute()
             val code = response.code
-            val body = response.body?.string()
+            val body = response.body.string()
             response.close()
 
             if (code in 200..299) {

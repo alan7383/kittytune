@@ -93,6 +93,10 @@ object SyncScheduler {
             var lastPassAtMs = System.currentTimeMillis()
             var lastAddress = ""
             while (isActive) {
+                if (!SyncPeers.anyDialable()) {
+                    delay(HEARTBEAT_MS)
+                    continue
+                }
                 val address = runCatching { SyncService.localAddress() }.getOrDefault("")
                 val now = System.currentTimeMillis()
                 // A changed local address means this device has joined a different network, which is

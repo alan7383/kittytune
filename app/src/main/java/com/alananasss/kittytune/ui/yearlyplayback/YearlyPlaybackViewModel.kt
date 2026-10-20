@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.alananasss.kittytune.R
@@ -156,7 +156,7 @@ class YearlyPlaybackViewModel(application: Application) : AndroidViewModel(appli
     private suspend fun downloadAndInjectImages(assets: List<ApiYearlyPlaybackAsset>) = withContext(Dispatchers.IO) {
         if (assets.isEmpty()) return@withContext
         Log.d("YearlyPlaybackVM", "Downloading ${assets.size} authentic Wrapped image assets in parallel...")
-        val imageLoader = ImageLoader(getApplication())
+        val imageLoader = getApplication<android.app.Application>().imageLoader
         val fallbackBytes by lazy { getFallbackPlaceholderBytes() }
 
         coroutineScope {

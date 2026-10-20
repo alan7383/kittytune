@@ -6,7 +6,8 @@
     import android.content.Context
     import android.net.Uri
     import android.os.Bundle
-    import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.MediaItem
     import androidx.media3.common.MediaMetadata
     import androidx.media3.common.C
     import androidx.media3.common.MimeTypes
@@ -89,8 +90,7 @@
                 _isAutomotiveControllerConnected.value = true
             }
 
-            @Suppress("DEPRECATION")
-            val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+            val builder = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
             val defaultResult = builder.build()
 
             val availableSessionCommands = defaultResult.availableSessionCommands
@@ -105,12 +105,23 @@
                 .add(SessionCommand(PlaybackService.CUSTOM_ACTION_DOWNLOAD, Bundle.EMPTY))
                 .build()
 
-            val connectionResult = MediaSession.ConnectionResult.accept(
-                availableSessionCommands,
-                defaultResult.availablePlayerCommands
-            )
+            val availablePlayerCommands = defaultResult.availablePlayerCommands
+                .buildUpon()
+                .add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_NEXT)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .add(Player.COMMAND_GET_CURRENT_MEDIA_ITEM)
+                .add(Player.COMMAND_GET_TIMELINE)
+                .add(Player.COMMAND_GET_METADATA)
+                .add(Player.COMMAND_PLAY_PAUSE)
+                .build()
 
-            return Futures.immediateFuture(connectionResult)
+            builder.setAvailableSessionCommands(availableSessionCommands)
+            builder.setAvailablePlayerCommands(availablePlayerCommands)
+
+            return Futures.immediateFuture(builder.build())
         }
 
         @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)

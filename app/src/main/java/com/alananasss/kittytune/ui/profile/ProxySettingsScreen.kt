@@ -214,7 +214,7 @@ fun ProxySettingsScreen(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 ) {
                     Row(

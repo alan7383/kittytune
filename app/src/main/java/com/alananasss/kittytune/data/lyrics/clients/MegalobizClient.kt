@@ -15,10 +15,11 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import com.alananasss.kittytune.data.lyrics.parsers.QRCParser
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 object MegalobizClient {
     private val client by lazy {
-        OkHttpClient.Builder()
+        ZapretManager.newBuilder()
             .callTimeout(8, TimeUnit.SECONDS)
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)

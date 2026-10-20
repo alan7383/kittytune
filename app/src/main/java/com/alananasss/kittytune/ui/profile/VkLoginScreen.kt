@@ -9,6 +9,7 @@ import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.alananasss.kittytune.ui.common.SafeWebView
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,12 +72,7 @@ fun VkLoginScreen(
                 .padding(innerPadding)
                 .fillMaxSize(),
             factory = { ctx ->
-                WebView(ctx).apply {
-                    layoutParams = ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-
+                SafeWebView(ctx).apply {
                     settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
@@ -115,7 +111,7 @@ fun VkLoginScreen(
                                                             .url(url)
                                                             .header("User-Agent", "VKAndroidApp/9.2.0-24200 (Android 11; SDK 30; arm64-v8a; Xiaomi M2003J15SC; ru; 2340x1080)")
                                                             .build()
-                                                        val client = okhttp3.OkHttpClient()
+                                                        val client = com.alananasss.kittytune.data.zapret.ZapretManager.newClient()
                                                         client.newCall(req).execute().use { resp ->
                                                             if (resp.isSuccessful) {
                                                                 val bodyStr = resp.body?.string() ?: ""

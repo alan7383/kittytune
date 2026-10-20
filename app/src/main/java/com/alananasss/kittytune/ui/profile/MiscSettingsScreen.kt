@@ -144,6 +144,7 @@ fun MiscGeneralSettingsScreen(
             "pref_language" to 0,
             "pref_start_screen" to 0,
             "pref_auto_update" to 0,
+            "pref_beta_updates" to 0,
             "pref_remember_search_filter" to 0,
             "pref_show_playlist_total_duration" to 0
         )

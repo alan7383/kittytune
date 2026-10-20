@@ -28,7 +28,7 @@ interface GithubApiService {
     suspend fun getLatestRelease(): GithubRelease
 
     /** Newest first, prereleases included (unlike `latest`). Used for the beta channel. */
-    @GET("repos/alan7383/kittytune/releases?per_page=20")
+    @GET("repos/alan7383/kittytune/releases?per_page=50")
     suspend fun listReleases(): List<GithubRelease>
 }
 

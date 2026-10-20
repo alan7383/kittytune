@@ -40,17 +40,6 @@ import com.alananasss.kittytune.ui.common.SettingsHighlightManager
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 
-/**
- * Dedicated settings search screen, reproducing AOSP Settings / Settings Intelligence 1:1.
- *
- * Zero-state behaviour (expressive variant, API 36):
- *  - If no recent items: expressive scalloped badge illustration.
- *  - If recents exist: "Recent search results" header + "Clear" TextButton, then the actual
- *    setting items that were previously clicked (same SettingsItem rows, same icon), followed
- *    by a "Clear history" row (✕ icon + label in colorSecondary) at the bottom.
- *
- * On result click: records the clicked [SearchSettingEntry] to history then navigates/acts.
- */
 @Composable
 fun SettingsSearchScreen(
     navController: NavController,
@@ -63,7 +52,6 @@ fun SettingsSearchScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var preferenceVersion by remember { mutableIntStateOf(0) }
 
-    // Live recent-searches state — refreshed on every add/remove
     var recentItems by remember { mutableStateOf(prefs.getSettingsRecentSearches()) }
 
     val allSearchItems = rememberSettingsSearchCatalog(
@@ -82,10 +70,6 @@ fun SettingsSearchScreen(
         keyboardController?.show()
     }
 
-    BackHandler {
-        focusManager.clearFocus()
-        onBackClick()
-    }
 
     val normalizedQuery = remember(searchQuery) { normalizeSearchText(searchQuery) }
     val queryTokens = remember(normalizedQuery) {
@@ -120,8 +104,9 @@ fun SettingsSearchScreen(
         }
     }
 
-    /** Records the clicked item to recent history then navigates/acts. */
     fun onResultClick(item: SearchSettingEntry) {
+        focusManager.clearFocus()
+        keyboardController?.hide()
         val entry = PlayerPreferences.RecentSettingsEntry(
             title = item.title,
             subtitle = item.subtitle,
@@ -143,8 +128,9 @@ fun SettingsSearchScreen(
         }
     }
 
-    /** Navigates directly from a recent item without re-searching. */
     fun onRecentClick(entry: PlayerPreferences.RecentSettingsEntry) {
+        focusManager.clearFocus()
+        keyboardController?.hide()
         val catalogItem = allSearchItems.find { it.title == entry.title }
         val highlightKey = entry.highlightKey ?: catalogItem?.highlightKey
         if (highlightKey != null) {
@@ -254,16 +240,13 @@ fun SettingsSearchScreen(
                 .fillMaxSize()
         ) {
             when {
-                // ── Zero-state: query is blank ──────────────────────────────────────────
                 searchQuery.isBlank() -> {
                     if (recentItems.isEmpty()) {
-                        // No history yet → expressive illustration
                         SettingsZeroStateIllustration(
                             title = stringResource(R.string.search_no_recent_results),
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        // Recent items list (SettingsComponents parity)
                         RecentSettingsList(
                             recentItems = recentItems,
                             allSearchItems = allSearchItems,
@@ -276,7 +259,6 @@ fun SettingsSearchScreen(
                     }
                 }
 
-                // ── No matches ─────────────────────────────────────────────────────────
                 matches.isEmpty() -> {
                     SettingsZeroStateIllustration(
                         title = stringResource(R.string.search_suggestion_no_match, searchQuery),
@@ -285,37 +267,40 @@ fun SettingsSearchScreen(
                     )
                 }
 
-                // ── Results list ───────────────────────────────────────────────────────
                 else -> {
-                    val grouped = remember(matches) { matches.groupBy { it.categoryName } }
+                    val listState = remember(matches) { androidx.compose.foundation.lazy.LazyListState() }
+                    LaunchedEffect(matches) {
+                        listState.scrollToItem(0)
+                    }
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp)
                     ) {
-                        grouped.forEach { (catName, itemsInCat) ->
-                            item(key = "search-cat-$catName") {
-                                SettingsGroup(
-                                    title = catName,
-                                    items = itemsInCat.map { searchItem ->
-                                        { shape ->
-                                            val hasAction = searchItem.onClick != null || searchItem.route != null
-                                            SettingsItem(
-                                                shape = shape,
-                                                title = searchItem.title,
-                                                subtitle = searchItem.subtitle,
-                                                icon = searchItem.icon ?: (if (searchItem.iconRes == null) Icons.Rounded.Settings else null),
-                                                iconRes = searchItem.iconRes,
-                                                hasSwitch = searchItem.hasSwitch,
-                                                switchState = searchItem.switchState,
-                                                onSwitchChange = searchItem.onSwitchChange,
-                                                onClick = if (hasAction) {
-                                                    { onResultClick(searchItem) }
-                                                } else null
-                                            )
-                                        }
+                        item(key = "search-results") {
+                            SettingsGroup(
+                                items = matches.map { searchItem ->
+                                    { shape ->
+                                        val hasAction = searchItem.onClick != null || searchItem.route != null
+                                        SettingsItem(
+                                            shape = shape,
+                                            title = searchItem.title,
+                                            subtitle = when {
+                                                !searchItem.subtitle.isNullOrBlank() -> "${searchItem.subtitle} • ${searchItem.categoryName}"
+                                                else -> searchItem.categoryName
+                                            },
+                                            icon = searchItem.icon ?: (if (searchItem.iconRes == null) Icons.Rounded.Settings else null),
+                                            iconRes = searchItem.iconRes,
+                                            hasSwitch = searchItem.hasSwitch,
+                                            switchState = searchItem.switchState,
+                                            onSwitchChange = searchItem.onSwitchChange,
+                                            onClick = if (hasAction) {
+                                                { onResultClick(searchItem) }
+                                            } else null
+                                        )
                                     }
-                                )
-                            }
+                                }
+                            )
                         }
                     }
                 }
@@ -324,17 +309,6 @@ fun SettingsSearchScreen(
     }
 }
 
-// ─── Recent items list (SettingsComponents parity) ───────────────────────────
-
-/**
- * Zero-state list of recently-accessed settings items.
- *
- * Uses the exact same card container ("cases") design as Kittytune's SettingsComponents:
- *  1. Header with "Recent search results" + "Clear" action button
- *  2. SettingsGroup containing SettingsItem cards with rounded corners (24dp),
- *     circular colored icon badge, title, subtitle / breadcrumb, and navigation arrow
- *  3. "Clear history" button at the bottom
- */
 @Composable
 private fun RecentSettingsList(
     recentItems: List<PlayerPreferences.RecentSettingsEntry>,
@@ -347,7 +321,6 @@ private fun RecentSettingsList(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp)
     ) {
-        // ── Header: Recent search results + Clear button ─────────────────────────
         item(key = "recent-header") {
             Row(
                 modifier = Modifier
@@ -377,7 +350,6 @@ private fun RecentSettingsList(
             }
         }
 
-        // ── Setting item cards — exact same SettingsGroup & SettingsItem as normal settings ──
         item(key = "recent-group") {
             SettingsGroup(
                 items = recentItems.map { entry ->
@@ -404,14 +376,6 @@ private fun RecentSettingsList(
     }
 }
 
-// ─── Zero-state illustration ───────────────────────────────────────────────────
-
-/**
- * 1:1 copy of AOSP Expressive Zero-State illustration (search_zero_state_expressive.xml):
- * - Scalloped 8-petal polygon badge (settingslib_expressive_zerostate_background)
- * - Centered search icon (ic_search_24dp)
- * - Title and optional subtitle below
- */
 @Composable
 fun SettingsZeroStateIllustration(
     title: String,

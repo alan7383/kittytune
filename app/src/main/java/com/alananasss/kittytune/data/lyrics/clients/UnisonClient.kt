@@ -17,6 +17,7 @@ import kotlinx.serialization.json.Json
 import com.alananasss.kittytune.data.lyrics.models.UnisonEntry
 import com.alananasss.kittytune.data.lyrics.models.UnisonResponse
 import com.alananasss.kittytune.data.lyrics.models.UnisonSearchResponse
+import com.alananasss.kittytune.data.zapret.withDpiBypass
 
 object UnisonClient {
     private const val API_BASE_URL = "https://unison.boidu.dev/"
@@ -32,6 +33,7 @@ object UnisonClient {
 
     private val client by lazy {
         HttpClient(OkHttp) {
+            withDpiBypass()
             install(ContentNegotiation) {
                 json(jsonFormat)
             }

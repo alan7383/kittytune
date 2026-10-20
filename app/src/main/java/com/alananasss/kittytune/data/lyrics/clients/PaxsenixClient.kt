@@ -27,6 +27,7 @@ import com.alananasss.kittytune.data.lyrics.models.AppleMusicLyricsResponse
 import com.alananasss.kittytune.data.lyrics.models.PaxsenixStats
 import java.util.Locale
 import kotlin.math.abs
+import com.alananasss.kittytune.data.zapret.withDpiBypass
 
 object PaxsenixClient {
     private const val BASE_URL = "https://api.paxsenix.org/"
@@ -57,6 +58,7 @@ object PaxsenixClient {
 
     private val client by lazy {
         HttpClient(OkHttp) {
+            withDpiBypass()
             install(ContentNegotiation) {
                 json(json)
             }

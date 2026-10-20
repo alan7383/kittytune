@@ -11,6 +11,8 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.alananasss.kittytune.ui.common.SafeWebView
+import com.alananasss.kittytune.ui.common.createSafeWebView
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -180,12 +182,8 @@ fun DeezerLoginScreen(
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
-                    WebView(ctx).apply {
+                    SafeWebView(ctx).apply {
                         mainWebView = this
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
                         settings.apply {
                             javaScriptEnabled = true
                             domStorageEnabled = true
@@ -238,11 +236,7 @@ fun DeezerLoginScreen(
                                 resultMsg: Message?
                             ): Boolean {
                                 if (resultMsg == null) return false
-                                val popup = WebView(view?.context ?: ctx).apply {
-                                    layoutParams = ViewGroup.LayoutParams(
-                                        ViewGroup.LayoutParams.MATCH_PARENT,
-                                        ViewGroup.LayoutParams.MATCH_PARENT
-                                    )
+                                val popup = createSafeWebView(view?.context ?: ctx).apply {
                                     settings.apply {
                                         javaScriptEnabled = true
                                         domStorageEnabled = true
