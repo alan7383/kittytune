@@ -18,6 +18,7 @@ class SoundCloudLocalizationTest {
         R.string.home_curated_by_soundcloud to "Выбор SoundCloud",
         R.string.home_liked_by_section_title to "Понравилось",
         R.string.home_liked_by_user_title to "Понравилось %1\$s",
+        R.string.home_reposts_from_friends to "Репосты друзей",
     )
 
     private val resolver: (Int, Array<out Any>) -> String = { resId, args ->
@@ -76,5 +77,13 @@ class SoundCloudLocalizationTest {
         assertEquals("Понравилось Alan", SoundCloudLocalizationUtils.resolveSectionTitle("Liked by Alan", resolver))
         assertEquals("Понравилось", SoundCloudLocalizationUtils.resolveSectionTitle("Liked by", resolver))
         assertEquals("Понравилось", SoundCloudLocalizationUtils.resolveSectionTitle("Liked By", resolver))
+    }
+
+    @Test
+    fun testReposts() {
+        assertEquals("Репосты друзей", SoundCloudLocalizationUtils.resolveSectionTitle("Reposts by people you follow", resolver))
+        assertEquals("Репосты друзей", SoundCloudLocalizationUtils.resolveSectionTitle("reposts by people you follow", resolver))
+        assertEquals("Репосты друзей", SoundCloudLocalizationUtils.resolveSectionTitle("Reposts from friends", resolver))
+        assertEquals("Репосты друзей", SoundCloudLocalizationUtils.resolveSectionTitle("Repost de vos amis", resolver))
     }
 }

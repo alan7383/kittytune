@@ -19,6 +19,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import com.alananasss.kittytune.data.lyrics.models.TTMLResponse
+import com.alananasss.kittytune.data.zapret.withDpiBypass
 
 object BetterLyricsClient {
     private const val API_BASE_URL = "https://lyrics-api.boidu.dev/"
@@ -44,6 +45,7 @@ object BetterLyricsClient {
 
     private val client by lazy {
         HttpClient(OkHttp) {
+            withDpiBypass()
             install(ContentNegotiation) {
                 json(jsonFormat)
             }

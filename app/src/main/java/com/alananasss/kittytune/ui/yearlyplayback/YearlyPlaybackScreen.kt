@@ -80,10 +80,6 @@ import com.alananasss.kittytune.data.yearlyplayback.YearlyPlaybackState
 import com.alananasss.kittytune.data.yearlyplayback.YearlyPlaybackTarget
 import com.alananasss.kittytune.data.yearlyplayback.YearlyPlaybackVariant
 
-/**
- * Dynamic ambient theme palette for story slides.
- * Replaces harsh solid bars with a continuous, glowing color canvas matching the slide artboard.
- */
 data class StoryPalette(
     val topColor: Color,
     val centerGlow: Color,
@@ -100,7 +96,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
     }
     val id = block.artboardId.lowercase()
     return when {
-        // Intro / Cover / 2025 / Welcome: Fiery orange flame matching SoundCloud 2025 Wrapped
         index == 0 || id.contains("intro") || id.contains("cover") || id.contains("2025") -> {
             StoryPalette(
                 topColor = Color(0xFF220B04),
@@ -108,7 +103,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF150402)
             )
         }
-        // Top Artists: Crimson & fiery ember
         id.contains("artist") -> {
             StoryPalette(
                 topColor = Color(0xFF220808),
@@ -116,7 +110,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF140404)
             )
         }
-        // Top Tracks: Vibrant electric magenta & purple
         id.contains("track") -> {
             StoryPalette(
                 topColor = Color(0xFF180826),
@@ -124,7 +117,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF0F041B)
             )
         }
-        // Genres: Electric cyan & deep indigo
         id.contains("genre") -> {
             StoryPalette(
                 topColor = Color(0xFF071228),
@@ -132,7 +124,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF040A18)
             )
         }
-        // Listening time / Minutes: Radiant amber & gold
         id.contains("minute") || id.contains("time") -> {
             StoryPalette(
                 topColor = Color(0xFF261803),
@@ -140,7 +131,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF160D02)
             )
         }
-        // Habits / Personality / Mood: Emerald & teal aura
         id.contains("habit") || id.contains("mood") || id.contains("aura") || id.contains("personality") -> {
             StoryPalette(
                 topColor = Color(0xFF041A16),
@@ -148,7 +138,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF02100E)
             )
         }
-        // Summary slide: Fiery orange glow matching 2025 Playback Summary artwork
         id.contains("summary") -> {
             StoryPalette(
                 topColor = Color(0xFF240804),
@@ -156,7 +145,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF5A1402)
             )
         }
-        // Save Playlist: SoundCloud iconic warm sunset
         block is Block.SavePlaylist || id.contains("save") || id.contains("playlist") -> {
             StoryPalette(
                 topColor = Color(0xFF1E0A16),
@@ -164,7 +152,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF4A1002)
             )
         }
-        // Open Insights: Deep violet with warm base
         block is Block.OpenInsights || id.contains("insight") -> {
             StoryPalette(
                 topColor = Color(0xFF180826),
@@ -172,7 +159,6 @@ private fun getSlidePalette(block: Block?, index: Int): StoryPalette {
                 bottomColor = Color(0xFF2B0A18)
             )
         }
-        // Fallback by index modulo with diverse rich palettes
         else -> {
             val fallbacks = listOf(
                 StoryPalette(Color(0xFF220B04), Color(0xFFFF5500), Color(0xFF5A1402)),
@@ -304,9 +290,6 @@ fun YearlyPlaybackScreen(
         }
     }
 
-    BackHandler {
-        onClose()
-    }
 
     val backgroundModifier = when (state) {
         is YearlyPlaybackState.Display -> Modifier
@@ -342,7 +325,6 @@ fun YearlyPlaybackScreen(
             }
 
             is YearlyPlaybackState.Display -> {
-                // Dynamically resolved color palette matching current slide content
                 val currentPalette = remember(s.block, currentIndex) {
                     getSlidePalette(s.block, currentIndex)
                 }
@@ -362,9 +344,7 @@ fun YearlyPlaybackScreen(
                     label = "bottomColor"
                 )
 
-                // Main Story Display - Full-bleed immersive layer matching SoundCloud
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Ambient Blurred Canvas (Base layer filling 100% of screen behind status and nav bars)
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -379,7 +359,6 @@ fun YearlyPlaybackScreen(
                                 )
                             )
                     ) {
-                        // Ambient glowing blurred orbs for radiant atmospheric depth
                         Box(
                             modifier = Modifier
                                 .size(360.dp)
@@ -423,7 +402,6 @@ fun YearlyPlaybackScreen(
                     val isInteractiveSlide = s.block is Block.SavePlaylist || s.block is Block.OpenInsights
 
                     if (!isInteractiveSlide) {
-                        // Content Layer (Middle) - Full uncropped vector animation with true edge alpha feathering
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -457,8 +435,6 @@ fun YearlyPlaybackScreen(
                             }
                         }
 
-                        // Story Gesture Overlay on TOP of Rive animation with full bounds
-                        // Press & Hold (>400ms) pauses animation and audio; release resumes
                         StoryGestureOverlay(
                             onPrevious = { viewModel.previousBlock() },
                             onNext = { viewModel.nextBlock() },
@@ -473,7 +449,6 @@ fun YearlyPlaybackScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        // Gesture overlay in background for sides navigation and hold-to-pause
                         StoryGestureOverlay(
                             onPrevious = { viewModel.previousBlock() },
                             onNext = { viewModel.nextBlock() },
@@ -488,7 +463,6 @@ fun YearlyPlaybackScreen(
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // Interactive Content Layer in Foreground (Buttons, Clickable Artwork)
                         Box(modifier = Modifier.fillMaxSize()) {
                             when (val block = s.block) {
                                 is Block.SavePlaylist -> SavePlaylistSlide(
@@ -505,7 +479,6 @@ fun YearlyPlaybackScreen(
                         }
                     }
 
-                    // Header Layer (Top: StepIndicator + TopBanner) overlaid on top of content
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()

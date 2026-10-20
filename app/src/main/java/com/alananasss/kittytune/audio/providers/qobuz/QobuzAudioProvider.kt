@@ -16,6 +16,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 object QobuzAudioProvider {
     const val DEFAULT_INSTANCE = "https://qobuz-dll.vercel.app/"
@@ -77,7 +78,7 @@ object QobuzAudioProvider {
         val captchaRequired: Boolean = false,
     )
 
-    private val client = OkHttpClient.Builder()
+    private val client = ZapretManager.newBuilder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(25, TimeUnit.SECONDS)
         .build()

@@ -81,6 +81,13 @@ interface SoundCloudApi {
         @Query("linked_partitioning") linkedPartitioning: Int = 1
     ): MixedSelectionsResponse
 
+    @GET("https://api-mobile.soundcloud.com/home/query")
+    suspend fun getHomeQuery(
+        @Query("q") q: String = "home",
+        @Query("layout") layout: String = "soundcloud:layouts:home",
+        @Query("version") version: String = "v10"
+    ): com.google.gson.JsonObject
+
     @GET("activities")
     suspend fun getActivities(
         @Query("limit") limit: Int = 20,

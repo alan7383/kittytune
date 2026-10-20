@@ -3,12 +3,17 @@ package com.alananasss.kittytune.ui.navigation
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.shape.CircleShape
@@ -181,7 +186,15 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
-                        com.alananasss.kittytune.ui.profile.ConnectButton()
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val showBottomBarDevices = remember {
+                            com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonBottomBar()
+                        }
+                        if (showBottomBarDevices) {
+                            com.alananasss.kittytune.ui.profile.ConnectButton(
+                                onClick = { playerViewModel.showConnectSheet = true }
+                            )
+                        }
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -312,7 +325,15 @@ fun KittyUnifiedBottomBar(
                             )
                         }
 
-                        com.alananasss.kittytune.ui.profile.ConnectButton()
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val showBottomBarDevices = remember {
+                            com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonBottomBar()
+                        }
+                        if (showBottomBarDevices) {
+                            com.alananasss.kittytune.ui.profile.ConnectButton(
+                                onClick = { playerViewModel.showConnectSheet = true }
+                            )
+                        }
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
                                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -387,25 +408,65 @@ fun KittyUnifiedBottomBar(
                                     val isSelected = selectedRoute == tab.route
 
                                     val shape = CircleShape
+                                    // AyuGram createMaterial3ColorSpring: dampingRatio 1.0f, stiffness 1600f
                                     val containerColor by animateColorAsState(
                                         targetValue = if (isSelected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+                                        animationSpec = spring(dampingRatio = 1.0f, stiffness = 1600f),
                                         label = "containerColor"
                                     )
                                     val contentColor by animateColorAsState(
                                         targetValue = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        animationSpec = spring(dampingRatio = 1.0f, stiffness = 1600f),
                                         label = "contentColor"
+                                    )
+
+                                    // AyuGram ButtonBounce: 60ms cubic press down to ~0.92, overshoot spring release
+                                    val tabInteractionSource = remember { MutableInteractionSource() }
+                                    val isPressed by tabInteractionSource.collectIsPressedAsState()
+                                    val tabBounceScale = remember { Animatable(1f) }
+
+                                    LaunchedEffect(isPressed) {
+                                        if (isPressed) {
+                                            tabBounceScale.animateTo(
+                                                targetValue = 0.92f,
+                                                animationSpec = tween(durationMillis = 60, easing = FastOutSlowInEasing)
+                                            )
+                                        } else {
+                                            tabBounceScale.animateTo(
+                                                targetValue = 1f,
+                                                animationSpec = spring(
+                                                    dampingRatio = 0.55f,
+                                                    stiffness = 450f
+                                                )
+                                            )
+                                        }
+                                    }
+
+                                    val iconScale by animateFloatAsState(
+                                        targetValue = if (isSelected) 1.05f else 1.0f,
+                                        animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+                                        label = "iconScale"
                                     )
 
                                     Row(
                                         modifier = Modifier
+                                            .graphicsLayer {
+                                                scaleX = tabBounceScale.value
+                                                scaleY = tabBounceScale.value
+                                            }
                                             .clip(shape)
                                             .background(color = containerColor, shape = shape)
-                                            .clickable(onClick = { onTabSelected(tab) })
+                                            .clickable(
+                                                interactionSource = tabInteractionSource,
+                                                indication = null,
+                                                onClick = { onTabSelected(tab) }
+                                            )
                                             .padding(
                                                 horizontal = if (isSelected) selectedTabHorizontalPadding else tabHorizontalPadding,
                                                 vertical = 10.dp
                                             )
-                                            .animateContentSize(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)),
+                                            // AyuGram createMaterial3IndicatorSizeSpring: dampingRatio 0.8f, stiffness 380f
+                                            .animateContentSize(animationSpec = spring(dampingRatio = 0.8f, stiffness = 380f)),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.Center
                                     ) {
@@ -413,7 +474,12 @@ fun KittyUnifiedBottomBar(
                                             imageVector = tab.icon,
                                             contentDescription = tab.title,
                                             tint = contentColor,
-                                            modifier = Modifier.size(24.dp)
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .graphicsLayer {
+                                                    scaleX = iconScale
+                                                    scaleY = iconScale
+                                                }
                                         )
 
                                         if (isSelected) {

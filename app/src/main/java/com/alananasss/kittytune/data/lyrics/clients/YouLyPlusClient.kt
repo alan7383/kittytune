@@ -16,6 +16,7 @@ import com.alananasss.kittytune.data.lyrics.models.YouLyPlusLine
 import com.alananasss.kittytune.data.lyrics.models.YouLyPlusLyricsResponse
 import com.alananasss.kittytune.data.lyrics.models.YouLyPlusTtmlResponse
 import java.util.Locale
+import com.alananasss.kittytune.data.zapret.withDpiBypass
 
 object YouLyPlusClient {
     private const val TTML_PATH = "v1/ttml/get"
@@ -40,6 +41,7 @@ object YouLyPlusClient {
 
     private val client by lazy {
         HttpClient(OkHttp) {
+            withDpiBypass()
             install(HttpTimeout) {
                 requestTimeoutMillis = 20000
                 connectTimeoutMillis = 15000

@@ -16,7 +16,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Comment
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.OpenInFull
@@ -69,6 +71,7 @@ fun BottomToggleRow(
     onSleepTimerClick: () -> Unit = {},
     onHapticsToggle: () -> Unit = {},
     onMoreClick: () -> Unit = {},
+    onDevicesClick: () -> Unit = {},
     activeColorMain: Color = MaterialTheme.colorScheme.primary,
     activeColorSecondary: Color = MaterialTheme.colorScheme.secondary,
     activeColorTertiary: Color = MaterialTheme.colorScheme.tertiary,
@@ -309,6 +312,21 @@ fun BottomToggleRow(
                             onClick = onMoreClick,
                             iconVector = Icons.Rounded.MoreVert,
                             contentDesc = "More"
+                        )
+                    }
+                    PlayerActionButtonSlot.DEVICES -> {
+                        val isConnected = com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null
+                        ToggleSegmentButton(
+                            modifier = commonModifier,
+                            active = isConnected,
+                            activeColor = activeBg,
+                            activeCornerRadius = rowCorners,
+                            activeContentColor = activeContent,
+                            inactiveColor = inactiveColor,
+                            inactiveContentColor = inactiveContentColor,
+                            onClick = onDevicesClick,
+                            iconVector = if (isConnected) Icons.Rounded.CastConnected else Icons.Rounded.Devices,
+                            contentDesc = "Devices"
                         )
                     }
                     PlayerActionButtonSlot.NONE -> {}

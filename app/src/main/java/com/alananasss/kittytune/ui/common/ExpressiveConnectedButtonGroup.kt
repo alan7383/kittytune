@@ -31,6 +31,7 @@ fun <T> ExpressiveConnectedButtonGroup(
     selectedOption: T?,
     onOptionSelected: (T) -> Unit,
     modifier: Modifier = Modifier,
+    fillMaxWidth: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
     iconSpacing: Dp = 4.dp,
     checkedContainerColor: Color = MaterialTheme.colorScheme.primary,
@@ -42,13 +43,17 @@ fun <T> ExpressiveConnectedButtonGroup(
     iconProvider: (@Composable (T) -> Unit)? = null
 ) {
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val rowModifier = if (fillMaxWidth) {
+        modifier.fillMaxWidth().padding(vertical = 4.dp)
+    } else {
+        modifier.padding(vertical = 4.dp)
+    }
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = rowModifier,
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         options.forEachIndexed { index, option ->
+            val buttonModifier = if (fillMaxWidth) Modifier.weight(1f) else Modifier
             val isChecked = selectedOption != null && selectedOption == option
             val containerColor by animateColorAsState(
                 targetValue = if (isChecked) checkedContainerColor else uncheckedContainerColor,
@@ -67,7 +72,7 @@ fun <T> ExpressiveConnectedButtonGroup(
                     haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                     onOptionSelected(option)
                 },
-                modifier = Modifier.weight(1f),
+                modifier = buttonModifier,
                 contentPadding = contentPadding,
                 border = border,
                 colors = ToggleButtonDefaults.colors(

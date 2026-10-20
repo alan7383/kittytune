@@ -11,6 +11,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import com.alananasss.kittytune.data.zapret.ZapretManager
 
 /**
  * Fetches Apple Music animated canvas (motion cover) URLs via Apple Music AMP API.
@@ -49,12 +50,12 @@ object AppleMusicCanvasProvider {
     @Volatile private var cachedToken: String? = null
     @Volatile private var tokenFetchedAt: Long = 0L
 
-    private val http = OkHttpClient.Builder()
+    private val http = ZapretManager.newBuilder()
         .connectTimeout(6, TimeUnit.SECONDS)
         .readTimeout(8, TimeUnit.SECONDS)
         .build()
 
-    private val tokenHttp = OkHttpClient.Builder()
+    private val tokenHttp = ZapretManager.newBuilder()
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()

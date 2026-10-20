@@ -37,6 +37,7 @@ object MenuTiles {
         Tile("share_card", R.string.share_card_title),
         Tile("remove_from_playlist", R.string.menu_remove),
         Tile("sleep_timer", R.string.sleep_timer_title),
+        Tile("devices", R.string.menu_playback_devices),
         Tile("trim", R.string.trim_title),
         Tile("dj_flow", R.string.dj_flow_title),
         Tile("block_track", R.string.menu_block_track),
@@ -100,6 +101,7 @@ object MenuTiles {
         "share" -> Icons.Rounded.Share
         "remove_from_playlist" -> Icons.Rounded.DeleteOutline
         "sleep_timer" -> Icons.Rounded.Bedtime
+        "devices" -> Icons.Rounded.Devices
         "trim" -> Icons.Rounded.ContentCut
         "download" -> Icons.Rounded.Download
         "share_card" -> Icons.Outlined.PhotoLibrary

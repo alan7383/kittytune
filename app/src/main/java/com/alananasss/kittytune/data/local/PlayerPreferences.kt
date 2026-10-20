@@ -143,6 +143,7 @@ enum class PlayerActionButtonSlot(@StringRes val titleRes: Int) {
     SLEEP_TIMER(R.string.slot_sleep_timer),
     HAPTICS(R.string.slot_haptics),
     MORE(R.string.slot_more),
+    DEVICES(R.string.slot_devices),
     NONE(R.string.slot_none)
 }
 
@@ -270,6 +271,9 @@ class PlayerPreferences(context: Context) {
         const val KEY_MIX_PRIORITIZE_TRUSTED = "mix_prioritize_trusted"
         const val KEY_SHOW_HOME_LISTENING_STATS = "show_home_listening_stats"
         const val KEY_SHOW_HOME_YOUR_MIX = "show_home_your_mix"
+        const val KEY_SHOW_DEVICES_BUTTON_TOP_BAR = "show_devices_button_top_bar"
+        const val KEY_SHOW_DEVICES_BUTTON_MINI_PLAYER = "show_devices_button_mini_player"
+        const val KEY_SHOW_DEVICES_BUTTON_BOTTOM_BAR = "show_devices_button_bottom_bar"
 
         const val PLAYER_BAR_BUTTON_LIKE = "like"
         const val PLAYER_BAR_BUTTON_LYRICS = "lyrics"
@@ -452,6 +456,12 @@ class PlayerPreferences(context: Context) {
         const val KEY_PROXY_PASSWORD = "proxy_password"
         const val KEY_PROXY_PROFILES = "saved_proxy_profiles_json"
         const val KEY_SELECTED_PROXY_PROFILE_ID = "selected_proxy_profile_id"
+
+        // Zapret: in-app DPI bypass (no folder, no VPN, no proxy)
+        const val KEY_ZAPRET_ENABLED = "zapret_enabled"
+        const val KEY_ZAPRET_STRATEGY = "zapret_strategy"
+        const val KEY_ZAPRET_DOMAINS = "zapret_domains_csv"
+        const val KEY_ZAPRET_AUTO_CHECKED = "zapret_auto_checked"
 
         const val SLEEP_TIMER_FADE_DURATION_MIN = 0
         const val SLEEP_TIMER_FADE_DURATION_MAX = 30
@@ -1799,6 +1809,36 @@ class PlayerPreferences(context: Context) {
         }
     }
 
+    // Zapret: in-app DPI bypass (no folder, no VPN, no proxy)
+    fun getZapretEnabled(): Boolean = prefs.getBoolean(KEY_ZAPRET_ENABLED, false)
+
+    fun setZapretEnabled(enabled: Boolean) {
+        prefs.edit { putBoolean(KEY_ZAPRET_ENABLED, enabled) }
+    }
+
+    fun getZapretStrategy(): String =
+        prefs.getString(KEY_ZAPRET_STRATEGY, "split2") ?: "split2"
+
+    fun setZapretStrategy(strategyId: String) {
+        prefs.edit { putString(KEY_ZAPRET_STRATEGY, strategyId) }
+    }
+
+    fun getZapretDomains(): Set<String> {
+        val raw = prefs.getString(KEY_ZAPRET_DOMAINS, "") ?: ""
+        if (raw.isBlank()) return emptySet()
+        return raw.split(",", ";", "\n").map { it.trim().lowercase() }.filter { it.isNotBlank() }.toSet()
+    }
+
+    fun setZapretDomains(domains: Set<String>) {
+        prefs.edit { putString(KEY_ZAPRET_DOMAINS, domains.sorted().joinToString(",")) }
+    }
+
+    fun getZapretAutoChecked(): Boolean = prefs.getBoolean(KEY_ZAPRET_AUTO_CHECKED, false)
+
+    fun setZapretAutoChecked(checked: Boolean) {
+        prefs.edit { putBoolean(KEY_ZAPRET_AUTO_CHECKED, checked) }
+    }
+
     fun getLikedSpotifyArtists(): Set<String> {
         return prefs.getStringSet("liked_spotify_artists", emptySet()) ?: emptySet()
     }
@@ -2116,6 +2156,15 @@ class PlayerPreferences(context: Context) {
     fun setLastUsedPlaylistTitle(title: String?) {
         prefs.edit { putString(KEY_LAST_USED_PLAYLIST_TITLE, title) }
     }
+
+    fun getShowDevicesButtonTopBar(): Boolean = prefs.getBoolean(KEY_SHOW_DEVICES_BUTTON_TOP_BAR, true)
+    fun setShowDevicesButtonTopBar(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_DEVICES_BUTTON_TOP_BAR, enabled) }
+
+    fun getShowDevicesButtonMiniPlayer(): Boolean = prefs.getBoolean(KEY_SHOW_DEVICES_BUTTON_MINI_PLAYER, false)
+    fun setShowDevicesButtonMiniPlayer(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_DEVICES_BUTTON_MINI_PLAYER, enabled) }
+
+    fun getShowDevicesButtonBottomBar(): Boolean = prefs.getBoolean(KEY_SHOW_DEVICES_BUTTON_BOTTOM_BAR, false)
+    fun setShowDevicesButtonBottomBar(enabled: Boolean) = prefs.edit { putBoolean(KEY_SHOW_DEVICES_BUTTON_BOTTOM_BAR, enabled) }
 
     // ─── Settings search history ──────────────────────────────────────────────
 

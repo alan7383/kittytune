@@ -31,7 +31,7 @@ extensions.configure<ApplicationExtension> {
         // data survives. The offset exceeds all legacy sequential codes (54)
         // and early beta-scheme codes, making this a one-way jump.
         versionCode = (System.currentTimeMillis() / 60000).toInt() + 10_000_000
-        versionName = "2.68.0"
+        versionName = "2.69.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -82,7 +82,8 @@ extensions.configure<ApplicationExtension> {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             val releaseSigning = signingConfigs.getByName("release")
             if (releaseSigning.storeFile?.exists() == true) {
                 signingConfig = releaseSigning
@@ -181,8 +182,8 @@ dependencies {
     implementation(libs.lottie.compose)
     implementation(libs.zxing.core)
 
-    // AI music detector — on-device ONNX inference (ArtifactNet, ~17.2 MB on-demand)
-    implementation(libs.onnxruntime)
+    // AI music detector — on-device LiteRT inference (ArtifactNet TFLite, ~17.4 MB on-demand)
+    implementation(libs.litert)
 
     // Scanning the desktop's pairing QR. zxing above already does the decoding; these are only
     // the camera frames to hand it (issue #33).
