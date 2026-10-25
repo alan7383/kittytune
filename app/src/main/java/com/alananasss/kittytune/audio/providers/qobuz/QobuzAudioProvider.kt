@@ -30,6 +30,13 @@ object QobuzAudioProvider {
     private const val MIN_FULL_LOSSLESS_BITRATE_BPS = 400_000
     private const val REJECT_SCORE = -1_000_000
 
+    private const val CATALOG_API_BASE = "https://www.qobuz.com/api.json/0.2"
+    private const val CATALOG_APP_ID = "712109809"
+    private const val WEB_APP_ID = "798273057"
+    private const val WEB_APP_SECRET = "abb21364945c0583309667d13ca3d93a"
+    private const val OFFICIAL_APP_ID = "312369995"
+    private const val OFFICIAL_APP_SECRET = "e79f8b9be485692b0e5f9dd895826368"
+
     data class Query(
         val mediaId: String,
         val title: String,
@@ -40,6 +47,8 @@ object QobuzAudioProvider {
         val countryCode: String = "US",
         val qualityCode: Int = 27,
         val customInstances: String? = null,
+        val userAuthToken: String? = null,
+        val allowPreview: Boolean = false,
     )
 
     data class Resolved(
@@ -131,13 +140,32 @@ object QobuzAudioProvider {
 
         var lastError: String? = null
         for (quality in buildQualityFallbackOrder(query.qualityCode)) {
+            if (!query.userAuthToken.isNullOrBlank()) {
+                val officialAttempt = requestOfficialStream(
+                    track = track,
+                    qualityCode = quality,
+                    userAuthToken = query.userAuthToken,
+                    durationMs = query.durationMs,
+                    allowPreview = query.allowPreview,
+                )
+                officialAttempt.resolved?.let { resolved ->
+                    streamCache[streamCacheKey] = resolved
+                    return resolved
+                }
+                if (!officialAttempt.error.isNullOrBlank()) {
+                    lastError = officialAttempt.error
+                }
+            }
+
             val attempt = requestRacedStream(track, quality, query)
             attempt.resolved?.let { resolved ->
                 streamCache[streamCacheKey] = resolved
                 return resolved
             }
             if (!attempt.error.isNullOrBlank()) {
-                lastError = attempt.error
+                if (lastError?.contains("sample preview") != true) {
+                    lastError = attempt.error
+                }
             }
         }
 
@@ -179,8 +207,10 @@ object QobuzAudioProvider {
     private fun raceSearchTracks(
         term: String,
         query: Query,
-    ): JSONArray? =
-        raceFirstNotNull(
+    ): JSONArray? {
+        val official = searchOfficialTracks(term, query.countryCode, query.userAuthToken)
+        if (official != null && official.length() > 0) return official
+        return raceFirstNotNull(
             resolverInstanceBases(query.customInstances).map { baseUrl ->
                 {
                     searchTracks(term, query.countryCode, baseUrl)
@@ -188,12 +218,16 @@ object QobuzAudioProvider {
                 }
             },
         )
+    }
 
     private fun raceBestTrack(
         term: String,
         query: Query,
-    ): MatchedTrack? =
-        raceFirstNotNull(
+    ): MatchedTrack? {
+        searchOfficialTracks(term, query.countryCode, query.userAuthToken)
+            ?.let { selectBestTrack(it, query) }
+            ?.let { return it }
+        return raceFirstNotNull(
             resolverInstanceBases(query.customInstances).map { baseUrl ->
                 {
                     searchTracks(term, query.countryCode, baseUrl)
@@ -201,6 +235,175 @@ object QobuzAudioProvider {
                 }
             },
         )
+    }
+
+    private fun searchOfficialTracks(
+        term: String,
+        countryCode: String,
+        userAuthToken: String? = null,
+    ): JSONArray? {
+        val url = "$CATALOG_API_BASE/track/search".toHttpUrlOrNull()
+            ?.newBuilder()
+            ?.addQueryParameter("query", term)
+            ?.addQueryParameter("limit", "20")
+            ?.addQueryParameter("app_id", CATALOG_APP_ID)
+            ?.apply {
+                if (!userAuthToken.isNullOrBlank()) {
+                    addQueryParameter("user_auth_token", userAuthToken)
+                }
+            }
+            ?.build()
+            ?: return null
+
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .header("Accept", "application/json")
+            .header("User-Agent", BROWSER_USER_AGENT)
+            .apply {
+                if (!userAuthToken.isNullOrBlank()) {
+                    header("X-User-Auth-Token", userAuthToken)
+                }
+            }
+            .build()
+
+        return runCatching {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return@use null
+                val payload = response.body?.string()?.takeIf { it.isNotBlank() } ?: return@use null
+                val root = JSONObject(payload)
+                root.optJSONObject("tracks")?.optJSONArray("items")
+            }
+        }.getOrNull()
+    }
+
+    private fun md5(value: String): String {
+        val digest = java.security.MessageDigest.getInstance("MD5")
+            .digest(value.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun requestOfficialStream(
+        track: MatchedTrack,
+        qualityCode: Int,
+        userAuthToken: String?,
+        durationMs: Long?,
+        allowPreview: Boolean,
+    ): StreamAttempt {
+        if (userAuthToken.isNullOrBlank()) {
+            return StreamAttempt(error = "No Qobuz user auth token")
+        }
+
+        val webAttempt = requestOfficialStreamWithApp(
+            appId = WEB_APP_ID,
+            appSecret = WEB_APP_SECRET,
+            track = track,
+            qualityCode = qualityCode,
+            userAuthToken = userAuthToken,
+            durationMs = durationMs,
+            useBearer = false,
+            allowPreview = allowPreview,
+        )
+        if (webAttempt.resolved != null) return webAttempt
+
+        return requestOfficialStreamWithApp(
+            appId = OFFICIAL_APP_ID,
+            appSecret = OFFICIAL_APP_SECRET,
+            track = track,
+            qualityCode = qualityCode,
+            userAuthToken = userAuthToken,
+            durationMs = durationMs,
+            useBearer = true,
+            allowPreview = allowPreview,
+        )
+    }
+
+    private fun requestOfficialStreamWithApp(
+        appId: String,
+        appSecret: String,
+        track: MatchedTrack,
+        qualityCode: Int,
+        userAuthToken: String,
+        durationMs: Long?,
+        useBearer: Boolean,
+        allowPreview: Boolean,
+    ): StreamAttempt {
+        val ts = System.currentTimeMillis() / 1000
+        val payload = "trackgetFileUrlformat_id${qualityCode}intentstreamtrack_id${track.trackId}${ts}${appSecret}"
+        val sig = md5(payload)
+
+        val url = "$CATALOG_API_BASE/track/getFileUrl".toHttpUrlOrNull()
+            ?.newBuilder()
+            ?.addQueryParameter("format_id", qualityCode.toString())
+            ?.addQueryParameter("intent", "stream")
+            ?.addQueryParameter("track_id", track.trackId)
+            ?.addQueryParameter("app_id", appId)
+            ?.addQueryParameter("request_ts", ts.toString())
+            ?.addQueryParameter("request_sig", sig)
+            ?.addQueryParameter("user_auth_token", userAuthToken)
+            ?.build()
+            ?: return StreamAttempt(error = "Could not build official stream URL")
+
+        val reqBuilder = Request.Builder()
+            .url(url)
+            .get()
+            .header("Accept", "application/json")
+            .header("User-Agent", BROWSER_USER_AGENT)
+            .header("X-User-Auth-Token", userAuthToken)
+
+        if (useBearer) {
+            reqBuilder.header("Authorization", "Bearer $userAuthToken")
+        }
+
+        return runCatching {
+            client.newCall(reqBuilder.build()).execute().use { response ->
+                val bodyStr = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val json = runCatching { JSONObject(bodyStr) }.getOrNull()
+                    val msg = json?.optString("message") ?: "HTTP ${response.code}"
+                    return@use StreamAttempt(error = "Official API rejected quality $qualityCode: $msg")
+                }
+                val data = JSONObject(bodyStr)
+                val streamUrl = data.optString("url").takeIf { it.isNotBlank() }
+                    ?: return@use StreamAttempt(error = "Official API did not return stream URL")
+
+                val effectiveDurationMs = durationMs ?: track.durationMs
+                val sampleDurationSec = data.optInt("duration", 0)
+                val isSample = data.optBoolean("sample", false) ||
+                    streamUrl.contains("range=") ||
+                    (sampleDurationSec in 1..45 && ((effectiveDurationMs ?: 0L) > 45_000L || sampleDurationSec in 1..30))
+
+                if (isSample && !allowPreview) {
+                    return@use StreamAttempt(error = "Qobuz stream is only a 30s sample preview (account is free)")
+                }
+
+                val actualQualityCode = data.optInt("format_id", qualityCode)
+                val bitDepth = data.optInt("bit_depth").takeIf { it > 0 } ?: track.bitDepth
+                val samplingRate = data.optDouble("sampling_rate").takeIf { !it.isNaN() && it > 0.0 } ?: track.samplingRateKhz
+                val mimeType = data.optString("mime_type").ifBlank {
+                    if (actualQualityCode == 5) "audio/mpeg" else "audio/flac"
+                }
+                val losslessBitrate = estimateStreamBitrateFromContentLength(streamUrl, effectiveDurationMs)
+                val hires = track.hires || (bitDepth ?: 0) > 16 || (samplingRate ?: 0.0) > 44.1 || actualQualityCode >= 7
+                val format = formatFrom(
+                    mimeType = mimeType,
+                    bitDepth = bitDepth,
+                    samplingRateKhz = samplingRate,
+                    bitrate = null,
+                    losslessBitrate = losslessBitrate,
+                    hires = hires,
+                )
+                StreamAttempt(
+                    resolved = format.toResolved(
+                        url = streamUrl,
+                        trackId = track.trackId,
+                    )
+                )
+            }
+        }.getOrElse { error ->
+            StreamAttempt(error = "Official request failed: ${error.message ?: error.javaClass.simpleName}")
+        }
+    }
 
     private fun requestRacedStream(
         track: MatchedTrack,
@@ -216,6 +419,7 @@ object QobuzAudioProvider {
                         track = track,
                         qualityCode = qualityCode,
                         durationMs = query.durationMs,
+                        allowPreview = query.allowPreview,
                     ).also { attempt ->
                         if (attempt.resolved == null && !attempt.error.isNullOrBlank()) {
                             errors.add(attempt.error)
@@ -410,6 +614,7 @@ object QobuzAudioProvider {
         track: MatchedTrack,
         qualityCode: Int,
         durationMs: Long?,
+        allowPreview: Boolean,
     ): StreamAttempt {
         val url = "$baseUrl/api/download-music".toHttpUrlOrNull()
             ?.newBuilder()
@@ -450,6 +655,16 @@ object QobuzAudioProvider {
                 val streamUrl = data?.stringOrNull("url")
                     ?: root.stringOrNull("url")
                     ?: return@use StreamAttempt(error = "Kenny did not return a stream URL for quality $qualityCode")
+                val effectiveDurationMs = durationMs ?: track.durationMs
+                val sampleDurationSec = data?.optInt("duration", 0) ?: root.optInt("duration", 0)
+                val isSample = data?.optBoolean("sample", false) == true ||
+                    root.optBoolean("sample", false) ||
+                    streamUrl.contains("range=") ||
+                    (sampleDurationSec in 1..45 && ((effectiveDurationMs ?: 0L) > 45_000L || sampleDurationSec in 1..30))
+
+                if (isSample && !allowPreview) {
+                    return@use StreamAttempt(error = "Qobuz stream is only a 30s sample preview")
+                }
                 val actualQualityCode = data?.intOrNull("format_id")
                     ?: root.intOrNull("format_id")
                     ?: streamFormatId(streamUrl)
@@ -460,7 +675,6 @@ object QobuzAudioProvider {
                     ?: if (actualQualityCode == 5) "audio/mpeg" else "audio/flac"
                 val lossyBitrate = data?.intOrNull("bitrate")
                     ?: data?.intOrNull("bit_rate")
-                val effectiveDurationMs = durationMs ?: track.durationMs
                 val losslessBitrate = estimateStreamBitrateFromContentLength(streamUrl, effectiveDurationMs)
                     ?: normalizeBitrate(data?.intOrNull("average_bitrate")).takeIf { it > 0 }
                 val hires = track.hires || (bitDepth ?: 0) > 16 || (samplingRate ?: 0.0) > 44.1 || actualQualityCode >= 7
@@ -693,6 +907,7 @@ object QobuzAudioProvider {
             trackCacheKey(),
             resolverRegion,
             qualityCode.toString(),
+            allowPreview.toString(),
         ).joinToString("::")
     }
 
