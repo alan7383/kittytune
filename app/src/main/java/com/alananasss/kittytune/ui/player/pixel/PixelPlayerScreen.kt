@@ -78,6 +78,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.pointerInput
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.ui.player.playerDismissGesture
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -113,6 +114,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.PlayerSliderStyle
@@ -461,7 +465,10 @@ fun PixelPlayerScreen(
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = mainTextColor,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 18.dp, end = 6.dp),
                     maxLines = 1,
                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
@@ -471,16 +478,6 @@ fun PixelPlayerScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    val showTopBarDevices = remember {
-                        com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonTopBar()
-                    }
-                    if (showTopBarDevices) {
-                        com.alananasss.kittytune.ui.profile.ConnectButton(
-                            tint = topBarBtnTint,
-                            onClick = { viewModel.showConnectSheet = true }
-                        )
-                    }
                     // Lyrics Squircle
                     Box(
                         modifier = Modifier
@@ -499,7 +496,7 @@ fun PixelPlayerScreen(
                                     viewModel.showInlineLyrics = !viewModel.showInlineLyrics
                                 },
                                 onLongClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                                     viewModel.openLyrics(forceSheet = true)
                                 }
                             ),
@@ -525,7 +522,7 @@ fun PixelPlayerScreen(
                                 )
                             )
                             .background(topBarBtnBg)
-                            .clickable { showQueueSheet = true },
+                            .hapticClickable { showQueueSheet = true },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -628,7 +625,7 @@ fun PixelPlayerScreen(
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clickable {
+                                    .hapticClickable {
                                         viewModel.showInlineLyrics = !viewModel.showInlineLyrics
                                     }
                             )
@@ -670,7 +667,7 @@ fun PixelPlayerScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { viewModel.navigateToTrackDetails(track.id, 0) }
+                        .hapticClickable { viewModel.navigateToTrackDetails(track.id, 0) }
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 )
 
@@ -680,33 +677,47 @@ fun PixelPlayerScreen(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable { viewModel.navigateToTrackArtist(track) }
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
-                    Text(
-                        text = track.displayArtist.ifBlank {
-                            track.user?.username ?: stringResource(R.string.unknown_artist)
-                        },
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = GoogleSansRounded,
-                            color = subTextColor
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Center
-                    )
-                    val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
-                    if (isAnyVerified) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Rounded.Verified,
-                            contentDescription = "Verified",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clip(RoundedCornerShape(8.dp))
+                            .hapticClickable { viewModel.navigateToTrackArtist(track) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = track.displayArtist.ifBlank {
+                                track.user?.username ?: stringResource(R.string.unknown_artist)
+                            },
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontFamily = GoogleSansRounded,
+                                color = subTextColor
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
+                        val isAnyVerified = track.user?.verified == true || track.artists?.any { it.verified } == true
+                        if (isAnyVerified) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Verified,
+                                contentDescription = stringResource(R.string.user_type_verified_artist),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
+                    val aiResult by com.alananasss.kittytune.audio.ai.AiDetectionManager.result.collectAsState()
+                    com.alananasss.kittytune.ui.player.ai.AiDetectionBadge(
+                        result = aiResult,
+                        textColor = mainTextColor,
+                        onClick = hapticAction(HapticKind.LIGHT) { viewModel.showAiDetectionSheet = true },
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
                     com.alananasss.kittytune.ui.common.TrackSourceBadge(
                         track = track,
                         resolvedSource = viewModel.currentStreamSource,
@@ -717,15 +728,18 @@ fun PixelPlayerScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Expressive Wavy Slider
-                val totalDuration = if (viewModel.uiDuration > 1000) {
+                val clip = viewModel.uiClipWindow
+                val shownOf = { songMs: Long -> clip?.toShown(songMs) ?: songMs }
+                val songOf = { shownMs: Long -> clip?.toSong(shownMs) ?: shownMs }
+                val totalDuration = (clip?.lengthMs ?: (if (viewModel.uiDuration > 1000) {
                     viewModel.uiDuration
                 } else {
                     track.actualDurationMs.takeIf { it > 1000 } ?: 180000L
-                }
+                })).coerceAtLeast(1L)
 
                 val (smoothProgressState, _) = rememberSmoothProgress(
                     isPlayingProvider = { viewModel.uiIsPlaying },
-                    currentPositionProvider = { viewModel.uiCurrentPosition },
+                    currentPositionProvider = { shownOf(viewModel.uiCurrentPosition) },
                     totalDuration = totalDuration,
                     trackId = track.id
                 )
@@ -788,7 +802,7 @@ fun PixelPlayerScreen(
                                 val targetMs = (finalFraction * totalDuration).roundToLong()
                                 targetSeekFraction = finalFraction
                                 lastSeekFinishedTime = System.currentTimeMillis()
-                                viewModel.seekTo(targetMs)
+                                viewModel.seekTo(songOf(targetMs))
                                 sliderDragValue = null
                             },
                             onValueChangeFinished = {
@@ -796,7 +810,7 @@ fun PixelPlayerScreen(
                                     val targetMs = (finalFraction * totalDuration).roundToLong()
                                     targetSeekFraction = finalFraction
                                     lastSeekFinishedTime = System.currentTimeMillis()
-                                    viewModel.seekTo(targetMs)
+                                    viewModel.seekTo(songOf(targetMs))
                                     sliderDragValue = null
                                 }
                             },
@@ -821,7 +835,7 @@ fun PixelPlayerScreen(
                                     val targetMs = (finalFraction * totalDuration).roundToLong()
                                     targetSeekFraction = finalFraction
                                     lastSeekFinishedTime = System.currentTimeMillis()
-                                    viewModel.seekTo(targetMs)
+                                    viewModel.seekTo(songOf(targetMs))
                                     sliderDragValue = null
                                 }
                             },
@@ -865,7 +879,7 @@ fun PixelPlayerScreen(
                                     val targetMs = (finalFraction * totalDuration).roundToLong()
                                     targetSeekFraction = finalFraction
                                     lastSeekFinishedTime = System.currentTimeMillis()
-                                    viewModel.seekTo(targetMs)
+                                    viewModel.seekTo(songOf(targetMs))
                                     sliderDragValue = null
                                 }
                             },
@@ -896,7 +910,7 @@ fun PixelPlayerScreen(
                                     val targetMs = (finalFraction * totalDuration).roundToLong()
                                     targetSeekFraction = finalFraction
                                     lastSeekFinishedTime = System.currentTimeMillis()
-                                    viewModel.seekTo(targetMs)
+                                    viewModel.seekTo(songOf(targetMs))
                                     sliderDragValue = null
                                 }
                             },
@@ -931,7 +945,7 @@ fun PixelPlayerScreen(
                         ),
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .clickable { prefs.setShowRemainingTime(!showRemaining) }
+                            .hapticClickable { prefs.setShowRemainingTime(!showRemaining) }
                             .padding(horizontal = 8.dp, vertical = 8.dp)
                     )
                 }
@@ -979,6 +993,7 @@ fun PixelPlayerScreen(
                     isFullscreenLyricsActive = viewModel.showLyricsSheet,
                     isSleepTimerActive = viewModel.isSleepTimerActive,
                     isHapticsActive = viewModel.isHapticsEnabled,
+                    isConnectActive = com.alananasss.kittytune.data.sync.ConnectManager.selectedDevice.value != null,
                     onShuffleToggle = { viewModel.toggleShuffle() },
                     onRepeatToggle = { viewModel.toggleRepeatMode() },
                     onFavoriteToggle = { viewModel.toggleLike() },
@@ -988,11 +1003,11 @@ fun PixelPlayerScreen(
                     onFullscreenLyricsClick = { viewModel.openLyrics(forceSheet = true) },
                     onShareClick = { viewModel.uiCurrentTrack?.let { viewModel.openShareCard(it) } },
                     onCommentsClick = {
-                        viewModel.selectedTrackForSheet = viewModel.uiCurrentTrack
-                        viewModel.showCommentsSheet = true
+                        viewModel.openComments(viewModel.uiCurrentTrack)
                     },
                     onSleepTimerClick = { viewModel.showSleepTimerDialog = true },
                     onHapticsToggle = { viewModel.toggleHaptics() },
+                    onConnectClick = { viewModel.showConnectSheet = true },
                     onMoreClick = { viewModel.uiCurrentTrack?.let { viewModel.showTrackOptions(it, fromPlayer = true) } },
                     onDevicesClick = { viewModel.showConnectSheet = true },
                     activeColorMain = colorScheme.primary,

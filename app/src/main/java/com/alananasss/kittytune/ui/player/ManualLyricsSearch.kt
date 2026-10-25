@@ -1,5 +1,7 @@
 package com.alananasss.kittytune.ui.player
 
+import android.content.Context
+import com.alananasss.kittytune.data.DataSaver
 import com.alananasss.kittytune.data.LyricsMatcher
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.lyrics.clients.SimpMusicClient
@@ -29,10 +31,27 @@ object ManualLyricsSearch {
     const val PROVIDER_TIMEOUT_MS = 10_000L
 
     /** The sources to ask for [selection]: one source by name, or every enabled one, in the user's order. */
-    fun providersFor(selection: String, prefs: PlayerPreferences): List<PreferredLyricsProvider> {
+    fun providersFor(
+        selection: String,
+        prefs: PlayerPreferences,
+        context: Context,
+    ): List<PreferredLyricsProvider> {
         if (!selection.equals(ALL, ignoreCase = true)) {
-            return listOfNotNull(PreferredLyricsProvider.fromName(selection))
+            val chosen = PreferredLyricsProvider.fromName(selection) ?: return emptyList()
+            return if (DataSaver.isLyricsProviderAllowed(context, chosen)) listOf(chosen) else emptyList()
         }
+        val enabled = enabledProviders(prefs)
+        return DataSaver.restrictLyricsProviders(context, enabled)
+    }
+
+    /** Every selectable source, Data Saver allowlist applied. Used by the source chips. */
+    fun availableProviders(prefs: PlayerPreferences, context: Context): List<PreferredLyricsProvider> {
+        val all = (prefs.getLyricsProviderOrder() + PreferredLyricsProvider.entries).distinct()
+        val (enabled, disabled) = all.partition { prefs.getLyricsProviderEnabled(it) }
+        return DataSaver.restrictLyricsProviders(context, enabled + disabled)
+    }
+
+    private fun enabledProviders(prefs: PlayerPreferences): List<PreferredLyricsProvider> {
         val all = (prefs.getLyricsProviderOrder() + PreferredLyricsProvider.entries).distinct()
         return all.filter { prefs.getLyricsProviderEnabled(it) }.ifEmpty { all }
     }
@@ -98,6 +117,17 @@ object ManualLyricsSearch {
 
     fun cleanPreview(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
+        // TTML must be parsed as XML, not tag-stripped: its attributes span lines and the
+        // unparsed markup would leak into the result list.
+        if (LyricsUtils.looksLikeTtml(raw)) {
+            val lines = LyricsUtils.parseTtml(raw, 0L)
+                .asSequence()
+                .map { it.text.trim() }
+                .filter { it.isNotBlank() }
+                .take(2)
+                .toList()
+            return lines.joinToString(" • ").ifBlank { null }
+        }
         val lines = LyricsUtils.decodeHtmlEntities(raw).lines()
             .map { it.replace(Regex("<[^>]+>"), "").replace(Regex("""\(\d+:\d+\)"""), "").trim() }
             .filter { it.isNotBlank() && !it.startsWith("[") && !it.startsWith("{") }
