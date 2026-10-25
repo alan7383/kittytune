@@ -39,10 +39,12 @@ fun <T> ExpressiveConnectedButtonGroup(
     checkedContentColor: Color = MaterialTheme.colorScheme.onPrimary,
     uncheckedContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     border: BorderStroke? = null,
+    /** Set false when the caller plays its own, more meaningful preview on selection. */
+    hapticOnSelect: Boolean = true,
     labelProvider: @Composable (T) -> Unit,
     iconProvider: (@Composable (T) -> Unit)? = null
 ) {
-    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val haptics = rememberAppHaptics()
     val rowModifier = if (fillMaxWidth) {
         modifier.fillMaxWidth().padding(vertical = 4.dp)
     } else {
@@ -69,7 +71,7 @@ fun <T> ExpressiveConnectedButtonGroup(
             ToggleButton(
                 checked = isChecked,
                 onCheckedChange = {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                    if (hapticOnSelect) haptics.perform(HapticKind.LIGHT)
                     onOptionSelected(option)
                 },
                 modifier = buttonModifier,

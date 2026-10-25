@@ -11,6 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.core.Toaster
 
 @Composable
@@ -24,7 +27,7 @@ fun Tip(
         content()
         return
     }
-    Box(modifier = Modifier.clickable { Toaster.show(text) }) {
+    Box(modifier = Modifier.hapticClickable { Toaster.show(text) }) {
         content()
     }
 }

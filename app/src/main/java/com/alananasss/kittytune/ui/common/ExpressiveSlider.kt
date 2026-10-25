@@ -6,7 +6,10 @@ import androidx.compose.material3.SliderColors
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material3.Slider as Material3Slider
@@ -46,11 +49,33 @@ fun Slider(
     val state = remember(steps, valueRange) { SliderState(value, steps, valueRange) }
     state.value = value
 
+    val haptics = rememberAppHaptics()
+    // One tick per bucket, never per frame: a drag from 0 to 1 should feel like a detent,
+    // not like a motor being hammered. Stepped sliders tick once per step; continuous ones
+    // tick at roughly every 5% of travel.
+    val bucketCount = if (steps > 0) steps + 1 else 20
+    var lastBucket by remember(steps, valueRange) { mutableIntStateOf(Int.MIN_VALUE) }
+
     Material3Slider(
         state = state,
         modifier = modifier,
         enabled = enabled,
-        onValueChange = onValueChange,
+        onValueChange = { newValue ->
+            onValueChange(newValue)
+            if (enabled) {
+                val span = valueRange.endInclusive - valueRange.start
+                val fraction = if (span > 0f) {
+                    ((newValue - valueRange.start) / span).coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
+                val bucket = (fraction * bucketCount).toInt()
+                if (bucket != lastBucket) {
+                    lastBucket = bucket
+                    haptics.perform(HapticKind.SLIDER)
+                }
+            }
+        },
         onValueChangeFinished = onValueChangeFinished,
         colors = colors,
         interactionSource = interactionSource,

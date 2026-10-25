@@ -2,6 +2,7 @@ package com.alananasss.kittytune.ui.common
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
@@ -31,8 +32,24 @@ open class SafeWebView @JvmOverloads constructor(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
+        isFocusable = true
+        isFocusableInTouchMode = true
         // Completely bypasses GLFunctorDrawable in libhwui.so to prevent native crashes
         setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+    }
+
+    /**
+     * Keeps the view on the software path no matter what a screen asks for.
+     *
+     * [WebView] renders through a `GLFunctorDrawable` as soon as it is put back on
+     * a hardware layer. On devices/emulators where the GPU driver is missing or
+     * broken (for example Mesa logging `Failed to open rendernode`), that functor
+     * dereferences a null `SkSurface` and the whole process dies with SIGSEGV in
+     * RenderThread. Screens must not be able to opt back into that path, so the
+     * layer type is pinned here instead of only being set once in `init`.
+     */
+    override fun setLayerType(layerType: Int, paint: Paint?) {
+        super.setLayerType(View.LAYER_TYPE_SOFTWARE, paint)
     }
 }
 

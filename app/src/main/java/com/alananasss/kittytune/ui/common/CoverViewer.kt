@@ -22,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -52,11 +53,17 @@ object CoverViewerState {
     }
 }
 
-fun Modifier.viewableCover(url: String?): Modifier = this.clickable(
-    interactionSource = MutableInteractionSource(),
-    indication = null
-) {
-    if (!url.isNullOrBlank()) CoverViewerState.show(url)
+fun Modifier.viewableCover(url: String?): Modifier = composed {
+    val haptics = rememberAppHaptics()
+    clickable(
+        interactionSource = MutableInteractionSource(),
+        indication = null
+    ) {
+        if (!url.isNullOrBlank()) {
+            haptics.perform(HapticKind.LIGHT)
+            CoverViewerState.show(url)
+        }
+    }
 }
 
 @Composable
@@ -66,6 +73,7 @@ fun CoverViewerOverlay() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val clipboardManager = LocalClipboard.current
+    val haptics = rememberAppHaptics()
 
     // MIME type of the next save target; refreshed before every launch so a GIF
     // cover is saved as image/gif while regular covers stay image/jpeg
@@ -136,7 +144,10 @@ fun CoverViewerOverlay() {
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { CoverViewerState.hide() }
+                            onClick = {
+                                haptics.perform(HapticKind.LIGHT)
+                                CoverViewerState.hide()
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -170,6 +181,7 @@ fun CoverViewerOverlay() {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         FilledTonalButton(shapes = ButtonDefaults.shapes(), 
                             onClick = {
+                                haptics.perform(HapticKind.CONFIRM)
                                 url?.let {
                                     scope.launch {
                                         clipboardManager.setClipEntry(androidx.compose.ui.platform.ClipEntry(android.content.ClipData.newPlainText("url", it)))
@@ -185,6 +197,7 @@ fun CoverViewerOverlay() {
 
                         Button(shapes = ButtonDefaults.shapes(), 
                             onClick = {
+                                haptics.perform(HapticKind.CONFIRM)
                                 url?.let {
                                     val isLocalGif = it.startsWith("/") &&
                                         GifUtils.isGifFile(java.io.File(it))
@@ -204,7 +217,10 @@ fun CoverViewerOverlay() {
             }
 
             IconButton(shapes = IconButtonDefaults.shapes(), 
-                onClick = { CoverViewerState.hide() },
+                onClick = {
+                    haptics.perform(HapticKind.LIGHT)
+                    CoverViewerState.hide()
+                },
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(24.dp)
