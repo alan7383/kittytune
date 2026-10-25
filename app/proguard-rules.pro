@@ -75,7 +75,11 @@
 -keep class com.alananasss.kittytune.data.spotify.** { *; }
 -keep class com.alananasss.kittytune.data.upload.** { *; }
 -keep class com.alananasss.kittytune.data.vk.** { *; }
--keep class com.alananasss.kittytune.ui.**.**Models* { *; }
+-keep class com.alananasss.kittytune.data.audio.** { *; }
+-keep class com.alananasss.kittytune.data.network.** { *; }
+-keep class com.alananasss.kittytune.ui.player.** { *; }
+-keep class com.alananasss.kittytune.ui.history.** { *; }
+-keep class com.alananasss.kittytune.ui.**.**Model* { *; }
 -keep class com.alananasss.kittytune.audio.providers.** { *; }
 -keep class com.alananasss.kittytune.data.SessionManager** { *; }
 -keep class com.alananasss.kittytune.data.TokenManager** { *; }
