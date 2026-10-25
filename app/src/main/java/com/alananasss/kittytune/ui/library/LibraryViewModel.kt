@@ -414,8 +414,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         val cachedUploadsJson = prefs.getString("cached_user_uploads", null)
         if (!cachedUploadsJson.isNullOrEmpty()) {
             try {
-                val listType = object : com.google.gson.reflect.TypeToken<List<Track>>() {}.type
-                val cached: List<Track> = gson.fromJson(cachedUploadsJson, listType)
+                val cached = gson.fromJson<Array<Track>>(cachedUploadsJson, Array<Track>::class.java)?.filterNotNull()
                 if (!cached.isNullOrEmpty()) {
                     uploadedTracks.clear()
                     uploadedTracks.addAll(cached)

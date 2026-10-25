@@ -2,6 +2,7 @@ package com.alananasss.kittytune.data.sync
 
 import com.alananasss.kittytune.KittyTuneApp
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -426,14 +427,14 @@ object SyncService {
  * between the two verbatim.
  */
 data class PairingPayload(
-    val host: String,
-    val port: Int,
-    val secret: String,
-    val deviceId: String,
-    val deviceName: String,
+    @SerializedName("host") val host: String,
+    @SerializedName("port") val port: Int,
+    @SerializedName("secret") val secret: String,
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("deviceName") val deviceName: String,
     /** "desktop" or "android", for a screen that wants to draw the right icon. Absent in old codes. */
-    val platform: String = "",
-    val addresses: List<String> = emptyList(),
+    @SerializedName("platform") val platform: String = "",
+    @SerializedName("addresses") val addresses: List<String> = emptyList(),
 )
 
 /**
@@ -442,20 +443,20 @@ data class PairingPayload(
  * The same shape both ways, so one type describes the request and the response.
  */
 data class SyncExchange(
-    val deviceId: String,
-    val deviceName: String,
-    val marks: Map<String, Long>,
-    val events: List<SyncEvent>,
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("deviceName") val deviceName: String,
+    @SerializedName("marks") val marks: Map<String, Long>,
+    @SerializedName("events") val events: List<SyncEvent>,
     /**
      * How to call the sender back, when it can be called.
      *
      * Null from a device with no listener, and absent entirely from a version that predates mutual
      * pairing — both of which leave the pairing one-directional rather than breaking it.
      */
-    val callback: PairingPayload? = null,
+    @SerializedName("callback") val callback: PairingPayload? = null,
     /** Latest queue/playhead, absent when talking to an older client. */
-    val playback: PlaybackSnapshot? = null,
-    val relayUrl: String? = null,
+    @SerializedName("playback") val playback: PlaybackSnapshot? = null,
+    @SerializedName("relayUrl") val relayUrl: String? = null,
 )
 
 /** Where the secret goes. Must match the desktop, which refuses anything else. */

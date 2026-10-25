@@ -1663,18 +1663,20 @@ class PlayerPreferences(context: Context) {
             return
         }
 
-        if (queue.isNotEmpty()) {
+        val safeQueue = (queue as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
+        if (safeQueue.isNotEmpty()) {
             try {
                 FileWriter(queueFile).use { writer ->
-                    gson.toJson(queue, writer)
+                    gson.toJson(safeQueue, writer)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
+        val safeTrack = if (track is Track && track.id != 0L) track else null
         prefs.edit {
-            track?.let { putString(KEY_TRACK_JSON, gson.toJson(it)) }
+            if (safeTrack != null) putString(KEY_TRACK_JSON, gson.toJson(safeTrack)) else remove(KEY_TRACK_JSON)
             putString(KEY_CONTEXT_JSON, gson.toJson(context))
             if (getSavePositionEnabled()) putLong(KEY_POSITION, position) else remove(KEY_POSITION)
             putBoolean(KEY_SHUFFLE_MODE, shuffleEnabled)
@@ -1758,9 +1760,11 @@ class PlayerPreferences(context: Context) {
 
     fun getDownloadLocation(): String? = prefs.getString(KEY_DOWNLOAD_DIR, null)
     fun getLastTrack(): Track? {
-        if (!getPersistentQueueEnabled()) return null;
-        val json = prefs.getString(KEY_TRACK_JSON, null) ?: return null; return try {
-            gson.fromJson(json, Track::class.java)
+        if (!getPersistentQueueEnabled()) return null
+        val json = prefs.getString(KEY_TRACK_JSON, null) ?: return null
+        return try {
+            val track = gson.fromJson(json, Track::class.java)
+            if (track != null && track.id != 0L) track else null
         } catch (_: Exception) {
             null
         }
@@ -1769,20 +1773,22 @@ class PlayerPreferences(context: Context) {
     fun getLastPosition(): Long = if (getSavePositionEnabled()) prefs.getLong(KEY_POSITION, 0L) else 0L
     fun getLastQueue(): List<Track> {
         if (!getPersistentQueueEnabled()) return emptyList()
+        // Deliberately parse a concrete Track[] instead of using TypeToken<List<Track>>.
+        // The queue is the one persisted structure whose corruption used to reach the
+        // player's save path (LinkedTreeMap cannot be cast to Track), so it must not
+        // depend on reflective generic signatures surviving R8.
         if (queueFile.exists()) {
             return try {
-                val type = object : TypeToken<List<Track>>() {}.type
                 FileReader(queueFile).use { reader ->
-                    gson.fromJson(reader, type) ?: emptyList()
+                    gson.fromJson<Array<Track>>(reader, Array<Track>::class.java)?.filterNotNull() ?: emptyList()
                 }
             } catch (_: Exception) {
                 emptyList()
             }
         }
         val json = prefs.getString("last_queue_full_json", null) ?: return emptyList()
-        val type = object : TypeToken<List<Track>>() {}.type
         return try {
-            gson.fromJson(json, type) ?: emptyList()
+            gson.fromJson<Array<Track>>(json, Array<Track>::class.java)?.filterNotNull() ?: emptyList()
         } catch (_: Exception) {
             emptyList()
         }

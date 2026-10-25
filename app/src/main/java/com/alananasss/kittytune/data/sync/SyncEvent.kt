@@ -1,5 +1,7 @@
 package com.alananasss.kittytune.data.sync
 
+import com.google.gson.annotations.SerializedName
+
 /**
  * One thing that happened on one device, in a form any device can merge (issue #33).
  *
@@ -22,11 +24,11 @@ package com.alananasss.kittytune.data.sync
  * @param payload the kind's own data, as JSON.
  */
 data class SyncEvent(
-    val deviceId: String,
-    val seq: Long,
-    val timestampMs: Long,
-    val kind: String,
-    val payload: String,
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("seq") val seq: Long,
+    @SerializedName("timestampMs") val timestampMs: Long,
+    @SerializedName("kind") val kind: String,
+    @SerializedName("payload") val payload: String,
 ) {
     /** Identity, and what deduplication is done on. */
     val id: String get() = "$deviceId#$seq"
