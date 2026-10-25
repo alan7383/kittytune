@@ -42,23 +42,24 @@ class MusicImportTransferViewModel(application: Application) : AndroidViewModel(
         private set
 
     private var pollJob: Job? = null
+    private var idlePollCount = 0
 
     val isComplete: Boolean
         get() {
             val hasPlaylists = request?.playlistIds?.isNotEmpty() == true
             val playlistsDone = !hasPlaylists || (
                 playlistStatus.isNotEmpty() &&
-                playlistStatus.all { it.isSyncing != true && (it.progressPercent ?: 100) >= 100 }
+                playlistStatus.all { it.isSyncing == false && it.progressPercent != null && it.progressPercent >= 100 }
             )
-            val likesDone = request?.importLikes != true || (!likesSyncing && (likesProgress ?: 100) >= 100)
+            val currentLikes = likesProgress
+            val likesDone = request?.importLikes != true || (!likesSyncing && currentLikes != null && currentLikes >= 100)
             return playlistsDone && likesDone
         }
 
     val overallProgress: Int
         get() {
             val parts = mutableListOf<Int>()
-            playlistStatus.filter { it.isSyncing == true || it.progressPercent != null }
-                .forEach { parts.add(it.progressPercent ?: 0) }
+            playlistStatus.forEach { parts.add(it.progressPercent ?: 0) }
             likesProgress?.let { if (likesSyncing || it > 0) parts.add(it) }
             return if (parts.isEmpty()) 0 else parts.average().toInt()
         }
@@ -98,8 +99,14 @@ class MusicImportTransferViewModel(application: Application) : AndroidViewModel(
         if (transfer.playlistIds.isNotEmpty()) {
             when (val result = repository.startPlaylistSync(transfer.userPlatformUuid, transfer.playlistIds)) {
                 is MusicImportResult.Success -> {
-                    playlistStatus = result.data
-                    playlistSuccess = true
+                    if (result.data.isNotEmpty()) {
+                        playlistStatus = result.data
+                        playlistSuccess = true
+                    } else {
+                        phase = TransferPhase.ERROR
+                        error = "empty_statuses"
+                        hasError = true
+                    }
                 }
                 is MusicImportResult.Error -> {
                     phase = TransferPhase.ERROR
@@ -116,11 +123,17 @@ class MusicImportTransferViewModel(application: Application) : AndroidViewModel(
         if (transfer.importLikes && !hasError) {
             when (val result = repository.startLikesSync(transfer.userPlatformUuid, importAsPlaylists = false)) {
                 is MusicImportResult.Success -> {
-                    result.data.firstOrNull()?.let {
-                        likesProgress = it.progressPercent
-                        likesSyncing = it.isSyncing == true
+                    if (result.data.isNotEmpty()) {
+                        result.data.firstOrNull()?.let {
+                            likesProgress = it.progressPercent
+                            likesSyncing = it.isSyncing == true
+                        }
+                        likesSuccess = true
+                    } else {
+                        phase = TransferPhase.ERROR
+                        error = "empty_statuses"
+                        hasError = true
                     }
-                    likesSuccess = true
                 }
                 is MusicImportResult.Error -> {
                     phase = TransferPhase.ERROR
@@ -147,14 +160,30 @@ class MusicImportTransferViewModel(application: Application) : AndroidViewModel(
 
     private fun startPolling(transfer: MusicTransferRequest) {
         phase = TransferPhase.SYNCING
+        idlePollCount = 0
         pollJob?.cancel()
         pollJob = viewModelScope.launch {
             while (isActive) {
                 delay(POLL_INTERVAL_MS)
                 refreshStatus(transfer)
+
                 if (isComplete && phase == TransferPhase.SYNCING) {
                     phase = TransferPhase.DONE
                     pollJob?.cancel()
+                    return@launch
+                }
+
+                val anySyncing = playlistStatus.any { it.isSyncing == true } || likesSyncing
+                if (!anySyncing && !isComplete) {
+                    idlePollCount++
+                    if (idlePollCount >= 3) {
+                        phase = TransferPhase.ERROR
+                        error = "transfer_failed"
+                        pollJob?.cancel()
+                        return@launch
+                    }
+                } else if (anySyncing) {
+                    idlePollCount = 0
                 }
             }
         }

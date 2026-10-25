@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.musicimport.MusicImportGraphQL.ExternalPlaylist
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsItem
@@ -51,7 +54,7 @@ fun MusicImportSelectionScreen(
         onBackClick = onBackClick,
         actions = {
             IconButton(
-                onClick = {
+                onClick = hapticAction(HapticKind.UI) {
                     viewModel.logout(onLoggedOut = onBackClick)
                 },
                 shapes = IconButtonDefaults.shapes()
@@ -82,10 +85,10 @@ fun MusicImportSelectionScreen(
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Button(
-                                    onClick = { viewModel.loadExternalContent() },
+                                    onClick = hapticAction(HapticKind.UI) { viewModel.loadExternalContent() },
                                     shapes = ButtonDefaults.shapes()
                                 ) {
-                                    Text("Retry")
+                                    Text(stringResource(R.string.btn_retry))
                                 }
                             }
                         }
@@ -141,7 +144,7 @@ fun MusicImportSelectionScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.importSelected(onStartTransfer) },
+                    onClick = hapticAction(HapticKind.UI) { viewModel.importSelected(onStartTransfer) },
                     enabled = viewModel.selectedPlaylistIds.isNotEmpty() || viewModel.includeLikes,
                     shapes = ButtonDefaults.shapes(),
                     modifier = Modifier
