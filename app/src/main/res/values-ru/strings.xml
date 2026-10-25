@@ -65,6 +65,12 @@
     <!-- HOME &amp; DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_hint">Поиск треков, исполнителей&#8230;</string>
+    <string name="search_verified_filter">Проверено</string>
+    <string name="search_verified_track">Проверенный трек</string>
+    <string name="search_verified_count">Проверено: %1$d</string>
+    <string name="search_verified_no_matches">Нет проверенных результатов. Отключите «Проверено», чтобы увидеть все результаты.</string>
+    <string name="search_verified_unavailable">Не удалось сравнить с другими платформами. Показаны все результаты.</string>
+    <string name="search_verified_inconclusive">Проверка некоторых результатов оказалась неоднозначной.</string>
     <string name="home_discovery_title">Открытие дня</string>
     <string name="home_discovery_subtitle">Свежие треки, основанные на вашем вкусе</string>
     <string name="home_discovery_context_genre">Для фанатов %1$s</string>
@@ -560,7 +566,6 @@
     <string name="color_palette_screen_title">Тема</string>
     <string name="pref_color_style_title">Цветовой стиль</string>
     <string name="pref_color_spec_title">Цветовая схема</string>
-    <string name="pref_seed_palette_title">Палитра</string>
     <string name="pref_custom_seed_title">Пользовательский ключ</string>
     <string name="pref_color_generation_title">Цвет</string>
     <string name="color_hex_label">Шестнадцатеричная</string>
@@ -568,52 +573,12 @@
     <string name="color_saturation_label">Насыщенность</string>
     <string name="color_brightness_label">Яркость</string>
     <!-- Colors (Seed Palette) -->
-    <string name="color_group_deep_blues">Тёмно-синие</string>
-    <string name="color_seed_deep_blue">Глубокий синий</string>
-    <string name="color_seed_abyss">Бездна</string>
-    <string name="color_seed_space_blue">Космический синий</string>
-    <string name="color_seed_ink_blue">Чернильный синий</string>
-    <string name="color_seed_midnight_indigo">Полуночный индиго</string>
-    <string name="color_seed_cosmic_blue">Астральный синий</string>
-    <string name="color_seed_twilight">Сумерки</string>
-    <string name="color_seed_royal_navy">Королевский синий</string>
-    <string name="color_seed_midnight">Полночь</string>
-    <string name="color_seed_navy">Тёмно-синий</string>
-    <string name="color_group_blues_cyans">Синие &amp; бирюзовые</string>
-    <string name="color_seed_sapphire">Сапфировый</string>
     <string name="color_seed_electric_blue">Электрик</string>
-    <string name="color_seed_azure">Лазурный</string>
     <string name="color_seed_cyan">Циановый</string>
-    <string name="color_seed_teal">Бирюзовый</string>
-    <string name="color_group_greens_teals">Зелёные &amp; бирюзовые</string>
-    <string name="color_seed_deep_teal">Глубокий бирюзовый</string>
-    <string name="color_seed_emerald">Изумрудный</string>
-    <string name="color_seed_forest">Лесной</string>
-    <string name="color_seed_moss">Мох</string>
-    <string name="color_seed_lime">Лаймовый</string>
-    <string name="color_seed_olive">Оливковый</string>
-    <string name="color_group_sunset_warm">Тёплый закат</string>
     <string name="color_seed_gold">Золотой</string>
-    <string name="color_seed_amber">Янтарный</string>
     <string name="color_seed_kitty_orange">Оранжевый Kitty</string>
-    <string name="color_seed_deep_orange">Глубокий оранжевый</string>
-    <string name="color_seed_coral">Коралловый</string>
-    <string name="color_seed_sand">Песочный</string>
-    <string name="color_group_pinks_purples">Розовые &amp; фиолетовые</string>
-    <string name="color_seed_crimson">Багровый</string>
-    <string name="color_seed_rose">Розовый</string>
-    <string name="color_seed_hot_pink">Ярко-розовый</string>
-    <string name="color_seed_magenta">Пурпурный</string>
     <string name="color_seed_plum">Сливовый</string>
-    <string name="color_seed_deep_purple">Тёмно-фиолетовый</string>
-    <string name="color_seed_indigo">Индиго</string>
-    <string name="color_seed_periwinkle">Барвинок</string>
-    <string name="color_group_neutrals">Нейтральные</string>
-    <string name="color_seed_blue_gray">Серо-голубой</string>
     <string name="color_seed_slate">Грифельный</string>
-    <string name="color_seed_graphite">Графитовый</string>
-    <string name="color_seed_warm_gray">Тёплый серый</string>
-    <string name="color_seed_mocha">Мока</string>
     <string name="pref_start_screen">Начальный экран</string>
     <string name="pref_theme_dynamic">Динамическая тема (Material You)</string>
     <string name="pref_theme_dynamic_sub">На основе обоев устройства</string>
@@ -1015,6 +980,8 @@
     <string name="pref_auto_update_sub">Проверять наличие новых версий при запуске</string>
     <string name="pref_remember_search_filter">Запоминать фильтр поиска</string>
     <string name="pref_remember_search_filter_sub">Сохранять последний выбранный фильтр (Артисты, Плейлисты…) при открытии поиска</string>
+    <string name="pref_verified_filter">Проверенный фильтр</string>
+    <string name="pref_verified_filter_sub">Сравнивает результаты с официальными платформами и скрывает перезагрузки. По умолчанию выключено.</string>
     <string name="pref_show_playlist_total_duration">Показывать общую длительность плейлиста</string>
     <string name="pref_show_playlist_total_duration_sub">Отображать общую продолжительность рядом с количеством треков в плейлистах</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1329,8 +1296,6 @@
     <string name="pref_crossfade_title">Плавный переход</string>
     <string name="pref_crossfade_sub">Плавный переход между треками без пауз</string>
     <string name="pref_bottom_menu_title">Панель навигации</string>
-    <string name="pref_explorer_grid_title">Сетка проводника</string>
-    <string name="pref_explorer_grid_subtitle">Отображать жанры плитками по 2 в ряд</string>
     <string name="pref_library_category_layout_title">Отображение категорий медиатеки</string>
     <string name="pref_library_category_layout_subtitle">Выбор между связанными кнопками и единой кнопкой с выпадающим меню в стиле ПК</string>
     <string name="pref_library_category_layout_connected">Связанные кнопки</string>
@@ -1415,8 +1380,6 @@
     <string name="comment_reply">Ответить</string>
     <string name="comment_creator_liked_this">%1$s оценил(а) этот комментарий</string>
     <string name="comment_artist_fallback">Автор</string>
-    <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
-    <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
     <string name="pref_sc_sync_title">Синхронизация истории SoundCloud</string>
     <string name="pref_sc_sync_sub">Синхронизирует прослушанные треки, плейлисты, станции и счетчик просмотров с вашей учетной записью SoundCloud. Отключите для приватного прослушивания.</string>
     <!-- SoundCloud History Screen -->
@@ -2360,8 +2323,6 @@
     <string name="haptic_mode_stronger">Очень мощный</string>
     <string name="pref_haptics_buttons">Кнопки и карточки</string>
     <string name="pref_haptics_buttons_sub">Вибрация при нажатии кнопок и выборе треков</string>
-    <string name="pref_haptics_navigation">Панель навигации</string>
-    <string name="pref_haptics_navigation_sub">Вибрация при переключении вкладок</string>
     <string name="pref_lyrics_bounce_factor_title">Амплитуда отскока</string>
     <string name="pref_lyrics_duet_desc">Выравнивать текст по вокалистам (слева для первого, справа для второго)</string>
     <string name="pref_lyrics_duet_title">Режим дуэта</string>
@@ -2841,9 +2802,6 @@
     <string name="mix_nothing_found">Ничего не вернулось. Проверь соединение и попробуй снова.</string>
     <string name="mix_no_seeds">Не удалось найти этого исполнителя на SoundCloud. Попробуй точное имя.</string>
     <string name="mix_all_known">Всё найденное уже есть в твоей библиотеке. Попробуй другого исполнителя или жанр.</string>
-    <string name="mix_in_the_style_of">В стиле исполнителя</string>
-    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
-    <string name="mix_by_genre">Или жанр</string>
     <string name="mix_track_count">%1$d треков</string>
     <string name="mix_basis">На основе %1$s</string>
     <string name="mix_basis_more">+%1$d ещё</string>
@@ -2891,7 +2849,6 @@
     <string name="keywords_animated_covers">анимированные обложки, видео-обложка, видео</string>
     <string name="keywords_animated_artist_profiles">анимированные профили, видео артиста, баннер</string>
     <string name="keywords_font">шрифт, типографика, пользовательский шрифт, начертание, стиль текста</string>
-    <string name="keywords_explorer_grid">сетка обзора, сетка, плитка</string>
     <string name="keywords_library_layout">библиотека, фильтры, категории, вид, кнопки</string>
     <string name="keywords_achievements">достижения, трофеи, награды, значки, уведомления</string>
     <string name="keywords_stats">статистика, статистика прослушиваний, история, итоги года, время прослушивания</string>
@@ -3081,7 +3038,6 @@
     <string name="night_screen_tap_to_wake">Коснитесь где угодно, чтобы вернуться</string>
     <!-- Connect / Устройства воспроизведения -->
     <string name="slot_devices">Устройства воспроизведения</string>
-    <string name="menu_playback_devices">Устройства воспроизведения</string>
     <string name="connect_devices_title">Доступные устройства</string>
     <string name="connect_playing_here">Воспроизводится на этом устройстве</string>
     <string name="connect_status_offline">Не в сети</string>
@@ -3170,7 +3126,6 @@
     <string name="lyrics_provider_all">Все источники</string>
     <string name="lyrics_search_clear">Очистить</string>
     <string name="lyrics_search_now_showing">Сейчас отображается: %1$s</string>
-    <string name="lyrics_search_progress">Найдено: %1$d, ищется в источниках: %2$d</string>
     <string name="lyrics_sync_drift_active">%1$s на %2$s, %3$s на %4$s, равномерно между ними. Кнопки выше меняют ближайшую точку.</string>
     <string name="lyrics_sync_drift_hint">Синхронизируйте начало и закрепите его, затем закрепите точку ближе к концу и синхронизируйте там. Смещение меняется равномерно.</string>
     <string name="lyrics_sync_drift_title">Сбивается к концу?</string>
@@ -3329,21 +3284,16 @@
     <string name="haptic_test_confirm">Подтвердить</string>
     <string name="equalizer_mode_manual">Вручную</string>
     <string name="equalizer_mode_auto">Автоматически</string>
-    <string name="equalizer_auto_title">Auto EQ</string>
-    <string name="equalizer_auto_subtitle">Подберите измеренный профиль для ваших наушников</string>
     <string name="equalizer_auto_detected">Обнаруженные наушники</string>
     <string name="equalizer_auto_no_device">Наушники не обнаружены</string>
     <string name="equalizer_auto_no_device_sub">Подключите наушники или найдите модель ниже.</string>
     <string name="equalizer_auto_search_hint">Поиск модели наушников (напр. HD 650)</string>
     <string name="equalizer_auto_search_action">Искать</string>
     <string name="equalizer_auto_suggestions">Популярные модели</string>
-    <string name="equalizer_auto_searching">Поиск…</string>
     <string name="equalizer_auto_no_results">Профиль не найден. Попробуйте указать бренд и модель.</string>
     <string name="equalizer_auto_results">Найденные профили</string>
     <string name="equalizer_auto_apply">Применить</string>
-    <string name="equalizer_auto_applying">Применение…</string>
     <string name="equalizer_auto_applied">Профиль применен</string>
-    <string name="equalizer_auto_source">Источник: %1</string>
     <string name="equalizer_auto_restore">Применять автоматически при повторном подключении</string>
     <string name="equalizer_auto_restored">Auto EQ восстановлен: %1</string>
     <string name="equalizer_auto_remove">Удалить профиль</string>
@@ -3351,14 +3301,7 @@
     <string name="equalizer_auto_import">Импорт EQ</string>
     <string name="equalizer_auto_error">Не удалось загрузить профили.</string>
     <string name="equalizer_auto_retry">Повторить</string>
-    <string name="equalizer_auto_profile_hint">Измерения зависят от амбушюров и режима шумоподавления.</string>
-    <string name="equalizer_auto_detected_query">Поиск: «%1»</string>
 
-    <string name="theme_preview_harmony_title">Гармония палитры</string>
-    <string name="theme_preview_tokens_label">Элементы палитры</string>
-    <string name="theme_preview_ui_sample">Предпросмотр интерфейса</string>
-    <string name="theme_preview_sample_play">Воспроизвести</string>
-    <string name="theme_preview_sample_favorite">Избранное</string>
     <string name="theme_preset_accents_title">Готовые пресеты</string>
     <string name="theme_preset_accents_subtitle">Гармоничные готовые цветовые схемы</string>
     <string name="color_hint_muted">Приглушённый</string>
@@ -3379,4 +3322,34 @@
     <string name="mix_followers_count">%1$s подписчиков</string>
     <string name="mix_in_library">В медиатеке</string>
     <string name="mix_selected_chip_remove">Удалить %1$s</string>
+
+    <!-- Lyrics Quick Settings & Full Player Background -->
+    <string name="lyrics_quick_tab_look">Стиль</string>
+    <string name="lyrics_quick_tab_layout">Макет</string>
+    <string name="lyrics_quick_tab_features">Функции</string>
+    <string name="full_player_bg_style">Фон плеера</string>
+    <string name="full_player_bg_apple_music">Плавный (Apple Music)</string>
+    <string name="full_player_bg_apple_music_fact">Динамический градиент на шейдерах AGSL</string>
+    <string name="full_player_bg_blur">Размытие</string>
+    <string name="full_player_bg_gradient">Градиент</string>
+    <string name="full_player_bg_pure_black">Чистый чёрный</string>
+    <string name="lyrics_content_title">Контент и источники</string>
+    <string name="lyrics_quick_scrolling">Прокрутка</string>
+    <string name="lyrics_style_standard">Стандартный</string>
+    <string name="lyrics_style_scale">Масштаб</string>
+    <string name="lyrics_style_focus">Фокус</string>
+    <string name="lyrics_style_scale_focus">Масштаб и фокус</string>
+    <string name="pref_lyrics_display_style">Стиль анимации текста</string>
+    <string name="pref_lyrics_active_scale_title">Увеличение активной строки</string>
+    <string name="pref_lyrics_active_scale_desc">Делает текущую строку крупнее остальных</string>
+    <string name="pref_lyrics_one_line_title">Однострочный режим</string>
+    <string name="pref_lyrics_one_line_sub">Показывать только текущую строку</string>
+    <string name="pref_lyrics_backing_title">Бэк-вокал</string>
+    <string name="pref_lyrics_backing_sub">Выделять или затемнять бэк-вокал отдельно</string>
+    <string name="pref_lyrics_horizontal_margin_title">Боковые отступы</string>
+    <string name="pref_lyrics_vertical_offset_title">Вертикальное смещение</string>
+    <string name="pref_lyrics_reset_typography">Сбросить типографику</string>
+    <string name="pref_lyrics_autoscroll_speed">Скорость прокрутки обычного текста</string>
+    <string name="pref_lyrics_speed_this_track">Скорость для этого трека</string>
+    <string name="pref_lyrics_speed_this_track_sub">Сохранить скорость прокрутки для этой песни</string>
 </resources>

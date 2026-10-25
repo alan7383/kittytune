@@ -58,6 +58,12 @@
     <!-- HOME &amp; DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_hint">Keresés (szám, előadó)&#8230;</string>
+    <string name="search_verified_filter">Ellenőrzött</string>
+    <string name="search_verified_track">Ellenőrzött szám</string>
+    <string name="search_verified_count">%1$d ellenőrzött</string>
+    <string name="search_verified_no_matches">Nincs ellenőrzött találat. Kapcsold ki az Ellenőrzött szűrőt az összes találat megtekintéséhez.</string>
+    <string name="search_verified_unavailable">Nem sikerült összehasonlítani más platformokkal. Az összes találat látható.</string>
+    <string name="search_verified_inconclusive">Néhány találat ellenőrzése nem volt egyértelmű.</string>
     <string name="home_discovery_title">A nap felfedezése</string>
     <string name="home_discovery_subtitle">Friss zenék az ízlésed alapján</string>
     <string name="home_discovery_context_genre">%1$s rajongóknak</string>
@@ -552,7 +558,6 @@
     <string name="color_palette_screen_title">Téma</string>
     <string name="pref_color_style_title">Paletta stílusa</string>
     <string name="pref_color_spec_title">Szinspecifikacio</string>
-    <string name="pref_seed_palette_title">Seed paletta</string>
     <string name="pref_custom_seed_title">Egyedi seed</string>
     <string name="pref_color_generation_title">Szinmotor</string>
     <string name="color_hex_label">Hex</string>
@@ -561,52 +566,12 @@
     <string name="color_brightness_label">Fenyero</string>
 
     <!-- Colors (Seed Palette) -->
-    <string name="color_group_deep_blues">Mélykékek</string>
-    <string name="color_seed_deep_blue">Mélykék</string>
-    <string name="color_seed_abyss">Szakadék</string>
-    <string name="color_seed_space_blue">Űrkék</string>
-    <string name="color_seed_ink_blue">Tintakék</string>
-    <string name="color_seed_midnight_indigo">Éjféli Indigó</string>
-    <string name="color_seed_cosmic_blue">Kozmikus Kék</string>
-    <string name="color_seed_twilight">Alkonyat</string>
-    <string name="color_seed_royal_navy">Királykék</string>
-    <string name="color_seed_midnight">Éjfél</string>
-    <string name="color_seed_navy">Tengerészkék</string>
-    <string name="color_group_blues_cyans">Kékek és Ciánok</string>
-    <string name="color_seed_sapphire">Zafír</string>
     <string name="color_seed_electric_blue">Elektromoskék</string>
-    <string name="color_seed_azure">Azúr</string>
     <string name="color_seed_cyan">Cián</string>
-    <string name="color_seed_teal">Pávakék</string>
-    <string name="color_group_greens_teals">Zöldek és Pávakékek</string>
-    <string name="color_seed_deep_teal">Sötét Pávakék</string>
-    <string name="color_seed_emerald">Smaragd</string>
-    <string name="color_seed_forest">Erdő</string>
-    <string name="color_seed_moss">Moha</string>
-    <string name="color_seed_lime">Lime</string>
-    <string name="color_seed_olive">Olíva</string>
-    <string name="color_group_sunset_warm">Meleg Naplemente</string>
     <string name="color_seed_gold">Arany</string>
-    <string name="color_seed_amber">Borostyán</string>
     <string name="color_seed_kitty_orange">Kitty Narancs</string>
-    <string name="color_seed_deep_orange">Mély Narancs</string>
-    <string name="color_seed_coral">Korall</string>
-    <string name="color_seed_sand">Homok</string>
-    <string name="color_group_pinks_purples">Rózsaszínek és Lilák</string>
-    <string name="color_seed_crimson">Karmazsin</string>
-    <string name="color_seed_rose">Rózsa</string>
-    <string name="color_seed_hot_pink">Élénk Rózsaszín</string>
-    <string name="color_seed_magenta">Magenta</string>
     <string name="color_seed_plum">Szilva</string>
-    <string name="color_seed_deep_purple">Mélylila</string>
-    <string name="color_seed_indigo">Indigó</string>
-    <string name="color_seed_periwinkle">Télizöld</string>
-    <string name="color_group_neutrals">Semlegesek</string>
-    <string name="color_seed_blue_gray">Kékesszürke</string>
     <string name="color_seed_slate">Pala</string>
-    <string name="color_seed_graphite">Grafit</string>
-    <string name="color_seed_warm_gray">Melegszürke</string>
-    <string name="color_seed_mocha">Mokka</string>
     <string name="pref_start_screen">Kezdőképernyő</string>
     <string name="pref_theme_dynamic">Dinamikus téma (Material You)</string>
     <string name="pref_theme_dynamic_sub">Igazodik a háttérképedhez</string>
@@ -1014,6 +979,8 @@
     <string name="pref_auto_update_sub">Verzióellenőrzés indításkor</string>
     <string name="pref_remember_search_filter">Keresési szűrő megjegyzése</string>
     <string name="pref_remember_search_filter_sub">Az utoljára kiválasztott szűrő (Előadók, Lejátszási listák…) megőrzése a keresés megnyitásakor</string>
+    <string name="pref_verified_filter">Ellenőrzött szűrő</string>
+    <string name="pref_verified_filter_sub">Összehasonlítja a találatokat a hivatalos platformokkal, és elrejti az újrafeltöltéseket. Alapértelmezés szerint kikapcsolva.</string>
     <string name="pref_show_playlist_total_duration">Lejátszási lista teljes időtartamának megjelenítése</string>
     <string name="pref_show_playlist_total_duration_sub">Teljes időtartam megjelenítése a zeneszámok száma mellett a lejátszási listákban</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1330,8 +1297,6 @@
     <string name="pref_bottom_menu_fab_stats">Statisztikák</string>
     <string name="pref_bottom_menu_fab_playlist">Lejátszási lista</string>
     <string name="pref_bottom_menu_title">Navigációs sáv</string>
-    <string name="pref_explorer_grid_title">Felfedező rács nézet</string>
-    <string name="pref_explorer_grid_subtitle">Felfedező kategóriák megjelenítése 2 oszlopos négyzetes csempékben</string>
     <string name="pref_library_category_layout_title">Könyvtár kategóriák elrendezése</string>
     <string name="pref_library_category_layout_subtitle">Válassz a kapcsolt gombok és az asztali stílusú legördülő gomb között</string>
     <string name="pref_library_category_layout_connected">Kapcsolt gombok</string>
@@ -1420,8 +1385,6 @@
     <string name="about_website_title">Weboldal</string>
     <string name="about_downloads_title">Más platformok</string>
     <string name="about_downloads_desc">Windows, Linux, macOS</string>
-    <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
-    <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
     <string name="pref_norm_info_title">A hangerő normalizálásról</string>
     <string name="pref_norm_info_body_1">A különböző dalokat gyakran eltérő hangerővel rögzítik. A hangerő normalizálás automatikusan kiegyenlíti a számokat, így minden dal egyenletes, kényelmes hangerővel szólal meg anélkül, hogy folyamatosan állítanod kellene rajta.</string>
     <string name="pref_norm_info_body_2">Hogyan működik:\n• A KittyTune megméri az egyes dalok valós hangerejét (LUFS-ban).\n• Lejátszás közben a hangerő dinamikusan igazodik a kiválasztott célszinthez.\n• Egy beépített limiter megakadályozza a torzítást vagy levágást.\n\nSzintek:\n• Csendes (-19 LUFS): Ideális éjszakai zenehallgatáshoz vagy fejhallgatóhoz.\n• Normál (-14 LUFS): A Spotify és YouTube által használt szabvány.\n• Hangos (-11 LUFS): A legjobb zajos környezetben vagy kültéri hangszórókhoz.</string>
@@ -2366,8 +2329,6 @@
     <string name="haptic_mode_stronger">Nagyon erős</string>
     <string name="pref_haptics_buttons">Gombok és kártyák</string>
     <string name="pref_haptics_buttons_sub">Rezgés a gombokra kattintáskor és számok kiválasztásakor</string>
-    <string name="pref_haptics_navigation">Navigációs sáv</string>
-    <string name="pref_haptics_navigation_sub">Rezgés a lapok közötti váltáskor</string>
     <string name="pref_lyrics_bounce_factor_title">Rugózási amplitúdó</string>
     <string name="pref_lyrics_duet_desc">Dalszöveg igazítása az énekeshez (balra az 1. énekes, jobbra a 2. énekes)</string>
     <string name="pref_lyrics_duet_title">Duett mód</string>
@@ -2846,9 +2807,6 @@
     <string name="mix_nothing_found">Semmi nem jött vissza. Ellenőrizd a kapcsolatot.</string>
     <string name="mix_no_seeds">Nem található ez az előadó a SoundCloudon. Próbáld a pontos nevet.</string>
     <string name="mix_all_known">Minden találat már a könyvtáradban van. Próbálj másik előadót vagy műfajt.</string>
-    <string name="mix_in_the_style_of">Egy előadó stílusában</string>
-    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
-    <string name="mix_by_genre">Vagy egy műfaj</string>
     <string name="mix_track_count">%1$d szám</string>
     <string name="mix_basis">%1$s alapján</string>
     <string name="mix_basis_more">+%1$d további</string>
@@ -2896,7 +2854,6 @@
     <string name="keywords_animated_covers">animált borítók, videóborító, animáció</string>
     <string name="keywords_animated_artist_profiles">animált előadói profilok, előadói videó, banner</string>
     <string name="keywords_font">betűtípus, tipográfia, egyéni betűtípus, vastagság, szövegstílus</string>
-    <string name="keywords_explorer_grid">felfedező rács, rácselrendezés, rácsnézet</string>
     <string name="keywords_library_layout">könyvtár, szűrők, kategóriák, elrendezés, gombok</string>
     <string name="keywords_achievements">eredmények, trófeák, jutalmak, jelvények, értesítések</string>
     <string name="keywords_stats">statisztikák, hallgatási statisztikák, előzmények, összefoglaló, hallgatási idő, legnépszerűbb számok</string>
@@ -3140,7 +3097,6 @@
     <string name="lyrics_provider_all">Minden forrás</string>
     <string name="lyrics_search_clear">Törlés</string>
     <string name="lyrics_search_now_showing">Most látható: %1$s</string>
-    <string name="lyrics_search_progress">%1$d találat, %2$d forrás még keres</string>
     <string name="lyrics_sync_drift_active">%1$s itt: %2$s, %3$s itt: %4$s, egyenletesen a kettő között. A fenti gombok a közelebbi pontot módosítják.</string>
     <string name="lyrics_sync_drift_hint">Szinkronizálja a kezdetet és rögzítse, majd rögzítsen egy pontot a végén és szinkronizálja ott. Az eltolás egyenletesen változik.</string>
     <string name="lyrics_sync_drift_title">A végére szétcsúszik?</string>
@@ -3260,7 +3216,6 @@
     <string name="connect_status_offline">Offline</string>
     <string name="connect_status_playing">Lejátszás · %1$s</string>
     <string name="connect_this_phone">Ez a telefon</string>
-    <string name="menu_playback_devices">Lejátszóeszközök</string>
     <string name="slot_devices">Lejátszóeszközök</string>
     <string name="pref_developer_options_title">Fejlesztői beállítások</string>
     <string name="pref_developer_options_subtitle">Hibakeresési rétegek, naplók és diagnosztikai eszközök</string>
@@ -3335,21 +3290,16 @@
     <string name="haptic_test_confirm">Megerősítés</string>
     <string name="equalizer_mode_manual">Kézi</string>
     <string name="equalizer_mode_auto">Automatikus</string>
-    <string name="equalizer_auto_title">Auto EQ</string>
-    <string name="equalizer_auto_subtitle">Mért profil illesztése a fejhallgatójához</string>
     <string name="equalizer_auto_detected">Észlelt fejhallgató</string>
     <string name="equalizer_auto_no_device">Nincs észlelt fejhallgató</string>
     <string name="equalizer_auto_no_device_sub">Csatlakoztassa a fejhallgatót, vagy keressen egy modellt.</string>
     <string name="equalizer_auto_search_hint">Fejhallgató modell keresése (pl. HD 650)</string>
     <string name="equalizer_auto_search_action">Keresés</string>
     <string name="equalizer_auto_suggestions">Népszerű modellek</string>
-    <string name="equalizer_auto_searching">Keresés…</string>
     <string name="equalizer_auto_no_results">Nem található profil. Próbálja a teljes nevet.</string>
     <string name="equalizer_auto_results">Talált profilok</string>
     <string name="equalizer_auto_apply">Alkalmaz</string>
-    <string name="equalizer_auto_applying">Alkalmazás…</string>
     <string name="equalizer_auto_applied">Profil alkalmazva</string>
-    <string name="equalizer_auto_source">Forrás: %1</string>
     <string name="equalizer_auto_restore">Automatikus alkalmazás az eszköz újracsatlakozásakor</string>
     <string name="equalizer_auto_restored">Auto EQ visszaállítva: %1</string>
     <string name="equalizer_auto_remove">Profil eltávolítása</string>
@@ -3357,14 +3307,7 @@
     <string name="equalizer_auto_import">EQ importálása</string>
     <string name="equalizer_auto_error">Nem sikerült betölteni a profilokat.</string>
     <string name="equalizer_auto_retry">Újra</string>
-    <string name="equalizer_auto_profile_hint">A mérések a fülpárnáktól és az ANC módtól függenek.</string>
-    <string name="equalizer_auto_detected_query">Keresés: „%1”</string>
 
-    <string name="theme_preview_harmony_title">Paletta harmónia</string>
-    <string name="theme_preview_tokens_label">Paletta tokenek</string>
-    <string name="theme_preview_ui_sample">Felület előnézet</string>
-    <string name="theme_preview_sample_play">Lejátszás</string>
-    <string name="theme_preview_sample_favorite">Kedvenc</string>
     <string name="theme_preset_accents_title">Válogatott előbeállítások</string>
     <string name="theme_preset_accents_subtitle">Harmonikus használatra kész színek</string>
     <string name="color_hint_muted">Visszafogott</string>
@@ -3385,4 +3328,34 @@
     <string name="mix_followers_count">%1$s követő</string>
     <string name="mix_in_library">A könyvtárban</string>
     <string name="mix_selected_chip_remove">%1$s eltávolítása</string>
+
+    <!-- Lyrics Quick Settings & Full Player Background -->
+    <string name="lyrics_quick_tab_look">Stílus</string>
+    <string name="lyrics_quick_tab_layout">Elrendezés</string>
+    <string name="lyrics_quick_tab_features">Funkciók</string>
+    <string name="full_player_bg_style">Lejátszó háttér</string>
+    <string name="full_player_bg_apple_music">Folyékony (Apple Music)</string>
+    <string name="full_player_bg_apple_music_fact">Dinamikus folyékony háló AGSL shaderekkel</string>
+    <string name="full_player_bg_blur">Elmosás</string>
+    <string name="full_player_bg_gradient">Színátmenet</string>
+    <string name="full_player_bg_pure_black">Tiszta fekete</string>
+    <string name="lyrics_content_title">Tartalom és források</string>
+    <string name="lyrics_quick_scrolling">Görgetés</string>
+    <string name="lyrics_style_standard">Normál</string>
+    <string name="lyrics_style_scale">Méretezés</string>
+    <string name="lyrics_style_focus">Fókusz</string>
+    <string name="lyrics_style_scale_focus">Méret és Fókusz</string>
+    <string name="pref_lyrics_display_style">Dalszöveg animáció stílusa</string>
+    <string name="pref_lyrics_active_scale_title">Aktív sor nagyítása</string>
+    <string name="pref_lyrics_active_scale_desc">Az aktuális sor nagyobb megjelenítése</string>
+    <string name="pref_lyrics_one_line_title">Egysoros mód</string>
+    <string name="pref_lyrics_one_line_sub">Csak az éppen játszott sor megjelenítése</string>
+    <string name="pref_lyrics_backing_title">Háttérvokálok</string>
+    <string name="pref_lyrics_backing_sub">Háttérvokálok külön kezelése és halványítása</string>
+    <string name="pref_lyrics_horizontal_margin_title">Vízszintes margók</string>
+    <string name="pref_lyrics_vertical_offset_title">Függőleges eltolás</string>
+    <string name="pref_lyrics_reset_typography">Tipográfia visszaállítása</string>
+    <string name="pref_lyrics_autoscroll_speed">Egyszerű dalszöveg görgetési sebessége</string>
+    <string name="pref_lyrics_speed_this_track">Sebesség ehhez a számhoz</string>
+    <string name="pref_lyrics_speed_this_track_sub">Egyedi görgetési sebesség mentése ehhez a dalhoz</string>
 </resources>

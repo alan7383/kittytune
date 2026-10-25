@@ -74,6 +74,12 @@
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
 
     <string name="search_hint">Titel, Künstler suchen&#8230;</string>
+    <string name="search_verified_filter">Verifiziert</string>
+    <string name="search_verified_track">Verifizierter Titel</string>
+    <string name="search_verified_count">%1$d verifiziert</string>
+    <string name="search_verified_no_matches">Keine verifizierten Treffer. Deaktiviere „Verifiziert“, um alle Ergebnisse zu sehen.</string>
+    <string name="search_verified_unavailable">Vergleich mit anderen Plattformen nicht möglich. Alle Ergebnisse werden angezeigt.</string>
+    <string name="search_verified_inconclusive">Die Verifizierung war für einige Ergebnisse nicht eindeutig.</string>
 
     <string name="home_discovery_title">Entdeckung des Tages</string>
     <string name="home_discovery_subtitle">Frische Titel, passend zu deinem Geschmack</string>
@@ -785,7 +791,6 @@
     <string name="color_palette_screen_title">Design</string>
     <string name="pref_color_style_title">Farbstil</string>
     <string name="pref_color_spec_title">Farbspezifikation</string>
-    <string name="pref_seed_palette_title">Ausgangspalette</string>
     <string name="pref_custom_seed_title">Eigene Ausgangsfarbe</string>
     <string name="pref_color_generation_title">Farb-Engine</string>
     <string name="color_hex_label">Hex</string>
@@ -794,52 +799,12 @@
     <string name="color_brightness_label">Helligkeit</string>
 
     <!-- Colors (Seed Palette) -->
-    <string name="color_group_deep_blues">Tiefe Blautöne</string>
-    <string name="color_seed_deep_blue">Tiefblau</string>
-    <string name="color_seed_abyss">Abgrund</string>
-    <string name="color_seed_space_blue">Weltraumblau</string>
-    <string name="color_seed_ink_blue">Tintenblau</string>
-    <string name="color_seed_midnight_indigo">Mitternachtsindigo</string>
-    <string name="color_seed_cosmic_blue">Kosmisches Blau</string>
-    <string name="color_seed_twilight">Dämmerung</string>
-    <string name="color_seed_royal_navy">Königsmarineblau</string>
-    <string name="color_seed_midnight">Mitternacht</string>
-    <string name="color_seed_navy">Marineblau</string>
-    <string name="color_group_blues_cyans">Blau- &amp; Cyantöne</string>
-    <string name="color_seed_sapphire">Saphir</string>
     <string name="color_seed_electric_blue">Elektrisches Blau</string>
-    <string name="color_seed_azure">Azurblau</string>
     <string name="color_seed_cyan">Cyan</string>
-    <string name="color_seed_teal">Petrol</string>
-    <string name="color_group_greens_teals">Grün- &amp; Petroltöne</string>
-    <string name="color_seed_deep_teal">Tiefes Petrol</string>
-    <string name="color_seed_emerald">Smaragd</string>
-    <string name="color_seed_forest">Waldgrün</string>
-    <string name="color_seed_moss">Moos</string>
-    <string name="color_seed_lime">Limette</string>
-    <string name="color_seed_olive">Oliv</string>
-    <string name="color_group_sunset_warm">Warme Sonnenuntergangstöne</string>
     <string name="color_seed_gold">Gold</string>
-    <string name="color_seed_amber">Bernstein</string>
     <string name="color_seed_kitty_orange">Kitty-Orange</string>
-    <string name="color_seed_deep_orange">Tiefes Orange</string>
-    <string name="color_seed_coral">Koralle</string>
-    <string name="color_seed_sand">Sand</string>
-    <string name="color_group_pinks_purples">Pink- &amp; Lilatöne</string>
-    <string name="color_seed_crimson">Karmesinrot</string>
-    <string name="color_seed_rose">Rosé</string>
-    <string name="color_seed_hot_pink">Knallpink</string>
-    <string name="color_seed_magenta">Magenta</string>
     <string name="color_seed_plum">Pflaume</string>
-    <string name="color_seed_deep_purple">Tiefes Lila</string>
-    <string name="color_seed_indigo">Indigo</string>
-    <string name="color_seed_periwinkle">Immergrünblau</string>
-    <string name="color_group_neutrals">Neutrale Töne</string>
-    <string name="color_seed_blue_gray">Blaugrau</string>
     <string name="color_seed_slate">Schiefer</string>
-    <string name="color_seed_graphite">Graphit</string>
-    <string name="color_seed_warm_gray">Warmgrau</string>
-    <string name="color_seed_mocha">Mokka</string>
     <string name="pref_start_screen">Startbildschirm</string>
     <string name="pref_theme_dynamic">Dynamisches Design (Material You)</string>
     <string name="pref_theme_dynamic_sub">An dein Hintergrundbild anpassen</string>
@@ -1013,8 +978,6 @@
     <string name="pref_lyrics_provider_title">Songtext-Anbieter</string>
     <string name="pref_lyrics_provider_max_quality">Maximale Qualität (Musixmatch)</string>
     <string name="pref_lyrics_provider_open_source">100 % kostenlos (LrcLib)</string>
-    <string name="pref_lyrics_provider_musixmatch_short" translatable="false">Musixmatch</string>
-    <string name="pref_lyrics_provider_lrclib_short" translatable="false">LRCLib</string>
     <string name="pref_lyrics_providers_category">Songtext-Anbieter</string>
     <string name="pref_lyrics_paxsenix_key">Paxsenix-API-Schlüssel</string>
     <string name="pref_lyrics_paxsenix_key_sub">Erforderlich für Apple Music, Spotify und Paxsenix Musixmatch</string>
@@ -1287,6 +1250,8 @@
     <string name="pref_auto_update_sub">Beim Start nach neuen Versionen suchen</string>
     <string name="pref_remember_search_filter">Suchfilter merken</string>
     <string name="pref_remember_search_filter_sub">Letzten ausgewählten Filter (Künstler, Playlists…) beim Öffnen der Suche beibehalten</string>
+    <string name="pref_verified_filter">Verifizierter Filter</string>
+    <string name="pref_verified_filter_sub">Vergleicht Suchtreffer mit offiziellen Plattformen und blendet Re-Uploads aus. Standardmäßig deaktiviert.</string>
     <string name="pref_show_playlist_total_duration">Gesamte Wiedergabezeit der Playlist anzeigen</string>
     <string name="pref_show_playlist_total_duration_sub">Gesamtdauer neben der Titelanzahl in Playlists anzeigen</string>
 
@@ -1664,8 +1629,6 @@
     <string name="pref_automix_indicator_desc">Blendet den Countdown und das \'Automixing\'-Badge auf dem Player ein</string>
 
     <string name="pref_bottom_menu_title">Navigationsleiste</string>
-    <string name="pref_explorer_grid_title">Entdecker-Rasteransicht</string>
-    <string name="pref_explorer_grid_subtitle">Entdecker-Kategorien als quadratische Kacheln in 2 Spalten anzeigen</string>
     <string name="pref_library_category_layout_title">Layout der Mediathek-Kategorien</string>
     <string name="pref_library_category_layout_subtitle">Wählen Sie zwischen verbundenen Schaltflächen und einem Desktop-Dropdown-Menü</string>
     <string name="pref_library_category_layout_connected">Verbundene Schaltflächen</string>
@@ -2455,8 +2418,6 @@
     <string name="haptic_mode_stronger">Sehr stark</string>
     <string name="pref_haptics_buttons">Tasten &amp; Karten</string>
     <string name="pref_haptics_buttons_sub">Vibrieren bei Klicks auf Tasten und Titelauswahl</string>
-    <string name="pref_haptics_navigation">Navigationsleiste</string>
-    <string name="pref_haptics_navigation_sub">Vibrieren beim Wechseln von Reitern</string>
     <string name="pref_haptics_enable">Musik-Haptik</string>
     <string name="pref_haptics_enable_sub">Lässt das Gerät in Echtzeit zu Bässen und Beats vibrieren</string>
     <string name="pref_haptics_strength">Vibrationsstärke</string>
@@ -2938,11 +2899,9 @@
 
     <!-- YOUR MIX -->
     <string name="mix_all_known">Alles Gefundene befindet sich bereits in deiner Bibliothek. Versuche es mit einem anderen Künstler oder Genre.</string>
-    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
     <string name="mix_basis">Basierend auf %1$s</string>
     <string name="mix_basis_more">+%1$d weitere</string>
     <string name="mix_building">Dein Mix wird erstellt…</string>
-    <string name="mix_by_genre">Oder ein Genre</string>
     <string name="mix_card_subtitle">Aktiviere deinen persönlichen Mix, der speziell für dich erstellt wird</string>
     <string name="mix_customise">Mix anpassen</string>
     <string name="mix_customise_sub">Baue ihn um einen Künstler oder ein Genre herum auf.</string>
@@ -2951,7 +2910,6 @@
     <string name="mix_enable">Mix aktivieren</string>
     <string name="mix_genre_custom">Mix „%1$s“</string>
     <string name="mix_genre_search_hint">Suche nach einem Genre oder gib ein beliebiges Tag ein</string>
-    <string name="mix_in_the_style_of">Im Stil eines Künstlers</string>
     <string name="mix_needs_history">Spiele zuerst ein paar Titel ab – der Mix basiert auf deinem Hörverhalten.</string>
     <string name="mix_no_seeds">Dieser Künstler konnte auf SoundCloud nicht gefunden werden. Versuche den genauen Namen.</string>
     <string name="mix_nothing_found">Keine Ergebnisse. Überprüfe deine Internetverbindung und versuche es erneut.</string>
@@ -2996,7 +2954,6 @@
     <string name="keywords_animated_covers">animierte Cover, Video-Cover, Video-Grafik</string>
     <string name="keywords_animated_artist_profiles">animierte Künstlerprofile, Künstlervideo, Banner</string>
     <string name="keywords_font">Schriftart, Typografie, eigene Schriftart, Schriftstärke, Textstil</string>
-    <string name="keywords_explorer_grid">Entdecker-Raster, Rasterlayout, Rasteransicht</string>
     <string name="keywords_library_layout">Bibliothek, Filter, Kategorien, Desktop-Layout, Tasten</string>
     <string name="keywords_achievements">Erfolge, Trophäen, Belohnungen, Abzeichen, Benachrichtigungen</string>
     <string name="keywords_stats">Statistiken, Hörstatistiken, Verlauf, Jahresrückblick, Hörzeit, Top-Titel</string>
@@ -3248,7 +3205,6 @@
     <string name="lyrics_provider_all">Alle Quellen</string>
     <string name="lyrics_search_clear">Löschen</string>
     <string name="lyrics_search_now_showing">Wird angezeigt: %1$s</string>
-    <string name="lyrics_search_progress">%1$d gefunden, %2$d Quellen suchen noch</string>
     <string name="lyrics_sync_drift_active">%1$s bei %2$s, %3$s bei %4$s, gleichmäßig dazwischen. Die Schaltflächen oben ändern den Punkt in Ihrer Nähe.</string>
     <string name="lyrics_sync_drift_hint">Start synchronisieren und anheften, dann einen Punkt nahe dem Ende anheften und dort synchronisieren. Der Versatz gleicht sich gleichmäßig an.</string>
     <string name="lyrics_sync_drift_title">Gegen Ende asynchron?</string>
@@ -3360,7 +3316,6 @@
     <string name="connect_status_offline">Offline</string>
     <string name="connect_status_playing">Wiedergabe · %1$s</string>
     <string name="connect_this_phone">Dieses Telefon</string>
-    <string name="menu_playback_devices">Wiedergabegeräte</string>
     <string name="slot_devices">Wiedergabegeräte</string>
     <string name="pref_developer_options_title">Entwickleroptionen</string>
     <string name="pref_developer_options_subtitle">Debug-Overlays, Protokolle und Diagnosewerkzeuge</string>
@@ -3435,21 +3390,16 @@
     <string name="haptic_test_confirm">Bestätigen</string>
     <string name="equalizer_mode_manual">Manuell</string>
     <string name="equalizer_mode_auto">Automatisch</string>
-    <string name="equalizer_auto_title">Auto EQ</string>
-    <string name="equalizer_auto_subtitle">Abgestimmtes Profil für Ihre Kopfhörer auswählen</string>
     <string name="equalizer_auto_detected">Erkannte Kopfhörer</string>
     <string name="equalizer_auto_no_device">Keine Kopfhörer erkannt</string>
     <string name="equalizer_auto_no_device_sub">Schließen Sie Kopfhörer an oder suchen Sie unten ein Modell.</string>
     <string name="equalizer_auto_search_hint">Kopfhörermodell suchen (z. B. HD 650)</string>
     <string name="equalizer_auto_search_action">Suchen</string>
     <string name="equalizer_auto_suggestions">Beliebte Modelle</string>
-    <string name="equalizer_auto_searching">Wird gesucht…</string>
     <string name="equalizer_auto_no_results">Kein Profil gefunden. Versuchen Sie Marke und Modellname.</string>
     <string name="equalizer_auto_results">Profile gefunden</string>
     <string name="equalizer_auto_apply">Anwenden</string>
-    <string name="equalizer_auto_applying">Wird angewendet…</string>
     <string name="equalizer_auto_applied">Profil angewendet</string>
-    <string name="equalizer_auto_source">Quelle: %1</string>
     <string name="equalizer_auto_restore">Automatisch anwenden, wenn dieses Gerät wieder verbunden wird</string>
     <string name="equalizer_auto_restored">Auto EQ wiederhergestellt: %1</string>
     <string name="equalizer_auto_remove">Profil entfernen</string>
@@ -3457,14 +3407,7 @@
     <string name="equalizer_auto_import">EQ importieren</string>
     <string name="equalizer_auto_error">Profile konnten nicht geladen werden. Verbindung prüfen.</string>
     <string name="equalizer_auto_retry">Wiederholen</string>
-    <string name="equalizer_auto_profile_hint">Messungen variieren nach Ohrpolster und ANC. Passenden Eintrag wählen.</string>
-    <string name="equalizer_auto_detected_query">Suche nach „%1“</string>
 
-    <string name="theme_preview_harmony_title">Palettenharmonie</string>
-    <string name="theme_preview_tokens_label">Paletten-Tokens</string>
-    <string name="theme_preview_ui_sample">UI-Vorschau</string>
-    <string name="theme_preview_sample_play">Abspielen</string>
-    <string name="theme_preview_sample_favorite">Favorit</string>
     <string name="theme_preset_accents_title">Kuratierte Vorlagen</string>
     <string name="theme_preset_accents_subtitle">Harmonische, gebrauchsfertige Farbwerte</string>
     <string name="color_hint_muted">Gedämpft</string>
@@ -3485,4 +3428,34 @@
     <string name="mix_followers_count">%1$s Follower</string>
     <string name="mix_in_library">In Bibliothek</string>
     <string name="mix_selected_chip_remove">%1$s entfernen</string>
+
+    <!-- Lyrics Quick Settings & Full Player Background -->
+    <string name="lyrics_quick_tab_look">Design</string>
+    <string name="lyrics_quick_tab_layout">Layout</string>
+    <string name="lyrics_quick_tab_features">Funktionen</string>
+    <string name="full_player_bg_style">Player-Hintergrund</string>
+    <string name="full_player_bg_apple_music">Fließend (Apple Music)</string>
+    <string name="full_player_bg_apple_music_fact">Dynamisches Fluid-Mesh über AGSL-Shader</string>
+    <string name="full_player_bg_blur">Weichzeichnen</string>
+    <string name="full_player_bg_gradient">Farbverlauf</string>
+    <string name="full_player_bg_pure_black">Echtes Schwarz</string>
+    <string name="lyrics_content_title">Inhalt &amp; Quellen</string>
+    <string name="lyrics_quick_scrolling">Scrollen</string>
+    <string name="lyrics_style_standard">Standard</string>
+    <string name="lyrics_style_scale">Skalierung</string>
+    <string name="lyrics_style_focus">Fokus</string>
+    <string name="lyrics_style_scale_focus">Skalierung &amp; Fokus</string>
+    <string name="pref_lyrics_display_style">Songtext-Animationsstil</string>
+    <string name="pref_lyrics_active_scale_title">Vergrößerung der aktiven Zeile</string>
+    <string name="pref_lyrics_active_scale_desc">Aktuelle Zeile größer als inaktive anzeigen</string>
+    <string name="pref_lyrics_one_line_title">Einzeiliger Modus</string>
+    <string name="pref_lyrics_one_line_sub">Nur die aktuell gespielte Zeile anzeigen</string>
+    <string name="pref_lyrics_backing_title">Hintergrundgesang</string>
+    <string name="pref_lyrics_backing_sub">Hintergrundgesang separat hervorheben oder dimmen</string>
+    <string name="pref_lyrics_horizontal_margin_title">Horizontaler Rand</string>
+    <string name="pref_lyrics_vertical_offset_title">Vertikaler Versatz</string>
+    <string name="pref_lyrics_reset_typography">Typografie zurücksetzen</string>
+    <string name="pref_lyrics_autoscroll_speed">Scrollgeschwindigkeit für einfachen Text</string>
+    <string name="pref_lyrics_speed_this_track">Geschwindigkeit für diesen Titel</string>
+    <string name="pref_lyrics_speed_this_track_sub">Spezifische Scrollgeschwindigkeit für dieses Lied speichern</string>
 </resources>
