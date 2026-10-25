@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,8 +13,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,11 +26,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Verified
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -56,6 +57,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.SearchCategory
 import com.alananasss.kittytune.data.search.RecentVisits
 import com.alananasss.kittytune.domain.User
@@ -69,6 +73,8 @@ fun SearchLanding(
     playerViewModel: PlayerViewModel,
     onNavigate: (String) -> Unit,
     onCategoryClick: (SearchCategory) -> Unit,
+    onOpenCharts: () -> Unit = { onNavigate("charts") },
+    onOpenNewReleases: () -> Unit = { onNavigate("new_releases") },
     modifier: Modifier = Modifier,
 ) {
     val visits by homeViewModel.recentVisits.collectAsState()
@@ -79,6 +85,7 @@ fun SearchLanding(
         contentPadding = PaddingValues(top = 8.dp, bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // 1. Recent searches & visits (same as KittyTuneDesktop)
         if (searches.isNotEmpty() || visits.isNotEmpty()) {
             item {
                 RecentSearchesSection(
@@ -99,30 +106,59 @@ fun SearchLanding(
             }
         }
 
+        // 2. Explorer door cards (Classements & Nouveautés - same as KittyTuneDesktop)
+        item {
+            Column {
+                LandingHeader(title = stringResource(R.string.explorer_title), action = null)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    LandingDoorCard(
+                        title = stringResource(R.string.explorer_charts),
+                        icon = Icons.Rounded.TrendingUp,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.weight(1f),
+                        onClick = onOpenCharts,
+                    )
+                    LandingDoorCard(
+                        title = stringResource(R.string.explorer_new_releases),
+                        icon = Icons.Rounded.NewReleases,
+                        tint = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.weight(1f),
+                        onClick = onOpenNewReleases,
+                    )
+                }
+            }
+        }
+
+        // 3. Pour toi (Personalized categories - same as KittyTuneDesktop)
         if (homeViewModel.personalizedCategories.isNotEmpty()) {
             item {
-                Column(Modifier.padding(horizontal = 16.dp)) {
-                    Text(
-                        text = stringResource(R.string.search_section_personalized),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
+                Column {
+                    LandingHeader(title = stringResource(R.string.search_section_personalized), action = null)
+                    Spacer(Modifier.height(4.dp))
                     LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(homeViewModel.personalizedCategories) { cat ->
-                            Surface(
-                                onClick = { onCategoryClick(cat) },
-                                shape = CircleShape,
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                contentColor = MaterialTheme.colorScheme.onSurface,
+                            Button(
+                                onClick = hapticAction(HapticKind.UI) { onCategoryClick(cat) },
+                                shapes = ButtonDefaults.shapes(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                                modifier = Modifier.height(38.dp),
                             ) {
                                 Text(
                                     text = cat.title,
                                     style = MaterialTheme.typography.labelLarge,
                                     maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
                                 )
                             }
                         }
@@ -131,33 +167,46 @@ fun SearchLanding(
             }
         }
 
-        item {
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    text = stringResource(R.string.search_section_moods),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp),
-                )
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+        // 4. Ambiances (Visual category cards with official artwork)
+        val visualCategories = homeViewModel.visualCategories
+        if (visualCategories.isNotEmpty()) {
+            item {
+                LandingHeader(title = stringResource(R.string.category_ambiances_title), action = null)
+            }
+
+            val pairs = visualCategories.chunked(2)
+            items(pairs) { pair ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(homeViewModel.moodCategories) { category ->
-                        SearchCategoryPill(category = category) { onCategoryClick(category) }
+                    pair.forEach { cat ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            SearchCategoryVisualCard(
+                                category = cat,
+                                onClick = hapticAction(HapticKind.UI) { onCategoryClick(cat) }
+                            )
+                        }
+                    }
+                    if (pair.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
         }
 
+        // 5. Genres (Genre pills with "Tout afficher" / See all)
         item {
-            Column(Modifier.padding(horizontal = 16.dp)) {
-                Text(
-                    text = stringResource(R.string.search_section_genres),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp),
+            Column {
+                LandingHeader(
+                    title = stringResource(R.string.search_section_genres),
+                    action = stringResource(R.string.category_see_all) to { onNavigate("genres") }
                 )
+                Spacer(Modifier.height(4.dp))
                 LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(homeViewModel.genreCategories) { category ->
@@ -170,19 +219,155 @@ fun SearchLanding(
 }
 
 @Composable
+fun LandingHeader(
+    title: String,
+    action: Pair<String, () -> Unit>? = null,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (action != null) {
+            TextButton(
+                onClick = action.second,
+                shapes = ButtonDefaults.shapes(),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+            ) {
+                Text(
+                    text = action.first,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LandingDoorCard(
+    title: String,
+    icon: ImageVector,
+    tint: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = tint.copy(alpha = 0.16f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.height(68.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+            )
+        }
+    }
+}
+
+@Composable
+fun SearchCategoryVisualCard(
+    category: SearchCategory,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val borderColor = com.alananasss.kittytune.data.GenreData.parseBorderColor(category.borderColor)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.2.dp, borderColor.copy(alpha = 0.5f)),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(92.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            val isDark = isSystemInDarkTheme()
+            val artwork = if (!isDark && !category.artworkUrlLight.isNullOrBlank()) {
+                category.artworkUrlLight
+            } else {
+                category.artworkUrl
+            }
+            if (!artwork.isNullOrBlank()) {
+                AsyncImage(
+                    model = artwork,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .size(76.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .padding(end = 6.dp),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (category.icon != null) {
+                Icon(
+                    imageVector = category.icon,
+                    contentDescription = null,
+                    tint = borderColor.copy(alpha = 0.25f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(68.dp)
+                        .offset(x = 10.dp, y = 10.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.62f)
+                    .padding(start = 14.dp, top = 12.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = category.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SearchCategoryPill(
     category: SearchCategory,
     onClick: () -> Unit
 ) {
-    Surface(
+    Button(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.height(44.dp),
+        shapes = ButtonDefaults.shapes(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+        modifier = Modifier.height(42.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 14.dp),
         ) {
             category.icon?.let { icon ->
                 Icon(
@@ -197,7 +382,6 @@ private fun SearchCategoryPill(
                 text = category.title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -215,30 +399,11 @@ private fun RecentSearchesSection(
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
 
-    Column(Modifier.padding(horizontal = 16.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.search_recent_searches),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(
-                onClick = onClearAll,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(
-                    text = stringResource(R.string.search_clear_all),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
+    Column {
+        LandingHeader(
+            title = stringResource(R.string.search_recent_searches),
+            action = stringResource(R.string.search_clear_all) to onClearAll,
+        )
 
         val total = visits.size + searches.size
         val shownVisits = if (expanded) visits else visits.take(COLLAPSED_RECENT_SEARCHES)
@@ -261,8 +426,9 @@ private fun RecentSearchesSection(
         if (total > COLLAPSED_RECENT_SEARCHES) {
             val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "seeMoreChevron")
             TextButton(
-                onClick = { expanded = !expanded },
-                modifier = Modifier.padding(top = 2.dp),
+                onClick = hapticAction(HapticKind.UI) { expanded = !expanded },
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.padding(start = 12.dp, top = 2.dp),
             ) {
                 Text(
                     text = stringResource(if (expanded) R.string.search_see_less else R.string.search_see_more),
@@ -298,10 +464,11 @@ private fun RecentVisitRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
             .height(56.dp)
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onOpen)
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AsyncImage(
@@ -368,17 +535,18 @@ private fun RecentSearchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
             .height(44.dp)
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onRun)
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Rounded.History,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(14.dp))
         Text(

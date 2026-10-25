@@ -11,7 +11,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -92,6 +91,10 @@ import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.ui.common.ArtistCircleShimmer
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import com.alananasss.kittytune.ui.common.ShimmerLine
 import com.alananasss.kittytune.ui.common.SquareCardShimmer
 import com.alananasss.kittytune.ui.common.moveCaretWithArrowKeys
@@ -135,6 +138,7 @@ fun HomeScreen(
     onNavigate: (String) -> Unit
 ) {
     val history by homeViewModel.historyFlow.collectAsState(initial = emptyList())
+    val haptics = rememberAppHaptics()
     val userProfile = homeViewModel.userProfile
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -196,11 +200,18 @@ fun HomeScreen(
 
     LaunchedEffect(homeViewModel.searchQuery) {
         val query = homeViewModel.searchQuery
-        if (searchFieldState.text.toString() != query) {
-            searchFieldState.edit {
-                replace(0, length, query)
-                selection = TextRange(length)
-            }
+        val current = searchFieldState.text.toString()
+        if (current == query) return@LaunchedEffect
+        // The field is the source of truth for what was typed. Writing an older
+        // value back over it aborts the keyboard's composition, and the characters
+        // typed since are lost — which is how a typed title turned into a
+        // half-word and the search answered with something else. So a field that
+        // already holds text is left alone; only an empty field (a search picked
+        // from the history) and a cleared search are written to.
+        if (query.isNotEmpty() && current.isNotEmpty()) return@LaunchedEffect
+        searchFieldState.edit {
+            replace(0, length, query)
+            selection = TextRange(length)
         }
     }
     val context = LocalContext.current
@@ -254,7 +265,7 @@ fun HomeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
-                                .clickable { onNavigate("downloads") },
+                                .hapticClickable { onNavigate("downloads") },
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Row(
@@ -312,9 +323,13 @@ fun HomeScreen(
                         inputField = {
                             SearchBarDefaults.InputField(
                                 state = searchFieldState,
-                                onSearch = { focusManager.clearFocus() },
+                                onSearch = {
+                                    haptics.perform(HapticKind.UI)
+                                    focusManager.clearFocus()
+                                },
                                 expanded = isSearching,
                                 onExpandedChange = {
+                                    haptics.perform(HapticKind.LIGHT)
                                     if (it) homeViewModel.activateSearch() else {
                                         homeViewModel.clearSearch()
                                         focusManager.clearFocus()
@@ -333,6 +348,7 @@ fun HomeScreen(
                                     if (isSearching) {
                                         IconButton(
                                             onClick = {
+                                                haptics.perform(HapticKind.LIGHT)
                                                 homeViewModel.clearSearch()
                                                 focusManager.clearFocus()
                                             },
@@ -344,7 +360,10 @@ fun HomeScreen(
                                             )
                                         }
                                     } else {
-                                        IconButton(onClick = { homeViewModel.activateSearch() }) {
+                                        IconButton(onClick = {
+                                            haptics.perform(HapticKind.LIGHT)
+                                            homeViewModel.activateSearch()
+                                        }) {
                                             Icon(
                                                 Icons.Default.Search,
                                                 null,
@@ -353,16 +372,32 @@ fun HomeScreen(
                                         }
                                     }
                                 },
-                                trailingIcon = {
-                                    if (isSearching) {
-                                        if (homeViewModel.searchQuery.isNotEmpty()) {
-                                            IconButton(onClick = { homeViewModel.onSearchQueryChanged("") }) {
-                                                Icon(Icons.Default.Close, stringResource(R.string.btn_close))
+                                 trailingIcon = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (isSearching) {
+                                            if (homeViewModel.searchQuery.isNotEmpty()) {
+                                                IconButton(onClick = {
+                                                    haptics.perform(HapticKind.LIGHT)
+                                                    homeViewModel.onSearchQueryChanged("")
+                                                }) {
+                                                    Icon(Icons.Default.Close, stringResource(R.string.btn_close))
+                                                }
                                             }
-                                        }
-                                    } else {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            IconButton(onClick = { onNavigate("recognition") }) {
+                                            IconButton(onClick = {
+                                                haptics.perform(HapticKind.UI)
+                                                onNavigate("recognition")
+                                            }) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.GraphicEq,
+                                                    contentDescription = stringResource(R.string.recognize_music),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        } else {
+                                            IconButton(onClick = {
+                                                haptics.perform(HapticKind.UI)
+                                                onNavigate("recognition")
+                                            }) {
                                                 Icon(
                                                     imageVector = Icons.Rounded.GraphicEq,
                                                     contentDescription = stringResource(R.string.recognize_music),
@@ -370,6 +405,7 @@ fun HomeScreen(
                                                 )
                                             }
                                             IconButton(onClick = {
+                                                haptics.perform(HapticKind.UI)
                                                 if (userProfile != null) {
                                                     onNavigate("my_profile_menu")
                                                 } else {
@@ -421,11 +457,6 @@ fun HomeScreen(
                                         .padding(top = 4.dp, bottom = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    SearchSourceSelector(
-                                        selectedSource = homeViewModel.activeSearchSource,
-                                        onSelect = homeViewModel::onSearchSourceChanged
-                                    )
-                                    Spacer(Modifier.width(8.dp))
                                     AnimatedVisibility(
                                         visible = homeViewModel.activeSearchSource in listOf(
                                             SearchSource.SOUNDCLOUD,
@@ -446,6 +477,11 @@ fun HomeScreen(
                                     if (homeViewModel.activeSearchSource == SearchSource.YOUTUBE || homeViewModel.activeSearchSource == SearchSource.VK) {
                                         Spacer(Modifier.weight(1f))
                                     }
+                                    Spacer(Modifier.width(8.dp))
+                                    SearchSourceSelector(
+                                        selectedSource = homeViewModel.activeSearchSource,
+                                        onSelect = homeViewModel::onSearchSourceChanged
+                                    )
                                 }
 
                                 // Determine the search display state for AnimatedContent
@@ -486,7 +522,7 @@ fun HomeScreen(
                                                 onCategoryClick = { category: SearchCategory ->
                                                     val encodedTitle = Uri.encode(category.title)
                                                     val encodedQuery = Uri.encode(category.query)
-                                                    onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
+                                                    onNavigate("genre_detail/$encodedTitle/$encodedQuery")
                                                 }
                                             )
                                         }
@@ -536,7 +572,10 @@ fun HomeScreen(
 
                     PullToRefreshBox(
                         isRefreshing = homeViewModel.isRefreshing,
-                        onRefresh = { homeViewModel.refreshData() },
+                        onRefresh = {
+                            haptics.perform(HapticKind.LIGHT)
+                            homeViewModel.refreshData()
+                        },
                         state = pullRefreshState,
                         modifier = Modifier.fillMaxSize(),
                         indicator = {
@@ -598,6 +637,8 @@ fun HomeContent(
     var isSupportBannerVisible by remember { mutableStateOf(isBannerEligible) }
     val showHomeYourMix by prefs.getShowHomeYourMixFlow().collectAsState(initial = prefs.getShowHomeYourMix())
     val showHomeListeningStats by prefs.getShowHomeListeningStatsFlow().collectAsState(initial = prefs.getShowHomeListeningStats())
+    val showHomeMyWave by prefs.getShowHomeMyWaveFlow().collectAsState(initial = prefs.getShowHomeMyWave())
+    val showHomeCharts by prefs.getShowHomeChartsFlow().collectAsState(initial = prefs.getShowHomeCharts())
     val homeClips by com.alananasss.kittytune.data.artist.ArtistClips.homeClips.collectAsState()
 
     val scrollState = rememberLazyListState()
@@ -661,7 +702,7 @@ fun HomeContent(
                     onCategoryClick = { category ->
                         val encodedTitle = Uri.encode(category.title)
                         val encodedQuery = Uri.encode(category.query)
-                        onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
+                        onNavigate("genre_detail/$encodedTitle/$encodedQuery")
                     }
                 )
 
@@ -797,31 +838,56 @@ fun HomeContent(
             }
         }
 
-        // MyWave: the personal radio, one press, always something on (PR #77).
-        item {
-            com.alananasss.kittytune.ui.home.MyWaveCard(
-                playerViewModel = playerViewModel,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-            )
-        }
-
         if (showHomeListeningStats) {
             item {
                 ListeningStatsCard(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp),
                     onNavigateToStats = { onNavigate("listening_stats") },
                     onNavigateToYearlyPlayback = { onNavigate("yearly_playback") }
                 )
             }
         }
 
-        // Country charts preview
-        item {
-            HomeChartPreview(
-                playerViewModel = playerViewModel,
-                onOpenCharts = { onNavigate("charts") },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-            )
+        habitsSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
+        }
+
+        rediscoverSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
+        }
+
+        // MyWave: the personal radio, one press, always something on (PR #77).
+        if (showHomeMyWave) {
+            item {
+                com.alananasss.kittytune.ui.home.MyWaveCard(
+                    playerViewModel = playerViewModel,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+
+        discoverySection?.let {
+            item {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(it.title, context)
+                val locSub = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(it.subtitle, context)
+                DiscoverySectionCarousel(
+                    title = locTitle,
+                    subtitle = locSub,
+                    tracks = it.content.filterIsInstance<Track>(),
+                    onTrackClick = { track ->
+                        playerViewModel.playPlaylist(listOf(track), 0, null)
+                    }
+                )
+            }
+        }
+
+        recommendedSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
+        }
+
+        stationsSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
         }
 
         // Home clips shelf
@@ -844,15 +910,35 @@ fun HomeContent(
             }
         }
 
-        if (showHomeYourMix) {
+        albumsSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
+        }
+
+        similarSection?.let {
+            RenderHomeSection(it, onNavigate, playerViewModel)
+        }
+
+        // Country charts preview
+        if (showHomeCharts) {
             item {
-                StartMixingCard(
+                HomeChartPreview(
                     playerViewModel = playerViewModel,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    onOpenCharts = { onNavigate("charts") },
+                    modifier = Modifier.padding(horizontal = 16.dp),
                 )
             }
         }
 
+        if (showHomeYourMix) {
+            item {
+                StartMixingCard(
+                    playerViewModel = playerViewModel,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        }
+
+        // Sections propres à dev, conservées : elles ne sont pas rendues plus haut.
         habitsSection?.let {
             RenderHomeSection(it, onNavigate, playerViewModel)
         }
@@ -861,40 +947,11 @@ fun HomeContent(
             RenderHomeSection(it, onNavigate, playerViewModel)
         }
 
-        stationsSection?.let {
-            RenderHomeSection(it, onNavigate, playerViewModel)
-        }
-
         newCrewSection?.let {
             RenderHomeSection(it, onNavigate, playerViewModel)
         }
 
         repostsSection?.let {
-            RenderHomeSection(it, onNavigate, playerViewModel)
-        }
-
-        albumsSection?.let {
-            RenderHomeSection(it, onNavigate, playerViewModel)
-        }
-        similarSection?.let {
-            RenderHomeSection(it, onNavigate, playerViewModel)
-        }
-        discoverySection?.let {
-            item {
-                val context = androidx.compose.ui.platform.LocalContext.current
-                val locTitle = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionTitle(it.title, context)
-                val locSub = com.alananasss.kittytune.utils.SoundCloudLocalizationUtils.localizeSectionSubtitle(it.subtitle, context)
-                DiscoverySectionCarousel(
-                    title = locTitle,
-                    subtitle = locSub,
-                    tracks = it.content.filterIsInstance<Track>(),
-                    onTrackClick = { track ->
-                        playerViewModel.playPlaylist(listOf(track), 0, null)
-                    }
-                )
-            }
-        }
-        recommendedSection?.let {
             RenderHomeSection(it, onNavigate, playerViewModel)
         }
         remainingSections.forEach { section ->
@@ -1018,12 +1075,16 @@ fun LazyListScope.RenderHomeSection(
 
 @Composable
 fun HighlightTrackCard(track: Track, onClick: () -> Unit) {
+    val haptics = rememberAppHaptics()
     val blockedTrackIds by com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collectAsState()
     val blockedArtistIds by com.alananasss.kittytune.data.BlockManager.blockedArtistIdsFlow.collectAsState()
     if (track.id in blockedTrackIds || (track.user?.id != null && track.user.id in blockedArtistIds)) return
 
     Card(
-        onClick = onClick,
+        onClick = {
+            haptics.perform(HapticKind.MEDIUM)
+            onClick()
+        },
         modifier = Modifier
             .width(200.dp)
             .height(280.dp),
@@ -1186,7 +1247,7 @@ fun CaptionedRepostCard(
                     modifier = Modifier
                         .weight(1f, fill = false)
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable(onClick = onUserClick),
+                        .hapticClickable(onClick = onUserClick),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -1257,7 +1318,7 @@ fun CaptionedRepostCard(
             }
             val artworkUrl = repost.track.fullResArtwork ?: repost.track.artworkUrl
             Surface(
-                onClick = onTrackClick,
+                onClick = hapticAction(HapticKind.LIGHT, onTrackClick),
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHighest,
                 modifier = Modifier
@@ -1371,7 +1432,7 @@ fun TogetherCard(
 ) {
     val scheme = MaterialTheme.colorScheme
     Surface(
-        onClick = onClick,
+        onClick = hapticAction(HapticKind.MEDIUM, onClick),
         shape = RoundedCornerShape(24.dp),
         color = scheme.surfaceContainerHigh,
         modifier = modifier.fillMaxWidth()
@@ -1451,7 +1512,7 @@ fun ExplorerButton(
         modifier = modifier
     ) {
         Surface(
-            onClick = onClick,
+            onClick = hapticAction(HapticKind.MEDIUM, onClick),
             shape = RoundedCornerShape(28.dp),
             color = containerColor,
             modifier = Modifier
@@ -1490,6 +1551,7 @@ fun HomeFilterRow(
     categories: List<SearchCategory>,
     onCategoryClick: (SearchCategory) -> Unit
 ) {
+    val haptics = rememberAppHaptics()
     LazyRow(
         contentPadding = PaddingValues(horizontal = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1497,7 +1559,10 @@ fun HomeFilterRow(
     ) {
         items(categories) { category ->
             Button(
-                onClick = { onCategoryClick(category) },
+                onClick = {
+                    haptics.perform(HapticKind.LIGHT)
+                    onCategoryClick(category)
+                },
                 shapes = ButtonDefaults.shapes(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -1574,7 +1639,7 @@ fun QuickHistoryTile(item: HistoryItem, onClick: () -> Unit) {
         modifier = Modifier
             .width(110.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
+            .hapticClickable { onClick() }
             .padding(4.dp)
     ) {
         Card(
@@ -1660,7 +1725,7 @@ fun StandardHorizontalSection(
     Column {
         Column(
             modifier = Modifier
-                .then(if (onTitleClick != null) Modifier.clickable { onTitleClick() } else Modifier)
+                .then(if (onTitleClick != null) Modifier.hapticClickable { onTitleClick() } else Modifier)
                 .padding(horizontal = 24.dp, vertical = 8.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1798,7 +1863,7 @@ fun DiscoveryBigCard(
                 scaleY = scale
                 this.alpha = alpha
             }
-            .clickable { onClick() }
+            .hapticClickable { onClick() }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             AsyncImage(
@@ -1902,7 +1967,7 @@ fun StationCardLarge(playlist: Playlist, onClick: () -> Unit) {
     }
 
     Card(
-        onClick = onClick,
+        onClick = hapticAction(HapticKind.MEDIUM, onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = Modifier.width(180.dp)
@@ -2005,7 +2070,7 @@ fun TrackCardModern(track: Track, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(160.dp)
-            .clickable(onClick = onClick)
+            .hapticClickable(onClick = onClick)
     ) {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -2221,6 +2286,10 @@ fun SearchCategoriesGrid(
     genres: List<SearchCategory>,
     onCategoryClick: (SearchCategory) -> Unit
 ) {
+    val allCategories = (moods + genres).distinctBy { it.id }
+    val officialCategories = allCategories.filter { !it.artworkUrl.isNullOrBlank() }
+    val manualCategories = allCategories.filter { it.artworkUrl.isNullOrBlank() }.sortedBy { it.title }
+
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 180.dp),
@@ -2228,30 +2297,34 @@ fun SearchCategoriesGrid(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = stringResource(R.string.search_section_moods),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
-            )
+        if (officialCategories.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    text = stringResource(R.string.search_section_genres),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
+                )
+            }
+
+            items(officialCategories) { category ->
+                SearchCategoryCard(category = category) { onCategoryClick(category) }
+            }
         }
 
-        items(moods) { category ->
-            SearchCategoryCard(category = category) { onCategoryClick(category) }
-        }
+        if (manualCategories.isNotEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    text = stringResource(R.string.search_section_other_genres),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+                )
+            }
 
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Text(
-                text = stringResource(R.string.search_section_genres),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
-            )
-        }
-
-        items(genres) { category ->
-            SearchCategoryCard(category = category) { onCategoryClick(category) }
+            items(manualCategories) { category ->
+                SearchCategoryCard(category = category) { onCategoryClick(category) }
+            }
         }
     }
 }
@@ -2265,39 +2338,49 @@ fun SearchCategoryCard(
     val containerColor = MaterialTheme.colorScheme.secondaryContainer
     val contentColor = MaterialTheme.colorScheme.onSecondaryContainer
 
-    val cardModifier = if (isSquare) {
-        Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-    } else {
-        Modifier
-            .fillMaxWidth()
-            .height(110.dp)
-    }
-
     Card(
-        onClick = onClick,
+        onClick = hapticAction(HapticKind.MEDIUM, onClick),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = containerColor,
             contentColor = contentColor
         ),
-        modifier = cardModifier
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Icon(
-                imageVector = category.icon,
-                contentDescription = null,
-                tint = contentColor.copy(alpha = 0.15f),
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(100.dp)
-                    .offset(x = 20.dp, y = 20.dp)
-                    .graphicsLayer {
-                        rotationZ = -10f
-                        alpha = 0.5f
-                    }
-            )
+            if (!category.artworkUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = category.artworkUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(90.dp)
+                        .offset(x = 10.dp, y = 10.dp)
+                        .graphicsLayer {
+                            rotationZ = -5f
+                            alpha = 0.5f
+                        },
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                category.icon?.let { icon ->
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = contentColor.copy(alpha = 0.15f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .size(100.dp)
+                            .offset(x = 20.dp, y = 20.dp)
+                            .graphicsLayer {
+                                rotationZ = -10f
+                                alpha = 0.5f
+                            }
+                    )
+                }
+            }
 
             Column(
                 modifier = Modifier
@@ -2570,7 +2653,7 @@ fun SearchResultsList(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable {
+                                            .hapticClickable {
                                                 homeViewModel.noteOpenedArtist(u)
                                                 onNavigate("spotify_artist:${artist.id}")
                                             }
@@ -2838,7 +2921,7 @@ fun SearchResultsList(
                         Row(
                             modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .hapticClickable {
                                 homeViewModel.noteOpenedArtist(artist)
                                 onNavigate(artist.profileNavId)
                             }
@@ -3018,8 +3101,11 @@ fun SearchResultsList(
         val permalink =
             playlist.permalinkUrl ?: if (playlist.id > 0) "https://soundcloud.com/playlists/${playlist.id}" else ""
         val likedPlaylistsRepo by LikeRepository.likedPlaylists.collectAsState()
-        val isPlaylistLiked = remember(playlist.id, likedPlaylistsRepo) {
-            LikeRepository.isPlaylistLiked(playlist.id)
+        val libraryPlaylistId = remember(playlist.id, playlist.permalinkUrl) {
+            com.alananasss.kittytune.data.local.ExternalPlaylists.libraryIdFor(playlist.permalinkUrl, playlist.id)
+        }
+        val isPlaylistLiked = remember(libraryPlaylistId, likedPlaylistsRepo) {
+            LikeRepository.isPlaylistLiked(libraryPlaylistId)
         }
         val primaryColor = MaterialTheme.colorScheme.primary
 
@@ -3137,7 +3223,7 @@ fun SearchResultsList(
                                     )
                             } else {
                                 LikeRepository.togglePlaylistLike(
-                                    playlist.id,
+                                    libraryPlaylistId,
                                     false,
                                     playlist.permalinkUrl ?: "",
                                     playlist.urn ?: ""
@@ -3175,7 +3261,7 @@ fun SearchResultsList(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { action() }
+                                .hapticClickable { action() }
                                 .padding(8.dp)
                         ) {
                             Icon(
@@ -3272,7 +3358,7 @@ fun ProviderSearchResults(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
+                                    .hapticClickable {
                                         homeViewModel.noteOpenedArtist(artist)
                                         onNavigate(artist.urn ?: artist.id.toString())
                                     }
@@ -3461,7 +3547,7 @@ fun ArtistCircle(user: User, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
             .width(120.dp)
-            .clickable { onClick() }) {
+            .hapticClickable { onClick() }) {
         ArtistAvatar(
             avatarUrl = user.avatarUrl, enableViewer = false, modifier = Modifier
                 .size(120.dp)
@@ -3542,7 +3628,7 @@ fun HistoryCard(
     if (item.numericId in blockedTrackIds || (item.type == "artist" && item.numericId in blockedArtistIds)) return
 
     Card(
-        onClick = onClick,
+        onClick = hapticAction(HapticKind.MEDIUM, onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier = Modifier.width(280.dp)
@@ -3680,7 +3766,7 @@ fun OfflineHomeView(
         Spacer(Modifier.height(48.dp))
 
         Button(
-            onClick = onRetry,
+            onClick = hapticAction(HapticKind.MEDIUM, onRetry),
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shapes = ButtonDefaults.shapes(),
             contentPadding = PaddingValues(horizontal = 24.dp)
@@ -3693,7 +3779,7 @@ fun OfflineHomeView(
         Spacer(Modifier.height(12.dp))
 
         FilledTonalButton(
-            onClick = onGoToDownloads,
+            onClick = hapticAction(HapticKind.UI, onGoToDownloads),
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shapes = ButtonDefaults.shapes(),
             contentPadding = PaddingValues(horizontal = 24.dp)
@@ -3742,7 +3828,7 @@ private fun HomeChartPreview(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onOpenCharts)
+                    .hapticClickable(onClick = onOpenCharts)
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -3763,7 +3849,7 @@ private fun HomeChartPreview(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
+                        .hapticClickable {
                             playerViewModel.playPlaylist(
                                 tracks = entriesState.map { it.track },
                                 startIndex = index,

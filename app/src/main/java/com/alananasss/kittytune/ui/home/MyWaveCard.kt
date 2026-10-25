@@ -47,6 +47,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.wave.MyWave
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 
@@ -224,25 +227,25 @@ private fun WaveModeRow(
             label = stringResource(R.string.wave_mode_balanced),
             icon = Icons.Rounded.AutoAwesome,
             selected = selected == MyWave.WaveMode.BALANCED,
-            onClick = { onSelect(MyWave.WaveMode.BALANCED) },
+            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.BALANCED) },
         )
         WaveModeChip(
             label = stringResource(R.string.wave_mode_favorites),
             icon = Icons.Rounded.Favorite,
             selected = selected == MyWave.WaveMode.FAVORITES,
-            onClick = { onSelect(MyWave.WaveMode.FAVORITES) },
+            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.FAVORITES) },
         )
         WaveModeChip(
             label = stringResource(R.string.wave_mode_discover),
             icon = Icons.Rounded.Explore,
             selected = selected == MyWave.WaveMode.DISCOVER,
-            onClick = { onSelect(MyWave.WaveMode.DISCOVER) },
+            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.DISCOVER) },
         )
         WaveModeChip(
             label = stringResource(R.string.wave_mode_popular),
             icon = Icons.Rounded.TrendingUp,
             selected = selected == MyWave.WaveMode.POPULAR,
-            onClick = { onSelect(MyWave.WaveMode.POPULAR) },
+            onClick = hapticAction(HapticKind.UI) { onSelect(MyWave.WaveMode.POPULAR) },
         )
     }
 }

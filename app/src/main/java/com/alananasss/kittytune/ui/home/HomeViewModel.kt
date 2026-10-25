@@ -12,8 +12,10 @@
     import com.alananasss.kittytune.data.GenreData
     import com.alananasss.kittytune.data.HistoryRepository
     import com.alananasss.kittytune.data.LikeRepository
+    import com.alananasss.kittytune.data.ListeningStatsRepository
     import com.alananasss.kittytune.data.SearchCategory
     import com.alananasss.kittytune.data.TokenManager
+    import com.alananasss.kittytune.data.search.ProviderLinks
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
@@ -269,6 +271,28 @@
         private var categoriesLocaleTag: String? = null
         private var cachedMoodCategories: List<SearchCategory> = emptyList()
         private var cachedGenreCategories: List<SearchCategory> = emptyList()
+        private var cachedVisualCategories: List<SearchCategory> = emptyList()
+        private var dynamicVisualCategories: List<SearchCategory>? = null
+
+        fun loadSearchLandingCategories() {
+            viewModelScope.launch {
+                try {
+                    val app = getApplication<android.app.Application>()
+                    val hasAuth = !tokenManager.getAccessToken().isNullOrEmpty() ||
+                            !SessionManager.harvestStoredSession(app).isNullOrEmpty()
+                    if (hasAuth && !tokenManager.isGuestMode()) {
+                        val landingJson = api.getSearchLandingPage()
+                        val parsed = GenreData.parseSduiLandingCategories(landingJson, app)
+                        if (parsed.isNotEmpty()) {
+                            dynamicVisualCategories = parsed
+                            cachedVisualCategories = parsed
+                        }
+                    }
+                } catch (e: Exception) {
+                    // Fallback to static official visual categories
+                }
+            }
+        }
 
         private fun refreshCategoriesIfLocaleChanged() {
             val app = getApplication<android.app.Application>()
@@ -278,6 +302,9 @@
             categoriesLocaleTag = tag
             cachedMoodCategories = GenreData.getMoods(localized)
             cachedGenreCategories = GenreData.getGenres(localized)
+            if (dynamicVisualCategories.isNullOrEmpty()) {
+                cachedVisualCategories = GenreData.getVisualCategories(localized)
+            }
         }
 
         val moodCategories: List<SearchCategory>
@@ -290,9 +317,15 @@
                 refreshCategoriesIfLocaleChanged()
                 return cachedGenreCategories
             }
+        val visualCategories: List<SearchCategory>
+            get() {
+                refreshCategoriesIfLocaleChanged()
+                return dynamicVisualCategories ?: cachedVisualCategories
+            }
 
         init {
             viewModelScope.launch { loadFromCache() }
+            loadSearchLandingCategories()
             if (isOfflineMode) {
                 isLoading = false
             }
@@ -315,6 +348,7 @@
                     generatePersonalizedCategories()
                 }
             }
+            generatePersonalizedCategories()
             viewModelScope.launch {
                 com.alananasss.kittytune.data.BlockManager.blockedTrackIdsFlow.collect { blockedIds ->
                     if (blockedIds.isNotEmpty()) {
@@ -354,6 +388,7 @@
             val isSpotifyUrl = trimmed.contains("open.spotify.com") || trimmed.contains("spotify.link") ||
                     trimmed.startsWith("spotify:") || trimmed.startsWith("spotify_") || trimmed.startsWith("station_spotify:")
             val isYoutubeUrl = trimmed.contains("youtube.com") || trimmed.contains("youtu.be") || trimmed.startsWith("yt_radio:")
+            val isProviderUrl = ProviderLinks.looksLikeProviderUrl(trimmed)
 
             if (isSoundCloudUrl) {
                 handleSoundCloudUrl(trimmed)
@@ -361,6 +396,8 @@
                 handleSpotifyUrl(trimmed)
             } else if (isYoutubeUrl) {
                 handleYoutubeUrl(trimmed)
+            } else if (isProviderUrl) {
+                handleProviderUrl(trimmed)
             } else {
                 if (trimmed.isBlank()) {
                     clearSearchResults()
@@ -483,6 +520,58 @@
                     }
                 } catch (e: Exception) {
                     e.printStackTrace(); performSearch(url)
+                }
+            }
+        }
+
+        /**
+         * Pasted Qobuz/Tidal/Deezer links point at an exact object. Resolve the id
+         * instead of sending the URL through text search, which is what made a
+         * pasted link return an arbitrary page of songs.
+         *
+         * When the link cannot be resolved the search stays empty on purpose: a
+         * provider link is not a title, so searching for its text would only
+         * produce something unrelated.
+         */
+        private fun handleProviderUrl(url: String) {
+            isSearchLoading = true
+            clearSearchResults()
+            viewModelScope.launch {
+                try {
+                    var processedUrl = url
+                    var link = ProviderLinks.parse(processedUrl)
+                    if (link == null && ProviderLinks.isShortLink(processedUrl)) {
+                        processedUrl = unshortenUrl(processedUrl)
+                        link = ProviderLinks.parse(processedUrl)
+                    }
+                    if (link == null) return@launch
+
+                    when (link.kind) {
+                        ProviderLinks.Kind.TRACK -> {
+                            val track = withContext(Dispatchers.IO) {
+                                when (link.provider) {
+                                    ProviderLinks.Provider.DEEZER ->
+                                        com.alananasss.kittytune.data.deezer.DeezerSearchRepository.getTrack(link.id)
+                                    ProviderLinks.Provider.TIDAL ->
+                                        com.alananasss.kittytune.data.tidal.TidalSearchRepository.getTrack(getApplication(), link.id)
+                                    ProviderLinks.Provider.QOBUZ ->
+                                        com.alananasss.kittytune.data.qobuz.QobuzSearchRepository.getTrack(getApplication(), link.id)
+                                }
+                            }
+                            if (track != null) {
+                                _playTrack.emit(track)
+                                clearSearch()
+                            }
+                        }
+                        else -> {
+                            _navigateTo.emit(link.urn)
+                            clearSearch()
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    isSearchLoading = false
                 }
             }
         }
@@ -1385,6 +1474,7 @@
             }
             isOfflineMode = false
 
+            loadSearchLandingCategories()
             viewModelScope.launch {
                 val token = tokenManager.getAccessToken()
                 if (token.isNullOrEmpty()) loadGuestData() else loadAuthenticatedData()
@@ -1470,13 +1560,14 @@
 
         private suspend fun fetchDiscoverySection(localLikes: List<Track>): HomeSection? {
             return try {
-                val seedTrack = if (localLikes.isNotEmpty()) {
-                    localLikes.random()
+                val validSeeds = localLikes.filter { it.id > 0 && (it.source == "soundcloud" || it.source.isNullOrEmpty()) }
+                val seedTrack = if (validSeeds.isNotEmpty()) {
+                    validSeeds.random()
                 } else {
-                    api.getCharts(limit = 10).collection.mapNotNull { it.track }.randomOrNull()
+                    api.getCharts(limit = 10).collection.mapNotNull { it.track }.filter { it.id > 0 }.randomOrNull()
                 }
 
-                if (seedTrack == null) return null
+                if (seedTrack == null || seedTrack.id <= 0) return null
 
                 val related = api.getRelatedTracks(seedTrack.id, limit = 20)
                 val discoveryTracks = related.collection
@@ -1636,7 +1727,7 @@
                     val recommendedAlbumsDef = async {
                         val finalAlbumList = mutableListOf<Playlist>()
                         try {
-                            val favoriteArtistIds = sourceTracks.mapNotNull { it.user?.id }.distinct().shuffled().take(5)
+                            val favoriteArtistIds = sourceTracks.mapNotNull { it.user?.id }.filter { it > 0 }.distinct().shuffled().take(5)
                             if (favoriteArtistIds.isNotEmpty()) {
                                 val artistAlbums = favoriteArtistIds.map { artistId ->
                                     async { try { api.getUserAlbums(artistId).collection } catch (e: Exception) { emptyList() } }
@@ -1655,7 +1746,20 @@
                                 finalAlbumList.addAll(genreAlbums)
                             }
                         } catch (e: Exception) {
-                            finalAlbumList.addAll(api.searchAlbums(getString(R.string.home_top_albums_query), limit = 10).collection)
+                            try {
+                                val sampleGenres = listOf("Electronic", "Hip-Hop", "Indie", "R&B", "Synthwave", "House", "Pop", "Rock").shuffled().take(2)
+                                sampleGenres.forEach { genre ->
+                                    finalAlbumList.addAll(api.searchAlbums(genre, limit = 5).collection)
+                                }
+                            } catch (_: Exception) {}
+                        }
+                        if (finalAlbumList.isEmpty()) {
+                            try {
+                                val sampleGenres = listOf("Electronic", "Hip-Hop", "Indie", "R&B", "Synthwave", "House", "Pop", "Rock").shuffled().take(2)
+                                sampleGenres.forEach { genre ->
+                                    finalAlbumList.addAll(api.searchAlbums(genre, limit = 5).collection)
+                                }
+                            } catch (_: Exception) {}
                         }
                         finalAlbumList.distinctBy { it.id }.shuffled().take(10)
                     }
@@ -1685,7 +1789,7 @@
                     }
 
                     val likedByDef = async {
-                        val candidateIds = sourceTracks.mapNotNull { it.user?.id }.distinct().shuffled().take(10)
+                        val candidateIds = sourceTracks.mapNotNull { it.user?.id }.filter { it > 0 }.distinct().shuffled().take(10)
                         val validatedUsersDeferred = candidateIds.map { userId ->
                             async { try { val userFull = api.getUser(userId); if (userFull.likesCount > 0) userFull else null } catch (e: Exception) { null } }
                         }
@@ -1711,7 +1815,7 @@
                     val seed1 = sourceTracks.take(10).randomOrNull() ?: sourceTracks.first()
                     val relatedDef1 = async {
                         try {
-                            if (seed1.source == "soundcloud") {
+                            if (seed1.source == "soundcloud" && seed1.id > 0) {
                                 api.getRelatedTracks(seed1.id, limit = 10).collection
                             } else {
                                 api.searchTracks(seed1.title ?: "", limit = 10).collection
@@ -1720,10 +1824,12 @@
                     }
 
                     val newCrewDef = async {
-                        val artists = sourceTracks.mapNotNull { it.user }.distinctBy { it.id }.shuffled().take(8)
+                        val artists = sourceTracks.mapNotNull { it.user }.filter { it.id > 0 }.distinctBy { it.id }.shuffled().take(8)
                         val similarArtists = try {
-                            val randomLike = sourceTracks.shuffled().first()
-                            api.getRelatedTracks(randomLike.id, limit=10).collection.mapNotNull { it.user }
+                            val randomLike = sourceTracks.filter { it.id > 0 && it.source == "soundcloud" }.shuffled().firstOrNull()
+                            if (randomLike != null) {
+                                api.getRelatedTracks(randomLike.id, limit=10).collection.mapNotNull { it.user }.filter { it.id > 0 }
+                            } else emptyList()
                         } catch(e:Exception) { emptyList() }
                         (artists + similarArtists).distinctBy { it.id }.shuffled().take(10)
                     }
@@ -1757,31 +1863,67 @@
             try {
                 userProfile = null
                 val localLikes = LikeRepository.likedTracks.value
+                val historyItems = try { HistoryRepository.getHistory().first() } catch (e: Exception) { emptyList() }
+                val statsEvents = try { ListeningStatsRepository.getRecentEvents(0L, limit = 30) } catch (e: Exception) { emptyList() }
+
+                val tracksFromStats = statsEvents.mapNotNull { ev ->
+                    if (ev.trackId > 0) {
+                        Track(
+                            id = ev.trackId,
+                            title = ev.trackTitle,
+                            artworkUrl = ev.artworkUrl,
+                            durationMs = 0L,
+                            user = if (ev.artistName.isNotEmpty()) User(id = ev.artistId ?: 0L, username = ev.artistName, avatarUrl = ev.artistAvatarUrl) else null,
+                            source = ev.source
+                        )
+                    } else null
+                }
+
+                val tracksFromHistory = historyItems.filter { it.type == "TRACK" && it.numericId > 0 }.map { item ->
+                    Track(
+                        id = item.numericId,
+                        title = item.title,
+                        artworkUrl = item.imageUrl,
+                        durationMs = 0L,
+                        user = User(0L, item.subtitle, null),
+                        source = item.source,
+                        permalinkUrl = item.originalUrl
+                    )
+                }
+
+                val guestSeedTracks = (localLikes + tracksFromStats + tracksFromHistory).distinctBy { it.id }
+
                 generatePersonalizedCategories()
                 val allSections = mutableListOf<HomeSection>()
 
                 coroutineScope {
                     val genericSectionsDef = async { fetchGenericGuestSections() }
                     val personalSectionsDef = async {
-                        if (localLikes.isNotEmpty()) fetchPersonalizedSections(localLikes, getString(R.string.guest_user)) else emptyList()
+                        if (guestSeedTracks.isNotEmpty()) fetchPersonalizedSections(guestSeedTracks, getString(R.string.guest_user)) else emptyList()
                     }
                     val historySectionDef = async { fetchHistoryBasedSection() }
-                    val discoverySectionDef = async { fetchDiscoverySection(localLikes) }
-                    val recommendationsDef = async { fetchTrackRecommendations(localLikes) }
-                    val artistUpdatesDef = async { fetchLikedArtistUpdates(localLikes) }
+                    val discoverySectionDef = async { fetchDiscoverySection(guestSeedTracks) }
+                    val recommendationsDef = async { fetchTrackRecommendations(guestSeedTracks) }
+                    val artistUpdatesDef = async { fetchLikedArtistUpdates(guestSeedTracks) }
+                    val mixedSelectionsDef = async { fetchMixedSelections() }
 
                     val genericSections = genericSectionsDef.await()
                     val personalSections = personalSectionsDef.await()
                     val historySection = historySectionDef.await()
                     val discoverySection = discoverySectionDef.await()
                     val recommendationsSection = recommendationsDef.await()
+                    val mixedSelections = mixedSelectionsDef.await()
 
                     if (discoverySection != null) allSections.add(discoverySection)
+
+                    // Trending tracks from generic sections (equivalent to stream in authenticated mode)
+                    val trendingSection = genericSections.firstOrNull { it.id == "trending" }
+                    if (trendingSection != null) allSections.add(trendingSection)
+
                     if (recommendationsSection != null) allSections.add(recommendationsSection)
                     if (historySection != null) allSections.add(historySection)
 
-                    // The same shelf for a guest: new songs from the artists in their local likes,
-                    // grouped by release week on the screen (ported from the desktop PR #77).
+                    // The same shelf for a guest: new songs from the artists in their listening history / likes
                     val artistUpdates = artistUpdatesDef.await()
                     likedArtistUpdates.clear()
                     likedArtistUpdates.addAll(artistUpdates)
@@ -1796,8 +1938,20 @@
                             )
                         )
                     }
+
                     allSections.addAll(personalSections)
-                    allSections.addAll(genericSections)
+
+                    // Add generic fallback albums only if personalSections did not already include albums
+                    if (personalSections.none { it.id == "albums" }) {
+                        val genericAlbums = genericSections.firstOrNull { it.id == "albums" }
+                        if (genericAlbums != null) allSections.add(genericAlbums)
+                    }
+
+                    // Add mixed selections (Curated by SoundCloud, Artists to watch out for, Trending by genre)
+                    if (mixedSelections.isNotEmpty()) {
+                        val insertIdx = if (allSections.size > 1) 1 else allSections.size
+                        allSections.addAll(insertIdx, mixedSelections)
+                    }
                 }
 
                 if (allSections.isNotEmpty()) {
@@ -1810,35 +1964,74 @@
         }
 
         private suspend fun fetchGenericGuestSections(): List<HomeSection> {
-            val sections = mutableStateListOf<HomeSection>()
+            val sections = mutableListOf<HomeSection>()
             try {
                 coroutineScope {
-                    val trendingDef = async { try { api.getCharts(kind = "trending", genre = "soundcloud:genres:all-music").collection.mapNotNull { it.track } } catch(e:Exception){ emptyList() } }
-                    val albumsDef = async { try { api.searchAlbums(getString(R.string.home_top_albums_query) + " 2026", limit = 10).collection } catch(e:Exception){ emptyList() } }
-                    val hiphopDef = async { try { api.searchTracks("Hip-Hop & Rap", limit = 20).collection } catch(e:Exception){ emptyList() } }
-                    val popDef = async { try { api.searchTracks("Pop Music Trending", limit = 20).collection } catch(e:Exception){ emptyList() } }
-                    val electroDef = async { try { api.searchPlaylists("Electro House 2026", limit = 10).collection } catch(e:Exception){ emptyList() } }
-                    val artistsDef = async { try { val l1 = api.searchUsers("Billboard", limit = 5).collection; val l2 = api.searchUsers("Official Music", limit = 5).collection; (l1+l2).distinctBy{it.id}.shuffled() } catch(e:Exception){ emptyList() } }
+                    val trendingDef = async {
+                        try {
+                            api.getCharts(kind = "trending", genre = "soundcloud:genres:all-music").collection.mapNotNull { it.track }
+                        } catch (e: Exception) {
+                            emptyList()
+                        }
+                    }
 
                     val trending = trendingDef.await()
-                    if (trending.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_trending), null, trending, SectionType.TRACKS_ROW, id = "trending"))
+                    if (trending.isNotEmpty()) {
+                        sections.add(
+                            HomeSection(
+                                getString(R.string.home_trending),
+                                null,
+                                trending,
+                                SectionType.TRACKS_ROW,
+                                id = "trending"
+                            )
+                        )
+                    }
+
+                    val albumsDef = async {
+                        val albumList = mutableListOf<Playlist>()
+                        try {
+                            // 1. Try fetching real albums/EPs from top trending artists
+                            val trendingArtistIds = trending.mapNotNull { it.user?.id }.filter { it > 0 }.distinct().shuffled().take(5)
+                            if (trendingArtistIds.isNotEmpty()) {
+                                val artistAlbumsDeferred = trendingArtistIds.map { artistId ->
+                                    async { try { api.getUserAlbums(artistId).collection } catch (e: Exception) { emptyList() } }
+                                }
+                                val artistAlbums = artistAlbumsDeferred.map { it.await() }.flatten()
+                                albumList.addAll(artistAlbums)
+                            }
+
+                            // 2. If we need more albums, query albums from diverse rotating genres
+                            if (albumList.size < 6) {
+                                val sampleGenres = listOf("Electronic", "Hip-Hop", "Indie", "R&B", "Synthwave", "House", "Pop", "Rock", "Lo-Fi").shuffled().take(3)
+                                val genreAlbumsDeferred = sampleGenres.map { genre ->
+                                    async { try { api.searchAlbums(genre, limit = 5).collection } catch (e: Exception) { emptyList() } }
+                                }
+                                val genreAlbums = genreAlbumsDeferred.map { it.await() }.flatten()
+                                albumList.addAll(genreAlbums)
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                        albumList.distinctBy { it.id }.shuffled().take(10)
+                    }
 
                     val albums = albumsDef.await()
-                    if (albums.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_albums_for_you), null, albums, SectionType.STATIONS_ROW, id = "albums"))
-
-                    val hiphop = hiphopDef.await()
-                    if (hiphop.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_hiphop), null, hiphop, SectionType.TRACKS_ROW, id = "hiphop"))
-
-                    val techno = electroDef.await()
-                    if (techno.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_electro), null, techno, SectionType.STATIONS_ROW, id = "techno"))
-
-                    val artists = artistsDef.await()
-                    if (artists.isNotEmpty()) sections.add(HomeSection(getString(R.string.lib_artists), null, artists, SectionType.ARTISTS_ROW, id = "artists"))
-
-                    val pop = popDef.await()
-                    if (pop.isNotEmpty()) sections.add(HomeSection(getString(R.string.home_pop), null, pop, SectionType.TRACKS_ROW, id = "pop"))
+                    if (albums.isNotEmpty()) {
+                        sections.add(
+                            HomeSection(
+                                getString(R.string.home_albums_for_you),
+                                null,
+                                albums,
+                                SectionType.STATIONS_ROW,
+                                id = "albums"
+                            )
+                        )
+                    }
                 }
-            } catch (e: Exception) { e.printStackTrace() }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             return sections
         }
 
@@ -1994,9 +2187,9 @@
                 val historyItems = HistoryRepository.getHistory().first()
 
                 val seedTracks = mutableListOf<Track>()
-                seedTracks.addAll(localLikes)
+                seedTracks.addAll(localLikes.filter { it.id > 0 && (it.source == "soundcloud" || it.source.isNullOrEmpty()) })
                 seedTracks.addAll(historyItems
-                    .filter { it.type == "TRACK" }
+                    .filter { it.type == "TRACK" && it.numericId > 0 && (it.source == "soundcloud" || it.source.isNullOrEmpty()) }
                     .map {
                         Track(id = it.numericId, title = it.title, user = null, artworkUrl = null, durationMs = 0L)
                     }
@@ -2004,7 +2197,7 @@
 
                 if (seedTracks.isEmpty()) return null
 
-                val seedsToUse = seedTracks.shuffled().take(5)
+                val seedsToUse = seedTracks.distinctBy { it.id }.shuffled().take(5)
 
                 val recommendedTracks = coroutineScope {
                     val tasks = seedsToUse.map { seed ->
@@ -2284,8 +2477,21 @@
                     (likedTracks + historyTracks).distinctBy { it.id }.take(20)
                 }
 
+                val defaultTags = listOf("Pop", "Alternative", "Hip Hop", "Electro", "Rock", "R&B", "Dance", "World")
+                val defaultCategories = defaultTags.map { tag ->
+                    SearchCategory(
+                        id = tag,
+                        title = tag,
+                        query = tag,
+                        icon = getIconForGenre(tag)
+                    )
+                }
+
                 if (sourceTracks.isEmpty()) {
-                    withContext(Dispatchers.Main) { personalizedCategories.clear() }
+                    withContext(Dispatchers.Main) {
+                        personalizedCategories.clear()
+                        personalizedCategories.addAll(defaultCategories)
+                    }
                     return@launch
                 }
 
@@ -2323,9 +2529,10 @@
                         icon = getIconForGenre(tag)
                     )
                 }
+                val finalCategories = if (newCategories.isNotEmpty()) newCategories else defaultCategories
                 withContext(Dispatchers.Main) {
                     personalizedCategories.clear()
-                    personalizedCategories.addAll(newCategories)
+                    personalizedCategories.addAll(finalCategories)
                 }
             }
         }

@@ -29,14 +29,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ElectricBolt
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Tag
 import androidx.compose.material.icons.rounded.Tune
@@ -58,6 +63,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -66,8 +72,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -91,12 +99,21 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
+import com.alananasss.kittytune.data.BlockManager
 import com.alananasss.kittytune.data.GenreData
+import com.alananasss.kittytune.data.ListeningStatsRepository
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.mix.MixEngine
+import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.PlayerViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.text.NumberFormat
+import java.util.Locale
 
 /** One mood option on the card. */
 private data class VibeStation(
@@ -302,7 +319,7 @@ fun StartMixingCard(
                 }
                 FilledTonalIconButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                        view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
                         showOptions = true
                     },
                     shapes = IconButtonDefaults.shapes()
@@ -326,7 +343,7 @@ fun StartMixingCard(
                         FilterChip(
                             selected = index == selectedStationIndex,
                             onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
                                 selectedStationIndex = index
                             },
                             interactionSource = chipInteraction,
@@ -352,10 +369,19 @@ fun StartMixingCard(
             ) {
                 Button(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                         if (controlsPlayingMix) {
-                            playerViewModel.togglePlayPause()
+                            val hasTrackToResume = playerViewModel.uiCurrentTrack != null
+                                || playerViewModel.dismissedTrack != null
+                                || playerViewModel.queueState.isNotEmpty()
+                            if (hasTrackToResume) {
+                                playerViewModel.togglePlayPause()
+                            } else {
+                                view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                playingStationIndex = selectedStationIndex
+                                start(currentStation.recipe)
+                            }
                         } else {
+                            view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
                             playingStationIndex = selectedStationIndex
                             start(currentStation.recipe)
                         }
@@ -381,6 +407,22 @@ fun StartMixingCard(
                             else -> stringResource(R.string.mix_resume)
                         }
                     )
+                }
+                if (controlsPlayingMix) {
+                    FilledTonalIconButton(
+                        onClick = {
+                            view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                            playingStationIndex = selectedStationIndex
+                            start(currentStation.recipe)
+                        },
+                        shapes = IconButtonDefaults.shapes(),
+                        enabled = state !is MixState.Building
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Refresh,
+                            contentDescription = stringResource(R.string.btn_reset)
+                        )
+                    }
                 }
                 if (currentStation.subtitle.isNotBlank()) {
                     Text(
@@ -450,10 +492,28 @@ private fun MixBasisRow(basis: MixEngine.Basis) {
     }
 }
 
+private fun compactCount(value: Long): String {
+    return when {
+        value >= 1_000_000_000L -> String.format(Locale.getDefault(), "%.1fB", value / 1_000_000_000.0)
+        value >= 1_000_000L -> String.format(Locale.getDefault(), "%.1fM", value / 1_000_000.0)
+        value >= 1_000L -> String.format(Locale.getDefault(), "%.1fK", value / 1_000.0)
+        else -> NumberFormat.getNumberInstance(Locale.getDefault()).format(value)
+    }
+}
+
+private data class ArtistSuggestionItem(
+    val id: Long?,
+    val name: String,
+    val avatarUrl: String?,
+    val followersCount: Int? = null,
+    val isLocal: Boolean = false,
+    val verified: Boolean = false
+)
+
 /**
- * Dialog to customize the mix by artist or genre, with trusted sources filter.
+ * Dialog to customize the mix by multiple artists or genres, with autocomplete and trusted sources filter.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun MixOptionsDialog(
     onDismiss: () -> Unit,
@@ -464,8 +524,120 @@ private fun MixOptionsDialog(
     val focusManager = LocalFocusManager.current
     val playerPrefs = remember { PlayerPreferences(context) }
     var prioritizeTrusted by remember { mutableStateOf(playerPrefs.getMixPrioritizeTrusted()) }
-    var artist by remember { mutableStateOf("") }
+
+    val selectedArtists = remember { mutableStateListOf<MixEngine.ArtistSeed>() }
+    val selectedGenres = remember { mutableStateListOf<String>() }
+
+    var artistQuery by remember { mutableStateOf("") }
     var genreQuery by remember { mutableStateOf("") }
+
+    var artistSuggestions by remember { mutableStateOf<List<ArtistSuggestionItem>>(emptyList()) }
+    var isSearchingArtists by remember { mutableStateOf(false) }
+
+    LaunchedEffect(artistQuery) {
+        val q = artistQuery.trim()
+        if (q.isEmpty()) {
+            isSearchingArtists = false
+            val since = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000
+            val top = withContext(Dispatchers.IO) {
+                runCatching {
+                    ListeningStatsRepository.getTopArtists(since, limit = 6)
+                }.getOrDefault(emptyList())
+            }
+            val blocked = BlockManager.blockedArtistIdsFlow.value
+            artistSuggestions = top
+                .filter { it.artistId == null || it.artistId !in blocked }
+                .map {
+                    ArtistSuggestionItem(
+                        id = it.artistId,
+                        name = it.artistName,
+                        avatarUrl = it.artworkUrl,
+                        isLocal = true
+                    )
+                }
+            return@LaunchedEffect
+        }
+
+        delay(250)
+        isSearchingArtists = true
+        val blocked = BlockManager.blockedArtistIdsFlow.value
+        val results = withContext(Dispatchers.IO) {
+            val list = mutableListOf<ArtistSuggestionItem>()
+            val since = System.currentTimeMillis() - 180L * 24 * 60 * 60 * 1000
+            val localMatches = runCatching {
+                ListeningStatsRepository.getTopArtists(since, limit = 20)
+                    .filter { it.artistName.contains(q, ignoreCase = true) }
+            }.getOrDefault(emptyList())
+
+            localMatches.forEach {
+                if (it.artistId == null || it.artistId !in blocked) {
+                    list.add(
+                        ArtistSuggestionItem(
+                            id = it.artistId,
+                            name = it.artistName,
+                            avatarUrl = it.artworkUrl,
+                            isLocal = true
+                        )
+                    )
+                }
+            }
+
+            runCatching {
+                val api = RetrofitClient.create()
+                val res = api.searchUsers(q, limit = 8)
+                res.collection.forEach { user ->
+                    if (user.id !in blocked && list.none { it.id == user.id || it.name.equals(user.username, ignoreCase = true) }) {
+                        list.add(
+                            ArtistSuggestionItem(
+                                id = user.id,
+                                name = user.username ?: q,
+                                avatarUrl = user.avatarUrl,
+                                followersCount = user.followersCount,
+                                verified = user.verified,
+                                isLocal = false
+                            )
+                        )
+                    }
+                }
+            }
+            list
+        }
+        artistSuggestions = results
+        isSearchingArtists = false
+    }
+
+    fun addArtist(item: ArtistSuggestionItem) {
+        if (selectedArtists.none { it.artistName.equals(item.name, ignoreCase = true) || (it.artistId != null && it.artistId == item.id) }) {
+            selectedArtists.add(
+                MixEngine.ArtistSeed(
+                    artistId = item.id,
+                    artistName = item.name,
+                    avatarUrl = item.avatarUrl
+                )
+            )
+        }
+        artistQuery = ""
+        view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+    }
+
+    fun addTypedArtist() {
+        val q = artistQuery.trim()
+        if (q.isNotEmpty()) {
+            if (selectedArtists.none { it.artistName.equals(q, ignoreCase = true) }) {
+                selectedArtists.add(
+                    MixEngine.ArtistSeed(
+                        artistId = null,
+                        artistName = q,
+                        avatarUrl = null
+                    )
+                )
+            }
+            artistQuery = ""
+            view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+        }
+    }
+
+    var showAllGenres by remember { mutableStateOf(false) }
 
     val all = remember { GenreData.getGenres(context) }
     val needle = genreQuery.trim()
@@ -477,18 +649,19 @@ private fun MixOptionsDialog(
         it.isNotEmpty() && all.none { known -> known.title.equals(it, true) || known.query.equals(it, true) }
     }
 
-    fun startArtist() {
-        if (artist.isNotBlank()) {
-            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-            focusManager.clearFocus()
-            onPick(
-                MixEngine.Recipe.LikeArtist(
-                    artistId = null,
-                    artistName = artist.trim()
-                )
-            )
+    val visibleGenres = remember(needle, matches, all, showAllGenres, selectedGenres.toList()) {
+        if (needle.isNotEmpty()) {
+            matches
+        } else if (showAllGenres) {
+            all
+        } else {
+            val selectedSet = selectedGenres.toSet()
+            val selectedStandard = all.filter { it.query in selectedSet }
+            val remaining = all.filter { it.query !in selectedSet }
+            (selectedStandard + remaining).take(10)
         }
     }
+    val canExpandGenres = needle.isEmpty() && matches.size > visibleGenres.size
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -500,14 +673,16 @@ private fun MixOptionsDialog(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
                 .widthIn(max = 520.dp)
-                .padding(vertical = 24.dp)
+                .heightIn(max = 680.dp)
+                .padding(vertical = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 18.dp)
+                ) {
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -537,7 +712,7 @@ private fun MixOptionsDialog(
                     }
                     IconButton(
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                            view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
                             onDismiss()
                         },
                         shapes = IconButtonDefaults.shapes()
@@ -546,156 +721,510 @@ private fun MixOptionsDialog(
                     }
                 }
 
-                Spacer(Modifier.height(18.dp))
-                val cardShape = RoundedCornerShape(18.dp)
-                Card(
-                    onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                        val next = !prioritizeTrusted
-                        prioritizeTrusted = next
-                        playerPrefs.setMixPrioritizeTrusted(next)
-                    },
-                    shape = cardShape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    ),
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(cardShape)
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 18.dp)
                 ) {
-                    Row(
+                    val cardShape = RoundedCornerShape(18.dp)
+                    Card(
+                        onClick = {
+                            view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                            val next = !prioritizeTrusted
+                            prioritizeTrusted = next
+                            playerPrefs.setMixPrioritizeTrusted(next)
+                        },
+                        shape = cardShape,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .clip(cardShape)
                     ) {
-                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Rounded.Verified,
-                                contentDescription = null,
-                                tint = if (prioritizeTrusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.mix_trusted_sources_title),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    text = stringResource(R.string.mix_trusted_sources_sub),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Switch(
-                            checked = prioritizeTrusted,
-                            onCheckedChange = null
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(20.dp))
-                MixSectionLabel(Icons.Rounded.Person, stringResource(R.string.mix_in_the_style_of))
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = artist,
-                    onValueChange = { artist = it },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    placeholder = { Text(stringResource(R.string.mix_artist_hint)) },
-                    trailingIcon = {
-                        if (artist.isNotBlank()) {
-                            IconButton(onClick = { startArtist() }, shapes = IconButtonDefaults.shapes()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Rounded.AutoAwesome,
-                                    contentDescription = stringResource(R.string.mix_start),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    imageVector = Icons.Rounded.Verified,
+                                    contentDescription = null,
+                                    tint = if (prioritizeTrusted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.mix_trusted_sources_title),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = stringResource(R.string.mix_trusted_sources_sub),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Switch(
+                                checked = prioritizeTrusted,
+                                onCheckedChange = null
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(20.dp))
+                    MixSectionLabel(Icons.Rounded.Person, stringResource(R.string.mix_artists_section))
+                    Spacer(Modifier.height(10.dp))
+
+                    if (selectedArtists.isNotEmpty()) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            selectedArtists.forEach { artistSeed ->
+                                InputChip(
+                                    selected = true,
+                                    onClick = {
+                                        view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                        selectedArtists.remove(artistSeed)
+                                    },
+                                    label = { Text(artistSeed.artistName, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    avatar = {
+                                        if (!artistSeed.avatarUrl.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = artistSeed.avatarUrl,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .clip(CircleShape)
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Person,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    },
+                                    trailingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Close,
+                                            contentDescription = stringResource(R.string.mix_selected_chip_remove, artistSeed.artistName),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 )
                             }
                         }
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { startArtist() }),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        Spacer(Modifier.height(10.dp))
+                    }
 
-                Spacer(Modifier.height(24.dp))
-                MixSectionLabel(Icons.Rounded.MusicNote, stringResource(R.string.mix_by_genre))
-                Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = genreQuery,
-                    onValueChange = { genreQuery = it },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    placeholder = { Text(stringResource(R.string.mix_genre_search_hint)) },
-                    leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (genreQuery.isNotEmpty()) {
-                            IconButton(onClick = { genreQuery = "" }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.btn_close))
+                    OutlinedTextField(
+                        value = artistQuery,
+                        onValueChange = { artistQuery = it },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        placeholder = { Text(stringResource(R.string.mix_artist_search_placeholder)) },
+                        leadingIcon = {
+                            Icon(Icons.Rounded.Search, contentDescription = null)
+                        },
+                        trailingIcon = {
+                            if (artistQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                        artistQuery = ""
+                                    },
+                                    shapes = IconButtonDefaults.shapes()
+                                ) {
+                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.btn_close))
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { addTypedArtist() }),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (artistQuery.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                val exactMatch = artistSuggestions.any { it.name.equals(artistQuery.trim(), ignoreCase = true) }
+                                if (!exactMatch && artistQuery.isNotBlank()) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { addTypedArtist() }
+                                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Add,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(Modifier.width(12.dp))
+                                        Text(
+                                            text = stringResource(R.string.mix_genre_custom, artistQuery.trim()),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.weight(1f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                artistSuggestions.forEach { item ->
+                                    val isAlreadyAdded = selectedArtists.any {
+                                        it.artistName.equals(item.name, ignoreCase = true) || (it.artistId != null && it.artistId == item.id)
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                if (isAlreadyAdded) {
+                                                    selectedArtists.removeAll {
+                                                        it.artistName.equals(item.name, ignoreCase = true) || (it.artistId != null && it.artistId == item.id)
+                                                    }
+                                                } else {
+                                                    addArtist(item)
+                                                }
+                                            }
+                                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (!item.avatarUrl.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = item.avatarUrl,
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Person,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = item.name,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                                if (item.verified) {
+                                                    Spacer(Modifier.width(4.dp))
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Verified,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                }
+                                            }
+                                            val subtitle = when {
+                                                item.isLocal -> stringResource(R.string.mix_in_library)
+                                                item.followersCount != null && item.followersCount > 0 ->
+                                                    stringResource(R.string.mix_followers_count, compactCount(item.followersCount.toLong()))
+                                                else -> null
+                                            }
+                                            if (subtitle != null) {
+                                                Text(
+                                                    text = subtitle,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                        Icon(
+                                            imageVector = if (isAlreadyAdded) Icons.Rounded.Check else Icons.Rounded.Add,
+                                            contentDescription = null,
+                                            tint = if (isAlreadyAdded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
-                    },
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(
-                        onSearch = {
-                            val target = custom ?: matches.firstOrNull()?.query
-                            if (target != null) {
-                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                                focusManager.clearFocus()
-                                onPick(MixEngine.Recipe.InGenre(target))
+                    } else if (artistSuggestions.isNotEmpty()) {
+                        val unselectedSuggestions = artistSuggestions.filter { sug ->
+                            selectedArtists.none { it.artistName.equals(sug.name, ignoreCase = true) || (it.artistId != null && it.artistId == sug.id) }
+                        }
+                        if (unselectedSuggestions.isNotEmpty()) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = stringResource(R.string.mix_suggested_artists),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                unselectedSuggestions.forEach { item ->
+                                    AssistChip(
+                                        onClick = { addArtist(item) },
+                                        label = { Text(item.name) },
+                                        leadingIcon = {
+                                            if (!item.avatarUrl.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = item.avatarUrl,
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier
+                                                        .size(16.dp)
+                                                        .clip(CircleShape)
+                                                )
+                                            } else {
+                                                Icon(Icons.Rounded.Person, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            }
+                                        },
+                                        trailingIcon = {
+                                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        }
+                                    )
+                                }
                             }
                         }
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    }
 
-                Spacer(Modifier.height(14.dp))
-                Box(Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                    Spacer(Modifier.height(24.dp))
+                    MixSectionLabel(Icons.Rounded.MusicNote, stringResource(R.string.mix_genres_section))
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = genreQuery,
+                        onValueChange = { genreQuery = it },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        placeholder = { Text(stringResource(R.string.mix_genre_search_hint)) },
+                        leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (genreQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = {
+                                        view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                        genreQuery = ""
+                                    },
+                                    shapes = IconButtonDefaults.shapes()
+                                ) {
+                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.btn_close))
+                                }
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                val target = custom ?: matches.firstOrNull()?.query
+                                if (target != null) {
+                                    view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                    if (target !in selectedGenres) selectedGenres.add(target)
+                                    genreQuery = ""
+                                }
+                            }
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(Modifier.height(12.dp))
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         custom?.let { tag ->
-                            AssistChip(
+                            val isCustomSelected = tag in selectedGenres
+                            FilterChip(
+                                selected = isCustomSelected,
                                 onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                                    onPick(MixEngine.Recipe.InGenre(tag))
+                                    view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                    if (isCustomSelected) selectedGenres.remove(tag) else selectedGenres.add(tag)
                                 },
                                 label = { Text(stringResource(R.string.mix_genre_custom, tag)) },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Rounded.Tag,
+                                        imageVector = if (isCustomSelected) Icons.Rounded.Check else Icons.Rounded.Tag,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(FilterChipDefaults.IconSize)
                                     )
-                                },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                    labelColor = MaterialTheme.colorScheme.primary,
-                                    leadingIconContentColor = MaterialTheme.colorScheme.primary
-                                )
-                            )
-                        }
-                        matches.forEach { genre ->
-                            AssistChip(
-                                onClick = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-                                    onPick(MixEngine.Recipe.InGenre(genre.query))
-                                },
-                                label = { Text(genre.title) },
-                                leadingIcon = {
-                                    Icon(genre.icon, contentDescription = null, modifier = Modifier.size(16.dp))
                                 }
                             )
                         }
+
+                        selectedGenres.filter { g -> all.none { it.query.equals(g, ignoreCase = true) } && g != custom }.forEach { customTag ->
+                            FilterChip(
+                                selected = true,
+                                onClick = {
+                                    view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                    selectedGenres.remove(customTag)
+                                },
+                                label = { Text(customTag) },
+                                leadingIcon = {
+                                    Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
+                                }
+                            )
+                        }
+
+                        visibleGenres.forEach { genre ->
+                            val isSelected = genre.query in selectedGenres
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                    if (isSelected) selectedGenres.remove(genre.query) else selectedGenres.add(genre.query)
+                                },
+                                label = { Text(genre.title) },
+                                leadingIcon = {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = genre.icon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(FilterChipDefaults.IconSize)
+                                        )
+                                    }
+                                }
+                            )
+                        }
+
+                        if (canExpandGenres) {
+                            AssistChip(
+                                onClick = {
+                                    view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                    showAllGenres = true
+                                },
+                                label = { Text(stringResource(R.string.detail_show_more)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.ExpandMore,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        } else if (needle.isEmpty() && showAllGenres) {
+                            AssistChip(
+                                onClick = {
+                                    view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                                    showAllGenres = false
+                                },
+                                label = { Text(stringResource(R.string.detail_show_less)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Rounded.ExpandLess,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                val pendingArtist = artistQuery.trim()
+                val hasPendingArtist = pendingArtist.isNotEmpty() && selectedArtists.none { it.artistName.equals(pendingArtist, ignoreCase = true) }
+                val hasPendingCustomGenre = custom != null && custom !in selectedGenres
+                val totalSelected = selectedArtists.size + selectedGenres.size +
+                    (if (hasPendingArtist) 1 else 0) +
+                    (if (hasPendingCustomGenre) 1 else 0)
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 14.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            view.performAppHaptic(HapticFeedbackConstants.CLOCK_TICK)
+                            focusManager.clearFocus()
+                            val finalArtists = selectedArtists.toMutableList()
+                            if (hasPendingArtist) {
+                                finalArtists.add(MixEngine.ArtistSeed(artistName = pendingArtist))
+                            }
+                            val finalGenres = selectedGenres.toMutableList()
+                            if (custom != null && custom !in finalGenres) {
+                                finalGenres.add(custom)
+                            }
+                            if (finalArtists.isNotEmpty() || finalGenres.isNotEmpty()) {
+                                onPick(MixEngine.Recipe.Custom(artists = finalArtists, genres = finalGenres))
+                            } else {
+                                onPick(MixEngine.Recipe.MyTaste)
+                            }
+                        },
+                        enabled = totalSelected > 0,
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.AutoAwesome,
+                            contentDescription = null,
+                            modifier = Modifier.size(ButtonDefaults.IconSize)
+                        )
+                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                        Text(
+                            text = if (totalSelected > 0) {
+                                stringResource(R.string.mix_start_with_count, totalSelected)
+                            } else {
+                                stringResource(R.string.mix_start)
+                            },
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
