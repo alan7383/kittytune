@@ -59,6 +59,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -458,7 +461,7 @@ private fun UploadDetailsForm(
     ) {
         TrackInfoChecklistBanner(
             completedSteps = completedSteps,
-            onClick = { showChecklistBottomSheet = true }
+            onClick = hapticAction(HapticKind.UI) { showChecklistBottomSheet = true }
         )
 
         Spacer(Modifier.height(20.dp))
@@ -628,7 +631,7 @@ private fun UploadDetailsForm(
                 ) {
                     item {
                         Button(
-                            onClick = { showGenrePickerSheet = true },
+                            onClick = hapticAction(HapticKind.UI) { showGenrePickerSheet = true },
                             shapes = ButtonDefaults.shapes(),
                             colors = ButtonDefaults.filledTonalButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -667,7 +670,7 @@ private fun UploadDetailsForm(
                                 if (stringRes != null) stringResource(stringRes) else viewModel.genre
                             FilterChip(
                                 selected = true,
-                                onClick = { viewModel.genre = "" },
+                                onClick = hapticAction(HapticKind.UI) { viewModel.genre = "" },
                                 label = { Text(customDisplayName.uppercase(), fontWeight = FontWeight.Bold) },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = FilterChipDefaults.filterChipColors(
@@ -685,7 +688,7 @@ private fun UploadDetailsForm(
 
                         FilterChip(
                             selected = isSelected,
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 viewModel.genre = if (isSelected) "" else genreKey
                             },
                             label = {
@@ -728,7 +731,7 @@ private fun UploadDetailsForm(
                         items(viewModel.tags) { tag ->
                             InputChip(
                                 selected = true,
-                                onClick = { viewModel.removeTag(tag) },
+                                onClick = hapticAction(HapticKind.UI) { viewModel.removeTag(tag) },
                                 label = { Text(tag) },
                                 trailingIcon = {
                                     Icon(
@@ -736,7 +739,7 @@ private fun UploadDetailsForm(
                                         contentDescription = stringResource(R.string.upload_field_tags_delete),
                                         modifier = Modifier
                                             .size(16.dp)
-                                            .clickable { viewModel.removeTag(tag) }
+                                            .hapticClickable { viewModel.removeTag(tag) }
                                     )
                                 }
                             )
@@ -891,7 +894,7 @@ private fun UploadDetailsForm(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { showReleaseDatePicker = true }
+                                .hapticClickable { showReleaseDatePicker = true }
                         ) {
                             OutlinedTextField(
                                 value = viewModel.releaseDate,
@@ -909,7 +912,7 @@ private fun UploadDetailsForm(
                                 },
                                 trailingIcon = {
                                     if (viewModel.releaseDate.isNotBlank()) {
-                                        IconButton(onClick = { viewModel.releaseDate = "" }) {
+                                        IconButton(onClick = hapticAction(HapticKind.UI) { viewModel.releaseDate = "" }) {
                                             Icon(
                                                 Icons.Rounded.Close,
                                                 contentDescription = null,
@@ -918,7 +921,7 @@ private fun UploadDetailsForm(
                                             )
                                         }
                                     } else {
-                                        IconButton(onClick = { showReleaseDatePicker = true }) {
+                                        IconButton(onClick = hapticAction(HapticKind.UI) { showReleaseDatePicker = true }) {
                                             Icon(
                                                 Icons.Rounded.Event,
                                                 contentDescription = null,
@@ -964,7 +967,7 @@ private fun UploadDetailsForm(
                                 onDismissRequest = { showReleaseDatePicker = false },
                                 confirmButton = {
                                     TextButton(
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             datePickerState.selectedDateMillis?.let { selected ->
                                                 val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
                                                     .apply {
@@ -981,7 +984,7 @@ private fun UploadDetailsForm(
                                 },
                                 dismissButton = {
                                     TextButton(
-                                        onClick = { showReleaseDatePicker = false },
+                                        onClick = hapticAction(HapticKind.UI) { showReleaseDatePicker = false },
                                         shapes = ButtonDefaults.shapes()
                                     ) {
                                         Text(stringResource(android.R.string.cancel))
@@ -1217,13 +1220,13 @@ private fun UploadDetailsForm(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { viewModel.license = TrackLicense.ALL_RIGHTS_RESERVED }
+                                .hapticClickable { viewModel.license = TrackLicense.ALL_RIGHTS_RESERVED }
                                 .padding(vertical = 6.dp, horizontal = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
                                 selected = viewModel.license == TrackLicense.ALL_RIGHTS_RESERVED,
-                                onClick = { viewModel.license = TrackLicense.ALL_RIGHTS_RESERVED }
+                                onClick = hapticAction(HapticKind.UI) { viewModel.license = TrackLicense.ALL_RIGHTS_RESERVED }
                             )
                             Spacer(Modifier.width(10.dp))
                             Text(
@@ -1237,7 +1240,7 @@ private fun UploadDetailsForm(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable {
+                                .hapticClickable {
                                     if (viewModel.license == TrackLicense.ALL_RIGHTS_RESERVED) {
                                         viewModel.license = TrackLicense.CC_BY_NC_SA
                                     }
@@ -1247,7 +1250,7 @@ private fun UploadDetailsForm(
                         ) {
                             RadioButton(
                                 selected = viewModel.license != TrackLicense.ALL_RIGHTS_RESERVED,
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     if (viewModel.license == TrackLicense.ALL_RIGHTS_RESERVED) {
                                         viewModel.license = TrackLicense.CC_BY_NC_SA
                                     }
@@ -1659,7 +1662,7 @@ private fun UploadDetailsForm(
 
         val context = LocalContext.current
         Button(
-            onClick = {
+            onClick = hapticAction(HapticKind.UI) {
                 if (viewModel.isEditMode) {
                     viewModel.saveTrackEdits(context = context)
                 } else {
@@ -1701,7 +1704,7 @@ private fun UploadDetailsForm(
         if (viewModel.isEditMode) {
             Spacer(Modifier.height(14.dp))
             FilledTonalButton(
-                onClick = { viewModel.showDeleteConfirmationDialog = true },
+                onClick = hapticAction(HapticKind.UI) { viewModel.showDeleteConfirmationDialog = true },
                 enabled = !viewModel.isDeletingTrack && !viewModel.isSavingEdit,
                 shapes = ButtonDefaults.shapes(),
                 colors = ButtonDefaults.filledTonalButtonColors(
@@ -1754,7 +1757,7 @@ private fun UploadDetailsForm(
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = {
+                        onClick = hapticAction(HapticKind.UI) {
                             viewModel.showDeleteConfirmationDialog = false
                             viewModel.deleteTrack(onSuccess = onBackClick)
                         },
@@ -1771,7 +1774,7 @@ private fun UploadDetailsForm(
                 },
                 dismissButton = {
                     TextButton(
-                        onClick = { viewModel.showDeleteConfirmationDialog = false },
+                        onClick = hapticAction(HapticKind.UI) { viewModel.showDeleteConfirmationDialog = false },
                         shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.btn_cancel))
@@ -1860,7 +1863,7 @@ private fun TrackInfoChecklistBanner(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .hapticClickable(onClick = onClick)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -2038,7 +2041,7 @@ private fun UploadDetailsHeader(
             modifier = Modifier
                 .size(116.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .clickable { onPickArtwork() }
+                .hapticClickable { onPickArtwork() }
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
@@ -2533,7 +2536,7 @@ private fun ScheduleSection(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         OutlinedButton(
-                            onClick = { showDatePickerDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showDatePickerDialog = true },
                             shapes = ButtonDefaults.shapes(),
                             modifier = Modifier.weight(1.3f)
                         ) {
@@ -2547,7 +2550,7 @@ private fun ScheduleSection(
                         }
 
                         OutlinedButton(
-                            onClick = { showTimePickerDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showTimePickerDialog = true },
                             shapes = ButtonDefaults.shapes(),
                             modifier = Modifier.weight(0.9f)
                         ) {
@@ -2602,7 +2605,7 @@ private fun ScheduleSection(
             onDismissRequest = { showDatePickerDialog = false },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         datePickerState.selectedDateMillis?.let { selected ->
                             viewModel.updateScheduledDate(selected)
                         }
@@ -2615,7 +2618,7 @@ private fun ScheduleSection(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDatePickerDialog = false },
+                    onClick = hapticAction(HapticKind.UI) { showDatePickerDialog = false },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -2903,7 +2906,7 @@ private fun ArtistStorefrontBottomSheet(
             text = { Text(stringResource(R.string.upload_storefront_delete_confirmation)) },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         showDeleteConfirmDialog = false
                         viewModel.deleteStorefront(onSuccess = onDismiss)
                     },
@@ -2915,7 +2918,7 @@ private fun ArtistStorefrontBottomSheet(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteConfirmDialog = false },
+                    onClick = hapticAction(HapticKind.UI) { showDeleteConfirmDialog = false },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -3046,7 +3049,7 @@ private fun ArtistStorefrontBottomSheet(
                     }
 
                     IconButton(
-                        onClick = {},
+                        onClick = hapticAction(HapticKind.UI) {},
                         enabled = viewModel.storefrontLink.isNotBlank()
                     ) {
                         Icon(
@@ -3073,7 +3076,7 @@ private fun ArtistStorefrontBottomSheet(
                         .size(64.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable {
+                        .hapticClickable {
                             storefrontImagePicker.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
@@ -3163,7 +3166,7 @@ private fun ArtistStorefrontBottomSheet(
                     val isSelected = viewModel.storefrontType == type
                     FilterChip(
                         selected = isSelected,
-                        onClick = { viewModel.storefrontType = type },
+                        onClick = hapticAction(HapticKind.UI) { viewModel.storefrontType = type },
                         label = {
                             Text(
                                 text = type.displayName,
@@ -3294,7 +3297,7 @@ private fun ArtistStorefrontBottomSheet(
             ) {
                 if (viewModel.hasStorefront) {
                     OutlinedButton(
-                        onClick = { showDeleteConfirmDialog = true },
+                        onClick = hapticAction(HapticKind.UI) { showDeleteConfirmDialog = true },
                         enabled = !viewModel.isSavingStorefront && !viewModel.isDeletingStorefront,
                         shapes = ButtonDefaults.shapes(),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -3335,7 +3338,7 @@ private fun ArtistStorefrontBottomSheet(
                         !viewModel.isDeletingStorefront
 
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         viewModel.saveStorefront(onSuccess = onDismiss)
                     },
                     enabled = canSave,
@@ -3372,7 +3375,7 @@ private fun PermissionCheckboxRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .hapticClickable { onCheckedChange(!checked) }
             .padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.Top
     ) {
@@ -3797,7 +3800,7 @@ private fun AdvancedSnippetSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FilledTonalButton(
-                        onClick = {
+                        onClick = hapticAction(HapticKind.UI) {
                             if (isPlaying) {
                                 stopAudioPreview()
                             } else {
@@ -3832,7 +3835,7 @@ private fun AdvancedSnippetSection(
                     Spacer(Modifier.weight(1f))
                     if (viewModel.isSnippetCustomized) {
                         TextButton(
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 viewModel.snippetStartSeconds = 0
                                 viewModel.snippetEndSeconds = snippetDuration
                                 viewModel.isSnippetCustomized = false
@@ -3993,7 +3996,7 @@ private fun GeoBlockingSection(viewModel: UploadViewModel) {
                         },
                         trailingIcon = {
                             if (viewModel.geoBlockingRegions.isNotBlank()) {
-                                IconButton(onClick = { viewModel.geoBlockingRegions = "" }) {
+                                IconButton(onClick = hapticAction(HapticKind.UI) { viewModel.geoBlockingRegions = "" }) {
                                     Icon(Icons.Rounded.Clear, contentDescription = null)
                                 }
                             }
@@ -4033,7 +4036,7 @@ private fun GeoBlockingSection(viewModel: UploadViewModel) {
                             val isSelected = selectedList.contains(country)
                             FilterChip(
                                 selected = isSelected,
-                                onClick = { viewModel.toggleCountryCode(country) },
+                                onClick = hapticAction(HapticKind.UI) { viewModel.toggleCountryCode(country) },
                                 label = { Text(country, style = MaterialTheme.typography.labelSmall) },
                                 leadingIcon = if (isSelected) {
                                     {

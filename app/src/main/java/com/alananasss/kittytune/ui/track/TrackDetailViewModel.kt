@@ -10,14 +10,11 @@ import androidx.lifecycle.viewModelScope
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * The page of a track: who liked and reposted it, which playlists it is in, and what is like it.
@@ -67,7 +64,7 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
 
     var isUsersSortedByFollowers by mutableStateOf(true)
         private set
-    var isPlaylistsSortedByLikes by mutableStateOf(true)
+    var isPlaylistsSortedByLikes by mutableStateOf(false)
         private set
 
     private var loadedTrackId: Long = 0L
@@ -97,8 +94,8 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
             try {
                 coroutineScope {
                     val trackDef = async { api.getTracksByIds(trackId.toString()).firstOrNull() }
-                    val likersResponseDef = async { try { api.getTrackLikers(trackId) } catch (e: Exception) { null } }
-                    val repostersResponseDef = async { try { api.getTrackReposters(trackId) } catch (e: Exception) { null } }
+                    val likersResponseDef = async { try { api.getTrackLikers(trackId, limit = USERS_PAGE) } catch (e: Exception) { null } }
+                    val repostersResponseDef = async { try { api.getTrackReposters(trackId, limit = USERS_PAGE) } catch (e: Exception) { null } }
                     val playlistsResponseDef = async { try { api.getTrackInPlaylists(trackId, limit = PLAYLISTS_PAGE) } catch (e: Exception) { null } }
                     val relatedResponseDef = async { try { api.getRelatedTracks(trackId) } catch (e: Exception) { null } }
 
@@ -130,7 +127,6 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
                 save()
             }
             prefetchUsers()
-            fetchPopularPlaylists()
         }
     }
 
@@ -162,11 +158,57 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
     }
 
     fun toggleSortPlaylists() {
+        val currentTrack = track ?: return
+        playlistsFetchJob?.cancel()
+
         isPlaylistsSortedByLikes = !isPlaylistsSortedByLikes
-        showPlaylists()
-        save()
-        if (isPlaylistsSortedByLikes && playlistsPopularArrived.isEmpty() && playlistsFetchJob?.isActive != true) {
-            fetchPopularPlaylists()
+
+        if (isPlaylistsSortedByLikes) {
+            if (playlistsPopularArrived.isNotEmpty()) {
+                showPlaylists()
+                save()
+                return
+            }
+
+            playlistsFetchJob = viewModelScope.launch {
+                isPlaylistsSortLoading = true
+                isPlaylistsLoadingMore = true
+                inPlaylists.clear()
+                try {
+                    val allFetched = mutableListOf<Playlist>()
+                    var currentNextUrl: String? = "https://api-v2.soundcloud.com/tracks/${currentTrack.id}/playlists?limit=200"
+
+                    var pageCount = 0
+                    while (currentNextUrl != null && pageCount < 20) {
+                        val res = api.getInPlaylistsNextPage(currentNextUrl)
+                        allFetched.addAll(res.collection)
+                        currentNextUrl = res.next_href?.replace("limit=50", "limit=200")
+                        pageCount++
+                    }
+
+                    val sorted = allFetched.distinctBy { it.id }.sortedByDescending { it.likesCount ?: 0 }
+                    playlistsPopularArrived.clear()
+                    playlistsPopularArrived.addAll(sorted)
+                    inPlaylists.addAll(sorted)
+                    playlistsNextUrl = null
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    if (inPlaylists.isEmpty()) {
+                        inPlaylists.addAll(playlistsArrived.sortedByDescending { it.likesCount ?: 0 })
+                    }
+                } finally {
+                    isPlaylistsSortLoading = false
+                    isPlaylistsLoadingMore = false
+                    save()
+                }
+            }
+        } else {
+            isPlaylistsSortLoading = false
+            isPlaylistsLoadingMore = false
+            showPlaylists()
+            save()
         }
     }
 
@@ -188,9 +230,10 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
 
                     if (nextLikers != null) {
                         try {
-                            val page = api.getLikersNextPage(nextLikers)
+                            val url = nextLikers.replace("limit=50", "limit=200")
+                            val page = api.getLikersNextPage(url)
                             likersArrived.addAll(page.collection)
-                            likersNextUrl = page.next_href
+                            likersNextUrl = page.next_href?.replace("limit=50", "limit=200")
                         } catch (e: CancellationException) {
                             throw e
                         } catch (_: Exception) {
@@ -199,9 +242,10 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
                     }
                     if (nextReposters != null) {
                         try {
-                            val page = api.getRepostersNextPage(nextReposters)
+                            val url = nextReposters.replace("limit=50", "limit=200")
+                            val page = api.getRepostersNextPage(url)
                             repostersArrived.addAll(page.collection)
-                            repostersNextUrl = page.next_href
+                            repostersNextUrl = page.next_href?.replace("limit=50", "limit=200")
                         } catch (e: CancellationException) {
                             throw e
                         } catch (_: Exception) {
@@ -227,111 +271,6 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    /**
-     * The most popular playlists the track appears in:
-     * one GraphQL `featuredPlaylists` call returns playlist URNs already ordered by
-     * popularity, then the playlists are hydrated in parallel and shown progressively.
-     */
-    private fun fetchPopularPlaylists() {
-        if (!isPlaylistsSortedByLikes) return
-        playlistsFetchJob?.cancel()
-        playlistsFetchJob = viewModelScope.launch {
-            val id = loadedTrackId
-            isPlaylistsSortLoading = true
-            isPlaylistsLoadingMore = playlistsPopularArrived.isEmpty()
-            try {
-                val req = FeaturedPlaylistsGraphQlRequest(
-                    variables = FeaturedPlaylistsVariables(
-                        input = FeaturedPlaylistsInput(
-                            trackUrn = "soundcloud:tracks:$id",
-                            filter = "PLAYLIST",
-                            limit = POPULAR_LIMIT,
-                        )
-                    )
-                )
-                val urns = api.getFeaturedPlaylistsGraphQL(req)
-                    .data?.featuredPlaylists.orEmpty()
-                    .mapNotNull { it.urn }
-                    .distinct()
-                if (urns.isEmpty()) {
-                    fetchPopularFallbackLocked(id)
-                    return@launch
-                }
-                val ids = urns.mapNotNull { it.substringAfterLast(":").toLongOrNull() }
-                if (id == loadedTrackId && playlistsPopularArrived.isNotEmpty()) {
-                    // keep what we have
-                } else {
-                    playlistsPopularArrived.clear()
-                }
-                val knownIds = playlistsPopularArrived.map { it.id }.toHashSet()
-                val missing = ids.filter { it !in knownIds }
-                for (chunk in missing.chunked(HYDRATE_CONCURRENCY)) {
-                    ensureActive()
-                    val hydrated = withContext(Dispatchers.IO) {
-                        chunk.map { pid ->
-                            async {
-                                try {
-                                    api.getPlaylist(pid)
-                                } catch (_: Exception) {
-                                    null
-                                }
-                            }
-                        }.awaitAll().filterNotNull()
-                    }
-                    if (id != loadedTrackId) return@launch
-                    playlistsPopularArrived.addAll(hydrated)
-                    showPlaylists()
-                    isPlaylistsLoadingMore = false
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                e.printStackTrace()
-                if (playlistsPopularArrived.isEmpty()) {
-                    fetchPopularFallbackLocked(id)
-                    return@launch
-                }
-            } finally {
-                isPlaylistsSortLoading = false
-                isPlaylistsLoadingMore = false
-                if (id == loadedTrackId) {
-                    showPlaylists()
-                    save()
-                }
-            }
-        }
-    }
-
-    private suspend fun fetchPopularFallbackLocked(id: Long) {
-        for (p in playlistsArrived) {
-            if (playlistsPopularArrived.none { it.id == p.id }) playlistsPopularArrived.add(p)
-        }
-        playlistsPopularArrived.sortByDescending { it.likesCount ?: 0 }
-        if (id == loadedTrackId) {
-            showPlaylists()
-            isPlaylistsLoadingMore = false
-        }
-        var next = playlistsNextUrl
-        var pageCount = 0
-        while (next != null && pageCount < FALLBACK_PAGES) {
-            try {
-                val res = withContext(Dispatchers.IO) { api.getInPlaylistsNextPage(next) }
-                if (id != loadedTrackId) return
-                playlistsPopularArrived.addAll(res.collection)
-                playlistsPopularArrived.sortByDescending { it.likesCount ?: 0 }
-                playlistsArrived.addAll(res.collection)
-                next = res.next_href
-                playlistsNextUrl = next
-                pageCount++
-                showPlaylists()
-                isPlaylistsLoadingMore = false
-            } catch (e: CancellationException) {
-                throw e
-            } catch (_: Exception) {
-                break
-            }
-        }
-    }
 
     // --- load more functions ---
 
@@ -340,9 +279,10 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             isLikersLoadingMore = true
             try {
-                val res = api.getLikersNextPage(likersNextUrl!!)
+                val url = likersNextUrl!!.replace("limit=50", "limit=200")
+                val res = api.getLikersNextPage(url)
                 likersArrived.addAll(res.collection)
-                likersNextUrl = res.next_href
+                likersNextUrl = res.next_href?.replace("limit=50", "limit=200")
                 showUsers()
             } catch (e: Exception) { e.printStackTrace() }
             finally { isLikersLoadingMore = false; save() }
@@ -354,9 +294,10 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             isRepostersLoadingMore = true
             try {
-                val res = api.getRepostersNextPage(repostersNextUrl!!)
+                val url = repostersNextUrl!!.replace("limit=50", "limit=200")
+                val res = api.getRepostersNextPage(url)
                 repostersArrived.addAll(res.collection)
-                repostersNextUrl = res.next_href
+                repostersNextUrl = res.next_href?.replace("limit=50", "limit=200")
                 showUsers()
             } catch (e: Exception) { e.printStackTrace() }
             finally { isRepostersLoadingMore = false; save() }
@@ -432,15 +373,13 @@ class TrackDetailViewModel(application: Application) : AndroidViewModel(applicat
         showPlaylists()
         isLoading = false
         if (isPlaylistsSortedByLikes && playlistsPopularArrived.isEmpty()) {
-            fetchPopularPlaylists()
+            toggleSortPlaylists()
         }
     }
 
     private companion object {
         const val PLAYLISTS_PAGE = 50
+        const val USERS_PAGE = 200
         const val PREFETCH_PAGES = 10
-        const val POPULAR_LIMIT = 100
-        const val HYDRATE_CONCURRENCY = 10
-        const val FALLBACK_PAGES = 6
     }
 }

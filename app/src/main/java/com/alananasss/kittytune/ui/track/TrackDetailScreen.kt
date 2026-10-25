@@ -31,7 +31,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
@@ -167,91 +169,75 @@ fun TrackDetailScreen(
     }
 }
 
-/** The track as the head of its page: cover over a blur of itself, title, artist, and compact stat chips. */
+/** The track as the head of its page: cover, title, artist, and compact stat chips. */
 @Composable
 private fun TrackDetailHeader(track: Track, playerViewModel: PlayerViewModel) {
-    Box(Modifier.fillMaxWidth().height(180.dp)) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         AsyncImage(
             model = track.fullResArtwork,
             contentDescription = null,
+            modifier = Modifier
+                .size(96.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .viewableCover(track.fullResArtwork),
             contentScale = ContentScale.Crop,
-            modifier = Modifier.matchParentSize().blur(40.dp),
         )
-        Box(
-            Modifier.matchParentSize().background(
-                androidx.compose.ui.graphics.Brush.verticalGradient(
-                    0f to MaterialTheme.colorScheme.background.copy(alpha = 0.35f),
-                    1f to MaterialTheme.colorScheme.background,
-                )
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                track.title ?: "",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
-        )
-        Row(
-            Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            AsyncImage(
-                model = track.fullResArtwork,
-                contentDescription = null,
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .viewableCover(track.fullResArtwork),
-                contentScale = ContentScale.Crop,
-            )
-            Spacer(Modifier.width(16.dp))
-            Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.hapticClickable { playerViewModel.navigateToTrackArtist(track) }
+            ) {
                 Text(
-                    track.title ?: "",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    track.displayArtist.ifBlank { track.user?.username.orEmpty() },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { playerViewModel.navigateToTrackArtist(track) }
-                ) {
-                    Text(
-                        track.displayArtist.ifBlank { track.user?.username.orEmpty() },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (track.user?.verified == true) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
-                    }
+                if (track.user?.verified == true) {
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Rounded.Verified, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
                 }
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.horizontalScroll(rememberScrollState())
-                ) {
-                    val dateText = remember(track.id, track.releaseDate, track.createdAt) {
-                        ReleaseDate.shortText(track.releaseDate ?: track.createdAt)
-                    }
-                    if (dateText.isNotEmpty()) {
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                            Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Rounded.CalendarToday, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(dateText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                            }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                val dateText = remember(track.id, track.releaseDate, track.createdAt) {
+                    ReleaseDate.shortText(track.releaseDate ?: track.createdAt)
+                }
+                if (dateText.isNotEmpty()) {
+                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.CalendarToday, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(dateText, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                         }
                     }
-                    listOf(
-                        Icons.Rounded.PlayArrow to track.playbackCount,
-                        Icons.Rounded.Favorite to track.likesCount,
-                        Icons.Rounded.Repeat to track.repostsCount,
-                        Icons.Rounded.ChatBubble to track.commentCount,
-                    ).filter { it.second > 0 }.forEach { (icon, count) ->
-                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                            Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text(compactCount(count.toLong()), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
-                            }
+                }
+                listOf(
+                    Icons.Rounded.PlayArrow to track.playbackCount,
+                    Icons.Rounded.Favorite to track.likesCount,
+                    Icons.Rounded.Repeat to track.repostsCount,
+                    Icons.Rounded.ChatBubble to track.commentCount,
+                ).filter { it.second > 0 }.forEach { (icon, count) ->
+                    Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(compactCount(count.toLong()), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -278,7 +264,7 @@ private fun DetailTabs(selected: Int, tabs: List<DetailTab>, onSelect: (Int) -> 
                 label = "detailTab",
             )
             Surface(
-                onClick = { onSelect(index) },
+                onClick = hapticAction(HapticKind.UI) { onSelect(index) },
                 shape = CircleShape,
                 color = container,
                 contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -345,7 +331,7 @@ fun UserList(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onNavigate("profile:${user.numericId}") }
+                        .hapticClickable { onNavigate("profile:${user.numericId}") }
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -431,7 +417,7 @@ fun PlaylistList(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onNavigate("${playlist.id}") }
+                            .hapticClickable { onNavigate("${playlist.id}") }
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -500,8 +486,8 @@ fun TrackList(
                     isDownloading = isDownloading,
                     isDownloaded = isDownloaded,
                     downloadProgress = progress ?: 0,
-                    onClick = { playerViewModel.playPlaylist(tracks, index) },
-                    onOptionClick = { playerViewModel.showTrackOptions(track) }
+                    onClick = hapticAction(HapticKind.UI) { playerViewModel.playPlaylist(tracks, index) },
+                    onOptionClick = hapticAction(HapticKind.UI) { playerViewModel.showTrackOptions(track) }
                 )
             }
             if (isLoadingMore) {

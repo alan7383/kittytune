@@ -1,6 +1,9 @@
 package com.alananasss.kittytune.ui.yearlyplayback
 
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -321,13 +324,13 @@ private fun MinutesArtboardContent(runs: Map<String, String>) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             StatCard(
-                title = "Tracks Played",
+                title = stringResource(R.string.yearly_playback_tracks_played),
                 value = plays,
                 icon = Icons.Rounded.MusicNote,
                 modifier = Modifier.weight(1f)
             )
             StatCard(
-                title = "Unique Tracks",
+                title = stringResource(R.string.yearly_playback_unique_tracks),
                 value = uniqueTracks,
                 icon = Icons.Rounded.GraphicEq,
                 modifier = Modifier.weight(1f)
@@ -748,7 +751,7 @@ fun SavePlaylistSlide(
                 modifier = Modifier
                     .size(236.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable { onNavigateToPlaylist(block.playlistUrn) }
+                    .hapticClickable { onNavigateToPlaylist(block.playlistUrn) }
             ) {
                 val artworkUrl = block.playlistArtwork
                     .replace("{size}", "t500x500")
@@ -819,7 +822,7 @@ fun SavePlaylistSlide(
                 }
 
                 OutlinedButton(
-                    onClick = { onSaveToggle(block) },
+                    onClick = hapticAction(HapticKind.UI) { onSaveToggle(block) },
                     shape = RoundedCornerShape(24.dp),
                     border = BorderStroke(1.5.dp, Color.White.copy(alpha = 0.6f)),
                     colors = ButtonDefaults.outlinedButtonColors(

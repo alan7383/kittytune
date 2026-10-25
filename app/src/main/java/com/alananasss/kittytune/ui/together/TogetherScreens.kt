@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,6 +39,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.PlaylistPlay
 import androidx.compose.material.icons.rounded.Add
@@ -60,10 +62,13 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -81,6 +86,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -88,8 +94,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.data.together.SharedTrack
 import com.alananasss.kittytune.data.together.Together
@@ -125,82 +135,104 @@ fun TogetherHomeScreen(onBack: () -> Unit, onOpen: (String) -> Unit) {
         onDispose { Together.myName = myName }
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.btn_back))
-                }
-                Spacer(Modifier.width(8.dp))
-                Icon(Icons.Rounded.Groups, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
-                Spacer(Modifier.width(10.dp))
-                Column {
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = {
                     Text(
                         stringResource(R.string.together_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp,
                     )
-                    Text(
-                        stringResource(R.string.together_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                },
+                navigationIcon = {
+                    FilledTonalIconButton(
+                        onClick = onBack,
+                        shapes = IconButtonDefaults.shapes(),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.btn_back))
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 180.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                Text(
+                    stringResource(R.string.together_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            item {
+                ActionCard(
+                    title = stringResource(R.string.together_create),
+                    icon = Icons.Rounded.Add,
+                    value = newName,
+                    onValueChange = { newName = it },
+                    hint = stringResource(R.string.together_name_hint),
+                    button = stringResource(R.string.btn_create),
+                ) {
+                    val created = Together.create(newName)
+                    newName = ""
+                    copyCode(context, created.code)
+                    onOpen(created.code)
                 }
             }
-        }
-        item {
-            ActionCard(
-                title = stringResource(R.string.together_create),
-                icon = Icons.Rounded.Add,
-                value = newName,
-                onValueChange = { newName = it },
-                hint = stringResource(R.string.together_name_hint),
-                button = stringResource(R.string.btn_create),
-            ) {
-                val created = Together.create(newName)
-                newName = ""
-                copyCode(context, created.code)
-                onOpen(created.code)
+            item {
+                ActionCard(
+                    title = stringResource(R.string.together_join),
+                    icon = Icons.Rounded.Login,
+                    value = joinCode,
+                    onValueChange = { joinCode = it.uppercase().take(12) },
+                    hint = stringResource(R.string.together_code_hint),
+                    button = stringResource(R.string.together_join),
+                ) {
+                    Together.join(joinCode)?.let {
+                        joinCode = ""
+                        onOpen(it.code)
+                    } ?: Toast.makeText(context, context.getString(R.string.together_bad_code), Toast.LENGTH_SHORT).show()
+                }
             }
-        }
-        item {
-            ActionCard(
-                title = stringResource(R.string.together_join),
-                icon = Icons.Rounded.Login,
-                value = joinCode,
-                onValueChange = { joinCode = it.uppercase().take(12) },
-                hint = stringResource(R.string.together_code_hint),
-                button = stringResource(R.string.together_join),
-            ) {
-                Together.join(joinCode)?.let {
-                    joinCode = ""
-                    onOpen(it.code)
-                } ?: Toast.makeText(context, context.getString(R.string.together_bad_code), Toast.LENGTH_SHORT).show()
+            item {
+                OutlinedTextField(
+                    value = myName,
+                    onValueChange = { myName = it },
+                    label = { Text(stringResource(R.string.together_your_name)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.widthIn(max = 360.dp),
+                )
             }
-        }
-        item {
-            OutlinedTextField(
-                value = myName,
-                onValueChange = { myName = it },
-                label = { Text(stringResource(R.string.together_your_name)) },
-                singleLine = true,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.widthIn(max = 360.dp),
-            )
-        }
-        items(saved, key = { it.code }) { entry ->
-            val room = rooms[entry.code]
-            SavedRoomCard(
-                name = room?.name?.ifBlank { entry.name }?.ifBlank { "" } ?: entry.name,
-                code = entry.code,
-                listeners = room?.listeners?.map { it.name }.orEmpty(),
-                cover = room?.nowPlaying?.artworkUrl ?: entry.tracks.firstOrNull()?.artworkUrl,
-                onClick = { onOpen(entry.code) },
-            )
+            items(saved, key = { it.code }) { entry ->
+                val room = rooms[entry.code]
+                SavedRoomCard(
+                    name = room?.name?.ifBlank { entry.name }?.ifBlank { "" } ?: entry.name,
+                    code = entry.code,
+                    listeners = room?.listeners?.map { it.name }.orEmpty(),
+                    cover = room?.nowPlaying?.artworkUrl ?: entry.tracks.firstOrNull()?.artworkUrl,
+                    onClick = hapticAction(HapticKind.UI) { onOpen(entry.code) },
+                )
+            }
         }
     }
 }
@@ -248,7 +280,7 @@ private fun SavedRoomCard(name: String, code: String, listeners: List<String>, c
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick),
+            .hapticClickable(onClick = onClick),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             TogetherCover(cover, isLive = live, size = 64)
@@ -351,7 +383,7 @@ fun TogetherScreen(code: String, playerViewModel: PlayerViewModel, onBack: () ->
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 32.dp),
+        contentPadding = PaddingValues(bottom = 180.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { RoomHeader(room, isListening, isHost, connected, playerViewModel, onBack, onCopy = { copyCode(context, code) }) }
@@ -360,13 +392,13 @@ fun TogetherScreen(code: String, playerViewModel: PlayerViewModel, onBack: () ->
             item { SectionTitle(stringResource(R.string.together_suggestions)) }
             itemsIndexed(room.suggestions, key = { i, s -> "s$i-${s.track.id}" }) { _, s ->
                 SharedTrackRow(s.track, subtitle = stringResource(R.string.together_suggested_by, s.byName)) {
-                    IconButton(onClick = { Together.listenToSuggestion(code, s) }) {
+                    IconButton(onClick = hapticAction(HapticKind.UI) { Together.listenToSuggestion(code, s) }) {
                         Icon(Icons.Rounded.PlayArrow, stringResource(R.string.together_preview))
                     }
-                    FilledTonalIconButton(onClick = { Together.acceptSuggestion(code, s) }) {
+                    FilledTonalIconButton(onClick = hapticAction(HapticKind.UI) { Together.acceptSuggestion(code, s) }) {
                         Icon(Icons.Rounded.Check, stringResource(R.string.together_accept))
                     }
-                    IconButton(onClick = { Together.declineSuggestion(code, s) }) {
+                    IconButton(onClick = hapticAction(HapticKind.UI) { Together.declineSuggestion(code, s) }) {
                         Icon(Icons.Rounded.Close, stringResource(R.string.together_decline))
                     }
                 }
@@ -390,13 +422,13 @@ fun TogetherScreen(code: String, playerViewModel: PlayerViewModel, onBack: () ->
             }
         }
         itemsIndexed(room.playlist, key = { i, t -> "p$i-${t.id}" }) { index, t ->
-            SharedTrackRow(t, index = index, onClick = {
+            SharedTrackRow(t, index = index, onClick = hapticAction(HapticKind.UI) {
                 if (isListening && isHost) playerViewModel.hostPlay(room.playlist, index)
                 else if (isListening) Together.playNext(t)
                 else Together.startListening(code, index)
             }) {
                 if (isListening) {
-                    IconButton(onClick = { Together.playNext(t) }) {
+                    IconButton(onClick = hapticAction(HapticKind.UI) { Together.playNext(t) }) {
                         Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, stringResource(R.string.together_play_next))
                     }
                 }
@@ -432,11 +464,11 @@ fun TogetherScreen(code: String, playerViewModel: PlayerViewModel, onBack: () ->
             val shared = SharedTrack.of(track)
             SharedTrackRow(shared) {
                 if (isListening) {
-                    IconButton(onClick = { Together.playNext(shared) }) {
+                    IconButton(onClick = hapticAction(HapticKind.UI) { Together.playNext(shared) }) {
                         Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, stringResource(R.string.together_play_next))
                     }
                 }
-                FilledTonalIconButton(onClick = { Together.suggest(code, shared) }) {
+                FilledTonalIconButton(onClick = hapticAction(HapticKind.UI) { Together.suggest(code, shared) }) {
                     Icon(Icons.Rounded.Add, stringResource(R.string.together_suggest))
                 }
             }
@@ -463,10 +495,20 @@ private fun RoomHeader(
         Modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(scheme.primaryContainer.copy(alpha = 0.55f), scheme.background)))
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.btn_back)) }
+            FilledTonalIconButton(
+                onClick = onBack,
+                shapes = IconButtonDefaults.shapes(),
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = scheme.surfaceVariant.copy(alpha = 0.6f),
+                    contentColor = scheme.onSurfaceVariant,
+                )
+            ) {
+                Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.btn_back))
+            }
             Spacer(Modifier.weight(1f))
             if (!connected) Text(stringResource(R.string.together_offline), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
         }
@@ -522,7 +564,7 @@ private fun RoomHeader(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             // One round button, as a playlist has: listen, or leave while listening.
             FilledIconButton(
-                onClick = { if (isListening) Together.stopListening() else Together.startListening(room.code) },
+                onClick = hapticAction(HapticKind.UI) { if (isListening) Together.stopListening() else Together.startListening(room.code) },
                 modifier = Modifier.size(56.dp),
             ) {
                 Icon(
@@ -544,13 +586,13 @@ private fun RoomHeader(
             }
             Spacer(Modifier.weight(1f))
             if (isListening && !isHost) {
-                FilledTonalButton(onClick = { Together.claimHost(room.code) }) {
+                FilledTonalButton(onClick = hapticAction(HapticKind.UI) { Together.claimHost(room.code) }) {
                     Icon(Icons.Rounded.Star, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.together_become_host))
                 }
             }
-            IconButton(onClick = { Together.forget(room.code); onBack() }) {
+            IconButton(onClick = hapticAction(HapticKind.UI) { Together.forget(room.code); onBack() }) {
                 Icon(Icons.Rounded.Delete, stringResource(R.string.together_forget), tint = scheme.onSurfaceVariant)
             }
         }
@@ -642,7 +684,7 @@ private fun SharedTrackRow(
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             .clip(RoundedCornerShape(16.dp))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.hapticClickable(onClick = onClick) else Modifier)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -27,7 +27,7 @@ internal object TrackDetailsCache {
         val playlistsNext: String?,
         val relatedNext: String?,
         val usersByFollowers: Boolean = true,
-        val playlistsByLikes: Boolean = true,
+        val playlistsByLikes: Boolean = false,
         val takenAtMs: Long,
     )
 
