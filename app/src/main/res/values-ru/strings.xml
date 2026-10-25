@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="Typos,Grammar">
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- APP & CORE                                                                       -->
+    <!-- APP &amp; CORE                                                                       -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="app_name">KittyTune</string>
     <string name="msg_retrying">Повторная попытка&#8230;</string>
@@ -12,7 +12,7 @@
     <string name="no_results">Ничего не найдено</string>
     <string name="unknown">Неизвестно</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- BUTTONS & ACTIONS                                                                -->
+    <!-- BUTTONS &amp; ACTIONS                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="btn_ok">Ок</string>
     <string name="btn_cancel">Отменить</string>
@@ -43,9 +43,8 @@
     <string name="btn_share">Поделиться</string>
     <string name="btn_follow">Подписаться</string>
     <string name="all_filters">Все</string>
-    <string name="captcha_done">Я завершил капчу</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- NAVIGATION & AUTH                                                                -->
+    <!-- NAVIGATION &amp; AUTH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="nav_home">Главная</string>
     <string name="nav_library">Библиотека</string>
@@ -63,7 +62,7 @@
     <string name="login_reopen_browser">Открыть браузер заново</string>
     
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- HOME & DISCOVERY                                                                 -->
+    <!-- HOME &amp; DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_hint">Поиск треков, исполнителей&#8230;</string>
     <string name="home_discovery_title">Открытие дня</string>
@@ -75,7 +74,6 @@
     <string name="home_stream">Последние из исполнителей, на которых вы подписаны</string>
     <string name="radio">Радио</string>
     <string name="home_albums_for_you">Альбомы для вас</string>
-    <string name="home_top_albums_query">Лучшие альбомы</string>
     <string name="home_section_similar">Похожие на %1$s</string>
     <string name="home_section_similar_sub">Потому что вы слушали этот трек</string>
     <string name="home_section_new_crew">Новый талант</string>
@@ -101,9 +99,6 @@
     <string name="home_artists_to_watch">Перспективные исполнители</string>
     <string name="home_made_for_you">Создано для вас</string>
     <string name="home_curated_by_soundcloud">Выбор SoundCloud</string>
-    <string name="home_hiphop">Хип-хоп &amp; рэп</string>
-    <string name="home_electro">Электро-хаус</string>
-    <string name="home_pop">Поп</string>
     <!-- Offline Home Screen -->
     <string name="home_offline_title">Упс, нет соединения</string>
     <string name="home_offline_desc">KittyTune нужен интернет для загрузки новых треков. Вы можете слушать ваши загруженные треки.</string>
@@ -112,7 +107,7 @@
     <string name="home_offline_banner">Офлайн-режим включён</string>
     <string name="offline_banner_action_downloads">Перейти к загрузкам? Нажмите здесь</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- EXPLORER & SEARCH                                                                -->
+    <!-- EXPLORER &amp; SEARCH                                                                -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="explorer_title">Проводник</string>
     <string name="explorer_new_releases">Новые</string>
@@ -127,12 +122,7 @@
     <string name="search_source_deezer">Deezer</string>
     <string name="search_source_tidal">Tidal</string>
     <string name="search_source_qobuz">Qobuz</string>
-    <string name="charts_select_country">Выберите страну</string>
-    <string name="charts_top_artists">Лучшие исполнители</string>
-    <string name="search_section_moods">Настроения &amp; моменты</string>
     <string name="search_section_genres">Жанры</string>
-    <string name="genre_official_playlists">Официальные плейлисты</string>
-    <string name="genre_community_playlists">Пользовательские плейлисты</string>
     <!-- MOODS -->
     <string name="category_mood_feelgood">Заряд энергии</string>
     <string name="category_mood_calm">Спокойное</string>
@@ -219,6 +209,8 @@
     <string name="lib_guest_mode">Режим гостя • Войдите, чтобы синхронизировать</string>
     
     <string name="lib_sort_recently_added">Недавно добавленные</string>
+    <string name="lib_sort_manual">Свой порядок</string>
+    <string name="lib_reorder_mode">Переупорядочить</string>
     
     <string name="lib_playlists">Плейлисты</string>
     <string name="lib_artists">Исполнители</string>
@@ -270,6 +262,8 @@
     <string name="player_effects">Эффекты</string>
     <string name="player_special_effects">FX аудио</string>
     <string name="audio_fx_long_press_hint">Удерживайте кнопку для настройки эффекта</string>
+    <string name="fx_active_count">Включено: %1$d</string>
+    <string name="fx_reset_speed">Обычная скорость</string>
     <string name="player_pitch">Питч</string>
     <string name="player_speed">Скорость</string>
     <string name="pref_precise_speed">Точная скорость</string>
@@ -358,7 +352,7 @@
     <string name="lyrics_copy_text">Скопировать текст</string>
     <string name="lyrics_sync">Синхронизация</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- MENUS & CONTEXT                                                                  -->
+    <!-- MENUS &amp; CONTEXT                                                                  -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="menu_play_next">Включить следующим</string>
     <string name="menu_make_public">Сделать публичным</string>
@@ -411,7 +405,7 @@
     <string name="context_station">Станция • %1$s</string>
     <string name="context_album">Альбом • %1$s</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- DETAILS & METADATA                                                               -->
+    <!-- DETAILS &amp; METADATA                                                               -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="detail_track_title">Информация</string>
     <string name="detail_likers">Нравится</string>
@@ -435,6 +429,7 @@
     <string name="detail_show_less">Свернуть</string>
     <string name="untitled_track">Без названия</string>
     <string name="unknown_artist">Неизвестный исполнитель</string>
+    <string name="share_link">Поделиться ссылкой</string>
     <string name="share_via">Поделиться через</string>
     <string name="generic_title">Название</string>
     <string name="generic_artist">Исполнитель</string>
@@ -694,6 +689,18 @@
     <string name="icon_name_united_states">Соединенные Штаты</string>
     <string name="icon_name_uruguay">Уругвай</string>
     <string name="icon_name_uzbekistan">Узбекистан</string>
+
+    <string name="icon_category_official">Официальные</string>
+    <string name="icon_category_community">Сообщество</string>
+    <string name="icon_by_artist">от %1$s</string>
+    <string name="icon_name_shiro_headphones">Оранжевые наушники</string>
+    <string name="icon_name_shiro_musical_dream">Музыкальные мысли</string>
+    <string name="icon_name_shiro_pastel_cat">Пастельный кот</string>
+    <string name="icon_name_shiro_cap_red">Красная кепка</string>
+    <string name="icon_name_shiro_cap_purple">Фиолетовая кепка</string>
+    <string name="icon_name_shiro_kt_logo">Логотип KT</string>
+    <string name="icon_name_shiro_cozy_nap">Уютный кот</string>
+    <string name="icon_name_shiro_cool_cat">Крутой кот</string>
     <string name="theme_system">Система</string>
     <string name="theme_light">Светлый</string>
     <string name="theme_dark">Тёмный</string>
@@ -720,9 +727,9 @@
     <string name="font_preset_rounded">Скруглённый</string>
     <string name="font_preset_chunky">Пухлый</string>
     <string name="font_preset_elegant">Элегантный</string>
-    <!-- AUDIO & PLAYBACK -->
+    <!-- AUDIO &amp; PLAYBACK -->
     <string name="pref_audio_title">Аудио &amp; Воспроизведение</string>
-    <string name="pref_audio_subtitle">Качество, автономность, очередь</string>
+    <string name="pref_audio_subtitle">Эквалайзер, воспроизведение, переходы и тактильный отклик</string>
     <string name="pref_autoplay">Автовоспроизведение</string>
     <string name="pref_autoplay_sub">Воспроизводить похожие треки по окончании очереди</string>
     <string name="pref_stop_on_task_clear">Остановить музыку при закрытии приложения</string>
@@ -740,7 +747,7 @@
     <string name="pref_download_drm">Скачать оригинальный DRM</string>
     <string name="pref_download_drm_sub">Оставьте включённым для сохранения оригинальных DRM-треков во внутренний кэш. Отключите для принудительного скачивания MP3-версий через YouTube.</string>
     <string name="drm_explanation_text">Защищенные DRM-треки зашифрованы правообладателями для предотвращения извлечения и защиты авторских прав.\n\n• Включено (рекомендуется): Трек загружается в оригинальном высоком качестве в безопасный внутренний кэш KittyTune. Он воспроизводится только внутри приложения и не появится в обычной папке загрузок.\n\n• Отключено: KittyTune проигнорирует зашифрованную версию и попытается найти и скачать песню через YouTube в формате MP3. Предупреждение: так как поиск автоматический, может загрузиться неправильная версия (клип или кавер), если трек малоизвестен.</string>
-    <!-- AUDIO DSP & PERSISTENCE -->
+    <!-- AUDIO DSP &amp; PERSISTENCE -->
     <string name="pref_audio_mono">Монозвук</string>
     <string name="pref_audio_mono_sub">Объединять оба канала в один, полезно при нарушениях слуха</string>
     <string name="pref_norm_title">Нормализация громкости</string>
@@ -808,7 +815,6 @@
     <string name="pref_storage_title">Хранилище</string>
     <string name="pref_storage_subtitle">Кэш и загрузки</string>
     <string name="storage_used">используется</string>
-    <string name="storage_free_formatted">%1$s свободно</string>
     <string name="storage_location">Папка загрузок</string>
     <string name="storage_reset">Очистить</string>
     <string name="storage_cat_audio">Музыка</string>
@@ -821,10 +827,8 @@
     <string name="storage_custom_folder">Пользовательское</string>
     <string name="storage_change_btn">Изменить</string>
     <string name="storage_change_cta">Выберите местоположение</string>
-    <string name="storage_db_subtitle">Индекс &amp; настройки</string>
     <string name="storage_loading">Вычисление&#8230;</string>
     <string name="dialog_clean_title">Очистка</string>
-    <string name="dialog_clean_audio_msg">Удалить всю загруженную музыку?</string>
     <string name="dialog_clean_images_msg">Очистить кэш изображений? (Обложки альбомов)</string>
     <string name="dialog_clean_cache_msg">Очистить кэш приложения?</string>
     <!-- BACKUP -->
@@ -867,6 +871,33 @@
     <string name="music_import_auth_warning_title">Важно</string>
     <string name="music_import_auth_warning_message">После входа в систему, если ваш браузер спрашивает, как открыть ссылку, убедитесь, что вы выбрали KittyTune, а не приложение SoundCloud.</string>
     <string name="music_import_auth_warning_ok">Ок</string>
+
+    <!-- Portable guest import (TXT/CSV) -->
+    <string name="portable_import_title">Импорт из TXT/CSV</string>
+    <string name="portable_import_subtitle">Без аккаунта — читает экспорт Spotify, Deezer, TIDAL, Qobuz или YouTube</string>
+    <string name="portable_import_choose_file">Выбрать файл</string>
+    <string name="portable_import_reading">Чтение файла…</string>
+    <string name="portable_import_empty_title">Заберите музыку с собой</string>
+    <string name="portable_import_empty_message">Выберите экспорт TXT или CSV, и KittyTune сопоставит каждую строку с каталогом. Без входа, аккаунта и загрузки.</string>
+    <string name="portable_import_formats">TXT, CSV и M3U • исполнитель/название или ссылки сервисов</string>
+    <string name="portable_import_playlist_name">Название плейлиста</string>
+    <string name="portable_import_summary">Найдено треков: %1$d • сопоставлено: %2$d</string>
+    <string name="portable_import_add_to_likes">Также добавить в любимые треки</string>
+    <string name="portable_import_add_to_likes_desc">Сопоставленные треки также пополнят радио на основе ваших лайков.</string>
+    <string name="portable_import_select_all">Выбрать все</string>
+    <string name="portable_import_select_none">Снять выбор</string>
+    <string name="portable_import_start">Импортировать %1$d треков</string>
+    <string name="portable_import_not_found">Не найдено</string>
+    <string name="portable_import_likely">Вероятно</string>
+    <string name="portable_import_matched">Сопоставлено</string>
+    <string name="portable_import_done_title">Импорт завершён</string>
+    <string name="portable_import_done_message">Импортировано треков: %1$d. Не удалось сопоставить строк: %2$d.</string>
+    <string name="portable_import_open_playlist">Открыть плейлист</string>
+    <string name="portable_import_done">Готово</string>
+    <string name="portable_import_error_too_large">Файл слишком большой (макс. 8 МБ)</string>
+    <string name="portable_import_error_unreadable">Не удалось прочитать выбранный файл</string>
+    <string name="portable_import_error_empty_selection">Не выбран ни один сопоставленный трек</string>
+    <string name="portable_import_error_import">Не удалось выполнить импорт</string>
     <string name="music_provider_spotify">Spotify</string>
     <string name="music_provider_apple_music">Apple Music</string>
     <string name="music_provider_youtube_music">YouTube Music</string>
@@ -1115,7 +1146,7 @@
     <string name="completion_thanks_message">"Собрать все достижения — это настоящий подвиг. Ваша страсть к музыке — вот почему существует это приложение.\n\nСпасибо, что вы с нами.\n\n~ Alan :3"</string>
     <string name="completion_continue">Нажмите, чтобы продолжить</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SYSTEM & NOTIFICATIONS                                                           -->
+    <!-- SYSTEM &amp; NOTIFICATIONS                                                           -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="achievement_unlocked">Достижение разблокировано!</string>
     <string name="achievement_xp">+%1$d XP</string>
@@ -1135,7 +1166,7 @@
     <string name="widget_search_desc">Поиск</string>
     <string name="widget_search_hint">Поиск</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- ACCESSIBILITY & EMPTY STATES                                                     -->
+    <!-- ACCESSIBILITY &amp; EMPTY STATES                                                     -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="desc_play">Воспроизвести</string>
     <string name="desc_pause">Пауза</string>
@@ -1177,7 +1208,7 @@
     <string name="no_libraries_found">Библиотеки не найдены</string>
     <string name="license_unknown">Неизвестная лицензия</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
-    <!-- SLEEP TIMER & CROSSFADE                                                        -->
+    <!-- SLEEP TIMER &amp; CROSSFADE                                                        -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <!-- Sleep Timer -->
     <string name="sleep_timer_title">Таймер сна</string>
@@ -1336,7 +1367,7 @@
     <string name="action_play">Воспроизвести</string>
     <string name="action_pause">Пауза</string>
     <string name="recognize_music">Распознать музыку</string>
-    <!-- Music Recognition & Recognition History -->
+    <!-- Music Recognition &amp; Recognition History -->
     <string name="recognition_history_title">История</string>
     <string name="dialog_clear_history_title">Очистить историю?</string>
     <string name="dialog_clear_history_msg">Вы уверены, что хотите очистить всю историю распознанной музыки?</string>
@@ -1382,6 +1413,8 @@
     <string name="pref_norm_info_body_1">KittyTune использует стандарт EBU R128 (ITU-R BS.1770) для измерения воспринимаемой громкости в LUFS. Ваши треки будут звучать с одинаковой комфортной громкостью.</string>
     <string name="pref_norm_info_body_2">Как это работает:\n• KittyTune измеряет истинную громкость каждой песни (в LUFS).\n• При воспроизведении громкость динамически корректируется в соответствии с выбранным целевым уровнем.\n• Встроенный лимитер предотвращает любые искажения и клиппинг.\n\nУровни:\n• Тихий (-19 LUFS): Идеально подходит для ночного прослушивания или наушников.\n• Нормальный (-14 LUFS): Стандарт, используемый Spotify и YouTube.\n• Громкий (-11 LUFS): Лучше всего для шумной обстановки или внешних колонок.</string>
     <string name="comment_reply">Ответить</string>
+    <string name="comment_creator_liked_this">%1$s оценил(а) этот комментарий</string>
+    <string name="comment_artist_fallback">Автор</string>
     <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
     <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
     <string name="pref_sc_sync_title">Синхронизация истории SoundCloud</string>
@@ -1695,7 +1728,7 @@
     <string name="upload_error_storefront_next_pro">Создание витрины товаров было отклонено SoundCloud. API разрешает это действие только подписчикам SoundCloud Artist Pro.</string>
     <string name="upload_field_url_invalid">Пожалуйста, введите корректный URL (например, https://example.com)</string>
 
-    <!-- Upload Category Tabs & Metadata -->
+    <!-- Upload Category Tabs &amp; Metadata -->
     <string name="upload_tab_basic_info">Основное</string>
     <string name="upload_tab_metadata">Метаданные</string>
     <string name="upload_tab_permissions">Разрешения</string>
@@ -1759,7 +1792,7 @@
     <string name="upload_error_storefront_save">Не удалось сохранить витрину</string>
     <string name="upload_error_storefront_delete">Не удалось удалить витрину</string>
 
-    <!-- Permissions Tab (Accès & Mode silencieux) -->
+    <!-- Permissions Tab (Accès &amp; Mode silencieux) -->
     <string name="upload_perm_section_access">Доступ</string>
     <string name="upload_perm_direct_downloads">Включить прямые загрузки</string>
     <string name="upload_perm_direct_downloads_desc_on">Этот трек будет доступен для прямой загрузки в исходном формате, в котором он был загружен.</string>
@@ -1787,7 +1820,7 @@
     <string name="upload_perm_display_stats_desc_on">Статистика этого трека будет общедоступной.</string>
     <string name="upload_perm_display_stats_desc_off">Статистика этого трека скрыта.</string>
 
-    <!-- Track Info Checklist & Header -->
+    <!-- Track Info Checklist &amp; Header -->
     <string name="track_details_file_name">Имя файла</string>
     <string name="track_details_replace_file">Заменить файл</string>
     <string name="track_details_pick_image_content_description">Обложка</string>
@@ -1819,7 +1852,7 @@
     <string name="upload_field_artist_required">Пожалуйста, введите корректное имя исполнителя</string>
     <string name="upload_field_hint_artist">Используйте запятые для добавления нескольких исполнителей.</string>
 
-    <!-- Track Edit & Delete -->
+    <!-- Track Edit &amp; Delete -->
     <string name="menu_edit_track">Редактировать трек</string>
     <string name="edit_track_title">Редактировать трек</string>
     <string name="edit_track_save_button">Сохранить изменения</string>
@@ -2018,6 +2051,9 @@
     
     <string name="spotify_streams_formatted">прослушиваний</string>
     <string name="spotify_radio_title">Радио %1$s</string>
+    <string name="tidal_radio_title">Радио %1$s</string>
+    <string name="deezer_radio_title">Радио %1$s</string>
+    <string name="qobuz_radio_title">Радио %1$s</string>
     <string name="playlist_details_saves">%1$s сохранений</string>
     <string name="playlist_creator_badge">Создатель плейлиста</string>
     
@@ -2028,10 +2064,10 @@
     <string name="filter_artists">Артисты</string>
     <string name="filter_profiles">Профили</string>
 
-    <!-- Accounts Settings & SoundCloud Account -->
+    <!-- Accounts Settings &amp; SoundCloud Account -->
     <string name="settings_cat_accounts">Аккаунты</string>
     <string name="pref_accounts_title">Управление аккаунтами</string>
-    <string name="pref_accounts_subtitle">SoundCloud, Discord и другие платформы</string>
+    <string name="pref_accounts_subtitle">Стриминговые сервисы, порядок источников и импорт</string>
     <string name="pref_account_soundcloud_title">SoundCloud</string>
     <string name="pref_account_soundcloud_subtitle_connected">Вход выполнен: %1$s</string>
     <string name="pref_account_soundcloud_subtitle_guest">Не подключено (Гостевой режим)</string>
@@ -2081,7 +2117,7 @@
     <string name="accounts_screen_title">Аккаунты</string>
     <string name="accounts_connected_section">Подключенные сервисы</string>
     
-    <!-- Subscriptions & Extended Info -->
+    <!-- Subscriptions &amp; Extended Info -->
     <string name="account_section_subscriptions">Подписки и Тарифы</string>
     <string name="account_label_creator_sub">Тариф для артистов / авторов</string>
     <string name="account_label_consumer_sub">Тариф для прослушивания</string>
@@ -2168,15 +2204,32 @@
     <string name="account_vk_qr_same_device">Подтвердить на этом телефоне</string>
     <string name="account_vk_qr_same_device_hint">Откроет приложение VK, чтобы подтвердить вход без второго устройства.</string>
 
-    <!-- Audio Providers & Qobuz -->
+    <!-- Audio Providers &amp; Qobuz -->
     <string name="audio_provider_qobuz">Qobuz</string>
     <string name="qobuz_integration">Qobuz</string>
-    <string name="qobuz_country">Qobuz country</string>
-    <string name="qobuz_country_desc">Enter the 2-letter country code for Qobuz requests (e.g. US, FR, GB).</string>
-    <string name="qobuz_custom_instances">Qobuz custom instances</string>
+    <string name="qobuz_country">Страна Qobuz</string>
+    <string name="qobuz_country_desc">Введите двухбуквенный код страны для запросов Qobuz (например, US, FR, GB).</string>
+    <string name="qobuz_custom_instances">Пользовательские серверы Qobuz</string>
+    <string name="qobuz_account">Аккаунт Qobuz</string>
+    <string name="qobuz_account_desc_connected">Подключено — официальное радио Qobuz доступно.</string>
+    <string name="qobuz_account_desc_disconnected">Войдите в аккаунт Qobuz, чтобы включить официальное радио Qobuz.</string>
+    <string name="qobuz_account_disconnect">Выйти</string>
+    <string name="qobuz_account_login_failed">Не удалось войти — проверьте почту и пароль.</string>
+    <string name="qobuz_account_login">Войти в Qobuz</string>
+    <string name="qobuz_sign_in_google">Google</string>
+    <string name="qobuz_google_config_title">Вход через Google</string>
+    <string name="qobuz_google_config_desc">Client id и redirect для входа через Google</string>
+    <string name="qobuz_google_client_id">ID клиента (Client ID)</string>
+    <string name="qobuz_google_redirect">URL перенаправления</string>
+    <string name="qobuz_google_config_hint">Server client id, которым Google подписывает id token (официальное приложение Qobuz использует свой). Он должен содержать имя пакета и отпечаток подписи этого приложения, иначе Google откажет — зарегистрируйте свой в Google Cloud Console.</string>
+    <string name="qobuz_facebook_config_title">Вход через Facebook</string>
+    <string name="qobuz_facebook_config_desc">Client id и redirect для входа через Facebook</string>
+    <string name="qobuz_facebook_client_id">ID клиента (Client ID)</string>
+    <string name="qobuz_facebook_redirect">URL перенаправления</string>
+    <string name="qobuz_facebook_config_hint">Официальный client id Qobuz работает как есть. При желании зарегистрируйте своё приложение.</string>
     
     <string name="qobuz_custom_instances_placeholder">https://qobuz-dll.vercel.app/</string>
-    <string name="qobuz_custom_instances_helper">Add Qobuz resolver base URLs (one per line). These are tried in order.</string>
+    <string name="qobuz_custom_instances_helper">Добавьте базовые URL-адреса серверов Qobuz (по одному в строке). Они проверяются по порядку.</string>
     <string name="qobuz_custom_instances_desc_default">Инстанс по умолчанию (https://qobuz-dll.vercel.app/)</string>
     <string name="qobuz_custom_instances_desc_custom">Используется инстансов: %1$d.</string>
     <string name="qobuz_audio_quality">Качество аудио Qobuz</string>
@@ -2186,10 +2239,7 @@
     <string name="qobuz_quality_mp3_320">MP3 320 kbps</string>
 
     <!-- Auto-generated translations -->
-    <string name="audio_provider_amazon_music">Amazon Music</string>
-    <string name="audio_provider_apple_music">Apple Music</string>
     <string name="audio_provider_deezer">Deezer</string>
-    <string name="audio_provider_instagram">Instagram</string>
     <string name="audio_provider_soundcloud">SoundCloud</string>
     <string name="audio_provider_tidal">TIDAL</string>
     <string name="audio_provider_youtube_music">YouTube Music</string>
@@ -2210,6 +2260,7 @@
     <string name="automix_overlap_8bars">8 тактов</string>
     <string name="automix_overlap_auto">Автоматически (4 такта)</string>
     <string name="automix_overlap_custom">Пользовательская длительность</string>
+    <string name="automix_overlap_custom_value">Длительность: %d сек</string>
     <string name="automix_overlap_mode">Длительность перехода</string>
     <string name="automix_start_offset">Смещение начала</string>
     <string name="automix_start_offset_desc">Выберите, с какого момента начинается следующий трек при переходе</string>
@@ -2242,7 +2293,6 @@
     <string name="deezer_fast_mode">Быстрая загрузка Deezer</string>
     <string name="deezer_fast_mode_desc">Пропускать медленные резервные поиски для быстрого запуска Deezer.</string>
     <string name="deezer_integration">Deezer</string>
-    <string name="deezer_integration_desc">Воспроизведение аудио Deezer через ваш сервер dzmedia или аккаунт.</string>
     <string name="deezer_integration_info">Резолвер находит только зашифрованный медиа-URL Deezer. KittyTune расшифровывает поток локально при воспроизведении или загрузке, сохраняя публичные запросы поиска отдельно от вашей сессии Deezer.</string>
     <string name="deezer_login_notice_action">Войти в Deezer</string>
     <string name="deezer_login_notice_body">KittyTune теперь может транслировать музыку напрямую из вашего аккаунта Deezer. Вход обеспечивает максимальную надёжность воспроизведения и мгновенный запуск треков без прохождения через общий сервер.</string>
@@ -2251,13 +2301,10 @@
     <string name="deezer_proxy_custom">Пользовательский URL</string>
     <string name="deezer_proxy_custom_url">Пользовательский URL прокси Deezer</string>
     <string name="deezer_proxy_direct">Прямое подключение</string>
-    <string name="deezer_proxy_direct_desc">Подключаться к серверам Deezer напрямую.</string>
     <string name="deezer_proxy_disabled">Прямое подключение</string>
     <string name="deezer_proxy_mode">Режим прокси Deezer</string>
     <string name="deezer_proxy_render">Сервер Render</string>
-    <string name="deezer_proxy_render_desc">Автоматически использует %1$s.</string>
     
-    <string name="deezer_proxy_url_desc">Текущий прокси: %1$s</string>
     <string name="deezer_proxy_url_helper">Используйте только для HTTP-прокси хост:порт или базового URL dzmedia.</string>
     <string name="deezer_proxy_url_placeholder">proxy.example.com:3128 или https://your-dzmedia.onrender.com</string>
     <string name="deezer_quality_flac">FLAC</string>
@@ -2279,7 +2326,6 @@
     <string name="home_support_banner_star_github">Звезда на GitHub</string>
     <string name="home_support_banner_title">Нравится KittyTune?</string>
     
-    <string name="lyrics_ui_style_enhanced_short">Apple Music</string>
     
     <string name="player_dismissed_message">Плеер закрыт</string>
     <string name="player_now_playing">Сейчас играет</string>
@@ -2306,6 +2352,16 @@
     <string name="pref_haptics_strength">Интенсивность вибрации</string>
     <string name="pref_haptics_subtitle">Вибрация, синхронизированная с ритмом и битом музыки</string>
     <string name="pref_haptics_title">Тактильная отдача</string>
+    <string name="pref_haptics_app_section">Тактильный отклик интерфейса</string>
+    <string name="pref_haptics_app_sub">Вибрация при нажатии кнопок, навигации и перемещении ползунков</string>
+    <string name="label_haptics_title">Haptics</string>
+    <string name="haptic_mode_disabled">Отключено</string>
+    <string name="haptic_mode_enabled">Включено</string>
+    <string name="haptic_mode_stronger">Очень мощный</string>
+    <string name="pref_haptics_buttons">Кнопки и карточки</string>
+    <string name="pref_haptics_buttons_sub">Вибрация при нажатии кнопок и выборе треков</string>
+    <string name="pref_haptics_navigation">Панель навигации</string>
+    <string name="pref_haptics_navigation_sub">Вибрация при переключении вкладок</string>
     <string name="pref_lyrics_bounce_factor_title">Амплитуда отскока</string>
     <string name="pref_lyrics_duet_desc">Выравнивать текст по вокалистам (слева для первого, справа для второго)</string>
     <string name="pref_lyrics_duet_title">Режим дуэта</string>
@@ -2349,7 +2405,6 @@
     <string name="pref_slider_style_desc">Настроить внешний вид полосы воспроизведения</string>
     <string name="provider_order">Порядок аудиоисточников</string>
     <string name="provider_order_reset">Сбросить порядок источников</string>
-    <string name="provider_order_settings_desc">Перетаскивайте аудиоисточники, определяя очерёдность их использования в KittyTune</string>
     <string name="provider_order_summary">Переместите источники выше, чтобы проверять их первыми при воспроизведении и скачивании.</string>
     
     <string name="setup_all_set_body">KittyTune настроен под ваш вкус и готов к работе. Приятного музыкального путешествия!</string>
@@ -2430,7 +2485,6 @@
     <string name="sync_failed">Не удалось подключиться: %1$s</string>
     <string name="sync_forget_all">Забыть все устройства</string>
     <string name="sync_forget_device">Забыть</string>
-    <string name="sync_have_a_code">Вставить код вручную</string>
     <string name="sync_intro">Телефон и компьютер обмениваются историей, избранным и состоянием плеера напрямую через локальную сеть. Данные никуда не выгружаются, аккаунт не требуется.</string>
     <string name="sync_playback_title">Очередь и позиция воспроизведения</string>
     <string name="sync_playback_sub">Продолжать последний трек и очередь при открытии другого устройства</string>
@@ -2545,7 +2599,7 @@
     <string name="pref_haptics_contrast_off">Выкл.</string>
     <string name="pref_haptics_contrast_full">Максимум</string>
 
-    <!-- App Logs & Diagnostics -->
+    <!-- App Logs &amp; Diagnostics -->
     <string name="logs_title">Логи и диагностика</string>
     <string name="logs_subtitle">Просмотр, копирование и отправка логов для исправления ошибок</string>
     
@@ -2569,7 +2623,7 @@
     <string name="logs_save_logcat">Сохранить Logcat</string>
     <string name="logs_saved_toast">Логи успешно сохранены!</string>
     <string name="logs_save_failed_toast">Не удалось сохранить логи в файл.</string>
-    <!-- Settings Parity & Search -->
+    <!-- Settings Parity &amp; Search -->
     <string name="homepage_search">Поиск по настройкам</string>
     
     <string name="settings_search_no_results">Настройки не найдены</string>
@@ -2665,6 +2719,9 @@
     <string name="ai_badge_scanning">ИИ…</string>
     <string name="ai_badge_ai_tag">ИИ %d%%</string>
     <string name="ai_badge_human_tag">Человек %d%%</string>
+    <string name="ai_chip_ai_detected">ИИ обнаружен</string>
+    <string name="ai_chip_high_confidence">ИИ высокая точность</string>
+    <string name="ai_chip_human_audio">Человеческий трек</string>
     <string name="ai_sheet_title_ai">Обнаружена музыка, созданная ИИ</string>
     <string name="ai_sheet_title_human">Подлинная музыка</string>
     <string name="ai_sheet_title_analyzing">Анализ аудиопотока…</string>
@@ -2705,6 +2762,8 @@
     <string name="notif_btn_add_playlist_sub">Быстро добавить трек в последний использованный плейлист</string>
     <string name="notif_btn_haptics">Тактильный отклик</string>
     <string name="notif_btn_haptics_sub">Переключить вибрации в такт музыке</string>
+    <string name="notif_btn_haptics_on">Тактильный отклик включён</string>
+    <string name="notif_btn_haptics_off">Тактильный отклик выключен</string>
     <string name="notif_btn_share">Поделиться</string>
     <string name="notif_btn_share_sub">Поделиться ссылкой на трек</string>
     <string name="notif_btn_download">Скачать</string>
@@ -2713,6 +2772,8 @@
     <string name="notif_btn_off_sub">Не показывать дополнительную кнопку</string>
     <string name="notif_dislike_toast">Трек заблокирован и пропущен</string>
     <string name="notif_added_to_playlist">Добавлено в \"%s\"</string>
+    <string name="notif_added_to_playlist_unnamed">Добавлено в плейлист</string>
+    <string name="notif_no_track_playing">Ничего не играет</string>
     <string name="notif_no_playlist_available">Плейлисты пока отсутствуют</string>
 
     <!-- YEARLY PLAYBACK / SOUNDCLOUD WRAPPED -->
@@ -2742,7 +2803,7 @@
     <string name="yearly_playback_playlist_404_title">Playback недоступен</string>
     <string name="yearly_playback_playlist_404_desc">Этот плейлист Playback недоступен или не был создан SoundCloud для вашего аккаунта.</string>
 
-    <!-- SHARE SCREENSHOT & SOCIAL OPTIONS -->
+    <!-- SHARE SCREENSHOT &amp; SOCIAL OPTIONS -->
     <string name="share_screenshot_title">Поделиться скриншотом</string>
     <string name="share_screenshot_subtitle">Поделитесь изображением со ссылкой на трек, чтобы друзья тоже могли его послушать.</string>
     <string name="share_option_whatsapp">WhatsApp</string>
@@ -2880,15 +2941,17 @@
     <string name="data_saver_metered_only">Только в мобильной сети</string>
     <string name="data_saver_metered_only_sub">При подключении к Wi-Fi вернется выбранное вами качество</string>
     <string name="data_saver_forced_eco">Эко — включено режимом экономии</string>
-    <string name="provider_data_saver_title">Отключать при мобильном интернете</string>
-    <string name="provider_data_saver_sub">Qobuz, TIDAL и Deezer не будут использоваться в мобильной сети — только SoundCloud и YouTube. Подключитесь к Wi-Fi для доступа к Hi-Res.</string>
+    <string name="data_saver_lyrics_restrict_title">Ограничить источники текстов</string>
+    <string name="data_saver_lyrics_restrict_sub">При включенной экономии трафика запрашиваются только выбранные источники текстов. Это учитывается и в автоматическом, и в ручном поиске.</string>
+    <string name="data_saver_lyrics_sources_title">Разрешенные источники текстов</string>
+    <string name="data_saver_lyrics_dialog_title">Источники текстов при экономии</string>
+    <string name="data_saver_lyrics_dialog_desc">При активной экономии трафика запрашиваются только выбранные источники. Меньше запросов — меньше трафика и ожидания в слабой сети.</string>
+    <string name="data_saver_lyrics_select_one">Выберите хотя бы один источник.</string>
+    <string name="keywords_data_saver_lyrics">источники текстов, поставщики текстов, musixmatch, lrclib, экономия трафика, тексты сеть</string>
     <string name="provider_enabled_hint">SoundCloud и YouTube Music являются базовыми источниками и доступны всегда.</string>
     <string name="provider_disabled_suffix">(откл.)</string>
     <string name="keywords_data_saver">экономия трафика, трафик, мобильный интернет, эко, экономия данных, лимит, сеть</string>
     <string name="lyrics_searching">Поиск текста песни…</string>
-    <string name="lyrics_auto_found_title">Текст найден автоматически</string>
-    <string name="lyrics_auto_found_desc">Для этого трека был автоматически найден текст песни.</string>
-    <string name="lyrics_auto_found_use">Показать</string>
     <string name="pref_track_source_badge_title">Индикатор источника аудио</string>
     <string name="pref_track_source_badge_desc">Отображать значок площадки (YouTube, SoundCloud и т.д.) для играющего трека</string>
     <string name="pref_track_source_badge_both">Значок и текст</string>
@@ -2902,15 +2965,12 @@
     <string name="settings_cat_misc_sub">Общие, фильтр контента, Discord и о приложении</string>
     <string name="settings_audio_playback_sub">Автовоспроизведение, очередь, возобновление и скорость</string>
     <string name="settings_audio_quality_title">Звук и вывод</string>
-    <string name="settings_audio_quality_sub">Качество аудио, устройство и нормализация громкости</string>
+    <string name="settings_audio_quality_sub">Эквалайзер, нормализация громкости и моно-звук</string>
     <string name="settings_audio_transitions_title">Переходы и микс</string>
     <string name="settings_audio_transitions_sub">Кроссфейд и DJ-автомикс</string>
     <string name="settings_audio_sleep_sub">Длительность затухания и параметры сна</string>
 
     <string name="sources_services_sub">SoundCloud, Qobuz, TIDAL, Deezer, VK</string>
-    <string name="sources_order_sub">Порядок приоритета и импорт музыки</string>
-    <string name="lyrics_sources_title">Провайдеры текста</string>
-    <string name="lyrics_sources_sub">Порядок и включенные источники текстов песен</string>
 
     <string name="storage_cache_sub">Лимиты кэша аудио и изображений, очистка</string>
     
@@ -2957,9 +3017,6 @@
     <string name="keywords_zapret">zapret, dpi, обход, цензура, блокировка, запрет, ютуб, дискорд</string>
 
     <string name="misc_general_sub">Язык, начальный экран и обновления</string>
-    <string name="misc_discord_sub">Отображение играющего трека в Discord</string>
-    <string name="pref_lyrics_backing_vocals_title">Бэк-вокал отдельно</string>
-    <string name="pref_lyrics_backing_vocals_sub">Слова в круглых скобках показываются отдельной строкой поменьше под основной</string>
     <string name="pref_lyrics_reveal_words_title">Появление по словам</string>
     <string name="pref_lyrics_reveal_words_sub">Строки без пословной синхронизации быстро заполняются по словам, а не сразу целиком</string>
     <string name="wave_title">Моя волна</string>
@@ -3026,49 +3083,300 @@
     <string name="slot_devices">Устройства воспроизведения</string>
     <string name="menu_playback_devices">Устройства воспроизведения</string>
     <string name="connect_devices_title">Доступные устройства</string>
-    <string name="connect_devices_subtitle">Слушайте и управляйте музыкой на ваших устройствах</string>
-    <string name="connect_this_device">Это устройство</string>
-    <string name="connect_this_device_desc">Локальное воспроизведение</string>
     <string name="connect_playing_here">Воспроизводится на этом устройстве</string>
-    <string name="connect_switch_here">Слушать здесь</string>
-    <string name="connect_paired_devices">Связанные устройства</string>
-    <string name="connect_no_devices">Нет связанных устройств</string>
-    <string name="connect_no_devices_desc">Свяжите телефон и компьютер в синхронизации устройств, чтобы переносить музыку.</string>
-    <string name="connect_open_sync">Синхронизация устройств</string>
-    <string name="connect_status_lan">В сети · Локальная сеть</string>
-    <string name="connect_status_internet">В сети · Интернет</string>
     <string name="connect_status_offline">Не в сети</string>
     <string name="connect_status_playing">Играет · %1$s</string>
-    <string name="connect_moving_playback">Переносим воспроизведение…</string>
-    <string name="connect_connected_to">Подключено к %1$s</string>
-    <string name="connect_resume_local">Продолжить на этом устройстве</string>
     <string name="connect_independent_title">Играть отдельно</string>
     <string name="connect_independent_desc">Свои трек и очередь. Управление с других устройств выключено.</string>
     <string name="connect_headphones_title">Подхватывать в наушниках</string>
     <string name="connect_headphones_desc">Подключение — перенос с ПК. Отключение — пауза.</string>
-    <string name="connect_headphones_hint">При открытом приложении. Bluetooth-колонки тоже могут определяться как наушники.</string>
+    <string name="connect_headphones_hint">При открытом приложении. Если оно выгружено — откройте его для подхвата. Bluetooth-колонки тоже могут определяться как наушники.</string>
     <string name="connect_relay_title">Подключение через интернет</string>
     <string name="connect_relay_desc">Адрес вашего сервера. Укажите одинаковый адрес на обоих устройствах.</string>
     <string name="connect_relay_url_label">Адрес сервера</string>
     <string name="connect_relay_url_error">Нужен адрес https:// или wss://</string>
-    <string name="connect_pref_group">Кнопка устройств (Connect)</string>
-    <string name="connect_pref_top_bar">Показывать кнопку устройств в шапке плеера</string>
-    <string name="connect_pref_mini_player">Показывать кнопку устройств в мини-плеере</string>
-    <string name="connect_pref_bottom_bar">Показывать кнопку устройств в нижней панели</string>
-    <string name="connect_pref_slots_hint">Вы также можете разместить кнопку устройств в панели действий плеера или в меню трех точек.</string>
     <string name="connect_feedback_timeout">Устройство не ответило вовремя. Попробуйте ещё раз.</string>
     <string name="connect_feedback_offline">Устройство не в сети.</string>
     <string name="connect_feedback_auto_cancelled">Автоматический перенос отменён.</string>
     <string name="connect_feedback_local_file">Этот локальный файл есть только на исходном устройстве.</string>
     <string name="connect_feedback_track_changed">Трек сменился во время переноса. Выберите устройство ещё раз.</string>
     <string name="connect_feedback_prepare_failed">Не удалось открыть трек на выбранном устройстве.</string>
-    <string name="connect_error_server">Сервер недоступен: %1$s. Проверьте адрес в настройках устройств.</string>
     <string name="connect_error_connection">Ошибка соединения: %1$s</string>
     <string name="connect_devices_hero">Подключение к устройству</string>
     <string name="connect_listening_on">СЕЙЧАС ИГРАЕТ НА</string>
     <string name="connect_this_phone">Этот телефон</string>
     <string name="connect_service_name">KittyTune Connect</string>
     <string name="connect_cant_find">Не можете найти устройство?</string>
-    <string name="connect_pair_hint">Убедитесь, что оба устройства подключены к одной сети Wi-Fi и KittyTune открыт.</string>
+    <string name="connect_pair_hint">Свяжите телефон и компьютер в синхронизации устройств.</string>
     <string name="connect_pair_action">Связать устройство</string>
+    <string name="deezer_proxy_url">Прокси Deezer</string>
+    <string name="connect_offline">Не в сети</string>
+    <string name="connect_playing_on">Играет на %1$s</string>
+    <string name="category_introducing_buzzing">В тренде</string>
+    <string name="player_side_player">Боковой плеер</string>
+    <string name="yearly_playback_tracks_played">Прослушано треков</string>
+    <string name="yearly_playback_unique_tracks">Уникальных треков</string>
+    <string name="edit_playlist_title">Редактировать плейлист</string>
+    <string name="edit_playlist_field_title">Название *</string>
+    <string name="edit_playlist_field_permalink">Постоянная ссылка *</string>
+    <string name="edit_playlist_permalink_hint">Используйте только цифры, строчные буквы, подчеркивания или дефисы.</string>
+    <string name="edit_playlist_field_description">Описание</string>
+    <string name="edit_playlist_privacy">Приватность</string>
+    <string name="edit_playlist_public">Публичный</string>
+    <string name="edit_playlist_private">Приватный</string>
+    <string name="edit_playlist_type">Тип плейлиста</string>
+    <string name="edit_playlist_release_date">Дата выхода (ГГГГ-ММ-ДД) *</string>
+    <string name="edit_playlist_pick_date">Выбрать</string>
+    <string name="edit_playlist_genre">Жанр</string>
+    <string name="edit_playlist_custom_genre">Свой жанр</string>
+    <string name="edit_playlist_tags">Теги</string>
+    <string name="edit_playlist_add_tags">Добавить теги</string>
+    <string name="artist_monthly_listeners">%,d слушателей в месяц</string>
+    <string name="artist_resume">Продолжить</string>
+    <string name="artist_trailer">Тизер</string>
+    <string name="artist_trailer_playing">Тизер включен</string>
+    <string name="beta_updates_subtitle">Получайте предварительные сборки для раннего тестирования новых функций</string>
+    <string name="beta_updates_title">Бета-обновления</string>
+    <string name="beta_warning_message">Бета-версии могут быть нестабильными и содержать ошибки. При включении проверка обновлений также будет предлагать предрелизные сборки.</string>
+    <string name="beta_warning_title">Включить бета-обновления?</string>
+    <string name="btn_enable">Включить</string>
+    <string name="category_ambiances_title">Вайбы</string>
+    <string name="category_discover_more_tracks">Открыть больше треков</string>
+    <string name="category_genre_electro">Электроника</string>
+    <string name="category_genre_soul">Соул</string>
+    <string name="category_genre_techno">Техно</string>
+    <string name="category_introducing">Знакомство</string>
+    <string name="category_kind_genre">Жанр</string>
+    <string name="category_mood_athome">Дома</string>
+    <string name="category_mood_chill">Отдых</string>
+    <string name="category_mood_study">Учеба</string>
+    <string name="category_no_content">Контент недоступен</string>
+    <string name="category_play_all">Слушать</string>
+    <string name="category_profiles">Профили</string>
+    <string name="category_see_all">Все</string>
+    <string name="category_tab_albums">Альбомы</string>
+    <string name="category_tab_all">Все</string>
+    <string name="category_tab_playlists">Плейлисты</string>
+    <string name="category_tab_trending">В тренде</string>
+    <string name="chart_failed">Не удалось загрузить чарт. Попробуйте еще раз через минуту.</string>
+    <string name="chart_section_title">Чарты</string>
+    <string name="dialog_upload_yaml_title">Загрузить свои субтитры</string>
+    <string name="home_clips_title">Клипы</string>
+    <string name="keywords_charts">чарты, топ, рейтинги, тренды, лидеры</string>
+    <string name="keywords_my_wave">моя волна, волна, радио, поток, микс, рекомендации</string>
+    <string name="lyrics_badge_line_sync">Построчная синхронизация</string>
+    <string name="lyrics_badge_plain">Простой текст</string>
+    <string name="lyrics_badge_word_sync">Пословная синхронизация</string>
+    <string name="lyrics_provider_all">Все источники</string>
+    <string name="lyrics_search_clear">Очистить</string>
+    <string name="lyrics_search_now_showing">Сейчас отображается: %1$s</string>
+    <string name="lyrics_search_progress">Найдено: %1$d, ищется в источниках: %2$d</string>
+    <string name="lyrics_sync_drift_active">%1$s на %2$s, %3$s на %4$s, равномерно между ними. Кнопки выше меняют ближайшую точку.</string>
+    <string name="lyrics_sync_drift_hint">Синхронизируйте начало и закрепите его, затем закрепите точку ближе к концу и синхронизируйте там. Смещение меняется равномерно.</string>
+    <string name="lyrics_sync_drift_title">Сбивается к концу?</string>
+    <string name="lyrics_sync_end_too_close">Закрепите конец не менее чем через 20 секунд после начала</string>
+    <string name="lyrics_sync_pin_end">Закрепить конец здесь</string>
+    <string name="lyrics_sync_pin_start">Закрепить начало здесь</string>
+    <string name="lyrics_sync_point_end">Конец %1$s</string>
+    <string name="lyrics_sync_point_start">Начало %1$s</string>
+    <string name="lyrics_sync_single">Вернуться к общему смещению</string>
+    <string name="pref_home_charts_desc">Показывать карточку чартов на главном экране</string>
+    <string name="pref_home_my_wave_desc">Показывать карточку Моей Волны на главном экране</string>
+    <string name="queue_clear_upcoming">Очистить предстоящие треки</string>
+    <string name="queue_played">Уже сыграно</string>
+    <string name="queue_time_left">Осталось %1$s</string>
+    <string name="queue_up_next">Далее</string>
+    <string name="queue_remove">Удалить из очереди</string>
+    <string name="screensaver_focus_mode">Заставка и режим концентрации</string>
+    <string name="screensaver_since_sleep">С момента перехода</string>
+    <string name="screensaver_tap_to_wake">Нажмите в любом месте, чтобы выйти</string>
+    <string name="search_clear_all">Очистить всё</string>
+    <string name="search_kind_artist">Исполнитель</string>
+    <string name="search_kind_playlist">Плейлист</string>
+    <string name="search_kind_track">Трек · %1$s</string>
+    <string name="search_recent_searches">Недавние поиски</string>
+    <string name="search_remove_recent">Удалить из недавних поисков</string>
+    <string name="search_section_other_genres">Другие категории</string>
+    <string name="search_section_personalized">Для вас</string>
+    <string name="search_see_less">Скрыть</string>
+    <string name="search_see_more">Показать еще</string>
+    <string name="search_showing_results_for">Результаты по запросу «%1$s»</string>
+    <string name="search_top_result">Лучший результат</string>
+    <string name="slot_connect">Подключить</string>
+    <string name="time_hours">%1$d ч</string>
+    <string name="time_hours_minutes">%1$d ч %2$02d мин</string>
+    <string name="time_minutes">%1$d мин</string>
+    <string name="time_seconds">%1$d с</string>
+    <string name="together_accept">Принять</string>
+    <string name="together_add_tracks">Добавить треки</string>
+    <string name="together_automix_host_only">Только организатор может переключать автомикс</string>
+    <string name="together_bad_code">Код выглядит неверным</string>
+    <string name="together_become_host">Стать ведущим</string>
+    <string name="together_code">Код %s</string>
+    <string name="together_code_copied">Код скопирован</string>
+    <string name="together_code_hint">ABCD-EFGH</string>
+    <string name="together_create">Создать совместный плейлист</string>
+    <string name="together_decline">Отклонить</string>
+    <string name="together_empty">Пока ничего нет — найдите ниже и предложите первый трек.</string>
+    <string name="together_forget">Забыть</string>
+    <string name="together_hint">Слушайте вместе синхронно на телефоне и компьютере</string>
+    <string name="together_join">Присоединиться</string>
+    <string name="together_leave">Покинуть</string>
+    <string name="together_listen">Слушать вместе</string>
+    <string name="together_listening_now">Слушают сейчас: %s</string>
+    <string name="together_name_hint">Название плейлиста</string>
+    <string name="together_nobody">Никто не слушает</string>
+    <string name="together_offline">Переподключение…</string>
+    <string name="together_play_next">Воспроизвести следующим</string>
+    <string name="together_preview">Предпросмотр</string>
+    <string name="together_suggest">Предложить</string>
+    <string name="together_suggested_by">Предложено: %s</string>
+    <string name="together_suggestions">Предложения</string>
+    <string name="together_title">Together</string>
+    <string name="together_tracks">Треки</string>
+    <string name="together_up_next">Далее</string>
+    <string name="together_your_name">Ваше имя</string>
+    <string name="track_sorted_by_followers">По количеству подписчиков</string>
+    <string name="vk_import_another">Импортировать еще</string>
+    <string name="vk_import_done">Готово: %1$d из %2$d треков добавлены в плейлист «%3$s»</string>
+    <string name="vk_import_empty">Этот плейлист пуст.</string>
+    <string name="vk_import_failed">Не удалось связаться с VK: %1$s</string>
+    <string name="vk_import_hint">Ссылка на плейлист VK</string>
+    <string name="vk_import_load">Найти</string>
+    <string name="vk_import_missing">Не найдено (%1$d)</string>
+    <string name="vk_import_not_playlist">В этой ссылке нет плейлиста. Откройте плейлист в VK и скопируйте его ссылку.</string>
+    <string name="vk_import_not_vk">Это не ссылка VK.</string>
+    <string name="vk_import_note">Треки ищутся на SoundCloud и YouTube Music по названию, артисту и длительности. Вход в VK не требуется.</string>
+    <string name="vk_import_open">Открыть плейлист</string>
+    <string name="vk_import_paste">Вставить</string>
+    <string name="vk_import_platform">VK Музыка</string>
+    <string name="vk_import_platform_sub">Плейлисты и альбомы по ссылке, без авторизации</string>
+    <string name="vk_import_private">VK не может открыть этот плейлист: он приватный или в ссылке нет ключа доступа. В VK нажмите «Поделиться», скопируйте ссылку и вставьте сюда.</string>
+    <string name="vk_import_progress">Поиск треков: %1$d из %2$d · %3$d найдено</string>
+    <string name="vk_import_start">Импортировать плейлист</string>
+    <string name="vk_import_sub">Вставьте ссылку на плейлист или альбом</string>
+    <string name="vk_import_title">Импорт из VK Музыки</string>
+    <string name="vk_import_tracks">%1$d треков</string>
+    <string name="desc_fullscreen">Во весь экран</string>
+    <string name="pref_developer_options_title">Для разработчиков</string>
+    <string name="pref_developer_options_subtitle">Оверлеи отладки, логи и инструменты диагностики</string>
+    <string name="dev_section_audio_debug">Отладка аудио и переходов</string>
+    <string name="dev_section_logs">Логи и диагностика</string>
+    <string name="dev_section_ai_debug">Диагностика ИИ-детектора</string>
+    <string name="dev_clear_ai_cache">Очистить кэш ИИ-детектора</string>
+    <string name="dev_clear_ai_cache_desc">Удалить сохранённые результаты проверки ИИ и запустить повторный анализ</string>
+    <string name="dev_ai_cache_cleared">Кэш ИИ-детектора очищен</string>
+    <string name="dev_dj_debug_sheet">Панель отладки DJ Flow</string>
+    <string name="dev_dj_debug_sheet_desc">Открыть управление DJ-переходами и инспектор сетки битов в реальном времени</string>
+    <string name="dev_view_logs">Просмотр логов приложения</string>
+    <string name="dev_view_logs_desc">Просмотр logcat в реальном времени, диагностики и недавних сбоев</string>
+    <string name="dev_export_logs">Поделиться логами приложения</string>
+    <string name="dev_export_logs_desc">Отправить системные логи приложения для отчёта об ошибке</string>
+    <string name="dev_clear_logs">Очистить логи сбоев</string>
+    <string name="dev_logs_cleared">Логи сбоев очищены</string>
+    <string name="home_reposts_from_friends">Репосты от тех, на кого вы подписаны</string>
+    <string name="qobuz_account_login_success">Вход в Qobuz выполнен успешно!</string>
+    <string name="qobuz_enter_token">Войти по токену авторизации</string>
+    <string name="qobuz_forgot_or_google_account">Аккаунт Google или забыли пароль?</string>
+    <string name="qobuz_google_help_desc">Google ограничивает прямой нативный вход только официальным приложением Qobuz на Android (ошибка 16). У аккаунтов Qobuz, созданных через Google, по умолчанию нет пароля.\n\nЧтобы войти в KittyTune, просто задайте пароль для своего аккаунта, используя адрес почты Google.</string>
+    <string name="qobuz_google_help_title">Вход через аккаунт Google</string>
+    <string name="qobuz_logging_in">Вход в Qobuz…</string>
+    <string name="qobuz_open_website">Открыть сайт Qobuz</string>
+    <string name="qobuz_reset_password_failed">Не удалось отправить письмо для создания пароля. Проверьте адрес электронной почты.</string>
+    <string name="qobuz_reset_password_sent">Qobuz отправил письмо! Проверьте почту, чтобы задать пароль, а затем вернитесь сюда для входа.</string>
+    <string name="qobuz_send_reset_password">Отправить письмо для создания пароля</string>
+    <string name="qobuz_token_login_desc">Вставьте свой user_auth_token от Qobuz напрямую, если он у вас есть.</string>
+    <string name="qobuz_token_login_title">Токен сессии</string>
+    <string name="qobuz_token_not_found">Токен сессии пока не найден. Сначала войдите в аккаунт на странице.</string>
+    <string name="qobuz_token_saved">Токен сессии Qobuz сохранён!</string>
+    <string name="qobuz_web_login">Веб-вход (Google / Браузер)</string>
+    <string name="qobuz_web_login_desc">Войдите в Qobuz через WebView. Поддерживается вход через Google и браузер, а KittyTune автоматически сохранит ваш токен сессии.</string>
+    <string name="storage_audio_subtitle">Скачано треков: %1$d</string>
+    <string name="storage_cat_app">Приложение</string>
+    <string name="storage_delete_all_confirm">Удалить все скачанные треки (%1$d) с устройства?</string>
+    <string name="storage_delete_count">Удалить (%1$d)</string>
+    <string name="storage_delete_selected_playlists_confirm">Удалить загрузки для выбранных плейлистов (%1$d, %2$s)?</string>
+    <string name="storage_delete_selected_tracks_confirm">Удалить выбранные треки (%1$d, %2$s) с устройства?</string>
+    <string name="storage_delete_single_playlist_confirm">Удалить скачанные треки и файлы плейлиста \"%1$s\"?</string>
+    <string name="storage_delete_single_track_confirm">Удалить \"%1$s\" из скачанных треков?</string>
+    <string name="storage_deselect_all">Снять выделение</string>
+    <string name="storage_downloaded_empty">Пока ничего не скачано</string>
+    <string name="storage_downloaded_music">Скачанная музыка</string>
+    <string name="storage_downloaded_playlists_summary">Плейлистов: %1$d — нажмите для просмотра</string>
+    <string name="storage_downloaded_summary">Треков: %1$d · %2$s — нажмите для просмотра</string>
+    <string name="storage_freed_space_hint">Освободить %1$s</string>
+    <string name="storage_gauge_bottom_no_music">KittyTune: %1$s · %2$s свободно для загрузок</string>
+    <string name="storage_gauge_bottom_with_music">KittyTune: %1$s (музыка: %2$s) · %3$s свободно для загрузок</string>
+    <string name="storage_group_downloads">Загрузки</string>
+    <string name="storage_manage_downloads_title">Управление загрузками</string>
+    <string name="storage_no_search_results">Загрузки по запросу \"%1$s\" не найдены</string>
+    <string name="storage_search_downloads_hint">Поиск в загрузках…</string>
+    <string name="storage_select_all">Выбрать все</string>
+    <string name="storage_selected_format">Выбрано: %1$d</string>
+    <string name="storage_size_cached">в кэше</string>
+    <string name="storage_system_label">Система</string>
+    <string name="storage_tab_playlists">Плейлисты</string>
+    <string name="storage_tab_tracks">Треки</string>
+    <string name="storage_total_summary">/ %1$s</string>
+
+    <string name="pref_haptics_sliders">Ползунки и перемотка</string>
+    <string name="pref_haptics_sliders_sub">Вибрация шагами при перетаскивании ползунков</string>
+    <string name="pref_haptics_test_title">Тест отклика</string>
+    <string name="pref_haptics_test_sub">Нажмите на плитку, чтобы почувствовать отклик</string>
+    <string name="haptic_test_light">Легкий</string>
+    <string name="haptic_test_medium">Средний</string>
+    <string name="haptic_test_heavy">Сильный</string>
+    <string name="haptic_test_confirm">Подтвердить</string>
+    <string name="equalizer_mode_manual">Вручную</string>
+    <string name="equalizer_mode_auto">Автоматически</string>
+    <string name="equalizer_auto_title">Auto EQ</string>
+    <string name="equalizer_auto_subtitle">Подберите измеренный профиль для ваших наушников</string>
+    <string name="equalizer_auto_detected">Обнаруженные наушники</string>
+    <string name="equalizer_auto_no_device">Наушники не обнаружены</string>
+    <string name="equalizer_auto_no_device_sub">Подключите наушники или найдите модель ниже.</string>
+    <string name="equalizer_auto_search_hint">Поиск модели наушников (напр. HD 650)</string>
+    <string name="equalizer_auto_search_action">Искать</string>
+    <string name="equalizer_auto_suggestions">Популярные модели</string>
+    <string name="equalizer_auto_searching">Поиск…</string>
+    <string name="equalizer_auto_no_results">Профиль не найден. Попробуйте указать бренд и модель.</string>
+    <string name="equalizer_auto_results">Найденные профили</string>
+    <string name="equalizer_auto_apply">Применить</string>
+    <string name="equalizer_auto_applying">Применение…</string>
+    <string name="equalizer_auto_applied">Профиль применен</string>
+    <string name="equalizer_auto_source">Источник: %1</string>
+    <string name="equalizer_auto_restore">Применять автоматически при повторном подключении</string>
+    <string name="equalizer_auto_restored">Auto EQ восстановлен: %1</string>
+    <string name="equalizer_auto_remove">Удалить профиль</string>
+    <string name="equalizer_auto_credit">Профили из AutoEq, на основе измерений oratory1990, crinacle, Rtings и Squiglink.</string>
+    <string name="equalizer_auto_import">Импорт EQ</string>
+    <string name="equalizer_auto_error">Не удалось загрузить профили.</string>
+    <string name="equalizer_auto_retry">Повторить</string>
+    <string name="equalizer_auto_profile_hint">Измерения зависят от амбушюров и режима шумоподавления.</string>
+    <string name="equalizer_auto_detected_query">Поиск: «%1»</string>
+
+    <string name="theme_preview_harmony_title">Гармония палитры</string>
+    <string name="theme_preview_tokens_label">Элементы палитры</string>
+    <string name="theme_preview_ui_sample">Предпросмотр интерфейса</string>
+    <string name="theme_preview_sample_play">Воспроизвести</string>
+    <string name="theme_preview_sample_favorite">Избранное</string>
+    <string name="theme_preset_accents_title">Готовые пресеты</string>
+    <string name="theme_preset_accents_subtitle">Гармоничные готовые цветовые схемы</string>
+    <string name="color_hint_muted">Приглушённый</string>
+    <string name="color_hint_balanced">Сбалансированный</string>
+    <string name="color_hint_vivid">Яркий</string>
+    <string name="color_hint_dark">Тёмный</string>
+    <string name="color_hint_default">По умолчанию</string>
+    <string name="color_hint_bright">Светлый</string>
+    <string name="color_spec_2025_label">SPEC 2025 (M3)</string>
+    <string name="color_spec_2021_label">SPEC 2021 (Устаревший)</string>
+    <string name="color_hex_copied">Hex-код скопирован</string>
+    <string name="color_palette_system_dynamic">Системная динамическая</string>
+    <string name="mix_artists_section">Исполнители</string>
+    <string name="mix_genres_section">Жанры и теги</string>
+    <string name="mix_artist_search_placeholder">Поиск или добавление исполнителя…</string>
+    <string name="mix_start_with_count">Запустить микс (выбрано: %1$d)</string>
+    <string name="mix_suggested_artists">Рекомендуемые исполнители</string>
+    <string name="mix_followers_count">%1$s подписчиков</string>
+    <string name="mix_in_library">В медиатеке</string>
+    <string name="mix_selected_chip_remove">Удалить %1$s</string>
 </resources>
