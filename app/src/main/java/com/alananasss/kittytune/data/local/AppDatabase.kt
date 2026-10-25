@@ -185,6 +185,11 @@
         @Query("SELECT * FROM play_history WHERE numericId = :numericId OR id = :id LIMIT 1")
         suspend fun getHistoryItemById(numericId: Long, id: String): HistoryItem?
 
+        // Rows written by the trailer flow, which described the artist they came from
+        // under a hashed id. They are repaired on start-up, not shown as they are.
+        @Query("SELECT * FROM play_history WHERE originalUrl LIKE 'trailer:%'")
+        suspend fun getTrailerRoutedHistoryItems(): List<HistoryItem>
+
         @Query("DELETE FROM play_history WHERE id = :itemId")
         suspend fun deleteHistoryItem(itemId: String)
 

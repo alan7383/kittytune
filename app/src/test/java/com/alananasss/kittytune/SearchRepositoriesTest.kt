@@ -129,7 +129,7 @@ class SearchRepositoriesTest {
     }
 
     @Test
-    fun testQobuzResolutionWithRealInstance() {
+    fun testQobuzResolutionRejectsSampleWhenDisallowed() {
         val query = com.alananasss.kittytune.audio.providers.qobuz.QobuzAudioProvider.Query(
             mediaId = "test_media_1",
             title = "Creep",
@@ -139,10 +139,34 @@ class SearchRepositoriesTest {
             durationMs = 238_000L,
             countryCode = "US",
             qualityCode = 27,
-            customInstances = "https://qobuz-dll.vercel.app/"
+            userAuthToken = "X9ymtqtYjx9xfgfybNWKWxZ2thqfSOoPH4rZeI4SaN05t4gGpi2dQNM9K12PIF_ET4HFmNyTnzuftlP-hhKbnQ",
+            allowPreview = false,
+        )
+        try {
+            com.alananasss.kittytune.audio.providers.qobuz.QobuzAudioProvider.resolve(query)
+            org.junit.Assert.fail("Expected sample resolution to fail when allowPreview = false")
+        } catch (e: com.alananasss.kittytune.audio.providers.qobuz.QobuzAudioProvider.QobuzResolutionException) {
+            println("Successfully rejected sample preview: ${e.message}")
+            org.junit.Assert.assertTrue(e.message?.contains("sample preview") == true || e.message?.contains("preview") == true)
+        }
+    }
+
+    @Test
+    fun testQobuzResolutionWithPreviewAllowed() {
+        val query = com.alananasss.kittytune.audio.providers.qobuz.QobuzAudioProvider.Query(
+            mediaId = "test_media_preview",
+            title = "Creep",
+            artists = listOf("Radiohead"),
+            album = "Pablo Honey",
+            isrc = null,
+            durationMs = 238_000L,
+            countryCode = "US",
+            qualityCode = 27,
+            userAuthToken = "X9ymtqtYjx9xfgfybNWKWxZ2thqfSOoPH4rZeI4SaN05t4gGpi2dQNM9K12PIF_ET4HFmNyTnzuftlP-hhKbnQ",
+            allowPreview = true,
         )
         val resolved = com.alananasss.kittytune.audio.providers.qobuz.QobuzAudioProvider.resolve(query)
-        println("Resolved: mediaUri=${resolved.mediaUri}, label=${resolved.label}, bitrate=${resolved.bitrate}")
+        println("Resolved preview: mediaUri=${resolved.mediaUri}, label=${resolved.label}, bitrate=${resolved.bitrate}")
         assertNotNull(resolved)
         assertNotNull(resolved.mediaUri)
         org.junit.Assert.assertTrue(resolved.mediaUri.startsWith("http"))
@@ -159,7 +183,8 @@ class SearchRepositoriesTest {
             durationMs = 238_000L,
             countryCode = "US",
             qualityCode = 27,
-            customInstances = "https://qobuz-dll.vercel.app/"
+            userAuthToken = "X9ymtqtYjx9xfgfybNWKWxZ2thqfSOoPH4rZeI4SaN05t4gGpi2dQNM9K12PIF_ET4HFmNyTnzuftlP-hhKbnQ",
+            allowPreview = true,
         )
         val resolved = com.alananasss.kittytune.audio.providers.qobuz.QobuzAudioProvider.resolve(query)
         println("Direct resolved: mediaUri=${resolved.mediaUri}, label=${resolved.label}")
@@ -171,11 +196,12 @@ class SearchRepositoriesTest {
     @Test
     fun testQobuzSearchRepository() = kotlinx.coroutines.runBlocking {
         val searchResult = com.alananasss.kittytune.data.qobuz.QobuzSearchRepository.search(null, "Daft Punk")
+        println("Qobuz search result: tracks=${searchResult.tracks.size}, albums=${searchResult.albums.size}, artists=${searchResult.artists.size}, playlists=${searchResult.playlists.size}")
         assertNotNull(searchResult)
         org.junit.Assert.assertTrue(searchResult.tracks.isNotEmpty())
         org.junit.Assert.assertTrue(searchResult.albums.isNotEmpty())
         org.junit.Assert.assertTrue(searchResult.artists.isNotEmpty())
-        org.junit.Assert.assertTrue(searchResult.playlists.isEmpty())
+        org.junit.Assert.assertTrue(searchResult.playlists.isNotEmpty())
         println("Qobuz search: found ${searchResult.tracks.size} tracks, ${searchResult.albums.size} albums, ${searchResult.artists.size} artists, playlists=${searchResult.playlists.size}")
 
         val album = com.alananasss.kittytune.data.qobuz.QobuzSearchRepository.getAlbum(null, "0886443927087")

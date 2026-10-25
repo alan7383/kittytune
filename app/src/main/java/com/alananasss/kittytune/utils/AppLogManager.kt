@@ -52,6 +52,16 @@ object AppLogManager {
 
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            // Catch known finalizer crash from third-party libraries (e.g. ai.onnxruntime.telemetry.HttpClient)
+            if (thread.name == "FinalizerDaemon") {
+                val msg = throwable.message.orEmpty()
+                val isReceiverNotRegistered = msg.contains("Receiver not registered") ||
+                        throwable.stackTrace.any { it.className.contains("ai.onnxruntime") }
+                if (isReceiverNotRegistered) {
+                    android.util.Log.w("AppLogManager", "Ignored FinalizerDaemon exception from onnxruntime: $msg")
+                    return@setDefaultUncaughtExceptionHandler
+                }
+            }
             try {
                 saveCrash(context, thread, throwable)
             } catch (e: Exception) {

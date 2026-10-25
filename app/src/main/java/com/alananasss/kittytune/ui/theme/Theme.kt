@@ -88,7 +88,7 @@ internal fun blendedContentColorOn(background: Color): Color {
     return androidx.compose.ui.graphics.lerp(Color.White, DarkContentColor, progress)
 }
 
-internal val KittyTuneDefaultSeedColor = Color(0xFFFF7A1A)
+internal val KittyTuneDefaultSeedColor = Color(0xFF1565C0)
 internal val MaterialKolorColorSpecOptions = listOf("SPEC_2025", "SPEC_2021")
 
 internal fun parseMaterialKolorPaletteStyle(colorStyle: String): PaletteStyle =
@@ -123,9 +123,12 @@ internal fun rememberSoundTuneColorScheme(
     // Read before anything can return: artwork seed is only used when track-based dynamic color is enabled.
     val coverSeed = if (trackDynamicColor) ThemeState.coverSeedColor else null
 
-    // Use the native system generated scheme if "System" style is selected with Auto color — but only while
-    // there is no cover colour to prefer.
-    if (coverSeed == null && colorStyle.equals("System", ignoreCase = true) && dynamicColor && keyColor == 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val isPreview = ThemeState.previewKeyColor != null
+    val effectiveKeyColor = ThemeState.previewKeyColor ?: keyColor
+
+    // Use the native system generated scheme if dynamicColor is active — but only while
+    // there is no cover colour to prefer and no active key colour override/preview.
+    if (coverSeed == null && !isPreview && dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val platformScheme = if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         return if (pureBlack && useDarkTheme) platformScheme.withAmoledSurfaces() else platformScheme
     }
@@ -133,8 +136,7 @@ internal fun rememberSoundTuneColorScheme(
     val style = remember(colorStyle) { parseMaterialKolorPaletteStyle(colorStyle) }
     val specVersion = remember(colorSpec) { parseMaterialKolorColorSpec(colorSpec) }
 
-    val effectiveKeyColor = ThemeState.previewKeyColor ?: keyColor
-    val seedColor = remember(context, dynamicColor, effectiveKeyColor, coverSeed, useDarkTheme) {
+    val seedColor = remember(context, dynamicColor, effectiveKeyColor, coverSeed, useDarkTheme, isPreview) {
         when {
             coverSeed != null -> Color(coverSeed)
             else -> resolveSeedColor(
@@ -142,6 +144,7 @@ internal fun rememberSoundTuneColorScheme(
                 useDarkTheme = useDarkTheme,
                 dynamicColor = dynamicColor,
                 keyColor = effectiveKeyColor,
+                isPreview = isPreview,
             )
         }
     }
@@ -168,15 +171,18 @@ private fun resolveSeedColor(
     useDarkTheme: Boolean,
     dynamicColor: Boolean,
     keyColor: Int,
+    isPreview: Boolean = false,
 ): Color {
+    if (isPreview && keyColor != 0) return Color(keyColor)
+
+    if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val platformScheme = if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        return platformScheme.primary
+    }
+
     if (keyColor != 0) return Color(keyColor)
 
-    return if (dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val platformScheme = if (useDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        platformScheme.primary
-    } else {
-        KittyTuneDefaultSeedColor
-    }
+    return KittyTuneDefaultSeedColor
 }
 
 /**

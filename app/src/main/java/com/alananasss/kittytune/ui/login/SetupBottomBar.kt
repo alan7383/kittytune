@@ -48,6 +48,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import racra.compose.smooth_corner_rect_library.AbsoluteSmoothCornerShape
 
 @Composable
@@ -128,7 +131,7 @@ fun SetupBottomBar(
                         exit = fadeOut() + shrinkHorizontally()
                     ) {
                         IconButton(
-                            onClick = { onBackClicked?.invoke() },
+                            onClick = hapticAction(HapticKind.UI) { onBackClicked?.invoke() },
                             modifier = Modifier.size(44.dp)
                         ) {
                             Icon(

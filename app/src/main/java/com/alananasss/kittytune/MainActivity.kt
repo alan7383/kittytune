@@ -99,6 +99,7 @@ import com.zionhuang.innertube.models.YouTubeLocale
 
             // Initialize Data Layer Singletons
             Config.init(applicationContext)
+            com.alananasss.kittytune.audio.haptics.HapticUtil.initialize(applicationContext)
             LikeRepository.init(applicationContext)
             com.alananasss.kittytune.data.SocialProofRepository.init(applicationContext)
             com.alananasss.kittytune.data.VibesRepository.init(applicationContext)
@@ -186,23 +187,35 @@ import com.zionhuang.innertube.models.YouTubeLocale
                     colorSpec = colorSpecState,
                     typography = dynamicTypography
                 ) {
-                    LaunchedEffect(Unit) {
-                        if (preferences.getAutoUpdateEnabled()) {
-                            UpdateManager.checkForUpdate(applicationContext, isManual = false)
-                        }
-                    }
-
-                    // Main App Content
-                    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                        MainScreen(
-                            shouldOpenSearch = openSearchState,
-                            initialSearchQuery = initialQueryState,
-                            onSearchHandled = {
-                                _shouldOpenSearch.value = false
-                                _initialSearchQuery.value = null
-                            }
+                    val currentHaptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+                    val currentContext = androidx.compose.ui.platform.LocalContext.current
+                    val gatedHaptics = remember(currentHaptics, currentContext) {
+                        com.alananasss.kittytune.audio.haptics.HapticUtil.gate(
+                            currentContext,
+                            currentHaptics
                         )
-                        com.alananasss.kittytune.ui.common.CoverViewerOverlay()
+                    }
+                    CompositionLocalProvider(
+                        androidx.compose.ui.platform.LocalHapticFeedback provides gatedHaptics
+                    ) {
+                        LaunchedEffect(Unit) {
+                            if (preferences.getAutoUpdateEnabled()) {
+                                UpdateManager.checkForUpdate(applicationContext, isManual = false)
+                            }
+                        }
+
+                        // Main App Content
+                        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                            MainScreen(
+                                shouldOpenSearch = openSearchState,
+                                initialSearchQuery = initialQueryState,
+                                onSearchHandled = {
+                                    _shouldOpenSearch.value = false
+                                    _initialSearchQuery.value = null
+                                }
+                            )
+                            com.alananasss.kittytune.ui.common.CoverViewerOverlay()
+                        }
                     }
                 }
             }

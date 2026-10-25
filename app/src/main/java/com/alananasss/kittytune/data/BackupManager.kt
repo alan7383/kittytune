@@ -36,7 +36,12 @@ object BackupManager {
     suspend fun createBackup(context: Context, uri: Uri) {
         withContext(Dispatchers.IO) {
             val db = AppDatabase.getDatabase(context).downloadDao()
-            val tracks = db.getAllTracks().first()
+            // Every row, not only the downloaded ones: a playlist (and a saved radio in
+            // particular) is made of catalogue tracks whose localAudioPath is empty. Backing
+            // up only `getAllTracks()` therefore saved the playlist and its refs but not the
+            // tracks they point at, and every liked-based radio came back empty after a
+            // restore.
+            val tracks = db.getAllStoredTracksList()
             val playlists = db.getAllPlaylists().first()
             val allRefs = mutableListOf<PlaylistTrackCrossRef>()
             playlists.forEach { playlist ->
@@ -107,9 +112,12 @@ object BackupManager {
             restorePrefs(context, "achievements_prefs", data.achievements)
             restorePrefs(context, "player_state", data.playerPrefs)
 
-            // 5. Re-initializing managers to take changes into account
+            // 5. Re-initializing managers to take changes into account. The library
+            // is notified too: without it the restored playlists kept showing the
+            // empty state it had before the restore.
             withContext(Dispatchers.Main) {
                 AchievementManager.init(context)
+                DownloadManager.notifyLibraryUpdated()
             }
         }
     }

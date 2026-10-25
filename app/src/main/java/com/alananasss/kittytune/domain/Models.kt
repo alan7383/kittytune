@@ -42,7 +42,10 @@ data class Comment(
     @SerializedName("reaction_stats") val reactionStats: ReactionStats? = null,
     @SerializedName("user_favorite") val isLiked: Boolean = false,
 
-    @SerializedName("replies") val replies: List<Comment>? = null
+    @SerializedName("replies") val replies: List<Comment>? = null,
+    val isLikedByCreator: Boolean = false,
+    val creatorArtworkUrl: String? = null,
+    val creatorUsername: String? = null
 ) {
     val likesCount: Int
         get() {
@@ -53,7 +56,10 @@ data class Comment(
     fun copy(
         isLiked: Boolean = this.isLiked,
         likesCount: Int = this.likesCount,
-        replies: List<Comment>? = this.replies
+        replies: List<Comment>? = this.replies,
+        isLikedByCreator: Boolean = this.isLikedByCreator,
+        creatorArtworkUrl: String? = this.creatorArtworkUrl,
+        creatorUsername: String? = this.creatorUsername
     ): Comment {
         return Comment(
             id = this.id,
@@ -65,7 +71,10 @@ data class Comment(
             _likesCount = likesCount,
             reactionStats = null,
             isLiked = isLiked,
-            replies = replies
+            replies = replies,
+            isLikedByCreator = isLikedByCreator,
+            creatorArtworkUrl = creatorArtworkUrl,
+            creatorUsername = creatorUsername
         )
     }
 }
@@ -294,6 +303,116 @@ data class InteractionCountNode(
     @SerializedName("interactionTypeValueUrn") val type: String
 )
 
+data class GraphQlCommentsVariables(
+    @SerializedName("trackUrn") val trackUrn: String,
+    @SerializedName("creatorUrn") val creatorUrn: String?,
+    @SerializedName("options") val options: GraphQlCommentsOptionsInput
+)
+
+data class GraphQlCommentsOptionsInput(
+    @SerializedName("sort") val sort: String,
+    @SerializedName("first") val first: Int = 25,
+    @SerializedName("repliesSort") val repliesSort: String = "DESCENDING",
+    @SerializedName("repliesFirst") val repliesFirst: Int = 3,
+    @SerializedName("after") val after: String? = null,
+    @SerializedName("token") val token: String? = null
+)
+
+data class GraphQlCommentsResponse(
+    @SerializedName("data") val data: GraphQlCommentsData? = null
+)
+
+data class GraphQlCommentsData(
+    @SerializedName("trackComments") val trackComments: GraphQlTrackComments? = null
+)
+
+data class GraphQlTrackComments(
+    @SerializedName("comments") val comments: List<GraphQlApiComment>? = null,
+    @SerializedName("pageInfo") val pageInfo: GraphQlPageInfo? = null
+)
+
+data class GraphQlApiComment(
+    @SerializedName("body") val body: String? = null,
+    @SerializedName("trackTime") val trackTime: Long? = null,
+    @SerializedName("createdAtTimestamp") val createdAtTimestamp: Long? = null,
+    @SerializedName("urn") val urn: String? = null,
+    @SerializedName("user") val user: GraphQlApiUser? = null,
+    @SerializedName("reactions") val reactions: GraphQlCommentReactions? = null,
+    @SerializedName("replies") val replies: GraphQlCommentReplies? = null
+)
+
+data class GraphQlApiUser(
+    @SerializedName("urn") val urn: String? = null,
+    @SerializedName("username") val username: String? = null,
+    @SerializedName("permalink") val permalink: String? = null,
+    @SerializedName("userAvatarUrlTemplate") val userAvatarUrlTemplate: String? = null,
+    @SerializedName("verified") val verified: Boolean? = null
+)
+
+data class GraphQlCommentReactions(
+    @SerializedName("creatorReaction") val creatorReaction: String? = null,
+    @SerializedName("reactionCounts") val reactionCounts: List<GraphQlReactionCount>? = null,
+    @SerializedName("userReaction") val userReaction: String? = null
+)
+
+data class GraphQlReactionCount(
+    @SerializedName("reactionTypeValueUrn") val reactionTypeValueUrn: String? = null,
+    @SerializedName("count") val count: Int? = null
+)
+
+data class GraphQlCommentReplies(
+    @SerializedName("comments") val comments: List<GraphQlApiComment>? = null,
+    @SerializedName("total") val total: Long? = null,
+    @SerializedName("pageInfo") val pageInfo: GraphQlPageInfo? = null
+)
+
+fun GraphQlApiComment.toComment(
+    creatorArtworkUrl: String?,
+    creatorUsername: String?
+): Comment {
+    val commentId = urn?.substringAfterLast(":")?.toLongOrNull() ?: 0L
+    val userId = user?.urn?.substringAfterLast(":")?.toLongOrNull() ?: 0L
+    val avatarUrl = user?.userAvatarUrlTemplate?.takeIf { it.isNotBlank() }?.replace("{size}", "large")
+    val createdAtStr = if (createdAtTimestamp != null && createdAtTimestamp > 0L) {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+        sdf.format(java.util.Date(createdAtTimestamp))
+    } else {
+        ""
+    }
+    val isLikedByCreator = reactions?.creatorReaction == "sc:interactiontypevalue:like"
+    val isLikedByMe = reactions?.userReaction == "sc:interactiontypevalue:like"
+    val likesCount = reactions?.reactionCounts?.firstOrNull {
+        it.reactionTypeValueUrn == "sc:interactiontypevalue:like"
+    }?.count ?: 0
+
+    val mappedReplies = replies?.comments?.map { replyItem ->
+        replyItem.toComment(creatorArtworkUrl, creatorUsername)
+    }
+
+    return Comment(
+        id = commentId,
+        body = body ?: "",
+        createdAt = createdAtStr,
+        trackTimestamp = if (trackTime != null && trackTime > 0L) trackTime else null,
+        user = User(
+            id = userId,
+            username = user?.username ?: "",
+            avatarUrl = avatarUrl,
+            permalink = user?.permalink,
+            verified = user?.verified ?: false
+        ),
+        _likesCount = likesCount,
+        reactionStats = null,
+        isLiked = isLikedByMe,
+        replies = mappedReplies,
+        isLikedByCreator = isLikedByCreator,
+        creatorArtworkUrl = if (isLikedByCreator) creatorArtworkUrl else null,
+        creatorUsername = if (isLikedByCreator) creatorUsername else null
+    )
+}
+
 data class ReactionStats(val counts: List<ReactionCount>?)
 data class ReactionCount(val count: Int, @SerializedName("interaction_type_urn") val urn: String?)
 
@@ -419,7 +538,8 @@ data class GraphQlFollowsResult(
 )
 
 data class GraphQlPageInfo(
-    @SerializedName("endCursor") val endCursor: String?
+    @SerializedName("endCursor") val endCursor: String? = null,
+    @SerializedName("hasNextPage") val hasNextPage: Boolean = false
 )
 
 data class GraphQlFollowsItem(
@@ -729,7 +849,8 @@ data class StationLibraryResponse(val collection: List<StationLibraryItem>, val 
 data class StationLibraryItem(
     @SerializedName("created_at") val createdAt: String?,
     val type: String?,
-    @SerializedName("system_playlist") val systemPlaylist: SystemPlaylist?
+    @SerializedName("system_playlist") val systemPlaylist: SystemPlaylist?,
+    @SerializedName("playlist") val playlist: Playlist? = null
 )
 
 data class SystemPlaylist(
