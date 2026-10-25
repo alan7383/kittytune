@@ -12,6 +12,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.domain.Track
 
@@ -75,7 +78,7 @@ fun LikeAllPromptHost() {
         text = { Text(stringResource(R.string.like_all_prompt_text, tracks.size, tracks.size - sensible.size)) },
         confirmButton = {
             FilledTonalButton(
-                onClick = {
+                onClick = hapticAction(HapticKind.UI) {
                     LikeAllPrompt.dismiss()
                     toast(LikeAllPrompt.like(sensible))
                 },
@@ -85,7 +88,7 @@ fun LikeAllPromptHost() {
         },
         dismissButton = {
             TextButton(
-                onClick = {
+                onClick = hapticAction(HapticKind.UI) {
                     LikeAllPrompt.dismiss()
                     toast(LikeAllPrompt.like(tracks))
                 },

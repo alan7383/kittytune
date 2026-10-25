@@ -20,6 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.TagSuggestion
 import com.alananasss.kittytune.domain.User
@@ -90,15 +93,15 @@ fun EditPlaylistScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Edit Playlist") },
+                    title = { Text(stringResource(R.string.edit_playlist_title)) },
                     navigationIcon = {
                         IconButton(onClick = onDismissRequest) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.btn_back))
                         }
                     },
                     actions = {
                         TextButton(
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 onSave(
                                     title,
                                     description,
@@ -131,7 +134,7 @@ fun EditPlaylistScreen(
                     KittyOutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        label = { Text("Title *") },
+                        label = { Text(stringResource(R.string.edit_playlist_field_title)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
@@ -143,7 +146,7 @@ fun EditPlaylistScreen(
                     KittyOutlinedTextField(
                         value = permalink,
                         onValueChange = { permalink = it },
-                        label = { Text("Permalink *") },
+                        label = { Text(stringResource(R.string.edit_playlist_field_permalink)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -151,7 +154,7 @@ fun EditPlaylistScreen(
                         prefix = { Text("soundcloud.com/${playlistUser?.permalink ?: "user"}/sets/") },
                         supportingText = {
                             if (!isValidPermalink) {
-                                Text("Use only numbers, lowercase letters, underscores, or hyphens.")
+                                Text(stringResource(R.string.edit_playlist_permalink_hint))
                             }
                         }
                     )
@@ -161,32 +164,32 @@ fun EditPlaylistScreen(
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = { Text("Description") },
+                        label = { Text(stringResource(R.string.edit_playlist_field_description)) },
                         modifier = Modifier.fillMaxWidth().height(120.dp),
                         maxLines = 5
                     )
                 }
 
                 item {
-                    Text("Privacy", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.edit_playlist_privacy), style = MaterialTheme.typography.titleMedium)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(
                             selected = sharing == "public",
-                            onClick = { sharing = "public" }
+                            onClick = hapticAction(HapticKind.UI) { sharing = "public" }
                         )
-                        Text("Public", modifier = Modifier.clickable { sharing = "public" })
+                        Text(stringResource(R.string.edit_playlist_public), modifier = Modifier.hapticClickable { sharing = "public" })
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(
                             selected = sharing == "private",
-                            onClick = { sharing = "private" }
+                            onClick = hapticAction(HapticKind.UI) { sharing = "private" }
                         )
-                        Text("Private", modifier = Modifier.clickable { sharing = "private" })
+                        Text(stringResource(R.string.edit_playlist_private), modifier = Modifier.hapticClickable { sharing = "private" })
                     }
                 }
 
                 item {
-                    Text("Playlist Type", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.edit_playlist_type), style = MaterialTheme.typography.titleMedium)
                     ExposedDropdownMenuBox(
                         expanded = showSetTypeDropdown,
                         onExpandedChange = { showSetTypeDropdown = it }
@@ -212,7 +215,7 @@ fun EditPlaylistScreen(
                             listOf("" to "Playlist", "album" to "Album", "ep" to "EP", "single" to "Single", "compilation" to "Compilation").forEach { (value, label) ->
                                 DropdownMenuItem(
                                     text = { Text(label) },
-                                    onClick = { 
+                                    onClick = hapticAction(HapticKind.UI) { 
                                         setType = value
                                         showSetTypeDropdown = false 
                                     }
@@ -227,13 +230,13 @@ fun EditPlaylistScreen(
                         OutlinedTextField(
                             value = releaseDate,
                             onValueChange = { releaseDate = it },
-                            label = { Text("Release Date (YYYY-MM-DD) *") },
+                            label = { Text(stringResource(R.string.edit_playlist_release_date)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                             trailingIcon = {
-                                TextButton(onClick = { showDatePicker = true }) {
-                                    Text("Pick")
+                                TextButton(onClick = hapticAction(HapticKind.UI) { showDatePicker = true }) {
+                                    Text(stringResource(R.string.edit_playlist_pick_date))
                                 }
                             }
                         )
@@ -241,7 +244,7 @@ fun EditPlaylistScreen(
                 }
 
                 item {
-                    Text("Genre", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.edit_playlist_genre), style = MaterialTheme.typography.titleMedium)
                     val predefinedGenres = listOf("None", "Custom", "Alternative Rock", "Ambient", "Classical", "Country", "Dance & EDM", "Dancehall", "Deep House", "Disco", "Drum & Bass", "Dubstep", "Electronic", "Folk & Singer-Songwriter", "Hip-hop & Rap", "House", "Indie", "Jazz & Blues", "Latin", "Metal", "Piano", "Pop", "R&B & Soul", "Reggae", "Reggaeton", "Rock", "Soundtrack", "Techno", "Trance", "Trap", "Triphop", "World", "Audiobooks", "Business", "Comedy", "Entertainment", "Learning", "News & Politics", "Religion & Spirituality", "Science", "Sports", "Storytelling", "Technology")
                     var selectedGenreCategory by remember { mutableStateOf(if (genre in predefinedGenres || genre == "") genre else "Custom") }
 
@@ -263,7 +266,7 @@ fun EditPlaylistScreen(
                             predefinedGenres.forEach { label ->
                                 DropdownMenuItem(
                                     text = { Text(label) },
-                                    onClick = { 
+                                    onClick = hapticAction(HapticKind.UI) { 
                                         val value = if (label == "None") "" else label
                                         selectedGenreCategory = value
                                         if (value != "Custom") genre = value
@@ -278,7 +281,7 @@ fun EditPlaylistScreen(
                         OutlinedTextField(
                             value = genre,
                             onValueChange = { genre = it },
-                            label = { Text("Custom Genre") },
+                            label = { Text(stringResource(R.string.edit_playlist_custom_genre)) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -286,23 +289,23 @@ fun EditPlaylistScreen(
                 }
 
                 item {
-                    Text("Tags", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.edit_playlist_tags), style = MaterialTheme.typography.titleMedium)
                     OutlinedTextField(
                         value = tagInput,
                         onValueChange = { tagInput = it },
-                        label = { Text("Add tags") },
+                        label = { Text(stringResource(R.string.edit_playlist_add_tags)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         trailingIcon = {
                             if (tagInput.isNotBlank()) {
-                                IconButton(onClick = { 
+                                IconButton(onClick = hapticAction(HapticKind.UI) { 
                                     if (!tags.contains(tagInput.trim())) {
                                         tags = tags + tagInput.trim()
                                     }
                                     tagInput = "" 
                                 }) {
-                                    Icon(Icons.Rounded.Close, contentDescription = "Add tag")
+                                    Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.edit_playlist_add_tags))
                                 }
                             }
                         }
@@ -313,7 +316,7 @@ fun EditPlaylistScreen(
                     items(tagSuggestions) { suggestion ->
                         ListItem(
                             headlineContent = { Text(suggestion.id) },
-                            modifier = Modifier.clickable {
+                            modifier = Modifier.hapticClickable {
                                 if (!tags.contains(suggestion.id)) {
                                     tags = tags + suggestion.id
                                 }
@@ -333,9 +336,9 @@ fun EditPlaylistScreen(
                             tags.forEach { tag ->
                                 InputChip(
                                     selected = false,
-                                    onClick = { tags = tags - tag },
+                                    onClick = hapticAction(HapticKind.UI) { tags = tags - tag },
                                     label = { Text(tag) },
-                                    trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = "Remove") }
+                                    trailingIcon = { Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.menu_remove)) }
                                 )
                             }
                         }
@@ -352,7 +355,7 @@ fun EditPlaylistScreen(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     datePickerState.selectedDateMillis?.let { millis ->
                         val calendar = java.util.Calendar.getInstance()
                         calendar.timeInMillis = millis
@@ -362,10 +365,10 @@ fun EditPlaylistScreen(
                         releaseDate = "$y-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}"
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(android.R.string.ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel") }
+                TextButton(onClick = hapticAction(HapticKind.UI) { showDatePicker = false }) { Text(stringResource(R.string.btn_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

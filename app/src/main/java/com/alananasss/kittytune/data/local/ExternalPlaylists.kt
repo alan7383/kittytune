@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.data.local
 
+import com.alananasss.kittytune.data.spotify.SpotifyIds
 import kotlin.math.abs
 
 /**
@@ -14,10 +15,74 @@ import kotlin.math.abs
  */
 object ExternalPlaylists {
 
+    /**
+     * A generated radio route ("yt_radio:<seed>", "spotify_radio:<seed>").
+     *
+     * Radios are snapshots: the tracks a user saved must stay exactly as they
+     * were when they liked the radio, so these entries must never be treated as
+     * SoundCloud playlists that a refresh may overwrite or delete.
+     */
+    fun isRadioPermalink(url: String?): Boolean {
+        if (url == null) return false
+        return isRadioLower(url.lowercase())
+    }
+
+    private fun isRadioLower(lower: String): Boolean =
+        lower.startsWith("yt_radio:") ||
+            lower.startsWith("spotify_radio:") ||
+            lower.startsWith("station_spotify:") ||
+            lower.startsWith("tidal_radio:") ||
+            lower.startsWith("deezer_radio:") ||
+            lower.startsWith("qobuz_radio:")
+
+    /**
+     * The id a radio route is saved under, or null when [permalinkUrl] is not a
+     * radio. This must mirror how the playlist detail screen derives its own id,
+     * otherwise liking a radio from a home card saves under one id and opening
+     * the liked radio looks for another.
+     */
+    fun radioStableId(permalinkUrl: String?): Long? {
+        if (!isRadioPermalink(permalinkUrl)) return null
+        val route = permalinkUrl!!.trim()
+        return when {
+            route.startsWith("yt_radio:", ignoreCase = true) -> {
+                val raw = route.substring("yt_radio:".length)
+                val url = try {
+                    java.net.URLDecoder.decode(raw, "UTF-8")
+                } catch (_: Exception) {
+                    raw
+                }
+                if (url.isBlank()) null else abs(url.hashCode().toLong())
+            }
+            route.startsWith("tidal_radio:", ignoreCase = true) -> {
+                val raw = route.substring("tidal_radio:".length).trim()
+                if (raw.isBlank()) null else tidalRadioStableId(raw)
+            }
+            route.startsWith("deezer_radio:", ignoreCase = true) -> {
+                val raw = route.substring("deezer_radio:".length).trim()
+                if (raw.isBlank()) null else deezerRadioStableId(raw)
+            }
+            route.startsWith("qobuz_radio:", ignoreCase = true) -> {
+                val raw = route.substring("qobuz_radio:".length).trim()
+                if (raw.isBlank()) null else qobuzRadioStableId(raw)
+            }
+            else -> {
+                val raw = SpotifyIds.stripPrefixes(route)
+                if (raw.isBlank()) null else spotifyStableId(raw)
+            }
+        }
+    }
+
+    fun libraryIdFor(permalinkUrl: String?, fallbackId: Long): Long =
+        radioStableId(permalinkUrl) ?: fallbackId
+
     fun isExternalPermalink(url: String?): Boolean {
         if (url == null) return false
         val lower = url.lowercase()
-        return lower.contains("spotify") ||
+        return isRadioLower(lower) ||
+            lower.contains("spotify") ||
+            lower.contains("youtube.com") ||
+            lower.contains("youtu.be") ||
             lower.contains("deezer.com") ||
             lower.contains("tidal.com") ||
             lower.contains("qobuz") ||
@@ -43,6 +108,7 @@ object ExternalPlaylists {
         val lower = route.lowercase()
         return lower.startsWith("spotify") ||
             lower.startsWith("station_spotify") ||
+            lower.startsWith("yt_radio:") ||
             lower.startsWith("deezer:") ||
             lower.startsWith("tidal:") ||
             lower.startsWith("qobuz:") ||
@@ -77,6 +143,15 @@ object ExternalPlaylists {
 
     fun tidalArtistStableId(id: String): Long =
         abs(("tidal:artist:${id.trim()}").hashCode().toLong())
+
+    fun tidalRadioStableId(id: String): Long =
+        abs(("tidal_radio:${id.trim()}").hashCode().toLong())
+
+    fun deezerRadioStableId(id: String): Long =
+        abs(("deezer_radio:${id.trim()}").hashCode().toLong())
+
+    fun qobuzRadioStableId(id: String): Long =
+        abs(("qobuz_radio:${id.trim()}").hashCode().toLong())
 
     fun qobuzPlaylistStableId(id: String): Long =
         abs(("qobuz:playlist:${id.trim()}").hashCode().toLong())
