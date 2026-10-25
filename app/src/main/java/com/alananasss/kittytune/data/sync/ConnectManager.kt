@@ -298,7 +298,11 @@ object ConnectManager {
             val old = lastSent
             val changed = old == null || old.currentIndex != state.currentIndex ||
                 old.isPlaying != state.isPlaying || old.shuffleEnabled != state.shuffleEnabled ||
-                old.repeatMode != state.repeatMode || old.volume != state.volume || version != lastQueue ||
+                old.repeatMode != state.repeatMode || old.volume != state.volume || old.isLiked != state.isLiked ||
+                old.isYourMixActive != state.isYourMixActive || old.speed != state.speed ||
+                old.sleepTimerEndOfTrack != state.sleepTimerEndOfTrack ||
+                (old.sleepTimerRemainingMs == null) != (state.sleepTimerRemainingMs == null) ||
+                version != lastQueue ||
                 kotlin.math.abs(state.positionMs - old.projectedPosition(state.updatedAtMs)) > 1_000L
             if (!force && !changed && state.updatedAtMs - old!!.updatedAtMs < 60_000L) return
             val payload = if (force || lastQueue != version) state else state.copy(queue = emptyList())

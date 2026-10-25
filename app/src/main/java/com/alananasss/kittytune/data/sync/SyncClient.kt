@@ -73,21 +73,57 @@ object SyncClient {
             relayUrl = ConnectManager.relayUrl.ifBlank { null },
         )
 
+        val candidateHosts = buildList {
+            if (peer.host.isNotBlank()) add(peer.host)
+            peer.addresses.forEach { if (it.isNotBlank() && it !in this) add(it) }
+        }
+
+        var lastFailure: Result.Failed? = null
+        for (host in candidateHosts) {
+            when (val res = tryExchange(peer, host, peer.port, outgoing)) {
+                is Result.Success, Result.Unauthorized -> return@withContext res
+                is Result.Failed -> lastFailure = res
+            }
+        }
+
+        // If direct attempts failed, try discovering the device on the local network via UDP
+        if (peer.deviceId.isNotBlank()) {
+            val found = runCatching {
+                SyncDiscovery.locate(peer.deviceId, timeoutMs = 1_500)
+                    .firstOrNull { it.deviceId == peer.deviceId }
+            }.getOrNull()
+            if (found != null && found.host !in candidateHosts) {
+                when (val res = tryExchange(peer, found.host, found.port, outgoing)) {
+                    is Result.Success, Result.Unauthorized -> return@withContext res
+                    is Result.Failed -> lastFailure = res
+                }
+            }
+        }
+
+        lastFailure ?: Result.Failed(describe(java.net.ConnectException("No answer from ${peer.host}:${peer.port}"), peer))
+    }
+
+    private suspend fun tryExchange(
+        peer: PairingPayload,
+        targetHost: String,
+        targetPort: Int,
+        outgoing: SyncExchange,
+    ): Result {
         val request = Request.Builder()
-            .url("http://${peer.host}:${peer.port}/sync")
+            .url("http://$targetHost:$targetPort/sync")
             .header(SyncService.PAIRING_HEADER, "Bearer ${peer.secret}")
             .post(gson.toJson(outgoing).toByteArray().toRequestBody(jsonType))
             .build()
 
-        try {
+        return try {
             client.newCall(request).execute().use { response ->
-                if (response.code == 401) return@withContext Result.Unauthorized
+                if (response.code == 401) return Result.Unauthorized
                 if (!response.isSuccessful) {
-                    return@withContext Result.Failed("HTTP ${response.code}")
+                    return Result.Failed("HTTP ${response.code}")
                 }
                 val body = response.body?.string().orEmpty()
                 val reply = runCatching { gson.fromJson(body, SyncExchange::class.java) }.getOrNull()
-                    ?: return@withContext Result.Failed("malformed reply")
+                    ?: return Result.Failed("malformed reply")
 
                 val applied = SyncLog.merge(reply.events)
                 SyncApply.applyNow(applied)
@@ -102,8 +138,8 @@ object SyncClient {
                     KnownDevice(
                         deviceId = reply.deviceId.ifBlank { peer.deviceId },
                         deviceName = reply.deviceName.ifBlank { peer.deviceName },
-                        host = peer.host,
-                        port = peer.port,
+                        host = targetHost,
+                        port = targetPort,
                         secret = peer.secret,
                         platform = reply.callback?.platform.orEmpty().ifBlank { peer.platform },
                         lastSyncedAtMs = System.currentTimeMillis(),
@@ -117,7 +153,7 @@ object SyncClient {
                 )
             }
         } catch (t: Throwable) {
-            Result.Failed(describe(t, peer))
+            Result.Failed(describe(t, peer.copy(host = targetHost, port = targetPort)))
         }
     }
 
@@ -174,7 +210,7 @@ object SyncClient {
     private fun describeFor(t: Throwable, peer: PairingPayload): String = when (t) {
         is java.net.SocketTimeoutException, is java.net.ConnectException ->
             "No answer from ${peer.host}:${peer.port}. Check that the other device is running " +
-                "KittyTune with connections accepted, and that port ${peer.port} is allowed."
+                "KittyTune with connections accepted, and that ports 47653 and 47654 are allowed in your firewall."
 
         is java.net.UnknownHostException, is java.net.NoRouteToHostException ->
             "${peer.host} is not on this network."

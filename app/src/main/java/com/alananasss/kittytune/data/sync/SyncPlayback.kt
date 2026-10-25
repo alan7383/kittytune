@@ -18,6 +18,11 @@ data class PlaybackSnapshot(
     val shuffleEnabled: Boolean,
     val repeatMode: String,
     val volume: Float? = null,
+    val isLiked: Boolean? = null,
+    val isYourMixActive: Boolean? = null,
+    val speed: Float? = null,
+    val sleepTimerRemainingMs: Long? = null,
+    val sleepTimerEndOfTrack: Boolean? = null,
 ) {
     fun projectedPosition(nowMs: Long): Long {
         val elapsed = if (isPlaying) (nowMs - updatedAtMs).coerceAtLeast(0L) else 0L
@@ -46,7 +51,9 @@ object SyncPlayback {
 
     @Synchronized
     fun publish(queue: List<Track>, currentIndex: Int, positionMs: Long, isPlaying: Boolean,
-                shuffleEnabled: Boolean, repeatMode: String): PlaybackSnapshot? {
+                shuffleEnabled: Boolean, repeatMode: String, isLiked: Boolean? = null,
+                isYourMixActive: Boolean? = null, speed: Float? = null,
+                sleepTimerRemainingMs: Long? = null, sleepTimerEndOfTrack: Boolean? = null): PlaybackSnapshot? {
         if (!enabled || !localOwner || queue.isEmpty() || currentIndex !in queue.indices) return null
         val start = if (queue.size > MAX_QUEUE)
             (currentIndex - MAX_QUEUE / 2).coerceIn(0, queue.size - MAX_QUEUE) else 0
@@ -56,7 +63,11 @@ object SyncPlayback {
         val old = _latest.value
         val changed = old == null || old.deviceId != SyncLog.deviceId || old.currentIndex != selectedIndex ||
             old.isPlaying != isPlaying || old.shuffleEnabled != shuffleEnabled ||
-            old.repeatMode != repeatMode || old.queue.map { it.id } != selectedQueue.map { it.id }
+            old.repeatMode != repeatMode || old.isLiked != isLiked ||
+            old.isYourMixActive != isYourMixActive || old.speed != speed ||
+            old.sleepTimerEndOfTrack != sleepTimerEndOfTrack ||
+            (old.sleepTimerRemainingMs == null) != (sleepTimerRemainingMs == null) ||
+            old.queue.map { it.id } != selectedQueue.map { it.id }
         val seeked = old != null && kotlin.math.abs(positionMs - old.projectedPosition(now)) > 2_000L
         if (!changed && !seeked &&
             (SyncPeers.isEmpty() || now - lastTransferAtMs < 60_000L)) return old
@@ -69,6 +80,11 @@ object SyncPlayback {
             isPlaying = isPlaying,
             shuffleEnabled = shuffleEnabled,
             repeatMode = repeatMode,
+            isLiked = isLiked,
+            isYourMixActive = isYourMixActive,
+            speed = speed,
+            sleepTimerRemainingMs = sleepTimerRemainingMs,
+            sleepTimerEndOfTrack = sleepTimerEndOfTrack,
         )
         if (snapshot.currentIndex !in snapshot.queue.indices) return null
         save(snapshot)
