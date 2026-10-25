@@ -341,6 +341,10 @@ fun MainScreen(
         playerViewModel.isSearchingLyrics = false
     }
 
+    BackHandler(enabled = playerViewModel.showEqualizerScreen) {
+        playerViewModel.showEqualizerScreen = false
+    }
+
     BackHandler(enabled = playerViewModel.isSidePlayerOpen && !playerViewModel.isPlayerExpanded) {
         playerViewModel.isSidePlayerOpen = false
     }
@@ -375,11 +379,13 @@ fun MainScreen(
         val currentRoute = currentDestination?.route ?: startDestination
         val isFullScreenRoute = currentRoute == Screen.Login.route ||
                 currentRoute.startsWith("login") ||
+                currentRoute.endsWith("_login") ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
                 currentRoute.startsWith("chat/") ||
                 currentRoute.startsWith("music_import/") ||
                 currentRoute == "music_import_transfer" ||
+                currentRoute == "portable_import" ||
                 currentRoute == Screen.Recognition.route ||
                 currentRoute == "proxy_settings" ||
                 currentRoute == "zapret_settings" ||
@@ -387,23 +393,29 @@ fun MainScreen(
                 currentRoute == "vk_login" ||
                 currentRoute == "deezer_login" ||
                 currentRoute == "tidal_login" ||
+                currentRoute == "qobuz_login" ||
                 currentRoute.startsWith("yearly_playback") ||
                 currentRoute.startsWith("listening_stats") ||
                 currentRoute == "storage" ||
-                currentRoute.startsWith("storage_downloads")
+                currentRoute.startsWith("storage_downloads") ||
+                currentRoute == "equalizer"
 
         val hideNavRail = currentRoute == Screen.Login.route ||
                 currentRoute.startsWith("login") ||
+                currentRoute.endsWith("_login") ||
                 currentRoute == Screen.Welcome.route ||
                 currentRoute == "update" ||
                 currentRoute == "discord_login" ||
                 currentRoute == "vk_login" ||
                 currentRoute == "deezer_login" ||
                 currentRoute == "tidal_login" ||
+                currentRoute == "qobuz_login" ||
+                currentRoute == "portable_import" ||
                 currentRoute.startsWith("yearly_playback") ||
                 currentRoute.startsWith("listening_stats") ||
                 currentRoute == "storage" ||
-                currentRoute.startsWith("storage_downloads")
+                currentRoute.startsWith("storage_downloads") ||
+                currentRoute == "equalizer"
 
         val isMiniPlayerVisible = playerViewModel.uiCurrentTrack != null && !playerViewModel.isPlayerExpanded && !isFullScreenRoute
 
@@ -437,7 +449,7 @@ fun MainScreen(
             },
             contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { _ ->
-            val allTabKeys = listOf("home", "search", "genres", "library")
+            val allTabKeys = listOf("home", "search", "genres", "library", "queue")
             val bottomNavItemsKeys by prefs.bottomMenuItemsFlow().collectAsState(initial = prefs.getBottomMenuItems())
             val bottomNavOrder by prefs.bottomMenuOrderFlow().collectAsState(initial = prefs.getBottomMenuOrder())
 
@@ -452,6 +464,7 @@ fun MainScreen(
                     "search" -> Screen.Search
                     "genres" -> Screen.Explore
                     "library" -> Screen.Library
+                    "queue" -> Screen.Queue
                     else -> null
                 } ?: return@mapNotNull null
 
@@ -469,6 +482,7 @@ fun MainScreen(
                         "home" -> Screen.Home.route
                         "genres" -> Screen.Explore.route
                         "library" -> Screen.Library.route
+                        "queue" -> Screen.Queue.route
                         else -> null
                     }
                 }.distinct()
@@ -570,14 +584,15 @@ fun MainScreen(
                     }
                     homeViewModel.activateSearch()
                 } else {
+                    if (tab.route == Screen.Home.route && homeViewModel.isSearching) {
+                        homeViewModel.clearSearch()
+                    }
                     val isSelected = currentDestination?.hierarchy?.any { it.route == tab.route } == true
                     if (!isSelected) {
                         navController.navigate(tab.route) {
                             popUpTo(navController.graph.findStartDestination().id)
                             launchSingleTop = true
                         }
-                    } else if (tab.route == Screen.Home.route && homeViewModel.isSearching) {
-                        homeViewModel.clearSearch()
                     }
                 }
             }
@@ -631,7 +646,7 @@ fun MainScreen(
                     AyuBackGestureBridge(
                         navController,
                         ayuBackState,
-                        gesturesEnabled = !playerViewModel.isPlayerExpanded && !playerViewModel.showLyricsSheet
+                        gesturesEnabled = !playerViewModel.isPlayerExpanded && !playerViewModel.showLyricsSheet && !playerViewModel.showEqualizerScreen
                     )
 
                     androidx.compose.runtime.CompositionLocalProvider(
@@ -766,6 +781,12 @@ fun MainScreen(
                                     id.startsWith("spotify_radio:") || id.startsWith("station_spotify:") -> {
                                         navController.navigate("playlist_detail/$id")
                                     }
+                                    id.startsWith("tidal_radio:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
+                                    id.startsWith("deezer_radio:") || id.startsWith("qobuz_radio:") -> {
+                                        navController.navigate("playlist_detail/$id")
+                                    }
                                     id.startsWith("deezer:") || id.startsWith("tidal:") || id.startsWith("qobuz:") -> {
                                         navController.navigate("playlist_detail/$id")
                                     }
@@ -780,7 +801,7 @@ fun MainScreen(
                                             navController.navigate("profile/$target")
                                         }
                                     }
-                                    id.startsWith("profile/") || id.startsWith("playlist_detail/") || id.startsWith("genre_playlists/") || id.startsWith("tag/") -> {
+                                    id.startsWith("profile/") || id.startsWith("playlist_detail/") || id.startsWith("genre_playlists/") || id.startsWith("genre_detail/") || id.startsWith("tag/") || id == "genres" -> {
                                         navController.navigate(id)
                                     }
                                     id.startsWith("yt_radio:") -> {
@@ -870,6 +891,21 @@ fun MainScreen(
                             ExpandedQueueScreen(
                                 viewModel = playerViewModel,
                                 onClose = { navController.popBackStack() }
+                            )
+                        }
+
+                        // The queue as a first-class tab: same screen, reached from the
+                        // configurable bottom bar / navigation rail instead of the player.
+                        clippedComposable(Screen.Queue.route) {
+                            ExpandedQueueScreen(
+                                viewModel = playerViewModel,
+                                onClose = {
+                                    navController.navigate(Screen.Home.route) {
+                                        popUpTo(navController.graph.findStartDestination().id)
+                                        launchSingleTop = true
+                                    }
+                                },
+                                bottomContentPadding = 220.dp
                             )
                         }
 
@@ -1415,7 +1451,7 @@ fun MainScreen(
                                                 navController.navigate("profile/$target")
                                             }
                                         }
-                                        dest.startsWith("playlist_detail/") || dest.startsWith("profile/") || dest.startsWith("tag/") || dest.startsWith("genre_playlists/") || dest.startsWith("track_detail/") -> {
+                                        dest.startsWith("playlist_detail/") || dest.startsWith("profile/") || dest.startsWith("tag/") || dest.startsWith("genre_playlists/") || dest.startsWith("genre_detail/") || dest.startsWith("track_detail/") || dest == "genres" -> {
                                             navController.navigate(dest)
                                         }
                                         dest.startsWith("tag:") -> {
@@ -1460,7 +1496,19 @@ fun MainScreen(
                                 onPlatformSelected = { platform ->
                                     navController.navigate("music_import/$platform")
                                 },
-                                onLoginClick = { navController.navigate(Screen.Login.route) }
+                                onLoginClick = { navController.navigate(Screen.Login.route) },
+                                onPortableImportClick = { navController.navigate("portable_import") }
+                            )
+                        }
+
+                        clippedComposable("portable_import") {
+                            PortableImportScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onOpenPlaylist = { playlistId ->
+                                    navController.navigate("playlist_detail/local_playlist:$playlistId") {
+                                        popUpTo("portable_import") { inclusive = true }
+                                    }
+                                }
                             )
                         }
 
@@ -1510,7 +1558,15 @@ fun MainScreen(
                             AudioQualitySettingsScreen(
                                 onBackClick = { navController.popBackStack() },
                                 onNavigateToDrmExplanation = { navController.navigate("drm_explanation") },
+                                onNavigateToEqualizer = { navController.navigate("equalizer") },
                                 playerViewModel = playerViewModel
+                            )
+                        }
+
+                        clippedComposable("equalizer") {
+                            com.alananasss.kittytune.ui.player.audio.EqualizerScreen(
+                                viewModel = playerViewModel,
+                                onBackClick = { navController.popBackStack() }
                             )
                         }
 
@@ -1722,6 +1778,13 @@ fun MainScreen(
                             )
                         }
 
+                        clippedComposable("developer_options") {
+                            com.alananasss.kittytune.ui.profile.DeveloperOptionsScreen(
+                                viewModel = playerViewModel,
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
                         clippedComposable("accounts_settings") {
                             AccountsSettingsScreen(
                                 currentUser = homeViewModel.userProfile,
@@ -1744,6 +1807,13 @@ fun MainScreen(
 
                         clippedComposable("qobuz_settings") {
                             QobuzSettingsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToLogin = { navController.navigate("qobuz_login") }
+                            )
+                        }
+
+                        clippedComposable("qobuz_login") {
+                            QobuzLoginScreen(
                                 onBackClick = { navController.popBackStack() }
                             )
                         }
@@ -1958,6 +2028,26 @@ fun MainScreen(
             )
         }
 
+        AnimatedVisibility(
+            visible = playerViewModel.showEqualizerScreen,
+            enter = slideInVertically(
+                initialOffsetY = { it },
+                animationSpec = tween(350, easing = FastOutSlowInEasing)
+            ) + fadeIn(animationSpec = tween(350)),
+            exit = slideOutVertically(
+                targetOffsetY = { it },
+                animationSpec = tween(300, easing = FastOutLinearInEasing)
+            ) + fadeOut(animationSpec = tween(300)),
+            modifier = Modifier
+                .fillMaxSize()
+                .zIndex(20f)
+        ) {
+            com.alananasss.kittytune.ui.player.audio.EqualizerScreen(
+                viewModel = playerViewModel,
+                onBackClick = { playerViewModel.showEqualizerScreen = false }
+            )
+        }
+
         if (playerViewModel.showMenuSheet) {
             com.alananasss.kittytune.ui.common.KittyModalBottomSheet(
                 onDismissRequest = { playerViewModel.showMenuSheet = false },
@@ -1980,12 +2070,14 @@ fun MainScreen(
             )
         }
 
-        if (playerViewModel.showConnectSheet) {
+        if (playerViewModel.showConnectSheet || playerViewModel.showConnectDialog) {
             com.alananasss.kittytune.ui.profile.PlaybackDevicesSheet(
-                onDismissRequest = { playerViewModel.showConnectSheet = false }
+                onDismissRequest = {
+                    playerViewModel.showConnectSheet = false
+                    playerViewModel.showConnectDialog = false
+                }
             )
         }
-
 
         playerViewModel.shareCardTrack?.let { cardTrack ->
             com.alananasss.kittytune.ui.share.ShareCardSheet(
@@ -2060,7 +2152,6 @@ fun MainScreen(
                     onListeningStatsClick = { navController.navigate("listening_stats") },
                     onYearlyPlaybackClick = { navController.navigate("wrapped_hub") },
                     onSettingsClick = { navController.navigate("settings") },
-                    onAboutClick = { navController.navigate("about") },
                     onLogoutClick = {
                         if (isGuest) {
                             navController.navigate(Screen.Login.route)
@@ -2116,6 +2207,10 @@ fun MainScreen(
                 )
             }
         }
+
+        // « Tout aimer » demande confirmation, d'où que la demande vienne (album ou playlist) :
+        // un seul hôte ici, au-dessus de la fenêtre.
+        com.alananasss.kittytune.ui.library.LikeAllPromptHost()
 
         if (playerViewModel.captchaUrl != null) {
             Dialog(

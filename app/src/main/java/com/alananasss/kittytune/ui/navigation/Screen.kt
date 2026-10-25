@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
@@ -14,6 +15,7 @@ sealed class Screen(val route: String, val titleResId: Int, val icon: ImageVecto
     data object Library : Screen("library", R.string.nav_library, Icons.Default.LibraryMusic)
     data object Search : Screen("search", R.string.nav_search, Icons.Default.Search)
     data object Explore : Screen("genres", R.string.explorer_title, Icons.Default.Explore)
+    data object Queue : Screen("queue", R.string.player_queue, Icons.AutoMirrored.Rounded.QueueMusic)
     data object Login : Screen("login", R.string.nav_login, null)
     data object Recognition : Screen("recognition", R.string.nav_search, null)
     data object RecognitionHistory : Screen("recognition_history", R.string.nav_search, null)

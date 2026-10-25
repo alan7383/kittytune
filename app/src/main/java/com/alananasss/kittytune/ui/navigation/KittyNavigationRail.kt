@@ -28,6 +28,8 @@ import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.common.rememberWindowSizeInfo
 import com.alananasss.kittytune.ui.common.WindowWidthSizeClass
 import com.alananasss.kittytune.ui.common.WindowHeightSizeClass
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
+import com.alananasss.kittytune.ui.common.HapticKind
 
 @Composable
 fun KittyNavigationRail(
@@ -45,6 +47,7 @@ fun KittyNavigationRail(
     val track = playerViewModel.uiCurrentTrack
     val isPlaying = playerViewModel.uiIsPlaying
     val windowSizeInfo = rememberWindowSizeInfo()
+    val haptics = rememberAppHaptics()
 
     val isPhoneLandscape = windowSizeInfo.heightSizeClass == WindowHeightSizeClass.COMPACT
 
@@ -80,7 +83,10 @@ fun KittyNavigationRail(
                         .padding(vertical = if (isPhoneLandscape) 2.dp else 4.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(bgColor)
-                        .clickable { onTabSelected(tab) }
+                        .clickable {
+                            haptics.perform(HapticKind.UI)
+                            onTabSelected(tab)
+                        }
                         .padding(horizontal = 16.dp, vertical = if (isPhoneLandscape) 10.dp else 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -112,7 +118,10 @@ fun KittyNavigationRail(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onFabClick() }
+                    .clickable {
+                        haptics.perform(HapticKind.MEDIUM)
+                        onFabClick()
+                    }
                     .padding(horizontal = 16.dp, vertical = if (isPhoneLandscape) 10.dp else 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -140,7 +149,10 @@ fun KittyNavigationRail(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .clickable { onPlayerClick() }
+                    .clickable {
+                        haptics.perform(HapticKind.LIGHT)
+                        onPlayerClick()
+                    }
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
