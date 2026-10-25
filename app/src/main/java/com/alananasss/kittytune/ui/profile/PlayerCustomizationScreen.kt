@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.profile
 
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -67,6 +68,8 @@ import android.content.Intent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.PlaybackService
 import com.alananasss.kittytune.data.WaveformRepository
@@ -176,7 +179,7 @@ fun PlayerCustomizationScreen(
                 val moved = tileOrder.removeAt(fromIndex)
                 tileOrder.add(toIndex, moved)
                 persistTileOrder()
-                view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
             }
         }
     )
@@ -240,7 +243,7 @@ fun PlayerCustomizationScreen(
                                         icon = Icons.Rounded.Smartphone,
                                         isSelected = currentDesign == PlayerDesign.PIXEL_PLAYER,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             currentDesign = PlayerDesign.PIXEL_PLAYER
                                             prefs.setPlayerDesign(PlayerDesign.PIXEL_PLAYER)
                                             slots = List(4) { i -> prefs.getSlotForDesign(PlayerDesign.PIXEL_PLAYER, i) }
@@ -254,7 +257,7 @@ fun PlayerCustomizationScreen(
                                         icon = Icons.Rounded.GraphicEq,
                                         isSelected = currentDesign == PlayerDesign.SOUNDCLOUD,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             currentDesign = PlayerDesign.SOUNDCLOUD
                                             prefs.setPlayerDesign(PlayerDesign.SOUNDCLOUD)
                                             slots = List(5) { i -> prefs.getSlotForDesign(PlayerDesign.SOUNDCLOUD, i) }
@@ -272,7 +275,7 @@ fun PlayerCustomizationScreen(
                                         icon = Icons.Rounded.AutoAwesome,
                                         isSelected = currentDesign == PlayerDesign.MODERN,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             currentDesign = PlayerDesign.MODERN
                                             prefs.setPlayerDesign(PlayerDesign.MODERN)
                                             slots = List(4) { i -> prefs.getSlotForDesign(PlayerDesign.MODERN, i) }
@@ -287,7 +290,7 @@ fun PlayerCustomizationScreen(
                                         icon = Icons.Rounded.LinearScale,
                                         isSelected = currentDesign == PlayerDesign.CLASSIC,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             currentDesign = PlayerDesign.CLASSIC
                                             prefs.setPlayerDesign(PlayerDesign.CLASSIC)
                                             slots = List(4) { i -> prefs.getSlotForDesign(PlayerDesign.CLASSIC, i) }
@@ -417,7 +420,7 @@ fun PlayerCustomizationScreen(
                                              shape = CircleShape,
                                              color = MaterialTheme.colorScheme.primary,
                                              modifier = Modifier.size(32.dp),
-                                             onClick = { isPreviewPlaying = !isPreviewPlaying }
+                                             onClick = hapticAction(HapticKind.UI) { isPreviewPlaying = !isPreviewPlaying }
                                          ) {
                                              Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                                  Icon(
@@ -477,7 +480,7 @@ fun PlayerCustomizationScreen(
                                         style = PlayerSliderStyle.BAR,
                                         isSelected = sliderStyle == PlayerSliderStyle.BAR,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             sliderStyle = PlayerSliderStyle.BAR
                                             prefs.setPlayerSliderStyle(PlayerSliderStyle.BAR)
                                             onUpdated()
@@ -489,7 +492,7 @@ fun PlayerCustomizationScreen(
                                         style = PlayerSliderStyle.WAVY,
                                         isSelected = sliderStyle == PlayerSliderStyle.WAVY,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             sliderStyle = PlayerSliderStyle.WAVY
                                             prefs.setPlayerSliderStyle(PlayerSliderStyle.WAVY)
                                             onUpdated()
@@ -506,7 +509,7 @@ fun PlayerCustomizationScreen(
                                         style = PlayerSliderStyle.SLIM,
                                         isSelected = sliderStyle == PlayerSliderStyle.SLIM,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             sliderStyle = PlayerSliderStyle.SLIM
                                             prefs.setPlayerSliderStyle(PlayerSliderStyle.SLIM)
                                             onUpdated()
@@ -518,7 +521,7 @@ fun PlayerCustomizationScreen(
                                         style = PlayerSliderStyle.SQUIGGLY,
                                         isSelected = sliderStyle == PlayerSliderStyle.SQUIGGLY,
                                         modifier = Modifier.weight(1f),
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             sliderStyle = PlayerSliderStyle.SQUIGGLY
                                             prefs.setPlayerSliderStyle(PlayerSliderStyle.SQUIGGLY)
                                             onUpdated()
@@ -570,7 +573,7 @@ fun PlayerCustomizationScreen(
                                 }
                             ),
                             icon = Icons.Rounded.Style,
-                            onClick = { showBackgroundStyleDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showBackgroundStyleDialog = true },
                             highlightKey = "pref_player_style"
                         )
                     }
@@ -580,7 +583,7 @@ fun PlayerCustomizationScreen(
                             title = stringResource(R.string.pref_track_source_badge_title),
                             subtitle = stringResource(sourceBadgeStyle.titleRes),
                             icon = Icons.Rounded.Badge,
-                            onClick = { showSourceBadgeStyleDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showSourceBadgeStyleDialog = true },
                             highlightKey = "pref_track_source_badge"
                         )
                     }
@@ -614,7 +617,7 @@ fun PlayerCustomizationScreen(
                                     WaveformColorMode.CUSTOM -> stringResource(R.string.waveform_color_custom)
                                 },
                                 icon = Icons.Rounded.Palette,
-                                onClick = { showWaveformColorDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showWaveformColorDialog = true }
                             )
                         }
                         add { shape ->
@@ -693,7 +696,7 @@ fun PlayerCustomizationScreen(
                                 subtitle = stringResource(slot.titleRes),
                                 icon = getSlotIcon(slot),
                                 trailingText = stringResource(R.string.player_slot_change),
-                                onClick = { selectedSlotToEdit = index }
+                                onClick = hapticAction(HapticKind.UI) { selectedSlotToEdit = index }
                             )
                         }
                     }
@@ -703,7 +706,7 @@ fun PlayerCustomizationScreen(
                             title = stringResource(R.string.btn_reset),
                             subtitle = barDesc,
                             icon = Icons.Rounded.RestartAlt,
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 prefs.resetDesignCustomization(currentDesign)
                                 slots = List(slotCount) { i -> prefs.getSlotForDesign(currentDesign, i) }
                                 sliderStyle = prefs.getPlayerSliderStyle()
@@ -728,7 +731,7 @@ fun PlayerCustomizationScreen(
                         icon = getNotifButtonVector(notifExtraButton),
                         iconRes = getNotifButtonIconRes(notifExtraButton),
                         trailingText = stringResource(R.string.player_slot_change),
-                        onClick = { showNotifExtraButtonDialog = true },
+                        onClick = hapticAction(HapticKind.UI) { showNotifExtraButtonDialog = true },
                         highlightKey = "notif_player_extra_button"
                     )
                 }
@@ -736,63 +739,6 @@ fun PlayerCustomizationScreen(
                 SettingsGroup(
                     title = stringResource(R.string.notif_player_options_group),
                     items = notifItems
-                )
-            }
-
-            item {
-                var showDevicesTopBar by remember { mutableStateOf(prefs.getShowDevicesButtonTopBar()) }
-                var showDevicesMiniPlayer by remember { mutableStateOf(prefs.getShowDevicesButtonMiniPlayer()) }
-                var showDevicesBottomBar by remember { mutableStateOf(prefs.getShowDevicesButtonBottomBar()) }
-
-                val connectItems = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit>(
-                    { shape ->
-                        SettingsItem(
-                            shape = shape,
-                            title = stringResource(R.string.connect_pref_top_bar),
-                            subtitle = stringResource(R.string.connect_pref_slots_hint),
-                            icon = Icons.Rounded.Devices,
-                            hasSwitch = true,
-                            switchState = showDevicesTopBar,
-                            onSwitchChange = { checked ->
-                                showDevicesTopBar = checked
-                                prefs.setShowDevicesButtonTopBar(checked)
-                                onUpdated()
-                            }
-                        )
-                    },
-                    { shape ->
-                        SettingsItem(
-                            shape = shape,
-                            title = stringResource(R.string.connect_pref_mini_player),
-                            icon = Icons.Rounded.DevicesOther,
-                            hasSwitch = true,
-                            switchState = showDevicesMiniPlayer,
-                            onSwitchChange = { checked ->
-                                showDevicesMiniPlayer = checked
-                                prefs.setShowDevicesButtonMiniPlayer(checked)
-                                onUpdated()
-                            }
-                        )
-                    },
-                    { shape ->
-                        SettingsItem(
-                            shape = shape,
-                            title = stringResource(R.string.connect_pref_bottom_bar),
-                            icon = Icons.Rounded.Devices,
-                            hasSwitch = true,
-                            switchState = showDevicesBottomBar,
-                            onSwitchChange = { checked ->
-                                showDevicesBottomBar = checked
-                                prefs.setShowDevicesButtonBottomBar(checked)
-                                onUpdated()
-                            }
-                        )
-                    }
-                )
-
-                SettingsGroup(
-                    title = stringResource(R.string.connect_pref_group),
-                    items = connectItems
                 )
             }
 
@@ -812,7 +758,7 @@ fun PlayerCustomizationScreen(
                                 R.string.share_card_code_subtitle
                             ) + " • " + shareCodeSubtitle,
                             icon = Icons.Rounded.QrCode2,
-                            onClick = { showShareCardCodeDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showShareCardCodeDialog = true },
                             highlightKey = "share_card_code"
                         )
                     }
@@ -863,10 +809,10 @@ fun PlayerCustomizationScreen(
                                             .size(48.dp)
                                             .draggableHandle(
                                                 onDragStarted = {
-                                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                                                 },
                                                 onDragStopped = {
-                                                    view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                                    view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
                                                 }
                                             ),
                                         contentAlignment = Alignment.Center
@@ -907,7 +853,7 @@ fun PlayerCustomizationScreen(
                                             val nextHidden = if (on) hiddenTiles - tile.id else hiddenTiles + tile.id
                                             hiddenTiles = nextHidden
                                             prefs.setHiddenMenuTiles(PlayerPreferences.MENU_TRACK, nextHidden)
-                                            view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                                            view.performAppHaptic(HapticFeedbackConstants.CONTEXT_CLICK)
                                             onUpdated()
                                         }
                                     )
@@ -935,7 +881,7 @@ fun PlayerCustomizationScreen(
                             hiddenTiles = prefs.getHiddenMenuTiles(PlayerPreferences.MENU_TRACK)
                             tileOrder.clear()
                             tileOrder.addAll(catalogue.map { it.id })
-                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            view.performAppHaptic(HapticFeedbackConstants.CONFIRM)
                             onUpdated()
                         }
                     )
@@ -945,7 +891,7 @@ fun PlayerCustomizationScreen(
     }
 
     if (selectedSlotToEdit >= 0) {
-        val allSlots = PlayerActionButtonSlot.entries
+        val allSlots = PlayerActionButtonSlot.entries.filter { it != PlayerActionButtonSlot.DEVICES }
         AlertDialog(
             onDismissRequest = { selectedSlotToEdit = -1 },
             title = {
@@ -968,7 +914,7 @@ fun PlayerCustomizationScreen(
                             title = stringResource(slotOption.titleRes),
                             icon = getSlotIcon(slotOption),
                             trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 if (selectedSlotToEdit in slots.indices) {
                                     prefs.setSlotForDesign(currentDesign, selectedSlotToEdit, slotOption)
                                     slots = List(slotCount) { i -> prefs.getSlotForDesign(currentDesign, i) }
@@ -981,7 +927,7 @@ fun PlayerCustomizationScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { selectedSlotToEdit = -1 }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { selectedSlotToEdit = -1 }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -1014,7 +960,7 @@ fun PlayerCustomizationScreen(
                                 }
                             ),
                             trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 backgroundStyle = style
                                 prefs.setPlayerStyle(style)
                                 showBackgroundStyleDialog = false
@@ -1025,7 +971,7 @@ fun PlayerCustomizationScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showBackgroundStyleDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showBackgroundStyleDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -1051,7 +997,7 @@ fun PlayerCustomizationScreen(
                             shape = getSettingsShape(badgeStyles.size, idx),
                             title = stringResource(style.titleRes),
                             trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 sourceBadgeStyle = style
                                 prefs.setTrackSourceBadgeStyle(style)
                                 showSourceBadgeStyleDialog = false
@@ -1062,7 +1008,7 @@ fun PlayerCustomizationScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSourceBadgeStyleDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showSourceBadgeStyleDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -1115,7 +1061,7 @@ fun PlayerCustomizationScreen(
                             icon = getNotifButtonVector(option),
                             iconRes = getNotifButtonIconRes(option),
                             trailingText = if (isSelected) stringResource(R.string.player_slot_active) else null,
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 notifExtraButton = option
                                 prefs.setNotificationExtraButton(option)
                                 val intent = Intent(context, PlaybackService::class.java).apply {
@@ -1130,7 +1076,7 @@ fun PlayerCustomizationScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showNotifExtraButtonDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showNotifExtraButtonDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -1163,7 +1109,7 @@ fun PlayerCustomizationScreen(
                         ) {
                             RadioButton(
                                 selected = shareCardCodeMode == index,
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     shareCardCodeMode = index
                                     prefs.setShareCardCodeMode(index)
                                     showShareCardCodeDialog = false
@@ -1183,7 +1129,7 @@ fun PlayerCustomizationScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showShareCardCodeDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showShareCardCodeDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             },
@@ -1333,6 +1279,7 @@ private fun getSlotIcon(slot: PlayerActionButtonSlot): ImageVector = when (slot)
     PlayerActionButtonSlot.FULLSCREEN_LYRICS -> Icons.Rounded.OpenInFull
     PlayerActionButtonSlot.SLEEP_TIMER -> Icons.Rounded.Bedtime
     PlayerActionButtonSlot.HAPTICS -> Icons.Rounded.Vibration
+    PlayerActionButtonSlot.CONNECT -> Icons.Rounded.Devices
     PlayerActionButtonSlot.MORE -> Icons.Rounded.MoreVert
     PlayerActionButtonSlot.DEVICES -> Icons.Rounded.Devices
     PlayerActionButtonSlot.NONE -> Icons.Rounded.Block

@@ -38,6 +38,8 @@ import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsHighlightManager
 import com.alananasss.kittytune.ui.common.SettingsItem
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 
 @Composable
@@ -48,6 +50,7 @@ fun SettingsSearchScreen(
 ) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
+    val haptics = rememberAppHaptics()
 
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var preferenceVersion by remember { mutableIntStateOf(0) }
@@ -165,6 +168,7 @@ fun SettingsSearchScreen(
                 ) {
                     IconButton(
                         onClick = {
+                            haptics.perform(HapticKind.LIGHT)
                             focusManager.clearFocus()
                             onBackClick()
                         },
@@ -220,7 +224,10 @@ fun SettingsSearchScreen(
 
                     if (searchQuery.isNotEmpty()) {
                         IconButton(
-                            onClick = { searchQuery = "" },
+                            onClick = {
+                                haptics.perform(HapticKind.LIGHT)
+                                searchQuery = ""
+                            },
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
@@ -317,6 +324,7 @@ private fun RecentSettingsList(
     onClearAll: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberAppHaptics()
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 8.dp, bottom = 120.dp)
@@ -337,7 +345,10 @@ private fun RecentSettingsList(
                     modifier = Modifier.padding(start = 12.dp)
                 )
                 TextButton(
-                    onClick = onClearAll,
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        onClearAll()
+                    },
                     shapes = ButtonDefaults.shapes(),
                     modifier = Modifier.padding(end = 4.dp)
                 ) {

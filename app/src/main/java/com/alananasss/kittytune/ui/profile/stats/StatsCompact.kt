@@ -41,6 +41,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.stats.ListeningReport
 import com.alananasss.kittytune.data.stats.ReportArtist
 import com.alananasss.kittytune.data.stats.ReportPeriod
@@ -101,7 +104,7 @@ internal fun CompactStats(
                                 subtitle = null,
                                 trailing = formatDurationShort(artist.listenMs),
                                 imageUrl = artist.imageUrl,
-                                onClick = { onArtistClick(artist) },
+                                onClick = hapticAction(HapticKind.UI) { onArtistClick(artist) },
                             )
                         }
                     }
@@ -205,7 +208,7 @@ private fun NumberCell(value: String, label: String, modifier: Modifier, onClick
     Column(
         modifier
             .clip(RoundedCornerShape(16.dp))
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .let { if (onClick != null) it.hapticClickable(onClick = onClick) else it }
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -281,7 +284,7 @@ private fun CompactRow(
             .fillMaxWidth()
             .heightIn(min = 40.dp)
             .clip(RoundedCornerShape(12.dp))
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .let { if (onClick != null) it.hapticClickable(onClick = onClick) else it }
             .padding(horizontal = 6.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

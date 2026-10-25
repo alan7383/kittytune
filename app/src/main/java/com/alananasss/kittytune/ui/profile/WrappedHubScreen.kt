@@ -59,6 +59,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.network.RetrofitClient
 import com.alananasss.kittytune.domain.User
 import kotlinx.coroutines.Dispatchers
@@ -353,7 +356,7 @@ private fun ArchiveYearCard(
     }
 
     Surface(
-        onClick = {
+        onClick = hapticAction(HapticKind.UI) {
             if (!isEligible) {
                 val msg = context.getString(R.string.yearly_playback_locked_toast, accountCreationYear.toString())
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -466,7 +469,7 @@ private fun ArchiveYearCard(
                     SplitButtonLayout(
                         leadingButton = {
                             SplitButtonDefaults.LeadingButton(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     onLaunchStory(item.year)
                                 },
                                 colors = splitColors
@@ -521,7 +524,7 @@ private fun ArchiveYearCard(
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             },
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 isMenuExpanded = false
                                 onOpenPlaylist(item.playlistUrn)
                             }
@@ -531,7 +534,7 @@ private fun ArchiveYearCard(
             } else if (item.hasInteractiveStory) {
                 // Story only
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         onLaunchStory(item.year)
                     },
                     shapes = ButtonDefaults.shapes(),
@@ -557,7 +560,7 @@ private fun ArchiveYearCard(
             } else {
                 // Single playlist button using Material 3 secondaryContainer
                 FilledTonalButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         onOpenPlaylist(item.playlistUrn)
                     },
                     shapes = ButtonDefaults.shapes(),

@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.Restore
-import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +24,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.audio.providers.AudioProviderOrder
 import com.alananasss.kittytune.audio.providers.AudioProviderOrderItem
@@ -44,7 +44,6 @@ fun ProviderOrderScreen(
 
     val currentList = remember { mutableStateListOf<AudioProviderOrderItem>() }
     var disabledProviders by remember { mutableStateOf(prefs.getDisabledAudioProviders()) }
-    var meteredSaver by remember { mutableStateOf(prefs.getDisableProvidersOnMetered()) }
 
     LaunchedEffect(Unit) {
         currentList.clear()
@@ -58,7 +57,7 @@ fun ProviderOrderScreen(
     fun setProviderEnabled(item: AudioProviderOrderItem, enabled: Boolean) {
         prefs.setAudioProviderDisabled(item, !enabled)
         disabledProviders = prefs.getDisabledAudioProviders()
-        view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+        view.performAppHaptic(HapticFeedbackConstants.CONTEXT_CLICK)
     }
 
     val listState = rememberLazyListState()
@@ -68,7 +67,7 @@ fun ProviderOrderScreen(
             val moved = currentList.removeAt(from.index)
             currentList.add(to.index, moved)
             persistOrder()
-            view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+            view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
         }
     )
 
@@ -89,48 +88,6 @@ fun ProviderOrderScreen(
                 modifier = Modifier.padding(top = 12.dp, bottom = 16.dp)
             )
 
-            // Traffic saver: automatically skip Qobuz / TIDAL / Deezer while on mobile data.
-            // On Wi-Fi the providers become available again with full Hi-Res quality.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.SignalCellularAlt,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.provider_data_saver_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = stringResource(R.string.provider_data_saver_sub),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                SettingsSwitch(
-                    checked = meteredSaver,
-                    onCheckedChange = { enabled ->
-                        meteredSaver = enabled
-                        prefs.setDisableProvidersOnMetered(enabled)
-                        view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             LazyColumn(
                 state = listState,
@@ -217,10 +174,10 @@ fun ProviderOrderScreen(
                                     .size(28.dp)
                                     .draggableHandle(
                                         onDragStarted = {
-                                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                            view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                                         },
                                         onDragStopped = {
-                                            view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                            view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
                                         }
                                     )
                             )
@@ -243,7 +200,7 @@ fun ProviderOrderScreen(
                     persistOrder()
                     AudioProviderOrder.Disableable.forEach { prefs.setAudioProviderDisabled(it, false) }
                     disabledProviders = prefs.getDisabledAudioProviders()
-                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    view.performAppHaptic(HapticFeedbackConstants.CONFIRM)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

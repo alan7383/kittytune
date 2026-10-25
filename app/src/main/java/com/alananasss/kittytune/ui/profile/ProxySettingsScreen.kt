@@ -34,6 +34,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.network.ProxyConfig
 import com.alananasss.kittytune.data.network.ProxyManager
@@ -150,7 +152,7 @@ fun ProxySettingsScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         val name = profileNameInput.trim().ifBlank {
                             "${if (proxyType == "SOCKS") "SOCKS5" else "HTTP"} ${host.ifBlank { "Proxy" }}:${portText}"
                         }
@@ -182,7 +184,7 @@ fun ProxySettingsScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showSaveProfileDialog = false },
+                    onClick = hapticAction(HapticKind.UI) { showSaveProfileDialog = false },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -298,7 +300,7 @@ fun ProxySettingsScreen(
                     ) {
                         // Clipboard Quick Import Action
                         FilledTonalButton(
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 val clipText = clipboardManager.getText()?.text?.trim()
                                 if (!clipText.isNullOrBlank()) {
                                     val parsed = ProxyManager.parseProxyUri(clipText)
@@ -455,7 +457,7 @@ fun ProxySettingsScreen(
                                                 }
 
                                                 IconButton(
-                                                    onClick = {
+                                                    onClick = hapticAction(HapticKind.UI) {
                                                         scope.launch {
                                                             deletingProfileIds.add(profile.id)
                                                             kotlinx.coroutines.delay(280)
@@ -566,7 +568,7 @@ fun ProxySettingsScreen(
                                     trailingIcon = {
                                         if (host.isNotEmpty()) {
                                             IconButton(
-                                                onClick = {
+                                                onClick = hapticAction(HapticKind.UI) {
                                                     host = ""
                                                     selectedProfileId = null
                                                     saveAndApply(newHost = "", newProfileId = null)
@@ -620,7 +622,7 @@ fun ProxySettingsScreen(
                                         PresetChip(
                                             label = stringResource(R.string.proxy_preset_v2ray),
                                             modifier = Modifier.weight(1f),
-                                            onClick = {
+                                            onClick = hapticAction(HapticKind.UI) {
                                                 host = "127.0.0.1"
                                                 portText = "10808"
                                                 proxyType = "SOCKS"
@@ -632,7 +634,7 @@ fun ProxySettingsScreen(
                                         PresetChip(
                                             label = stringResource(R.string.proxy_preset_tor),
                                             modifier = Modifier.weight(1f),
-                                            onClick = {
+                                            onClick = hapticAction(HapticKind.UI) {
                                                 host = "127.0.0.1"
                                                 portText = "9050"
                                                 proxyType = "SOCKS"
@@ -650,7 +652,7 @@ fun ProxySettingsScreen(
                                         PresetChip(
                                             label = stringResource(R.string.proxy_preset_http),
                                             modifier = Modifier.weight(1f),
-                                            onClick = {
+                                            onClick = hapticAction(HapticKind.UI) {
                                                 host = "127.0.0.1"
                                                 portText = "8080"
                                                 proxyType = "HTTP"
@@ -662,7 +664,7 @@ fun ProxySettingsScreen(
                                         PresetChip(
                                             label = stringResource(R.string.proxy_preset_socks),
                                             modifier = Modifier.weight(1f),
-                                            onClick = {
+                                            onClick = hapticAction(HapticKind.UI) {
                                                 host = "127.0.0.1"
                                                 portText = "1080"
                                                 proxyType = "SOCKS"
@@ -737,7 +739,7 @@ fun ProxySettingsScreen(
                                         },
                                         trailingIcon = {
                                             IconButton(
-                                                onClick = { showPassword = !showPassword },
+                                                onClick = hapticAction(HapticKind.UI) { showPassword = !showPassword },
                                                 shapes = IconButtonDefaults.shapes()
                                             ) {
                                                 Icon(
@@ -759,10 +761,10 @@ fun ProxySettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             OutlinedButton(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     if (host.isBlank()) {
                                         Toast.makeText(context, context.getString(R.string.proxy_host_empty), Toast.LENGTH_SHORT).show()
-                                        return@OutlinedButton
+                                        return@hapticAction
                                     }
                                     profileNameInput = "${if (proxyType == "SOCKS") "SOCKS5" else "HTTP"} ${host}:${portText}"
                                     showSaveProfileDialog = true
@@ -790,15 +792,15 @@ fun ProxySettingsScreen(
                             }
 
                             Button(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     if (host.isBlank()) {
                                         Toast.makeText(context, context.getString(R.string.proxy_host_empty), Toast.LENGTH_SHORT).show()
-                                        return@Button
+                                        return@hapticAction
                                     }
                                     val port = portText.toIntOrNull()
                                     if (port == null || port !in 1..65535) {
                                         Toast.makeText(context, context.getString(R.string.proxy_port_invalid), Toast.LENGTH_SHORT).show()
-                                        return@Button
+                                        return@hapticAction
                                     }
 
                                     isTesting = true

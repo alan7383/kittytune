@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.History
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.SlowMotionVideo
 import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -73,6 +75,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import com.alananasss.kittytune.ui.common.viewableCover
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
@@ -108,6 +114,7 @@ fun ProfileScreen(
     profileViewModel: ProfileViewModel = viewModel()
 ) {
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
+    val haptics = rememberAppHaptics()
     val listState = rememberLazyListState()
 
     var expandedSection by remember { mutableStateOf<String?>(null) }
@@ -151,10 +158,11 @@ fun ProfileScreen(
         .collectAsState(initial = prefs.getAnimatedArtistProfilesEnabled())
 
     val artistVideoUrl by produceState<String?>(initialValue = null, key1 = user?.username, key2 = animatedProfilesEnabled) {
-        if (!animatedProfilesEnabled || user?.username.isNullOrBlank() || profileViewModel.isCurrentUser) {
+        val currentUsername = user?.username
+        if (!animatedProfilesEnabled || currentUsername.isNullOrBlank() || profileViewModel.isCurrentUser) {
             value = null
         } else {
-            value = com.alananasss.kittytune.data.cover.AppleMusicArtistBackgroundProvider.getByArtistName(user.username)
+            value = com.alananasss.kittytune.data.cover.AppleMusicArtistBackgroundProvider.getByArtistName(currentUsername)
         }
     }
 
@@ -165,6 +173,26 @@ fun ProfileScreen(
         if (profileViewModel.isLoading && user == null) {
             ProfileScreenShimmer(onBackClick)
         } else if (user != null) {
+            // Le lien du profil, partagé tel quel par défaut (et réutilisé par la carte).
+            val shareUrl = when {
+                // VK profiles have no soundcloud.com address; sharing one was handing testers a dead link.
+                profileViewModel.isVkProfile ->
+                    profileViewModel.vkPageUrl
+                        ?: user.permalinkUrl
+                        ?: "https://vk.com/id${user.id}"
+
+                user.permalinkUrl != null -> user.permalinkUrl
+
+                profileViewModel.isSpotifyProfile ->
+                    "https://open.spotify.com/artist/${user.permalink}"
+
+                else -> {
+                    val cleanUsername =
+                        user.username?.replace(" ", "")?.lowercase() ?: "user"
+                    "https://soundcloud.com/$cleanUsername"
+                }
+            }
+
             val hasMotionVideo = !artistVideoUrl.isNullOrBlank()
 
             Box(
@@ -188,12 +216,14 @@ fun ProfileScreen(
                             hasMotionVideo = hasMotionVideo,
                             artistVideoUrl = artistVideoUrl,
                             onSectionClick = { section ->
+                                haptics.perform(HapticKind.MEDIUM)
                                 if (section == "playlists") {
                                     coroutineScope.launch {
                                         listState.animateScrollToItem(1)
                                     }
                                 } else {
-                                    expandedSection = section
+                                    val enc = encodeRouteParam(userId)
+                                    onNavigate("profile_section/$enc/$section")
                                 }
                             }
                         )
@@ -212,6 +242,7 @@ fun ProfileScreen(
                                     text = user.description,
                                     onUrlClick = { url -> uriHandler.openUri(url) },
                                     onMentionClick = { username ->
+                                        haptics.perform(HapticKind.LIGHT)
                                         playerViewModel.resolveAndNavigateToArtist(username)
                                     }
                                 )
@@ -436,7 +467,7 @@ fun ProfileScreen(
                                             val isSelected = key == selectedDiscographyFilter
                                             if (isSelected) {
                                                 Button(
-                                                    onClick = { selectedDiscographyFilter = key },
+                                                    onClick = hapticAction(HapticKind.UI) { selectedDiscographyFilter = key },
                                                     shapes = ButtonDefaults.shapes(),
                                                     colors = ButtonDefaults.buttonColors(
                                                         containerColor = MaterialTheme.colorScheme.primary,
@@ -455,7 +486,7 @@ fun ProfileScreen(
                                                 }
                                             } else {
                                                 FilledTonalButton(
-                                                    onClick = { selectedDiscographyFilter = key },
+                                                    onClick = hapticAction(HapticKind.UI) { selectedDiscographyFilter = key },
                                                     shapes = ButtonDefaults.shapes(),
                                                     colors = ButtonDefaults.filledTonalButtonColors(
                                                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -616,7 +647,7 @@ fun ProfileScreen(
                             var isLikedState by remember(user) { mutableStateOf(prefs.isSpotifyArtistLiked(artistId)) }
 
                             IconButton(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     val spotifyId =
                                         user.permalink ?: user.urn?.removePrefix("spotify:artist:") ?: artistId
                                     val stableArtistId = user.numericId.takeIf { it != 0L }
@@ -647,7 +678,7 @@ fun ProfileScreen(
                             }
                         } else if (profileViewModel.isCurrentUser) {
                             AnimatedVisibility(visible = showBarBackground, enter = fadeIn(), exit = fadeOut()) {
-                                IconButton(onClick = { showEditSheet = true }, shapes = IconButtonDefaults.shapes()) {
+                                IconButton(onClick = hapticAction(HapticKind.UI) { showEditSheet = true }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(
                                         Icons.Outlined.Edit,
                                         stringResource(R.string.profile_edit),
@@ -656,7 +687,7 @@ fun ProfileScreen(
                                 }
                             }
                             IconButton(
-                                onClick = { onNavigate("notifications") },
+                                onClick = hapticAction(HapticKind.UI) { onNavigate("notifications") },
                                 shapes = IconButtonDefaults.shapes(),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(
@@ -668,7 +699,7 @@ fun ProfileScreen(
                                 Icon(Icons.Rounded.Notifications, stringResource(R.string.profile_menu_notifications))
                             }
                             IconButton(
-                                onClick = { onNavigate("conversations") },
+                                onClick = hapticAction(HapticKind.UI) { onNavigate("conversations") },
                                 shapes = IconButtonDefaults.shapes(),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(
@@ -680,7 +711,7 @@ fun ProfileScreen(
                                 Icon(Icons.Rounded.Mail, stringResource(R.string.profile_menu_messages))
                             }
                             IconButton(
-                                onClick = { onNavigate("upload") },
+                                onClick = hapticAction(HapticKind.UI) { onNavigate("upload") },
                                 shapes = IconButtonDefaults.shapes(),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(
@@ -693,7 +724,7 @@ fun ProfileScreen(
                             }
                         } else {
                             IconButton(
-                                onClick = { DownloadManager.toggleSaveArtist(user) },
+                                onClick = hapticAction(HapticKind.UI) { DownloadManager.toggleSaveArtist(user) },
                                 shapes = IconButtonDefaults.shapes(),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(
@@ -708,31 +739,25 @@ fun ProfileScreen(
                             }
                         }
 
+                        if (user.isArtist) {
+                            IconButton(
+                                onClick = hapticAction(HapticKind.UI) { showArtistShare = true },
+                                shapes = IconButtonDefaults.shapes(),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = if (showBarBackground) Color.Transparent else Color.Black.copy(
+                                        alpha = 0.3f
+                                    ), contentColor = contentColor
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Outlined.Image,
+                                    stringResource(R.string.share_card_send)
+                                )
+                            }
+                        }
+
                         IconButton(
-                            onClick = {
-                                if (user.isArtist) {
-                                    // An artist shares as a card: name, followers, top songs (PR #77).
-                                    showArtistShare = true
-                                } else {
-                                val shareUrl = when {
-                                    // VK profiles have no soundcloud.com address; sharing one was
-                                    // handing testers a dead link.
-                                    profileViewModel.isVkProfile ->
-                                        profileViewModel.vkPageUrl
-                                            ?: user.permalinkUrl
-                                            ?: "https://vk.com/id${user.id}"
-
-                                    user.permalinkUrl != null -> user.permalinkUrl
-
-                                    profileViewModel.isSpotifyProfile ->
-                                        "https://open.spotify.com/artist/${user.permalink}"
-
-                                    else -> {
-                                        val cleanUsername =
-                                            user.username?.replace(" ", "")?.lowercase() ?: "user"
-                                        "https://soundcloud.com/$cleanUsername"
-                                    }
-                                }
+                            onClick = hapticAction(HapticKind.UI) {
                                 val sendIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
                                     putExtra(Intent.EXTRA_TEXT, shareUrl)
@@ -744,7 +769,6 @@ fun ProfileScreen(
                                         context.getString(R.string.share_via)
                                     )
                                 )
-                                }
                             },
                             shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.iconButtonColors(
@@ -778,12 +802,8 @@ fun ProfileScreen(
             }
 
             // The artist's share card: name, followers, top songs, on the theme's accent (PR #77).
+            // Optional: the toolbar's share button already sends the plain link by default.
             if (showArtistShare) {
-                val shareLink = when {
-                    user.permalinkUrl != null -> user.permalinkUrl
-                    profileViewModel.isSpotifyProfile -> "https://open.spotify.com/artist/${user.permalink}"
-                    else -> "https://soundcloud.com/${user.username?.replace(" ", "")?.lowercase() ?: "user"}"
-                }
                 com.alananasss.kittytune.ui.profile.ArtistShareDialog(
                     card = com.alananasss.kittytune.ui.profile.ArtistShare.Card(
                         name = user.username.orEmpty(),
@@ -791,7 +811,7 @@ fun ProfileScreen(
                         avatarUrl = user.avatarUrl,
                         topTracks = profileViewModel.popularTracks.mapNotNull { it.title },
                         accentArgb = MaterialTheme.colorScheme.primary.toArgb(),
-                        link = shareLink.orEmpty(),
+                        link = shareUrl,
                     ),
                     onDismiss = { showArtistShare = false },
                 )
@@ -906,7 +926,7 @@ fun ProfileScreen(
                     )
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = { profileViewModel.loadProfile(userId, forceRefresh = true) },
+                        onClick = hapticAction(HapticKind.UI) { profileViewModel.loadProfile(userId, forceRefresh = true) },
                         shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.btn_retry))
@@ -920,13 +940,17 @@ fun ProfileScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreenShimmer(onBackClick: () -> Unit) {
+    // The same geometry as the header it stands in for, so the page does not jump
+    // when the artist arrives.
+    val barRoom = WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding() +
+        TopAppBarDefaults.TopAppBarExpandedHeight
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(userScrollEnabled = false) {
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(480.dp)
+                        .wrapContentHeight()
                 ) {
                     Box(
                         modifier = Modifier
@@ -951,16 +975,17 @@ fun ProfileScreenShimmer(onBackClick: () -> Unit) {
                     Column(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
+                            .padding(top = barRoom)
                             .padding(horizontal = 24.dp)
-                            .padding(bottom = 24.dp),
+                            .padding(bottom = 14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         ArtistAvatar(
                             avatarUrl = null, modifier = Modifier
-                                .size(140.dp)
+                                .size(116.dp)
                                 .clip(CircleShape)
                         )
-                        Spacer(Modifier.height(20.dp))
+                        Spacer(Modifier.height(12.dp))
                         ShimmerLine(Modifier.width(200.dp).height(30.dp))
                         Spacer(Modifier.height(12.dp))
                         ShimmerLine(Modifier.width(150.dp))
@@ -1073,15 +1098,22 @@ fun ModernProfileHeader(
     }
     val showVideo = hasMotionVideo && !artistVideoUrl.isNullOrBlank()
 
+    // The header floats under a transparent app bar, so its content has to start below
+    // that bar: the photo used to be pushed down by a fixed 480 dp of banner, and when
+    // the header became as tall as its content it landed on the notch instead. The room
+    // the bar takes is added here, cutout included, so the photo always clears it.
+    val barRoom = WindowInsets.safeDrawing.asPaddingValues().calculateTopPadding() +
+        TopAppBarDefaults.TopAppBarExpandedHeight
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(480.dp)
+            .wrapContentHeight()
             .clipToBounds(),
         contentAlignment = Alignment.BottomCenter
     ) {
         if (banner != null || portrait != null || heroCovers.isNotEmpty() || showVideo) {
-            Box(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.matchParentSize()) {
                 if (showVideo && !artistVideoUrl.isNullOrBlank()) {
                     com.alananasss.kittytune.ui.player.cover.CanvasVideo(
                         canvasUrl = artistVideoUrl,
@@ -1133,8 +1165,9 @@ fun ModernProfileHeader(
         }
         Column(
             modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp),
+                .padding(top = barRoom)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
@@ -1142,9 +1175,9 @@ fun ModernProfileHeader(
                 Box {
                     Surface(
                         shape = CircleShape,
-                        shadowElevation = 12.dp,
+                        shadowElevation = 10.dp,
                         color = Color.Transparent,
-                        modifier = Modifier.size(140.dp)
+                        modifier = Modifier.size(116.dp)
                     ) {
                         ArtistAvatar(
                             avatarUrl = user.avatarUrl,
@@ -1173,16 +1206,16 @@ fun ModernProfileHeader(
                     }
                 }
             } else {
-                Spacer(Modifier.height(140.dp))
+                Spacer(Modifier.height(116.dp))
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
 
             if (profileViewModel.isSpotifyProfile && user.verified) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(bottom = 6.dp)
+                    modifier = Modifier.padding(bottom = 4.dp)
                 ) {
                     Icon(
                         Icons.Rounded.Verified,
@@ -1202,7 +1235,7 @@ fun ModernProfileHeader(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
                 Text(
                     text = user.username ?: stringResource(R.string.unknown_artist),
-                    style = MaterialTheme.typography.headlineLarge.copy(
+                    style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp,
                         shadow = if (hasMotionVideo) androidx.compose.ui.graphics.Shadow(
@@ -1305,7 +1338,7 @@ fun ModernProfileHeader(
                         ),
                         color = Color(0xFF0077FF),
                         modifier = if (vkLink != null) {
-                            Modifier.clickable {
+                            Modifier.hapticClickable {
                                 // The badge looked tappable but did nothing; it now opens the VK page.
                                 runCatching {
                                     context.startActivity(
@@ -1375,7 +1408,7 @@ fun ModernProfileHeader(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable { onNavigate("followers:${user.id}") }
+                            .hapticClickable { onNavigate("followers:${user.id}") }
                             .padding(horizontal = 4.dp, vertical = 2.dp)
                     )
                     Text(
@@ -1391,7 +1424,7 @@ fun ModernProfileHeader(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable { onNavigate("followings:${user.id}") }
+                            .hapticClickable { onNavigate("followings:${user.id}") }
                             .padding(horizontal = 4.dp, vertical = 2.dp)
                     )
                     val playlistCount =
@@ -1438,13 +1471,19 @@ fun ModernProfileHeader(
                 }
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(14.dp))
 
             if (profileViewModel.isSpotifyProfile) {
                 val artistId = user.permalink ?: user.urn?.removePrefix("spotify:artist:") ?: ""
                 var isLiked by remember(user) { mutableStateOf(prefs.isSpotifyArtistLiked(artistId)) }
+                val isSpotifyTrailer = playerViewModel.isTrailerActive && artistContext != null && playerViewModel.currentContext?.navigationId?.endsWith(artistContext.navigationId) == true
+                val spotifyTrailerTracks = if (profileViewModel.popularTracks.isNotEmpty()) profileViewModel.popularTracks.toList() else profileViewModel.allTracks.toList()
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Button(
                         onClick = {
                             if (profileViewModel.popularTracks.isNotEmpty()) {
@@ -1455,35 +1494,37 @@ fun ModernProfileHeader(
                             }
                         },
                         modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
+                            .weight(1.1f)
+                            .height(48.dp),
                         shapes = ButtonDefaults.shapes(),
+                        contentPadding = PaddingValues(horizontal = 8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
-                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                     ) {
-                        Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
+                        Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             stringResource(R.string.btn_shuffle),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
 
                     FilledTonalButton(
-                        onClick = {
+                        onClick = hapticAction(HapticKind.UI) {
                             val spotifyId = user.permalink ?: user.urn?.removePrefix("spotify:artist:") ?: artistId
                             val cleanId = com.alananasss.kittytune.data.spotify.SpotifyRepository.extractId(spotifyId)
                             onNavigate("spotify_radio:$cleanId")
                         },
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp),
+                            .height(48.dp),
                         shapes = ButtonDefaults.shapes(),
+                        contentPadding = PaddingValues(horizontal = 8.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
                             contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1492,37 +1533,50 @@ fun ModernProfileHeader(
                         Icon(
                             Icons.Default.Radio,
                             null,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             stringResource(R.string.radio),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                }
 
-                val isSpotifyTrailer = playerViewModel.isTrailerActive && artistContext != null && playerViewModel.currentContext?.navigationId?.endsWith(artistContext.navigationId) == true
-                val spotifyTrailerTracks = if (profileViewModel.popularTracks.isNotEmpty()) profileViewModel.popularTracks.toList() else profileViewModel.allTracks.toList()
-                if (spotifyTrailerTracks.isNotEmpty() || isSpotifyTrailer) {
-                    FilledTonalButton(
-                        onClick = {
-                            if (isSpotifyTrailer) playerViewModel.togglePlayPause()
-                            else artistContext?.let { playerViewModel.playTrailer(spotifyTrailerTracks, it) }
-                        },
-                        shapes = ButtonDefaults.shapes(),
-                        modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(50.dp),
-                    ) {
-                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            stringResource(if (!isSpotifyTrailer) R.string.artist_trailer else if (playerViewModel.isPlaying) R.string.artist_trailer_playing else R.string.artist_resume),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    if (spotifyTrailerTracks.isNotEmpty() || isSpotifyTrailer) {
+                        FilledTonalButton(
+                            onClick = {
+                                if (isSpotifyTrailer) playerViewModel.togglePlayPause()
+                                else artistContext?.let { playerViewModel.playTrailer(spotifyTrailerTracks, it) }
+                            },
+                            shapes = ButtonDefaults.shapes(),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = if (isSpotifyTrailer) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = if (isSpotifyTrailer) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                        ) {
+                            if (isSpotifyTrailer) {
+                                com.alananasss.kittytune.ui.common.PlayingBars(
+                                    isPlaying = playerViewModel.isPlaying,
+                                    color = LocalContentColor.current,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            } else {
+                                Icon(Icons.Rounded.SlowMotionVideo, null, modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                stringResource(if (!isSpotifyTrailer) R.string.artist_trailer else if (playerViewModel.isPlaying) R.string.artist_trailer_playing else R.string.artist_resume),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
             } else if (isCurrentUser) {
@@ -1552,7 +1606,7 @@ fun ModernProfileHeader(
                     }
 
                     FilledTonalButton(
-                        onClick = { onNavigate("history") },
+                        onClick = hapticAction(HapticKind.UI) { onNavigate("history") },
                         modifier = Modifier
                             .weight(1f)
                             .height(50.dp),
@@ -1582,40 +1636,49 @@ fun ModernProfileHeader(
                 )
             } else {
                 if (user.trackCount > 0 || profileViewModel.allTracks.isNotEmpty() || profileViewModel.popularTracks.isNotEmpty()) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    val isScTrailer = playerViewModel.isTrailerActive && artistContext != null && playerViewModel.currentContext?.navigationId?.endsWith(artistContext.navigationId) == true
+                    val scTrailerTracks = if (profileViewModel.popularTracks.isNotEmpty()) profileViewModel.popularTracks.toList() else profileViewModel.allTracks.toList()
+                    val hasTrailer = scTrailerTracks.isNotEmpty() || isScTrailer
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Button(
-                            onClick = {
-                                playerViewModel.playPlaylistShuffled(
+                            onClick = { playerViewModel.playPlaylistShuffled(
                                     tracks = profileViewModel.allTracks.toList(),
                                     context = artistContext
                                 )
                             },
                             modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp), shapes = ButtonDefaults.shapes(),
+                                .weight(if (hasTrailer) 1.1f else 1f)
+                                .height(48.dp),
+                            shapes = ButtonDefaults.shapes(),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
                             ),
-                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                         ) {
-                            Icon(
-                                Icons.Default.Shuffle,
-                                null,
-                                modifier = Modifier.size(20.dp)
-                            ); Spacer(Modifier.width(8.dp));
+                            Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 stringResource(R.string.btn_shuffle),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
+
                         FilledTonalButton(
-                            onClick = { onNavigate("station_artist:${user.id}") },
+                            onClick = hapticAction(HapticKind.UI) { onNavigate("station_artist:${user.id}") },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(56.dp), shapes = ButtonDefaults.shapes(),
+                                .height(48.dp),
+                            shapes = ButtonDefaults.shapes(),
+                            contentPadding = PaddingValues(horizontal = 8.dp),
                             colors = ButtonDefaults.filledTonalButtonColors(
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1624,36 +1687,50 @@ fun ModernProfileHeader(
                             Icon(
                                 Icons.Default.Radio,
                                 null,
-                                modifier = Modifier.size(20.dp)
-                            ); Spacer(Modifier.width(8.dp));
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
                             Text(
                                 stringResource(R.string.radio),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
 
-                    val isScTrailer = playerViewModel.isTrailerActive && artistContext != null && playerViewModel.currentContext?.navigationId?.endsWith(artistContext.navigationId) == true
-                    val scTrailerTracks = if (profileViewModel.popularTracks.isNotEmpty()) profileViewModel.popularTracks.toList() else profileViewModel.allTracks.toList()
-                    if (scTrailerTracks.isNotEmpty() || isScTrailer) {
-                        FilledTonalButton(
-                            onClick = {
-                                if (isScTrailer) playerViewModel.togglePlayPause()
-                                else artistContext?.let { playerViewModel.playTrailer(scTrailerTracks, it) }
-                            },
-                            shapes = ButtonDefaults.shapes(),
-                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(50.dp),
-                        ) {
-                            Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                stringResource(if (!isScTrailer) R.string.artist_trailer else if (playerViewModel.isPlaying) R.string.artist_trailer_playing else R.string.artist_resume),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                        if (hasTrailer) {
+                            FilledTonalButton(
+                                onClick = {
+                                    if (isScTrailer) playerViewModel.togglePlayPause()
+                                    else artistContext?.let { playerViewModel.playTrailer(scTrailerTracks, it) }
+                                },
+                                shapes = ButtonDefaults.shapes(),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = if (isScTrailer) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = if (isScTrailer) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onSecondaryContainer
+                                ),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                            ) {
+                                if (isScTrailer) {
+                                    com.alananasss.kittytune.ui.common.PlayingBars(
+                                        isPlaying = playerViewModel.isPlaying,
+                                        color = LocalContentColor.current,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                } else {
+                                    Icon(Icons.Rounded.SlowMotionVideo, null, modifier = Modifier.size(18.dp))
+                                }
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    stringResource(if (!isScTrailer) R.string.artist_trailer else if (playerViewModel.isPlaying) R.string.artist_trailer_playing else R.string.artist_resume),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
@@ -1737,7 +1814,7 @@ fun EditProfileSheet(
             text = { Text(stringResource(R.string.dialog_delete_avatar_msg)) },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         profileViewModel.deleteAvatar(context)
                         showDeleteConfirm = false
                     },
@@ -1749,7 +1826,7 @@ fun EditProfileSheet(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteConfirm = false },
+                    onClick = hapticAction(HapticKind.UI) { showDeleteConfirm = false },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -1765,7 +1842,7 @@ fun EditProfileSheet(
             text = { Text(stringResource(R.string.dialog_delete_header_msg)) },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         profileViewModel.deleteBanner(context)
                         showDeleteBannerConfirm = false
                     },
@@ -1777,7 +1854,7 @@ fun EditProfileSheet(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteBannerConfirm = false },
+                    onClick = hapticAction(HapticKind.UI) { showDeleteBannerConfirm = false },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -1824,7 +1901,7 @@ fun EditProfileSheet(
                         .fillMaxWidth()
                         .height(160.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .clickable {
+                        .hapticClickable {
                             bannerPickerLauncher.launch(
                                 PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                             )
@@ -1850,7 +1927,7 @@ fun EditProfileSheet(
                     }
                     if (bannerModel != null) {
                         Surface(
-                            onClick = { showDeleteBannerConfirm = true },
+                            onClick = hapticAction(HapticKind.UI) { showDeleteBannerConfirm = true },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
@@ -1885,7 +1962,7 @@ fun EditProfileSheet(
                             .background(MaterialTheme.colorScheme.surface)
                             .padding(4.dp)
                             .clip(CircleShape)
-                            .clickable {
+                            .hapticClickable {
                                 avatarPickerLauncher.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
@@ -1912,7 +1989,7 @@ fun EditProfileSheet(
 
                     if (hasCustomAvatar) {
                         Surface(
-                            onClick = { showDeleteConfirm = true },
+                            onClick = hapticAction(HapticKind.UI) { showDeleteConfirm = true },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.errorContainer,
                             border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.surface),
@@ -1965,7 +2042,7 @@ fun EditProfileSheet(
                 )
                 Spacer(Modifier.height(24.dp))
                 Button(
-                    onClick = { onSave(name, bio, city) },
+                    onClick = hapticAction(HapticKind.UI) { onSave(name, bio, city) },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     shapes = ButtonDefaults.shapes(),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -2098,6 +2175,27 @@ fun ProfileSectionScreen(
 
             val contextForList = if (section == "likes") null else artistPlaybackContext
 
+            // The orders the expanded lists can be put in (desktop PR #77): "popular" counts what is
+            // played now rather than what has had the longest to collect plays, "tracks" newest first.
+            val (sorts, initialSort, cardOrder) = when (section) {
+                "popular" -> Triple(
+                    ArtistOrder.TrackSort.entries,
+                    ArtistOrder.TrackSort.NOW,
+                    profileViewModel.popularTracks.toList()
+                )
+                "tracks" -> Triple(
+                    listOf(
+                        ArtistOrder.TrackSort.NEWEST,
+                        ArtistOrder.TrackSort.OLDEST,
+                        ArtistOrder.TrackSort.NOW,
+                        ArtistOrder.TrackSort.ALL_TIME
+                    ),
+                    ArtistOrder.TrackSort.NEWEST,
+                    emptyList()
+                )
+                else -> Triple(emptyList<ArtistOrder.TrackSort>(), null, emptyList())
+            }
+
             if (profileViewModel.isLoading && list.isEmpty()) {
                 Scaffold(
                     topBar = {
@@ -2138,7 +2236,10 @@ fun ProfileSectionScreen(
                     onBack = onBackClick,
                     playerViewModel = playerViewModel,
                     downloadProgress = downloadProgress,
-                    context = contextForList
+                    context = contextForList,
+                    sorts = sorts,
+                    initialSort = initialSort,
+                    cardOrder = cardOrder
                 )
             }
         }
@@ -2190,7 +2291,7 @@ fun FullListScreen(
                         actions = {
                             if (tracks.isNotEmpty()) {
                                 FilledTonalIconButton(
-                                    onClick = {
+                                    onClick = hapticAction(HapticKind.UI) {
                                         playerViewModel.prepareBulkAdd(tracks)
                                     },
                                     shapes = IconButtonDefaults.shapes(),
@@ -2235,7 +2336,7 @@ fun FullListScreen(
                                     val selected = option == sort
                                     if (selected) {
                                         Button(
-                                            onClick = { sort = option },
+                                            onClick = hapticAction(HapticKind.UI) { sort = option },
                                             shapes = ButtonDefaults.shapes(),
                                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                             modifier = Modifier.height(34.dp)
@@ -2249,7 +2350,7 @@ fun FullListScreen(
                                         }
                                     } else {
                                         FilledTonalButton(
-                                            onClick = { sort = option },
+                                            onClick = hapticAction(HapticKind.UI) { sort = option },
                                             shapes = ButtonDefaults.shapes(),
                                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                             modifier = Modifier.height(34.dp)
@@ -2274,7 +2375,7 @@ fun FullListScreen(
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Button(
-                                onClick = { playerViewModel.playPlaylist(tracks, context = context) },
+                                onClick = hapticAction(HapticKind.UI) { playerViewModel.playPlaylist(tracks, context = context) },
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(50.dp),
@@ -2411,7 +2512,7 @@ fun FullDiscographyScreen(
                             val isSelected = key == activeTabKey
                             if (isSelected) {
                                 Button(
-                                    onClick = { activeTabKey = key },
+                                    onClick = hapticAction(HapticKind.UI) { activeTabKey = key },
                                     shapes = ButtonDefaults.shapes(),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,
@@ -2430,7 +2531,7 @@ fun FullDiscographyScreen(
                                 }
                             } else {
                                 FilledTonalButton(
-                                    onClick = { activeTabKey = key },
+                                    onClick = hapticAction(HapticKind.UI) { activeTabKey = key },
                                     shapes = ButtonDefaults.shapes(),
                                     colors = ButtonDefaults.filledTonalButtonColors(
                                         containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -2463,7 +2564,7 @@ fun FullDiscographyScreen(
                         val selected = option == releaseSort
                         if (selected) {
                             Button(
-                                onClick = { releaseSort = option },
+                                onClick = hapticAction(HapticKind.UI) { releaseSort = option },
                                 shapes = ButtonDefaults.shapes(),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                 modifier = Modifier.height(34.dp)
@@ -2477,7 +2578,7 @@ fun FullDiscographyScreen(
                             }
                         } else {
                             FilledTonalButton(
-                                onClick = { releaseSort = option },
+                                onClick = hapticAction(HapticKind.UI) { releaseSort = option },
                                 shapes = ButtonDefaults.shapes(),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                                 modifier = Modifier.height(34.dp)
@@ -2561,10 +2662,10 @@ fun ProfileTrackItem(
         isDownloaded = isDownloaded,
         downloadProgress = progress ?: 0,
         showVerifiedBadge = false,
-        onClick = {
+        onClick = hapticAction(HapticKind.UI) {
             playerViewModel.playPlaylist(contextList, startIndex = index, context = context)
         },
-        onOptionClick = { playerViewModel.showTrackOptions(track) }
+        onOptionClick = hapticAction(HapticKind.UI) { playerViewModel.showTrackOptions(track) }
     )
 }
 
@@ -2606,7 +2707,7 @@ fun SquareCard(playlist: Playlist, onClick: () -> Unit) {
     Column(
         modifier = Modifier
             .width(140.dp)
-            .clickable { onClick() }) {
+            .hapticClickable { onClick() }) {
         AsyncImage(
             model = playlist.fullResArtwork,
             contentDescription = null,
@@ -2629,7 +2730,7 @@ fun SquareCard(playlist: Playlist, onClick: () -> Unit) {
                 stringResource(R.string.playlist_num_tracks, playlist.trackCount)
             }
             !playlist.user?.username.isNullOrBlank() -> {
-                playlist.user.username
+                playlist.user?.username.orEmpty()
             }
             !playlist.releaseDate.isNullOrBlank() -> {
                 playlist.releaseDate.take(4)
@@ -2655,7 +2756,7 @@ fun ArtistCircle(user: User, onClick: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
             .width(120.dp)
-            .clickable { onClick() }) {
+            .hapticClickable { onClick() }) {
         ArtistAvatar(
             avatarUrl = user.avatarUrl,
             modifier = Modifier
@@ -2696,6 +2797,7 @@ fun ExpandableDescription(
     onMentionClick: (String) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    val haptics = rememberAppHaptics()
 
     val urlPattern = Pattern.compile("((https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])")
     val mentionPattern = Pattern.compile("@[\\w-]+")
@@ -2751,6 +2853,7 @@ fun ExpandableDescription(
             maxLines = if (isExpanded) Int.MAX_VALUE else 5,
             overflow = TextOverflow.Ellipsis,
             onClick = { offset ->
+                haptics.perform(HapticKind.LIGHT)
                 var isAnnotationClicked = false
                 annotatedString.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let { annotation ->
                     when (annotation.tag) {
@@ -2776,7 +2879,7 @@ fun ExpandableDescription(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .padding(top = 4.dp)
-                    .clickable { isExpanded = !isExpanded }
+                    .hapticClickable { isExpanded = !isExpanded }
             )
         }
     }
@@ -2787,6 +2890,7 @@ fun UserCommentItem(
     comment: Comment,
     onTrackClick: () -> Unit
 ) {
+    val haptics = rememberAppHaptics()
     val track = comment.track ?: return
 
     Column(
@@ -2883,7 +2987,7 @@ fun UserCommentItem(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable {
+                            .hapticClickable {
                                 isTranslating = true
                                 scope.launch(Dispatchers.IO) {
                                     val res = com.alananasss.kittytune.data.network.FreeTranslator.translateMissing(
@@ -2921,7 +3025,7 @@ fun UserCommentItem(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable { showTranslation = !showTranslation }
+                            .hapticClickable { showTranslation = !showTranslation }
                             .padding(vertical = 2.dp)
                     )
                 }
@@ -3056,7 +3160,7 @@ private fun OwnProfileStats(
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items.forEach { (count, label, section) ->
             Surface(
-                onClick = { onOpen(section) },
+                onClick = hapticAction(HapticKind.UI) { onOpen(section) },
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,
                 modifier = Modifier.weight(1f),

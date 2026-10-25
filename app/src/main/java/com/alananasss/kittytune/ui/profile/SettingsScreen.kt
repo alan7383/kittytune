@@ -29,10 +29,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.SettingsGroup
 import com.alananasss.kittytune.ui.common.SettingsHighlightManager
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 
 
@@ -107,7 +109,7 @@ fun SettingsHomeSearchBar(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        onClick = onClick,
+        onClick = hapticAction(HapticKind.LIGHT, onClick),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier
@@ -200,7 +202,7 @@ fun InterfaceSettingsScreen(
 
 /**
  * The Sources category's sub-pages:
- * Comptes connectés, Ordre des fournisseurs, Import de musique, Fournisseurs de paroles.
+ * Comptes connectés, Import de musique.
  */
 @Composable
 fun SourcesSettingsScreen(

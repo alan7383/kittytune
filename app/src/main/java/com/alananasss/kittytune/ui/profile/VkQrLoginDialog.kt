@@ -29,6 +29,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.vk.VkQrAuthManager
 import com.alananasss.kittytune.data.vk.VkQrCodeData
 import com.alananasss.kittytune.data.vk.VkQrPollState
@@ -221,7 +224,7 @@ fun VkQrLoginDialog(
                                 // logged-in browser) on the very phone running KittyTune.
                                 qrData?.authUrl?.takeIf { it.isNotBlank() }?.let { authUrl ->
                                     FilledTonalButton(
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             runCatching {
                                                 context.startActivity(
                                                     Intent(Intent.ACTION_VIEW, Uri.parse(authUrl))
@@ -317,7 +320,7 @@ fun VkQrLoginDialog(
 
                                 if (confirmationCode.isNotBlank()) {
                                     Button(
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             if (qrData != null && !isValidatingCode) {
                                                 isValidatingCode = true
                                                 coroutineScope.launch {
@@ -360,7 +363,7 @@ fun VkQrLoginDialog(
                                     fontWeight = FontWeight.Medium
                                 )
                                 FilledTonalButton(
-                                    onClick = { loadQrCode() },
+                                    onClick = hapticAction(HapticKind.UI) { loadQrCode() },
                                     shapes = ButtonDefaults.shapes()
                                 ) {
                                     Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -381,7 +384,7 @@ fun VkQrLoginDialog(
                                     textAlign = TextAlign.Center
                                 )
                                 FilledTonalButton(
-                                    onClick = { loadQrCode() },
+                                    onClick = hapticAction(HapticKind.UI) { loadQrCode() },
                                     shapes = ButtonDefaults.shapes()
                                 ) {
                                     Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))

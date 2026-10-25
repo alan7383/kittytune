@@ -35,6 +35,9 @@ import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -250,7 +253,7 @@ fun BannerCropDialog(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = { scale = (scale - 0.1f).coerceAtLeast(1f) }) {
+                            IconButton(onClick = hapticAction(HapticKind.UI) { scale = (scale - 0.1f).coerceAtLeast(1f) }) {
                                 Icon(Icons.Rounded.Remove, null, tint = MaterialTheme.colorScheme.primary)
                             }
                             Slider(
@@ -264,7 +267,7 @@ fun BannerCropDialog(
                                     inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
-                            IconButton(onClick = { scale = (scale + 0.1f).coerceAtMost(5f) }) {
+                            IconButton(onClick = hapticAction(HapticKind.UI) { scale = (scale + 0.1f).coerceAtMost(5f) }) {
                                 Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary)
                             }
                         }
@@ -282,7 +285,7 @@ fun BannerCropDialog(
                             }
                             Spacer(Modifier.width(8.dp))
                             Button(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     if (!isSaving && bitmap != null) {
                                         isSaving = true
                                         scope.launch(Dispatchers.Default) {

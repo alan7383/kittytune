@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.SharedPreferences
 import androidx.annotation.StringRes
 import androidx.compose.animation.*
 import androidx.compose.animation.animateColorAsState
@@ -38,6 +39,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.AppThemeMode
 import com.alananasss.kittytune.data.local.LibraryCategoryLayout
@@ -54,6 +58,7 @@ import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
 import com.alananasss.kittytune.ui.common.Slider
 import com.alananasss.kittytune.ui.common.getSettingsShape
+import com.alananasss.kittytune.ui.theme.KittyTuneDefaultSeedColor
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicColorScheme
 
@@ -109,16 +114,40 @@ fun AppearanceSettingsScreen(
     var animatedCovers by remember { mutableStateOf(prefs.getAnimatedCoversEnabled()) }
     var animatedCoversFadeUi by remember { mutableStateOf(prefs.getAnimatedCoversFadeUiEnabled()) }
     var animatedArtistProfiles by remember { mutableStateOf(prefs.getAnimatedArtistProfilesEnabled()) }
-    var explorerGridLayout by remember { mutableStateOf(prefs.getExplorerGridLayout()) }
     var libraryCategoryLayout by remember { mutableStateOf(prefs.getLibraryCategoryLayout()) }
     var achievementPopupsEnabled by remember { mutableStateOf(prefs.getAchievementPopupsEnabled()) }
     var showHomeListeningStats by remember { mutableStateOf(prefs.getShowHomeListeningStats()) }
     var showHomeYourMix by remember { mutableStateOf(prefs.getShowHomeYourMix()) }
+    var showHomeMyWave by remember { mutableStateOf(prefs.getShowHomeMyWave()) }
+    var showHomeCharts by remember { mutableStateOf(prefs.getShowHomeCharts()) }
 
     var showFontConfigDialog by remember { mutableStateOf(false) }
     var showCategoryLayoutDialog by remember { mutableStateOf(false) }
+    val trackRemovalMethodPref by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
     var trackRemovalMethod by remember { mutableStateOf(prefs.getTrackRemovalMethod()) }
+    LaunchedEffect(trackRemovalMethodPref) {
+        trackRemovalMethod = trackRemovalMethodPref
+    }
     var showTrackRemovalDialog by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        val sp = context.getSharedPreferences("player_state", Context.MODE_PRIVATE)
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PlayerPreferences.KEY_DYNAMIC_THEME) {
+                dynamicTheme = prefs.getDynamicTheme()
+            } else if (key == PlayerPreferences.KEY_TRACK_DYNAMIC_THEME) {
+                trackDynamicTheme = prefs.getTrackDynamicTheme()
+            } else if (key == PlayerPreferences.KEY_KEY_COLOR) {
+                keyColor = prefs.getKeyColor()
+            } else if (key == PlayerPreferences.KEY_THEME_MODE) {
+                themeMode = prefs.getThemeMode()
+            } else if (key == PlayerPreferences.KEY_PURE_BLACK) {
+                pureBlack = prefs.getPureBlack()
+            }
+        }
+        sp.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { sp.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     val look = remember(themeMode, pureBlack) {
         when {
@@ -163,25 +192,25 @@ fun AppearanceSettingsScreen(
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         item {
                             AssistChip(
-                                onClick = { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) },
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) },
                                 label = { Text(stringResource(R.string.font_preset_default)) }
                             )
                         }
                         item {
                             AssistChip(
-                                onClick = { applyPreset(600f, 100f, 0f, 100f, 0f, 14f) },
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(600f, 100f, 0f, 100f, 0f, 14f) },
                                 label = { Text(stringResource(R.string.font_preset_rounded)) }
                             )
                         }
                         item {
                             AssistChip(
-                                onClick = { applyPreset(250f, 105f, 0f, 0f, 0f, 14f) },
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(250f, 105f, 0f, 0f, 0f, 14f) },
                                 label = { Text(stringResource(R.string.font_preset_elegant)) }
                             )
                         }
                         item {
                             AssistChip(
-                                onClick = { applyPreset(900f, 110f, 0f, 50f, 0f, 14f) },
+                                onClick = hapticAction(HapticKind.UI) { applyPreset(900f, 110f, 0f, 50f, 0f, 14f) },
                                 label = { Text(stringResource(R.string.font_preset_chunky)) }
                             )
                         }
@@ -234,12 +263,12 @@ fun AppearanceSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showFontConfigDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showFontConfigDialog = false }) {
                     Text(stringResource(R.string.btn_close))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { applyPreset(400f, 100f, 0f, 0f, 0f, 14f) }) {
                     Text(stringResource(R.string.btn_reset))
                 }
             }
@@ -263,7 +292,7 @@ fun AppearanceSettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable {
+                                .hapticClickable {
                                     libraryCategoryLayout = layoutOption
                                     prefs.setLibraryCategoryLayout(layoutOption)
                                     showCategoryLayoutDialog = false
@@ -294,7 +323,7 @@ fun AppearanceSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showCategoryLayoutDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showCategoryLayoutDialog = false }) {
                     Text(stringResource(R.string.btn_close))
                 }
             }
@@ -318,7 +347,7 @@ fun AppearanceSettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable {
+                                .hapticClickable {
                                     trackRemovalMethod = method
                                     prefs.setTrackRemovalMethod(method)
                                     showTrackRemovalDialog = false
@@ -346,7 +375,7 @@ fun AppearanceSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showTrackRemovalDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showTrackRemovalDialog = false }) {
                     Text(stringResource(R.string.btn_close))
                 }
             }
@@ -368,7 +397,6 @@ fun AppearanceSettingsScreen(
             "pref_animated_covers_fade_ui" to 3,
             "pref_animated_artist_profiles" to 3,
             "pref_lyrics_under_cover" to 3,
-            "pref_explorer_grid" to 4,
             "pref_library_category_layout" to 4,
             "pref_track_removal" to 4,
             "pref_achievement_popups" to 4,
@@ -404,9 +432,16 @@ fun AppearanceSettingsScreen(
                                 onSwitchChange = { on ->
                                     dynamicTheme = on
                                     prefs.setDynamicTheme(on)
-                                    if (on && trackDynamicTheme) {
-                                        trackDynamicTheme = false
-                                        prefs.setTrackDynamicTheme(false)
+                                    if (on) {
+                                        if (trackDynamicTheme) {
+                                            trackDynamicTheme = false
+                                            prefs.setTrackDynamicTheme(false)
+                                        }
+                                    } else if (keyColor == 0) {
+                                        val defaultPreset = themePresets.first()
+                                        keyColor = defaultPreset.seed
+                                        prefs.setKeyColor(defaultPreset.seed)
+                                        prefs.setColorStyle(defaultPreset.styleName)
                                     }
                                 },
                                 highlightKey = "pref_theme_dynamic"
@@ -505,7 +540,7 @@ fun AppearanceSettingsScreen(
                                         isSelected = !dynamicTheme && !trackDynamicTheme && (keyColor == preset.seed),
                                         isDark = isDark,
                                         pureBlack = pureBlack && isDark,
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             keyColor = preset.seed
                                             prefs.setKeyColor(preset.seed)
                                             prefs.setColorStyle(preset.styleName)
@@ -549,7 +584,7 @@ fun AppearanceSettingsScreen(
                                 title = stringResource(R.string.pref_font_variations_title),
                                 subtitle = stringResource(R.string.pref_font_variations_subtitle),
                                 icon = Icons.Rounded.Tune,
-                                onClick = { showFontConfigDialog = true },
+                                onClick = hapticAction(HapticKind.UI) { showFontConfigDialog = true },
                                 highlightKey = "pref_font_variations"
                             )
                         },
@@ -647,26 +682,10 @@ fun AppearanceSettingsScreen(
                         { shape ->
                             SettingsItem(
                                 shape = shape,
-                                title = stringResource(R.string.pref_explorer_grid_title),
-                                subtitle = stringResource(R.string.pref_explorer_grid_subtitle),
-                                icon = Icons.Rounded.GridView,
-                                hasSwitch = true,
-                                switchState = explorerGridLayout,
-                                onSwitchChange = {
-                                    explorerGridLayout = it
-                                    prefs.setExplorerGridLayout(it)
-                                },
-                                highlightKey = "pref_explorer_grid"
-                            )
-                        },
-
-                        { shape ->
-                            SettingsItem(
-                                shape = shape,
                                 title = stringResource(R.string.pref_library_category_layout_title),
                                 subtitle = stringResource(libraryCategoryLayout.titleRes),
                                 icon = Icons.Rounded.FilterList,
-                                onClick = { showCategoryLayoutDialog = true },
+                                onClick = hapticAction(HapticKind.UI) { showCategoryLayoutDialog = true },
                                 highlightKey = "pref_library_category_layout"
                             )
                         },
@@ -682,7 +701,7 @@ fun AppearanceSettingsScreen(
                                     }
                                 ),
                                 icon = Icons.Rounded.DeleteSweep,
-                                onClick = { showTrackRemovalDialog = true },
+                                onClick = hapticAction(HapticKind.UI) { showTrackRemovalDialog = true },
                                 highlightKey = "pref_track_removal"
                             )
                         },
@@ -740,6 +759,36 @@ fun AppearanceSettingsScreen(
                                 },
                                 highlightKey = "pref_home_your_mix"
                             )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.wave_title),
+                                subtitle = stringResource(R.string.pref_home_my_wave_desc),
+                                icon = Icons.Rounded.Waves,
+                                hasSwitch = true,
+                                switchState = showHomeMyWave,
+                                onSwitchChange = {
+                                    showHomeMyWave = it
+                                    prefs.setShowHomeMyWave(it)
+                                },
+                                highlightKey = "pref_home_my_wave"
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.chart_section_title),
+                                subtitle = stringResource(R.string.pref_home_charts_desc),
+                                icon = Icons.Rounded.TrendingUp,
+                                hasSwitch = true,
+                                switchState = showHomeCharts,
+                                onSwitchChange = {
+                                    showHomeCharts = it
+                                    prefs.setShowHomeCharts(it)
+                                },
+                                highlightKey = "pref_home_charts"
+                            )
                         }
                     )
                 )
@@ -759,7 +808,7 @@ private fun ThemePresetCard(
     onClick: () -> Unit,
 ) {
     val scheme = rememberDynamicColorScheme(
-        seedColor = if (seed == 0) Color(0xFFFF7A1A) else Color(seed),
+        seedColor = if (seed == 0) KittyTuneDefaultSeedColor else Color(seed),
         isDark = isDark,
         isAmoled = pureBlack,
         style = style,

@@ -39,6 +39,9 @@
     import androidx.compose.ui.unit.sp
     import androidx.compose.ui.zIndex
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.data.Achievement
     import com.alananasss.kittytune.data.AchievementManager
     import com.alananasss.kittytune.ui.common.UltimateCompletionOverlay
@@ -111,11 +114,11 @@
                 text = { Text(stringResource(R.string.dialog_reset_achievements_msg)) },
                 confirmButton = {
                     TextButton(
-                        onClick = { showResetDialog1 = false; showResetDialog2 = true },
+                        onClick = hapticAction(HapticKind.UI) { showResetDialog1 = false; showResetDialog2 = true },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) { Text(stringResource(R.string.dialog_reset_achievements_confirm)) }
                 },
-                dismissButton = { TextButton(onClick = { showResetDialog1 = false }) { Text(stringResource(R.string.btn_cancel)) } },
+                dismissButton = { TextButton(onClick = hapticAction(HapticKind.UI) { showResetDialog1 = false }) { Text(stringResource(R.string.btn_cancel)) } },
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         }
@@ -128,7 +131,7 @@
                 text = { Text(stringResource(R.string.dialog_reset_achievements_final_msg)) },
                 confirmButton = {
                     Button(
-                        onClick = {
+                        onClick = hapticAction(HapticKind.UI) {
                             AchievementManager.resetAll()
                             // Reset the flag to see the animation again if the game is restarted
                             context.getSharedPreferences("achievements_meta", Context.MODE_PRIVATE)
@@ -139,7 +142,7 @@
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                     ) { Text(stringResource(R.string.dialog_reset_achievements_final_confirm)) }
                 },
-                dismissButton = { TextButton(onClick = { showResetDialog2 = false }) { Text(stringResource(R.string.btn_cancel)) } },
+                dismissButton = { TextButton(onClick = hapticAction(HapticKind.UI) { showResetDialog2 = false }) { Text(stringResource(R.string.btn_cancel)) } },
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         }
@@ -241,7 +244,7 @@
                             // REPLAY BUTTON: Only visible if everything is unlocked
                             if (isAllUnlocked) {
                                 Button(
-                                    onClick = { showCompletionOverlay = true },
+                                    onClick = hapticAction(HapticKind.UI) { showCompletionOverlay = true },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFFFFD700), // Gold
@@ -260,7 +263,7 @@
 
                             // BOUTON RESET
                             OutlinedButton(
-                                onClick = { showResetDialog1 = true },
+                                onClick = hapticAction(HapticKind.UI) { showResetDialog1 = true },
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = MaterialTheme.colorScheme.error
                                 ),

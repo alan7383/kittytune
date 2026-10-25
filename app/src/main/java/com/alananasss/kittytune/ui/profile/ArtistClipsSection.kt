@@ -101,6 +101,9 @@ import com.alananasss.kittytune.data.network.ProxyManager
 import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.artist.ArtistClips
 import com.alananasss.kittytune.data.artist.Clip
 import com.alananasss.kittytune.data.together.Together
@@ -129,7 +132,7 @@ fun ArtistClipsSection(artistName: String, playerViewModel: PlayerViewModel) {
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             items(clips, key = { it.url }) { clip ->
-                ClipCard(clip, onClick = { watching = clip })
+                ClipCard(clip, onClick = hapticAction(HapticKind.UI) { watching = clip })
             }
         }
     }
@@ -158,7 +161,7 @@ fun HomeClipsShelf(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             items(clips, key = { it.url }) { clip ->
-                ClipCard(clip, onClick = { watching = clip })
+                ClipCard(clip, onClick = hapticAction(HapticKind.UI) { watching = clip })
             }
         }
     }
@@ -562,7 +565,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             FilledTonalButton(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     failed = false
                                     streamUrl = null
                                     scope.launch {
@@ -579,7 +582,7 @@ private fun ClipPlayerDialog(clip: Clip, playerViewModel: PlayerViewModel, onDis
 
                     if (isFullscreen) {
                         IconButton(
-                            onClick = { isFullscreen = false },
+                            onClick = hapticAction(HapticKind.UI) { isFullscreen = false },
                             shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = Color.Black.copy(alpha = 0.55f),

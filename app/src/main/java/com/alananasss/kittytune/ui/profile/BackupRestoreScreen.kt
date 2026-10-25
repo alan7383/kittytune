@@ -26,6 +26,9 @@
     import androidx.compose.ui.unit.sp
     import androidx.lifecycle.viewmodel.compose.viewModel
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.data.BackupManager
     import com.alananasss.kittytune.ui.common.SettingsGroup
     import com.alananasss.kittytune.ui.common.SettingsItem
@@ -71,7 +74,7 @@
                                         shape = shape,
                                         title = stringResource(R.string.backup_action),
                                         subtitle = stringResource(R.string.backup_desc),
-                                        onClick = { createDocumentLauncher.launch(BackupManager.getBackupFileName()) }
+                                        onClick = hapticAction(HapticKind.UI) { createDocumentLauncher.launch(BackupManager.getBackupFileName()) }
                                     )
                                 },
                                 { shape ->
@@ -79,7 +82,7 @@
                                         shape = shape,
                                         title = stringResource(R.string.restore_action),
                                         subtitle = stringResource(R.string.restore_desc),
-                                        onClick = { openDocumentLauncher.launch(arrayOf("*/*")) }
+                                        onClick = hapticAction(HapticKind.UI) { openDocumentLauncher.launch(arrayOf("*/*")) }
                                     )
                                 }
                             )

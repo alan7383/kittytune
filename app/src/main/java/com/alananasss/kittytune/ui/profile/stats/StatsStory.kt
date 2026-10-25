@@ -43,6 +43,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.stats.ListeningReport
 import com.alananasss.kittytune.data.stats.ReportArtist
 import com.alananasss.kittytune.data.stats.ReportPeriod
@@ -83,7 +86,7 @@ internal fun StoryStats(
                 Text(
                     stringResource(R.string.stats_story_numbers, report.plays, report.uniqueTracks, report.uniqueArtists),
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.clickable { onOpen(StatsListTarget.PLAYS) },
+                    modifier = Modifier.hapticClickable { onOpen(StatsListTarget.PLAYS) },
                 )
                 report.change?.let {
                     Spacer(Modifier.height(12.dp))
@@ -103,7 +106,7 @@ internal fun StoryStats(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         StatsCover(
                             artist.imageUrl,
-                            Modifier.size(110.dp).clip(CircleShape).clickable { onArtistClick(artist) },
+                            Modifier.size(110.dp).clip(CircleShape).hapticClickable { onArtistClick(artist) },
                             placeholder = Icons.Rounded.Person,
                         )
                         Spacer(Modifier.width(20.dp))
@@ -123,7 +126,7 @@ internal fun StoryStats(
                                     style = MaterialTheme.typography.bodyMedium,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.clickable { onArtistClick(other) }.padding(vertical = 2.dp),
+                                    modifier = Modifier.hapticClickable { onArtistClick(other) }.padding(vertical = 2.dp),
                                 )
                             }
                         }

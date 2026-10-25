@@ -27,9 +27,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.audio.providers.AudioProviderOrderItem
 import com.alananasss.kittytune.audio.providers.deezer.DeezerAudioQuality
-import com.alananasss.kittytune.audio.providers.qobuz.QobuzAudioProvider
 import com.alananasss.kittytune.audio.providers.tidal.TidalAudioQuality
 import com.alananasss.kittytune.data.DataSaver
 import com.alananasss.kittytune.data.TokenManager
@@ -99,11 +101,12 @@ fun AccountsSettingsScreen(
         if (item in disabledProviders) "$name $disabledSuffix" else name
     }
 
-    val qobuzInstances = prefs.getQobuzCustomInstances().split("\n").filter { it.isNotBlank() }
-    val qobuzSubtitle = if (qobuzInstances.isEmpty() || prefs.getQobuzCustomInstances() == QobuzAudioProvider.DEFAULT_INSTANCE) {
-        "${prefs.getQobuzCountry()} • ${stringResource(R.string.qobuz_custom_instances_desc_default)}"
-    } else {
-        "${prefs.getQobuzCountry()} • ${stringResource(R.string.qobuz_custom_instances_desc_custom, qobuzInstances.size)}"
+    val qobuzQuality = prefs.getQobuzQuality()
+    val qobuzSubtitle = when (qobuzQuality) {
+        27 -> stringResource(R.string.qobuz_quality_hires_192)
+        7 -> stringResource(R.string.qobuz_quality_hires_96)
+        6 -> stringResource(R.string.qobuz_quality_cd)
+        else -> stringResource(R.string.qobuz_quality_mp3_320)
     }
 
     val tidalQuality = prefs.getTidalAudioQuality()
@@ -123,6 +126,9 @@ fun AccountsSettingsScreen(
     // ─── Quality & data (the traffic controls moved here from the audio screen) ──
     var dataSaverEnabled by remember { mutableStateOf(prefs.getDataSaverEnabled()) }
     var dataSaverMeteredOnly by remember { mutableStateOf(prefs.getDataSaverMeteredOnly()) }
+    var dataSaverLyricsRestrict by remember { mutableStateOf(prefs.getDataSaverLyricsRestrictEnabled()) }
+    var dataSaverLyricsProviders by remember { mutableStateOf(prefs.getDataSaverLyricsProviders()) }
+    var showDataSaverLyricsDialog by remember { mutableStateOf(false) }
     var audioQuality by remember { mutableStateOf(prefs.getAudioQuality()) }
     var showQualityDialog by remember { mutableStateOf(false) }
     // Re-computed on every recomposition of the screen: flipping either switch above
@@ -138,7 +144,7 @@ fun AccountsSettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .hapticClickable {
                                 audioQuality = "HIGH"
                                 prefs.setAudioQuality("HIGH")
                                 showQualityDialog = false
@@ -156,7 +162,7 @@ fun AccountsSettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .hapticClickable {
                                 audioQuality = "LOW"
                                 prefs.setAudioQuality("LOW")
                                 showQualityDialog = false
@@ -174,10 +180,18 @@ fun AccountsSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showQualityDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showQualityDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
+        )
+    }
+
+    if (showDataSaverLyricsDialog) {
+        DataSaverLyricsProvidersDialog(
+            prefs = prefs,
+            onDismiss = { showDataSaverLyricsDialog = false },
+            onSaved = { dataSaverLyricsProviders = it },
         )
     }
 
@@ -194,6 +208,7 @@ fun AccountsSettingsScreen(
             "pref_tidal" to 1,
             "pref_deezer" to 1,
             "pref_data_saver" to 2,
+            "pref_data_saver_lyrics" to 2,
             "pref_quality" to 2
         )
     )
@@ -333,14 +348,45 @@ fun AccountsSettingsScreen(
                             enter = expandVertically() + fadeIn(),
                             exit = shrinkVertically() + fadeOut()
                         ) {
-                            SettingsItem(
-                                shape = RoundedCornerShape(4.dp),
-                                title = stringResource(R.string.data_saver_metered_only),
-                                subtitle = stringResource(R.string.data_saver_metered_only_sub),
-                                hasSwitch = true,
-                                switchState = dataSaverMeteredOnly,
-                                onSwitchChange = { dataSaverMeteredOnly = it; prefs.setDataSaverMeteredOnly(it) }
-                            )
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.data_saver_metered_only),
+                                    subtitle = stringResource(R.string.data_saver_metered_only_sub),
+                                    hasSwitch = true,
+                                    switchState = dataSaverMeteredOnly,
+                                    onSwitchChange = { dataSaverMeteredOnly = it; prefs.setDataSaverMeteredOnly(it) }
+                                )
+
+                                // Lyrics lookups are a surprising amount of traffic on a weak
+                                // network: 15 providers × several spellings per track. The
+                                // allowlist below trims that without touching normal playback.
+                                SettingsItem(
+                                    shape = RoundedCornerShape(4.dp),
+                                    title = stringResource(R.string.data_saver_lyrics_restrict_title),
+                                    subtitle = stringResource(R.string.data_saver_lyrics_restrict_sub),
+                                    hasSwitch = true,
+                                    switchState = dataSaverLyricsRestrict,
+                                    onSwitchChange = {
+                                        dataSaverLyricsRestrict = it
+                                        prefs.setDataSaverLyricsRestrictEnabled(it)
+                                    },
+                                    highlightKey = "pref_data_saver_lyrics"
+                                )
+
+                                AnimatedVisibility(
+                                    visible = dataSaverLyricsRestrict,
+                                    enter = expandVertically() + fadeIn(),
+                                    exit = shrinkVertically() + fadeOut()
+                                ) {
+                                    SettingsItem(
+                                        shape = RoundedCornerShape(4.dp),
+                                        title = stringResource(R.string.data_saver_lyrics_sources_title),
+                                        subtitle = dataSaverLyricsProviders.joinToString(", ") { it.displayName },
+                                        onClick = hapticAction(HapticKind.UI) { showDataSaverLyricsDialog = true }
+                                    )
+                                }
+                            }
                         }
 
                         // Stream quality, moved here from the audio screen. While the data
@@ -360,7 +406,7 @@ fun AccountsSettingsScreen(
                                 else -> stringResource(R.string.quality_low)
                             },
                             icon = Icons.Rounded.GraphicEq,
-                            onClick = { showQualityDialog = true }.takeUnless { dataSaverActive },
+                            onClick = hapticAction(HapticKind.UI) { showQualityDialog = true }.takeUnless { dataSaverActive },
                             highlightKey = "pref_quality"
                         )
                     }

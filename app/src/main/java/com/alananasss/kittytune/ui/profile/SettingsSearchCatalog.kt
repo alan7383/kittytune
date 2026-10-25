@@ -62,15 +62,17 @@ internal fun rememberSettingsSearchCatalog(
         var downloadDrm = prefs.getDownloadDrmStreamsEnabled()
         var discordRpc = prefs.getDiscordRpcEnabled()
         var dataSaver = prefs.getDataSaverEnabled()
+        var dataSaverLyricsRestrict = prefs.getDataSaverLyricsRestrictEnabled()
         var achievementPopups = prefs.getAchievementPopupsEnabled()
         var autoUpdate = prefs.getAutoUpdateEnabled()
         var betaUpdates = prefs.getBetaUpdatesEnabled()
         var rememberSearchFilter = prefs.getRememberSearchFilter()
         var showPlaylistTotalDuration = prefs.getShowPlaylistTotalDuration()
         var customFontEnabled = prefs.getCustomFontEnabled()
-        var explorerGridLayout = prefs.getExplorerGridLayout()
         var showHomeListeningStats = prefs.getShowHomeListeningStats()
         var showHomeYourMix = prefs.getShowHomeYourMix()
+        var showHomeMyWave = prefs.getShowHomeMyWave()
+        var showHomeCharts = prefs.getShowHomeCharts()
 
         val staticItems = listOf(
             // INTERFACE
@@ -176,6 +178,15 @@ internal fun rememberSettingsSearchCatalog(
                 onSwitchChange = {
                     dynamicTheme = it
                     prefs.setDynamicTheme(it)
+                    if (it) {
+                        if (trackDynamicTheme) {
+                            trackDynamicTheme = false
+                            prefs.setTrackDynamicTheme(false)
+                        }
+                    } else if (prefs.getKeyColor() == 0) {
+                        prefs.setKeyColor(0xFF1565C0.toInt())
+                        prefs.setColorStyle("Vibrant")
+                    }
                     onPreferenceChange()
                 }
             ),
@@ -400,24 +411,6 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
-                titleRes = R.string.pref_explorer_grid_title,
-                subtitleRes = R.string.pref_explorer_grid_subtitle,
-                categoryName = catInterface,
-                icon = Icons.Rounded.GridView,
-                route = "appearance_settings",
-                highlightKey = "pref_explorer_grid",
-                keywordsRes = R.string.keywords_explorer_grid,
-                hasSwitch = true,
-                switchState = explorerGridLayout,
-                onSwitchChange = {
-                    explorerGridLayout = it
-                    prefs.setExplorerGridLayout(it)
-                    onPreferenceChange()
-                }
-            ),
-            createSearchEntry(
-                context = context,
-                englishContext = englishContext,
                 titleRes = R.string.pref_library_category_layout_title,
                 subtitleRes = R.string.pref_library_category_layout_subtitle,
                 categoryName = catInterface,
@@ -513,6 +506,44 @@ internal fun rememberSettingsSearchCatalog(
                     onPreferenceChange()
                 }
             ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.wave_title,
+                subtitleRes = R.string.pref_home_my_wave_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.Waves,
+                route = "appearance_settings",
+                highlightKey = "pref_home_my_wave",
+                keywordsRes = R.string.keywords_my_wave,
+                keywords = listOf("mywave", "wave", "radio"),
+                hasSwitch = true,
+                switchState = showHomeMyWave,
+                onSwitchChange = {
+                    showHomeMyWave = it
+                    prefs.setShowHomeMyWave(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.chart_section_title,
+                subtitleRes = R.string.pref_home_charts_desc,
+                categoryName = catInterface,
+                icon = Icons.Rounded.TrendingUp,
+                route = "appearance_settings",
+                highlightKey = "pref_home_charts",
+                keywordsRes = R.string.keywords_charts,
+                keywords = listOf("charts", "ranking", "top"),
+                hasSwitch = true,
+                switchState = showHomeCharts,
+                onSwitchChange = {
+                    showHomeCharts = it
+                    prefs.setShowHomeCharts(it)
+                    onPreferenceChange()
+                }
+            ),
 
             // AUDIO
             createSearchEntry(
@@ -533,7 +564,7 @@ internal fun rememberSettingsSearchCatalog(
                 subtitleRes = R.string.equalizer_subtitle,
                 categoryName = catAudio,
                 icon = Icons.Rounded.Tune,
-                route = "audio_quality_settings",
+                route = "equalizer",
                 highlightKey = "equalizer",
                 keywordsRes = R.string.keywords_equalizer,
                 keywords = listOf("eq", "bass", "treble")
@@ -921,6 +952,25 @@ internal fun rememberSettingsSearchCatalog(
             createSearchEntry(
                 context = context,
                 englishContext = englishContext,
+                titleRes = R.string.data_saver_lyrics_restrict_title,
+                subtitleRes = R.string.data_saver_lyrics_restrict_sub,
+                categoryName = catSources,
+                icon = Icons.Rounded.Lyrics,
+                route = "accounts_settings",
+                highlightKey = "pref_data_saver_lyrics",
+                keywordsRes = R.string.keywords_data_saver_lyrics,
+                keywords = listOf("lyrics", "providers", "sources", "musixmatch", "lrclib", "data saver"),
+                hasSwitch = true,
+                switchState = dataSaverLyricsRestrict,
+                onSwitchChange = {
+                    dataSaverLyricsRestrict = it
+                    prefs.setDataSaverLyricsRestrictEnabled(it)
+                    onPreferenceChange()
+                }
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
                 titleRes = R.string.pref_quality,
                 subtitleRes = R.string.quality_high_sub,
                 categoryName = catSources,
@@ -1115,6 +1165,16 @@ internal fun rememberSettingsSearchCatalog(
                 icon = Icons.Rounded.Info,
                 route = "about",
                 keywords = listOf("github", "about", "version")
+            ),
+            createSearchEntry(
+                context = context,
+                englishContext = englishContext,
+                titleRes = R.string.pref_developer_options_title,
+                subtitleRes = R.string.pref_developer_options_subtitle,
+                categoryName = catMisc,
+                icon = Icons.Rounded.Code,
+                route = "developer_options",
+                keywords = listOf("developer", "debug", "logs", "overlay", "automix", "cache", "dev")
             )
         )
 

@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.utils.AppLogManager
 import kotlinx.coroutines.Dispatchers
@@ -175,7 +176,7 @@ fun AppLogsSheet(
 
                 FilledTonalIconButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         refreshData()
                     },
                     shapes = IconButtonDefaults.shapes(),
@@ -201,7 +202,7 @@ fun AppLogsSheet(
             ) {
                 Button(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         scope.launch {
                             val fullReport = AppLogManager.getFullReport(context)
                             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -230,7 +231,7 @@ fun AppLogsSheet(
 
                 FilledTonalButton(
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         scope.launch {
                             val fullReport = AppLogManager.getFullReport(context)
                             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -275,7 +276,7 @@ fun AppLogsSheet(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
                         selectedTab = 0
                     },
                     text = {
@@ -288,7 +289,7 @@ fun AppLogsSheet(
                 Tab(
                     selected = selectedTab == 1,
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
                         selectedTab = 1
                     },
                     text = {
@@ -301,7 +302,7 @@ fun AppLogsSheet(
                 Tab(
                     selected = selectedTab == 2,
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
                         selectedTab = 2
                     },
                     text = {
@@ -326,7 +327,7 @@ fun AppLogsSheet(
                 0 -> DiagnosticsTabContent(
                     diagnosticsMap = diagnosticsMap,
                     onCopySummary = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         val summary = AppLogManager.getDiagnosticsSummary(context)
                         val copied = AppLogManager.copyToClipboard(context, summary, "KittyTune Diagnostics")
                         if (copied) {
@@ -344,7 +345,7 @@ fun AppLogsSheet(
                     isLoading = isLoadingLogcat,
                     onSearchQueryChange = { searchQuery = it },
                     onSaveLogcat = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                         requestSaveFile(
                             "kittytune_logcat_$timestamp.txt",
@@ -355,12 +356,12 @@ fun AppLogsSheet(
                 2 -> CrashTabContent(
                     crashReport = lastCrash,
                     onClearCrash = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         AppLogManager.clearLastCrash(context)
                         lastCrash = null
                     },
                     onCopyCrash = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         lastCrash?.let {
                             val copied = AppLogManager.copyToClipboard(context, it, "KittyTune Crash")
                             if (copied) {

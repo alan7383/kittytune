@@ -17,8 +17,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.haptics.AppHapticMode
+import com.alananasss.kittytune.audio.haptics.HapticUtil
 import com.alananasss.kittytune.audio.haptics.PlayerHapticManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import com.alananasss.kittytune.ui.common.SettingsGroupTitle
 import com.alananasss.kittytune.ui.common.SettingsItem
 import com.alananasss.kittytune.ui.common.SettingsScaffold
@@ -36,6 +41,9 @@ fun HapticSettingsScreen(
     val hapticManager = remember { PlayerHapticManager.getInstance(context) }
     val hasHardware = remember { hapticManager.hasHardwareHaptics() }
 
+    var appHapticMode by remember { mutableStateOf(HapticUtil.hapticMode.value) }
+    var buttonsHaptics by remember { mutableStateOf(prefs.getHapticsButtons()) }
+    var slidersHaptics by remember { mutableStateOf(prefs.getHapticsSliders()) }
     var hapticsEnabled by remember { mutableStateOf(prefs.getHapticsEnabled()) }
     var hapticsStrength by remember { mutableStateOf(prefs.getHapticsStrength()) }
     var hapticsContrast by remember { mutableStateOf(prefs.getHapticContrast()) }
@@ -54,6 +62,110 @@ fun HapticSettingsScreen(
                 .fillMaxSize(),
             contentPadding = PaddingValues(bottom = 180.dp, top = 8.dp)
         ) {
+            // App & Interface Haptics Master Selector (Inspired by Essentials)
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    SettingsGroupTitle(stringResource(R.string.pref_haptics_app_section))
+
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.label_haptics_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = stringResource(R.string.pref_haptics_app_sub),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(14.dp))
+
+                            val hapticOptions = listOf(
+                                AppHapticMode.DISABLED,
+                                AppHapticMode.ENABLED,
+                                AppHapticMode.STRONGER
+                            )
+                            ExpressiveConnectedButtonGroup(
+                                options = hapticOptions,
+                                selectedOption = appHapticMode,
+                                onOptionSelected = { mode ->
+                                    appHapticMode = mode
+                                    HapticUtil.saveHapticMode(context, mode)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                hapticOnSelect = false,
+                                labelProvider = { mode ->
+                                    Text(
+                                        text = when (mode) {
+                                            AppHapticMode.DISABLED -> stringResource(R.string.haptic_mode_disabled)
+                                            AppHapticMode.ENABLED -> stringResource(R.string.haptic_mode_enabled)
+                                            AppHapticMode.STRONGER -> stringResource(R.string.haptic_mode_stronger)
+                                        },
+                                        style = MaterialTheme.typography.labelLarge,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            )
+
+                            Spacer(Modifier.height(18.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(Modifier.height(14.dp))
+                            Text(
+                                text = stringResource(R.string.pref_haptics_test_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(R.string.pref_haptics_test_sub),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                HapticPreviewButton(
+                                    label = stringResource(R.string.haptic_test_light),
+                                    kind = HapticKind.LIGHT,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                HapticPreviewButton(
+                                    label = stringResource(R.string.haptic_test_medium),
+                                    kind = HapticKind.MEDIUM,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                HapticPreviewButton(
+                                    label = stringResource(R.string.haptic_test_heavy),
+                                    kind = HapticKind.HEAVY,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                HapticPreviewButton(
+                                    label = stringResource(R.string.haptic_test_confirm),
+                                    kind = HapticKind.CONFIRM,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             // Master Haptics Section
             item {
                 Column(
@@ -203,10 +315,34 @@ fun HapticSettingsScreen(
                     SettingsGroupTitle(stringResource(R.string.pref_haptics_interactions))
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        val totalItems = 4
+                        val totalItems = 6
 
                         SettingsItem(
                             shape = getSettingsShape(totalItems, 0),
+                            title = stringResource(R.string.pref_haptics_buttons),
+                            subtitle = stringResource(R.string.pref_haptics_buttons_sub),
+                            hasSwitch = true,
+                            switchState = buttonsHaptics,
+                            onSwitchChange = {
+                                buttonsHaptics = it
+                                HapticUtil.saveButtonsHaptics(context, it)
+                            }
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalItems, 1),
+                            title = stringResource(R.string.pref_haptics_sliders),
+                            subtitle = stringResource(R.string.pref_haptics_sliders_sub),
+                            hasSwitch = true,
+                            switchState = slidersHaptics,
+                            onSwitchChange = {
+                                slidersHaptics = it
+                                HapticUtil.saveSlidersHaptics(context, it)
+                            }
+                        )
+
+                        SettingsItem(
+                            shape = getSettingsShape(totalItems, 2),
                             title = stringResource(R.string.pref_haptics_play_pause),
                             subtitle = stringResource(R.string.pref_haptics_play_pause_sub),
                             hasSwitch = true,
@@ -214,11 +350,12 @@ fun HapticSettingsScreen(
                             onSwitchChange = {
                                 playPauseHaptics = it
                                 prefs.setHapticsPlayPause(it)
+                                if (it) PlayerHapticManager.triggerInteractionHaptic(context, PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE, force = true)
                             }
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalItems, 1),
+                            shape = getSettingsShape(totalItems, 3),
                             title = stringResource(R.string.pref_haptics_seek),
                             subtitle = stringResource(R.string.pref_haptics_seek_sub),
                             hasSwitch = true,
@@ -226,11 +363,12 @@ fun HapticSettingsScreen(
                             onSwitchChange = {
                                 seekHaptics = it
                                 prefs.setHapticsSeek(it)
+                                if (it) PlayerHapticManager.triggerInteractionHaptic(context, PlayerPreferences.KEY_HAPTICS_SEEK, force = true)
                             }
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalItems, 2),
+                            shape = getSettingsShape(totalItems, 4),
                             title = stringResource(R.string.pref_haptics_like),
                             subtitle = stringResource(R.string.pref_haptics_like_sub),
                             hasSwitch = true,
@@ -238,11 +376,12 @@ fun HapticSettingsScreen(
                             onSwitchChange = {
                                 likeHaptics = it
                                 prefs.setHapticsLike(it)
+                                if (it) PlayerHapticManager.triggerInteractionHaptic(context, PlayerPreferences.KEY_HAPTICS_LIKE, force = true)
                             }
                         )
 
                         SettingsItem(
-                            shape = getSettingsShape(totalItems, 3),
+                            shape = getSettingsShape(totalItems, 5),
                             title = stringResource(R.string.pref_haptics_queue),
                             subtitle = stringResource(R.string.pref_haptics_queue_sub),
                             hasSwitch = true,
@@ -250,11 +389,34 @@ fun HapticSettingsScreen(
                             onSwitchChange = {
                                 queueHaptics = it
                                 prefs.setHapticsQueue(it)
+                                if (it) PlayerHapticManager.triggerInteractionHaptic(context, PlayerPreferences.KEY_HAPTICS_QUEUE, force = true)
                             }
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun HapticPreviewButton(
+    label: String,
+    kind: HapticKind,
+    modifier: Modifier = Modifier
+) {
+    val haptics = rememberAppHaptics()
+    FilledTonalButton(
+        onClick = { haptics.perform(kind) },
+        shapes = ButtonDefaults.shapes(),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        modifier = modifier.height(44.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
     }
 }
