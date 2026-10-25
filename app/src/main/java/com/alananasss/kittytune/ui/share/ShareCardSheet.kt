@@ -44,6 +44,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.theme.ArtworkPalette
 import kotlinx.coroutines.Dispatchers
@@ -134,12 +137,12 @@ fun ShareCardSheet(
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.padding(top = 20.dp)) {
                     SegmentedButton(
                         selected = !lyricsFace,
-                        onClick = { lyricsFace = false },
+                        onClick = hapticAction(HapticKind.UI) { lyricsFace = false },
                         shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
                     ) { Text(stringResource(R.string.share_card_face_song)) }
                     SegmentedButton(
                         selected = lyricsFace,
-                        onClick = { lyricsFace = true },
+                        onClick = hapticAction(HapticKind.UI) { lyricsFace = true },
                         shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
                     ) { Text(stringResource(R.string.share_card_face_lyrics)) }
                 }
@@ -166,7 +169,7 @@ fun ShareCardSheet(
                                     },
                                     shape = CircleShape,
                                 )
-                                .clickable { selected = style }
+                                .hapticClickable { selected = style }
                         )
                     }
                 }
@@ -175,7 +178,7 @@ fun ShareCardSheet(
             if (qrCover != null && !lyricsFace) {
                 FilterChip(
                     selected = asQr,
-                    onClick = { asQr = !asQr },
+                    onClick = hapticAction(HapticKind.UI) { asQr = !asQr },
                     label = { Text(stringResource(R.string.share_card_qr)) },
                     leadingIcon = {
                         Icon(
@@ -189,8 +192,8 @@ fun ShareCardSheet(
             }
 
             Button(
-                onClick = {
-                    if (busy) return@Button
+                onClick = hapticAction(HapticKind.UI) {
+                    if (busy) return@hapticAction
                     busy = true
                     scope.launch {
                         val uri = ShareCardExport.writeCard(context, graphicsLayer, trackId)

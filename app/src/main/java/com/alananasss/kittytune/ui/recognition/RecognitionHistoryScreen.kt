@@ -18,6 +18,7 @@ import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +32,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.data.RecognitionHistoryRepository
 import com.alananasss.kittytune.data.local.RecognitionHistoryItem
@@ -92,7 +96,7 @@ fun RecognitionHistoryScreen(
             text = { Text(stringResource(R.string.dialog_clear_history_msg)) },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         RecognitionHistoryRepository.clearHistory()
                         showClearHistoryDialog = false
                     }
@@ -101,7 +105,7 @@ fun RecognitionHistoryScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearHistoryDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showClearHistoryDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -127,7 +131,7 @@ fun RecognitionHistoryScreen(
                 actions = {
                     if (historyItems.isNotEmpty()) {
                         FilledTonalIconButton(
-                            onClick = { showClearHistoryDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showClearHistoryDialog = true },
                             shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -196,7 +200,7 @@ fun RecognitionHistoryScreen(
                             HistoryItemRow(
                                 item = item,
                                 currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     if (item.trackId != null) {
                                         val trackList = filteredItems.mapNotNull { historyItem ->
                                             historyItem.trackId?.let { id ->
@@ -263,7 +267,7 @@ fun HistoryItemRow(
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                     onOptionsClick()
                 }
             )

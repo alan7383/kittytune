@@ -50,6 +50,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.upload.SOUNDCLOUD_AUDIO_GENRES
 import com.alananasss.kittytune.data.upload.SOUNDCLOUD_MUSIC_GENRES
 
@@ -119,7 +122,7 @@ fun GenrePickerBottomSheet(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (selectedGenre.isNotBlank()) {
                         TextButton(
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 onGenreSelected("")
                                 onDismiss()
                             },
@@ -158,7 +161,7 @@ fun GenrePickerBottomSheet(
                 },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
-                        IconButton(onClick = { searchQuery = "" }) {
+                        IconButton(onClick = hapticAction(HapticKind.UI) { searchQuery = "" }) {
                             Icon(Icons.Rounded.Close, contentDescription = null)
                         }
                     }
@@ -186,7 +189,7 @@ fun GenrePickerBottomSheet(
                             genre = genre,
                             displayName = displayName,
                             isSelected = genre.equals(selectedGenre, ignoreCase = true),
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 onGenreSelected(genre)
                                 onDismiss()
                             }
@@ -203,7 +206,7 @@ fun GenrePickerBottomSheet(
                             genre = genre,
                             displayName = genre,
                             isSelected = genre.equals(selectedGenre, ignoreCase = true),
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 onGenreSelected(genre)
                                 onDismiss()
                             }
@@ -248,7 +251,7 @@ private fun GenreItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .hapticClickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

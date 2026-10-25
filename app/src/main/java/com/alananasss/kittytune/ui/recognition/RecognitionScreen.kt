@@ -39,7 +39,10 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material3.*
 import com.alananasss.kittytune.data.lyrics.GeniusVoices
+import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.MonthlyListenersText
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +72,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.rememberLottieDynamicProperties
 import com.airbnb.lottie.compose.rememberLottieDynamicProperty
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.haptics.HapticUtil
 import com.alananasss.kittytune.data.AchievementManager
 import com.alananasss.kittytune.data.LikeRepository
 import com.alananasss.kittytune.music.recognition.AudioCaptureManager
@@ -85,6 +89,7 @@ fun RecognitionScreen(
     onNavigate: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val haptics = rememberAppHaptics()
     val viewModel: RecognitionViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -309,6 +314,7 @@ fun RecognitionScreen(
 
         FilledTonalIconButton(
             onClick = {
+                haptics.perform(HapticKind.LIGHT)
                 if (state is RecognitionState.Searching) {
                     viewModel.cancelRecognition()
                 } else {
@@ -333,7 +339,10 @@ fun RecognitionScreen(
         }
 
         FilledTonalIconButton(
-            onClick = { onNavigate("recognition_history") },
+            onClick = {
+                haptics.perform(HapticKind.LIGHT)
+                onNavigate("recognition_history")
+            },
             shapes = IconButtonDefaults.shapes(),
             colors = IconButtonDefaults.filledTonalIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -410,6 +419,7 @@ private fun RecognitionHomeView(
                     interactionSource = interactionSource,
                     indication = null,
                     onClick = {
+                        HapticUtil.performHeavyHaptic(context)
                         if (isSearching) {
                             onCancel()
                         } else {
@@ -576,6 +586,7 @@ private fun SuccessView(
     onPlayClick: () -> Unit,
     onRetry: () -> Unit
 ) {
+    val context = LocalContext.current
     val shazamResult = state.result
     val soundcloudTrack = state.soundcloudTrack
     val imageUrl = shazamResult.coverArtHqUrl ?: soundcloudTrack?.fullResArtwork ?: shazamResult.coverArtUrl
@@ -694,7 +705,9 @@ private fun SuccessView(
             ) {
                 Button(
                     shapes = ButtonDefaults.shapes(),
-                    onClick = if (soundcloudTrack != null) onPlayClick else onRetry,
+                    onClick = hapticAction(HapticKind.HEAVY) {
+                        if (soundcloudTrack != null) onPlayClick() else onRetry()
+                    },
                     modifier = Modifier.weight(1f).height(56.dp),
                 ) {
                     Icon(if (soundcloudTrack != null) Icons.Rounded.PlayArrow else Icons.Rounded.Refresh, contentDescription = null)
@@ -710,6 +723,7 @@ private fun SuccessView(
                     FilledTonalIconButton(
                         shapes = IconButtonDefaults.shapes(),
                         onClick = {
+                            HapticUtil.performConfirmHaptic(context)
                             if (isLiked) {
                                 LikeRepository.removeLike(soundcloudTrack.id)
                             } else {
@@ -729,7 +743,7 @@ private fun SuccessView(
                     }
                     FilledTonalIconButton(
                         shapes = IconButtonDefaults.shapes(),
-                        onClick = onRetry,
+                        onClick = hapticAction(HapticKind.LIGHT, onRetry),
                         modifier = Modifier.size(56.dp),
                     ) {
                         Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.btn_retry))
@@ -843,7 +857,7 @@ private fun ErrorView(error: String, onRetry: () -> Unit) {
         Spacer(Modifier.height(48.dp))
 
         FilledTonalButton(
-            onClick = onRetry,
+            onClick = hapticAction(HapticKind.UI, onRetry),
             shapes = ButtonDefaults.shapes(),
             modifier = Modifier
                 .height(56.dp)

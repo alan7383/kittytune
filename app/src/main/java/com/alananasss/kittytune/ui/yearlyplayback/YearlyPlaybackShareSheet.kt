@@ -46,6 +46,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 
 /**
  * Bottom sheet modal for sharing story screenshots in SoundCloud Wrapped / Yearly Playback.
@@ -145,7 +148,7 @@ fun YearlyPlaybackShareSheet(
                 ) { option ->
                     CellSlideMicroSocialBubble(
                         item = option,
-                        onClick = { onSelectOption(option.target) }
+                        onClick = hapticAction(HapticKind.UI) { onSelectOption(option.target) }
                     )
                 }
             }
@@ -172,7 +175,7 @@ private fun CellSlideMicroSocialBubble(
         modifier = modifier
             .width(64.dp)
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .hapticClickable(onClick = onClick)
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
