@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.data.sync
 
 import com.google.gson.*
+import com.google.gson.annotations.SerializedName
 import com.alananasss.kittytune.domain.Track
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
