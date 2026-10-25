@@ -73,11 +73,50 @@ fun formatCompactNumber(count: Long): String {
 }
 
 fun getCountryStringRes(context: Context, code: String): Int {
+    val resId = when (code.lowercase(Locale.ROOT)) {
+        "ru" -> R.string.chart_country_ru
+        "us" -> R.string.chart_country_us
+        "uk" -> R.string.chart_country_uk
+        "de" -> R.string.chart_country_de
+        "fr" -> R.string.chart_country_fr
+        "hu" -> R.string.chart_country_hu
+        "vn" -> R.string.chart_country_vn
+        "fi" -> R.string.chart_country_fi
+        "se" -> R.string.chart_country_se
+        "no" -> R.string.chart_country_no
+        "pl" -> R.string.chart_country_pl
+        "it" -> R.string.chart_country_it
+        "es" -> R.string.chart_country_es
+        "nl" -> R.string.chart_country_nl
+        "ca" -> R.string.chart_country_ca
+        "au" -> R.string.chart_country_au
+        "jp" -> R.string.chart_country_jp
+        "br" -> R.string.chart_country_br
+        "mx" -> R.string.chart_country_mx
+        "ie" -> R.string.chart_country_ie
+        "at" -> R.string.chart_country_at
+        "cz" -> R.string.chart_country_cz
+        else -> 0
+    }
+    if (resId != 0) return resId
     val resName = "chart_country_${code.lowercase(Locale.ROOT)}"
     return context.resources.getIdentifier(resName, "string", context.packageName)
 }
 
 fun getGenreStringRes(context: Context, id: String): Int {
+    val resId = when (id.lowercase(Locale.ROOT)) {
+        "all" -> R.string.chart_genre_all
+        "pop" -> R.string.chart_genre_pop
+        "hiphop" -> R.string.chart_genre_hiphop
+        "electronic" -> R.string.chart_genre_electronic
+        "rock" -> R.string.chart_genre_rock
+        "rnb" -> R.string.chart_genre_rnb
+        "country" -> R.string.chart_genre_country
+        "latin" -> R.string.chart_genre_latin
+        "folk" -> R.string.chart_genre_folk
+        else -> 0
+    }
+    if (resId != 0) return resId
     val resName = "chart_genre_${id.lowercase(Locale.ROOT)}"
     return context.resources.getIdentifier(resName, "string", context.packageName)
 }

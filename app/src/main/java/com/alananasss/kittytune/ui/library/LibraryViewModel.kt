@@ -135,11 +135,13 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     val folderStack: List<Long> get() = _folderStack
 
     fun navigateToFolder(folder: LibraryFolder) {
+        isReorderMode = false
         _folderStack.add(folder.id)
         currentFolderId = folder.id
     }
 
     fun navigateUp(): Boolean {
+        isReorderMode = false
         if (_folderStack.isNotEmpty()) {
             _folderStack.removeAt(_folderStack.size - 1)
             currentFolderId = _folderStack.lastOrNull()
@@ -153,6 +155,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun navigateToRoot() {
+        isReorderMode = false
         _folderStack.clear()
         currentFolderId = null
     }
@@ -336,8 +339,16 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
                 LibrarySortOption.MANUAL -> {
                     val positions = manualOrder.withIndex().associate { it.value to it.index }
                     items.sortedWith(
-                        compareBy<LibraryItem> { positions[it.key] ?: Int.MAX_VALUE }
-                            .thenBy(String.CASE_INSENSITIVE_ORDER) { it.key }
+                        compareBy<LibraryItem> { item ->
+                            // Unpositioned (newly added/liked) items come first (rank 0), before manually ordered items (rank 1)
+                            if (positions.containsKey(item.key)) 1 else 0
+                        }.thenByDescending { item ->
+                            // For unpositioned items at the top, sort by timestamp descending (newest first)
+                            if (!positions.containsKey(item.key)) item.timestamp else 0L
+                        }.thenBy { item ->
+                            // For manually ordered items, sort by their saved position
+                            positions[item.key] ?: 0
+                        }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.key }
                     )
                 }
             }
@@ -375,6 +386,7 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
             .orEmpty()
     )
         private set
+    var isReorderMode by mutableStateOf(false)
     var sortOption by mutableStateOf(
         try {
             LibrarySortOption.valueOf(
@@ -744,8 +756,23 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
      * reordering on never makes the library jump under the finger.
      */
     fun enableManualOrder() {
-        if (manualOrder.isEmpty()) {
-            manualOrder = displayedItems.map { it.key }
+        val visible = displayedItems.map { it.key }
+        if (visible.isNotEmpty()) {
+            val visibleSet = visible.toSet()
+            val missing = visible.filter { it !in manualOrder }
+            val base = if (missing.isNotEmpty()) {
+                missing + manualOrder
+            } else {
+                manualOrder.toMutableList()
+            }.toMutableList()
+
+            var nextVisible = 0
+            for (i in base.indices) {
+                if (base[i] in visibleSet && nextVisible < visible.size) {
+                    base[i] = visible[nextVisible++]
+                }
+            }
+            manualOrder = base.distinct()
             prefs.edit().putString("library_manual_order", manualOrder.joinToString("\n")).apply()
         }
         sortOption = LibrarySortOption.MANUAL
@@ -766,8 +793,15 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         visible.removeAt(fromIndex)
         visible.add(toIndex.coerceIn(0, visible.size), fromKey)
 
+        val missingInManual = visible.filter { it !in manualOrder }
+        val baseOrder = if (missingInManual.isNotEmpty()) {
+            missingInManual + manualOrder
+        } else {
+            manualOrder
+        }
+
         val visibleSet = visible.toSet()
-        val merged = (manualOrder + visible).distinct().toMutableList()
+        val merged = (baseOrder + visible).distinct().toMutableList()
         var nextVisible = 0
         for (index in merged.indices) {
             if (merged[index] in visibleSet) {

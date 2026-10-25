@@ -78,6 +78,7 @@ import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.MusicManager
+import com.alananasss.kittytune.data.local.FullPlayerBgStyle
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.PlayerActionButtonSlot
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
@@ -951,7 +952,7 @@ fun NewPlayerScreen(
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
-    var backgroundStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
+    val backgroundStyle = viewModel.fullPlayerBgStyle
     val fadeUiEnabled by prefs.getAnimatedCoversFadeUiFlow().collectAsState(initial = prefs.getAnimatedCoversFadeUiEnabled())
     val backdropAnimatedUrl = if (fadeUiEnabled) {
         viewModel.currentAnimatedCoverTallUrl ?: viewModel.currentAnimatedCoverUrl
@@ -967,8 +968,6 @@ fun NewPlayerScreen(
             } else if (key == "waveform_comments_enabled" || key == PlayerPreferences.KEY_PLAYER_PROGRESS_MODE || key == PlayerPreferences.KEY_PLAYER_DESIGN) {
                 waveformCommentsEnabled = prefs.getWaveformCommentsEnabled()
                 playerProgressMode = prefs.getPlayerProgressMode()
-            } else if (key == PlayerPreferences.KEY_PLAYER_STYLE) {
-                backgroundStyle = prefs.getPlayerStyle()
             }
         }
         sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
@@ -977,7 +976,7 @@ fun NewPlayerScreen(
         }
     }
 
-    val isBlurMode = backgroundStyle == PlayerBackgroundStyle.BLUR || backgroundStyle == PlayerBackgroundStyle.APPLE_MUSIC
+    val isBlurMode = backgroundStyle == FullPlayerBgStyle.BLUR || backgroundStyle == FullPlayerBgStyle.APPLE_MUSIC || backgroundStyle == FullPlayerBgStyle.PURE_BLACK
 
     val mainContentColor by animateColorAsState(
         targetValue = if (isBlurMode) Color.White else MaterialTheme.colorScheme.onBackground,
@@ -1033,7 +1032,7 @@ fun NewPlayerScreen(
             .background(if (isBlurMode) Color.Black else MaterialTheme.colorScheme.background)
     ) {
         when (backgroundStyle) {
-            PlayerBackgroundStyle.BLUR -> {
+            FullPlayerBgStyle.BLUR -> {
                 Crossfade(
                     targetState = track.fullResArtwork,
                     animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
@@ -1043,7 +1042,14 @@ fun NewPlayerScreen(
                         model = artworkUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().blur(80.dp).alpha(0.6f)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = 1.25f
+                                scaleY = 1.25f
+                            }
+                            .blur(90.dp)
+                            .alpha(0.75f)
                     )
                 }
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
@@ -1056,9 +1062,20 @@ fun NewPlayerScreen(
                             .alpha(0.85f)
                     )
                 }
+                // Gradient scrim to ensure high contrast for controls and metadata
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            0.0f to Color.Black.copy(alpha = 0.45f),
+                            0.35f to Color.Black.copy(alpha = 0.20f),
+                            0.65f to Color.Black.copy(alpha = 0.35f),
+                            1.0f to Color.Black.copy(alpha = 0.65f)
+                        )
+                    )
+                )
             }
 
-            PlayerBackgroundStyle.GRADIENT -> {
+            FullPlayerBgStyle.GRADIENT -> {
                 Box(
                     Modifier.fillMaxSize().background(
                         Brush.verticalGradient(
@@ -1072,11 +1089,11 @@ fun NewPlayerScreen(
                 )
             }
 
-            PlayerBackgroundStyle.THEME -> {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+            FullPlayerBgStyle.PURE_BLACK -> {
+                Box(Modifier.fillMaxSize().background(Color.Black))
             }
 
-            PlayerBackgroundStyle.APPLE_MUSIC -> {
+            FullPlayerBgStyle.APPLE_MUSIC -> {
                 // The night screen covers this fully: freeze the drift while it is up, and save the
                 // 30 fps of AGSL blur nobody can see.
                 FluidArtworkBackground(
@@ -11417,7 +11434,7 @@ fun OldPlayerScreen(
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
-    var backgroundStyle by remember { mutableStateOf(prefs.getPlayerStyle()) }
+    val backgroundStyle = viewModel.fullPlayerBgStyle
     val fadeUiEnabled by prefs.getAnimatedCoversFadeUiFlow().collectAsState(initial = prefs.getAnimatedCoversFadeUiEnabled())
     val backdropAnimatedUrl = if (fadeUiEnabled) {
         viewModel.currentAnimatedCoverTallUrl ?: viewModel.currentAnimatedCoverUrl
@@ -11428,8 +11445,6 @@ fun OldPlayerScreen(
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == "show_lyrics_button_enabled") {
                 showLyricsButtonEnabled = prefs.getShowLyricsButtonEnabled()
-            } else if (key == PlayerPreferences.KEY_PLAYER_STYLE) {
-                backgroundStyle = prefs.getPlayerStyle()
             }
         }
         sharedPrefs.registerOnSharedPreferenceChangeListener(listener)
@@ -11438,7 +11453,7 @@ fun OldPlayerScreen(
         }
     }
 
-    val isBlurMode = backgroundStyle == PlayerBackgroundStyle.BLUR || backgroundStyle == PlayerBackgroundStyle.APPLE_MUSIC
+    val isBlurMode = backgroundStyle == FullPlayerBgStyle.BLUR || backgroundStyle == FullPlayerBgStyle.APPLE_MUSIC || backgroundStyle == FullPlayerBgStyle.PURE_BLACK
     val windowSizeInfo = rememberWindowSizeInfo()
 
     val mainContentColor by animateColorAsState(
@@ -11500,7 +11515,7 @@ fun OldPlayerScreen(
             .background(if (isBlurMode) Color.Black else MaterialTheme.colorScheme.background)
     ) {
         when (backgroundStyle) {
-            PlayerBackgroundStyle.BLUR -> {
+            FullPlayerBgStyle.BLUR -> {
                 Crossfade(
                     targetState = track.fullResArtwork,
                     animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
@@ -11510,7 +11525,14 @@ fun OldPlayerScreen(
                         model = artworkUrl,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize().blur(80.dp).alpha(0.6f)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = 1.25f
+                                scaleY = 1.25f
+                            }
+                            .blur(90.dp)
+                            .alpha(0.75f)
                     )
                 }
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
@@ -11523,9 +11545,20 @@ fun OldPlayerScreen(
                             .alpha(0.85f)
                     )
                 }
+                // Gradient scrim to ensure high contrast for controls and metadata
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            0.0f to Color.Black.copy(alpha = 0.45f),
+                            0.35f to Color.Black.copy(alpha = 0.20f),
+                            0.65f to Color.Black.copy(alpha = 0.35f),
+                            1.0f to Color.Black.copy(alpha = 0.65f)
+                        )
+                    )
+                )
             }
 
-            PlayerBackgroundStyle.GRADIENT -> {
+            FullPlayerBgStyle.GRADIENT -> {
                 Box(
                     Modifier.fillMaxSize().background(
                         Brush.verticalGradient(
@@ -11539,11 +11572,11 @@ fun OldPlayerScreen(
                 )
             }
 
-            PlayerBackgroundStyle.THEME -> {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+            FullPlayerBgStyle.PURE_BLACK -> {
+                Box(Modifier.fillMaxSize().background(Color.Black))
             }
 
-            PlayerBackgroundStyle.APPLE_MUSIC -> {
+            FullPlayerBgStyle.APPLE_MUSIC -> {
                 // The night screen covers this fully: freeze the drift while it is up, and save the
                 // 30 fps of AGSL blur nobody can see.
                 FluidArtworkBackground(

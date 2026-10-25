@@ -197,25 +197,28 @@ object VibesRepository {
             )
         )
 
-        val result = mutableListOf<Vibe>()
-
-        for ((id, displayName, keywords) in vibeDefinitions) {
-            val matchingTrackIds = tracks.filter { track ->
-                val genre = track.genre.orEmpty().lowercase()
-                val tagList = track.tagList.orEmpty().lowercase()
-                val title = track.title.orEmpty().lowercase()
-                keywords.any { kw ->
-                    genre.contains(kw) || tagList.contains(kw) || title.contains(kw)
+        val vibeTrackIds = vibeDefinitions.associate { it.first to mutableSetOf<Long>() }
+        for (track in tracks) {
+            val genre = track.genre?.lowercase().orEmpty()
+            val tagList = track.tagList?.lowercase().orEmpty()
+            val title = track.title?.lowercase().orEmpty()
+            for ((id, _, keywords) in vibeDefinitions) {
+                if (keywords.any { genre.contains(it) || tagList.contains(it) || title.contains(it) }) {
+                    vibeTrackIds[id]?.add(track.id)
                 }
-            }.map { it.id }.toSet()
+            }
+        }
 
-            if (matchingTrackIds.isNotEmpty()) {
+        val result = mutableListOf<Vibe>()
+        for ((id, displayName, _) in vibeDefinitions) {
+            val matchingIds = vibeTrackIds[id]
+            if (!matchingIds.isNullOrEmpty()) {
                 result.add(
                     Vibe(
                         id = id,
                         displayName = displayName,
-                        size = matchingTrackIds.size,
-                        trackIds = matchingTrackIds
+                        size = matchingIds.size,
+                        trackIds = matchingIds
                     )
                 )
             }

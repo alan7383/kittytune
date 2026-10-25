@@ -336,8 +336,12 @@ fun PixelPlayerScreen(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
-                            .blur(80.dp)
-                            .alpha(0.6f)
+                            .graphicsLayer {
+                                scaleX = 1.25f
+                                scaleY = 1.25f
+                            }
+                            .blur(90.dp)
+                            .alpha(0.75f)
                     )
                 }
                 if (!backdropAnimatedUrl.isNullOrBlank()) {
@@ -350,6 +354,18 @@ fun PixelPlayerScreen(
                             .alpha(0.85f)
                     )
                 }
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.0f to Color.Black.copy(alpha = 0.45f),
+                                0.35f to Color.Black.copy(alpha = 0.20f),
+                                0.65f to Color.Black.copy(alpha = 0.35f),
+                                1.0f to Color.Black.copy(alpha = 0.65f)
+                            )
+                        )
+                )
             }
 
             PlayerBackgroundStyle.GRADIENT -> {

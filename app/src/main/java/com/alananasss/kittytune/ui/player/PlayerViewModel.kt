@@ -546,6 +546,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     var lastFetchedMxmTrackId: Long? = null
 
     var lyricsFontSize by mutableFloatStateOf(playerPrefs.getLyricsFontSize())
+    var quickLyricsTab by mutableIntStateOf(playerPrefs.getQuickLyricsTab())
+        private set
+
+    fun updateQuickLyricsTab(tabIndex: Int) {
+        quickLyricsTab = tabIndex
+        playerPrefs.setQuickLyricsTab(tabIndex)
+    }
+
     var lyricsAlignment by mutableStateOf(playerPrefs.getLyricsAlignment())
     var lyricsProvider by mutableStateOf(playerPrefs.getLyricsProvider())
         private set
@@ -3757,15 +3765,35 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun navigateToContext() {
-        currentContext?.let { context ->
+        val context = currentContext
+        if (context != null) {
             var destination = context.navigationId
+            if (destination.isBlank()) return
             if (destination.startsWith("playlist_detail:")) {
                 destination = destination.removePrefix("playlist_detail:")
+            } else if (destination.startsWith("playlist_detail/")) {
+                destination = destination.removePrefix("playlist_detail/")
             } else if (destination.startsWith("playlist_")) {
                 destination = destination.removePrefix("playlist_")
             }
             destination = destination.removePrefix(TRAILER_NAV_PREFIX)
+            isPlayerExpanded = false
             navigateToPlaylistId = destination
+            return
+        }
+
+        val track = currentTrack ?: uiCurrentTrack ?: return
+        val albumId = track.publisherMetadata?.albumId
+        if (!albumId.isNullOrBlank()) {
+            isPlayerExpanded = false
+            navigateToPlaylistId = albumId
+            return
+        }
+        val userId = track.user?.id
+        if (userId != null && userId > 0L) {
+            isPlayerExpanded = false
+            navigateToPlaylistId = "profile:$userId"
+            return
         }
     }
 

@@ -64,14 +64,6 @@ internal fun LikesAura(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val sample = remember(likes.size) { likes.take(SAMPLE_SIZE) }
-    val swatches by produceState<List<Swatch>>(initialValue = emptyList(), sample, context) {
-        value = withContext(Dispatchers.IO) { swatchesOf(context, sample) }
-    }
-    val scheme = androidx.compose.material3.MaterialTheme.colorScheme
-    val palette = remember(swatches, scheme.primary, scheme.tertiary, scheme.secondary) {
-        AuraPalette.of(swatches.map { it.color to it.tracks.size }, listOf(scheme.primary, scheme.tertiary, scheme.secondary))
-    }
     // Lit by listening to the liked songs, that is, playing from this very list, not by any song that happens to be liked.
     val isLikedPlaying = playerViewModel.isPlaying && playerViewModel.currentContext?.navigationId == "likes"
     // A song ending, a skip or a buffering pause drops "playing" for a moment; waiting a little before letting go keeps the
@@ -88,7 +80,18 @@ internal fun LikesAura(
         label = "likesAura",
     )
     // Nothing drawn, and nothing running, once it has faded out.
-    if (intensity <= 0.01f) return
+    if (intensity <= 0.01f && !lit) return
+
+    val sample = remember(likes.size) { likes.take(SAMPLE_SIZE) }
+    val swatches by produceState<List<Swatch>>(initialValue = emptyList(), sample, context, lit) {
+        if (lit) {
+            value = withContext(Dispatchers.IO) { swatchesOf(context, sample) }
+        }
+    }
+    val scheme = androidx.compose.material3.MaterialTheme.colorScheme
+    val palette = remember(swatches, scheme.primary, scheme.tertiary, scheme.secondary) {
+        AuraPalette.of(swatches.map { it.color to it.tracks.size }, listOf(scheme.primary, scheme.tertiary, scheme.secondary))
+    }
 
     val transition = rememberInfiniteTransition(label = "likesAuraDrift")
     // A whole turn, started over: the blobs go round by whole turns of it (see below), so the loop has no seam.

@@ -43,6 +43,17 @@ object LikeRepository {
     private val _likedTracks = MutableStateFlow<List<Track>>(emptyList())
     val likedTracks = _likedTracks.asStateFlow()
 
+    private val _likedTrackIds = MutableStateFlow<Set<Long>>(emptySet())
+    val likedTrackIds = _likedTrackIds.asStateFlow()
+
+    private inline fun updateLikedTracks(crossinline block: (List<Track>) -> List<Track>) {
+        _likedTracks.update { current ->
+            val result = block(current)
+            _likedTrackIds.value = result.mapTo(HashSet(result.size)) { it.id }
+            result
+        }
+    }
+
     private val _likedPlaylists = MutableStateFlow<Set<Long>>(emptySet())
     val likedPlaylists = _likedPlaylists.asStateFlow()
 
@@ -74,6 +85,7 @@ object LikeRepository {
         api = RetrofitClient.create(context)
         playerPrefs = com.alananasss.kittytune.data.local.PlayerPreferences(context)
         loadFromStorage()
+        _likedTrackIds.value = _likedTracks.value.mapTo(HashSet(_likedTracks.value.size)) { it.id }
         scope.launch {
             com.alananasss.kittytune.data.sync.SyncLikes.seedMissing()
             com.alananasss.kittytune.data.sync.SyncLikes.seedMissingPlaylists()
@@ -94,7 +106,7 @@ object LikeRepository {
     fun addLike(track: Track) {
         removeFromBlacklist(track.id)
 
-        _likedTracks.update { current ->
+        updateLikedTracks { current ->
             val safeSource = track.source ?: "soundcloud"
             if (current.any { it.id == track.id }) {
                 current
@@ -169,7 +181,7 @@ object LikeRepository {
 
         val now = System.currentTimeMillis()
         toLike.forEach { removeFromBlacklist(it.id) }
-        _likedTracks.update { current ->
+        updateLikedTracks { current ->
             val byId = current.associateBy { it.id }.toMutableMap()
             for (track in toLike) {
                 val safeSource = track.source ?: "soundcloud"
@@ -249,7 +261,7 @@ object LikeRepository {
 
         addToBlacklist(trackId)
 
-        _likedTracks.update { it.filterNot { t -> t.id == trackId } }
+        updateLikedTracks { it.filterNot { t -> t.id == trackId } }
 
         saveLikedTracks()
         com.alananasss.kittytune.data.sync.SyncLikes.record(trackId, liked = false, track = null)
@@ -294,7 +306,7 @@ object LikeRepository {
     }
 
     fun isTrackLiked(trackId: Long): Boolean {
-        return _likedTracks.value.any { it.id == trackId }
+        return _likedTrackIds.value.contains(trackId)
     }
 
     fun isPlaylistLiked(playlistId: Long): Boolean {
@@ -405,7 +417,7 @@ object LikeRepository {
             cachedUserId = currentUserId
         }
 
-        _likedTracks.update { currentLocalList ->
+        updateLikedTracks { currentLocalList ->
             val blacklist = getBlacklist()
 
             val serverList = serverTracks
@@ -432,11 +444,11 @@ object LikeRepository {
         }
     }
 
-    fun likedTrackIds(): Set<Long> = _likedTracks.value.mapTo(HashSet(_likedTracks.value.size)) { it.id }
+    fun likedTrackIds(): Set<Long> = _likedTrackIds.value
 
     fun applyRemoteLike(track: Track, likedAtMs: Long) {
         removeFromBlacklist(track.id)
-        _likedTracks.update { current ->
+        updateLikedTracks { current ->
             val safeSource = track.source ?: "soundcloud"
             if (current.any { it.id == track.id }) {
                 current.map {
@@ -467,7 +479,7 @@ object LikeRepository {
     fun applyRemoteLikesBatch(tracks: List<Pair<Track, Long>>) {
         if (tracks.isEmpty()) return
         tracks.forEach { removeFromBlacklist(it.first.id) }
-        _likedTracks.update { current ->
+        updateLikedTracks { current ->
             val trackMap = current.associateBy { it.id }.toMutableMap()
             val now = System.currentTimeMillis()
             for ((track, likedAtMs) in tracks) {
@@ -494,7 +506,7 @@ object LikeRepository {
 
     fun applyRemoteUnlike(trackId: Long) {
         addToBlacklist(trackId)
-        _likedTracks.update { it.filterNot { t -> t.id == trackId } }
+        updateLikedTracks { it.filterNot { t -> t.id == trackId } }
         saveLikedTracks()
     }
 
@@ -504,7 +516,7 @@ object LikeRepository {
     fun applyRemoteUnlikesBatch(trackIds: Set<Long>) {
         if (trackIds.isEmpty()) return
         trackIds.forEach { addToBlacklist(it) }
-        _likedTracks.update { it.filterNot { t -> t.id in trackIds } }
+        updateLikedTracks { it.filterNot { t -> t.id in trackIds } }
         saveLikedTracks()
     }
 
@@ -534,6 +546,7 @@ object LikeRepository {
     fun clear() {
         cachedUserId = null
         _likedTracks.value = emptyList()
+        _likedTrackIds.value = emptySet()
         _likedPlaylists.value = emptySet()
         _isSyncing.value = false
         prefs.edit()
@@ -630,6 +643,7 @@ object LikeRepository {
             }
             val blacklist = getBlacklist()
             _likedTracks.value = migratedList.filter { !blacklist.contains(it.id) }
+            _likedTrackIds.value = _likedTracks.value.mapTo(HashSet(_likedTracks.value.size)) { it.id }
             saveLikedTracks()
         }
 

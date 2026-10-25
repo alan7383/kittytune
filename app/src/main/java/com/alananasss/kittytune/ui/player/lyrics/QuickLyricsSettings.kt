@@ -53,7 +53,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,9 +74,6 @@ import com.alananasss.kittytune.core.Toaster
 import com.alananasss.kittytune.core.str
 import com.alananasss.kittytune.data.DataSaver
 import com.alananasss.kittytune.data.local.FullPlayerBgStyle
-import com.alananasss.kittytune.data.local.FullPlayerHeartSide
-import com.alananasss.kittytune.data.local.FullPlayerInfoAlign
-import com.alananasss.kittytune.data.local.FullPlayerLayout
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.LyricsDisplayStyle
 import com.alananasss.kittytune.data.local.LyricsFont
@@ -108,11 +104,10 @@ fun QuickLyricsSettingsDialog(
     viewModel: PlayerViewModel,
     isFullScreen: Boolean = false,
     isSidebar: Boolean = false,
-    onFocusMode: (() -> Unit)? = null,
     onDismiss: () -> Unit,
 ) {
     val knobs = remember(viewModel, isFullScreen, isSidebar) { ModeKnobs(viewModel, isFullScreen, isSidebar) }
-    var tab by rememberSaveable { mutableStateOf(QuickTab.LOOK) }
+    val currentTab = QuickTab.entries.getOrElse(viewModel.quickLyricsTab) { QuickTab.LOOK }
     var showLanguagePicker by remember { mutableStateOf(false) }
     var showSourceOrder by remember { mutableStateOf(false) }
 
@@ -142,7 +137,6 @@ fun QuickLyricsSettingsDialog(
                     onDismiss()
                     viewModel.isSearchingLyrics = true
                 },
-                onFocusMode = onFocusMode?.let { start -> { onDismiss(); start() } },
                 onDismiss = onDismiss,
             )
             Spacer(Modifier.height(14.dp))
@@ -157,8 +151,8 @@ fun QuickLyricsSettingsDialog(
                 Spacer(Modifier.height(14.dp))
                 ExpressiveConnectedButtonGroup(
                     options = QuickTab.entries,
-                    selectedOption = tab,
-                    onOptionSelected = { tab = it },
+                    selectedOption = currentTab,
+                    onOptionSelected = { viewModel.updateQuickLyricsTab(it.ordinal) },
                     iconProvider = { Icon(it.icon, null, modifier = Modifier.size(18.dp)) },
                     labelProvider = {
                         Text(str(it.labelKey), style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
@@ -166,7 +160,7 @@ fun QuickLyricsSettingsDialog(
                 )
                 Spacer(Modifier.height(12.dp))
                 AnimatedContent(
-                    targetState = tab,
+                    targetState = currentTab,
                     transitionSpec = { fadeIn(tween(180, delayMillis = 60)) togetherWith fadeOut(tween(120)) },
                     label = "quickLyricsTab",
                 ) { shown ->
@@ -192,7 +186,7 @@ fun QuickLyricsSettingsDialog(
 }
 
 @Composable
-private fun Header(onSearch: () -> Unit, onFocusMode: (() -> Unit)?, onDismiss: () -> Unit) {
+private fun Header(onSearch: () -> Unit, onDismiss: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         RowIcon(Icons.Rounded.Lyrics, large = true)
         Spacer(Modifier.width(14.dp))
@@ -205,13 +199,6 @@ private fun Header(onSearch: () -> Unit, onFocusMode: (() -> Unit)?, onDismiss: 
         Tip(str("lyrics_manual_search")) {
             IconButton(shapes = IconButtonDefaults.shapes(), onClick = onSearch) {
                 Icon(Icons.Rounded.Search, str("lyrics_manual_search"))
-            }
-        }
-        if (onFocusMode != null) {
-            Tip(str("screensaver_focus_mode")) {
-                IconButton(shapes = IconButtonDefaults.shapes(), onClick = onFocusMode) {
-                    Icon(Icons.Rounded.DarkMode, str("screensaver_focus_mode"))
-                }
             }
         }
         IconButton(shapes = IconButtonDefaults.shapes(), onClick = onDismiss) {
@@ -372,64 +359,6 @@ private fun ColumnScope.LookTab(viewModel: PlayerViewModel, knobs: ModeKnobs, is
             sketch = { BackgroundSketch(it) },
         )
     }
-    ChoiceRow(icon = Icons.Rounded.Dashboard, title = str("full_player_layout")) {
-        SketchChoices(
-            options = FullPlayerLayout.entries,
-            selected = viewModel.fullPlayerLayout,
-            label = { layoutLabel(it) },
-            onSelect = { viewModel.updateFullPlayerLayout(it) },
-            sketch = { LayoutSketch(it) },
-        )
-    }
-    ChoiceRow(icon = Icons.Rounded.FormatAlignCenter, title = str("full_player_info_align")) {
-        ExpressiveConnectedButtonGroup(
-            options = FullPlayerInfoAlign.entries,
-            selectedOption = viewModel.fullPlayerInfoAlign,
-            onOptionSelected = { viewModel.updateFullPlayerInfoAlign(it) },
-            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-            labelProvider = { ChoiceLabel(infoAlignLabel(it)) },
-        )
-    }
-    AnimatedVisibility(viewModel.fullPlayerInfoAlign == FullPlayerInfoAlign.CENTER) {
-        ChoiceRow(icon = Icons.Rounded.Favorite, title = str("full_player_heart_side")) {
-            ExpressiveConnectedButtonGroup(
-                options = FullPlayerHeartSide.entries,
-                selectedOption = viewModel.fullPlayerHeartSide,
-                onOptionSelected = { viewModel.updateFullPlayerHeartSide(it) },
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp),
-                labelProvider = { ChoiceLabel(heartSideLabel(it)) },
-            )
-        }
-    }
-    SwitchRow(
-        icon = Icons.Rounded.BlurOn,
-        title = str("full_player_cover_feather"),
-        subtitle = str("full_player_cover_feather_desc"),
-        checked = viewModel.fullPlayerCoverFeather,
-        onChange = { viewModel.updateFullPlayerCoverFeather(it) },
-    )
-    AnimatedVisibility(viewModel.fullPlayerCoverFeather) {
-        SliderRow(
-            icon = Icons.Rounded.BlurLinear,
-            title = str("full_player_cover_feather_amount"),
-            value = viewModel.fullPlayerCoverFeatherAmount,
-            valueText = "${(viewModel.fullPlayerCoverFeatherAmount * 100).roundToInt()}%",
-            range = 0f..1f,
-            steps = 19,
-            onChange = { viewModel.updateFullPlayerCoverFeatherAmount(it) },
-            onReset = { viewModel.updateFullPlayerCoverFeatherAmount(0.6f) },
-        )
-    }
-    SliderRow(
-        icon = Icons.Rounded.ZoomIn,
-        title = str("full_player_cover_zoom"),
-        value = viewModel.fullPlayerCoverScale,
-        valueText = "${(viewModel.fullPlayerCoverScale * 100).roundToInt()}%",
-        range = 0.6f..1.4f,
-        steps = 15,
-        onChange = { viewModel.updateFullPlayerCoverScale(it) },
-        onReset = { viewModel.updateFullPlayerCoverScale(1f) },
-    )
     ChoiceRow(icon = Icons.Rounded.AutoAwesome, title = str("pref_lyrics_ui_style_title")) {
         ExpressiveConnectedButtonGroup(
             options = LyricsUiStyle.entries,
@@ -946,27 +875,6 @@ private fun bgStyleLabel(style: FullPlayerBgStyle): String = when (style) {
     FullPlayerBgStyle.BLUR -> str("full_player_bg_blur")
     FullPlayerBgStyle.GRADIENT -> str("full_player_bg_gradient")
     FullPlayerBgStyle.PURE_BLACK -> str("full_player_bg_pure_black")
-}
-
-@Composable
-private fun infoAlignLabel(align: FullPlayerInfoAlign): String = when (align) {
-    FullPlayerInfoAlign.START -> str("full_player_align_left")
-    FullPlayerInfoAlign.CENTER -> str("full_player_align_centre")
-    FullPlayerInfoAlign.END -> str("full_player_align_right")
-}
-
-@Composable
-private fun heartSideLabel(side: FullPlayerHeartSide): String = when (side) {
-    FullPlayerHeartSide.START -> str("full_player_align_left")
-    FullPlayerHeartSide.END -> str("full_player_align_right")
-}
-
-@Composable
-private fun layoutLabel(layout: FullPlayerLayout): String = when (layout) {
-    FullPlayerLayout.LYRICS_RIGHT -> str("full_player_layout_right")
-    FullPlayerLayout.LYRICS_LEFT -> str("full_player_layout_left")
-    FullPlayerLayout.LYRICS_CENTRED -> str("full_player_layout_centred")
-    FullPlayerLayout.COVER_AND_LINE -> str("full_player_layout_single_line")
 }
 
 private fun autoScrollSpeedText(speed: Float): String {
