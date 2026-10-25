@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.profile
 
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.rounded.Person
@@ -99,7 +101,7 @@ fun BottomBarSettingsScreen(
                 val moved = currentOrder.removeAt(fromIndex)
                 currentOrder.add(toIndex, moved)
                 persistOrder()
-                view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
             }
         }
     )
@@ -328,6 +330,7 @@ fun BottomBarSettingsScreen(
                             "search" -> Screen.Search
                             "genres" -> Screen.Explore
                             "library" -> Screen.Library
+                            "queue" -> Screen.Queue
                             else -> null
                         }
 
@@ -336,6 +339,7 @@ fun BottomBarSettingsScreen(
                             "search" -> Icons.Rounded.Search
                             "genres" -> Icons.Default.Explore
                             "library" -> Icons.Default.LibraryMusic
+                            "queue" -> Icons.AutoMirrored.Rounded.QueueMusic
                             else -> Icons.Rounded.Home
                         }
 
@@ -361,10 +365,10 @@ fun BottomBarSettingsScreen(
                                         .size(48.dp)
                                         .draggableHandle(
                                             onDragStarted = {
-                                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                                             },
                                             onDragStopped = {
-                                                view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                                view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
                                             }
                                         ),
                                     contentAlignment = Alignment.Center
@@ -409,7 +413,7 @@ fun BottomBarSettingsScreen(
                                             currentOrder.filter { it in items && it != tabKey }
                                         }
                                         prefs.setBottomMenuItems(newItems)
-                                        view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
+                                        view.performAppHaptic(HapticFeedbackConstants.CONTEXT_CLICK)
                                     }
                                 )
                             }

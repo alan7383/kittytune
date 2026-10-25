@@ -19,6 +19,7 @@ import androidx.compose.foundation.systemGestureExclusion
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
@@ -177,23 +178,42 @@ fun KittyUnifiedBottomBar(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Text(
-                                text = playerViewModel.playbackDeviceLabel ?: track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        val showBottomBarDevices = remember {
-                            com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonBottomBar()
-                        }
-                        if (showBottomBarDevices) {
-                            com.alananasss.kittytune.ui.profile.ConnectButton(
-                                onClick = { playerViewModel.showConnectSheet = true }
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val deviceLabel = playerViewModel.playbackDeviceLabel
+                                if (deviceLabel != null) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable { playerViewModel.showConnectSheet = true }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Devices,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(Modifier.width(3.dp))
+                                        Text(
+                                            text = deviceLabel,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(Modifier.width(4.dp))
+                                }
+                                Text(
+                                    text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
@@ -234,7 +254,10 @@ fun KittyUnifiedBottomBar(
                 tabs.filter { it.visible }.forEach { tab ->
                     NavigationBarItem(
                         selected = selectedRoute == tab.route,
-                        onClick = { onTabSelected(tab) },
+                        onClick = {
+                            com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+                            onTabSelected(tab)
+                        },
                         icon = { Icon(tab.icon, contentDescription = tab.title) },
                         label = { Text(tab.title) },
                         colors = NavigationBarItemDefaults.colors(
@@ -316,23 +339,42 @@ fun KittyUnifiedBottomBar(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            Text(
-                                text = playerViewModel.playbackDeviceLabel ?: track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        val context = androidx.compose.ui.platform.LocalContext.current
-                        val showBottomBarDevices = remember {
-                            com.alananasss.kittytune.data.local.PlayerPreferences(context).getShowDevicesButtonBottomBar()
-                        }
-                        if (showBottomBarDevices) {
-                            com.alananasss.kittytune.ui.profile.ConnectButton(
-                                onClick = { playerViewModel.showConnectSheet = true }
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val deviceLabel = playerViewModel.playbackDeviceLabel
+                                if (deviceLabel != null) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable { playerViewModel.showConnectSheet = true }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Devices,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(Modifier.width(3.dp))
+                                        Text(
+                                            text = deviceLabel,
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("·", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(Modifier.width(4.dp))
+                                }
+                                Text(
+                                    text = track.displayArtist.ifBlank { stringResource(R.string.unknown_artist) },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                         IconButton(onClick = { playerViewModel.togglePlayPause() }) {
                             Icon(
@@ -459,7 +501,10 @@ fun KittyUnifiedBottomBar(
                                             .clickable(
                                                 interactionSource = tabInteractionSource,
                                                 indication = null,
-                                                onClick = { onTabSelected(tab) }
+                                                onClick = {
+                                                    com.alananasss.kittytune.audio.haptics.HapticUtil.performUIHaptic(context)
+                                                    onTabSelected(tab)
+                                                }
                                             )
                                             .padding(
                                                 horizontal = if (isSelected) selectedTabHorizontalPadding else tabHorizontalPadding,
@@ -502,7 +547,10 @@ fun KittyUnifiedBottomBar(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     FloatingToolbarDefaults.VibrantFloatingActionButton(
-                        onClick = onFabClick,
+                        onClick = {
+                            com.alananasss.kittytune.audio.haptics.HapticUtil.performMediumHaptic(context)
+                            onFabClick()
+                        },
                         modifier = Modifier.size(56.dp),
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -532,9 +580,7 @@ internal fun rememberDockProgress(viewModel: com.alananasss.kittytune.ui.player.
     val progress = remember { Animatable(0f) }
     LaunchedEffect(viewModel) {
         snapshotFlow {
-            if (viewModel.uiDuration > 0) {
-                (viewModel.uiCurrentPosition.toFloat() / viewModel.uiDuration.toFloat()).coerceIn(0f, 1f)
-            } else 0f
+            viewModel.progressOf(viewModel.uiCurrentPosition.toFloat())
         }.collect { target ->
             // Snap on a track change or a seek, glide in between, so the line does not stutter at
             // the tick rate.
