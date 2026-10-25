@@ -197,6 +197,12 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.ui.text.google.fonts)
     implementation(libs.rive.android)
+    implementation(libs.androidx.documentfile)
+
+    // "Sign in with Google" for the Qobuz account: the same Google Identity
+    // stack the official Qobuz app uses to get an id token.
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 }
 
 kotlin {
