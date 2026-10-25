@@ -957,38 +957,28 @@ class PlayerHapticManager private constructor(context: Context) {
             }
         }
 
-        fun triggerInteractionHaptic(context: Context, actionKey: String) {
+        fun triggerInteractionHaptic(context: Context, actionKey: String, force: Boolean = false) {
+            if (!HapticUtil.isAppHapticsEnabled.value) return
             val instance = getInstance(context)
-            if (!instance.isHapticsEnabled) return
 
-            val isActionEnabled = when (actionKey) {
-                PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE -> instance.isHapticPlayPauseEnabled
-                PlayerPreferences.KEY_HAPTICS_SEEK -> instance.isHapticSeekEnabled
-                PlayerPreferences.KEY_HAPTICS_LIKE -> instance.isHapticLikeEnabled
-                PlayerPreferences.KEY_HAPTICS_QUEUE -> instance.isHapticQueueEnabled
-                else -> true
+            if (!force) {
+                val isActionEnabled = when (actionKey) {
+                    PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE -> instance.isHapticPlayPauseEnabled
+                    PlayerPreferences.KEY_HAPTICS_SEEK -> instance.isHapticSeekEnabled
+                    PlayerPreferences.KEY_HAPTICS_LIKE -> instance.isHapticLikeEnabled
+                    PlayerPreferences.KEY_HAPTICS_QUEUE -> instance.isHapticQueueEnabled
+                    else -> true
+                }
+                if (!isActionEnabled) return
             }
-            if (!isActionEnabled) return
-
-            val strength = instance.vibrationStrengthMultiplier
-            if (strength <= 0f) return
-
-            val vibrator = instance.getVibrator() ?: return
-            if (!instance.hasVibratorCached) return
 
             try {
-                val amp = (strength * 255).toInt().coerceIn(1, 255)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val duration = when (actionKey) {
-                        PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE -> 35L
-                        PlayerPreferences.KEY_HAPTICS_SEEK -> 18L
-                        PlayerPreferences.KEY_HAPTICS_LIKE -> 45L
-                        PlayerPreferences.KEY_HAPTICS_QUEUE -> 25L
-                        else -> 30L
-                    }
-                    vibrator.vibrate(VibrationEffect.createOneShot(duration, amp))
-                } else {
-                    vibrator.vibrate(30L)
+                when (actionKey) {
+                    PlayerPreferences.KEY_HAPTICS_PLAY_PAUSE -> HapticUtil.performHeavyHaptic(context)
+                    PlayerPreferences.KEY_HAPTICS_SEEK -> HapticUtil.performSliderHaptic(context)
+                    PlayerPreferences.KEY_HAPTICS_LIKE -> HapticUtil.performConfirmHaptic(context)
+                    PlayerPreferences.KEY_HAPTICS_QUEUE -> HapticUtil.performMediumHaptic(context)
+                    else -> HapticUtil.performUIHaptic(context)
                 }
             } catch (_: Exception) {}
         }
