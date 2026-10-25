@@ -119,6 +119,7 @@ fun SettingsItem(
     highlightKey: String? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberAppHaptics()
 
     val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
@@ -161,6 +162,7 @@ fun SettingsItem(
     }
 
     val onToggleOrClick = {
+        haptics.perform(if (hasSwitch && onClick == null) HapticKind.UI else HapticKind.MEDIUM)
         if (hasSwitch && onSwitchChange != null && onClick == null) {
             onSwitchChange(!switchState)
         } else {
@@ -294,9 +296,15 @@ fun SettingsSwitch(
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource? = null,
 ) {
+    val haptics = rememberAppHaptics()
     Switch(
         checked = checked,
-        onCheckedChange = onCheckedChange,
+        onCheckedChange = onCheckedChange?.let { callback ->
+            { checkedNow ->
+                haptics.perform(HapticKind.UI)
+                callback(checkedNow)
+            }
+        },
         enabled = enabled,
         interactionSource = interactionSource,
         modifier = modifier,
@@ -338,6 +346,7 @@ fun SettingsScaffold(
 ) {
     val windowSizeInfo = rememberWindowSizeInfo()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val haptics = rememberAppHaptics()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -348,7 +357,10 @@ fun SettingsScaffold(
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     FilledTonalIconButton(
-                        onClick = onBackClick,
+                        onClick = {
+                            haptics.perform(HapticKind.LIGHT)
+                            onBackClick()
+                        },
                         shapes = IconButtonDefaults.shapes(),
                         colors = IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -395,6 +407,7 @@ fun SplitSettingsItem(
     highlightKey: String? = null
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberAppHaptics()
 
     val isHighlighted = SettingsHighlightManager.isHighlighted(highlightKey)
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
@@ -437,7 +450,10 @@ fun SplitSettingsItem(
     }
 
     Card(
-        onClick = onClick,
+        onClick = {
+            haptics.perform(HapticKind.MEDIUM)
+            onClick()
+        },
         colors = CardDefaults.cardColors(containerColor = animatedContainerColor),
         shape = shape,
         modifier = Modifier

@@ -18,6 +18,9 @@
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 
     @Composable
     fun AchievementPopup(notification: AchievementNotification) {

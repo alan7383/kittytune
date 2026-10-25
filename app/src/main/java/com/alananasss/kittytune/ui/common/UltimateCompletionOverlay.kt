@@ -31,6 +31,9 @@
     import androidx.compose.ui.unit.dp
     import androidx.compose.ui.unit.sp
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import kotlinx.coroutines.delay
     import kotlin.math.cos
     import kotlin.math.sin

@@ -20,9 +20,15 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -134,17 +140,91 @@ fun KittyModalBottomSheet(
             }
         }
     } else {
-        ModalBottomSheet(
-            onDismissRequest = onDismissRequest,
-            modifier = modifier,
-            sheetState = sheetState,
-            shape = shape,
-            containerColor = containerColor,
-            contentColor = contentColor,
-            tonalElevation = tonalElevation,
-            scrimColor = scrimColor,
-            dragHandle = dragHandle,
-            content = content
-        )
+        val scope = rememberCoroutineScope()
+        val density = LocalDensity.current
+        val dismissThreshold = with(density) { 56.dp.toPx() }
+        val minFlingDismissVelocity = with(density) { 200.dp.toPx() }
+
+        var accumulatedDownwardDrag by remember { mutableFloatStateOf(0f) }
+        var expandedOffset by remember { mutableFloatStateOf(Float.NaN) }
+
+        LaunchedEffect(sheetState.currentValue) {
+            if (sheetState.currentValue == SheetValue.Expanded) {
+                try {
+                    expandedOffset = sheetState.requireOffset()
+                } catch (_: Exception) {}
+            }
+        }
+
+        val dismissNestedScrollConnection = remember(sheetState, onDismissRequest) {
+            object : NestedScrollConnection {
+                override fun onPostScroll(
+                    consumed: Offset,
+                    available: Offset,
+                    source: NestedScrollSource
+                ): Offset {
+                    if (source == NestedScrollSource.UserInput) {
+                        if (available.y > 0f) {
+                            accumulatedDownwardDrag += available.y
+                        } else if (available.y < 0f) {
+                            accumulatedDownwardDrag = (accumulatedDownwardDrag + available.y).coerceAtLeast(0f)
+                        }
+                    }
+                    return Offset.Zero
+                }
+
+                override suspend fun onPreFling(available: Velocity): Velocity {
+                    val currentOffset = try {
+                        sheetState.requireOffset()
+                    } catch (_: Exception) {
+                        Float.NaN
+                    }
+                    val draggedOffset = if (!currentOffset.isNaN() && !expandedOffset.isNaN()) {
+                        (currentOffset - expandedOffset).coerceAtLeast(0f)
+                    } else 0f
+
+                    val totalDrag = max(accumulatedDownwardDrag, draggedOffset)
+                    accumulatedDownwardDrag = 0f
+
+                    if (totalDrag > dismissThreshold || (totalDrag > 15f && available.y > minFlingDismissVelocity)) {
+                        scope.launch {
+                            try {
+                                sheetState.hide()
+                            } finally {
+                                onDismissRequest()
+                            }
+                        }
+                        return available
+                    }
+                    return Velocity.Zero
+                }
+            }
+        }
+
+        @Suppress("DEPRECATION")
+        CompositionLocalProvider(
+            androidx.compose.foundation.LocalOverscrollFactory provides null,
+            androidx.compose.foundation.LocalOverscrollConfiguration provides null
+        ) {
+            ModalBottomSheet(
+                onDismissRequest = onDismissRequest,
+                modifier = modifier,
+                sheetState = sheetState,
+                shape = shape,
+                containerColor = containerColor,
+                contentColor = contentColor,
+                tonalElevation = tonalElevation,
+                scrimColor = scrimColor,
+                dragHandle = dragHandle,
+                content = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .nestedScroll(dismissNestedScrollConnection),
+                        content = content
+                    )
+                }
+            )
+        }
     }
 }
