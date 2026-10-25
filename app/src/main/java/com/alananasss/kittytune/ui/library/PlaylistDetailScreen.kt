@@ -686,41 +686,48 @@ fun PlaylistDetailScreen(
         }
     }
 
-    val tracksToDisplay = if (playlistSearchQuery.isEmpty() && playlistSortBy == TrackSortBy.RECENTLY_ADDED) {
-        tracksFilteredByVibe
-    } else {
-        val filtered = tracksFilteredByVibe.filter {
-            it.title?.contains(playlistSearchQuery, ignoreCase = true) == true ||
-                    it.user?.username?.contains(playlistSearchQuery, ignoreCase = true) == true
-        }
-        when (playlistSortBy) {
-            TrackSortBy.RECENTLY_ADDED -> filtered
-            TrackSortBy.FIRST_ADDED -> filtered.reversed()
-            TrackSortBy.TITLE_AZ -> filtered.sortedBy { it.title?.lowercase() ?: "" }
-            TrackSortBy.ARTIST_AZ -> filtered.sortedBy { it.user?.username?.lowercase() ?: "" }
+    val tracksToDisplay = remember(tracksFilteredByVibe, playlistSearchQuery, playlistSortBy) {
+        if (playlistSearchQuery.isEmpty() && playlistSortBy == TrackSortBy.RECENTLY_ADDED) {
+            tracksFilteredByVibe
+        } else {
+            val filtered = if (playlistSearchQuery.isEmpty()) {
+                tracksFilteredByVibe
+            } else {
+                tracksFilteredByVibe.filter {
+                    it.title?.contains(playlistSearchQuery, ignoreCase = true) == true ||
+                            it.user?.username?.contains(playlistSearchQuery, ignoreCase = true) == true
+                }
+            }
+            when (playlistSortBy) {
+                TrackSortBy.RECENTLY_ADDED -> filtered
+                TrackSortBy.FIRST_ADDED -> filtered.reversed()
+                TrackSortBy.TITLE_AZ -> filtered.sortedBy { it.title?.lowercase() ?: "" }
+                TrackSortBy.ARTIST_AZ -> filtered.sortedBy { it.user?.username?.lowercase() ?: "" }
+            }
         }
     }
 
-    val totalDurationMs = playlistDurationMs?.takeIf { it > 0L && playlistSearchQuery.isEmpty() }
-        ?: tracksToDisplay.sumOf { it.durationMs ?: 0L }
-
-    val downloadedCount = remember(tracks.size, tracksToDisplay.size, downloadedIds) {
-        if (tracksToDisplay.isEmpty()) 0
-        else tracksToDisplay.count { track -> downloadedIds.contains(track.id) }
+    val totalDurationMs = remember(tracksToDisplay, playlistDurationMs, playlistSearchQuery, showTotalDuration) {
+        if (!showTotalDuration) 0L
+        else playlistDurationMs?.takeIf { it > 0L && playlistSearchQuery.isEmpty() }
+            ?: tracksToDisplay.sumOf { it.durationMs ?: 0L }
     }
 
     val isFullyDownloaded = remember(
-        tracksToDisplay.size,
-        downloadedCount,
+        tracksToDisplay,
+        downloadedIds,
         isPlaylistDownloading,
         isDownloadedView,
         playlistInDb,
         playlistId
     ) {
-        if (tracksToDisplay.isEmpty()) false
+        if (tracksToDisplay.isEmpty() || isPlaylistDownloading) false
         else if (isDownloadedView) true
-        else if (playlistId == "likes") downloadedCount == tracksToDisplay.size && !isPlaylistDownloading
-        else (playlistInDb != null && playlistInDb?.isDownloaded == true && downloadedCount == tracksToDisplay.size && !isPlaylistDownloading)
+        else if (downloadedIds.size < tracksToDisplay.size) false
+        else {
+            val allInDb = playlistId == "likes" || (playlistInDb != null && playlistInDb?.isDownloaded == true)
+            allInDb && tracksToDisplay.all { downloadedIds.contains(it.id) }
+        }
     }
     val refreshTrigger =
         if (playlistId == "downloads" || playlistId == "local_files" || currentIdLong < 0L || isDownloadedView) debouncedStorageTrigger else 0
@@ -803,12 +810,11 @@ fun PlaylistDetailScreen(
                 playlistId == "likes" -> {
                     playlistTitle = context.getString(R.string.lib_liked_tracks)
                     defaultIcon = Icons.Rounded.Favorite
-                    try {
-                        val user = api.getMe()
-                        playlistUser = user
-                    } catch (e: Exception) {
-                        playlistUser = User(0, context.getString(R.string.me_artist), null)
-                    }
+                    playlistUser = playerViewModel.currentUser ?: User(
+                        id = playerViewModel.currentUserId,
+                        username = prefs.getCachedUsername() ?: context.getString(R.string.me_artist),
+                        avatarUrl = null
+                    )
                 }
 
                 playlistId == "downloads" -> {
@@ -1630,9 +1636,9 @@ fun PlaylistDetailScreen(
             confirmButton = {
                 TextButton(onClick = hapticAction(HapticKind.UI) {
                     if (playlistId == "likes") {
-                        DownloadManager.removeDownloads(tracksToDisplay.toList())
+                        DownloadManager.removeDownloads(tracksToDisplay)
                     } else if (stableId != 0L) {
-                        DownloadManager.removePlaylistDownloads(stableId, tracksToDisplay.toList())
+                        DownloadManager.removePlaylistDownloads(stableId, tracksToDisplay)
                     }
 
                     showRemoveDownloadDialog = false
@@ -1949,9 +1955,13 @@ fun PlaylistDetailScreen(
                                     }
                                     // An album sung mostly by one artist is credited to that artist, not the account
                                     // that posted it: the tracks carry the real credit (desktop PR #77).
-                                    val headerArtistName = albumCreditFor(rawTracks.toList())
-                                        ?.takeIf { isAlbum && playlistUser?.urn?.startsWith("spotify") != true }
-                                        ?: playlistUser?.username
+                                    val headerArtistName = remember(rawTracks.size, isAlbum, playlistUser) {
+                                        if (isAlbum && playlistUser?.urn?.startsWith("spotify") != true) {
+                                            albumCreditFor(rawTracks)
+                                        } else {
+                                            playlistUser?.username
+                                        }
+                                    }
                                     if (isArtistView) {
                                         val providerBadge = when {
                                             isQobuzArtist -> stringResource(R.string.generic_artist) + " • Qobuz"
@@ -2104,7 +2114,7 @@ fun PlaylistDetailScreen(
                                                                 calculatedArtworkUrl = null,
                                                                 trackCount = tracksToDisplay.size,
                                                                 user = playlistUser ?: User(0, playlistUser?.username ?: "", null),
-                                                                tracks = tracksToDisplay.toList(),
+                                                                tracks = tracksToDisplay,
                                                                 isAlbum = isAlbum,
                                                                 // Save the route that can reopen this radio, not the
                                                                 // transient remote playlist it resolved to.
@@ -2113,7 +2123,7 @@ fun PlaylistDetailScreen(
                                                             )
                                                             DownloadManager.importPlaylistToLibrary(
                                                                 playlist = targetPlaylist,
-                                                                tracks = tracksToDisplay.toList(),
+                                                                tracks = tracksToDisplay,
                                                                 syncToCloud = radioRoutePermalink == null && !com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalProvider(
                                                                     savedPermalink ?: shareUrl,
                                                                     playlistUrn
@@ -2177,7 +2187,7 @@ fun PlaylistDetailScreen(
                                                     } else {
                                                         if (playlistId == "likes") {
                                                             DownloadManager.downloadBatch(
-                                                                tracksToDisplay.toList(),
+                                                                tracksToDisplay,
                                                                 DownloadManager.LIKES_BATCH_ID
                                                             )
                                                         } else if (stableId != 0L) {
@@ -2365,7 +2375,7 @@ fun PlaylistDetailScreen(
                                                     Button(
                                                         onClick = hapticAction(HapticKind.UI) {
                                                             playerViewModel.playPlaylist(
-                                                                tracksToDisplay.toList(),
+                                                                tracksToDisplay,
                                                                 0,
                                                                 playbackContext
                                                             )
@@ -2389,7 +2399,7 @@ fun PlaylistDetailScreen(
                                                     }
                                                     FilledTonalButton(
                                                         onClick = { playerViewModel.playPlaylistShuffled(
-                                                                tracksToDisplay.toList(),
+                                                                tracksToDisplay,
                                                                 context = playbackContext
                                                             )
                                                         },
@@ -2624,7 +2634,7 @@ fun PlaylistDetailScreen(
                                                         onClick = hapticAction(HapticKind.UI) {
                                                             if (!isDragging) {
                                                                 playerViewModel.playPlaylist(
-                                                                    tracksToDisplay.toList(),
+                                                                    tracksToDisplay,
                                                                     index,
                                                                     playbackContext
                                                                 )
@@ -2663,7 +2673,7 @@ fun PlaylistDetailScreen(
                                                     modifier = Modifier.animateItem(),
                                                     onClick = hapticAction(HapticKind.UI) {
                                                         playerViewModel.playPlaylist(
-                                                            tracksToDisplay.toList(),
+                                                            tracksToDisplay,
                                                             index,
                                                             playbackContext
                                                         )
@@ -2753,7 +2763,7 @@ fun PlaylistDetailScreen(
                     playlistTitle = playlistTitle,
                     playlistCover = playlistCover,
                     defaultIcon = defaultIcon,
-                    tracks = tracksToDisplay.toList(),
+                    tracks = tracksToDisplay,
                     isLocal = isLocalPlaylist || playlistId == "downloads",
                     shareUrl = shareUrl,
                     playerViewModel = playerViewModel,
@@ -3164,6 +3174,7 @@ fun TrackListItem(
     downloadProgress: Int,
     modifier: Modifier = Modifier,
     showVerifiedBadge: Boolean = true,
+    isVerifiedMatch: Boolean = false,
     showLikeIndicator: Boolean = true,
     horizontalPadding: Dp = 8.dp,
     dragModifier: Modifier = Modifier,
@@ -3182,8 +3193,10 @@ fun TrackListItem(
     val titleColor = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
     val titleWeight = if (isCurrent) FontWeight.Bold else FontWeight.SemiBold
 
-    val likedTracks by LikeRepository.likedTracks.collectAsState()
-    val isTrackLiked = remember(track.id, likedTracks) { LikeRepository.isTrackLiked(track.id) }
+    val likedTrackIds by LikeRepository.likedTrackIds.collectAsState()
+    val isTrackLiked = remember(track.id, likedTrackIds, showLikeIndicator) {
+        if (showLikeIndicator) likedTrackIds.contains(track.id) else false
+    }
 
     val socialLikersMap by SocialProofRepository.socialLikersMap.collectAsState()
     val socialLikers = socialLikersMap[track.id]
@@ -3281,7 +3294,15 @@ fun TrackListItem(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
-                    if (showVerifiedBadge && track.user?.verified == true) {
+                    if (isVerifiedMatch) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            Icons.Rounded.Verified,
+                            stringResource(R.string.search_verified_track),
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    } else if (showVerifiedBadge && track.user?.verified == true) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
                             Icons.Rounded.Verified,

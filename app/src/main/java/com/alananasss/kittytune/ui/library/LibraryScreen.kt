@@ -135,7 +135,10 @@ fun LibraryScreen(
     var isFabMenuExpanded by remember { mutableStateOf(false) }
 
     BackHandler(enabled = isFabMenuExpanded) { isFabMenuExpanded = false }
-    BackHandler(enabled = !isFabMenuExpanded && libraryViewModel.currentFolderId != null) {
+    BackHandler(enabled = !isFabMenuExpanded && libraryViewModel.isReorderMode) {
+        libraryViewModel.isReorderMode = false
+    }
+    BackHandler(enabled = !isFabMenuExpanded && !libraryViewModel.isReorderMode && libraryViewModel.currentFolderId != null) {
         libraryViewModel.navigateUp()
     }
 
@@ -2263,7 +2266,7 @@ fun LibraryContentGrid(
                         )
                     }
                 }
-                if (viewModel.sortOption == LibrarySortOption.MANUAL) {
+                if (viewModel.isReorderMode) {
                     Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -2869,18 +2872,19 @@ fun SortAndLayoutControls(
                 viewModel.selectedFilter == LibraryFilter.PLAYLISTS ||
                 viewModel.selectedFilter == LibraryFilter.ALBUMS
             ) {
-                val isManualActive = viewModel.sortOption == LibrarySortOption.MANUAL
+                val isReorderActive = viewModel.isReorderMode
                 IconButton(
                     onClick = {
                         view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-                        if (isManualActive) {
-                            viewModel.sortOption = LibrarySortOption.RECENTS
+                        if (viewModel.isReorderMode) {
+                            viewModel.isReorderMode = false
                         } else {
                             viewModel.enableManualOrder()
+                            viewModel.isReorderMode = true
                         }
                     },
                     shapes = IconButtonDefaults.shapes(),
-                    colors = if (isManualActive) {
+                    colors = if (isReorderActive) {
                         IconButtonDefaults.filledTonalIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                             contentColor = MaterialTheme.colorScheme.primary
@@ -2892,7 +2896,7 @@ fun SortAndLayoutControls(
                     Icon(
                         imageVector = Icons.Rounded.SwapVert,
                         contentDescription = stringResource(R.string.lib_reorder_mode),
-                        tint = if (isManualActive) {
+                        tint = if (isReorderActive) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant

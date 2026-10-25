@@ -313,7 +313,10 @@ fun MainScreen(
             playerViewModel.isPlayerExpanded = false
             when {
                 destinationId == "expanded_queue" -> navController.navigate("expanded_queue")
-                destinationId == "your_mix" -> navController.navigate(Screen.Home.route)
+                destinationId == "your_mix" || destinationId == "my_wave" || destinationId == "home" -> navController.navigate(Screen.Home.route)
+                destinationId == "charts" -> navController.navigate("charts")
+                destinationId == "history" -> navController.navigate("history")
+                destinationId == "genres" -> navController.navigate("genres")
                 destinationId.startsWith("spotify_artist:") -> navController.navigate("spotify_artist/${destinationId.removePrefix("spotify_artist:")}")
                 destinationId.startsWith("spotify_radio:") || destinationId.startsWith("station_spotify:") -> navController.navigate("playlist_detail/$destinationId")
                 destinationId.startsWith("profile:") -> {
@@ -327,9 +330,11 @@ fun MainScreen(
                         navController.navigate("profile/$target")
                     }
                 }
+                destinationId.startsWith("profile/") -> navController.navigate(destinationId)
                 destinationId.startsWith("tag:") -> navController.navigate("tag/${destinationId.removePrefix("tag:")}")
                 destinationId.startsWith("track_detail:") -> navController.navigate("track_detail/${destinationId.removePrefix("track_detail:")}")
                 destinationId.startsWith("edit_track:") -> navController.navigate(Screen.Upload.route)
+                destinationId.startsWith("playlist_detail/") -> navController.navigate(destinationId)
                 else -> navController.navigate("playlist_detail/$destinationId")
             }
             playerViewModel.onNavigationHandled()

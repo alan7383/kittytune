@@ -212,6 +212,7 @@ fun TabletSidePlayerPanel(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp)
+                        .hapticClickable { viewModel.navigateToContext() }
                 )
 
                 IconButton(
@@ -948,7 +949,8 @@ fun TabletFullScreenPlayerView(
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = mainContentColor,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.hapticClickable { viewModel.navigateToContext() }
                 )
             }
 

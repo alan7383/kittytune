@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForwardIos
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.ClearAll
 import androidx.compose.material.icons.rounded.Close
@@ -65,6 +66,7 @@ import com.alananasss.kittytune.data.local.TrackRemovalMethod
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.common.PlayingBars
 import com.alananasss.kittytune.ui.common.SwipeToDeleteItem
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.utils.formatQueueDuration
 import com.alananasss.kittytune.utils.makeTimeString
 import kotlinx.coroutines.launch
@@ -99,21 +101,43 @@ fun ExpandedQueueScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    val contextTitle = viewModel.currentContext?.displayText
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = if (!contextTitle.isNullOrBlank()) {
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .hapticClickable {
+                                    onClose()
+                                    viewModel.navigateToContext()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        } else Modifier
+                    ) {
                         Text(
                             text = stringResource(R.string.player_queue),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium
                         )
-                        val contextTitle = viewModel.currentContext?.displayText
                         if (!contextTitle.isNullOrBlank()) {
-                            Text(
-                                text = contextTitle,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = contextTitle,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(9.dp)
+                                )
+                            }
                         }
                     }
                 },
@@ -189,7 +213,20 @@ fun QueueContent(
                 .padding(top = 16.dp, bottom = 6.dp, start = 20.dp, end = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (!contextTitle.isNullOrBlank()) {
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .hapticClickable {
+                                    onCloseQueue()
+                                    viewModel.navigateToContext()
+                                }
+                        } else Modifier
+                    )
+            ) {
                 Text(
                     text = stringResource(R.string.player_queue),
                     style = MaterialTheme.typography.titleLarge,
@@ -197,13 +234,25 @@ fun QueueContent(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 if (!contextTitle.isNullOrBlank()) {
-                    Text(
-                        text = contextTitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = contextTitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                            modifier = Modifier.size(10.dp)
+                        )
+                    }
                 }
             }
 

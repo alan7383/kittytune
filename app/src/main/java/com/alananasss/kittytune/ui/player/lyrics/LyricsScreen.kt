@@ -101,6 +101,7 @@ import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.MusicManager
+import com.alananasss.kittytune.data.local.FullPlayerBgStyle
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
 import com.alananasss.kittytune.data.local.PlayerPreferences
@@ -108,7 +109,6 @@ import com.alananasss.kittytune.data.network.LrcLibResponse
 import com.alananasss.kittytune.ui.player.FluidArtworkBackground
 import com.alananasss.kittytune.ui.player.LyricsMode
 import com.alananasss.kittytune.ui.player.PlayerViewModel
-import com.alananasss.kittytune.ui.player.SleepScreen
 import com.alananasss.kittytune.ui.player.UnifiedLyricResult
 import com.alananasss.kittytune.utils.makeTimeString
 import com.alananasss.kittytune.ui.utils.fadingEdge
@@ -146,7 +146,6 @@ fun LyricsScreen(
         QuickLyricsSettingsDialog(
             viewModel = viewModel,
             onDismiss = { showQuickSettingsDialog = false },
-            onFocusMode = { viewModel.isSleepScreenOpen = true }
         )
     }
 
@@ -165,12 +164,11 @@ fun LyricsScreen(
             activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
-    val prefs = remember { PlayerPreferences(context) }
-    val backgroundStyle = remember { prefs.getPlayerStyle() }
+    val backgroundStyle = viewModel.fullPlayerBgStyle
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         when (backgroundStyle) {
-            PlayerBackgroundStyle.APPLE_MUSIC -> {
+            FullPlayerBgStyle.APPLE_MUSIC -> {
                 FluidArtworkBackground(
                     artworkUrl = currentTrack?.fullResArtwork,
                     modifier = Modifier.fillMaxSize(),
@@ -182,26 +180,49 @@ fun LyricsScreen(
                 // Extra dark scrim (0.30f) to make lyrics ultra-readable
                 Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.30f)))
             }
-            PlayerBackgroundStyle.BLUR -> {
-                AsyncImage(
-                    model = currentTrack?.fullResArtwork,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().blur(120.dp).alpha(0.55f)
+            FullPlayerBgStyle.BLUR -> {
+                Crossfade(
+                    targetState = currentTrack?.fullResArtwork,
+                    animationSpec = tween(durationMillis = 800, easing = androidx.compose.animation.core.LinearEasing),
+                    label = "LyricsBlurTransition"
+                ) { artworkUrl ->
+                    AsyncImage(
+                        model = artworkUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                scaleX = 1.25f
+                                scaleY = 1.25f
+                            }
+                            .blur(90.dp)
+                            .alpha(0.75f)
+                    )
+                }
+                // Scrim to keep lyrics ultra-readable and prevent edge wash
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.verticalGradient(
+                            0.0f to Color.Black.copy(alpha = 0.50f),
+                            0.30f to Color.Black.copy(alpha = 0.40f),
+                            0.70f to Color.Black.copy(alpha = 0.50f),
+                            1.0f to Color.Black.copy(alpha = 0.70f)
+                        )
+                    )
                 )
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
             }
-            PlayerBackgroundStyle.THEME -> {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
-            }
-            PlayerBackgroundStyle.GRADIENT -> {
+            FullPlayerBgStyle.GRADIENT -> {
                 LyricsMeshBackground { }
+            }
+            FullPlayerBgStyle.PURE_BLACK -> {
+                Box(Modifier.fillMaxSize().background(Color.Black))
             }
         }
 
-        val isThemeBg = backgroundStyle == PlayerBackgroundStyle.THEME
-        val topContentColor = if (isThemeBg) MaterialTheme.colorScheme.onSurface else Color.White
-        val topDimColor = if (isThemeBg) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.7f)
+        val isThemeBg = false
+        val topContentColor = Color.White
+        val topDimColor = Color.White.copy(alpha = 0.7f)
 
         AnimatedContent(
             targetState = isSearching,
@@ -367,18 +388,6 @@ fun LyricsScreen(
                 }
             }
         }
-
-    AnimatedVisibility(
-        visible = viewModel.isSleepScreenOpen,
-        enter = fadeIn(tween(600)),
-        exit = fadeOut(tween(300))
-    ) {
-        SleepScreen(
-            viewModel = viewModel,
-            accent = MaterialTheme.colorScheme.primary,
-            onWake = { viewModel.isSleepScreenOpen = false }
-        )
-    }
     }
 }
 
