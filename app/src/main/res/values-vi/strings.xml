@@ -65,6 +65,12 @@
     <!-- HOME &amp; DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_hint">Tìm bài hát, nghệ sĩ&#8230;</string>
+    <string name="search_verified_filter">Đã xác minh</string>
+    <string name="search_verified_track">Bản nhạc đã xác minh</string>
+    <string name="search_verified_count">%1$d đã xác minh</string>
+    <string name="search_verified_no_matches">Không có kết quả đã xác minh. Tắt Đã xác minh để xem tất cả kết quả.</string>
+    <string name="search_verified_unavailable">Không thể so sánh với các nền tảng khác. Đang hiển thị tất cả kết quả.</string>
+    <string name="search_verified_inconclusive">Việc xác minh một số kết quả chưa rõ ràng.</string>
     <string name="home_discovery_title">Khám phá trong ngày</string>
     <string name="home_discovery_subtitle">Các bài hát mới dựa trên gu âm nhạc của bạn</string>
     <string name="home_discovery_context_genre">Dành cho người hâm mộ %1$s</string>
@@ -713,7 +719,6 @@
     <string name="color_palette_screen_title">Chủ đề</string>
     <string name="pref_color_style_title">Kiểu màu</string>
     <string name="pref_color_spec_title">Đặc tả màu</string>
-    <string name="pref_seed_palette_title">Bảng màu gốc</string>
     <string name="pref_custom_seed_title">Màu tùy chỉnh</string>
     <string name="pref_color_generation_title">Bộ tạo màu</string>
     <string name="color_hex_label">Hex</string>
@@ -721,52 +726,12 @@
     <string name="color_saturation_label">Độ bão hòa</string>
     <string name="color_brightness_label">Độ sáng</string>
     <!-- Colors (Seed Palette) -->
-    <string name="color_group_deep_blues">Xanh dương đậm</string>
-    <string name="color_seed_deep_blue">Xanh thẳm</string>
-    <string name="color_seed_abyss">Vực sâu</string>
-    <string name="color_seed_space_blue">Xanh vũ trụ</string>
-    <string name="color_seed_ink_blue">Xanh mực</string>
-    <string name="color_seed_midnight_indigo">Chàm nửa đêm</string>
-    <string name="color_seed_cosmic_blue">Xanh ngân hà</string>
-    <string name="color_seed_twilight">Hoàng hôn</string>
-    <string name="color_seed_royal_navy">Xanh hải quân hoàng gia</string>
-    <string name="color_seed_midnight">Nửa đêm</string>
-    <string name="color_seed_navy">Xanh hải quân</string>
-    <string name="color_group_blues_cyans">Xanh dương &amp; Xanh lơ</string>
-    <string name="color_seed_sapphire">Lam ngọc (Sapphire)</string>
     <string name="color_seed_electric_blue">Xanh neon điện</string>
-    <string name="color_seed_azure">Xanh da trời</string>
     <string name="color_seed_cyan">Xanh lơ (Cyan)</string>
-    <string name="color_seed_teal">Xanh mòng két</string>
-    <string name="color_group_greens_teals">Xanh lá &amp; Xanh mòng két</string>
-    <string name="color_seed_deep_teal">Mòng két thẫm</string>
-    <string name="color_seed_emerald">Ngọc lục bảo</string>
-    <string name="color_seed_forest">Xanh rừng sâu</string>
-    <string name="color_seed_moss">Xanh rêu</string>
-    <string name="color_seed_lime">Xanh chanh</string>
-    <string name="color_seed_olive">Xanh ô liu</string>
-    <string name="color_group_sunset_warm">Hoàng hôn ấm áp</string>
     <string name="color_seed_gold">Vàng kim</string>
-    <string name="color_seed_amber">Hổ phách</string>
     <string name="color_seed_kitty_orange">Cam Kitty</string>
-    <string name="color_seed_deep_orange">Cam thẫm</string>
-    <string name="color_seed_coral">San hô</string>
-    <string name="color_seed_sand">Màu cát</string>
-    <string name="color_group_pinks_purples">Hồng &amp; Tím</string>
-    <string name="color_seed_crimson">Đỏ thẫm</string>
-    <string name="color_seed_rose">Hoa hồng</string>
-    <string name="color_seed_hot_pink">Hồng cánh sen</string>
-    <string name="color_seed_magenta">Đỏ tươi (Magenta)</string>
     <string name="color_seed_plum">Màu mận</string>
-    <string name="color_seed_deep_purple">Tím đậm</string>
-    <string name="color_seed_indigo">Màu chàm</string>
-    <string name="color_seed_periwinkle">Hoa dừa cạn (Periwinkle)</string>
-    <string name="color_group_neutrals">Trung tính</string>
-    <string name="color_seed_blue_gray">Xám ánh xanh</string>
     <string name="color_seed_slate">Xám phiến đá</string>
-    <string name="color_seed_graphite">Than chì</string>
-    <string name="color_seed_warm_gray">Xám ấm</string>
-    <string name="color_seed_mocha">Mocha</string>
     <string name="pref_start_screen">Màn hình khởi động</string>
     <string name="pref_theme_dynamic">Chủ đề động (Material You)</string>
     <string name="pref_theme_dynamic_sub">Đồng bộ theo hình nền của bạn</string>
@@ -935,8 +900,6 @@
     <string name="pref_lyrics_provider_title">Nhà cung cấp lời bài hát</string>
     <string name="pref_lyrics_provider_max_quality">Chất lượng cao nhất (Musixmatch)</string>
     <string name="pref_lyrics_provider_open_source">Hoàn toàn miễn phí (LrcLib)</string>
-    <string name="pref_lyrics_provider_musixmatch_short" translatable="false">Musixmatch</string>
-    <string name="pref_lyrics_provider_lrclib_short" translatable="false">LRCLib</string>
     <string name="pref_lyrics_providers_category">Nguồn cung cấp lời bài hát</string>
     <string name="pref_lyrics_paxsenix_key">Khóa API Paxsenix</string>
     <string name="pref_lyrics_paxsenix_key_sub">Cần thiết cho Apple Music, Spotify và Paxsenix Musixmatch</string>
@@ -1201,6 +1164,8 @@
     <string name="pref_auto_update_sub">Kiểm tra phiên bản mới mỗi khi mở ứng dụng</string>
     <string name="pref_remember_search_filter">Ghi nhớ bộ lọc tìm kiếm</string>
     <string name="pref_remember_search_filter_sub">Giữ bộ lọc đã chọn gần nhất (Nghệ sĩ, Danh sách phát…) khi mở tìm kiếm</string>
+    <string name="pref_verified_filter">Bộ lọc đã xác minh</string>
+    <string name="pref_verified_filter_sub">So sánh kết quả với các nền tảng chính thức và ẩn bản tải lại. Mặc định tắt.</string>
     <string name="pref_show_playlist_total_duration">Hiển thị tổng thời lượng phát của danh sách phát</string>
     <string name="pref_show_playlist_total_duration_sub">Hiển thị tổng thời lượng bên cạnh số lượng bài hát trong danh sách phát</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1549,8 +1514,6 @@
     <string name="pref_automix_indicator_title">Hiển thị chỉ báo tự động hòa âm</string>
     <string name="pref_automix_indicator_desc">Hiển thị đếm ngược và huy hiệu trên trình phát khi tự động hòa âm</string>
     <string name="pref_bottom_menu_title">Thanh điều hướng</string>
-    <string name="pref_explorer_grid_title">Chế độ lưới khám phá</string>
-    <string name="pref_explorer_grid_subtitle">Hiển thị danh mục khám phá dưới dạng ô vuông thành 2 cột</string>
     <string name="pref_library_category_layout_title">Bố cục danh mục thư viện</string>
     <string name="pref_library_category_layout_subtitle">Chọn giữa các nút liên kết và một nút thả xuống kiểu máy tính</string>
     <string name="pref_library_category_layout_connected">Các nút liên kết</string>
@@ -2323,8 +2286,6 @@
     <string name="haptic_mode_stronger">Rất mạnh</string>
     <string name="pref_haptics_buttons">Nút &amp; Thẻ</string>
     <string name="pref_haptics_buttons_sub">Rung khi nhấp vào nút và chọn bài hát</string>
-    <string name="pref_haptics_navigation">Thanh điều hướng</string>
-    <string name="pref_haptics_navigation_sub">Rung khi chuyển đổi các tab</string>
     <string name="pref_haptics_enable">Rung phản hồi âm nhạc</string>
     <string name="pref_haptics_enable_sub">Rung thiết bị theo thời gian thực theo âm trầm và tiết tấu</string>
     <string name="pref_haptics_strength">Cường độ rung</string>
@@ -2814,11 +2775,9 @@
 
     <!-- YOUR MIX -->
     <string name="mix_all_known">Mọi bài hát tìm thấy đều đã có trong thư viện của bạn. Hãy thử một nghệ sĩ hoặc thể loại khác.</string>
-    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
     <string name="mix_basis">Dựa trên %1$s</string>
     <string name="mix_basis_more">+%1$d bài nữa</string>
     <string name="mix_building">Đang tạo bản phối của bạn…</string>
-    <string name="mix_by_genre">Hoặc theo thể loại</string>
     <string name="mix_card_subtitle">Kích hoạt bản phối cá nhân, tạo riêng cho gu âm nhạc của bạn</string>
     <string name="mix_customise">Tùy chỉnh bản phối</string>
     <string name="mix_customise_sub">Xây dựng dựa trên một nghệ sĩ hoặc một thể loại cụ thể.</string>
@@ -2827,7 +2786,6 @@
     <string name="mix_enable">Bật bản phối</string>
     <string name="mix_genre_custom">Phối theo “%1$s”</string>
     <string name="mix_genre_search_hint">Tìm kiếm thể loại, hoặc nhập thẻ bất kỳ</string>
-    <string name="mix_in_the_style_of">Theo phong cách của nghệ sĩ</string>
     <string name="mix_needs_history">Hãy nghe một vài bài trước — bản phối được xây dựng từ thói quen nghe nhạc của bạn.</string>
     <string name="mix_no_seeds">Không tìm thấy nghệ sĩ đó trên SoundCloud. Hãy thử nhập tên chính xác.</string>
     <string name="mix_nothing_found">Không có kết quả trả về. Kiểm tra kết nối mạng và thử lại.</string>
@@ -2872,7 +2830,6 @@
     <string name="keywords_animated_covers">ảnh bìa động, video bìa, ảnh bìa video</string>
     <string name="keywords_animated_artist_profiles">hồ sơ nghệ sĩ động, video nghệ sĩ, biểu ngữ</string>
     <string name="keywords_font">phông chữ, kiểu chữ, phông tùy chỉnh, độ đậm, kiểu văn bản</string>
-    <string name="keywords_explorer_grid">lưới khám phá, bố cục lưới, hiển thị lưới</string>
     <string name="keywords_library_layout">thư viện, bộ lọc, danh mục, bố cục, nút bấm</string>
     <string name="keywords_achievements">thành tích, cúp, phần thưởng, huy hiệu, thông báo</string>
     <string name="keywords_stats">thống kê, thống kê nghe nhạc, lịch sử, tổng kết, thời gian nghe, bài hát hàng đầu</string>
@@ -3124,7 +3081,6 @@
     <string name="lyrics_provider_all">Tất cả nguồn</string>
     <string name="lyrics_search_clear">Xóa</string>
     <string name="lyrics_search_now_showing">Đang hiển thị: %1$s</string>
-    <string name="lyrics_search_progress">Đã tìm thấy %1$d, %2$d nguồn vẫn đang tìm</string>
     <string name="lyrics_sync_drift_active">%1$s tại %2$s, %3$s tại %4$s, đều nhau ở giữa. Các nút ở trên thay đổi điểm gần bạn hơn.</string>
     <string name="lyrics_sync_drift_hint">Đồng bộ điểm bắt đầu và ghim lại, sau đó ghim điểm gần cuối và đồng bộ tại đó. Độ lệch sẽ thay đổi đều ở giữa.</string>
     <string name="lyrics_sync_drift_title">Bị lệch ở đoạn cuối?</string>
@@ -3236,7 +3192,6 @@
     <string name="connect_status_offline">Ngoại tuyến</string>
     <string name="connect_status_playing">Đang phát · %1$s</string>
     <string name="connect_this_phone">Điện thoại này</string>
-    <string name="menu_playback_devices">Thiết bị phát</string>
     <string name="slot_devices">Thiết bị phát</string>
     <string name="pref_developer_options_title">Tùy chọn nhà phát triển</string>
     <string name="pref_developer_options_subtitle">Lớp phủ gỡ lỗi, nhật ký và công cụ chẩn đoán</string>
@@ -3311,21 +3266,16 @@
     <string name="haptic_test_confirm">Xác nhận</string>
     <string name="equalizer_mode_manual">Thủ công</string>
     <string name="equalizer_mode_auto">Tự động</string>
-    <string name="equalizer_auto_title">Auto EQ</string>
-    <string name="equalizer_auto_subtitle">Ghép cấu hình đo kiểm cho tai nghe của bạn</string>
     <string name="equalizer_auto_detected">Tai nghe đã phát hiện</string>
     <string name="equalizer_auto_no_device">Không phát hiện tai nghe</string>
     <string name="equalizer_auto_no_device_sub">Kết nối tai nghe hoặc tìm kiếm mẫu bên dưới.</string>
     <string name="equalizer_auto_search_hint">Tìm mẫu tai nghe (ví dụ: HD 650)</string>
     <string name="equalizer_auto_search_action">Tìm kiếm</string>
     <string name="equalizer_auto_suggestions">Mẫu phổ biến</string>
-    <string name="equalizer_auto_searching">Đang tìm…</string>
     <string name="equalizer_auto_no_results">Không tìm thấy cấu hình.</string>
     <string name="equalizer_auto_results">Cấu hình tìm thấy</string>
     <string name="equalizer_auto_apply">Áp dụng</string>
-    <string name="equalizer_auto_applying">Đang áp dụng…</string>
     <string name="equalizer_auto_applied">Đã áp dụng cấu hình</string>
-    <string name="equalizer_auto_source">Nguồn: %1</string>
     <string name="equalizer_auto_restore">Tự động áp dụng khi thiết bị này kết nối lại</string>
     <string name="equalizer_auto_restored">Đã khôi phục Auto EQ: %1</string>
     <string name="equalizer_auto_remove">Xóa cấu hình</string>
@@ -3333,14 +3283,7 @@
     <string name="equalizer_auto_import">Nhập EQ</string>
     <string name="equalizer_auto_error">Không thể tải cấu hình.</string>
     <string name="equalizer_auto_retry">Thử lại</string>
-    <string name="equalizer_auto_profile_hint">Đo kiểm thay đổi theo đệm tai và chế độ ANC.</string>
-    <string name="equalizer_auto_detected_query">Tìm kiếm "%1"</string>
 
-    <string name="theme_preview_harmony_title">Hài hòa bảng màu</string>
-    <string name="theme_preview_tokens_label">Mã bảng màu</string>
-    <string name="theme_preview_ui_sample">Xem trước giao diện</string>
-    <string name="theme_preview_sample_play">Phát</string>
-    <string name="theme_preview_sample_favorite">Yêu thích</string>
     <string name="theme_preset_accents_title">Mẫu tuyển chọn</string>
     <string name="theme_preset_accents_subtitle">Màu sắc hài hòa sẵn sàng sử dụng</string>
     <string name="color_hint_muted">Dịu</string>
@@ -3361,4 +3304,34 @@
     <string name="mix_followers_count">%1$s người theo dõi</string>
     <string name="mix_in_library">Trong thư viện</string>
     <string name="mix_selected_chip_remove">Xóa %1$s</string>
+
+    <!-- Lyrics Quick Settings & Full Player Background -->
+    <string name="lyrics_quick_tab_look">Giao diện</string>
+    <string name="lyrics_quick_tab_layout">Bố cục</string>
+    <string name="lyrics_quick_tab_features">Tính năng</string>
+    <string name="full_player_bg_style">Hình nền trình phát</string>
+    <string name="full_player_bg_apple_music">Chuyển động (Apple Music)</string>
+    <string name="full_player_bg_apple_music_fact">Lưới chuyển động mượt mà với shader AGSL</string>
+    <string name="full_player_bg_blur">Làm mờ</string>
+    <string name="full_player_bg_gradient">Chuyển sắc</string>
+    <string name="full_player_bg_pure_black">Đen tuyền</string>
+    <string name="lyrics_content_title">Nội dung &amp; nguồn</string>
+    <string name="lyrics_quick_scrolling">Cuộn</string>
+    <string name="lyrics_style_standard">Tiêu chuẩn</string>
+    <string name="lyrics_style_scale">Thu phóng</string>
+    <string name="lyrics_style_focus">Tiêu điểm</string>
+    <string name="lyrics_style_scale_focus">Thu phóng &amp; Tiêu điểm</string>
+    <string name="pref_lyrics_display_style">Kiểu hiệu ứng lời bài hát</string>
+    <string name="pref_lyrics_active_scale_title">Phóng to dòng đang phát</string>
+    <string name="pref_lyrics_active_scale_desc">Làm dòng hiện tại lớn hơn các dòng khác</string>
+    <string name="pref_lyrics_one_line_title">Chế độ một dòng</string>
+    <string name="pref_lyrics_one_line_sub">Chỉ hiển thị dòng đang phát</string>
+    <string name="pref_lyrics_backing_title">Hát bè</string>
+    <string name="pref_lyrics_backing_sub">Làm mờ hoặc tạo kiểu riêng cho bè</string>
+    <string name="pref_lyrics_horizontal_margin_title">Lề ngang</string>
+    <string name="pref_lyrics_vertical_offset_title">Độ lệch dọc</string>
+    <string name="pref_lyrics_reset_typography">Đặt lại kiểu chữ</string>
+    <string name="pref_lyrics_autoscroll_speed">Tốc độ cuộn lời bài hát thường</string>
+    <string name="pref_lyrics_speed_this_track">Tốc độ cho bài hát này</string>
+    <string name="pref_lyrics_speed_this_track_sub">Lưu tốc độ cuộn riêng cho bài hát này</string>
 </resources>

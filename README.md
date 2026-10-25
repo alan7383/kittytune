@@ -3,11 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/alan7383/kittytune/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-gray?style=for-the-badge&logo=github" alt="License"></a>
-  <a href="https://github.com/alan7383/kittytune/releases"><img src="https://img.shields.io/github/v/tag/alan7383/kittytune?style=for-the-badge&label=Release&color=gray&logo=github" alt="Release"></a>
-  <a href="https://github.com/alan7383/kittytune/stargazers"><img src="https://img.shields.io/github/stars/alan7383/kittytune?style=for-the-badge&label=Stars&color=gray&logo=github" alt="Stars"></a>
-  <a href="https://ko-fi.com/alan7383"><img src="https://img.shields.io/badge/Ko--fi-gray?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
-  <a href="https://discord.gg/thyHQH9jV9"><img src="https://img.shields.io/badge/Discord-gray?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
+  <img src=".github/assets/badges.svg" alt="Android | Kotlin | Material Design | Jetpack Compose" width="100%"/>
 </p>
 <p align="center">
   <a href="https://alan7383.github.io/kittytune-website/download" title="Download KittyTune"><img src=".github/assets/download-kittytune.svg" alt="Download KittyTune" width="240"/></a>
@@ -52,6 +48,7 @@ It also pulls in the things a lot of music apps either skip or hide behind rough
 
 * **SoundCloud-first discovery** with home feed, stream, charts, moods, genres, tags, albums, and radio/station flows.
 * **Search tracks, artists, playlists, and albums** from SoundCloud.
+* **Verified search filter** compares title, artist, cover art, and duration with Deezer, Tidal, Qobuz, and Spotify so re-uploads and mislabelled copies stay out of the way.
 * **Track recognition** built right in via ShazamKit to identify songs playing around you and find them instantly.
 * **Switch search source to YouTube** when you want direct video/audio results instead.
 * **Paste SoundCloud or YouTube links** directly into search and jump to the right track, playlist, profile, or station.

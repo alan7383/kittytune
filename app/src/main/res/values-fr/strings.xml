@@ -61,6 +61,12 @@
     <!-- HOME &amp; DISCOVERY                                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
     <string name="search_hint">Rechercher un titre, un artiste&#8230;</string>
+    <string name="search_verified_filter">Vérifié</string>
+    <string name="search_verified_track">Titre vérifié</string>
+    <string name="search_verified_count">Vérifiés : %1$d</string>
+    <string name="search_verified_no_matches">Aucun résultat vérifié. Désactivez Vérifié pour tous les voir.</string>
+    <string name="search_verified_unavailable">Comparaison avec les autres plateformes impossible. Tous les résultats sont affichés.</string>
+    <string name="search_verified_inconclusive">La vérification n\'a pas permis de confirmer certains résultats.</string>
     <string name="home_discovery_title">Découverte du jour</string>
     <string name="home_discovery_subtitle">Nouveaux titres basés sur vos goûts</string>
     <string name="home_discovery_context_genre">Pour les fans de %1$s</string>
@@ -507,7 +513,6 @@
     <string name="lyrics_copy_text">Copier le texte</string>
     <string name="lyrics_sync">Synchro</string>
     <string name="lyrics_search_now_showing">Affiché : %1$s</string>
-    <string name="lyrics_search_progress">%1$d trouvés, %2$d sources cherchent encore</string>
     <string name="lyrics_search_clear">Effacer</string>
     <string name="lyrics_provider_all">Tous les fournisseurs</string>
     <string name="lyrics_badge_line_sync">Synchronisé à la ligne</string>
@@ -735,18 +740,12 @@
     <string name="color_palette_screen_title">Thème</string>
     <string name="pref_color_style_title">Style de palette</string>
     <string name="pref_color_spec_title">Spec couleur</string>
-    <string name="pref_seed_palette_title">Palette de seeds</string>
     <string name="pref_custom_seed_title">Seed personnalise</string>
     <string name="pref_color_generation_title">Moteur couleur</string>
     <string name="color_hex_label">Hex</string>
     <string name="color_hue_label">Teinte</string>
     <string name="color_saturation_label">Saturation</string>
     <string name="color_brightness_label">Luminosite</string>
-    <string name="theme_preview_harmony_title">Harmonie de palette</string>
-    <string name="theme_preview_tokens_label">Nuances de palette</string>
-    <string name="theme_preview_ui_sample">Aperçu de l\'interface</string>
-    <string name="theme_preview_sample_play">Lecture</string>
-    <string name="theme_preview_sample_favorite">Favori</string>
     <string name="theme_preset_accents_title">Nuances recommandées</string>
     <string name="theme_preset_accents_subtitle">Sélections coordonnées prêtes à l\'emploi</string>
     <string name="color_hint_muted">Atténué</string>
@@ -761,52 +760,12 @@
     <string name="color_palette_system_dynamic">Dynamique Système</string>
 
     <!-- Colors (Seed Palette) -->
-    <string name="color_group_deep_blues">Bleus profonds</string>
-    <string name="color_seed_deep_blue">Bleu profond</string>
-    <string name="color_seed_abyss">Abysse</string>
-    <string name="color_seed_space_blue">Bleu spatial</string>
-    <string name="color_seed_ink_blue">Bleu encre</string>
-    <string name="color_seed_midnight_indigo">Indigo de minuit</string>
-    <string name="color_seed_cosmic_blue">Bleu cosmique</string>
-    <string name="color_seed_twilight">Crépuscule</string>
-    <string name="color_seed_royal_navy">Bleu marine royal</string>
-    <string name="color_seed_midnight">Minuit</string>
-    <string name="color_seed_navy">Bleu marine</string>
-    <string name="color_group_blues_cyans">Bleus &amp; Cyans</string>
-    <string name="color_seed_sapphire">Saphir</string>
     <string name="color_seed_electric_blue">Bleu électrique</string>
-    <string name="color_seed_azure">Azur</string>
     <string name="color_seed_cyan">Cyan</string>
-    <string name="color_seed_teal">Sarcelle</string>
-    <string name="color_group_greens_teals">Verts &amp; Turquoises</string>
-    <string name="color_seed_deep_teal">Sarcelle foncée</string>
-    <string name="color_seed_emerald">Émeraude</string>
-    <string name="color_seed_forest">Forêt</string>
-    <string name="color_seed_moss">Mousse</string>
-    <string name="color_seed_lime">Citron vert</string>
-    <string name="color_seed_olive">Olive</string>
-    <string name="color_group_sunset_warm">Soleil Couchant</string>
     <string name="color_seed_gold">Or</string>
-    <string name="color_seed_amber">Ambre</string>
     <string name="color_seed_kitty_orange">Orange Kitty</string>
-    <string name="color_seed_deep_orange">Orange profond</string>
-    <string name="color_seed_coral">Corail</string>
-    <string name="color_seed_sand">Sable</string>
-    <string name="color_group_pinks_purples">Roses &amp; Violets</string>
-    <string name="color_seed_crimson">Cramoisi</string>
-    <string name="color_seed_rose">Rose</string>
-    <string name="color_seed_hot_pink">Rose vif</string>
-    <string name="color_seed_magenta">Magenta</string>
     <string name="color_seed_plum">Prune</string>
-    <string name="color_seed_deep_purple">Violet profond</string>
-    <string name="color_seed_indigo">Indigo</string>
-    <string name="color_seed_periwinkle">Pervenche</string>
-    <string name="color_group_neutrals">Neutres</string>
-    <string name="color_seed_blue_gray">Bleu gris</string>
     <string name="color_seed_slate">Ardoise</string>
-    <string name="color_seed_graphite">Graphite</string>
-    <string name="color_seed_warm_gray">Gris chaud</string>
-    <string name="color_seed_mocha">Moka</string>
     <string name="pref_start_screen">Écran de démarrage</string>
     <string name="pref_theme_dynamic">Thème Dynamique (Material You)</string>
     <string name="pref_theme_dynamic_sub">S\'adapte à votre fond d\'écran</string>
@@ -1267,6 +1226,8 @@
     <string name="pref_auto_update_sub">Vérifier au démarrage de l\'app</string>
     <string name="pref_remember_search_filter">Mémoriser le filtre de recherche</string>
     <string name="pref_remember_search_filter_sub">Conserver le dernier filtre sélectionné (Artistes, Playlists…) lors de l\'ouverture de la recherche</string>
+    <string name="pref_verified_filter">Filtre vérifié</string>
+    <string name="pref_verified_filter_sub">Compare les résultats avec les plateformes officielles et masque les réuploads. Désactivé par défaut.</string>
     <string name="pref_show_playlist_total_duration">Afficher la durée totale de la playlist</string>
     <string name="pref_show_playlist_total_duration_sub">Affiche la durée totale à côté du nombre de titres dans les playlists</string>
     <!-- ═══════════════════════════════════════════════════════════════════════════════ -->
@@ -1619,8 +1580,6 @@
     <string name="nav_search">Rechercher</string>
 
     <string name="pref_bottom_menu_title">Barre de navigation</string>
-    <string name="pref_explorer_grid_title">Grille de l\'explorateur</string>
-    <string name="pref_explorer_grid_subtitle">Afficher les catégories sous forme de tuiles carrées sur 2 colonnes</string>
     <string name="pref_library_category_layout_title">Disposition des catégories de la bibliothèque</string>
     <string name="pref_library_category_layout_subtitle">Choisir entre les boutons connectés et un bouton unique déroulant (style bureau)</string>
     <string name="pref_library_category_layout_connected">Boutons connectés</string>
@@ -1705,8 +1664,6 @@
     <string name="about_website_title">Site web</string>
     <string name="about_downloads_title">Autres plateformes</string>
     <string name="about_downloads_desc">Windows, Linux, macOS</string>
-    <string name="pref_lyrics_provider_lrclib_short">LRCLib</string>
-    <string name="pref_lyrics_provider_musixmatch_short">Musixmatch</string>
     <string name="pref_sc_sync_title">Synchronisation de l\'historique SoundCloud</string>
     <string name="pref_sc_sync_sub">Synchronise les titres écoutés, playlists, stations et le compteur de vues sur votre compte SoundCloud. Désactivez pour une écoute privée.</string>
     <!-- SoundCloud History Screen -->
@@ -2417,8 +2374,6 @@
     <string name="haptic_mode_stronger">Très fort</string>
     <string name="pref_haptics_buttons">Boutons &amp; Cartes</string>
     <string name="pref_haptics_buttons_sub">Vibre lors des clics sur les boutons et les pistes</string>
-    <string name="pref_haptics_navigation">Barre de navigation</string>
-    <string name="pref_haptics_navigation_sub">Vibre lors du changement d\'onglet</string>
     <string name="pref_haptics_sliders">Curseurs &amp; barres de lecture</string>
     <string name="pref_haptics_sliders_sub">Vibre par paliers pendant le glissement des curseurs et la recherche</string>
     <string name="pref_haptics_test_title">Tester le retour</string>
@@ -2693,21 +2648,16 @@
     <string name="equalizer_off">Désactivé</string>
     <string name="equalizer_mode_manual">Manuel</string>
     <string name="equalizer_mode_auto">Automatique</string>
-    <string name="equalizer_auto_title">Auto EQ</string>
-    <string name="equalizer_auto_subtitle">Associez un profil mesuré à vos écouteurs</string>
     <string name="equalizer_auto_detected">Écouteurs détectés</string>
     <string name="equalizer_auto_no_device">Aucun écouteur détecté</string>
     <string name="equalizer_auto_no_device_sub">Connectez vos écouteurs ou recherchez un modèle ci-dessous.</string>
     <string name="equalizer_auto_search_hint">Rechercher un casque (ex. HD 650)</string>
     <string name="equalizer_auto_search_action">Rechercher</string>
     <string name="equalizer_auto_suggestions">Modèles populaires</string>
-    <string name="equalizer_auto_searching">Recherche…</string>
     <string name="equalizer_auto_no_results">Aucun profil trouvé. Essayez la marque et le modèle complets.</string>
     <string name="equalizer_auto_results">Profils trouvés</string>
     <string name="equalizer_auto_apply">Appliquer</string>
-    <string name="equalizer_auto_applying">Application…</string>
     <string name="equalizer_auto_applied">Profil appliqué</string>
-    <string name="equalizer_auto_source">Source : %1$s</string>
     <string name="equalizer_auto_restore">Appliquer automatiquement quand cet appareil se reconnecte</string>
     <string name="equalizer_auto_restored">Auto EQ restauré : %1$s</string>
     <string name="equalizer_auto_remove">Retirer le profil</string>
@@ -2715,8 +2665,6 @@
     <string name="equalizer_auto_import">Importer un EQ</string>
     <string name="equalizer_auto_error">Impossible de charger les profils. Vérifiez votre connexion et réessayez.</string>
     <string name="equalizer_auto_retry">Réessayer</string>
-    <string name="equalizer_auto_profile_hint">Les mesures varient selon les coussinets et le mode ANC. Choisissez l’entrée qui correspond à votre écoute.</string>
-    <string name="equalizer_auto_detected_query">Recherche de « %1$s »</string>
     <string name="dj_flow_title">DJ Flow</string>
     <string name="dj_flow_subtitle_on">Mixage non-stop</string>
     <string name="dj_flow_subtitle_off">Désactivé</string>
@@ -2982,9 +2930,6 @@
     <string name="mix_nothing_found">Rien n’est revenu. Vérifie ta connexion et réessaie.</string>
     <string name="mix_no_seeds">Artiste introuvable sur SoundCloud. Essaie le nom exact.</string>
     <string name="mix_all_known">Tout ce qui est sorti est déjà dans ta bibliothèque. Essaie un autre artiste ou genre.</string>
-    <string name="mix_in_the_style_of">Dans le style d’un artiste</string>
-    <string name="mix_artist_hint">Yeat, Fred again.., …</string>
-    <string name="mix_by_genre">Ou un genre</string>
     <string name="mix_track_count">%1$d titres</string>
     <string name="mix_basis">D’après %1$s</string>
     <string name="mix_basis_more">+%1$d autres</string>
@@ -3040,7 +2985,6 @@
     <string name="keywords_animated_covers">pochettes animées, pochette vidéo, animation vidéo</string>
     <string name="keywords_animated_artist_profiles">profils artistes animés, bannière animée, vidéo artiste</string>
     <string name="keywords_font">police, typographie, police personnalisée, graisse, style texte</string>
-    <string name="keywords_explorer_grid">grille exploration, affichage grille, explorer grille</string>
     <string name="keywords_library_layout">bibliothèque, filtres, catégories, disposition, bureau, boutons</string>
     <string name="keywords_achievements">succès, trophées, récompenses, badges, popups</string>
     <string name="keywords_stats">statistiques, stats, temps d\'écoute, récap, wrapped, historique, top titres, top artistes</string>
@@ -3269,7 +3213,6 @@
     <string name="time_seconds">%1$ds</string>
     <!-- Connect / Appareils de lecture -->
     <string name="slot_devices">Appareils de lecture</string>
-    <string name="menu_playback_devices">Appareils de lecture</string>
     <string name="connect_devices_title">Appareils disponibles</string>
     <string name="connect_playing_here">Lecture en cours sur cet appareil</string>
     <string name="connect_status_offline">Hors ligne</string>
@@ -3401,4 +3344,34 @@
     <string name="dev_logs_cleared">Journaux de plantage effacés</string>
     <string name="zapret_status_vpn_paused">En pause • VPN actif</string>
     <string name="zapret_vpn_active_notice">Une connexion VPN est active. Zapret est automatiquement mis en pause pour éviter les conflits et économiser la batterie. Le trafic est géré directement par votre VPN.</string>
+
+    <!-- Lyrics Quick Settings & Full Player Background -->
+    <string name="lyrics_quick_tab_look">Style</string>
+    <string name="lyrics_quick_tab_layout">Disposition</string>
+    <string name="lyrics_quick_tab_features">Fonctions</string>
+    <string name="full_player_bg_style">Arrière-plan du lecteur</string>
+    <string name="full_player_bg_apple_music">Fluide (Apple Music)</string>
+    <string name="full_player_bg_apple_music_fact">Maillage fluide dynamique animé par shaders AGSL</string>
+    <string name="full_player_bg_blur">Flou</string>
+    <string name="full_player_bg_gradient">Dégradé</string>
+    <string name="full_player_bg_pure_black">Noir absolu</string>
+    <string name="lyrics_content_title">Contenu &amp; sources</string>
+    <string name="lyrics_quick_scrolling">Défilement</string>
+    <string name="lyrics_style_standard">Standard</string>
+    <string name="lyrics_style_scale">Échelle</string>
+    <string name="lyrics_style_focus">Focus</string>
+    <string name="lyrics_style_scale_focus">Échelle &amp; Focus</string>
+    <string name="pref_lyrics_display_style">Style d\'animation des paroles</string>
+    <string name="pref_lyrics_active_scale_title">Grossissement de la ligne active</string>
+    <string name="pref_lyrics_active_scale_desc">Agrandit la ligne en cours par rapport aux autres</string>
+    <string name="pref_lyrics_one_line_title">Mode une seule ligne</string>
+    <string name="pref_lyrics_one_line_sub">Afficher uniquement la ligne en cours de lecture</string>
+    <string name="pref_lyrics_backing_title">Chœurs et secondes voix</string>
+    <string name="pref_lyrics_backing_sub">Atténuer ou formater les chœurs séparément</string>
+    <string name="pref_lyrics_horizontal_margin_title">Marges horizontales</string>
+    <string name="pref_lyrics_vertical_offset_title">Décalage vertical</string>
+    <string name="pref_lyrics_reset_typography">Réinitialiser la typographie</string>
+    <string name="pref_lyrics_autoscroll_speed">Vitesse de défilement (texte brut)</string>
+    <string name="pref_lyrics_speed_this_track">Vitesse pour ce morceau</string>
+    <string name="pref_lyrics_speed_this_track_sub">Enregistrer une vitesse spécifique pour cette chanson</string>
 </resources>
