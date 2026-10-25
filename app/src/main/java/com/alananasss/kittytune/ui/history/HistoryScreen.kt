@@ -21,6 +21,7 @@ import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.ui.common.KittyOutlinedTextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,6 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.audio.haptics.HapticUtil
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.ui.navigation.Screen
 import com.alananasss.kittytune.ui.player.PlaybackContext
@@ -124,6 +128,7 @@ fun HistoryScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        HapticUtil.performRejectHaptic(context)
                         historyViewModel.clearHistoryForCurrentTab()
                         showClearDialog = false
                     },
@@ -138,7 +143,10 @@ fun HistoryScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showClearDialog = false },
+                    onClick = {
+                        HapticUtil.performLightHaptic(context)
+                        showClearDialog = false
+                    },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -159,7 +167,10 @@ fun HistoryScreen(
                 },
                 navigationIcon = {
                     IconButton(
-                        onClick = onBackClick,
+                        onClick = {
+                            HapticUtil.performLightHaptic(context)
+                            onBackClick()
+                        },
                         shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(
@@ -178,6 +189,7 @@ fun HistoryScreen(
                     if (currentTab == HistoryTab.TRACKS && historyViewModel.tracksHistory.isNotEmpty()) {
                         IconButton(
                             onClick = {
+                                HapticUtil.performUIHaptic(context)
                                 val tracks = historyViewModel.tracksHistory.map { it.track }
                                 playerViewModel.prepareBulkAdd(tracks)
                             },
@@ -192,7 +204,10 @@ fun HistoryScreen(
 
                     if (hasItems) {
                         IconButton(
-                            onClick = { showClearDialog = true },
+                            onClick = {
+                                HapticUtil.performLightHaptic(context)
+                                showClearDialog = true
+                            },
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
@@ -204,7 +219,10 @@ fun HistoryScreen(
                     }
 
                     IconButton(
-                        onClick = { historyViewModel.loadData(forceRefresh = true) },
+                        onClick = {
+                            HapticUtil.performLightHaptic(context)
+                            historyViewModel.loadData(forceRefresh = true)
+                        },
                         shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(
@@ -244,7 +262,10 @@ fun HistoryScreen(
                 trailingIcon = {
                     if (historyViewModel.searchQuery.isNotEmpty()) {
                         IconButton(
-                            onClick = { historyViewModel.searchQuery = "" },
+                            onClick = {
+                                HapticUtil.performLightHaptic(context)
+                                historyViewModel.searchQuery = ""
+                            },
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
@@ -503,9 +524,12 @@ fun HistoryTrackRow(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = onClick,
+                onClick = {
+                    HapticUtil.performUIHaptic(view)
+                    onClick()
+                },
                 onLongClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                     onMoreClick()
                 }
             )
@@ -658,7 +682,7 @@ fun HistoryContextRow(
     }
 
     Surface(
-        onClick = onClick,
+        onClick = hapticAction(HapticKind.UI, onClick),
         color = Color.Transparent,
         modifier = Modifier.fillMaxWidth()
     ) {
