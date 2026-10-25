@@ -15,7 +15,9 @@ import com.alananasss.kittytune.ui.player.EqualizerState
 import com.alananasss.kittytune.data.audio.SavedEqProfile
 import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.RepeatMode
+import com.alananasss.kittytune.ui.player.NormalizationLevel
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import java.io.File
 import java.io.FileReader
@@ -215,10 +217,10 @@ enum class AiDetectionWindow(
 }
 
 data class FloatingBarLook(
-    val cornerDp: Int,
-    val widthPercent: Int,
-    val marginDp: Int,
-    val isTranslucent: Boolean
+    @SerializedName("cornerDp") val cornerDp: Int,
+    @SerializedName("widthPercent") val widthPercent: Int,
+    @SerializedName("marginDp") val marginDp: Int,
+    @SerializedName("isTranslucent") val isTranslucent: Boolean
 ) {
     companion object {
         val DEFAULT = FloatingBarLook(cornerDp = 20, widthPercent = 94, marginDp = 12, isTranslucent = true)
@@ -1687,7 +1689,22 @@ class PlayerPreferences(context: Context) {
     fun getEqualizerState(): EqualizerState {
         val json = prefs.getString(KEY_EQUALIZER_STATE, null) ?: return EqualizerState()
         return try {
-            gson.fromJson(json, EqualizerState::class.java) ?: EqualizerState()
+            val state = gson.fromJson(json, EqualizerState::class.java)
+            if (state == null || (state.bandGainsDb as List<Float>?) == null || (state.selectedPreset as String?) == null) {
+                EqualizerState(
+                    isEnabled = state?.isEnabled ?: false,
+                    preampDb = state?.preampDb ?: 0f,
+                    bandGainsDb = state?.bandGainsDb ?: List(16) { 0f },
+                    selectedPreset = state?.selectedPreset ?: "Flat",
+                    autoProfileId = state?.autoProfileId,
+                    autoProfileName = state?.autoProfileName,
+                    autoProfileSource = state?.autoProfileSource,
+                    autoProfileDeviceKey = state?.autoProfileDeviceKey,
+                    autoProfileDeviceName = state?.autoProfileDeviceName
+                )
+            } else {
+                state
+            }
         } catch (_: Exception) {
             EqualizerState()
         }
@@ -1772,9 +1789,15 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getLastContext(): PlaybackContext? {
-        if (!getPersistentQueueEnabled()) return null;
-        val json = prefs.getString(KEY_CONTEXT_JSON, null) ?: return null; return try {
-            gson.fromJson(json, PlaybackContext::class.java)
+        if (!getPersistentQueueEnabled()) return null
+        val json = prefs.getString(KEY_CONTEXT_JSON, null) ?: return null
+        return try {
+            val ctx = gson.fromJson(json, PlaybackContext::class.java)
+            if (ctx == null || (ctx.displayText as String?) == null || (ctx.navigationId as String?) == null) {
+                null
+            } else {
+                ctx
+            }
         } catch (_: Exception) {
             null
         }
@@ -1790,8 +1813,111 @@ class PlayerPreferences(context: Context) {
     }
 
     fun getLastEffects(): AudioEffectsState {
-        val json = prefs.getString(KEY_EFFECTS, null) ?: return AudioEffectsState(); return try {
-            gson.fromJson(json, AudioEffectsState::class.java)
+        val json = prefs.getString(KEY_EFFECTS, null) ?: return AudioEffectsState()
+        return try {
+            val state = gson.fromJson(json, AudioEffectsState::class.java)
+            if (state == null || (state.ambientType as String?) == null || (state.normalizationLevel as NormalizationLevel?) == null) {
+                AudioEffectsState(
+                    speed = state?.speed ?: 1f,
+                    isPitchEnabled = state?.isPitchEnabled ?: true,
+                    is8DEnabled = state?.is8DEnabled ?: false,
+                    isMuffledEnabled = state?.isMuffledEnabled ?: false,
+                    isBassBoostEnabled = state?.isBassBoostEnabled ?: false,
+                    isReverbEnabled = state?.isReverbEnabled ?: false,
+                    isRainEnabled = state?.isRainEnabled ?: false,
+                    rainVolume = state?.rainVolume ?: 1.0f,
+                    bassBoostIntensity = state?.bassBoostIntensity ?: 0.5f,
+                    eightDSpeed = state?.eightDSpeed ?: 0.5f,
+                    reverbIntensity = state?.reverbIntensity ?: 0.5f,
+                    muffledIntensity = state?.muffledIntensity ?: 0.5f,
+                    isEarrapeEnabled = state?.isEarrapeEnabled ?: false,
+                    earrapeIntensity = state?.earrapeIntensity ?: 1.0f,
+                    isMonoEnabled = state?.isMonoEnabled ?: false,
+                    isNormalizationEnabled = state?.isNormalizationEnabled ?: false,
+                    normalizationLevel = state?.normalizationLevel ?: NormalizationLevel.NORMAL,
+                    isVintageMp3Enabled = state?.isVintageMp3Enabled ?: false,
+                    vintageMp3Compression = state?.vintageMp3Compression ?: 0.75f,
+                    isVocalRemoverEnabled = state?.isVocalRemoverEnabled ?: false,
+                    vocalRemoverLevel = state?.vocalRemoverLevel ?: 1.0f,
+                    isVocalBoostEnabled = state?.isVocalBoostEnabled ?: false,
+                    vocalBoostIntensity = state?.vocalBoostIntensity ?: 0.75f,
+                    isFlangerEnabled = state?.isFlangerEnabled ?: false,
+                    flangerIntensity = state?.flangerIntensity ?: 0.75f,
+                    flangerSpeed = state?.flangerSpeed ?: 0.50f,
+                    isPartyNextDoorEnabled = state?.isPartyNextDoorEnabled ?: false,
+                    partyNextDoorIsolation = state?.partyNextDoorIsolation ?: 0.60f,
+                    partyNextDoorReverb = state?.partyNextDoorReverb ?: 0.50f,
+                    partyNextDoorBassRumble = state?.partyNextDoorBassRumble ?: 0.70f,
+                    isSuperWideEnabled = state?.isSuperWideEnabled ?: false,
+                    superWideWidth = state?.superWideWidth ?: 0.70f,
+                    superWideDepth = state?.superWideDepth ?: 0.50f,
+                    isVinylLoFiEnabled = state?.isVinylLoFiEnabled ?: false,
+                    vinylCrackles = state?.vinylCrackles ?: 0.65f,
+                    vinylFlutter = state?.vinylFlutter ?: 0.50f,
+                    isPhaserEnabled = state?.isPhaserEnabled ?: false,
+                    phaserSpeed = state?.phaserSpeed ?: 0.50f,
+                    phaserFeedback = state?.phaserFeedback ?: 0.65f,
+                    isMegaphoneEnabled = state?.isMegaphoneEnabled ?: false,
+                    megaphoneTone = state?.megaphoneTone ?: 0.50f,
+                    megaphoneDrive = state?.megaphoneDrive ?: 0.60f,
+                    isRobotVocoderEnabled = state?.isRobotVocoderEnabled ?: false,
+                    robotFrequency = state?.robotFrequency ?: 0.40f,
+                    robotMix = state?.robotMix ?: 0.75f,
+                    isChorusEnabled = state?.isChorusEnabled ?: false,
+                    chorusRate = state?.chorusRate ?: 0.30f,
+                    chorusDepth = state?.chorusDepth ?: 0.70f,
+                    isUnderwaterEnabled = state?.isUnderwaterEnabled ?: false,
+                    underwaterDepth = state?.underwaterDepth ?: 0.60f,
+                    underwaterBubbles = state?.underwaterBubbles ?: 0.40f,
+                    isTranceGateEnabled = state?.isTranceGateEnabled ?: false,
+                    tranceGateSpeed = state?.tranceGateSpeed ?: 0.50f,
+                    tranceGatePattern = state?.tranceGatePattern ?: 0.85f,
+                    tranceGateMix = state?.tranceGateMix ?: 0.90f,
+                    isPingPongDelayEnabled = state?.isPingPongDelayEnabled ?: false,
+                    pingPongDelayTime = state?.pingPongDelayTime ?: 0.45f,
+                    pingPongFeedback = state?.pingPongFeedback ?: 0.60f,
+                    isChiptuneEnabled = state?.isChiptuneEnabled ?: false,
+                    chiptuneBits = state?.chiptuneBits ?: 0.50f,
+                    chiptuneSampleRate = state?.chiptuneSampleRate ?: 0.55f,
+                    isShimmerReverbEnabled = state?.isShimmerReverbEnabled ?: false,
+                    shimmerSize = state?.shimmerSize ?: 0.65f,
+                    shimmerMix = state?.shimmerMix ?: 0.60f,
+                    isRotarySpeakerEnabled = state?.isRotarySpeakerEnabled ?: false,
+                    rotarySpeed = state?.rotarySpeed ?: 0.40f,
+                    rotaryDepth = state?.rotaryDepth ?: 0.75f,
+                    isTapeSaturationEnabled = state?.isTapeSaturationEnabled ?: false,
+                    tapeWarmth = state?.tapeWarmth ?: 0.65f,
+                    tapeExciter = state?.tapeExciter ?: 0.50f,
+                    isSubOctaverEnabled = state?.isSubOctaverEnabled ?: false,
+                    subOctaverLevel = state?.subOctaverLevel ?: 0.70f,
+                    subOctaverCutoff = state?.subOctaverCutoff ?: 0.50f,
+                    isEmptyMallEnabled = state?.isEmptyMallEnabled ?: false,
+                    emptyMallDistance = state?.emptyMallDistance ?: 0.65f,
+                    emptyMallReverb = state?.emptyMallReverb ?: 0.55f,
+                    isGramophoneEnabled = state?.isGramophoneEnabled ?: false,
+                    gramophoneAge = state?.gramophoneAge ?: 0.65f,
+                    gramophoneHorn = state?.gramophoneHorn ?: 0.60f,
+                    isReverseEchoEnabled = state?.isReverseEchoEnabled ?: false,
+                    reverseEchoTime = state?.reverseEchoTime ?: 0.50f,
+                    reverseEchoFeedback = state?.reverseEchoFeedback ?: 0.55f,
+                    isStadiumEnabled = state?.isStadiumEnabled ?: false,
+                    stadiumSize = state?.stadiumSize ?: 0.65f,
+                    stadiumAtmosphere = state?.stadiumAtmosphere ?: 0.60f,
+                    isWalkmanEnabled = state?.isWalkmanEnabled ?: false,
+                    walkmanDrive = state?.walkmanDrive ?: 0.65f,
+                    walkmanHiss = state?.walkmanHiss ?: 0.40f,
+                    isAsmrVocalEnabled = state?.isAsmrVocalEnabled ?: false,
+                    asmrProximity = state?.asmrProximity ?: 0.70f,
+                    asmrAir = state?.asmrAir ?: 0.65f,
+                    isNightDriveEnabled = state?.isNightDriveEnabled ?: false,
+                    nightDriveCabin = state?.nightDriveCabin ?: 0.65f,
+                    nightDriveRoad = state?.nightDriveRoad ?: 0.45f,
+                    ambientType = state?.ambientType ?: "rain",
+                    isEqualizerEnabled = state?.isEqualizerEnabled ?: false
+                )
+            } else {
+                state
+            }
         } catch (_: Exception) {
             AudioEffectsState()
         }
@@ -2325,12 +2451,12 @@ class PlayerPreferences(context: Context) {
      * Stored as a JSON array in SharedPreferences.
      */
     data class RecentSettingsEntry(
-        val title: String,
-        val subtitle: String? = null,
-        val categoryName: String,
-        val route: String? = null,
-        val highlightKey: String? = null,
-        val iconRes: Int? = null
+        @SerializedName("title") val title: String,
+        @SerializedName("subtitle") val subtitle: String? = null,
+        @SerializedName("categoryName") val categoryName: String,
+        @SerializedName("route") val route: String? = null,
+        @SerializedName("highlightKey") val highlightKey: String? = null,
+        @SerializedName("iconRes") val iconRes: Int? = null
     )
 
     fun getSettingsRecentSearches(): List<RecentSettingsEntry> {

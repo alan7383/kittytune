@@ -2,6 +2,7 @@ package com.alananasss.kittytune.data.audio
 
 import android.content.Context
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import java.io.File
 import java.net.URLDecoder
 import java.text.Normalizer
@@ -37,20 +38,20 @@ data class AutoEqProfile(
 
 /** A profile downloaded from AutoEq or loaded locally, reduced to KittyTune's 16 bands. */
 data class AutoEqProfileData(
-    val profile: AutoEqProfile,
-    val gainsDb: List<Float>,
-    val preampDb: Float,
+    @SerializedName("profile") val profile: AutoEqProfile,
+    @SerializedName("gainsDb") val gainsDb: List<Float>,
+    @SerializedName("preampDb") val preampDb: Float,
 )
 
 /** What is remembered for a paired headphone so a later connection can restore its EQ. */
 data class SavedEqProfile(
-    val profileId: String,
-    val profileName: String,
-    val source: String,
-    val deviceKey: String,
-    val deviceName: String,
-    val gainsDb: List<Float>,
-    val preampDb: Float,
+    @SerializedName("profileId") val profileId: String,
+    @SerializedName("profileName") val profileName: String,
+    @SerializedName("source") val source: String,
+    @SerializedName("deviceKey") val deviceKey: String,
+    @SerializedName("deviceName") val deviceName: String,
+    @SerializedName("gainsDb") val gainsDb: List<Float>,
+    @SerializedName("preampDb") val preampDb: Float,
 )
 
 /**

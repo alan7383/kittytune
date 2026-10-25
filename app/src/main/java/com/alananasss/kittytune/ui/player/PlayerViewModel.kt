@@ -299,8 +299,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             }
         }
 
-    var effectsState by mutableStateOf(playerPrefs.getLastEffects().copy(isEqualizerEnabled = playerPrefs.getEqualizerState().isEnabled))
-    var equalizerState by mutableStateOf(playerPrefs.getEqualizerState())
+    var effectsState by mutableStateOf(
+        runCatching {
+            playerPrefs.getLastEffects().copy(isEqualizerEnabled = playerPrefs.getEqualizerState().isEnabled)
+        }.getOrElse { AudioEffectsState() }
+    )
+    var equalizerState by mutableStateOf(
+        runCatching { playerPrefs.getEqualizerState() }.getOrElse { EqualizerState() }
+    )
     var isPreciseSpeedEnabled by mutableStateOf(playerPrefs.getPreciseSpeedEnabled())
 
     var isHapticsEnabled by mutableStateOf(playerPrefs.getHapticsEnabled())

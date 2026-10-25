@@ -26,28 +26,29 @@ import java.net.ProxySelector
 import java.net.SocketAddress
 import java.net.URI
 import java.util.concurrent.TimeUnit
+import com.google.gson.annotations.SerializedName
 
 enum class ProxyProtocol {
-    HTTP,
-    SOCKS
+    @SerializedName("HTTP") HTTP,
+    @SerializedName("SOCKS") SOCKS
 }
 
 data class ProxyConfig(
-    val enabled: Boolean = false,
-    val protocol: ProxyProtocol = ProxyProtocol.HTTP,
-    val host: String = "",
-    val port: Int = 8080,
-    val authEnabled: Boolean = false,
-    val username: String = "",
-    val password: String = ""
+    @SerializedName("enabled") val enabled: Boolean = false,
+    @SerializedName("protocol") val protocol: ProxyProtocol = ProxyProtocol.HTTP,
+    @SerializedName("host") val host: String = "",
+    @SerializedName("port") val port: Int = 8080,
+    @SerializedName("authEnabled") val authEnabled: Boolean = false,
+    @SerializedName("username") val username: String = "",
+    @SerializedName("password") val password: String = ""
 ) {
     fun isValid(): Boolean = host.isNotBlank() && port in 1..65535
 }
 
 data class ProxyProfile(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    val name: String,
-    val config: ProxyConfig
+    @SerializedName("id") val id: String = java.util.UUID.randomUUID().toString(),
+    @SerializedName("name") val name: String,
+    @SerializedName("config") val config: ProxyConfig
 )
 
 sealed class ProxyTestResult {
