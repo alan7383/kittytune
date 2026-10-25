@@ -1,6 +1,7 @@
 package com.alananasss.kittytune.data.deezer
 
 import android.net.Uri
+import com.alananasss.kittytune.data.search.ProviderSearchRanker
 import com.alananasss.kittytune.domain.Playlist
 import com.alananasss.kittytune.domain.Track
 import com.alananasss.kittytune.domain.TrackPublisherMetadata
@@ -54,7 +55,7 @@ object DeezerSearchRepository {
             val artists = artistsJson?.optJSONArray("data")?.mapObjects { it.toDeezerArtist() } ?: emptyList()
 
             DeezerSearchResult(
-                tracks = tracks,
+                tracks = ProviderSearchRanker.rankTracks(query, tracks),
                 albums = albums,
                 playlists = playlists,
                 artists = artists
@@ -67,6 +68,36 @@ object DeezerSearchRepository {
         val encodedQuery = URLEncoder.encode(query.trim(), "UTF-8")
         val json = fetchJson("$API_BASE/search/track?q=$encodedQuery&limit=$limit")
         json?.optJSONArray("data")?.mapObjects { it.toDeezerTrack() } ?: emptyList()
+    }
+
+    /** Resolves one exact Deezer track from a pasted link. */
+    suspend fun getTrack(trackId: String): Track? = withContext(Dispatchers.IO) {
+        val cleanId = trackId.removePrefix("deezer:track:").trim()
+        if (cleanId.isBlank()) return@withContext null
+        fetchJson("$API_BASE/track/$cleanId")?.toDeezerTrack()
+    }
+
+    /**
+     * Deezer's own artist radio: the endpoint behind the "Radio" tab of an artist
+     * page. It answers with a real station — the artist mixed with tracks from
+     * the same neighbourhood — not just the artist's own catalogue, so it is
+     * worth starting a radio from a single Deezer track.
+     */
+    suspend fun getRadio(artistId: String, limit: Int = 25): List<Track> = withContext(Dispatchers.IO) {
+        val cleanId = artistId.removePrefix("deezer:artist:").trim()
+        if (cleanId.isBlank()) return@withContext emptyList()
+
+        val station = fetchJson("$API_BASE/artist/$cleanId/radio?limit=$limit")
+            ?.optJSONArray("data")
+            ?.mapObjects { it.toDeezerTrack() }
+            ?: emptyList()
+
+        val topTracks = fetchJson("$API_BASE/artist/$cleanId/top?limit=$limit")
+            ?.optJSONArray("data")
+            ?.mapObjects { it.toDeezerTrack() }
+            ?: emptyList()
+
+        (station + topTracks).distinctBy { it.id }
     }
 
     suspend fun getAlbum(albumId: String): Playlist? = withContext(Dispatchers.IO) {
