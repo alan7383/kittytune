@@ -23,6 +23,12 @@ enum class PreferredLyricsProvider(val displayName: String) {
     }
 }
 
+/** The two sources Data Saver asks by default: high coverage, one request each. */
+val DefaultDataSaverLyricsProviders = listOf(
+    PreferredLyricsProvider.MUSIXMATCH,
+    PreferredLyricsProvider.LRCLIB,
+)
+
 val DefaultLyricsProviderOrder = listOf(
     PreferredLyricsProvider.MUSIXMATCH,
     PreferredLyricsProvider.BETTER_LYRICS,

@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider
@@ -59,7 +60,7 @@ fun LyricsProviderOrderDialog(prefs: PlayerPreferences, onDismiss: () -> Unit) {
         onMove = { from, to ->
             val item = currentOrder.removeAt(from.index)
             currentOrder.add(to.index, item)
-            view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+            view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
         }
     )
     AlertDialog(
@@ -96,10 +97,10 @@ fun LyricsProviderOrderDialog(prefs: PlayerPreferences, onDismiss: () -> Unit) {
                                         .size(44.dp)
                                         .draggableHandle(
                                             onDragStarted = {
-                                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                                             },
                                             onDragStopped = {
-                                                view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                                view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
                                             }
                                         ),
                                     contentAlignment = Alignment.Center

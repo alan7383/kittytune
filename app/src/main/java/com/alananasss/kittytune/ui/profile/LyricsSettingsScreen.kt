@@ -14,6 +14,9 @@
     import androidx.compose.material.icons.rounded.Remove
     import androidx.compose.material.icons.rounded.SdStorage
     import androidx.compose.material3.*
+    import com.alananasss.kittytune.audio.haptics.performAppHaptic
+    import com.alananasss.kittytune.ui.common.HapticKind
+    import com.alananasss.kittytune.ui.common.hapticAction
     import com.alananasss.kittytune.ui.common.Slider
     import androidx.compose.runtime.*
     import androidx.compose.ui.Alignment
@@ -117,7 +120,7 @@
                         }
                     }
                 },
-                confirmButton = { TextButton(onClick = { showProviderDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                confirmButton = { TextButton(onClick = hapticAction(HapticKind.UI) { showProviderDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
             )
         }
 
@@ -164,7 +167,7 @@
                         }
                     }
                 },
-                confirmButton = { TextButton(onClick = { showLangDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                confirmButton = { TextButton(onClick = hapticAction(HapticKind.UI) { showLangDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
             )
         }
 
@@ -201,7 +204,7 @@
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showPlacementDialog = false }) {
+                    TextButton(onClick = hapticAction(HapticKind.UI) { showPlacementDialog = false }) {
                         Text(stringResource(R.string.btn_cancel))
                     }
                 }
@@ -260,7 +263,7 @@
                 onMove = { from, to ->
                     val item = currentOrder.removeAt(from.index)
                     currentOrder.add(to.index, item)
-                    view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+                    view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
                 }
             )
             AlertDialog(
@@ -297,10 +300,10 @@
                                                 .size(44.dp)
                                                 .draggableHandle(
                                                     onDragStarted = {
-                                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                        view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                                                     },
                                                     onDragStopped = {
-                                                        view.performHapticFeedback(HapticFeedbackConstants.GESTURE_END)
+                                                        view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
                                                     }
                                                 ),
                                             contentAlignment = Alignment.Center
@@ -344,7 +347,7 @@
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = {
+                    TextButton(onClick = hapticAction(HapticKind.UI) {
                         providerOrder = currentOrder.toList()
                         prefs.setLyricsProviderOrder(currentOrder.toList())
                         currentEnabled.forEach { (p, enabled) ->
@@ -356,7 +359,7 @@
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showProviderOrderDialog = false }) {
+                    TextButton(onClick = hapticAction(HapticKind.UI) { showProviderOrderDialog = false }) {
                         Text(stringResource(R.string.btn_cancel))
                     }
                 }
@@ -389,7 +392,7 @@
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showUiStyleDialog = false }) {
+                    TextButton(onClick = hapticAction(HapticKind.UI) { showUiStyleDialog = false }) {
                         Text(stringResource(R.string.btn_cancel))
                     }
                 }
@@ -422,7 +425,7 @@
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showLyricsFontDialog = false }) {
+                    TextButton(onClick = hapticAction(HapticKind.UI) { showLyricsFontDialog = false }) {
                         Text(stringResource(R.string.btn_cancel))
                     }
                 }
@@ -445,7 +448,7 @@
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("${(playerViewModel.lyricsBounceFactor * 100).toInt()}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-                            IconButton(onClick = { playerViewModel.updateLyricsBounceFactor((playerViewModel.lyricsBounceFactor - 0.1f).coerceAtLeast(0f)) }) { Icon(Icons.Rounded.Remove, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsBounceFactor((playerViewModel.lyricsBounceFactor - 0.1f).coerceAtLeast(0f)) }) { Icon(Icons.Rounded.Remove, null) }
                             Slider(
                                 value = playerViewModel.lyricsBounceFactor,
                                 onValueChange = { playerViewModel.updateLyricsBounceFactor(it) },
@@ -453,12 +456,12 @@
                                 steps = 19,
                                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                             )
-                            IconButton(onClick = { playerViewModel.updateLyricsBounceFactor((playerViewModel.lyricsBounceFactor + 0.1f).coerceAtMost(2f)) }) { Icon(Icons.Rounded.Add, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsBounceFactor((playerViewModel.lyricsBounceFactor + 0.1f).coerceAtMost(2f)) }) { Icon(Icons.Rounded.Add, null) }
                         }
                         Spacer(Modifier.height(24.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { playerViewModel.updateLyricsBounceFactor(1f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
-                            TextButton(onClick = { showBounceFactorDialog = false }) { Text(stringResource(R.string.btn_close)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsBounceFactor(1f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { showBounceFactorDialog = false }) { Text(stringResource(R.string.btn_close)) }
                         }
                     }
                 }
@@ -481,7 +484,7 @@
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("${(playerViewModel.lyricsGlowFactor * 100).toInt()}%", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-                            IconButton(onClick = { playerViewModel.updateLyricsGlowFactor((playerViewModel.lyricsGlowFactor - 0.1f).coerceAtLeast(0f)) }) { Icon(Icons.Rounded.Remove, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsGlowFactor((playerViewModel.lyricsGlowFactor - 0.1f).coerceAtLeast(0f)) }) { Icon(Icons.Rounded.Remove, null) }
                             Slider(
                                 value = playerViewModel.lyricsGlowFactor,
                                 onValueChange = { playerViewModel.updateLyricsGlowFactor(it) },
@@ -489,12 +492,12 @@
                                 steps = 19,
                                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                             )
-                            IconButton(onClick = { playerViewModel.updateLyricsGlowFactor((playerViewModel.lyricsGlowFactor + 0.1f).coerceAtMost(2f)) }) { Icon(Icons.Rounded.Add, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsGlowFactor((playerViewModel.lyricsGlowFactor + 0.1f).coerceAtMost(2f)) }) { Icon(Icons.Rounded.Add, null) }
                         }
                         Spacer(Modifier.height(24.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { playerViewModel.updateLyricsGlowFactor(1f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
-                            TextButton(onClick = { showGlowFactorDialog = false }) { Text(stringResource(R.string.btn_close)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsGlowFactor(1f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { showGlowFactorDialog = false }) { Text(stringResource(R.string.btn_close)) }
                         }
                     }
                 }
@@ -517,7 +520,7 @@
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("${playerViewModel.lyricsFillTransitionWidth.toInt()} dp", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-                            IconButton(onClick = { playerViewModel.updateLyricsFillTransitionWidth((playerViewModel.lyricsFillTransitionWidth - 2f).coerceAtLeast(2f)) }) { Icon(Icons.Rounded.Remove, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsFillTransitionWidth((playerViewModel.lyricsFillTransitionWidth - 2f).coerceAtLeast(2f)) }) { Icon(Icons.Rounded.Remove, null) }
                             Slider(
                                 value = playerViewModel.lyricsFillTransitionWidth,
                                 onValueChange = { playerViewModel.updateLyricsFillTransitionWidth(it) },
@@ -525,12 +528,12 @@
                                 steps = 10,
                                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                             )
-                            IconButton(onClick = { playerViewModel.updateLyricsFillTransitionWidth((playerViewModel.lyricsFillTransitionWidth + 2f).coerceAtMost(24f)) }) { Icon(Icons.Rounded.Add, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsFillTransitionWidth((playerViewModel.lyricsFillTransitionWidth + 2f).coerceAtMost(24f)) }) { Icon(Icons.Rounded.Add, null) }
                         }
                         Spacer(Modifier.height(24.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { playerViewModel.updateLyricsFillTransitionWidth(8f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
-                            TextButton(onClick = { showFillTransitionDialog = false }) { Text(stringResource(R.string.btn_close)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsFillTransitionWidth(8f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { showFillTransitionDialog = false }) { Text(stringResource(R.string.btn_close)) }
                         }
                     }
                 }
@@ -553,7 +556,7 @@
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("${playerViewModel.lyricsLineSpacing.toInt()} dp", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-                            IconButton(onClick = { playerViewModel.updateLyricsLineSpacing((playerViewModel.lyricsLineSpacing - 2f).coerceAtLeast(12f)) }) { Icon(Icons.Rounded.Remove, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsLineSpacing((playerViewModel.lyricsLineSpacing - 2f).coerceAtLeast(12f)) }) { Icon(Icons.Rounded.Remove, null) }
                             Slider(
                                 value = playerViewModel.lyricsLineSpacing,
                                 onValueChange = { playerViewModel.updateLyricsLineSpacing(it) },
@@ -561,12 +564,12 @@
                                 steps = 17,
                                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                             )
-                            IconButton(onClick = { playerViewModel.updateLyricsLineSpacing((playerViewModel.lyricsLineSpacing + 2f).coerceAtMost(48f)) }) { Icon(Icons.Rounded.Add, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsLineSpacing((playerViewModel.lyricsLineSpacing + 2f).coerceAtMost(48f)) }) { Icon(Icons.Rounded.Add, null) }
                         }
                         Spacer(Modifier.height(24.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { playerViewModel.updateLyricsLineSpacing(24f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
-                            TextButton(onClick = { showLineSpacingDialog = false }) { Text(stringResource(R.string.btn_close)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsLineSpacing(24f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { showLineSpacingDialog = false }) { Text(stringResource(R.string.btn_close)) }
                         }
                     }
                 }
@@ -589,7 +592,7 @@
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("${fontSize.roundToInt()} sp", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp))
-                            IconButton(onClick = { playerViewModel.updateLyricsFontSize((fontSize - 2f).coerceAtLeast(12f)) }) { Icon(Icons.Rounded.Remove, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsFontSize((fontSize - 2f).coerceAtLeast(12f)) }) { Icon(Icons.Rounded.Remove, null) }
                             Slider(
                                 value = fontSize,
                                 onValueChange = { playerViewModel.updateLyricsFontSize(it) },
@@ -597,12 +600,12 @@
                                 steps = 17,
                                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
                             )
-                            IconButton(onClick = { playerViewModel.updateLyricsFontSize((fontSize + 2f).coerceAtMost(48f)) }) { Icon(Icons.Rounded.Add, null) }
+                            IconButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsFontSize((fontSize + 2f).coerceAtMost(48f)) }) { Icon(Icons.Rounded.Add, null) }
                         }
                         Spacer(Modifier.height(24.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { playerViewModel.updateLyricsFontSize(26f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
-                            TextButton(onClick = { showFontSizeDialog = false }) { Text(stringResource(R.string.btn_close)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { playerViewModel.updateLyricsFontSize(26f) }) { Text(stringResource(R.string.pref_lyrics_reset)) }
+                            TextButton(onClick = hapticAction(HapticKind.UI) { showFontSizeDialog = false }) { Text(stringResource(R.string.btn_close)) }
                         }
                     }
                 }
@@ -620,7 +623,7 @@
                         AlignRadioButton(stringResource(R.string.align_right), LyricsAlignment.RIGHT, alignment) { playerViewModel.updateLyricsAlignment(it); showAlignmentDialog = false }
                     }
                 },
-                confirmButton = { TextButton(onClick = { showAlignmentDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
+                confirmButton = { TextButton(onClick = hapticAction(HapticKind.UI) { showAlignmentDialog = false }) { Text(stringResource(R.string.btn_cancel)) } }
             )
         }
 
@@ -721,7 +724,7 @@
                                         shape = shape,
                                         title = stringResource(R.string.pref_lyrics_translation_lang),
                                         subtitle = targetLang.uppercase(),
-                                        onClick = { showLangDialog = true }
+                                        onClick = hapticAction(HapticKind.UI) { showLangDialog = true }
                                     )
                                 }
                             },
@@ -750,7 +753,7 @@
                             shape = shape,
                             title = stringResource(R.string.pref_lyrics_order),
                             subtitle = stringResource(R.string.pref_lyrics_order_sub),
-                            onClick = { showProviderOrderDialog = true }
+                            onClick = hapticAction(HapticKind.UI) { showProviderOrderDialog = true }
                         )
                     }
                     itemsList.add { shape ->
@@ -758,7 +761,7 @@
                             shape = shape,
                             title = stringResource(R.string.pref_lyrics_paxsenix_key),
                             subtitle = if (paxsenixKeyInput.isNotBlank()) "••••••••" else stringResource(R.string.pref_lyrics_paxsenix_key_sub),
-                            onClick = { showPaxsenixKeyDialog = true }
+                            onClick = hapticAction(HapticKind.UI) { showPaxsenixKeyDialog = true }
                         )
                     }
 
@@ -780,7 +783,7 @@
                                 com.alananasss.kittytune.data.local.LyricsUiStyle.ENHANCED -> stringResource(R.string.pref_lyrics_ui_style_enhanced)
                                 com.alananasss.kittytune.data.local.LyricsUiStyle.CLASSIC -> stringResource(R.string.pref_lyrics_ui_style_classic)
                             },
-                            onClick = { showUiStyleDialog = true }
+                            onClick = hapticAction(HapticKind.UI) { showUiStyleDialog = true }
                         )
                     }
                     styleItems.add { shape ->
@@ -791,7 +794,7 @@
                                 com.alananasss.kittytune.data.local.LyricsFont.APPLE -> stringResource(R.string.pref_lyrics_font_apple)
                                 com.alananasss.kittytune.data.local.LyricsFont.APP_DEFAULT -> stringResource(R.string.pref_lyrics_font_app_default)
                             },
-                            onClick = { showLyricsFontDialog = true }
+                            onClick = hapticAction(HapticKind.UI) { showLyricsFontDialog = true }
                         )
                     }
                     if (isEnhanced) {
@@ -820,7 +823,7 @@
                                 shape = shape,
                                 title = stringResource(R.string.pref_lyrics_bounce_factor_title),
                                 subtitle = "${(playerViewModel.lyricsBounceFactor * 100).toInt()}%",
-                                onClick = { showBounceFactorDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showBounceFactorDialog = true }
                             )
                         }
                         styleItems.add { shape ->
@@ -828,7 +831,7 @@
                                 shape = shape,
                                 title = stringResource(R.string.pref_lyrics_glow_factor_title),
                                 subtitle = "${(playerViewModel.lyricsGlowFactor * 100).toInt()}%",
-                                onClick = { showGlowFactorDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showGlowFactorDialog = true }
                             )
                         }
                         styleItems.add { shape ->
@@ -836,7 +839,7 @@
                                 shape = shape,
                                 title = stringResource(R.string.pref_lyrics_fill_transition_title),
                                 subtitle = "${playerViewModel.lyricsFillTransitionWidth.toInt()} dp",
-                                onClick = { showFillTransitionDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showFillTransitionDialog = true }
                             )
                         }
                         styleItems.add { shape ->
@@ -844,7 +847,7 @@
                                 shape = shape,
                                 title = stringResource(R.string.pref_lyrics_line_spacing_title),
                                 subtitle = "${playerViewModel.lyricsLineSpacing.toInt()} dp",
-                                onClick = { showLineSpacingDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showLineSpacingDialog = true }
                             )
                         }
                     }
@@ -875,7 +878,7 @@
                                 shape = getSettingsShape(totalVisibleItems, 0),
                                 title = stringResource(R.string.pref_lyrics_provider_title),
                                 subtitle = if (provider == com.alananasss.kittytune.ui.player.LyricsProvider.MAX_QUALITY) stringResource(R.string.pref_lyrics_provider_max_quality) else stringResource(R.string.pref_lyrics_provider_open_source),
-                                onClick = { showProviderDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showProviderDialog = true }
                             )
 
                             SettingsItem(
@@ -945,7 +948,7 @@
                                             LyricsUnderCoverPlacement.REPLACE_TITLE_ARTIST -> stringResource(R.string.pref_lyrics_under_cover_replace)
                                             LyricsUnderCoverPlacement.ABOVE_TITLE_ARTIST -> stringResource(R.string.pref_lyrics_under_cover_above)
                                         },
-                                        onClick = { showPlacementDialog = true }
+                                        onClick = hapticAction(HapticKind.UI) { showPlacementDialog = true }
                                     )
 
                                     SettingsItem(
@@ -970,14 +973,14 @@
                                     LyricsAlignment.CENTER -> stringResource(R.string.align_center_simple)
                                     LyricsAlignment.RIGHT -> stringResource(R.string.align_right)
                                 },
-                                onClick = { showAlignmentDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showAlignmentDialog = true }
                             )
 
                             SettingsItem(
                                 shape = getSettingsShape(totalVisibleItems, sizeIndex),
                                 title = stringResource(R.string.pref_lyrics_size),
                                 subtitle = "${fontSize.roundToInt()} sp",
-                                onClick = { showFontSizeDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showFontSizeDialog = true }
                             )
                         }
                     }
