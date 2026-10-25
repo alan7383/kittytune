@@ -97,6 +97,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.navigationBarsPadding
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.MusicManager
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.PlayerBackgroundStyle
@@ -200,158 +203,170 @@ fun LyricsScreen(
         val topContentColor = if (isThemeBg) MaterialTheme.colorScheme.onSurface else Color.White
         val topDimColor = if (isThemeBg) MaterialTheme.colorScheme.onSurfaceVariant else Color.White.copy(alpha = 0.7f)
 
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                if (!isSearching) {
-                    CenterAlignedTopAppBar(
-                        title = {
-                            if (currentTrack != null) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center,
-                                    modifier = Modifier.padding(horizontal = 8.dp)
-                                ) {
-                                    AsyncImage(
-                                        model = currentTrack.fullResArtwork,
-                                        contentDescription = null,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                    Spacer(Modifier.width(10.dp))
-                                    Column(
-                                        horizontalAlignment = Alignment.Start,
-                                        modifier = Modifier.widthIn(max = 200.dp)
+        AnimatedContent(
+            targetState = isSearching,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(280)) + slideInVertically(animationSpec = tween(280)) { it / 25 })
+                    .togetherWith(fadeOut(animationSpec = tween(200)) + slideOutVertically(animationSpec = tween(200)) { -it / 25 })
+            },
+            label = "LyricsSearchTransition",
+            modifier = Modifier.fillMaxSize()
+        ) { searching ->
+            if (searching) {
+                SearchLyricsView(
+                    viewModel = viewModel,
+                    onCloseSearch = { viewModel.isSearchingLyrics = false },
+                    isThemeBg = isThemeBg,
+                    applySystemInsets = true,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Scaffold(
+                    containerColor = Color.Transparent,
+                    topBar = {
+                        CenterAlignedTopAppBar(
+                            title = {
+                                if (currentTrack != null) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.padding(horizontal = 8.dp)
                                     ) {
-                                        Text(
-                                            text = currentTrack.title ?: "",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            color = topContentColor,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                        AsyncImage(
+                                            model = currentTrack.fullResArtwork,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Crop
                                         )
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.clickable { viewModel.navigateToTrackArtist(currentTrack) }
+                                        Spacer(Modifier.width(10.dp))
+                                        Column(
+                                            horizontalAlignment = Alignment.Start,
+                                            modifier = Modifier.widthIn(max = 200.dp)
                                         ) {
                                             Text(
-                                                text = currentTrack.displayArtist.ifBlank { currentTrack.user?.username.orEmpty() },
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = topDimColor,
+                                                text = currentTrack.title ?: "",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = topContentColor,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
-                                            if (currentTrack.user?.verified == true) {
-                                                Spacer(Modifier.width(3.dp))
-                                                Icon(
-                                                    Icons.Rounded.Verified,
-                                                    null,
-                                                    tint = topDimColor,
-                                                    modifier = Modifier.size(12.dp)
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.hapticClickable { viewModel.navigateToTrackArtist(currentTrack) }
+                                            ) {
+                                                Text(
+                                                    text = currentTrack.displayArtist.ifBlank { currentTrack.user?.username.orEmpty() },
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = topDimColor,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
+                                                if (currentTrack.user?.verified == true) {
+                                                    Spacer(Modifier.width(3.dp))
+                                                    Icon(
+                                                        Icons.Rounded.Verified,
+                                                        null,
+                                                        tint = topDimColor,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
+                                } else {
+                                    Text(
+                                        stringResource(R.string.player_lyrics),
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                        color = topContentColor
+                                    )
                                 }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = onClose) {
+                                    Icon(Icons.Rounded.Close, stringResource(R.string.btn_close), tint = topContentColor)
+                                }
+                            },
+                            actions = {
+                                IconButton(onClick = hapticAction(HapticKind.UI) { showUploadYamlDialog = true }) {
+                                    Icon(Icons.Rounded.Add, stringResource(R.string.custom_lyrics_title), tint = topContentColor)
+                                }
+                                IconButton(onClick = hapticAction(HapticKind.UI) { showQuickSettingsDialog = true }) {
+                                    val tint = if (viewModel.lyricsOffset != 0L) MaterialTheme.colorScheme.primary else topContentColor
+                                    Icon(Icons.Rounded.Tune, stringResource(R.string.pref_lyrics_title), tint = tint)
+                                }
+                                IconButton(onClick = hapticAction(HapticKind.UI) { viewModel.isSearchingLyrics = true }) {
+                                    Icon(Icons.Rounded.Search, stringResource(R.string.lyrics_manual_search), tint = topContentColor)
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                        )
+                    }
+                ) { innerPadding ->
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                        if (viewModel.lyricsLines.isEmpty() && viewModel.rawPlainLyrics.isNullOrBlank()) {
+                            if (viewModel.isLyricsLoading) {
+                                SearchingLyricsState()
                             } else {
-                                Text(
-                                    stringResource(R.string.player_lyrics),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = topContentColor
-                                )
+                                EmptyLyricsState(onManualSearch = { viewModel.isSearchingLyrics = true })
                             }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onClose) {
-                                Icon(Icons.Rounded.Close, stringResource(R.string.btn_close), tint = topContentColor)
-                            }
-                        },
-                        actions = {
-                            IconButton(onClick = { showUploadYamlDialog = true }) {
-                                Icon(Icons.Rounded.Add, stringResource(R.string.custom_lyrics_title), tint = topContentColor)
-                            }
-                            IconButton(onClick = { showQuickSettingsDialog = true }) {
-                                val tint = if (viewModel.lyricsOffset != 0L) MaterialTheme.colorScheme.primary else topContentColor
-                                Icon(Icons.Rounded.Tune, stringResource(R.string.pref_lyrics_title), tint = tint)
-                            }
-                            IconButton(onClick = { viewModel.isSearchingLyrics = true }) {
-                                Icon(Icons.Rounded.Search, stringResource(R.string.lyrics_manual_search), tint = topContentColor)
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-                    )
-                }
-            }
-        ) { innerPadding ->
-            BoxWithConstraints(modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)) {
-
-            if (isSearching) {
-                SearchLyricsView(
-                    viewModel = viewModel,
-                    onCloseSearch = { viewModel.isSearchingLyrics = false }
-                )
-            } else {
-                if (viewModel.lyricsLines.isEmpty() && viewModel.rawPlainLyrics.isNullOrBlank()) {
-                    if (viewModel.isLyricsLoading) {
-                        SearchingLyricsState()
-                    } else {
-                        EmptyLyricsState(onManualSearch = { viewModel.isSearchingLyrics = true })
-                    }
-                } else {
-                    AnimatedContent(
-                        targetState = viewModel.lyricsMode,
-                        transitionSpec = {
-                            fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.95f) togetherWith
-                                    fadeOut(animationSpec = tween(300))
-                        },
-                        label = "LyricsModeTransition",
-                        modifier = Modifier.fillMaxSize()
-                    ) { mode ->
-                        when (mode) {
-                            LyricsMode.SYNCED -> {
-                                when (viewModel.lyricsUiStyle) {
-                                    com.alananasss.kittytune.data.local.LyricsUiStyle.ENHANCED -> {
-                                        LyricsEnhancedView(
-                                            viewModel = viewModel,
-                                            textColorOverride = if (isThemeBg) MaterialTheme.colorScheme.onSurface else Color.White
-                                        )
+                        } else {
+                            AnimatedContent(
+                                targetState = viewModel.lyricsMode,
+                                transitionSpec = {
+                                    fadeIn(animationSpec = tween(400)) + scaleIn(initialScale = 0.95f) togetherWith
+                                            fadeOut(animationSpec = tween(300))
+                                },
+                                label = "LyricsModeTransition",
+                                modifier = Modifier.fillMaxSize()
+                            ) { mode ->
+                                when (mode) {
+                                    LyricsMode.SYNCED -> {
+                                        when (viewModel.lyricsUiStyle) {
+                                            com.alananasss.kittytune.data.local.LyricsUiStyle.ENHANCED -> {
+                                                LyricsEnhancedView(
+                                                    viewModel = viewModel,
+                                                    textColorOverride = if (isThemeBg) MaterialTheme.colorScheme.onSurface else Color.White
+                                                )
+                                            }
+                                            com.alananasss.kittytune.data.local.LyricsUiStyle.CLASSIC -> {
+                                                SyncedLyricsView(viewModel = viewModel, isThemeBg = isThemeBg)
+                                            }
+                                        }
                                     }
-                                    com.alananasss.kittytune.data.local.LyricsUiStyle.CLASSIC -> {
-                                        SyncedLyricsView(viewModel = viewModel, isThemeBg = isThemeBg)
+                                    LyricsMode.PLAIN -> {
+                                        PlainLyricsView(viewModel = viewModel, isThemeBg = isThemeBg)
                                     }
                                 }
                             }
-                            LyricsMode.PLAIN -> {
-                                PlainLyricsView(viewModel = viewModel, isThemeBg = isThemeBg)
-                            }
-                        }
-                    }
 
-                    if (hasSynced && hasPlain) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .padding(top = 16.dp)
-                                .zIndex(10f)
-                        ) {
-                            LyricsModeSelector(
-                                currentMode = viewModel.lyricsMode,
-                                onModeSelected = { viewModel.lyricsMode = it },
-                                hasSynced = hasSynced,
-                                hasPlain = hasPlain,
-                                isThemeBg = isThemeBg
-                            )
+                            if (hasSynced && hasPlain) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 16.dp)
+                                        .zIndex(10f)
+                                ) {
+                                    LyricsModeSelector(
+                                        currentMode = viewModel.lyricsMode,
+                                        onModeSelected = { viewModel.lyricsMode = it },
+                                        hasSynced = hasSynced,
+                                        hasPlain = hasPlain,
+                                        isThemeBg = isThemeBg
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
     AnimatedVisibility(
         visible = viewModel.isSleepScreenOpen,
@@ -393,7 +408,7 @@ fun LyricsModeSelector(
                 LyricsModeChip(
                     text = stringResource(R.string.lyrics_mode_synced),
                     isSelected = currentMode == LyricsMode.SYNCED,
-                    onClick = { onModeSelected(LyricsMode.SYNCED) },
+                    onClick = hapticAction(HapticKind.UI) { onModeSelected(LyricsMode.SYNCED) },
                     isThemeBg = isThemeBg
                 )
             }
@@ -402,7 +417,7 @@ fun LyricsModeSelector(
                 LyricsModeChip(
                     text = stringResource(R.string.lyrics_mode_plain),
                     isSelected = currentMode == LyricsMode.PLAIN,
-                    onClick = { onModeSelected(LyricsMode.PLAIN) },
+                    onClick = hapticAction(HapticKind.UI) { onModeSelected(LyricsMode.PLAIN) },
                     enabled = hasPlain,
                     isThemeBg = isThemeBg
                 )
@@ -457,10 +472,16 @@ fun LyricsModeChip(
 @Composable
 fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
     val lyrics = viewModel.lyricsLines
+    // La position de lecture n'est pas lue à chaque recomposition : tout ce panneau
+    // (LazyColumn + lignes visibles) recomposait à chaque tick (2-25 Hz). L'interpolateur
+    // 60 fps ci-dessous s'occupe du surlignage ; la position brute ne sert qu'une fois,
+    // pour l'index de départ.
+    val initialActiveIndex = remember(viewModel.uiCurrentTrack?.id, lyrics) {
+        LyricsUtils.activeLineIndex(lyrics, viewModel.uiCurrentPosition + viewModel.lyricsOffset)
+            .coerceAtLeast(0)
+    }
     val listState = key(viewModel.uiCurrentTrack?.id) {
-        rememberLazyListState(
-            initialFirstVisibleItemIndex = LyricsUtils.activeLineIndex(lyrics, viewModel.uiCurrentPosition + viewModel.lyricsOffset).coerceAtLeast(0)
-        )
+        rememberLazyListState(initialFirstVisibleItemIndex = initialActiveIndex)
     }
     val fontSize = viewModel.lyricsFontSize
     val lyricsFontFamily = rememberLyricsFontFamily(viewModel.lyricsFont)
@@ -677,7 +698,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                     AnimatedVisibility(
                         visible = viewModel.isLyricsTranslationEnabled
                                 && !line.translation.isNullOrBlank()
-                                && !line.translation.trim().equals(line.text.trim(), ignoreCase = true),
+                                && !LyricsUtils.isDuplicateTranslation(line.text, line.translation),
                         enter = expandVertically() + fadeIn(),
                         exit = shrinkVertically() + fadeOut()
                     ) {
@@ -726,7 +747,7 @@ fun SyncedLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 } else {
-                    WrongLyricsButton(onClick = { viewModel.isSearchingLyrics = true })
+                    WrongLyricsButton(onClick = hapticAction(HapticKind.UI) { viewModel.isSearchingLyrics = true })
                 }
             }
         }
@@ -768,7 +789,7 @@ fun LyricsOffsetControls(
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RepeatingIconButton(onClick = { onAdjust(-OFFSET_STEP_MS) }, icon = Icons.Rounded.Remove, tint = scheme.onSurface)
+                RepeatingIconButton(onClick = hapticAction(HapticKind.UI) { onAdjust(-OFFSET_STEP_MS) }, icon = Icons.Rounded.Remove, tint = scheme.onSurface)
                 val shiftColor by androidx.compose.animation.animateColorAsState(
                     if (offset == 0L) scheme.onSurfaceVariant else scheme.primary, label = "lyricsOffsetColor"
                 )
@@ -780,7 +801,7 @@ fun LyricsOffsetControls(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
-                RepeatingIconButton(onClick = { onAdjust(OFFSET_STEP_MS) }, icon = Icons.Rounded.Add, tint = scheme.onSurface)
+                RepeatingIconButton(onClick = hapticAction(HapticKind.UI) { onAdjust(OFFSET_STEP_MS) }, icon = Icons.Rounded.Add, tint = scheme.onSurface)
             }
 
             TextButton(
@@ -901,7 +922,7 @@ fun PlainLyricsView(viewModel: PlayerViewModel, isThemeBg: Boolean = false) {
         }
 
         FloatingActionButton(
-            onClick = {
+            onClick = hapticAction(HapticKind.UI) {
                 clipboardManager.setText(AnnotatedString(text))
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -1093,13 +1114,13 @@ fun CustomLyricsDialog(
                     textDecoration = TextDecoration.Underline
                 ),
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { uriHandler.openUri(docUrl) }
+                modifier = Modifier.hapticClickable { uriHandler.openUri(docUrl) }
             )
 
             Spacer(Modifier.height(24.dp))
 
             Button(
-                onClick = { launcher.launch("*/*") },
+                onClick = hapticAction(HapticKind.UI) { launcher.launch("*/*") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(16.dp)

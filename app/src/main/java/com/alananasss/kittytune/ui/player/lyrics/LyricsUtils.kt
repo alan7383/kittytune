@@ -164,6 +164,8 @@ fun formatLyricWordContents(
 object LyricsUtils {
 
         private val NUMERIC_ENTITY_REGEX = Regex("&#(x|X)?([0-9a-fA-F]+);")
+        private val TTML_ROOT_REGEX = Regex("""<(?:[A-Za-z_][\w.-]*:)?tt(?:\s|>)""", RegexOption.IGNORE_CASE)
+        private const val MAX_TTML_DETECTION_CHARS = 4096
 
         fun decodeHtmlEntities(text: String): String {
             if (!text.contains('&')) return text
@@ -210,6 +212,21 @@ object LyricsUtils {
 
         private val ENHANCED_WORD_PATTERN = Pattern.compile("<(\\d{2}):(\\d{2})\\.(\\d{2,3})>([^<]*)")
 
+        /**
+         * Determines whether [translation] is identical or near-identical to [original].
+         * Filters out duplicate subtitles, identical machine translation echo lines,
+         * and minor punctuation/whitespace variances (e.g. trailing periods or casing).
+         */
+        fun isDuplicateTranslation(original: String?, translation: String?): Boolean {
+            if (original.isNullOrBlank() || translation.isNullOrBlank()) return false
+            val o = original.trim()
+            val t = translation.trim()
+            if (o.equals(t, ignoreCase = true)) return true
+            val normO = o.filter { it.isLetterOrDigit() }.lowercase()
+            val normT = t.filter { it.isLetterOrDigit() }.lowercase()
+            return normO.isNotEmpty() && normO == normT
+        }
+
         fun insertInstrumentalBreaks(lines: List<LyricLine>): List<LyricLine> {
             if (lines.isEmpty()) return lines
             val result = mutableListOf<LyricLine>()
@@ -246,21 +263,34 @@ object LyricsUtils {
             return result
         }
 
+        /** True when [content] is TTML (Apple Music, BetterLyrics, YouLyPlus…), not LRC or plain text. */
+        fun looksLikeTtml(content: String): Boolean {
+            val trimmed = content.removePrefix("\uFEFF").trimStart()
+            if (trimmed.isEmpty()) return false
+            if (trimmed.startsWith("<?xml")) return true
+            return TTML_ROOT_REGEX.containsMatchIn(trimmed.take(MAX_TTML_DETECTION_CHARS))
+        }
+
         fun parseLyricsContent(content: String, totalDurationMs: Long): List<LyricLine> {
-            val decodedContent = decodeHtmlEntities(content)
-            val trimmed = decodedContent.trim()
+            // TTML is XML: it must be parsed *before* any HTML-entity decoding. Running
+            // decodeHtmlEntities() first turned valid entities inside the lyrics ("R&amp;B",
+            // "&lt;3", numeric references) into bare & / <, which made the document invalid.
+            // The parse then failed and callers fell back to showing the raw <tt> markup.
+            val raw = content.removePrefix("\uFEFF").trim()
             val parsed = when {
-                trimmed.startsWith("<tt") || trimmed.contains("<tt ") || trimmed.contains("<tt:") || trimmed.startsWith("<?xml") -> {
-                    parseTtml(trimmed, totalDurationMs)
-                }
-                QRCParser.isQrc(trimmed) -> {
-                    parseQrc(trimmed, totalDurationMs)
-                }
-                trimmed.startsWith("version:") -> {
-                    parseLyricsFile(decodedContent, totalDurationMs)
+                looksLikeTtml(raw) -> {
+                    parseTtml(raw, totalDurationMs)
                 }
                 else -> {
-                    parseLrc(decodedContent, totalDurationMs)
+                    val decodedContent = decodeHtmlEntities(content)
+                    val trimmed = decodedContent.trim()
+                    when {
+                        // Some feeds HTML-escape the whole TTML document: decode once, retry as XML.
+                        looksLikeTtml(trimmed) -> parseTtml(trimmed, totalDurationMs)
+                        QRCParser.isQrc(trimmed) -> parseQrc(trimmed, totalDurationMs)
+                        trimmed.startsWith("version:") -> parseLyricsFile(decodedContent, totalDurationMs)
+                        else -> parseLrc(decodedContent, totalDurationMs)
+                    }
                 }
             }
             return insertInstrumentalBreaks(parsed)

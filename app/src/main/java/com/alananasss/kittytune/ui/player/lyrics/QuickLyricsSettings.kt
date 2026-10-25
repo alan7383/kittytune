@@ -58,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,8 +68,12 @@ import androidx.compose.ui.unit.min
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.core.Toaster
 import com.alananasss.kittytune.core.str
+import com.alananasss.kittytune.data.DataSaver
 import com.alananasss.kittytune.data.local.FullPlayerBgStyle
 import com.alananasss.kittytune.data.local.FullPlayerHeartSide
 import com.alananasss.kittytune.data.local.FullPlayerInfoAlign
@@ -279,7 +284,7 @@ private fun DriftSync(viewModel: PlayerViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val startSet = sync.isTwoPoint || sync.anchorMs > 0L
         OutlinedButton(
-            onClick = { viewModel.pinLyricsSyncStart() },
+            onClick = hapticAction(HapticKind.UI) { viewModel.pinLyricsSyncStart() },
             shapes = ButtonDefaults.shapes(),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
             modifier = Modifier.weight(1f),
@@ -297,7 +302,7 @@ private fun DriftSync(viewModel: PlayerViewModel) {
         val tooClose = str("lyrics_sync_end_too_close")
         if (endAt != null) {
             Button(
-                onClick = { if (!viewModel.pinLyricsSyncEnd()) Toaster.show(tooClose) },
+                onClick = hapticAction(HapticKind.UI) { if (!viewModel.pinLyricsSyncEnd()) Toaster.show(tooClose) },
                 shapes = ButtonDefaults.shapes(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                 modifier = Modifier.weight(1f),
@@ -312,7 +317,7 @@ private fun DriftSync(viewModel: PlayerViewModel) {
             }
         } else {
             OutlinedButton(
-                onClick = { if (!viewModel.pinLyricsSyncEnd()) Toaster.show(tooClose) },
+                onClick = hapticAction(HapticKind.UI) { if (!viewModel.pinLyricsSyncEnd()) Toaster.show(tooClose) },
                 shapes = ButtonDefaults.shapes(),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                 modifier = Modifier.weight(1f),
@@ -324,7 +329,7 @@ private fun DriftSync(viewModel: PlayerViewModel) {
         }
         AnimatedVisibility(sync.isTwoPoint) {
             Tip(str("lyrics_sync_single")) {
-                IconButton(onClick = { viewModel.clearLyricsSyncEnd() }, shapes = IconButtonDefaults.shapes()) {
+                IconButton(onClick = hapticAction(HapticKind.UI) { viewModel.clearLyricsSyncEnd() }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Rounded.Close, str("lyrics_sync_single"))
                 }
             }
@@ -545,7 +550,7 @@ private fun ColumnScope.LayoutTab(viewModel: PlayerViewModel, knobs: ModeKnobs) 
     }
     TextButton(
         shapes = ButtonDefaults.shapes(),
-        onClick = { knobs.resetTypography() },
+        onClick = hapticAction(HapticKind.UI) { knobs.resetTypography() },
         modifier = Modifier.align(Alignment.End),
     ) {
         Icon(Icons.Rounded.RestartAlt, null, modifier = Modifier.size(18.dp))
@@ -561,6 +566,7 @@ private fun ColumnScope.FeaturesTab(
     onPickLanguage: () -> Unit,
     onOpenSources: () -> Unit,
 ) {
+    val context = LocalContext.current
     val prefs = viewModel.playerPrefs
     var preferLocal by remember { mutableStateOf(prefs.getLyricsPreferLocal()) }
     var translationOn by remember { mutableStateOf(prefs.getLyricsTranslationEnabled()) }
@@ -638,10 +644,18 @@ private fun ColumnScope.FeaturesTab(
 
     SectionTitle(str("pref_lyrics_providers_category"))
     val enabledSources = PreferredLyricsProvider.entries.count { prefs.getLyricsProviderEnabled(it) }
+    val activeSources = DataSaver.restrictLyricsProviders(
+        context,
+        PreferredLyricsProvider.entries.filter { prefs.getLyricsProviderEnabled(it) },
+    ).size
     ClickRow(
         icon = Icons.Rounded.SwapVert,
         title = str("pref_lyrics_order"),
-        value = "$enabledSources / ${PreferredLyricsProvider.entries.size}",
+        value = if (DataSaver.isLyricsRestrictionActive(context)) {
+            "$activeSources / ${PreferredLyricsProvider.entries.size} · ${str("data_saver_title")}"
+        } else {
+            "$enabledSources / ${PreferredLyricsProvider.entries.size}"
+        },
         onClick = onOpenSources,
     )
     SwitchRow(
@@ -755,7 +769,7 @@ private fun RowTitle(icon: ImageVector, title: String, subtitle: String?, traili
 @Composable
 private fun SwitchRow(icon: ImageVector, title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
     Surface(
-        onClick = { onChange(!checked) },
+        onClick = hapticAction(HapticKind.UI) { onChange(!checked) },
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
@@ -855,7 +869,7 @@ private fun TranslationLanguageDialog(viewModel: PlayerViewModel, onDismiss: () 
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .hapticClickable {
                                 selected = code
                                 viewModel.setLyricsTranslationLanguage(code)
                                 onDismiss()

@@ -29,6 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.FullPlayerBgStyle
 import com.alananasss.kittytune.data.local.FullPlayerLayout
 
@@ -50,7 +53,7 @@ internal fun <T> SketchChoices(
                     PreviewCard(
                         title = label(option),
                         isSelected = option == selected,
-                        onClick = { onSelect(option) },
+                        onClick = hapticAction(HapticKind.UI) { onSelect(option) },
                         modifier = Modifier.weight(1f),
                     ) { sketch(option) }
                 }

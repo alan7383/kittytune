@@ -19,6 +19,9 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.core.str
 import com.alananasss.kittytune.data.local.LyricsDisplayStyle
 
@@ -35,7 +38,7 @@ internal fun LyricsDisplayStylePicker(
         LyricsDisplayStyle.entries.chunked(2).forEach { pair ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 pair.forEach { style ->
-                    StyleCard(style, isSelected = style == selected, onClick = { onSelect(style) }, Modifier.weight(1f))
+                    StyleCard(style, isSelected = style == selected, onClick = hapticAction(HapticKind.UI) { onSelect(style) }, Modifier.weight(1f))
                 }
             }
         }

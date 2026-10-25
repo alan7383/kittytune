@@ -590,7 +590,8 @@ fun KaraokeLineText(
         }
 
         if (showTranslation) {
-            line.translation?.let { translation ->
+            val originalText = remember(line.syllables) { line.syllables.joinToString("") { it.content }.trim() }
+            line.translation?.takeUnless { com.alananasss.kittytune.ui.player.lyrics.LyricsUtils.isDuplicateTranslation(originalText, it) }?.let { translation ->
                 Text(
                     text = translation,
                     color = activeColor.copy(0.4f),

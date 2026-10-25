@@ -51,6 +51,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.LyricsAlignment
 import com.alananasss.kittytune.data.local.LyricsFont
 import com.alananasss.kittytune.data.local.LyricsUiStyle
@@ -110,9 +113,17 @@ fun PlayerInlineLyrics(
     var timeAnchorMs by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
 
     LaunchedEffect(positionMs) {
-        positionAnchorMs = positionMs
-        timeAnchorMs = SystemClock.elapsedRealtime()
-        smoothPositionMs = positionMs
+        val jumpedBack = positionMs < positionAnchorMs - 1000L
+        val jumpedFar = kotlin.math.abs(positionMs - smoothPositionMs) > 1200L
+        if (jumpedBack || jumpedFar || !isPlaying) {
+            positionAnchorMs = positionMs
+            timeAnchorMs = SystemClock.elapsedRealtime()
+            smoothPositionMs = positionMs
+        } else {
+            val currentSmooth = smoothPositionMs
+            positionAnchorMs = maxOf(currentSmooth, positionMs)
+            timeAnchorMs = SystemClock.elapsedRealtime()
+        }
     }
 
     var throttledPositionMs by remember { mutableLongStateOf(positionMs) }
@@ -127,7 +138,10 @@ fun PlayerInlineLyrics(
         var lastThrottledUpdateMs = 0L
         while (isActive) {
             withFrameMillis { frameTimeMillis ->
-                smoothPositionMs = positionAnchorMs + (SystemClock.elapsedRealtime() - timeAnchorMs)
+                val projected = positionAnchorMs + (SystemClock.elapsedRealtime() - timeAnchorMs)
+                if (projected >= smoothPositionMs) {
+                    smoothPositionMs = projected
+                }
                 if (frameTimeMillis - lastThrottledUpdateMs >= THROTTLED_UPDATE_INTERVAL_MS) {
                     lastThrottledUpdateMs = frameTimeMillis
                     throttledPositionMs = smoothPositionMs
