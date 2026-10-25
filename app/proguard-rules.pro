@@ -89,7 +89,13 @@
 # field signatures so a cached feed is not decoded as LinkedTreeMap.
 -keep class com.alananasss.kittytune.ui.home.HomeCacheData { *; }
 -keep class com.alananasss.kittytune.ui.home.HomeSectionCache { *; }
+-keep class com.alananasss.kittytune.ui.home.ChartRepository$CachedChart { *; }
 -keep class com.alananasss.kittytune.ui.home.** { *; }
+-keep class com.alananasss.kittytune.ui.profile.** { *; }
+-keep class com.alananasss.kittytune.data.CachedArtistProfile { *; }
+-keep class com.alananasss.kittytune.data.ArtistProfileCache** { *; }
+-keep class com.alananasss.kittytune.data.search.** { *; }
+-keep class com.alananasss.kittytune.domain.Safe*Adapter { *; }
 -keep class com.alananasss.kittytune.ui.**.**Model* { *; }
 -keep class com.alananasss.kittytune.audio.providers.** { *; }
 -keep class com.alananasss.kittytune.data.SessionManager** { *; }
@@ -158,3 +164,12 @@
 # Accompanist Lyrics (Karaoke models & layout)
 -keep class com.mocharealm.accompanist.** { *; }
 -dontwarn com.mocharealm.accompanist.**
+
+# Core & dynamic strings resolution
+-keep class com.alananasss.kittytune.core.** { *; }
+-keep class com.alananasss.kittytune.data.lyrics.** { *; }
+
+# Preserve R class fields for dynamic resource lookups
+-keepclassmembers class **.R$* {
+    public static <fields>;
+}
