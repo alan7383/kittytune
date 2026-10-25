@@ -1,5 +1,10 @@
 package com.alananasss.kittytune.ui.library
 
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.os.Build
@@ -64,6 +69,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -85,6 +91,7 @@ import com.alananasss.kittytune.domain.PlaylistUpdateRequest
 import com.alananasss.kittytune.domain.getHighResAvatarUrl
 import com.alananasss.kittytune.ui.common.TrackListItemShimmer
 import com.alananasss.kittytune.ui.common.MiniSocialProofAvatars
+import com.alananasss.kittytune.ui.common.SwipeToDeleteItem
 import com.alananasss.kittytune.data.SocialProofRepository
 import com.alananasss.kittytune.ui.player.PlaybackContext
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -112,12 +119,15 @@ fun PlaylistDetailScreen(
     youtubeRadioViewModel: YoutubeRadioViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val haptics = rememberAppHaptics()
     val api = remember { RetrofitClient.create(context) }
     val scope = rememberCoroutineScope()
     val view = LocalView.current
     val density = LocalDensity.current
     val prefs = remember { com.alananasss.kittytune.data.local.PlayerPreferences(context) }
     val showTotalDuration by prefs.getShowPlaylistTotalDurationFlow().collectAsState(initial = prefs.getShowPlaylistTotalDuration())
+    val trackRemovalMethod by prefs.getTrackRemovalMethodFlow().collectAsState(initial = prefs.getTrackRemovalMethod())
+    val isSwipeRemovalEnabled = trackRemovalMethod == com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU
     val storageTrigger by DownloadManager.storageTrigger.collectAsState()
     val isYoutubeRadio = playlistId.startsWith("yt_radio:")
     val isGuest = remember { TokenManager(context).isGuestMode() }
@@ -148,6 +158,9 @@ fun PlaylistDetailScreen(
     var playlistArtists by remember { mutableStateOf<List<com.alananasss.kittytune.data.spotify.SpotifyArtistRef>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var defaultIcon by remember { mutableStateOf<ImageVector?>(null) }
+    // True when this radio was already saved to the library, so its snapshot is
+    // shown instead of replacing it with a fresh (and potentially empty) fetch.
+    var hasSavedRadio by remember(playlistId) { mutableStateOf(false) }
 
     val downloadProgress by DownloadManager.downloadProgress.collectAsState()
     val playlistDownloadProgress by DownloadManager.playlistDownloadProgress.collectAsState()
@@ -194,12 +207,15 @@ fun PlaylistDetailScreen(
         .replace("deezer:album:", "")
         .replace("deezer:playlist:", "")
         .replace("deezer:artist:", "")
+        .replace("deezer_radio:", "")
         .replace("tidal:album:", "")
         .replace("tidal:playlist:", "")
         .replace("tidal:artist:", "")
+        .replace("tidal_radio:", "")
         .replace("qobuz:album:", "")
         .replace("qobuz:playlist:", "")
         .replace("qobuz:artist:", "")
+        .replace("qobuz_radio:", "")
         .replace("station:", "")
         .replace("station_artist:", "")
         .replace("liked_by:", "")
@@ -260,12 +276,24 @@ fun PlaylistDetailScreen(
                 if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.tidalAlbumStableId(cleanIdStr)
                 else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
             }
+            lowerRoute.startsWith("tidal_radio:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.tidalRadioStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
             lowerRoute.startsWith("qobuz:playlist:") -> {
                 if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.qobuzPlaylistStableId(cleanIdStr)
                 else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
             }
             lowerRoute.startsWith("qobuz:album:") -> {
                 if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.qobuzAlbumStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("deezer_radio:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.deezerRadioStableId(cleanIdStr)
+                else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
+            }
+            lowerRoute.startsWith("qobuz_radio:") -> {
+                if (cleanIdStr.isNotEmpty()) com.alananasss.kittytune.data.local.ExternalPlaylists.qobuzRadioStableId(cleanIdStr)
                 else if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
             }
             else -> if (currentIdLong != 0L && !isSystemPlaylistRoute) currentIdLong else kotlin.math.abs(cleanIdStr.hashCode().toLong())
@@ -333,7 +361,25 @@ fun PlaylistDetailScreen(
 
     val isLikesScreen = playlistId == "likes" || playlistId.startsWith("liked_by:")
     val isSpotifyRadio = playlistId.startsWith("spotify_radio:") || playlistId.startsWith("station_spotify:")
-    val isSpecialSystemScreen = isLikesScreen || playlistId == "downloads" || playlistId == "local_files" || isSystemPlaylistRoute || isSpotifyRadio || playlistId.startsWith("yt_radio:") || playlistId.startsWith("station:") || playlistId.startsWith("station_artist:") || playlistId.startsWith("spotify:")
+    /*
+     * A radio is saved under the route that knows how it was generated, not under
+     * the playlist it happened to resolve to. Spotify's "radio" is often an
+     * editorial playlist (or a synthetic one built from recommendations) and
+     * YouTube's is a mix URL; neither can be fetched back from just its id, which
+     * is why a liked radio used to open empty. Keeping the seed lets the library
+     * reopen the same radio and match the tracks saved with it.
+     */
+    val radioRoutePermalink = remember(playlistId, spotifyRouteId) {
+        when {
+            playlistId.startsWith("yt_radio:") -> playlistId
+            isSpotifyRadio -> spotifyRouteId?.let { "spotify_radio:$it" }
+            playlistId.startsWith("tidal_radio:") -> playlistId
+            playlistId.startsWith("deezer_radio:") -> playlistId
+            playlistId.startsWith("qobuz_radio:") -> playlistId
+            else -> null
+        }
+    }
+    val isSpecialSystemScreen = isLikesScreen || playlistId == "downloads" || playlistId == "local_files" || isSystemPlaylistRoute || isSpotifyRadio || playlistId.startsWith("yt_radio:") || playlistId.startsWith("tidal_radio:") || playlistId.startsWith("deezer_radio:") || playlistId.startsWith("qobuz_radio:") || playlistId.startsWith("station:") || playlistId.startsWith("station_artist:") || playlistId.startsWith("spotify:")
     val isCanReorderGlobal = (isUserCreated || isDownloadedView) && !isSpecialSystemScreen
 
     val listState = rememberLazyListState()
@@ -351,7 +397,7 @@ fun PlaylistDetailScreen(
                 tracks.apply {
                     add(toIndex, removeAt(fromIndex))
                 }
-                view.performHapticFeedback(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
             }
         }
     )
@@ -378,6 +424,8 @@ fun PlaylistDetailScreen(
                 val videoId = decodedUrl.substringAfter("v=").substringBefore("&")
                 "https://www.youtube.com/watch?v=$videoId&list=RD$videoId"
             }
+
+            isSpotifyRadio -> spotifyRouteId?.let { "https://open.spotify.com/track/$it" } ?: ""
 
             playlistId.startsWith("liked_by:") -> {
                 val user = playlistUser
@@ -679,9 +727,25 @@ fun PlaylistDetailScreen(
 
     LaunchedEffect(playlistId, refreshTrigger) {
         if (playlistId.startsWith("yt_radio:")) {
-            val encodedUrl = playlistId.removePrefix("yt_radio:")
-            val url = Uri.decode(encodedUrl)
-            youtubeRadioViewModel.loadInitial(url)
+            val db = AppDatabase.getDatabase(context).downloadDao()
+            val savedRadio = if (stableId != 0L) db.getPlaylist(stableId) else null
+            val savedTracks = if (savedRadio != null) db.getTracksForPlaylistSync(stableId) else emptyList()
+            if (savedRadio != null && savedTracks.isNotEmpty()) {
+                hasSavedRadio = true
+                playlistTitle = savedRadio.title
+                playlistCover = savedRadio.localCoverPath ?: savedRadio.artworkUrl
+                playlistUser = User(0, savedRadio.artist, null)
+                playlistPermalinkUrl = savedRadio.permalinkUrl
+                defaultIcon = Icons.Rounded.Radio
+                tracks.clear()
+                tracks.addAll(savedTracks.map { it.toTrack() })
+                isLoading = false
+            } else {
+                hasSavedRadio = false
+                val encodedUrl = playlistId.removePrefix("yt_radio:")
+                val url = Uri.decode(encodedUrl)
+                youtubeRadioViewModel.loadInitial(url)
+            }
             return@LaunchedEffect
         }
 
@@ -830,11 +894,32 @@ fun PlaylistDetailScreen(
                 else -> {
                     val isOffline = !com.alananasss.kittytune.utils.NetworkUtils.isInternetAvailable(context)
                     val isLocalUserPlaylist = currentIdLong < 0
-                    val forceLocal = isOffline || isDownloadedView || isLocalUserPlaylist
-                    val localPlaylist = if (stableId != 0L && forceLocal) db.getPlaylist(stableId) else null
+                    // A saved radio is a snapshot: never let a fresh remote fetch
+                    // replace (or fail to find) the tracks the user kept by liking it.
+                    // Older builds saved the remote URL instead of the seed route, so
+                    // recognise those rows too instead of leaving existing likes empty.
+                    val savedRadio = if (stableId != 0L) db.getPlaylist(stableId)?.takeIf { local ->
+                        radioRoutePermalink != null || local.permalinkUrl?.let { permalink ->
+                            val lower = permalink.lowercase()
+                            lower.startsWith("yt_radio:") ||
+                                lower.startsWith("spotify_radio:") ||
+                                lower.contains("youtube.com") ||
+                                lower.contains("youtu.be") ||
+                                (lower.contains("spotify") && local.title.contains("radio", ignoreCase = true))
+                        } == true
+                    } else null
+                    val savedRadioTracks = if (savedRadio != null) db.getTracksForPlaylistSync(stableId) else emptyList()
+                    // A route-based radio whose snapshot is still empty (liked from a card
+                    // that had not loaded its tracks) should be fetched again instead of
+                    // rendering an empty screen. Legacy rows without a route keep resolving
+                    // locally so a numeric id is never mistaken for a SoundCloud playlist.
+                    val forceLocal = isOffline || isDownloadedView || isLocalUserPlaylist ||
+                        (savedRadio != null && (savedRadioTracks.isNotEmpty() || radioRoutePermalink == null))
+                    val localPlaylist = if (stableId != 0L && forceLocal) savedRadio ?: db.getPlaylist(stableId) else null
                     if (localPlaylist != null) {
                         playlistTitle = localPlaylist.title
                         playlistCover = localPlaylist.localCoverPath ?: localPlaylist.artworkUrl
+                        if (radioRoutePermalink != null) defaultIcon = Icons.Rounded.Radio
 
                         playlistUser = User(0, localPlaylist.artist, null)
                         isUserCreated = localPlaylist.isUserCreated || localPlaylist.id < 0 || isLocalUserPlaylist
@@ -886,6 +971,9 @@ fun PlaylistDetailScreen(
 
                         val isTidalAlbum = playlistId.startsWith("tidal:album:")
                         val isTidalPlaylist = playlistId.startsWith("tidal:playlist:")
+                        val isTidalRadio = playlistId.startsWith("tidal_radio:")
+                        val isDeezerRadio = playlistId.startsWith("deezer_radio:")
+                        val isQobuzRadio = playlistId.startsWith("qobuz_radio:")
 
                         val isQobuzAlbum = playlistId.startsWith("qobuz:album:")
                         val isQobuzPlaylist = playlistId.startsWith("qobuz:playlist:")
@@ -1002,6 +1090,35 @@ fun PlaylistDetailScreen(
                                 playlistUrn = pl.urn
                                 newTracks.addAll(pl.tracks ?: emptyList())
                             }
+                        } else if (isTidalRadio) {
+                            // TIDAL builds a radio around the seed itself: the seed, then
+                            // the tracks it considers close. The route keeps the seed id
+                            // so the same radio can be reopened from the library.
+                            val radioTracks = com.alananasss.kittytune.data.tidal.TidalSearchRepository
+                                .getRadio(context, cleanIdStr)
+                            // TIDAL refuses to build a radio for some tracks; showing the
+                            // track itself beats an empty screen.
+                            val radio = radioTracks.ifEmpty {
+                                listOfNotNull(
+                                    com.alananasss.kittytune.data.tidal.TidalSearchRepository
+                                        .getTrack(context, cleanIdStr)
+                                )
+                            }
+                            if (radio.isNotEmpty()) {
+                                val seed = radio.first()
+                                isAlbum = false
+                                playlistTitle = context.getString(R.string.tidal_radio_title, seed.title ?: "")
+                                playlistCover = seed.artworkUrl
+                                defaultIcon = Icons.Rounded.Radio
+                                playlistUser = User(
+                                    id = kotlin.math.abs("TIDAL".hashCode().toLong()),
+                                    username = "TIDAL",
+                                    avatarUrl = seed.artworkUrl
+                                )
+                                playlistPermalinkUrl = "https://tidal.com/browse/track/$cleanIdStr"
+                                playlistUrn = "tidal_radio:$cleanIdStr"
+                                newTracks.addAll(radio)
+                            }
                         } else if (isQobuzAlbum) {
                             val pl = com.alananasss.kittytune.data.qobuz.QobuzSearchRepository.getAlbum(context, cleanIdStr)
                             if (pl != null) {
@@ -1036,6 +1153,49 @@ fun PlaylistDetailScreen(
                                 playlistPermalinkUrl = pl.permalinkUrl
                                 playlistUrn = pl.urn
                                 newTracks.addAll(pl.tracks ?: emptyList())
+                            }
+                        } else if (isDeezerRadio) {
+                            // Deezer's own artist radio: a station around the artist,
+                            // not just their greatest hits.
+                            val radioTracks = com.alananasss.kittytune.data.deezer.DeezerSearchRepository
+                                .getRadio(cleanIdStr)
+                            if (radioTracks.isNotEmpty()) {
+                                val seed = radioTracks.first()
+                                isAlbum = false
+                                playlistTitle = context.getString(
+                                    R.string.deezer_radio_title,
+                                    seed.user?.username ?: "Deezer"
+                                )
+                                playlistCover = seed.artworkUrl
+                                defaultIcon = Icons.Rounded.Radio
+                                playlistUser = User(
+                                    id = seed.user?.id ?: 0L,
+                                    username = seed.user?.username ?: "Deezer",
+                                    avatarUrl = seed.user?.avatarUrl
+                                )
+                                playlistPermalinkUrl = "https://www.deezer.com/artist/$cleanIdStr"
+                                playlistUrn = "deezer_radio:$cleanIdStr"
+                                newTracks.addAll(radioTracks)
+                            }
+                        } else if (isQobuzRadio) {
+                            // A Qobuz station around the seed: the album it belongs
+                            // to, the artist, and the artists Qobuz lists as similar.
+                            val radioTracks = com.alananasss.kittytune.data.qobuz.QobuzSearchRepository
+                                .getRadio(cleanIdStr)
+                            if (radioTracks.isNotEmpty()) {
+                                val seed = radioTracks.first()
+                                isAlbum = false
+                                playlistTitle = context.getString(R.string.qobuz_radio_title, seed.title ?: "")
+                                playlistCover = seed.artworkUrl
+                                defaultIcon = Icons.Rounded.Radio
+                                playlistUser = User(
+                                    id = seed.user?.id ?: 0L,
+                                    username = seed.user?.username ?: "Qobuz",
+                                    avatarUrl = seed.user?.avatarUrl
+                                )
+                                playlistPermalinkUrl = "https://open.qobuz.com/track/$cleanIdStr"
+                                playlistUrn = "qobuz_radio:$cleanIdStr"
+                                newTracks.addAll(radioTracks)
                             }
                         } else if (isSpotifyRadio) {
                             val isArtistStation = playlistId.startsWith("station_artist:") || playlistId.startsWith("spotify:artist:") || playlistId.startsWith("spotify_artist:")
@@ -1425,7 +1585,7 @@ fun PlaylistDetailScreen(
         }
     }
 
-    if (playlistId.startsWith("yt_radio:")) {
+    if (playlistId.startsWith("yt_radio:") && !hasSavedRadio) {
         playlistTitle = youtubeRadioViewModel.playlistTitle
         playlistCover = youtubeRadioViewModel.playlistCover
         playlistUser = youtubeRadioViewModel.playlistUser
@@ -1440,7 +1600,7 @@ fun PlaylistDetailScreen(
             title = { Text(stringResource(if (isUserCreated) R.string.dialog_delete_playlist_title else R.string.dialog_delete_playlist_from_lib_title)) },
             text = { Text(stringResource(R.string.dialog_delete_playlist_msg)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     if (stableId != 0L) {
                         DownloadManager.deletePlaylist(
                             playlistId = stableId,
@@ -1455,7 +1615,7 @@ fun PlaylistDetailScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     showDeleteDialog = false
                 }) { Text(stringResource(R.string.btn_cancel)) }
             }
@@ -1468,7 +1628,7 @@ fun PlaylistDetailScreen(
             title = { Text(stringResource(R.string.dialog_remove_download_title)) },
             text = { Text(stringResource(R.string.dialog_remove_download_msg)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     if (playlistId == "likes") {
                         DownloadManager.removeDownloads(tracksToDisplay.toList())
                     } else if (stableId != 0L) {
@@ -1483,7 +1643,7 @@ fun PlaylistDetailScreen(
                 }) { Text(stringResource(R.string.btn_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     showRemoveDownloadDialog = false
                 }) { Text(stringResource(R.string.btn_cancel)) }
             }
@@ -1607,7 +1767,7 @@ fun PlaylistDetailScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
                                 playlistSortBy = sortType
                                 showPlaylistSortSheet = false
                             }
@@ -1752,7 +1912,7 @@ fun PlaylistDetailScreen(
                                                 shape = CircleShape,
                                                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
                                                 modifier = Modifier.align(Alignment.BottomEnd)
-                                                    .offset(x = 8.dp, y = 8.dp).clickable {
+                                                    .offset(x = 8.dp, y = 8.dp).hapticClickable {
                                                     photoPickerLauncher.launch(
                                                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                                     )
@@ -1819,7 +1979,7 @@ fun PlaylistDetailScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(8.dp))
-                                                .clickable {
+                                                .hapticClickable {
                                                     val creator = playlistUser!!
                                                     if (playlistArtists.count { it.id.isNotBlank() } > 1) {
                                                         playerViewModel.navigateToArtistChoice(
@@ -1907,7 +2067,7 @@ fun PlaylistDetailScreen(
                                     ) {
                                         if (((isLocalPlaylist && !isDownloadedView) || isUserCreated) && !isYoutubeRadio) {
                                             IconButton(
-                                                onClick = { newPlaylistName = playlistTitle; showRenameDialog = true },
+                                                onClick = hapticAction(HapticKind.UI) { newPlaylistName = playlistTitle; showRenameDialog = true },
                                                 shapes = IconButtonDefaults.shapes()
                                             ) {
                                                 Icon(
@@ -1921,7 +2081,7 @@ fun PlaylistDetailScreen(
 
                                             if (isUserCreated && !isDownloadedView) {
                                                 IconButton(
-                                                    onClick = { showDeleteDialog = true },
+                                                    onClick = hapticAction(HapticKind.UI) { showDeleteDialog = true },
                                                     shapes = IconButtonDefaults.shapes()
                                                 ) {
                                                     Icon(
@@ -1934,7 +2094,8 @@ fun PlaylistDetailScreen(
                                                 val altSysId = playlistUrn?.let { com.alananasss.kittytune.ui.yearlyplayback.YearlyPlaybackViewModel.extractPlaylistId(it) }
                                                 val isPlaylistLiked = likedPlaylistsRepo.contains(stableId) || likedPlaylistsRepo.contains(legacyStableId) || (altSysId != null && likedPlaylistsRepo.contains(altSysId))
                                                 IconButton(
-                                                    onClick = {
+                                                    onClick = hapticAction(HapticKind.UI) {
+                                                        val savedPermalink = radioRoutePermalink ?: playlistPermalinkUrl
                                                         if (!isPlaylistLiked) {
                                                             val targetPlaylist = Playlist(
                                                                 id = stableId,
@@ -1945,14 +2106,16 @@ fun PlaylistDetailScreen(
                                                                 user = playlistUser ?: User(0, playlistUser?.username ?: "", null),
                                                                 tracks = tracksToDisplay.toList(),
                                                                 isAlbum = isAlbum,
-                                                                permalinkUrl = playlistPermalinkUrl ?: shareUrl,
+                                                                // Save the route that can reopen this radio, not the
+                                                                // transient remote playlist it resolved to.
+                                                                permalinkUrl = savedPermalink ?: shareUrl,
                                                                 urn = playlistUrn
                                                             )
                                                             DownloadManager.importPlaylistToLibrary(
                                                                 playlist = targetPlaylist,
                                                                 tracks = tracksToDisplay.toList(),
-                                                                syncToCloud = !com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalProvider(
-                                                                    playlistPermalinkUrl ?: shareUrl,
+                                                                syncToCloud = radioRoutePermalink == null && !com.alananasss.kittytune.data.local.ExternalPlaylists.isExternalProvider(
+                                                                    savedPermalink ?: shareUrl,
                                                                     playlistUrn
                                                                 ) && !playlistId.startsWith("spotify") && !playlistId.startsWith("station_spotify"),
                                                                 likePlaylist = true
@@ -1961,7 +2124,7 @@ fun PlaylistDetailScreen(
                                                                 LikeRepository.togglePlaylistLike(
                                                                     legacyStableId,
                                                                     false,
-                                                                    playlistPermalinkUrl,
+                                                                    savedPermalink,
                                                                     playlistUrn
                                                                 )
                                                             }
@@ -1969,14 +2132,14 @@ fun PlaylistDetailScreen(
                                                             LikeRepository.togglePlaylistLike(
                                                                 stableId,
                                                                 false,
-                                                                playlistPermalinkUrl,
+                                                                savedPermalink,
                                                                 playlistUrn
                                                             )
                                                             if (legacyStableId != stableId) {
                                                                 LikeRepository.togglePlaylistLike(
                                                                     legacyStableId,
                                                                     false,
-                                                                    playlistPermalinkUrl,
+                                                                    savedPermalink,
                                                                     playlistUrn
                                                                 )
                                                             }
@@ -2003,7 +2166,7 @@ fun PlaylistDetailScreen(
 
                                         if (!isYoutubeRadio && playlistId != "downloads" && tracksToDisplay.isNotEmpty()) {
                                             IconButton(
-                                                onClick = {
+                                                onClick = hapticAction(HapticKind.UI) {
                                                     val targetBatchId =
                                                         if (playlistId == "likes") DownloadManager.LIKES_BATCH_ID else stableId
 
@@ -2113,7 +2276,7 @@ fun PlaylistDetailScreen(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         if (downloadedPlaylists.size > 4) {
-                                            TextButton(onClick = { onNavigate("downloaded_playlists") }) {
+                                            TextButton(onClick = hapticAction(HapticKind.UI) { onNavigate("downloaded_playlists") }) {
                                                 Text(
                                                     stringResource(R.string.btn_see_all),
                                                     maxLines = 1,
@@ -2200,7 +2363,7 @@ fun PlaylistDetailScreen(
                                                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                                                 ) {
                                                     Button(
-                                                        onClick = {
+                                                        onClick = hapticAction(HapticKind.UI) {
                                                             playerViewModel.playPlaylist(
                                                                 tracksToDisplay.toList(),
                                                                 0,
@@ -2225,8 +2388,7 @@ fun PlaylistDetailScreen(
                                                         )
                                                     }
                                                     FilledTonalButton(
-                                                        onClick = {
-                                                            playerViewModel.playPlaylistShuffled(
+                                                        onClick = { playerViewModel.playPlaylistShuffled(
                                                                 tracksToDisplay.toList(),
                                                                 context = playbackContext
                                                             )
@@ -2269,7 +2431,7 @@ fun PlaylistDetailScreen(
                                                         placeholder = { Text(stringResource(R.string.search_playlist_hint)) },
                                                         leadingIcon = { Icon(Icons.Default.Search, null) },
                                                         trailingIcon = {
-                                                            IconButton(onClick = {
+                                                            IconButton(onClick = hapticAction(HapticKind.UI) {
                                                                 playlistSearchQuery = ""
                                                                 isSearchExpanded = false
                                                             }) {
@@ -2289,7 +2451,7 @@ fun PlaylistDetailScreen(
                                                 AnimatedVisibility(visible = !isSearchExpanded) {
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                                         IconButton(
-                                                            onClick = { isSearchExpanded = true },
+                                                            onClick = hapticAction(HapticKind.UI) { isSearchExpanded = true },
                                                             shapes = IconButtonDefaults.shapes(),
                                                             colors = IconButtonDefaults.iconButtonColors(
                                                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -2300,7 +2462,7 @@ fun PlaylistDetailScreen(
                                                         }
                                                         Spacer(Modifier.width(12.dp))
                                                         IconButton(
-                                                            onClick = { showPlaylistSortSheet = true },
+                                                            onClick = hapticAction(HapticKind.UI) { showPlaylistSortSheet = true },
                                                             shapes = IconButtonDefaults.shapes(),
                                                             colors = IconButtonDefaults.iconButtonColors(
                                                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
@@ -2331,7 +2493,7 @@ fun PlaylistDetailScreen(
 
                                                         Button(
                                                             onClick = {
-                                                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                                                view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
                                                                 selectedVibeId = if (isSelected) null else vibe.id
                                                             },
                                                             shapes = ButtonDefaults.shapes(),
@@ -2381,6 +2543,35 @@ fun PlaylistDetailScreen(
                                         }
 
                                         val isCanReorder = (isUserCreated || isDownloadedView) && !isSpecialSystemScreen
+                                        val canRemoveTrack = isUserCreated || isDownloadedView || playlistId == "downloads" || playlistId == "likes"
+                                        val isSwipeEnabled = isSwipeRemovalEnabled && canRemoveTrack
+
+                                        val contextId = when {
+                                            isUserCreated || isDownloadedView -> stableId
+                                            playlistId == "downloads" -> -2L
+                                            playlistId == "likes" -> -1L
+                                            else -> null
+                                        }
+
+                                        val onRemoveAction: () -> Unit = {
+                                            when {
+                                                playlistId == "likes" -> {
+                                                    LikeRepository.removeLike(track.id)
+                                                }
+                                                playlistId == "downloads" -> {
+                                                    tracks.removeAll { it.id == track.id }
+                                                    DownloadManager.deleteTrack(track.id)
+                                                }
+                                                else -> {
+                                                    tracks.removeAll { it.id == track.id }
+                                                    DownloadManager.removeTrackFromPlaylist(
+                                                        playlistId = stableId,
+                                                        trackId = track.id,
+                                                        syncToCloud = isUserCreated && !isDownloadedView && currentIdLong > 0
+                                                    )
+                                                }
+                                            }
+                                        }
 
                                         if (isCanReorder) {
                                             ReorderableItem(
@@ -2396,99 +2587,9 @@ fun PlaylistDetailScreen(
                                                     label = "scale"
                                                 )
                                                 val backgroundColor =
-                                                    if (isDragging) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.background
+                                                    if (isDragging) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
 
-                                                val isSwipeEnabled = prefs.getTrackRemovalMethod() == com.alananasss.kittytune.data.local.TrackRemovalMethod.SWIPE_AND_MENU
-
-                                                if (isSwipeEnabled) {
-                                                    var isDeleted by remember { mutableStateOf(false) }
-                                                    val dismissState = rememberSwipeToDismissBoxState(
-                                                        positionalThreshold = { it * 0.55f },
-                                                        confirmValueChange = {
-                                                            if (it == SwipeToDismissBoxValue.EndToStart) {
-                                                                isDeleted = true
-                                                                true
-                                                            } else false
-                                                        }
-                                                    )
-
-                                                    AnimatedVisibility(
-                                                        visible = !isDeleted,
-                                                        exit = shrinkVertically() + fadeOut(),
-                                                        modifier = Modifier.zIndex(if (isDragging) 5f else 0f)
-                                                    ) {
-                                                        SwipeToDismissBox(
-                                                            state = dismissState,
-                                                            backgroundContent = {
-                                                                val color = MaterialTheme.colorScheme.errorContainer
-                                                                Box(
-                                                                    modifier = Modifier
-                                                                        .fillMaxSize()
-                                                                        .background(color)
-                                                                        .padding(horizontal = 24.dp),
-                                                                    contentAlignment = Alignment.CenterEnd
-                                                                ) {
-                                                                    Icon(
-                                                                        Icons.Default.Delete,
-                                                                        null,
-                                                                        tint = MaterialTheme.colorScheme.onErrorContainer
-                                                                    )
-                                                                }
-                                                            },
-                                                            enableDismissFromStartToEnd = false
-                                                        ) {
-                                                            TrackListItem(
-                                                                track = track,
-                                                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
-                                                                index = index,
-                                                                isDownloading = isDownloading,
-                                                                isDownloaded = isDownloaded,
-                                                                downloadProgress = progress ?: 0,
-                                                                showVerifiedBadge = false,
-                                                                showLikeIndicator = playlistId != "likes",
-                                                                modifier = Modifier
-                                                                    .fillMaxWidth()
-                                                                    .background(backgroundColor)
-                                                                    .graphicsLayer {
-                                                                        scaleX = scale
-                                                                        scaleY = scale
-                                                                        shadowElevation = elevation.toPx()
-                                                                    },
-                                                                dragModifier = Modifier.draggableHandle(
-                                                                    onDragStarted = {
-                                                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                                                    }
-                                                                ),
-                                                                onClick = {
-                                                                    if (!isDragging) {
-                                                                        playerViewModel.playPlaylist(
-                                                                            tracksToDisplay.toList(),
-                                                                            index,
-                                                                            playbackContext
-                                                                        )
-                                                                    }
-                                                                },
-                                                                onOptionClick = {
-                                                                    val contextId =
-                                                                        if (isUserCreated || isDownloadedView) stableId else null
-                                                                    playerViewModel.showTrackOptions(track, contextId)
-                                                                }
-                                                            )
-                                                        }
-                                                    }
-
-                                                    LaunchedEffect(isDeleted) {
-                                                        if (isDeleted) {
-                                                            delay(500)
-                                                            tracks.remove(track)
-                                                            DownloadManager.removeTrackFromPlaylist(
-                                                                playlistId = stableId,
-                                                                trackId = track.id,
-                                                                syncToCloud = isUserCreated && !isDownloadedView && currentIdLong > 0
-                                                            )
-                                                        }
-                                                    }
-                                                } else {
+                                                val itemContent = @Composable {
                                                     TrackListItem(
                                                         track = track,
                                                         currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
@@ -2498,9 +2599,18 @@ fun PlaylistDetailScreen(
                                                         downloadProgress = progress ?: 0,
                                                         showVerifiedBadge = false,
                                                         showLikeIndicator = playlistId != "likes",
+                                                        horizontalPadding = 0.dp,
                                                         modifier = Modifier
                                                             .fillMaxWidth()
-                                                            .background(backgroundColor)
+                                                            .then(
+                                                                if (isDragging) {
+                                                                    Modifier
+                                                                        .clip(RoundedCornerShape(16.dp))
+                                                                        .background(backgroundColor)
+                                                                } else {
+                                                                    Modifier
+                                                                }
+                                                            )
                                                             .graphicsLayer {
                                                                 scaleX = scale
                                                                 scaleY = scale
@@ -2508,10 +2618,10 @@ fun PlaylistDetailScreen(
                                                             },
                                                         dragModifier = Modifier.draggableHandle(
                                                             onDragStarted = {
-                                                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                                view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                                                             }
                                                         ),
-                                                        onClick = {
+                                                        onClick = hapticAction(HapticKind.UI) {
                                                             if (!isDragging) {
                                                                 playerViewModel.playPlaylist(
                                                                     tracksToDisplay.toList(),
@@ -2520,38 +2630,61 @@ fun PlaylistDetailScreen(
                                                                 )
                                                             }
                                                         },
-                                                        onOptionClick = {
-                                                            val contextId =
-                                                                if (isUserCreated || isDownloadedView) stableId else null
+                                                        onOptionClick = hapticAction(HapticKind.UI) {
                                                             playerViewModel.showTrackOptions(track, contextId)
                                                         }
                                                     )
                                                 }
+
+                                                SwipeToDeleteItem(
+                                                    key = track.id,
+                                                    enabled = isSwipeEnabled && !isDragging,
+                                                    clipContent = !isDragging,
+                                                    endZoneIgnoreWidth = 104.dp,
+                                                    onDelete = onRemoveAction,
+                                                    shape = RoundedCornerShape(16.dp),
+                                                    horizontalPadding = 8.dp
+                                                ) {
+                                                    itemContent()
+                                                }
                                             }
                                         } else {
-                                            TrackListItem(
-                                                track = track,
-                                                currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
-                                                index = index,
-                                                isDownloading = isDownloading,
-                                                isDownloaded = isDownloaded,
-                                                downloadProgress = progress ?: 0,
-                                                showVerifiedBadge = false,
-                                                showLikeIndicator = playlistId != "likes",
-                                                modifier = Modifier.animateItem(),
-                                                onClick = {
-                                                    playerViewModel.playPlaylist(
-                                                        tracksToDisplay.toList(),
-                                                        index,
-                                                        playbackContext
-                                                    )
-                                                },
-                                                onOptionClick = {
-                                                    val contextId =
-                                                        if (isUserCreated || isDownloadedView) stableId else null
-                                                    playerViewModel.showTrackOptions(track, contextId)
-                                                }
-                                            )
+                                            val itemContent = @Composable {
+                                                TrackListItem(
+                                                    track = track,
+                                                    currentlyPlayingTrack = playerViewModel.uiCurrentTrack,
+                                                    index = index,
+                                                    isDownloading = isDownloading,
+                                                    isDownloaded = isDownloaded,
+                                                    downloadProgress = progress ?: 0,
+                                                    showVerifiedBadge = false,
+                                                    showLikeIndicator = playlistId != "likes",
+                                                    horizontalPadding = 0.dp,
+                                                    modifier = Modifier.animateItem(),
+                                                    onClick = hapticAction(HapticKind.UI) {
+                                                        playerViewModel.playPlaylist(
+                                                            tracksToDisplay.toList(),
+                                                            index,
+                                                            playbackContext
+                                                        )
+                                                    },
+                                                    onOptionClick = hapticAction(HapticKind.UI) {
+                                                        playerViewModel.showTrackOptions(track, contextId)
+                                                    }
+                                                )
+                                            }
+
+                                            SwipeToDeleteItem(
+                                                key = track.id,
+                                                enabled = isSwipeEnabled,
+                                                clipContent = true,
+                                                endZoneIgnoreWidth = 56.dp,
+                                                onDelete = onRemoveAction,
+                                                shape = RoundedCornerShape(16.dp),
+                                                horizontalPadding = 8.dp
+                                            ) {
+                                                itemContent()
+                                            }
                                         }
                                     }
                                     if (playlistId.startsWith("yt_radio:") && youtubeRadioViewModel.isLoadingMore) {
@@ -2572,7 +2705,7 @@ fun PlaylistDetailScreen(
                             title = {},
                             navigationIcon = {
                                 IconButton(
-                                    onClick = onBackClick,
+                                    onClick = hapticAction(HapticKind.LIGHT, onBackClick),
                                     shapes = IconButtonDefaults.shapes(),
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Black.copy(alpha = 0.3f),
@@ -2588,7 +2721,7 @@ fun PlaylistDetailScreen(
                             },
                             actions = {
                                 IconButton(
-                                    onClick = { showPlaylistOptionsSheet = true },
+                                    onClick = hapticAction(HapticKind.UI) { showPlaylistOptionsSheet = true },
                                     shapes = IconButtonDefaults.shapes(),
                                     colors = IconButtonDefaults.iconButtonColors(
                                         containerColor = Color.Black.copy(alpha = 0.3f),
@@ -2712,6 +2845,7 @@ fun PlaylistDetailScreen(
                     },
                     onNavigate = onNavigate,
                     onMentionClick = { username ->
+                        haptics.perform(HapticKind.LIGHT)
                         showPlaylistDetailsSheet = false
                         playerViewModel.resolveAndNavigateToArtist(username)
                     },
@@ -2724,7 +2858,7 @@ fun PlaylistDetailScreen(
 
 @Composable
 fun PlaylistSquareCard(playlist: Playlist, onClick: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().clickable { onClick() }) {
+    Column(modifier = Modifier.fillMaxWidth().hapticClickable { onClick() }) {
         AsyncImage(
             model = playlist.fullResArtwork,
             contentDescription = null,
@@ -2745,7 +2879,7 @@ fun PlaylistSquareCard(playlist: Playlist, onClick: () -> Unit) {
         )
         val subtitle = when {
             playlist.trackCount != null && playlist.trackCount > 0 -> stringResource(R.string.playlist_num_tracks, playlist.trackCount)
-            !playlist.user?.username.isNullOrBlank() -> playlist.user.username
+            !playlist.user?.username.isNullOrBlank() -> playlist.user?.username.orEmpty()
             else -> stringResource(R.string.lib_playlists)
         }
         Text(
@@ -2791,7 +2925,7 @@ fun PlaylistOptionsSheet(
             title = { Text(stringResource(R.string.dialog_remove_download_title)) },
             text = { Text(stringResource(R.string.dialog_remove_download_msg)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     if (playlistId == DownloadManager.LIKES_BATCH_ID) {
                         DownloadManager.removeDownloads(tracks)
                     } else if (playlistId != 0L) {
@@ -2802,7 +2936,7 @@ fun PlaylistOptionsSheet(
                 }) { Text(stringResource(R.string.btn_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     showRemoveDownloadDialog = false
                     onDismiss()
                 }) { Text(stringResource(R.string.btn_cancel)) }
@@ -2944,7 +3078,7 @@ fun PlaylistOptionsSheet(
             items(items) { item ->
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { item.onClick() }) {
+                    modifier = Modifier.hapticClickable { item.onClick() }) {
                     Icon(item.icon, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -2957,7 +3091,7 @@ fun PlaylistOptionsSheet(
             }
             if ((!isLocal || isFullyDownloaded) && tracks.isNotEmpty() && !isYoutubeRadio) {
                 item {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.hapticClickable {
                         if (isFullyDownloaded) {
                             showRemoveDownloadDialog = true
                         } else if (!isDownloading) {
@@ -2992,7 +3126,7 @@ fun PlaylistOptionsSheet(
 
             if (shareUrl.isNotEmpty()) {
                 item {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.hapticClickable {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
                             putExtra(Intent.EXTRA_TEXT, shareUrl)
@@ -3031,6 +3165,7 @@ fun TrackListItem(
     modifier: Modifier = Modifier,
     showVerifiedBadge: Boolean = true,
     showLikeIndicator: Boolean = true,
+    horizontalPadding: Dp = 8.dp,
     dragModifier: Modifier = Modifier,
     onClick: () -> Unit,
     onOptionClick: () -> Unit,
@@ -3063,12 +3198,15 @@ fun TrackListItem(
         shape = RoundedCornerShape(16.dp),
         color = Color.Transparent,
         modifier = modifier
-            .padding(horizontal = 8.dp)
+            .padding(horizontal = horizontalPadding)
             .clip(RoundedCornerShape(16.dp))
             .combinedClickable(
-                onClick = onClick,
+                onClick = {
+                    view.performAppHaptic(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onClick()
+                },
                 onLongClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
                     if (onLongClick != null) onLongClick() else onOptionClick()
                 }
             )
@@ -3191,7 +3329,7 @@ fun TrackListItem(
                 )
             }
             IconButton(
-                onClick = onOptionClick,
+                onClick = hapticAction(HapticKind.LIGHT, onOptionClick),
                 modifier = Modifier.size(48.dp),
                 shapes = IconButtonDefaults.shapes()
             ) {
@@ -3281,7 +3419,7 @@ fun EmptyPlaylistView(
         if (isNotFound) {
             Spacer(Modifier.height(24.dp))
             Button(
-                onClick = onBackClick,
+                onClick = hapticAction(HapticKind.LIGHT, onBackClick),
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -3345,7 +3483,7 @@ fun DownloadedPlaylistsScreen(
                         title = { Text(stringResource(R.string.lib_playlists), fontWeight = FontWeight.Bold) },
                         navigationIcon = {
                             FilledTonalIconButton(
-                                onClick = onBackClick,
+                                onClick = hapticAction(HapticKind.LIGHT, onBackClick),
                                 shapes = IconButtonDefaults.shapes(),
                                 colors = IconButtonDefaults.filledTonalIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),

@@ -44,6 +44,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.ui.profile.ArtistAvatar
 import java.text.NumberFormat
@@ -63,6 +67,7 @@ fun PlaylistDetailsSheet(
     viewModel: PlaylistInfoViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    val haptics = rememberAppHaptics()
     val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(playlistId) {
@@ -104,7 +109,7 @@ fun PlaylistDetailsSheet(
                             .clip(RoundedCornerShape(12.dp))
                             .then(
                                 if (isArtist) {
-                                    Modifier.clickable {
+                                    Modifier.hapticClickable {
                                         onDismiss()
                                         val navTarget = when {
                                             creator.urn?.startsWith("spotify:artist:") == true -> creator.urn
@@ -289,7 +294,7 @@ fun PlaylistDetailsSheet(
                             FlowRow(modifier = Modifier.fillMaxWidth()) {
                                 tags.take(10).forEach { tag ->
                                     SuggestionChip(
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             onDismiss()
                                             onNavigate("tag:$tag")
                                         },
@@ -343,6 +348,7 @@ fun PlaylistDetailsSheet(
                             text = playlist.description!!,
                             onUrlClick = { url -> uriHandler.openUri(url) },
                             onMentionClick = { username ->
+                                haptics.perform(HapticKind.LIGHT)
                                 onDismiss()
                                 onMentionClick(username)
                             }
@@ -409,7 +415,7 @@ fun UserSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onViewAll() }
+                .hapticClickable { onViewAll() }
                 .padding(horizontal = 24.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -452,7 +458,7 @@ fun UserSection(
                         .padding(2.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                        .clickable { onViewAll() },
+                        .hapticClickable { onViewAll() },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -494,6 +500,7 @@ fun ExpandableDescription(
     onMentionClick: (String) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    val haptics = rememberAppHaptics()
     val urlPattern = Pattern.compile("((https?|ftp|file)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|])")
     val mentionPattern = Pattern.compile("@[\\w-]+")
 
@@ -542,6 +549,7 @@ fun ExpandableDescription(
             maxLines = if (isExpanded) Int.MAX_VALUE else 3,
             overflow = TextOverflow.Ellipsis,
             onClick = { offset ->
+                haptics.perform(HapticKind.LIGHT)
                 var isAnnotationClicked = false
                 annotatedString.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let { annotation ->
                     when (annotation.tag) {
@@ -567,7 +575,7 @@ fun ExpandableDescription(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .padding(top = 4.dp)
-                    .clickable { isExpanded = !isExpanded }
+                    .hapticClickable { isExpanded = !isExpanded }
             )
         }
     }

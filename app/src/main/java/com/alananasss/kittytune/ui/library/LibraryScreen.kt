@@ -1,5 +1,11 @@
 package com.alananasss.kittytune.ui.library
 
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
@@ -29,6 +35,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.content.Intent
+import android.view.HapticFeedbackConstants
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.GridView
@@ -58,11 +65,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -91,6 +100,8 @@ import com.alananasss.kittytune.ui.common.ShimmerLine
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.profile.ArtistAvatar
 import com.alananasss.kittytune.data.local.toTrack
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.rememberReorderableLazyGridState
 
 private data class PlaylistActionItem(
     val icon: ImageVector,
@@ -116,6 +127,7 @@ fun LibraryScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val isGuest = TokenManager(context).isGuestMode()
     val prefs = remember { PlayerPreferences(context) }
+    val haptics = rememberAppHaptics()
     val libraryCategoryLayout by prefs.libraryCategoryLayoutFlow().collectAsState(initial = prefs.getLibraryCategoryLayout())
 
     val listState = rememberLazyGridState()
@@ -336,6 +348,7 @@ fun LibraryScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        haptics.perform(HapticKind.CONFIRM)
                         if (newPlaylistName.isNotBlank() && !isCreatingPlaylist) {
                             val playlistName = newPlaylistName
                             isCreatingPlaylist = true
@@ -382,7 +395,10 @@ fun LibraryScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showCreateDialog = false },
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        showCreateDialog = false
+                    },
                     shapes = ButtonDefaults.shapes(),
                     enabled = !isCreatingPlaylist
                 ) {
@@ -410,6 +426,7 @@ fun LibraryScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        haptics.perform(HapticKind.CONFIRM)
                         if (newFolderName.isNotBlank()) {
                             libraryViewModel.createFolder(
                                 name = newFolderName,
@@ -432,6 +449,7 @@ fun LibraryScreen(
             dismissButton = {
                 TextButton(
                     onClick = {
+                        haptics.perform(HapticKind.LIGHT)
                         showCreateFolderDialog = false
                         newFolderName = ""
                     },
@@ -462,6 +480,7 @@ fun LibraryScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        haptics.perform(HapticKind.CONFIRM)
                         if (renameFolderName.isNotBlank()) {
                             libraryViewModel.renameFolder(folder.id, renameFolderName)
                             folderToRename = null
@@ -474,7 +493,10 @@ fun LibraryScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { folderToRename = null },
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        folderToRename = null
+                    },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -492,6 +514,7 @@ fun LibraryScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        haptics.perform(HapticKind.REJECT)
                         libraryViewModel.deleteFolder(folder)
                         folderToDelete = null
                     },
@@ -503,7 +526,10 @@ fun LibraryScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { folderToDelete = null },
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        folderToDelete = null
+                    },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.btn_cancel))
@@ -521,6 +547,7 @@ fun LibraryScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        haptics.perform(HapticKind.REJECT)
                         val pl = targetPlaylist
                         playlistToDelete = null
                         if (pl.id != 0L) {
@@ -537,7 +564,10 @@ fun LibraryScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { playlistToDelete = null }
+                    onClick = {
+                        haptics.perform(HapticKind.LIGHT)
+                        playlistToDelete = null
+                    }
                 ) {
                     Text(stringResource(R.string.btn_cancel))
                 }
@@ -761,7 +791,7 @@ fun LibraryScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { item.onClick() }
+                                .hapticClickable { item.onClick() }
                                 .padding(8.dp)
                         ) {
                             Icon(
@@ -959,7 +989,7 @@ fun LibraryScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { item.onClick() }
+                                .hapticClickable { item.onClick() }
                                 .padding(8.dp)
                         ) {
                             Icon(
@@ -1062,7 +1092,7 @@ fun LibraryScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { item.onClick() }
+                                .hapticClickable { item.onClick() }
                                 .padding(8.dp)
                         ) {
                             Icon(
@@ -1180,7 +1210,7 @@ fun LibraryScreen(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         },
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.hapticClickable {
                             libraryViewModel.togglePinFolder(folder.id)
                             selectedFolderForMenu = null
                         }
@@ -1190,7 +1220,7 @@ fun LibraryScreen(
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.menu_move_to_folder)) },
                     leadingContent = { Icon(Icons.Rounded.Folder, contentDescription = null) },
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.hapticClickable {
                         selectedFolderForMenu = null
                         movingFolderId = folder.id
                         movingItemKey = null
@@ -1202,7 +1232,7 @@ fun LibraryScreen(
                     ListItem(
                         headlineContent = { Text(stringResource(R.string.menu_move_to_library)) },
                         leadingContent = { Icon(Icons.AutoMirrored.Rounded.DriveFileMove, contentDescription = null) },
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.hapticClickable {
                             libraryViewModel.moveFolderToFolder(folder.id, null)
                             selectedFolderForMenu = null
                         }
@@ -1212,7 +1242,7 @@ fun LibraryScreen(
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.menu_rename_folder)) },
                     leadingContent = { Icon(Icons.Rounded.Edit, contentDescription = null) },
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.hapticClickable {
                         selectedFolderForMenu = null
                         folderToRename = folder
                     }
@@ -1232,7 +1262,7 @@ fun LibraryScreen(
                             tint = MaterialTheme.colorScheme.error
                         )
                     },
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.hapticClickable {
                         selectedFolderForMenu = null
                         folderToDelete = folder
                     }
@@ -1288,7 +1318,7 @@ fun LibraryScreen(
                             )
                         }
                     },
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.hapticClickable {
                         showMoveTargetSheet = false
                         showCreateFolderDialog = true
                     }
@@ -1308,7 +1338,7 @@ fun LibraryScreen(
                                 Icon(Icons.AutoMirrored.Rounded.DriveFileMove, contentDescription = null)
                             }
                         },
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.hapticClickable {
                             if (movingItemKey != null) {
                                 libraryViewModel.moveItemToFolder(movingItemKey!!, null)
                             } else if (movingFolderId != null) {
@@ -1339,7 +1369,7 @@ fun LibraryScreen(
                                 )
                             }
                         },
-                        modifier = Modifier.clickable {
+                        modifier = Modifier.hapticClickable {
                             if (movingItemKey != null) {
                                 libraryViewModel.moveItemToFolder(movingItemKey!!, targetFolder.id)
                             } else if (movingFolderId != null) {
@@ -1375,7 +1405,7 @@ fun LibraryScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.errorContainer)
-                            .clickable { onPlaylistClick("downloads") }
+                            .hapticClickable { onPlaylistClick("downloads") }
                             .padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -1421,7 +1451,7 @@ fun LibraryScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.primaryContainer)
-                            .clickable { onLoginClick() }
+                            .hapticClickable { onLoginClick() }
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
@@ -1487,7 +1517,10 @@ fun LibraryScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 IconButton(
-                                    onClick = { libraryViewModel.navigateUp() },
+                                    onClick = {
+                                        haptics.perform(HapticKind.LIGHT)
+                                        libraryViewModel.navigateUp()
+                                    },
                                     shapes = IconButtonDefaults.shapes()
                                 ) {
                                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
@@ -1503,13 +1536,19 @@ fun LibraryScreen(
                                         .padding(horizontal = 4.dp)
                                 )
                                 IconButton(
-                                    onClick = { selectedFolderForMenu = currentFolder },
+                                    onClick = {
+                                        haptics.perform(HapticKind.LIGHT)
+                                        selectedFolderForMenu = currentFolder
+                                    },
                                     shapes = IconButtonDefaults.shapes()
                                 ) {
                                     Icon(Icons.Rounded.MoreVert, contentDescription = "Options")
                                 }
                                 IconButton(
-                                    onClick = { isFabMenuExpanded = true },
+                                    onClick = {
+                                        haptics.perform(HapticKind.MEDIUM)
+                                        isFabMenuExpanded = true
+                                    },
                                     shapes = IconButtonDefaults.shapes()
                                 ) {
                                     Icon(Icons.Rounded.Add, contentDescription = "Add")
@@ -1523,6 +1562,7 @@ fun LibraryScreen(
                                         leadingButton = {
                                             SplitButtonDefaults.LeadingButton(
                                                 onClick = {
+                                                    haptics.perform(HapticKind.HEAVY)
                                                     libraryViewModel.playFolder(
                                                         currentFolder.id,
                                                         playerViewModel,
@@ -1543,7 +1583,10 @@ fun LibraryScreen(
                                         trailingButton = {
                                             SplitButtonDefaults.TrailingButton(
                                                 checked = isFolderPlayMenuExpanded,
-                                                onCheckedChange = { isFolderPlayMenuExpanded = it },
+                                                onCheckedChange = {
+                                                    haptics.perform(HapticKind.LIGHT)
+                                                    isFolderPlayMenuExpanded = it
+                                                },
                                                 colors = splitColors
                                             ) {
                                                 Icon(
@@ -1570,6 +1613,7 @@ fun LibraryScreen(
                                                 )
                                             },
                                             onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
                                                 isFolderPlayMenuExpanded = false
                                                 libraryViewModel.playFolder(
                                                     currentFolder.id,
@@ -1588,6 +1632,7 @@ fun LibraryScreen(
                                                 )
                                             },
                                             onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
                                                 isFolderPlayMenuExpanded = false
                                                 libraryViewModel.playFolder(
                                                     currentFolder.id,
@@ -1607,6 +1652,7 @@ fun LibraryScreen(
                                                 )
                                             },
                                             onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
                                                 isFolderPlayMenuExpanded = false
                                                 libraryViewModel.playFolder(
                                                     currentFolder.id,
@@ -1626,6 +1672,7 @@ fun LibraryScreen(
                                                 )
                                             },
                                             onClick = {
+                                                haptics.perform(HapticKind.HEAVY)
                                                 isFolderPlayMenuExpanded = false
                                                 libraryViewModel.playFolder(
                                                     currentFolder.id,
@@ -1690,7 +1737,10 @@ fun LibraryScreen(
 
                         ToggleFloatingActionButton(
                             checked = isFabMenuExpanded,
-                            onCheckedChange = { isFabMenuExpanded = it },
+                            onCheckedChange = {
+                                haptics.perform(if (it) HapticKind.MEDIUM else HapticKind.LIGHT)
+                                isFabMenuExpanded = it
+                            },
                             containerColor = ToggleFloatingActionButtonDefaults.containerColor(
                                 initialColor = initialFabColor,
                                 finalColor = finalFabColor
@@ -1720,6 +1770,7 @@ fun LibraryScreen(
                 ) {
                     FloatingActionButtonMenuItem(
                         onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
                             isFabMenuExpanded = false
                             onUploadClick()
                         },
@@ -1728,6 +1779,7 @@ fun LibraryScreen(
                     )
                     FloatingActionButtonMenuItem(
                         onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
                             isFabMenuExpanded = false
                             onImportClick()
                         },
@@ -1736,6 +1788,7 @@ fun LibraryScreen(
                     )
                     FloatingActionButtonMenuItem(
                         onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
                             isFabMenuExpanded = false
                             showCreateFolderDialog = true
                         },
@@ -1744,6 +1797,7 @@ fun LibraryScreen(
                     )
                     FloatingActionButtonMenuItem(
                         onClick = {
+                            haptics.perform(HapticKind.MEDIUM)
                             isFabMenuExpanded = false
                             showCreateDialog = true
                         },
@@ -1953,6 +2007,19 @@ fun LibraryContentGrid(
     val shouldShowPlaylists =
         (viewModel.selectedFilter == null || viewModel.selectedFilter == LibraryFilter.PLAYLISTS) && viewModel.currentFolderId == null
 
+    val view = LocalView.current
+    val reorderState = rememberReorderableLazyGridState(
+        lazyGridState = listState,
+        onMove = { from, to ->
+            val fromKey = from.key as? String
+            val toKey = to.key as? String
+            if (fromKey != null && toKey != null) {
+                viewModel.moveLibraryItem(fromKey, toKey)
+                view.performAppHaptic(HapticFeedbackConstants.SEGMENT_FREQUENT_TICK)
+            }
+        }
+    )
+
     LazyVerticalGrid(
         state = listState,
         columns = columns,
@@ -2110,8 +2177,13 @@ fun LibraryContentGrid(
             items = viewModel.displayedItems,
             key = { item -> item.key }
         ) { item ->
-            Box(modifier = Modifier.animateItem()) {
-                when (item) {
+            ReorderableItem(state = reorderState, key = item.key) { isDragging ->
+                Box(
+                    modifier = Modifier
+                        .animateItem()
+                        .zIndex(if (isDragging) 1f else 0f)
+                ) {
+                    when (item) {
                     is LibraryItem.FolderItem -> {
                         FolderLibraryCard(
                             folderItem = item,
@@ -2125,9 +2197,27 @@ fun LibraryContentGrid(
                     is LibraryItem.PlaylistItem -> {
                         val permalink = item.playlist.permalinkUrl ?: item.playlist.permalink
                         val isYoutubeShortcut = permalink != null && permalink.startsWith("yt_radio:")
+                        val isSpotifyRadioShortcut = permalink != null && permalink.startsWith("spotify_radio:")
+                        // Older builds saved a Spotify radio with the remote playlist URL
+                        // but hashed the seed track for the row id. Navigating by that URL
+                        // resolves to the transient playlist, not to the saved snapshot;
+                        // the row id is the only key that still reaches it.
+                        val isLegacySpotifyRadio = permalink != null &&
+                            item.playlist.title?.contains("radio", ignoreCase = true) == true &&
+                            permalink.contains("spotify", ignoreCase = true) &&
+                            com.alananasss.kittytune.data.local.ExternalPlaylists.spotifyStableId(
+                                com.alananasss.kittytune.data.spotify.SpotifyIds.stripPrefixes(permalink)
+                            ) != item.playlist.id
 
                         val navId = when {
-                            isYoutubeShortcut -> android.net.Uri.encode(permalink!!)
+                            // A saved radio keeps its seed route; its remote playlist id alone
+                            // does not resolve to the same tracks (or to anything at all).
+                            isYoutubeShortcut -> {
+                                val rawUrl = permalink!!.removePrefix("yt_radio:")
+                                "yt_radio:" + android.net.Uri.encode(android.net.Uri.decode(rawUrl))
+                            }
+                            isSpotifyRadioShortcut -> permalink!!
+                            isLegacySpotifyRadio -> item.playlist.id.toString()
                             item.playlist.urn?.startsWith("spotify:") == true -> item.playlist.urn!!
                             permalink?.contains("spotify.com/playlist/") == true -> {
                                 val spotifyId = permalink.substringAfter("playlist/").substringBefore("?").substringBefore("/")
@@ -2173,6 +2263,35 @@ fun LibraryContentGrid(
                         )
                     }
                 }
+                if (viewModel.sortOption == LibrarySortOption.MANUAL) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        shadowElevation = if (isDragging) 4.dp else 1.dp,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .size(30.dp)
+                            .draggableHandle(
+                                onDragStarted = {
+                                    view.performAppHaptic(HapticFeedbackConstants.LONG_PRESS)
+                                },
+                                onDragStopped = {
+                                    view.performAppHaptic(HapticFeedbackConstants.GESTURE_END)
+                                }
+                            )
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.DragHandle,
+                                contentDescription = stringResource(R.string.reorder_handle),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
             }
         }
     }
@@ -2352,7 +2471,7 @@ fun SearchBarHeader(
                 Box(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .clickable { onProfileClick() }
+                        .hapticClickable { onProfileClick() }
                 ) {
                     ArtistAvatar(
                         avatarUrl = if (isGuest && activeSource == LibrarySource.SOUNDCLOUD) null else avatarUrl,
@@ -2471,7 +2590,7 @@ fun FilterChipsRow(
                             modifier = Modifier
                                 .size(20.dp)
                                 .clip(CircleShape)
-                                .clickable { viewModel.selectedFilter = null },
+                                .hapticClickable { viewModel.selectedFilter = null },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -2602,7 +2721,7 @@ fun SortAndLayoutControls(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                         onUploadsFilterClick()
                     }
                     .padding(horizontal = 4.dp, vertical = 6.dp),
@@ -2632,7 +2751,7 @@ fun SortAndLayoutControls(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                         viewModel.stationFilter = when (viewModel.stationFilter) {
                             StationFilter.ALL -> StationFilter.TRACKS
                             StationFilter.TRACKS -> StationFilter.ARTISTS
@@ -2666,7 +2785,7 @@ fun SortAndLayoutControls(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                         viewModel.ownershipFilter = when (viewModel.ownershipFilter) {
                             OwnershipFilter.ALL -> OwnershipFilter.CREATED
                             OwnershipFilter.CREATED -> OwnershipFilter.LIKED
@@ -2691,26 +2810,39 @@ fun SortAndLayoutControls(
                 )
             }
         } else {
+            val isManualOrder = viewModel.sortOption == LibrarySortOption.MANUAL
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .clickable {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-                        viewModel.isSortDescending = !viewModel.isSortDescending
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (!isManualOrder) {
+                            viewModel.isSortDescending = !viewModel.isSortDescending
+                        }
                     }
                     .padding(horizontal = 4.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.lib_sort_recently_added),
+                    text = stringResource(
+                        if (isManualOrder) R.string.lib_sort_manual else R.string.lib_sort_recently_added
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
-                    imageVector = if (viewModel.isSortDescending) Icons.Rounded.ArrowDownward else Icons.Rounded.ArrowUpward,
-                    contentDescription = stringResource(R.string.lib_sort_recently_added),
+                    imageVector = if (isManualOrder) {
+                        Icons.Rounded.SwapVert
+                    } else if (viewModel.isSortDescending) {
+                        Icons.Rounded.ArrowDownward
+                    } else {
+                        Icons.Rounded.ArrowUpward
+                    },
+                    contentDescription = stringResource(
+                        if (isManualOrder) R.string.lib_sort_manual else R.string.lib_sort_recently_added
+                    ),
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -2721,7 +2853,7 @@ fun SortAndLayoutControls(
             if (viewModel.currentFolderId == null) {
                 IconButton(
                     onClick = {
-                        view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                         onHistoryClick()
                     },
                     shapes = IconButtonDefaults.shapes()
@@ -2733,9 +2865,44 @@ fun SortAndLayoutControls(
                     )
                 }
             }
+            if (viewModel.selectedFilter == null ||
+                viewModel.selectedFilter == LibraryFilter.PLAYLISTS ||
+                viewModel.selectedFilter == LibraryFilter.ALBUMS
+            ) {
+                val isManualActive = viewModel.sortOption == LibrarySortOption.MANUAL
+                IconButton(
+                    onClick = {
+                        view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                        if (isManualActive) {
+                            viewModel.sortOption = LibrarySortOption.RECENTS
+                        } else {
+                            viewModel.enableManualOrder()
+                        }
+                    },
+                    shapes = IconButtonDefaults.shapes(),
+                    colors = if (isManualActive) {
+                        IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        IconButtonDefaults.iconButtonColors()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SwapVert,
+                        contentDescription = stringResource(R.string.lib_reorder_mode),
+                        tint = if (isManualActive) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            }
             IconButton(
                 onClick = {
-                    view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                    view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                     viewModel.isGridLayout = !viewModel.isGridLayout
                 },
                 shapes = IconButtonDefaults.shapes()
@@ -2840,8 +3007,8 @@ fun UploadTrackGridCard(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
             .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
+                onClick = hapticAction(HapticKind.UI, onClick),
+                onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
             )
             .fillMaxWidth()
     ) {
@@ -2898,8 +3065,8 @@ fun StaticLibraryCard(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
                 .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
                 )
                 .fillMaxWidth()
         ) {
@@ -2966,8 +3133,8 @@ fun StaticLibraryCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
                 )
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -3058,8 +3225,8 @@ fun FolderLibraryCard(
         Column(
             modifier = Modifier
                 .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
                 )
                 .fillMaxWidth()
         ) {
@@ -3115,8 +3282,8 @@ fun FolderLibraryCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
                 )
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -3181,18 +3348,21 @@ fun DynamicPlaylistCard(
     onClick: () -> Unit
 ) {
     val art = playlist.fullResArtwork
-    val isRadioShortcut = playlist.permalinkUrl?.startsWith("yt_radio:") == true
+    val isYoutubeRadioShortcut = playlist.permalinkUrl?.startsWith("yt_radio:") == true
+    val isSpotifyRadioShortcut = playlist.permalinkUrl?.startsWith("spotify_radio:") == true
+    val isRadioShortcut = isYoutubeRadioShortcut || isSpotifyRadioShortcut
     val typePrefix = if (isRadioShortcut) stringResource(R.string.radio) else stringResource(R.string.lib_playlists)
     val authorText = playlist.user?.username ?: stringResource(R.string.me_artist)
-    val finalSubtitle = if (isRadioShortcut) "$typePrefix • YouTube" else "$typePrefix • $authorText"
+    val radioPlatform = if (isSpotifyRadioShortcut) "Spotify" else "YouTube"
+    val finalSubtitle = if (isRadioShortcut) "$typePrefix • $radioPlatform" else "$typePrefix • $authorText"
     val showPin = isPinned && !isInsideFolder
 
     if (isGrid) {
         Column(
             modifier = modifier
                 .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
                 )
                 .fillMaxWidth()
         ) {
@@ -3253,8 +3423,8 @@ fun DynamicPlaylistCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick
+                    onClick = hapticAction(HapticKind.UI, onClick),
+                    onLongClick = hapticAction(HapticKind.HEAVY, onLongClick)
                 )
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -3330,7 +3500,7 @@ fun ArtistLibraryCard(artist: LocalArtist, isGrid: Boolean, onClick: () -> Unit)
     if (isGrid) {
         Column(
             modifier = Modifier
-                .clickable(onClick = onClick)
+                .hapticClickable(onClick = onClick)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.Start
         ) {
@@ -3363,7 +3533,7 @@ fun ArtistLibraryCard(artist: LocalArtist, isGrid: Boolean, onClick: () -> Unit)
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onClick)
+                .hapticClickable(onClick = onClick)
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
