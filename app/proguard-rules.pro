@@ -50,6 +50,11 @@
 -keep class * extends com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
+# R8 can otherwise merge/rewrite anonymous TypeToken subclasses and erase their
+# generic superclass. Gson then falls back to raw types and returns LinkedTreeMap
+# for List<Track>, which crashes when the queue is read back.
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 
 # Kotlinx Serialization
 -dontnote kotlinx.serialization.SerializationKt
@@ -77,8 +82,14 @@
 -keep class com.alananasss.kittytune.data.vk.** { *; }
 -keep class com.alananasss.kittytune.data.audio.** { *; }
 -keep class com.alananasss.kittytune.data.network.** { *; }
+-keep class com.alananasss.kittytune.data.sync.** { *; }
 -keep class com.alananasss.kittytune.ui.player.** { *; }
 -keep class com.alananasss.kittytune.ui.history.** { *; }
+# Home feed cache is serialized with Gson. Keep its generic List<Track/Playlist/...>
+# field signatures so a cached feed is not decoded as LinkedTreeMap.
+-keep class com.alananasss.kittytune.ui.home.HomeCacheData { *; }
+-keep class com.alananasss.kittytune.ui.home.HomeSectionCache { *; }
+-keep class com.alananasss.kittytune.ui.home.** { *; }
 -keep class com.alananasss.kittytune.ui.**.**Model* { *; }
 -keep class com.alananasss.kittytune.audio.providers.** { *; }
 -keep class com.alananasss.kittytune.data.SessionManager** { *; }

@@ -6826,10 +6826,11 @@ query CommentsWithReactions(
             audio.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).coerceAtLeast(1)
     }
     private fun connectSnapshot(): PlaybackSnapshot? {
-        if (queueState.isEmpty() || currentQueueIndex !in queueState.indices) return null
-        val start = if (queueState.size > 500) (currentQueueIndex - 250).coerceIn(0, queueState.size - 500) else 0
+        val safeQueue = (queueState as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
+        if (safeQueue.isEmpty() || currentQueueIndex !in safeQueue.indices) return null
+        val start = if (safeQueue.size > 500) (currentQueueIndex - 250).coerceIn(0, safeQueue.size - 500) else 0
         return PlaybackSnapshot(
-            SyncLog.deviceId, System.currentTimeMillis(), queueState.drop(start).take(500),
+            SyncLog.deviceId, System.currentTimeMillis(), safeQueue.drop(start).take(500),
             currentQueueIndex - start, currentPosition.coerceAtLeast(0L), isPlaying, shuffleEnabled, repeatMode.name,
             volume = connectVolume(), isLiked = isLiked, isYourMixActive = isYourMixActive,
             speed = effectsState.speed,
@@ -6952,10 +6953,11 @@ query CommentsWithReactions(
 
     private fun saveStateAsync(saveQueue: Boolean = false, savePositionOnly: Boolean = false) {
         if (isRestoringSession) return
-        ConnectManager.publish(connectSnapshot())
+        runCatching { ConnectManager.publish(connectSnapshot()) }
         if (syncPlaybackReady) {
-            val q = queueState.toList()
-            val index = q.indexOfFirst { it.id == currentTrack?.id }
+            val q = (queueState as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
+            val currentId = currentTrack?.id
+            val index = if (currentId != null) q.indexOfFirst { it.id == currentId } else -1
             if (index >= 0) {
                 val position = currentPosition
                 val playing = isPlaying
@@ -6967,7 +6969,9 @@ query CommentsWithReactions(
                 val timerMs = sleepTimerRemainingMs.takeIf { isSleepTimerActive && !sleepTimerEndOfTrack }
                 val timerEnd = sleepTimerEndOfTrack.takeIf { isSleepTimerActive }
                 viewModelScope.launch(Dispatchers.IO) {
-                    SyncPlayback.publish(q, index, position, playing, shuffle, repeat, liked, mix, spd, timerMs, timerEnd)
+                    runCatching {
+                        SyncPlayback.publish(q, index, position, playing, shuffle, repeat, liked, mix, spd, timerMs, timerEnd)
+                    }
                 }
             }
         }
@@ -6977,7 +6981,7 @@ query CommentsWithReactions(
         val s = shuffleEnabled
         val r = repeatMode
         if (savePositionOnly) {
-            viewModelScope.launch(Dispatchers.IO) { playerPrefs.savePosition(p) }
+            viewModelScope.launch(Dispatchers.IO) { runCatching { playerPrefs.savePosition(p) } }
             return
         }
         // All non-position saves are coalesced through the same 500ms debounced job:
@@ -6993,9 +6997,11 @@ query CommentsWithReactions(
             val freshC = currentContext
             val freshS = shuffleEnabled
             val freshR = repeatMode
-            val qSnapshot = _queue.toList()
+            val qSnapshot = (_queue.toList() as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
             withContext(Dispatchers.IO) {
-                playerPrefs.savePlaybackState(freshT, freshP, qSnapshot, freshC, freshS, freshR)
+                runCatching {
+                    playerPrefs.savePlaybackState(freshT, freshP, qSnapshot, freshC, freshS, freshR)
+                }
             }
         }
     }
@@ -7434,9 +7440,10 @@ query CommentsWithReactions(
                 it.deviceId != SyncLog.deviceId && it.updatedAtMs > lastAppliedRemotePlaybackAtMs
             }
             if (!isPlaying && remote != null) {
-                val track = remote.queue.getOrNull(remote.currentIndex)
+                val safeQueue = (remote.queue as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
+                val track = safeQueue.getOrNull(remote.currentIndex)
                 if (track != null && track.source != "local" && !BlockManager.isBlocked(track)) {
-                    val portable = remote.queue.filter { it.source != "local" && !BlockManager.isBlocked(it) }
+                    val portable = safeQueue.filter { it.source != "local" && !BlockManager.isBlocked(it) }
                     val index = portable.indexOfFirst { it.id == track.id }
                     if (index >= 0) {
                         val shouldPlay = false // Live playback moves only through an explicit device selection.

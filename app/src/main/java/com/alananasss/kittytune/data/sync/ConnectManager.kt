@@ -326,7 +326,10 @@ object ConnectManager {
                 }
                 "resync" -> sendState(localState(), force = true)
                 "state" -> {
-                    val incoming = message.state ?: return
+                    // A peer built with a minifier that erased PlaybackSnapshot's
+                    // List<Track> signature would send LinkedTreeMap entries. Drop the
+                    // frame rather than letting them reach the player's queue.
+                    val incoming = message.state?.sanitized() ?: return
                     val old = _peers.value[peer.deviceId]?.snapshot
                     val queue = if (incoming.queue.isEmpty()) {
                         if (_peers.value[peer.deviceId]?.queueVersion != message.queueVersion) { sendMessage("resync"); return }
@@ -345,6 +348,10 @@ object ConnectManager {
                 "command" -> scope.launch {
                     commands.lock()
                     try {
+                    if (message.state != null && message.state.sanitized() == null) {
+                        sendMessage("ack", id = message.id, error = "Invalid playback state")
+                        return@launch
+                    }
                     val key = "${peer.deviceId}:${message.id}"
                     val duplicate = synchronized(handledCommands) { handledCommands.containsKey(key) }
                     if (duplicate || message.id.length !in 16..64) { sendMessage("ack", id = message.id, error = "Duplicate command"); return@launch }

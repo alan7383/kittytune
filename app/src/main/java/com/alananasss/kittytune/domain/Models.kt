@@ -1199,6 +1199,43 @@ class PlaylistTracksAdapter : com.google.gson.JsonDeserializer<List<Track>> {
     }
 }
 
+class SafeTrackListAdapter : com.google.gson.JsonDeserializer<List<Track>>, com.google.gson.JsonSerializer<List<Track>> {
+    override fun deserialize(
+        json: com.google.gson.JsonElement?,
+        typeOfT: java.lang.reflect.Type?,
+        context: com.google.gson.JsonDeserializationContext
+    ): List<Track> {
+        if (json == null || !json.isJsonArray) return emptyList()
+        val list = mutableListOf<Track>()
+        json.asJsonArray.forEach { elem ->
+            runCatching {
+                context.deserialize<Track>(elem, Track::class.java)
+            }.getOrNull()?.let { track ->
+                if (track.id != 0L) {
+                    list.add(track)
+                }
+            }
+        }
+        return list
+    }
+
+    override fun serialize(
+        src: List<Track>?,
+        typeOfSrc: java.lang.reflect.Type?,
+        context: com.google.gson.JsonSerializationContext
+    ): com.google.gson.JsonElement {
+        val array = com.google.gson.JsonArray()
+        src?.forEach { track ->
+            if (track is Track) {
+                runCatching { context.serialize(track, Track::class.java) }.getOrNull()?.let {
+                    array.add(it)
+                }
+            }
+        }
+        return array
+    }
+}
+
 fun String?.isDefaultAvatar(): Boolean {
     if (this.isNullOrBlank()) return true
     if (this.contains("default_avatar", ignoreCase = true)) return true

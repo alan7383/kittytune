@@ -18,13 +18,15 @@
     import com.alananasss.kittytune.data.search.ProviderLinks
     import com.alananasss.kittytune.data.network.RetrofitClient
     import com.alananasss.kittytune.domain.Playlist
+    import com.alananasss.kittytune.domain.SafeTrackListAdapter
     import com.alananasss.kittytune.domain.Track
     import com.alananasss.kittytune.domain.TrackPublisherMetadata
     import com.alananasss.kittytune.domain.User
     import com.alananasss.kittytune.data.BlockManager
     import com.alananasss.kittytune.data.SessionManager
     import com.google.gson.Gson
-    import com.google.gson.reflect.TypeToken
+    import com.google.gson.annotations.JsonAdapter
+    import com.google.gson.annotations.SerializedName
     import kotlinx.coroutines.Dispatchers
     import kotlinx.coroutines.flow.MutableSharedFlow
     import kotlinx.coroutines.flow.asSharedFlow
@@ -70,19 +72,19 @@
     }
 
     data class HomeCacheData(
-        val user: User?,
-        val sections: List<HomeSectionCache>
+        @SerializedName("user") val user: User?,
+        @SerializedName("sections") val sections: List<HomeSectionCache>
     )
 
     data class HomeSectionCache(
-        val title: String,
-        val subtitle: String?,
-        val type: SectionType,
-        val tracks: List<Track> = emptyList(),
-        val playlists: List<Playlist> = emptyList(),
-        val users: List<User> = emptyList(),
-        val reposts: List<com.alananasss.kittytune.domain.CaptionedRepostItem> = emptyList(),
-        val id: String? = null
+        @SerializedName("title") val title: String,
+        @SerializedName("subtitle") val subtitle: String?,
+        @SerializedName("type") val type: SectionType,
+        @SerializedName("tracks") @JsonAdapter(SafeTrackListAdapter::class) val tracks: List<Track> = emptyList(),
+        @SerializedName("playlists") val playlists: List<Playlist> = emptyList(),
+        @SerializedName("users") val users: List<User> = emptyList(),
+        @SerializedName("reposts") val reposts: List<com.alananasss.kittytune.domain.CaptionedRepostItem> = emptyList(),
+        @SerializedName("id") val id: String? = null
     )
 
     enum class SearchFilter {
@@ -1351,7 +1353,8 @@
             try {
                 val json = prefs.getString(getHomeCacheKey(), null)
                 if (json != null) {
-                    val data: HomeCacheData = gson.fromJson(json, object : TypeToken<HomeCacheData>() {}.type)
+                    val data: HomeCacheData? = gson.fromJson(json, HomeCacheData::class.java)
+                    if (data == null) return@withContext
                     userProfile = data.user
                     if (data.sections.isNotEmpty()) {
                         homeSections.clear()

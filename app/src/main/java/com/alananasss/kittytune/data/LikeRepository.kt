@@ -569,8 +569,8 @@ object LikeRepository {
                     val tmpFile = File(appContext.filesDir, "$LIKED_TRACKS_FILE.tmp")
                     FileWriter(tmpFile).use { fileWriter ->
                         BufferedWriter(fileWriter).use { bufferedWriter ->
-                            val type: Type = object : TypeToken<List<Track>>() {}.type
-                            gson.toJson(tracks, type, bufferedWriter)
+                            val safeTracks = (tracks as? List<*>)?.filterIsInstance<Track>() ?: emptyList()
+                            gson.toJson(safeTracks, bufferedWriter)
                         }
                     }
                     if (tmpFile.exists()) {
@@ -599,8 +599,7 @@ object LikeRepository {
             try {
                 FileReader(file).use { fileReader ->
                     BufferedReader(fileReader).use { bufferedReader ->
-                        val type: Type = object : TypeToken<List<Track>>() {}.type
-                        loadedList = gson.fromJson(bufferedReader, type)
+                        loadedList = gson.fromJson<Array<Track>>(bufferedReader, Array<Track>::class.java)?.filterNotNull()
                     }
                 }
             } catch (e: Exception) {
@@ -612,8 +611,7 @@ object LikeRepository {
             val json = prefs.getString(KEY_LIKED_TRACKS, null)
             if (json != null) {
                 try {
-                    val type: Type = object : TypeToken<List<Track>>() {}.type
-                    loadedList = gson.fromJson(json, type)
+                    loadedList = gson.fromJson<Array<Track>>(json, Array<Track>::class.java)?.filterNotNull()
                     prefs.edit().remove(KEY_LIKED_TRACKS).apply()
                 } catch (e: Exception) {
                     e.printStackTrace()

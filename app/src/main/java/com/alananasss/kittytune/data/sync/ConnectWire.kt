@@ -30,23 +30,23 @@ data class ConnectCredentials(val room: String, val token: String, val key: Byte
 }
 
 data class ConnectMessage(
-    val version: Int = 1,
-    val kind: String,
-    val sender: String,
-    val session: String,
-    val sequence: Long,
-    val challenge: String = "",
-    val replyTo: String = "",
-    val id: String = "",
-    val action: String = "",
-    val value: Long = 0,
-    val value2: Long = 0,
-    val trackId: Long? = null,
-    val queueVersion: String = "",
-    val state: PlaybackSnapshot? = null,
-    val ok: Boolean = false,
-    val error: String = "",
-    val compression: String = "",
+    @SerializedName("version") val version: Int = 1,
+    @SerializedName("kind") val kind: String,
+    @SerializedName("sender") val sender: String,
+    @SerializedName("session") val session: String,
+    @SerializedName("sequence") val sequence: Long,
+    @SerializedName("challenge") val challenge: String = "",
+    @SerializedName("replyTo") val replyTo: String = "",
+    @SerializedName("id") val id: String = "",
+    @SerializedName("action") val action: String = "",
+    @SerializedName("value") val value: Long = 0,
+    @SerializedName("value2") val value2: Long = 0,
+    @SerializedName("trackId") val trackId: Long? = null,
+    @SerializedName("queueVersion") val queueVersion: String = "",
+    @SerializedName("state") val state: PlaybackSnapshot? = null,
+    @SerializedName("ok") val ok: Boolean = false,
+    @SerializedName("error") val error: String = "",
+    @SerializedName("compression") val compression: String = "",
 )
 
 object ConnectWire {
@@ -116,9 +116,12 @@ object ConnectWire {
         }
     }.getOrNull()
 
-    fun queueVersion(state: PlaybackSnapshot): String = MessageDigest.getInstance("SHA-256")
-        .digest(state.queue.joinToString("|") { "${it.source}:${it.id}" }.toByteArray())
-        .take(12).joinToString("") { "%02x".format(it) }
+    fun queueVersion(state: PlaybackSnapshot): String {
+        val safe = state.sanitized() ?: return ""
+        return MessageDigest.getInstance("SHA-256")
+            .digest(safe.queue.joinToString("|") { "${it.source}:${it.id}" }.toByteArray())
+            .take(12).joinToString("") { "%02x".format(it) }
+    }
 }
 
 /** Reject replay and reordering within a connection; old sessions cannot reappear on that connection. */
