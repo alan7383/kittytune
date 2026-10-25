@@ -26,6 +26,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.AppLanguage
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.local.StartDestination
@@ -37,7 +40,7 @@ import com.alananasss.kittytune.ui.common.SettingsScaffold
 
 /**
  * The Miscellaneous category folder hub:
- * General, Content filter, Discord RPC, About.
+ * General, Content filter, About, Developer options.
  */
 @Composable
 fun MiscSettingsScreen(
@@ -78,14 +81,14 @@ fun MiscGeneralSettingsScreen(
             title = { Text(stringResource(R.string.beta_warning_title)) },
             text = { Text(stringResource(R.string.beta_warning_message)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     showBetaWarning = false
                     betaUpdates = true
                     prefs.setBetaUpdatesEnabled(true)
                 }) { Text(stringResource(R.string.btn_enable)) }
             },
             dismissButton = {
-                TextButton(onClick = { showBetaWarning = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showBetaWarning = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -180,7 +183,7 @@ fun MiscGeneralSettingsScreen(
                                     AppLanguage.VIETNAMESE -> stringResource(R.string.lang_vietnamese)
                                 },
                                 icon = Icons.Rounded.Translate,
-                                onClick = { showLanguageDialog = true },
+                                onClick = hapticAction(HapticKind.UI) { showLanguageDialog = true },
                                 highlightKey = "pref_language"
                             )
                         },
@@ -194,7 +197,7 @@ fun MiscGeneralSettingsScreen(
                                     stringResource(R.string.nav_library)
                                 },
                                 icon = Icons.Rounded.Home,
-                                onClick = { showStartDialog = true },
+                                onClick = hapticAction(HapticKind.UI) { showStartDialog = true },
                                 highlightKey = "pref_start_screen"
                             )
                         },
@@ -279,7 +282,7 @@ internal fun LanguageRadioButton(
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable { onSelect(lang) }
+            .hapticClickable { onSelect(lang) }
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -299,7 +302,7 @@ internal fun StartDestRadioButton(
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable { onSelect(dest) }
+            .hapticClickable { onSelect(dest) }
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

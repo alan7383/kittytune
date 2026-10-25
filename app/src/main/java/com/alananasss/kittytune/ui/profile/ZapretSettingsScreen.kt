@@ -56,6 +56,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.zapret.Reachability
 import com.alananasss.kittytune.data.zapret.ServiceCheck
 import com.alananasss.kittytune.data.zapret.ZapretManager
@@ -358,7 +361,7 @@ fun ZapretSettingsScreen(
                                 .filter { it.reachability == Reachability.BLOCKED && !it.isCovered }
                             if (blocked.isNotEmpty()) {
                                 FilledTonalButton(
-                                    onClick = { add(blocked.map { it.service }) },
+                                    onClick = hapticAction(HapticKind.UI) { add(blocked.map { it.service }) },
                                     shapes = ButtonDefaults.shapes()
                                 ) {
                                     Text(
@@ -420,7 +423,7 @@ fun ZapretSettingsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     TextButton(
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             clipboardManager.setText(
                                                 AnnotatedString(ZapretManager.exportAsHostList())
                                             )
@@ -441,7 +444,7 @@ fun ZapretSettingsScreen(
                                     }
                                     Spacer(Modifier.width(4.dp))
                                     TextButton(
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             scope.launch {
                                                 ZapretManager.removeOwnDomains(context)
                                                 checks?.let { checks = ZapretManager.check() }

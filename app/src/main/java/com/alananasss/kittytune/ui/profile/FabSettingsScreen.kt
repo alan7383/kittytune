@@ -118,7 +118,9 @@ fun FabSettingsScreen(
                 }
             } else {
                 items(playlists) { playlist ->
-                    val isRadioShortcut = playlist.permalinkUrl?.startsWith("yt_radio:") == true
+                    val isYoutubeRadioShortcut = playlist.permalinkUrl?.startsWith("yt_radio:") == true
+                    val isSpotifyRadioShortcut = playlist.permalinkUrl?.startsWith("spotify_radio:") == true
+                    val isRadioShortcut = isYoutubeRadioShortcut || isSpotifyRadioShortcut
                     val navKey = if (isRadioShortcut) {
                         "playlist:" + android.net.Uri.encode(playlist.permalinkUrl!!)
                     } else {
@@ -159,8 +161,9 @@ fun FabSettingsScreen(
                                 color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
                             )
                             val authorText = playlist.user?.username ?: ""
+                            val radioPlatform = if (isSpotifyRadioShortcut) "Spotify" else "YouTube"
                             val finalSubtitle =
-                                if (isRadioShortcut) stringResource(R.string.fab_settings_radio) else stringResource(R.string.lib_playlists) + " • $authorText"
+                                if (isRadioShortcut) "${stringResource(R.string.fab_settings_radio)} • $radioPlatform" else stringResource(R.string.lib_playlists) + " • $authorText"
                             Text(
                                 text = finalSubtitle,
                                 style = MaterialTheme.typography.bodyMedium,

@@ -39,6 +39,9 @@
     import android.text.format.DateFormat
     import coil.compose.AsyncImage
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
     import com.alananasss.kittytune.domain.InboxMessage
     import com.alananasss.kittytune.domain.Playlist
     import com.alananasss.kittytune.domain.Track
@@ -95,7 +98,7 @@
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .clickable { onProfileClick(otherUserId) }
+                                .hapticClickable { onProfileClick(otherUserId) }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             ArtistAvatar(
@@ -237,7 +240,7 @@
                     SoundCloudPreviewCard(
                         data = richData,
                         isMe = isMe,
-                        onClick = { onPreviewClick(richData) }
+                        onClick = hapticAction(HapticKind.UI) { onPreviewClick(richData) }
                     )
                     if (formattedTime.isNotEmpty()) {
                         Text(

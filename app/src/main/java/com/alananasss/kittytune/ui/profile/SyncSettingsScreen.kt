@@ -60,6 +60,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.sync.KnownDevice
 import com.alananasss.kittytune.data.sync.SyncClient
@@ -208,7 +211,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 Button(
-                                    onClick = { localNetworkLauncher.launch(LOCAL_NETWORK_PERMISSION) },
+                                    onClick = hapticAction(HapticKind.UI) { localNetworkLauncher.launch(LOCAL_NETWORK_PERMISSION) },
                                     shapes = ButtonDefaults.shapes(),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.error,
@@ -222,7 +225,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
                     }
 
                     Button(
-                        onClick = { scanning = true },
+                        onClick = hapticAction(HapticKind.UI) { scanning = true },
                         enabled = !busy,
                         shapes = ButtonDefaults.shapes(),
                         modifier = Modifier.fillMaxWidth(),
@@ -295,7 +298,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .clickable { dontShowAgain = !dontShowAgain }
+                            .hapticClickable { dontShowAgain = !dontShowAgain }
                             .padding(vertical = 4.dp),
                     ) {
                         Checkbox(
@@ -313,7 +316,7 @@ fun SyncDevicesScreen(onBackClick: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         if (dontShowAgain) playerPrefs.setSyncDisclaimerDismissed(true)
                         showDisclaimerDialog = false
                     },
@@ -644,7 +647,7 @@ private fun AdvancedSection(
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Button(
-                onClick = {
+                onClick = hapticAction(HapticKind.UI) {
                     onPasteCode(peerCode)
                     peerCode = ""
                 },

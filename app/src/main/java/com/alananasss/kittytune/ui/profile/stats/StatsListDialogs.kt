@@ -51,6 +51,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.ListeningStatsEvent
 import com.alananasss.kittytune.data.stats.ReportArtist
 import com.alananasss.kittytune.data.stats.ReportTrack
@@ -138,7 +141,7 @@ internal fun StatsListDialog(
                     sorts.forEach { option ->
                         FilterChip(
                             selected = option == sort,
-                            onClick = { onSort(option) },
+                            onClick = hapticAction(HapticKind.UI) { onSort(option) },
                             label = { Text(stringResource(option.labelKey)) },
                             leadingIcon = if (option == sort) {
                                 { Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
@@ -234,7 +237,7 @@ internal fun ArtistsListDialog(
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .clickable {
+                    .hapticClickable {
                         onDismiss()
                         onArtistClick(artist)
                     }

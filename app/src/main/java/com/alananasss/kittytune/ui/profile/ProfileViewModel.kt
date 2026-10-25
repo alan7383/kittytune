@@ -150,7 +150,9 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun applyCachedProfile(cached: CachedArtistProfile) {
-        user = cached.user
+        if (cached.user != null) {
+            user = cached.user
+        }
         isSpotifyProfile = cached.isSpotify
         isVkProfile = cached.isVk
         vkPageUrl = cached.vkPageUrl
@@ -247,7 +249,18 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             val prefs = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
             val mappedSpotifyId = prefs.getSpotifyArtistIdForStableId(id)
             if (!mappedSpotifyId.isNullOrBlank()) {
-                loadSpotifyArtist(mappedSpotifyId, forceRefresh)
+                viewModelScope.launch {
+                    // A mapping is a shortcut to the same artist, not an identity: one
+                    // written by a name search that matched a substring points at
+                    // somebody else. It is dropped rather than followed, so the page
+                    // does not open an unrelated artist.
+                    if (mappingNamesAnotherArtist(id, mappedSpotifyId)) {
+                        prefs.removeSpotifyArtistMapping(id)
+                        loadProfile(id, forceRefresh)
+                    } else {
+                        loadSpotifyArtist(mappedSpotifyId, forceRefresh)
+                    }
+                }
                 return
             }
             if (id > 1000000000000L) {
@@ -257,14 +270,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     val histItem = db.downloadDao().getHistoryItemById(id, "profile:$id")
                     val artistName = histItem?.title
                     if (!artistName.isNullOrBlank()) {
+                        // Exact match only – a partial match would open a completely unrelated
+                        // Spotify artist when the SoundCloud artist is not on Spotify at all.
                         val search = com.alananasss.kittytune.data.spotify.SpotifyRepository.search(artistName)
                         val match = search.artists.firstOrNull { it.name.equals(artistName, ignoreCase = true) }
-                            ?: search.artists.firstOrNull {
-                                it.name.contains(
-                                    artistName,
-                                    ignoreCase = true
-                                ) || artistName.contains(it.name, ignoreCase = true)
-                            }
                         if (match != null) {
                             prefs.saveSpotifyArtistMapping(id, match.id)
                             loadSpotifyArtist(match.id, forceRefresh)
@@ -415,10 +424,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
             user = null
             try {
                 val spotifyResults = com.alananasss.kittytune.data.spotify.SpotifyRepository.search(query)
+                // Exact match only: a partial/contains match would hijack SoundCloud artists
+                // who aren't on Spotify and redirect to a completely different artist.
                 val spotifyArtist = spotifyResults.artists.firstOrNull {
                     it.name.equals(query, ignoreCase = true)
-                } ?: spotifyResults.artists.firstOrNull {
-                    it.name.contains(query, ignoreCase = true) || query.contains(it.name, ignoreCase = true)
                 }
 
                 if (spotifyArtist != null) {
@@ -587,6 +596,34 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * Whether the Spotify artist a saved mapping points at is a different artist than
+     * the one this page is about.
+     *
+     * A mapping is a shortcut, not an identity. It was written by a name search that
+     * matched a substring, so it can name an artist who has nothing to do with the one
+     * the user asked for. The name the history knows the artist by is the only thing to
+     * compare; when there is no such name, or Spotify will not answer, the mapping is
+     * left alone rather than thrown away.
+     */
+    private suspend fun mappingNamesAnotherArtist(userId: Long, spotifyId: String): Boolean {
+        val expected = try {
+            val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(getApplication())
+            val item = db.downloadDao().getHistoryItemById(userId, "profile:$userId")
+            item?.title?.takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
+        } ?: return false
+
+        val name = try {
+            com.alananasss.kittytune.data.spotify.SpotifyRepository.getArtist(spotifyId)?.name
+        } catch (_: Exception) {
+            null
+        }
+
+        return !com.alananasss.kittytune.domain.SpotifyArtistMatch.isSameArtist(expected, name)
+    }
+
     fun loadProfile(userId: Long, forceRefresh: Boolean = false) {
         if (user?.id == userId && !forceRefresh && user != null && !isSpotifyProfile) {
             return
@@ -640,6 +677,12 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 val freshUser = fetchUser(userId)
                 if (freshUser != null) {
                     user = freshUser
+                    // The SoundCloud user was found directly: any previously saved Spotify mapping
+                    // for this numeric ID is no longer needed and may in fact be wrong (the mapping
+                    // was built with a loose partial-name match). Clear it so future navigations
+                    // don't bypass the real SC profile.
+                    val prefs2 = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
+                    prefs2.removeSpotifyArtistMapping(userId)
                 } else {
                     val vkApi = com.alananasss.kittytune.data.vk.VkApi(getApplication())
                     val vkUser = try {
@@ -669,8 +712,14 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     val prefs = com.alananasss.kittytune.data.local.PlayerPreferences(getApplication())
                     val mappedSpotifyId = prefs.getSpotifyArtistIdForStableId(userId)
                     if (!mappedSpotifyId.isNullOrBlank()) {
-                        loadSpotifyArtist(mappedSpotifyId, forceRefresh)
-                        return@launch
+                        if (!mappingNamesAnotherArtist(userId, mappedSpotifyId)) {
+                            loadSpotifyArtist(mappedSpotifyId, forceRefresh)
+                            return@launch
+                        }
+                        // The mapping names another artist: it was written by a name
+                        // search that matched a substring. Following it would open
+                        // somebody else's page, so it is dropped instead.
+                        prefs.removeSpotifyArtistMapping(userId)
                     }
 
                     val db = com.alananasss.kittytune.data.local.AppDatabase.getDatabase(getApplication())
@@ -704,14 +753,11 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                                 return@launch
                             }
                         } else {
+                            // Only substitute a Spotify profile on an exact name match; partial
+                            // matches (contains) would silently redirect SoundCloud-only artists
+                            // to unrelated Spotify artists that share a substring.
                             val search = com.alananasss.kittytune.data.spotify.SpotifyRepository.search(artistName)
                             val match = search.artists.firstOrNull { it.name.equals(artistName, ignoreCase = true) }
-                                ?: search.artists.firstOrNull {
-                                    it.name.contains(
-                                        artistName,
-                                        ignoreCase = true
-                                    ) || artistName.contains(it.name, ignoreCase = true)
-                                }
                             if (match != null) {
                                 prefs.saveSpotifyArtistMapping(userId, match.id)
                                 loadSpotifyArtist(match.id, forceRefresh)

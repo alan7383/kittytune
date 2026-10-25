@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SdStorage
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.rounded.Dns
@@ -67,9 +68,7 @@ internal enum class SettingsSubPage(
 
     // Sources
     SOURCES_SERVICES(R.string.pref_accounts_title, R.string.sources_services_sub, Icons.Rounded.Cloud),
-    SOURCES_ORDER(R.string.provider_order, R.string.sources_order_sub, Icons.Rounded.SwapVert),
     SOURCES_IMPORT(R.string.music_import_title, R.string.music_import_settings_subtitle, Icons.Rounded.ImportExport),
-    SOURCES_LYRICS(R.string.lyrics_sources_title, R.string.lyrics_sources_sub, Icons.Rounded.Lyrics),
 
     // Storage
     STORAGE_CACHE(R.string.pref_storage_title, R.string.storage_cache_sub, Icons.Rounded.Storage),
@@ -84,17 +83,17 @@ internal enum class SettingsSubPage(
     // Misc
     MISC_GENERAL(R.string.settings_cat_general, R.string.misc_general_sub, Icons.Rounded.Tune),
     MISC_CONTENT_FILTER(R.string.pref_content_filter_title, R.string.pref_content_filter_subtitle, Icons.Rounded.Block),
-    MISC_DISCORD(R.string.pref_discord_title, R.string.misc_discord_sub, Icons.Rounded.Cloud),
     MISC_ABOUT(R.string.pref_about_title, R.string.pref_about_subtitle, Icons.Rounded.Info),
+    MISC_DEVELOPER(R.string.pref_developer_options_title, R.string.pref_developer_options_subtitle, Icons.Rounded.Code),
     ;
 
     companion object {
         val interfacePages: List<SettingsSubPage> = listOf(THEMES, PLAYER, BOTTOM_BAR, LYRICS)
         val audioPages: List<SettingsSubPage> = listOf(AUDIO_PLAYBACK, AUDIO_QUALITY, AUDIO_TRANSITIONS, AUDIO_SLEEP_TIMER, AUDIO_HAPTICS)
-        val sourcesPages: List<SettingsSubPage> = listOf(SOURCES_SERVICES, SOURCES_ORDER, SOURCES_IMPORT, SOURCES_LYRICS)
+        val sourcesPages: List<SettingsSubPage> = listOf(SOURCES_SERVICES, SOURCES_IMPORT)
         val storagePages: List<SettingsSubPage> = listOf(STORAGE_CACHE, STORAGE_LOCAL_FILES, STORAGE_BACKUP)
         val syncPages: List<SettingsSubPage> = listOf(SYNC_DEVICES, SYNC_OPTIONS, SYNC_ADVANCED)
-        val miscPages: List<SettingsSubPage> = listOf(MISC_GENERAL, MISC_CONTENT_FILTER, MISC_DISCORD, MISC_ABOUT)
+        val miscPages: List<SettingsSubPage> = listOf(MISC_GENERAL, MISC_CONTENT_FILTER, MISC_ABOUT, MISC_DEVELOPER)
     }
 }
 
@@ -245,9 +244,7 @@ internal val SettingsSubPage.route: String
         SettingsSubPage.AUDIO_HAPTICS -> "haptic_settings"
 
         SettingsSubPage.SOURCES_SERVICES -> "accounts_settings"
-        SettingsSubPage.SOURCES_ORDER -> "provider_order_settings"
         SettingsSubPage.SOURCES_IMPORT -> "music_import"
-        SettingsSubPage.SOURCES_LYRICS -> "lyrics_settings"
 
         SettingsSubPage.STORAGE_CACHE -> "storage"
         SettingsSubPage.STORAGE_LOCAL_FILES -> "local_media_settings"
@@ -259,6 +256,6 @@ internal val SettingsSubPage.route: String
 
         SettingsSubPage.MISC_GENERAL -> "misc_general_settings"
         SettingsSubPage.MISC_CONTENT_FILTER -> "content_filter_settings"
-        SettingsSubPage.MISC_DISCORD -> "discord_settings"
         SettingsSubPage.MISC_ABOUT -> "about"
+        SettingsSubPage.MISC_DEVELOPER -> "developer_options"
     }

@@ -34,7 +34,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.UpdateManager
 import com.alananasss.kittytune.data.UpdateStatus
 import com.alananasss.kittytune.ui.common.AchievementNotification
@@ -167,7 +170,7 @@ fun AboutScreen(
 
                         Button(
                             onClick = {
-                                view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                                view.performAppHaptic(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
                                 scope.launch {
                                     UpdateManager.checkForUpdate(context, isManual = true)
                                 }
@@ -245,7 +248,7 @@ fun AboutScreen(
                             )
                             Spacer(Modifier.height(16.dp))
                             Button(
-                                onClick = { uriHandler.openUri("https://ko-fi.com/alan7383") },
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://ko-fi.com/alan7383") },
                                 shapes = ButtonDefaults.shapes(),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
@@ -274,7 +277,7 @@ fun AboutScreen(
                                 shape = shape,
                                 icon = Icons.Rounded.Language,
                                 title = stringResource(R.string.about_website_title),
-                                onClick = { uriHandler.openUri("https://alan7383.github.io/kittytune-website/") }
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://alan7383.github.io/kittytune-website/") }
                             )
                         },
                         { shape ->
@@ -283,7 +286,7 @@ fun AboutScreen(
                                 icon = Icons.Rounded.Download,
                                 title = stringResource(R.string.about_downloads_title),
                                 subtitle = stringResource(R.string.about_downloads_desc),
-                                onClick = { uriHandler.openUri("https://alan7383.github.io/kittytune-website/download") }
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://alan7383.github.io/kittytune-website/download") }
                             )
                         }
                     )
@@ -307,7 +310,7 @@ fun AboutScreen(
                                 shape = shape,
                                 icon = Icons.Rounded.Code,
                                 title = stringResource(R.string.about_github),
-                                onClick = { uriHandler.openUri("https://github.com/alan7383/kittytune") }
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://github.com/alan7383/kittytune") }
                             )
                         },
                         { shape ->
@@ -315,7 +318,7 @@ fun AboutScreen(
                                 shape = shape,
                                 icon = Icons.Filled.BugReport,
                                 title = stringResource(R.string.about_bug_report),
-                                onClick = { uriHandler.openUri("https://github.com/alan7383/kittytune/issues") }
+                                onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://github.com/alan7383/kittytune/issues") }
                             )
                         },
                         { shape ->
@@ -324,7 +327,7 @@ fun AboutScreen(
                                 icon = Icons.Rounded.Info,
                                 title = stringResource(R.string.logs_title),
                                 subtitle = stringResource(R.string.logs_subtitle),
-                                onClick = { showLogsSheet = true }
+                                onClick = hapticAction(HapticKind.UI) { showLogsSheet = true }
                             )
                         },
                         { shape ->
@@ -342,7 +345,7 @@ fun AboutScreen(
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)) {
                     Card(
-                        onClick = { uriHandler.openUri("https://crowdin.com/project/kittytune") },
+                        onClick = hapticAction(HapticKind.UI) { uriHandler.openUri("https://crowdin.com/project/kittytune") },
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                         shape = RoundedCornerShape(24.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -419,7 +422,7 @@ fun ExpandableTechInfo(packageName: String, shape: androidx.compose.ui.graphics.
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         shape = shape,
-        onClick = { expanded = !expanded },
+        onClick = hapticAction(HapticKind.UI) { expanded = !expanded },
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(

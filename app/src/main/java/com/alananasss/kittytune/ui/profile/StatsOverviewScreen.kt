@@ -73,6 +73,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.data.stats.ListeningReport
 import com.alananasss.kittytune.data.stats.ReportArtist
@@ -189,7 +192,7 @@ fun ListeningStatsScreen(
                 actions = {
                     Box {
                         FilledTonalIconButton(
-                            onClick = { styleMenu = true },
+                            onClick = hapticAction(HapticKind.UI) { styleMenu = true },
                             shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -227,7 +230,7 @@ fun ListeningStatsScreen(
                                             )
                                         }
                                     },
-                                    onClick = {
+                                    onClick = hapticAction(HapticKind.UI) {
                                         styleMenu = false
                                         style = option
                                         playerPrefs.setListeningStatsStyle(option.name)
@@ -237,7 +240,7 @@ fun ListeningStatsScreen(
                         }
                     }
                     Spacer(Modifier.width(4.dp))
-                    IconButton(onClick = { showPrivacy = true }) {
+                    IconButton(onClick = hapticAction(HapticKind.UI) { showPrivacy = true }) {
                         Icon(
                             Icons.Rounded.Tune,
                             contentDescription = stringResource(R.string.pref_privacy_title)
@@ -377,7 +380,7 @@ private fun PrivacyDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Surface(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         isEnabled = !isEnabled
                         playerPrefs.setListeningStatsEnabled(isEnabled)
                     },
@@ -419,7 +422,7 @@ private fun PrivacyDialog(
                 )
                 if (!isGuest) {
                     Surface(
-                        onClick = {
+                        onClick = hapticAction(HapticKind.UI) {
                             onDismiss()
                             onNavigateToYearlyPlayback()
                         },

@@ -1,144 +1,145 @@
 package com.alananasss.kittytune.ui.profile
 
 import android.graphics.Color as AndroidColor
+import android.os.Build
+import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ClipOp
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import com.alananasss.kittytune.ui.common.Slider
+import androidx.compose.material3.Slider as Material3Slider
 import androidx.compose.runtime.*
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.unit.sp
 import com.alananasss.kittytune.R
-import com.alananasss.kittytune.data.local.AppThemeMode
 import com.alananasss.kittytune.data.local.PlayerPreferences
+import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
+import com.alananasss.kittytune.ui.common.HapticKind
 import com.alananasss.kittytune.ui.common.SettingsScaffold
+import com.alananasss.kittytune.ui.common.rememberAppHaptics
 import com.alananasss.kittytune.ui.theme.MaterialKolorColorSpecOptions
+import com.alananasss.kittytune.ui.theme.ThemeState
 import com.alananasss.kittytune.ui.theme.normalizedMaterialKolorColorSpecName
 import com.alananasss.kittytune.ui.theme.parseMaterialKolorPaletteStyle
-import com.alananasss.kittytune.ui.theme.rememberSoundTuneColorScheme
 import com.materialkolor.PaletteStyle
 
-import androidx.annotation.StringRes
-
-private data class SeedColorOption(
-    @param:StringRes val nameRes: Int,
+private data class PresetAccent(
+    @StringRes val nameRes: Int,
     val color: Int,
+    val isDynamic: Boolean = false,
 )
 
-private data class SeedColorGroup(
-    @param:StringRes val titleRes: Int,
-    val options: List<SeedColorOption>,
+private val curatedPresets = listOf(
+    PresetAccent(R.string.theme_preset_ocean, 0xFF1565C0.toInt()),
+    PresetAccent(R.string.theme_preset_lavender, 0xFF7E57C2.toInt()),
+    PresetAccent(R.string.color_seed_electric_blue, 0xFF2962FF.toInt()),
+    PresetAccent(R.string.theme_preset_mint, 0xFF00A884.toInt()),
+    PresetAccent(R.string.theme_preset_forest, 0xFF2E7D32.toInt()),
+    PresetAccent(R.string.color_seed_gold, 0xFFFFB300.toInt()),
+    PresetAccent(R.string.color_seed_kitty_orange, 0xFFFF7A1A.toInt()),
+    PresetAccent(R.string.theme_preset_sunset, 0xFFE64A19.toInt()),
+    PresetAccent(R.string.theme_preset_rose, 0xFFD81B60.toInt()),
+    PresetAccent(R.string.color_seed_plum, 0xFF8E24AA.toInt()),
+    PresetAccent(R.string.color_seed_cyan, 0xFF00ACC1.toInt()),
+    PresetAccent(R.string.color_seed_slate, 0xFF455A64.toInt()),
 )
 
-private val groupedKeyColorOptions = listOf(
-    SeedColorGroup(
-        titleRes = R.string.color_group_deep_blues,
-        options = listOf(
-            SeedColorOption(R.string.color_seed_deep_blue, Color(0xFF141A4C).toArgb()),
-            SeedColorOption(R.string.color_seed_abyss, Color(0xFF0A0E29).toArgb()),
-            SeedColorOption(R.string.color_seed_space_blue, Color(0xFF1A225D).toArgb()),
-            SeedColorOption(R.string.color_seed_ink_blue, Color(0xFF0E143A).toArgb()),
-            SeedColorOption(R.string.color_seed_midnight_indigo, Color(0xFF1A1B4B).toArgb()),
-            SeedColorOption(R.string.color_seed_cosmic_blue, Color(0xFF1D2663).toArgb()),
-            SeedColorOption(R.string.color_seed_twilight, Color(0xFF182055).toArgb()),
-            SeedColorOption(R.string.color_seed_royal_navy, Color(0xFF101740).toArgb()),
-            SeedColorOption(R.string.color_seed_midnight, Color(0xFF071A3D).toArgb()),
-            SeedColorOption(R.string.color_seed_navy, Color(0xFF0D47A1).toArgb()),
-        ),
-    ),
-    SeedColorGroup(
-        titleRes = R.string.color_group_blues_cyans,
-        options = listOf(
-            SeedColorOption(R.string.color_seed_sapphire, Color(0xFF1565C0).toArgb()),
-            SeedColorOption(R.string.color_seed_electric_blue, Color(0xFF2962FF).toArgb()),
-            SeedColorOption(R.string.color_seed_azure, Color(0xFF0288D1).toArgb()),
-            SeedColorOption(R.string.color_seed_cyan, Color(0xFF00ACC1).toArgb()),
-            SeedColorOption(R.string.color_seed_teal, Color(0xFF00897B).toArgb())
-        )
-    ),
-    SeedColorGroup(
-        titleRes = R.string.color_group_greens_teals,
-        options = listOf(
-            SeedColorOption(R.string.color_seed_deep_teal, Color(0xFF00695C).toArgb()),
-            SeedColorOption(R.string.color_seed_emerald, Color(0xFF00A86B).toArgb()),
-            SeedColorOption(R.string.color_seed_forest, Color(0xFF2E7D32).toArgb()),
-            SeedColorOption(R.string.color_seed_moss, Color(0xFF558B2F).toArgb()),
-            SeedColorOption(R.string.color_seed_lime, Color(0xFF8BC34A).toArgb()),
-            SeedColorOption(R.string.color_seed_olive, Color(0xFF6B7D2A).toArgb())
-        )
-    ),
-    SeedColorGroup(
-        titleRes = R.string.color_group_sunset_warm,
-        options = listOf(
-            SeedColorOption(R.string.color_seed_gold, Color(0xFFFFB300).toArgb()),
-            SeedColorOption(R.string.color_seed_amber, Color(0xFFFF8F00).toArgb()),
-            SeedColorOption(R.string.color_seed_kitty_orange, Color(0xFFFF7A1A).toArgb()),
-            SeedColorOption(R.string.color_seed_deep_orange, Color(0xFFE64A19).toArgb()),
-            SeedColorOption(R.string.color_seed_coral, Color(0xFFFF7043).toArgb()),
-            SeedColorOption(R.string.color_seed_sand, Color(0xFFD1A054).toArgb())
-        )
-    ),
-    SeedColorGroup(
-        titleRes = R.string.color_group_pinks_purples,
-        options = listOf(
-            SeedColorOption(R.string.color_seed_crimson, Color(0xFFC62828).toArgb()),
-            SeedColorOption(R.string.color_seed_rose, Color(0xFFD81B60).toArgb()),
-            SeedColorOption(R.string.color_seed_hot_pink, Color(0xFFFF4081).toArgb()),
-            SeedColorOption(R.string.color_seed_magenta, Color(0xFFC2185B).toArgb()),
-            SeedColorOption(R.string.color_seed_plum, Color(0xFF8E24AA).toArgb()),
-            SeedColorOption(R.string.color_seed_deep_purple, Color(0xFF512DA8).toArgb()),
-            SeedColorOption(R.string.color_seed_indigo, Color(0xFF303F9F).toArgb()),
-            SeedColorOption(R.string.color_seed_periwinkle, Color(0xFF5E6AD2).toArgb())
-        )
-    ),
-    SeedColorGroup(
-        titleRes = R.string.color_group_neutrals,
-        options = listOf(
-            SeedColorOption(R.string.color_seed_blue_gray, Color(0xFF546E7A).toArgb()),
-            SeedColorOption(R.string.color_seed_slate, Color(0xFF37474F).toArgb()),
-            SeedColorOption(R.string.color_seed_graphite, Color(0xFF424242).toArgb()),
-            SeedColorOption(R.string.color_seed_warm_gray, Color(0xFF6D5F5B).toArgb()),
-            SeedColorOption(R.string.color_seed_mocha, Color(0xFF795548).toArgb())
-        )
-    )
-)
-
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ColorPaletteScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
-    val haptic = LocalHapticFeedback.current
+    val haptic = rememberAppHaptics()
+    val clipboardManager = LocalClipboardManager.current
 
     var currentKeyColor by remember { mutableIntStateOf(prefs.getKeyColor()) }
     var colorStyle by remember { mutableStateOf(parseMaterialKolorPaletteStyle(prefs.getColorStyle()).name) }
     var colorSpec by remember { mutableStateOf(normalizedMaterialKolorColorSpecName(prefs.getColorSpec())) }
-    val themeMode = prefs.getThemeMode()
-    val pureBlack = prefs.getPureBlack()
-    val dynamicTheme = prefs.getDynamicTheme()
-    val trackDynamicTheme = prefs.getTrackDynamicTheme()
+    var dynamicTheme by remember { mutableStateOf(prefs.getDynamicTheme()) }
 
-    val isDark = ((themeMode == AppThemeMode.DARK) || (themeMode == AppThemeMode.SYSTEM && isSystemInDarkTheme()))
+    val fallbackArgb = MaterialTheme.colorScheme.primary.toArgb()
+    val initialSeedColor = remember {
+        if (currentKeyColor != 0) currentKeyColor else fallbackArgb
+    }
+    val initialHsv = remember { initialSeedColor.toHsv() }
+
+    var hue by remember { mutableFloatStateOf(initialHsv[0]) }
+    var saturation by remember { mutableFloatStateOf(initialHsv[1]) }
+    var brightness by remember { mutableFloatStateOf(initialHsv[2]) }
+
+    var workingArgb by remember { mutableIntStateOf(initialSeedColor) }
+    var hexText by remember { mutableStateOf(initialSeedColor.toSeedHex()) }
+
+    fun syncSlidersFromColor(seed: Int) {
+        val hsvArr = seed.toHsv()
+        if (hsvArr[1] >= 0.02f && hsvArr[2] >= 0.02f) {
+            hue = hsvArr[0]
+        }
+        saturation = hsvArr[1]
+        brightness = hsvArr[2]
+        workingArgb = seed
+        hexText = seed.toSeedHex()
+    }
+
+    fun commitColor(seed: Int, updateDynamic: Boolean = false) {
+        currentKeyColor = seed
+        ThemeState.previewKeyColor = null
+        prefs.setKeyColor(seed)
+        if (updateDynamic) {
+            val isDyn = (seed == 0)
+            dynamicTheme = isDyn
+            prefs.setDynamicTheme(isDyn)
+            if (isDyn) {
+                prefs.setColorStyle("System")
+                colorStyle = "System"
+                syncSlidersFromColor(fallbackArgb)
+            }
+        } else {
+            dynamicTheme = false
+            prefs.setDynamicTheme(false)
+        }
+    }
+
+    fun previewColorRealtime(seed: Int) {
+        currentKeyColor = seed
+        dynamicTheme = false
+        ThemeState.previewKeyColor = seed
+    }
 
     SettingsScaffold(
         title = stringResource(R.string.color_palette_screen_title),
@@ -153,55 +154,89 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
         ) {
             Spacer(Modifier.height(4.dp))
 
-            ThemePreviewCard(
-                keyColor = currentKeyColor,
-                isDark = isDark,
-                pureBlack = pureBlack,
-                dynamicColor = dynamicTheme,
-                trackDynamicColor = trackDynamicTheme,
-                colorStyle = colorStyle,
-                colorSpec = colorSpec
+            // 1. Curated Preset Swatches (Riff's theme-palette-picker)
+            PresetSwatchesCard(
+                currentKeyColor = currentKeyColor,
+                dynamicTheme = dynamicTheme,
+                onPresetSelected = { seed, isDyn ->
+                    haptic.perform(HapticKind.UI)
+                    if (isDyn || seed == 0) {
+                        commitColor(0, updateDynamic = true)
+                    } else {
+                        syncSlidersFromColor(seed)
+                        commitColor(seed, updateDynamic = false)
+                    }
+                }
             )
 
-            SeedPaletteCard(
-                selectedKeyColor = currentKeyColor,
-                isDark = isDark,
-                pureBlack = pureBlack,
-                dynamicColor = dynamicTheme,
-                trackDynamicColor = trackDynamicTheme,
-                colorStyle = colorStyle,
-                colorSpec = colorSpec,
-            ) { seed ->
-                haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
-                currentKeyColor = seed
-                prefs.setKeyColor(seed)
-            }
-
-                CustomSeedPickerCard(
-                    selectedKeyColor = currentKeyColor,
-                    isDark = isDark,
-                    pureBlack = pureBlack,
-                    dynamicColor = dynamicTheme,
-                    colorStyle = colorStyle,
-                    colorSpec = colorSpec,
-                    onSeedChangedRealtime = { seed ->
-                        currentKeyColor = seed
-                        com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor = seed
-                    },
-                ) { seed ->
-                    currentKeyColor = seed
-                    com.alananasss.kittytune.ui.theme.ThemeState.previewKeyColor = null
-                    prefs.setKeyColor(seed)
+            // 3. Custom Seed Fine-Tuning (Hue, Saturation, Brightness, Hex)
+            CustomSeedPickerCard(
+                workingArgb = workingArgb,
+                hexText = hexText,
+                hue = hue,
+                saturation = saturation,
+                brightness = brightness,
+                onHexChange = { newHex ->
+                    hexText = newHex
+                    parseHexSeedColor(newHex)?.let { newArgb ->
+                        syncSlidersFromColor(newArgb)
+                        previewColorRealtime(newArgb)
+                        commitColor(newArgb, updateDynamic = false)
+                    }
+                },
+                onHueChange = { newHue ->
+                    hue = newHue.coerceIn(0f, 360f)
+                    val newArgb = hsvToSeedArgb(hue, saturation, brightness)
+                    workingArgb = newArgb
+                    hexText = newArgb.toSeedHex()
+                    previewColorRealtime(newArgb)
+                },
+                onSaturationChange = { newSat ->
+                    saturation = newSat.coerceIn(0f, 1f)
+                    val newArgb = hsvToSeedArgb(hue, saturation, brightness)
+                    workingArgb = newArgb
+                    hexText = newArgb.toSeedHex()
+                    previewColorRealtime(newArgb)
+                },
+                onBrightnessChange = { newBright ->
+                    brightness = newBright.coerceIn(0f, 1f)
+                    val newArgb = hsvToSeedArgb(hue, saturation, brightness)
+                    workingArgb = newArgb
+                    hexText = newArgb.toSeedHex()
+                    previewColorRealtime(newArgb)
+                },
+                onHsvChangeFinished = {
+                    commitColor(workingArgb, updateDynamic = false)
+                },
+                onCopyHex = {
+                    clipboardManager.setText(AnnotatedString(hexText))
+                    haptic.perform(HapticKind.CONFIRM)
+                    Toast.makeText(context, context.getString(R.string.color_hex_copied), Toast.LENGTH_SHORT).show()
+                },
+                onPasteHex = {
+                    val clipText = clipboardManager.getText()?.text?.trim().orEmpty()
+                    parseHexSeedColor(clipText)?.let { pastedArgb ->
+                        haptic.perform(HapticKind.CONFIRM)
+                        syncSlidersFromColor(pastedArgb)
+                        previewColorRealtime(pastedArgb)
+                        commitColor(pastedArgb, updateDynamic = false)
+                    } ?: run {
+                        haptic.perform(HapticKind.REJECT)
+                    }
                 }
+            )
 
-            ColorGenerationCard(
+            // 4. Color Engine (Palette Style & Color Spec)
+            ColorEngineCard(
                 colorStyle = colorStyle,
                 colorSpec = colorSpec,
                 onStyleSelected = {
+                    haptic.perform(HapticKind.UI)
                     colorStyle = it
                     prefs.setColorStyle(it)
                 },
                 onSpecSelected = {
+                    haptic.perform(HapticKind.UI)
                     colorSpec = it
                     prefs.setColorSpec(it)
                 }
@@ -212,186 +247,191 @@ fun ColorPaletteScreen(onBackClick: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
+/**
+ * Curated Preset Swatches Card (Riff-inspired .theme-palette-picker).
+ * Provides one-tap access to harmonious ready-to-use color seeds.
+ */
 @Composable
-private fun SeedPaletteCard(
-    selectedKeyColor: Int,
-    isDark: Boolean,
-    pureBlack: Boolean,
-    dynamicColor: Boolean,
-    trackDynamicColor: Boolean,
-    colorStyle: String,
-    colorSpec: String,
-    onSeedSelected: (Int) -> Unit
+private fun PresetSwatchesCard(
+    currentKeyColor: Int,
+    dynamicTheme: Boolean,
+    onPresetSelected: (Int, Boolean) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = stringResource(R.string.pref_seed_palette_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            var selectedCategoryIndex by remember {
-                val index = groupedKeyColorOptions.indexOfFirst { group ->
-                    group.options.any { it.color == selectedKeyColor }
-                }
-                mutableIntStateOf(if (index != -1) index else 0)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.theme_preset_accents_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = stringResource(R.string.theme_preset_accents_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            LaunchedEffect(selectedKeyColor) {
-                val index = groupedKeyColorOptions.indexOfFirst { group ->
-                    group.options.any { it.color == selectedKeyColor }
-                }
-                if (index != -1) {
-                    selectedCategoryIndex = index
-                }
-            }
-
-            val view = androidx.compose.ui.platform.LocalView.current
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 4.dp)
             ) {
-                itemsIndexed(groupedKeyColorOptions) { index, group ->
-                    val isSelected = selectedCategoryIndex == index
-                    val containerColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
-                        label = "chipBg"
-                    )
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        label = "chipText"
-                    )
-                    Button(
-                        onClick = {
-                            view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-                            selectedCategoryIndex = index
-                        },
-                        shapes = ButtonDefaults.shapes(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = containerColor,
-                            contentColor = contentColor
-                        )
-                    ) {
-                        Text(stringResource(group.titleRes))
+                // System / Dynamic swatch on Android 12+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    item {
+                        val isSelected = currentKeyColor == 0 && dynamicTheme
+                        val dynamicSweep = remember {
+                            Brush.sweepGradient(
+                                listOf(
+                                    Color(0xFF2962FF),
+                                    Color(0xFF00ACC1),
+                                    Color(0xFF00A884),
+                                    Color(0xFFFFB300),
+                                    Color(0xFFFF4081),
+                                    Color(0xFF2962FF)
+                                )
+                            )
+                        }
+                        Box(
+                            modifier = Modifier.size(54.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(54.dp)
+                                        .border(2.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                )
+                            }
+                            Surface(
+                                onClick = { onPresetSelected(0, true) },
+                                shape = CircleShape,
+                                modifier = Modifier.size(if (isSelected) 42.dp else 48.dp),
+                                color = Color.Transparent
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(dynamicSweep),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.AutoAwesome,
+                                        contentDescription = stringResource(R.string.color_palette_system_dynamic),
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-            }
 
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                ColorButtonMaterial(
-                    seedColor = null,
-                    isSelected = selectedKeyColor == 0,
-                    isDark = isDark,
-                    pureBlack = pureBlack,
-                    dynamicColor = dynamicColor,
-                    trackDynamicColor = trackDynamicColor,
-                    colorStyle = colorStyle,
-                    colorSpec = colorSpec,
-                    onClick = { onSeedSelected(0) },
-                )
+                // Curated palette presets
+                items(curatedPresets) { preset ->
+                    val isSelected = currentKeyColor == preset.color && !dynamicTheme
+                    Box(
+                        modifier = Modifier.size(54.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(54.dp)
+                                    .border(2.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                            )
+                        }
+                        Surface(
+                            onClick = { onPresetSelected(preset.color, false) },
+                            shape = CircleShape,
+                            modifier = Modifier.size(if (isSelected) 42.dp else 48.dp),
+                            color = Color(preset.color),
+                            shadowElevation = 1.dp
+                        ) {}
 
-                val activeGroup = groupedKeyColorOptions[selectedCategoryIndex]
-                activeGroup.options.forEach { option ->
-                    ColorButtonMaterial(
-                        seedColor = option.color,
-                        isSelected = selectedKeyColor == option.color,
-                        isDark = isDark,
-                        pureBlack = pureBlack,
-                        dynamicColor = dynamicColor,
-                        trackDynamicColor = trackDynamicColor,
-                        colorStyle = colorStyle,
-                        colorSpec = colorSpec,
-                        onClick = { onSeedSelected(option.color) },
-                    )
+                        if (isSelected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
+                                    contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+/**
+ * Custom Seed Fine-Tuning Card with color swatch, hex input (with copy/paste),
+ * and thick Material 3 Expressive sliders for Hue, Saturation, and Brightness.
+ */
 @Composable
 private fun CustomSeedPickerCard(
-    selectedKeyColor: Int,
-    isDark: Boolean,
-    pureBlack: Boolean,
-    dynamicColor: Boolean,
-    colorStyle: String,
-    colorSpec: String,
-    onSeedChangedRealtime: (Int) -> Unit,
-    onSeedChanged: (Int) -> Unit
+    workingArgb: Int,
+    hexText: String,
+    hue: Float,
+    saturation: Float,
+    brightness: Float,
+    onHexChange: (String) -> Unit,
+    onHueChange: (Float) -> Unit,
+    onSaturationChange: (Float) -> Unit,
+    onBrightnessChange: (Float) -> Unit,
+    onHsvChangeFinished: () -> Unit,
+    onCopyHex: () -> Unit,
+    onPasteHex: () -> Unit,
 ) {
-    val fallbackArgb = MaterialTheme.colorScheme.primary.toArgb()
-    var workingArgb by remember(selectedKeyColor, fallbackArgb) {
-        mutableIntStateOf(if (selectedKeyColor != 0) selectedKeyColor else fallbackArgb)
-    }
-    var hexText by remember { mutableStateOf(workingArgb.toSeedHex()) }
-    val hsv = remember(workingArgb) { workingArgb.toHsv() }
-    val pickerScheme = rememberSoundTuneColorScheme(
-        useDarkTheme = isDark,
-        dynamicColor = dynamicColor,
-        pureBlack = pureBlack,
-        keyColor = workingArgb,
-        colorStyle = colorStyle,
-        colorSpec = colorSpec
-    )
-
-    val animatedBorderColor by animateColorAsState(targetValue = pickerScheme.primary, label = "pickerBorder")
-
-    LaunchedEffect(workingArgb) {
-        hexText = workingArgb.toSeedHex()
-    }
-
-    fun updateWorkingColor(newArgb: Int) {
-        workingArgb = newArgb
-        onSeedChanged(newArgb)
-    }
-
-    val hueBrush = remember {
-        Brush.horizontalGradient(
-            colors = listOf(
-                Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Blue, Color.Magenta, Color.Red
-            )
-        )
-    }
-    val satBrush = remember(hsv[0], hsv[2]) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                Color(hsvToSeedArgb(hsv[0], 0.05f, hsv[2])),
-                Color(hsvToSeedArgb(hsv[0], 1f, hsv[2]))
-            )
-        )
-    }
-    val valBrush = remember(hsv[0], hsv[1]) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                Color.Black,
-                Color(hsvToSeedArgb(hsv[0], hsv[1], 1f))
-            )
-        )
-    }
-
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
@@ -401,32 +441,65 @@ private fun CustomSeedPickerCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
+            // Swatch + Hex Input Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    modifier = Modifier.size(72.dp),
-                    shape = RoundedCornerShape(22.dp),
+                    modifier = Modifier.size(62.dp),
+                    shape = RoundedCornerShape(20.dp),
                     color = Color(workingArgb),
-                    border = BorderStroke(2.dp, animatedBorderColor)
+                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                    shadowElevation = 2.dp
                 ) {}
 
                 OutlinedTextField(
                     value = hexText,
                     onValueChange = { input ->
                         val normalized = input.trim().take(9)
-                        hexText = normalized
-                        parseHexSeedColor(normalized)?.let {
-                            updateWorkingColor(it)
-                            onSeedChangedRealtime(it)
-                            onSeedChanged(it)
-                        }
+                        onHexChange(normalized)
                     },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
+                    shape = RoundedCornerShape(16.dp),
                     label = { Text(stringResource(R.string.color_hex_label)) },
+                    textStyle = MaterialTheme.typography.titleSmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Palette,
+                            contentDescription = null,
+                            tint = Color(workingArgb),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(end = 4.dp)
+                        ) {
+                            IconButton(onClick = onCopyHex, modifier = Modifier.size(34.dp)) {
+                                Icon(
+                                    imageVector = Icons.Rounded.ContentCopy,
+                                    contentDescription = "Copy",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(onClick = onPasteHex, modifier = Modifier.size(34.dp)) {
+                                Icon(
+                                    imageVector = Icons.Rounded.ContentPaste,
+                                    contentDescription = "Paste",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Characters,
                         keyboardType = KeyboardType.Ascii
@@ -434,94 +507,232 @@ private fun CustomSeedPickerCard(
                 )
             }
 
-            PickerSlider(
-                label = stringResource(R.string.color_hue_label),
-                value = hsv[0],
-                valueText = hsv[0].toInt().toString(),
-                valueRange = 0f..360f,
-                gradientBrush = hueBrush,
-                onValueChange = { hue ->
-                    workingArgb = hsvToSeedArgb(hue, hsv[1], hsv[2])
-                    onSeedChangedRealtime(workingArgb)
-                },
-                onValueChangeFinished = { onSeedChanged(workingArgb) }
+            // 1. Hue Slider (Riff segmented design)
+            RiffHueSlider(
+                value = hue,
+                valueText = "${hue.roundToInt()}°",
+                onValueChange = onHueChange,
+                onValueChangeFinished = onHsvChangeFinished
             )
-            PickerSlider(
+
+            // 2. Saturation Slider (Riff active/inactive split track)
+            RiffTrackSlider(
                 label = stringResource(R.string.color_saturation_label),
-                value = hsv[1],
-                valueText = "${(hsv[1] * 100).toInt()}%",
-                valueRange = 0f..1f,
-                gradientBrush = satBrush,
-                onValueChange = { saturation ->
-                    workingArgb = hsvToSeedArgb(hsv[0], saturation, hsv[2])
-                    onSeedChangedRealtime(workingArgb)
-                },
-                onValueChangeFinished = { onSeedChanged(workingArgb) }
+                value = saturation,
+                valueText = "${(saturation * 100).roundToInt()}%",
+                activeColor = MaterialTheme.colorScheme.primary,
+                onValueChange = onSaturationChange,
+                onValueChangeFinished = onHsvChangeFinished,
+                hints = listOf(
+                    stringResource(R.string.color_hint_muted),
+                    stringResource(R.string.color_hint_balanced),
+                    stringResource(R.string.color_hint_vivid)
+                )
             )
-            PickerSlider(
+
+            // 3. Brightness Slider (Riff active/inactive split track)
+            RiffTrackSlider(
                 label = stringResource(R.string.color_brightness_label),
-                value = hsv[2],
-                valueText = "${(hsv[2] * 100).toInt()}%",
-                valueRange = 0f..1f,
-                gradientBrush = valBrush,
-                onValueChange = { brightness ->
-                    workingArgb = hsvToSeedArgb(hsv[0], hsv[1], brightness)
-                    onSeedChangedRealtime(workingArgb)
-                },
-                onValueChangeFinished = { onSeedChanged(workingArgb) }
-            )
-        }
-    }
-}
-@Composable
-private fun ColorGenerationCard(
-    colorStyle: String,
-    colorSpec: String,
-    onStyleSelected: (String) -> Unit,
-    onSpecSelected: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
-    ) {
-        Column {
-            Text(
-                text = stringResource(R.string.pref_color_generation_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 2.dp)
-            )
-            val styles = listOf("System") + PaletteStyle.entries.map { it.name }
-            SettingsDropdownRow(
-                title = stringResource(R.string.pref_color_style_title),
-                items = styles,
-                selectedItem = colorStyle,
-                onItemSelected = onStyleSelected
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            SettingsDropdownRow(
-                title = stringResource(R.string.pref_color_spec_title),
-                items = MaterialKolorColorSpecOptions,
-                selectedItem = colorSpec,
-                onItemSelected = onSpecSelected
+                value = brightness,
+                valueText = "${(brightness * 100).roundToInt()}%",
+                activeColor = MaterialTheme.colorScheme.primary,
+                onValueChange = onBrightnessChange,
+                onValueChangeFinished = onHsvChangeFinished,
+                hints = listOf(
+                    stringResource(R.string.color_hint_dark),
+                    stringResource(R.string.color_hint_default),
+                    stringResource(R.string.color_hint_bright)
+                )
             )
         }
     }
 }
 
+/**
+ * Riff-style Segmented Hue Slider.
+ * 12 color segments across the 360° spectrum with a clean negative-space cutout
+ * around a floating vertical pill thumb.
+ */
 @Composable
-private fun PickerSlider(
-    label: String,
+private fun RiffHueSlider(
     value: Float,
     valueText: String,
-    valueRange: ClosedFloatingPointRange<Float>,
-    gradientBrush: Brush,
     onValueChange: (Float) -> Unit,
-    onValueChangeFinished: (() -> Unit)? = null
+    onValueChangeFinished: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    val haptic = rememberAppHaptics()
+    var widthPx by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnValueChangeFinished by rememberUpdatedState(onValueChangeFinished)
+
+    val thumbWidth = 5.dp
+    val thumbHeight = 26.dp
+    val trackHeight = 16.dp
+
+    val thumbWidthPx = with(density) { thumbWidth.toPx() }
+    val cutoutHalfWidthPx = with(density) { 10.dp.toPx() }
+
+    val fraction = (value / 360f).coerceIn(0f, 1f)
+
+    var lastBucket by remember { mutableIntStateOf(-1) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.color_hue_label),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = valueText,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(thumbHeight)
+                .onSizeChanged { widthPx = it.width.toFloat() }
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val usableWidth = (widthPx - thumbWidthPx).coerceAtLeast(1f)
+                        val updateVal = { x: Float ->
+                            val frac = ((x - thumbWidthPx / 2f) / usableWidth).coerceIn(0f, 1f)
+                            val newHue = frac * 360f
+                            currentOnValueChange(newHue)
+                            val bucket = (frac * 24).toInt()
+                            if (bucket != lastBucket) {
+                                lastBucket = bucket
+                                haptic.perform(HapticKind.SLIDER)
+                            }
+                        }
+                        updateVal(down.position.x)
+                        val pointerId = down.id
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+                            if (change.pressed) {
+                                change.consume()
+                                updateVal(change.position.x)
+                            } else {
+                                break
+                            }
+                        }
+                        currentOnValueChangeFinished()
+                    }
+                },
+            contentAlignment = Alignment.CenterStart
+        ) {
+            val usableWidth = (widthPx - thumbWidthPx).coerceAtLeast(1f)
+            val thumbXPx = (thumbWidthPx / 2f) + (fraction * usableWidth)
+
+            // 12-segment track with dynamic thumb cutout
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(trackHeight)
+                    .drawWithContent {
+                        clipRect(
+                            left = thumbXPx - cutoutHalfWidthPx,
+                            top = 0f,
+                            right = thumbXPx + cutoutHalfWidthPx,
+                            bottom = size.height,
+                            clipOp = ClipOp.Difference
+                        ) {
+                            this@drawWithContent.drawContent()
+                        }
+                    },
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                for (i in 0 until 12) {
+                    val startAngle = i * 30f
+                    val endAngle = (i + 1) * 30f
+                    val segBrush = remember(i) {
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color(AndroidColor.HSVToColor(floatArrayOf(startAngle, 0.76f, 0.90f))),
+                                Color(AndroidColor.HSVToColor(floatArrayOf(endAngle, 0.76f, 0.90f)))
+                            )
+                        )
+                    }
+                    val shape = when (i) {
+                        0 -> RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 3.dp, bottomEnd = 3.dp)
+                        11 -> RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 8.dp, bottomEnd = 8.dp)
+                        else -> RoundedCornerShape(3.dp)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(shape)
+                            .background(segBrush)
+                    )
+                }
+            }
+
+            // Vertical pill thumb (Riff style: onSurface)
+            if (widthPx > 0f) {
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset((thumbXPx - thumbWidthPx / 2f).roundToInt(), 0) }
+                        .size(width = thumbWidth, height = thumbHeight)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(MaterialTheme.colorScheme.onSurface)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Riff-style Split Track Slider (used for Intensity/Saturation and Brightness).
+ * Features an active colored track on the left, an inactive translucent track on the right,
+ * and a vertical pill thumb centered in a clean 16dp gap between the two tracks.
+ */
+@Composable
+private fun RiffTrackSlider(
+    label: String,
+    value: Float, // 0f..1f
+    valueText: String,
+    activeColor: Color,
+    onValueChange: (Float) -> Unit,
+    onValueChangeFinished: () -> Unit,
+    hints: List<String>? = null,
+) {
+    val haptic = rememberAppHaptics()
+    var widthPx by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnValueChangeFinished by rememberUpdatedState(onValueChangeFinished)
+
+    val thumbWidth = 5.dp
+    val thumbHeight = 26.dp
+    val trackHeight = 16.dp
+    val gapHalfWidth = 8.dp
+
+    val thumbWidthPx = with(density) { thumbWidth.toPx() }
+    val gapHalfWidthPx = with(density) { gapHalfWidth.toPx() }
+
+    val fraction = value.coerceIn(0f, 1f)
+    var lastBucket by remember { mutableIntStateOf(-1) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -529,85 +740,108 @@ private fun PickerSlider(
         ) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = valueText,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(36.dp),
-            contentAlignment = Alignment.Center
+                .height(thumbHeight)
+                .onSizeChanged { widthPx = it.width.toFloat() }
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val usableWidth = (widthPx - thumbWidthPx).coerceAtLeast(1f)
+                        val updateVal = { x: Float ->
+                            val frac = ((x - thumbWidthPx / 2f) / usableWidth).coerceIn(0f, 1f)
+                            currentOnValueChange(frac)
+                            val bucket = (frac * 20).toInt()
+                            if (bucket != lastBucket) {
+                                lastBucket = bucket
+                                haptic.perform(HapticKind.SLIDER)
+                            }
+                        }
+                        updateVal(down.position.x)
+                        val pointerId = down.id
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+                            if (change.pressed) {
+                                change.consume()
+                                updateVal(change.position.x)
+                            } else {
+                                break
+                            }
+                        }
+                        currentOnValueChangeFinished()
+                    }
+                },
+            contentAlignment = Alignment.CenterStart
         ) {
-            Box(
+            val usableWidth = (widthPx - thumbWidthPx).coerceAtLeast(1f)
+            val thumbXPx = (thumbWidthPx / 2f) + (fraction * usableWidth)
+
+            if (widthPx > 0f) {
+                // Left active bar: 0 .. (thumbXPx - gapHalfWidthPx)
+                val leftBarWidth = (thumbXPx - gapHalfWidthPx).coerceIn(0f, widthPx)
+                if (leftBarWidth > 0f) {
+                    val leftBarWidthDp = with(density) { leftBarWidth.toDp() }
+                    Box(
+                        modifier = Modifier
+                            .width(leftBarWidthDp)
+                            .height(trackHeight)
+                            .clip(RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 3.dp, bottomEnd = 3.dp))
+                            .background(activeColor)
+                    )
+                }
+
+                // Right inactive bar: (thumbXPx + gapHalfWidthPx) .. widthPx
+                val rightBarStart = (thumbXPx + gapHalfWidthPx).coerceIn(0f, widthPx)
+                val rightBarWidth = (widthPx - rightBarStart).coerceIn(0f, widthPx)
+                if (rightBarWidth > 0f) {
+                    val rightBarWidthDp = with(density) { rightBarWidth.toDp() }
+                    val rightBarOffsetDp = with(density) { rightBarStart.toDp() }
+                    Box(
+                        modifier = Modifier
+                            .offset(x = rightBarOffsetDp)
+                            .width(rightBarWidthDp)
+                            .height(trackHeight)
+                            .clip(RoundedCornerShape(topStart = 3.dp, bottomStart = 3.dp, topEnd = 8.dp, bottomEnd = 8.dp))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f))
+                    )
+                }
+
+                // Center vertical pill thumb
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset((thumbXPx - thumbWidthPx / 2f).roundToInt(), 0) }
+                        .size(width = thumbWidth, height = thumbHeight)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(activeColor)
+                )
+            }
+        }
+
+        if (!hints.isNullOrEmpty()) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 6.dp)
-                    .height(10.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(gradientBrush)
-            )
-
-            Slider(
-                value = value,
-                onValueChange = onValueChange,
-                onValueChangeFinished = onValueChangeFinished,
-                valueRange = valueRange,
-                colors = SliderDefaults.colors(
-                    activeTrackColor = Color.Transparent,
-                    inactiveTrackColor = Color.Transparent,
-                    activeTickColor = Color.Transparent,
-                    inactiveTickColor = Color.Transparent
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-fun SettingsDropdownRow(
-    title: String,
-    items: List<String>,
-    selectedItem: String,
-    onItemSelected: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(value = false) }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = true }
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Box {
-            Text(
-                text = selectedItem,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                items.forEach { label ->
-                    DropdownMenuItem(
-                        text = { Text(label, color = if (label == selectedItem) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface) },
-                        onClick = { onItemSelected(label); expanded = false }
+                    .padding(horizontal = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                hints.forEach { hint ->
+                    Text(
+                        text = hint,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
                     )
                 }
             }
@@ -615,220 +849,112 @@ fun SettingsDropdownRow(
     }
 }
 
+/**
+ * Color Engine Card: Palette Style selection chips and Material 3 Color Spec toggle.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ThemePreviewCard(
-    keyColor: Int,
-    isDark: Boolean,
-    pureBlack: Boolean,
-    dynamicColor: Boolean,
-    trackDynamicColor: Boolean,
-    colorStyle: String,
-    colorSpec: String
-) {
-    val colorScheme = rememberSoundTuneColorScheme(
-        useDarkTheme = isDark,
-        dynamicColor = dynamicColor,
-        trackDynamicColor = trackDynamicColor,
-        pureBlack = pureBlack,
-        keyColor = keyColor,
-        colorStyle = colorStyle,
-        colorSpec = colorSpec
-    )
-
-    val animatedBg by animateColorAsState(targetValue = colorScheme.background, label = "bg")
-    val animatedOnSurface by animateColorAsState(targetValue = colorScheme.onSurface, label = "onSurface")
-    val animatedPrimary by animateColorAsState(targetValue = colorScheme.primary, label = "primary")
-    val animatedPrimaryContainer by animateColorAsState(targetValue = colorScheme.primaryContainer, label = "primaryContainer")
-    val animatedSecondaryContainer by animateColorAsState(targetValue = colorScheme.secondaryContainer, label = "secondaryContainer")
-    val animatedOnSecondaryContainer by animateColorAsState(targetValue = colorScheme.onSecondaryContainer, label = "onSecondaryContainer")
-    val animatedSurfaceContainer by animateColorAsState(targetValue = colorScheme.surfaceContainer, label = "surfaceContainer")
-    val animatedSurfaceContainerHigh by animateColorAsState(targetValue = colorScheme.surfaceContainerHigh, label = "surfaceContainerHigh")
-    val animatedOnSurfaceVariant by animateColorAsState(targetValue = colorScheme.onSurfaceVariant, label = "onSurfaceVariant")
-
-    Box(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Surface(
-            modifier = Modifier
-                .width(200.dp)
-                .aspectRatio(0.46f),
-            color = animatedBg,
-            shape = RoundedCornerShape(32.dp),
-            border = BorderStroke(4.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(animatedPrimary))
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Box(modifier = Modifier.height(14.dp).width(80.dp).clip(RoundedCornerShape(4.dp)).background(animatedOnSurface))
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    repeat(3) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(animatedSurfaceContainerHigh))
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Box(modifier = Modifier.height(12.dp).width(100.dp).clip(RoundedCornerShape(4.dp)).background(animatedOnSurface))
-                                Box(modifier = Modifier.height(10.dp).width(60.dp).clip(RoundedCornerShape(4.dp)).background(animatedOnSurface.copy(alpha = 0.6f)))
-                            }
-                        }
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    color = animatedSecondaryContainer
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(animatedPrimaryContainer))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Box(modifier = Modifier.height(10.dp).width(60.dp).clip(RoundedCornerShape(4.dp)).background(animatedOnSecondaryContainer))
-                            Box(modifier = Modifier.height(8.dp).width(40.dp).clip(RoundedCornerShape(4.dp)).background(animatedOnSecondaryContainer.copy(alpha = 0.6f)))
-                        }
-                        Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(animatedOnSecondaryContainer))
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                }
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = animatedSurfaceContainer
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(modifier = Modifier.width(48.dp).height(24.dp).clip(RoundedCornerShape(12.dp)).background(animatedSecondaryContainer))
-                        Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(animatedOnSurfaceVariant))
-                        Box(modifier = Modifier.size(20.dp).clip(CircleShape).background(animatedOnSurfaceVariant))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ColorButtonMaterial(
-    seedColor: Int?,
-    isSelected: Boolean,
-    isDark: Boolean,
-    pureBlack: Boolean,
-    dynamicColor: Boolean,
-    trackDynamicColor: Boolean,
+private fun ColorEngineCard(
     colorStyle: String,
     colorSpec: String,
-    onClick: () -> Unit,
+    onStyleSelected: (String) -> Unit,
+    onSpecSelected: (String) -> Unit
 ) {
-    val colorScheme = if (seedColor == null) {
-        rememberSoundTuneColorScheme(
-            useDarkTheme = isDark,
-            dynamicColor = dynamicColor,
-            trackDynamicColor = trackDynamicColor,
-            pureBlack = pureBlack,
-            keyColor = 0,
-            colorStyle = colorStyle,
-            colorSpec = colorSpec,
-        )
-    } else null
+    val styles = listOf("System") + PaletteStyle.entries.map { it.name }
 
-    val rawHsv = remember(seedColor) { seedColor?.toHsv() }
-
-    val color1 = seedColor?.let { Color(it) } ?: Color.Transparent
-    val color2 = remember(rawHsv) {
-        if (rawHsv != null) {
-            Color(hsvToSeedArgb(
-                rawHsv[0],
-                (rawHsv[1] * 0.25f).coerceIn(0f, 1f),
-                (rawHsv[2] + (1f - rawHsv[2]) * 0.75f).coerceIn(0f, 1f)
-            ))
-        } else Color.Transparent
-    }
-    val color3 = remember(rawHsv) {
-        if (rawHsv != null) {
-            Color(hsvToSeedArgb(
-                rawHsv[0],
-                (rawHsv[1] * 0.6f).coerceIn(0f, 1f),
-                (rawHsv[2] + (1f - rawHsv[2]) * 0.35f).coerceIn(0f, 1f)
-            ))
-        } else Color.Transparent
-    }
-
-    val ringAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0f,
-        label = "ringAlpha"
-    )
-    val accentColor = if (seedColor != null) color1 else (colorScheme?.primary ?: Color.White)
-
-    Box(
-        modifier = Modifier.size(56.dp),
-        contentAlignment = Alignment.Center
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
-        if (isSelected) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .border(2.dp, accentColor.copy(alpha = ringAlpha), CircleShape)
-            )
-        }
-
-        Surface(
-            onClick = onClick,
-            shape = CircleShape,
-            modifier = Modifier.size(if (isSelected) 42.dp else 48.dp),
-            color = Color.Transparent
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            if (seedColor == null && colorScheme != null) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawArc(color = colorScheme.primary, startAngle = 180f, sweepAngle = 180f, useCenter = true)
-                    drawArc(color = colorScheme.tertiary, startAngle = 0f, sweepAngle = 90f, useCenter = true)
-                    drawArc(color = colorScheme.secondary, startAngle = 90f, sweepAngle = 90f, useCenter = true)
-                }
-            } else {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawArc(color = color1, startAngle = 180f, sweepAngle = 180f, useCenter = true)
-                    drawArc(color = color3, startAngle = 0f, sweepAngle = 90f, useCenter = true)
-                    drawArc(color = color2, startAngle = 90f, sweepAngle = 90f, useCenter = true)
+            Text(
+                text = stringResource(R.string.pref_color_generation_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // Palette Style
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.pref_color_style_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp)
+                ) {
+                    items(styles) { styleName ->
+                        val isSelected = styleName.equals(colorStyle, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onStyleSelected(styleName) },
+                            label = { Text(styleName, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            shape = CircleShape,
+                            leadingIcon = if (isSelected) {
+                                {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Check,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            )
+                        )
+                    }
                 }
             }
-        }
 
-        // Check badge at bottom-right (Android 16 style)
-        AnimatedVisibility(
-            visible = isSelected,
-            enter = fadeIn() + scaleIn(initialScale = 0.5f),
-            exit = fadeOut() + scaleOut(targetScale = 0.5f),
-            modifier = Modifier.align(Alignment.BottomEnd)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(accentColor)
-                    .border(1.5.dp, MaterialTheme.colorScheme.surface, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(12.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+            // Color Specification
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = stringResource(R.string.pref_color_spec_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                ExpressiveConnectedButtonGroup(
+                    options = MaterialKolorColorSpecOptions,
+                    selectedOption = colorSpec,
+                    onOptionSelected = onSpecSelected,
+                    fillMaxWidth = true,
+                    labelProvider = { spec ->
+                        Text(
+                            text = if (spec == "SPEC_2025") {
+                                stringResource(R.string.color_spec_2025_label)
+                            } else {
+                                stringResource(R.string.color_spec_2021_label)
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = if (spec == colorSpec) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 )
             }
         }
@@ -838,8 +964,10 @@ private fun ColorButtonMaterial(
 private fun Int.toHsv(): FloatArray =
     FloatArray(3).also { hsv -> AndroidColor.colorToHSV(this, hsv) }
 
-private fun hsvToSeedArgb(hue: Float, saturation: Float, value: Float): Int =
-    AndroidColor.HSVToColor(floatArrayOf(hue, saturation, value))
+private fun hsvToSeedArgb(hue: Float, saturation: Float, value: Float): Int {
+    val safeHue = if (hue >= 360f) 0f else hue.coerceIn(0f, 360f)
+    return AndroidColor.HSVToColor(floatArrayOf(safeHue, saturation.coerceIn(0f, 1f), value.coerceIn(0f, 1f)))
+}
 
 private fun Int.toSeedHex(): String =
     "#%06X".format(this and 0x00FFFFFF)
@@ -851,11 +979,4 @@ private fun parseHexSeedColor(input: String): Int? {
         val rgb = if (cleaned.length == 8) parsed and 0x00FFFFFF else parsed
         (0xFF000000 or rgb).toInt()
     }
-}
-
-@Composable
-fun surfaceColorAtElevation(elevation: androidx.compose.ui.unit.Dp): Color {
-    if (elevation == 0.dp) return MaterialTheme.colorScheme.surface
-    val alpha = ((4.5f * kotlin.math.ln(elevation.value + 1)) + 2f) / 100f
-    return androidx.compose.ui.graphics.lerp(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.primary, alpha)
 }

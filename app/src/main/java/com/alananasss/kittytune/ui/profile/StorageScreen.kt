@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.data.local.LocalPlaylist
 import com.alananasss.kittytune.data.local.LocalTrack
@@ -82,7 +84,7 @@ fun StorageScreen(
             text = { Text(deleteAction.message) },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         deleteAction.action()
                         showDeleteDialog = null
                     },
@@ -92,7 +94,7 @@ fun StorageScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null }) { Text(stringResource(R.string.btn_cancel)) }
+                TextButton(onClick = hapticAction(HapticKind.UI) { showDeleteDialog = null }) { Text(stringResource(R.string.btn_cancel)) }
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
         )
@@ -157,7 +159,7 @@ fun StorageScreen(
                                 title = stringResource(R.string.storage_downloaded_music),
                                 subtitle = stringResource(R.string.storage_downloaded_summary, count, size),
                                 icon = Icons.Rounded.DownloadDone,
-                                onClick = { onNavigateToDownloads(0) }
+                                onClick = hapticAction(HapticKind.UI) { onNavigateToDownloads(0) }
                             )
                         },
                         { shape ->
@@ -169,7 +171,7 @@ fun StorageScreen(
                                     playlistCount
                                 ),
                                 icon = Icons.Rounded.Folder,
-                                onClick = { onNavigateToDownloads(1) }
+                                onClick = hapticAction(HapticKind.UI) { onNavigateToDownloads(1) }
                             )
                         }
                     )
@@ -197,7 +199,7 @@ fun StorageScreen(
                                 formatSize = viewModel::formatSize,
                                 isDeletable = viewModel.downloadedCount > 0,
                                 // Card opens the dedicated downloads screen, trash deletes.
-                                onClick = { onNavigateToDownloads(0) },
+                                onClick = hapticAction(HapticKind.UI) { onNavigateToDownloads(0) },
                                 onDeleteClick = {
                                     showDeleteDialog = DeleteAction(
                                         context.getString(
@@ -219,7 +221,7 @@ fun StorageScreen(
                                 totalBytes = appStorageTotal,
                                 formatSize = viewModel::formatSize,
                                 isDeletable = viewModel.imageSize > 0L,
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     showDeleteDialog = DeleteAction(
                                         context.getString(R.string.dialog_clean_images_msg),
                                         { viewModel.cleanImages() }
@@ -237,7 +239,7 @@ fun StorageScreen(
                                 totalBytes = appStorageTotal,
                                 formatSize = viewModel::formatSize,
                                 isDeletable = viewModel.cacheSize > 0L,
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     showDeleteDialog = DeleteAction(
                                         context.getString(R.string.dialog_clean_cache_msg),
                                         { viewModel.cleanCache() }
@@ -398,7 +400,7 @@ fun StorageDownloadsScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         when (target) {
                             is StorageDeletionConfirmation.Track -> {
                                 viewModel.deleteTrack(target.track.id)
@@ -425,7 +427,7 @@ fun StorageDownloadsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDeletion = null }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { pendingDeletion = null }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             },
@@ -544,7 +546,7 @@ fun StorageDownloadsScreen(
                         },
                         trailingIcon = {
                             if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
+                                IconButton(onClick = hapticAction(HapticKind.UI) { searchQuery = "" }) {
                                     Icon(Icons.Outlined.Clear, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }

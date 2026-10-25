@@ -1,5 +1,6 @@
 package com.alananasss.kittytune.ui.profile
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -10,6 +11,8 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -28,7 +31,12 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -218,8 +226,8 @@ suspend fun saveCardForSharing(context: android.content.Context, bitmap: Bitmap)
 }
 
 /**
- * The share card as a dialog (mobile adaptation of the desktop's): a live preview of the card, a share
- * button that hands the picture and the artist's link to the system share sheet, and a copy-link button.
+ * The artist share dialog: a preview of the card plus the choice between the plain link (the default,
+ * what most people want to send) and the picture. Sharing a profile must never force the image.
  */
 @Composable
 fun ArtistShareDialog(
@@ -235,36 +243,46 @@ fun ArtistShareDialog(
         bitmap = ArtistShare.render(card, avatar)
     }
 
+    fun shareLink() {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, card.link)
+        }
+        context.startActivity(Intent.createChooser(send, context.getString(R.string.share_via)))
+    }
+
+    fun shareCard() {
+        val current = bitmap ?: return
+        scope.launch {
+            val file = saveCardForSharing(context, current) ?: return@launch
+            val uri = FileProvider.getUriForFile(context, context.packageName + ".provider", file)
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_TEXT, card.link)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(send, context.getString(R.string.share_via)))
+            onDismiss()
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            Button(
-                onClick = {
-                    val current = bitmap
-                    scope.launch {
-                        if (current != null) {
-                            val file = saveCardForSharing(context, current)
-                            if (file != null) {
-                                val uri = androidx.core.content.FileProvider.getUriForFile(
-                            context, context.packageName + ".provider", file
-                        )
-                                val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                    type = "image/png"
-                                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
-                                    putExtra(android.content.Intent.EXTRA_TEXT, card.link)
-                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(
-                                    android.content.Intent.createChooser(
-                                        send, context.getString(R.string.share_via)
-                                    )
-                                )
-                            }
-                        }
-                        onDismiss()
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (bitmap != null) {
+                    TextButton(onClick = hapticAction(HapticKind.UI) { shareCard() }) {
+                        Text(stringResource(R.string.share_card_send))
                     }
                 }
-            ) { Text(stringResource(R.string.btn_share)) }
+                Button(
+                    onClick = hapticAction(HapticKind.UI) {
+                        shareLink()
+                        onDismiss()
+                    }
+                ) { Text(stringResource(R.string.share_link)) }
+            }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {

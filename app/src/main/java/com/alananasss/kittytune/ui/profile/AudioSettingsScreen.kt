@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.TokenManager
 import com.alananasss.kittytune.data.local.PlayerPreferences
 import com.alananasss.kittytune.ui.common.AutoScrollToHighlightedItem
@@ -35,6 +37,7 @@ import com.alananasss.kittytune.ui.common.SplitSettingsItem
 import com.alananasss.kittytune.ui.common.getSettingsShape
 import com.alananasss.kittytune.ui.player.PlayerViewModel
 import com.alananasss.kittytune.ui.player.audio.EqualizerSheet
+import kotlin.math.roundToInt
 
 /**
  * The Audio category folder hub:
@@ -210,22 +213,15 @@ fun AudioPlaybackSettingsScreen(
 fun AudioQualitySettingsScreen(
     onBackClick: () -> Unit,
     onNavigateToDrmExplanation: () -> Unit,
+    onNavigateToEqualizer: () -> Unit,
     playerViewModel: PlayerViewModel
 ) {
     val context = LocalContext.current
     val prefs = remember { PlayerPreferences(context) }
     var downloadDrmEnabled by remember { mutableStateOf(prefs.getDownloadDrmStreamsEnabled()) }
 
-    var showEqualizerSheet by remember { mutableStateOf(false) }
     var showNormalizationDialog by remember { mutableStateOf(false) }
     var showNormalizationInfoDialog by remember { mutableStateOf(false) }
-
-    if (showEqualizerSheet) {
-        EqualizerSheet(
-            viewModel = playerViewModel,
-            onDismiss = { showEqualizerSheet = false }
-        )
-    }
 
     if (showNormalizationDialog) {
         AlertDialog(
@@ -241,7 +237,7 @@ fun AudioQualitySettingsScreen(
                             .padding(horizontal = 32.dp)
                     )
                     IconButton(
-                        onClick = { showNormalizationInfoDialog = true },
+                        onClick = hapticAction(HapticKind.UI) { showNormalizationInfoDialog = true },
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .size(32.dp),
@@ -294,7 +290,7 @@ fun AudioQualitySettingsScreen(
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { showNormalizationDialog = false }) { Text(stringResource(R.string.btn_ok)) } }
+            confirmButton = { TextButton(onClick = hapticAction(HapticKind.UI) { showNormalizationDialog = false }) { Text(stringResource(R.string.btn_ok)) } }
         )
     }
 
@@ -330,7 +326,7 @@ fun AudioQualitySettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showNormalizationInfoDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showNormalizationInfoDialog = false }) {
                     Text(stringResource(R.string.btn_ok))
                 }
             }
@@ -375,7 +371,7 @@ fun AudioQualitySettingsScreen(
                             } else {
                                 stringResource(R.string.equalizer_subtitle)
                             },
-                            onClick = { showEqualizerSheet = true },
+                            onClick = hapticAction(HapticKind.UI) { onNavigateToEqualizer() },
                             switchState = playerViewModel.equalizerState.isEnabled,
                             onSwitchChange = { playerViewModel.toggleEqualizer() },
                             highlightKey = "equalizer"
@@ -395,7 +391,7 @@ fun AudioQualitySettingsScreen(
                             shape = getSettingsShape(totalVisibleItems, 2),
                             title = stringResource(R.string.pref_norm_title),
                             subtitle = stringResource(R.string.pref_norm_sub),
-                            onClick = { showNormalizationDialog = true },
+                            onClick = hapticAction(HapticKind.UI) { showNormalizationDialog = true },
                             switchState = playerViewModel.effectsState.isNormalizationEnabled,
                             onSwitchChange = { playerViewModel.toggleNormalization() },
                             highlightKey = "pref_norm"
@@ -441,6 +437,7 @@ fun AudioTransitionsSettingsScreen(
     var automixDynamicMix by remember { mutableStateOf(prefs.getAutomixDynamicMixPointsEnabled()) }
     var automixBassDucking by remember { mutableStateOf(prefs.getAutomixBassDuckingEnabled()) }
     var automixOverlapMode by remember { mutableStateOf(prefs.getAutomixOverlapMode()) }
+    var automixOverlapCustomSec by remember { mutableStateOf(prefs.getAutomixOverlapCustomSec()) }
     var automixStartOffsetMode by remember { mutableStateOf(prefs.getAutomixStartOffsetMode()) }
     var automixStartOffsetCustomSec by remember { mutableStateOf(prefs.getAutomixStartOffsetCustomSec()) }
     var automixIndicator by remember { mutableStateOf(prefs.getAutomixIndicatorEnabled()) }
@@ -473,7 +470,7 @@ fun AudioTransitionsSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showCrossfadeDurationDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showCrossfadeDurationDialog = false }) {
                     Text(stringResource(R.string.btn_ok))
                 }
             }
@@ -481,12 +478,14 @@ fun AudioTransitionsSettingsScreen(
     }
 
     if (showAutomixOverlapDialog) {
+        var tempMode by remember { mutableStateOf(automixOverlapMode) }
+        var tempCustomSec by remember { mutableStateOf(automixOverlapCustomSec) }
         val overlapOptions = listOf(
-            0 to stringResource(R.string.automix_overlap_auto),
-            1 to stringResource(R.string.automix_overlap_2bars),
-            2 to stringResource(R.string.automix_overlap_4bars),
-            3 to stringResource(R.string.automix_overlap_8bars),
-            4 to stringResource(R.string.automix_overlap_custom)
+            PlayerPreferences.AUTOMIX_OVERLAP_AUTO to stringResource(R.string.automix_overlap_auto),
+            PlayerPreferences.AUTOMIX_OVERLAP_2BARS to stringResource(R.string.automix_overlap_2bars),
+            PlayerPreferences.AUTOMIX_OVERLAP_4BARS to stringResource(R.string.automix_overlap_4bars),
+            PlayerPreferences.AUTOMIX_OVERLAP_8BARS to stringResource(R.string.automix_overlap_8bars),
+            PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM to stringResource(R.string.automix_overlap_custom)
         )
         AlertDialog(
             onDismissRequest = { showAutomixOverlapDialog = false },
@@ -497,26 +496,51 @@ fun AudioTransitionsSettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable {
-                                    automixOverlapMode = mode
-                                    prefs.setAutomixOverlapMode(mode)
-                                    showAutomixOverlapDialog = false
-                                }
-                                .padding(vertical = 12.dp),
+                                .clickable { tempMode = mode }
+                                .padding(vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(
-                                selected = automixOverlapMode == mode,
+                                selected = tempMode == mode,
                                 onClick = null
                             )
                             Spacer(Modifier.width(8.dp))
                             Text(label, fontWeight = FontWeight.Normal)
                         }
                     }
+                    if (tempMode == PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.automix_overlap_custom_value, tempCustomSec),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Slider(
+                            value = tempCustomSec.toFloat(),
+                            onValueChange = { tempCustomSec = it.roundToInt() },
+                            valueRange = 1f..30f,
+                            steps = 28,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showAutomixOverlapDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
+                    automixOverlapMode = tempMode
+                    automixOverlapCustomSec = tempCustomSec
+                    prefs.setAutomixOverlapMode(tempMode)
+                    prefs.setAutomixOverlapCustomSec(tempCustomSec)
+                    com.alananasss.kittytune.audio.automix.AutomixManager.clearPlan()
+                    showAutomixOverlapDialog = false
+                }) {
+                    Text(stringResource(R.string.btn_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showAutomixOverlapDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -578,7 +602,7 @@ fun AudioTransitionsSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(onClick = hapticAction(HapticKind.UI) {
                     automixStartOffsetMode = tempMode
                     automixStartOffsetCustomSec = tempCustomSec
                     prefs.setAutomixStartOffsetMode(tempMode)
@@ -590,7 +614,7 @@ fun AudioTransitionsSettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAutomixStartOffsetDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showAutomixStartOffsetDialog = false }) {
                     Text(stringResource(R.string.btn_cancel))
                 }
             }
@@ -656,7 +680,7 @@ fun AudioTransitionsSettingsScreen(
                                     shape = RoundedCornerShape(4.dp),
                                     title = stringResource(R.string.label_duration),
                                     subtitle = "${crossfadeDuration}s",
-                                    onClick = { showCrossfadeDurationDialog = true }
+                                    onClick = hapticAction(HapticKind.UI) { showCrossfadeDurationDialog = true }
                                 )
                                 SettingsItem(
                                     shape = RoundedCornerShape(4.dp),
@@ -693,10 +717,10 @@ fun AudioTransitionsSettingsScreen(
 
             item {
                 val automixOverlapLabel = when (automixOverlapMode) {
-                    1 -> stringResource(R.string.automix_overlap_2bars)
-                    2 -> stringResource(R.string.automix_overlap_4bars)
-                    3 -> stringResource(R.string.automix_overlap_8bars)
-                    4 -> stringResource(R.string.automix_overlap_custom)
+                    PlayerPreferences.AUTOMIX_OVERLAP_2BARS -> stringResource(R.string.automix_overlap_2bars)
+                    PlayerPreferences.AUTOMIX_OVERLAP_4BARS -> stringResource(R.string.automix_overlap_4bars)
+                    PlayerPreferences.AUTOMIX_OVERLAP_8BARS -> stringResource(R.string.automix_overlap_8bars)
+                    PlayerPreferences.AUTOMIX_OVERLAP_CUSTOM -> "${stringResource(R.string.automix_overlap_custom)} (${automixOverlapCustomSec}s)"
                     else -> stringResource(R.string.automix_overlap_auto)
                 }
                 val automixStartOffsetLabel = when (automixStartOffsetMode) {
@@ -726,9 +750,16 @@ fun AudioTransitionsSettingsScreen(
                             subtitle = stringResource(R.string.automix_desc),
                             hasSwitch = true,
                             switchState = automixEnabled,
-                            onSwitchChange = { 
+                            onSwitchChange = {
                                 automixEnabled = it
                                 prefs.setAutomixEnabled(it)
+                                if (it) {
+                                    crossfadeEnabled = true
+                                    prefs.setCrossfadeEnabled(true)
+                                } else {
+                                    automixDebugOverlay = false
+                                    prefs.setAutomixDebugOverlayEnabled(false)
+                                }
                             },
                             highlightKey = "pref_automix"
                         )
@@ -743,13 +774,13 @@ fun AudioTransitionsSettingsScreen(
                                     shape = RoundedCornerShape(4.dp),
                                     title = stringResource(R.string.automix_overlap_mode),
                                     subtitle = automixOverlapLabel,
-                                    onClick = { showAutomixOverlapDialog = true }
+                                    onClick = hapticAction(HapticKind.UI) { showAutomixOverlapDialog = true }
                                 )
                                 SettingsItem(
                                     shape = RoundedCornerShape(4.dp),
                                     title = stringResource(R.string.automix_start_offset),
                                     subtitle = automixStartOffsetLabel,
-                                    onClick = { showAutomixStartOffsetDialog = true }
+                                    onClick = hapticAction(HapticKind.UI) { showAutomixStartOffsetDialog = true }
                                 )
                                 SettingsItem(
                                     shape = RoundedCornerShape(4.dp),
@@ -796,7 +827,12 @@ fun AudioTransitionsSettingsScreen(
                                     }
                                 )
                                 SettingsItem(
-                                    shape = RoundedCornerShape(4.dp),
+                                    shape = RoundedCornerShape(
+                                        topStart = 4.dp,
+                                        topEnd = 4.dp,
+                                        bottomStart = 24.dp,
+                                        bottomEnd = 24.dp
+                                    ),
                                     title = stringResource(R.string.pref_automix_indicator_title),
                                     subtitle = stringResource(R.string.pref_automix_indicator_desc),
                                     hasSwitch = true,
@@ -804,22 +840,6 @@ fun AudioTransitionsSettingsScreen(
                                     onSwitchChange = {
                                         automixIndicator = it
                                         prefs.setAutomixIndicatorEnabled(it)
-                                    }
-                                )
-                                SettingsItem(
-                                    shape = RoundedCornerShape(
-                                        topStart = 4.dp,
-                                        topEnd = 4.dp,
-                                        bottomStart = 24.dp,
-                                        bottomEnd = 24.dp
-                                    ),
-                                    title = stringResource(R.string.automix_debug),
-                                    subtitle = stringResource(R.string.automix_debug_desc),
-                                    hasSwitch = true,
-                                    switchState = automixDebugOverlay,
-                                    onSwitchChange = {
-                                        automixDebugOverlay = it
-                                        prefs.setAutomixDebugOverlayEnabled(it)
                                     }
                                 )
                             }
@@ -870,7 +890,7 @@ fun AudioSleepTimerSettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showFadeDurationDialog = false }) {
+                TextButton(onClick = hapticAction(HapticKind.UI) { showFadeDurationDialog = false }) {
                     Text(stringResource(R.string.btn_ok))
                 }
             }
@@ -939,7 +959,7 @@ fun AudioSleepTimerSettingsScreen(
                                 ),
                                 title = stringResource(R.string.label_duration),
                                 subtitle = stringResource(R.string.sleep_timer_fade_subtitle, fadeDuration),
-                                onClick = { showFadeDurationDialog = true }
+                                onClick = hapticAction(HapticKind.UI) { showFadeDurationDialog = true }
                             )
                         }
                     }

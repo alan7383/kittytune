@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.alananasss.kittytune.audio.haptics.performAppHaptic
 import com.alananasss.kittytune.R
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import com.alananasss.kittytune.ui.common.SettingsScaffold
@@ -279,7 +280,7 @@ fun CreditsScreen(
                         ContributorCard(
                             person = person,
                             onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                                 uriHandler.openUri(person.url)
                             }
                         )
@@ -301,7 +302,7 @@ fun CreditsScreen(
                         ContributorCard(
                             person = person,
                             onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                                 uriHandler.openUri(person.url)
                             }
                         )
@@ -323,7 +324,7 @@ fun CreditsScreen(
                         ContributorCard(
                             person = person,
                             onClick = {
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                                 uriHandler.openUri(person.url)
                             }
                         )
@@ -335,7 +336,7 @@ fun CreditsScreen(
                     ContributorCard(
                         person = person,
                         onClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                             uriHandler.openUri(person.url)
                         }
                     )
@@ -362,7 +363,7 @@ fun CreditsScreen(
                     subtitle = stringResource(R.string.about_credits_crowdin_desc),
                     badge = "Crowdin",
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         uriHandler.openUri("https://crowdin.com/project/kittytune")
                     }
                 )
@@ -376,7 +377,7 @@ fun CreditsScreen(
                     subtitle = stringResource(R.string.about_credits_github_desc),
                     badge = "GitHub",
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         uriHandler.openUri("https://github.com/alan7383/kittytune")
                     }
                 )
@@ -390,7 +391,7 @@ fun CreditsScreen(
                     subtitle = stringResource(R.string.about_credits_kofi_desc),
                     badge = "Ko-fi",
                     onClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        view.performAppHaptic(HapticFeedbackConstants.VIRTUAL_KEY)
                         uriHandler.openUri("https://ko-fi.com/alan7383")
                     }
                 )

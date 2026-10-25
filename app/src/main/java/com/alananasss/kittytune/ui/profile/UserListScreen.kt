@@ -25,6 +25,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.domain.User
 import com.alananasss.kittytune.ui.common.ExpressiveConnectedButtonGroup
 import java.text.NumberFormat
@@ -181,7 +184,7 @@ fun UserListScreen(
                             viewModel.loadMore()
                         }
                     }
-                    UserRow(user = user, onClick = { onUserClick(user.numericId) })
+                    UserRow(user = user, onClick = hapticAction(HapticKind.UI) { onUserClick(user.numericId) })
                 }
 
                 if (viewModel.isLoadingMore) {
@@ -201,7 +204,7 @@ fun UserRow(user: User, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .hapticClickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

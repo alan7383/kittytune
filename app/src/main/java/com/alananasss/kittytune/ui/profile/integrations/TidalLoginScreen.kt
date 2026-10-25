@@ -36,6 +36,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.audio.providers.tidal.extractTidalRefreshToken
 import com.alananasss.kittytune.audio.providers.tidal.mergeTidalCookieInputs
 import com.alananasss.kittytune.data.local.PlayerPreferences
@@ -362,7 +365,7 @@ fun TidalLoginScreen(
                 title = { Text(stringResource(R.string.tidal_web_login)) },
                 navigationIcon = {
                     FilledTonalIconButton(
-                        onClick = {
+                        onClick = hapticAction(HapticKind.UI) {
                             captureAuth(showConfirmation = false) {
                                 onBackClick()
                             }
@@ -378,7 +381,7 @@ fun TidalLoginScreen(
                 },
                 actions = {
                     FilledTonalIconButton(
-                        onClick = {
+                        onClick = hapticAction(HapticKind.UI) {
                             captureAuth(showConfirmation = true) {
                                 onBackClick()
                             }
@@ -524,7 +527,7 @@ fun TidalLoginScreen(
                             factory = { popup }
                         )
                         FilledTonalIconButton(
-                            onClick = {
+                            onClick = hapticAction(HapticKind.UI) {
                                 popupWebView = null
                                 captureAuth(showConfirmation = true)
                             },

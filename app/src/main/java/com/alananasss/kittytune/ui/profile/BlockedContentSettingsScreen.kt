@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.BlockManager
 import com.alananasss.kittytune.data.local.AiDetectionWindow
 import com.alananasss.kittytune.data.local.BlockedContent
@@ -117,7 +120,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         BlockManager.unblockTrack(trackToUnblock!!.trackId!!)
                         trackToUnblock = null
                     },
@@ -126,7 +129,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { trackToUnblock = null },
+                    onClick = hapticAction(HapticKind.UI) { trackToUnblock = null },
                     shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
@@ -170,7 +173,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         BlockManager.unblockArtist(artistToUnblock!!.artistId!!)
                         artistToUnblock = null
                     },
@@ -179,7 +182,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { artistToUnblock = null },
+                    onClick = hapticAction(HapticKind.UI) { artistToUnblock = null },
                     shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
@@ -223,7 +226,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         blockedTracks.forEach { it.trackId?.let { id -> BlockManager.unblockTrack(id) } }
                         blockedArtists.forEach { it.artistId?.let { id -> BlockManager.unblockArtist(id) } }
                         showClearAllDialog = false
@@ -233,7 +236,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showClearAllDialog = false },
+                    onClick = hapticAction(HapticKind.UI) { showClearAllDialog = false },
                     shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
@@ -277,7 +280,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         showDownloadPromptDialog = false
                         com.alananasss.kittytune.audio.ai.AiDetectionManager.downloadModel(context)
                     },
@@ -286,7 +289,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDownloadPromptDialog = false },
+                    onClick = hapticAction(HapticKind.UI) { showDownloadPromptDialog = false },
                     shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
@@ -330,7 +333,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             confirmButton = {
                 Button(
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         com.alananasss.kittytune.audio.ai.AiDetectionManager.deleteModel(context)
                         aiAutoSkip = false
                         prefs.aiAutoSkip = false
@@ -343,7 +346,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showDeleteModelDialog = false },
+                    onClick = hapticAction(HapticKind.UI) { showDeleteModelDialog = false },
                     shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.btn_cancel)) }
             }
@@ -405,9 +408,10 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(20.dp))
-                                .clickable {
+                                .hapticClickable {
                                     aiWindow = option
                                     prefs.aiDetectionWindow = option
+                                    com.alananasss.kittytune.audio.ai.AiDetectionManager.trackVerdictCache.clear()
                                     showAiWindowDialog = false
                                 },
                             shape = RoundedCornerShape(20.dp),
@@ -452,7 +456,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
             },
             confirmButton = {
                 TextButton(
-                    onClick = { showAiWindowDialog = false },
+                    onClick = hapticAction(HapticKind.UI) { showAiWindowDialog = false },
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(
@@ -469,7 +473,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
         onBackClick = onBackClick,
         actions = {
             if (blockedTracks.isNotEmpty() || blockedArtists.isNotEmpty()) {
-                IconButton(onClick = { showClearAllDialog = true }) {
+                IconButton(onClick = hapticAction(HapticKind.UI) { showClearAllDialog = true }) {
                     Icon(Icons.Rounded.DeleteSweep, stringResource(R.string.block_clear_all_title),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -582,7 +586,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                                         bottomStart = 24.dp,
                                         bottomEnd = 24.dp
                                     ),
-                                    title = stringResource(R.string.block_ai_threshold),
+                                    title = stringResource(R.string.block_ai_threshold, pct),
                                     subtitle = stringResource(R.string.block_ai_threshold_sub, pct),
                                     icon = Icons.Rounded.Tune,
                                     hasSlider = true,
@@ -604,7 +608,7 @@ fun BlockedContentSettingsScreen(onBackClick: () -> Unit) {
                         title = stringResource(R.string.block_ai_window_title),
                         subtitle = stringResource(aiWindow.titleRes),
                         icon = Icons.Rounded.Speed,
-                        onClick = { showAiWindowDialog = true },
+                        onClick = hapticAction(HapticKind.UI) { showAiWindowDialog = true },
                         highlightKey = "ai_detection_window"
                     )
 

@@ -39,11 +39,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
 import com.alananasss.kittytune.data.sync.ConnectManager
 import com.alananasss.kittytune.data.sync.ConnectPlatform
 import com.alananasss.kittytune.data.sync.SyncPeers
 import com.alananasss.kittytune.ui.common.KittyModalBottomSheet
 import kotlin.math.roundToInt
+
+@Composable
+fun ConnectDialog(onDismissRequest: () -> Unit) {
+    PlaybackDevicesSheet(onDismissRequest = onDismissRequest)
+}
 
 @Composable
 fun ConnectButton(
@@ -57,7 +64,7 @@ fun ConnectButton(
     val buttonTint = if (isRemoteActive) MaterialTheme.colorScheme.primary else tint
 
     IconButton(
-        onClick = {
+        onClick = hapticAction(HapticKind.UI) {
             if (onClick != null) onClick() else opened = true
         },
         modifier = modifier
@@ -156,7 +163,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = { onClose?.invoke() }) {
+            IconButton(onClick = hapticAction(HapticKind.UI) { onClose?.invoke() }) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = stringResource(R.string.btn_close),
@@ -172,7 +179,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            IconButton(onClick = { showSettings = !showSettings }) {
+            IconButton(onClick = hapticAction(HapticKind.UI) { showSettings = !showSettings }) {
                 Icon(
                     imageVector = Icons.Rounded.Settings,
                     contentDescription = stringResource(R.string.settings_title),
@@ -216,7 +223,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
             )
 
             // Active & Available Devices
-            val known = SyncPeers.all()
+            val known = remember(peers, showSyncScreen) { SyncPeers.all() }
             val isLocalActive = selected == null
 
             // --- LOCAL DEVICE ("Ce téléphone") ---
@@ -232,7 +239,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
                 isOnline = true,
                 isEnabled = !busy,
                 isLoading = busy && isLocalActive,
-                onClick = {
+                onClick = hapticAction(HapticKind.UI) {
                     if (!independent && selected != null) {
                         ConnectManager.switchOutput(null)
                     }
@@ -262,7 +269,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
                     isOnline = live?.connected == true,
                     isEnabled = !busy && !independent && live?.connected == true,
                     isLoading = busy && isCurrentPeerActive,
-                    onClick = {
+                    onClick = hapticAction(HapticKind.UI) {
                         ConnectManager.switchOutput(peer.deviceId)
                     }
                 )
@@ -301,7 +308,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
                             textAlign = TextAlign.Center
                         )
                         FilledTonalButton(
-                            onClick = { showSyncScreen = true },
+                            onClick = hapticAction(HapticKind.UI) { showSyncScreen = true },
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(
@@ -317,7 +324,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
             } else {
                 // Button to pair more devices
                 TextButton(
-                    onClick = { showSyncScreen = true },
+                    onClick = hapticAction(HapticKind.UI) { showSyncScreen = true },
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     Icon(
@@ -497,7 +504,7 @@ fun ConnectPanel(onClose: (() -> Unit)? = null) {
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Button(
-                                    onClick = {
+                                    onClick = hapticAction(HapticKind.UI) {
                                         runCatching { ConnectManager.relayUrl = url }.onFailure {
                                             error = "error"
                                         }
@@ -624,7 +631,7 @@ private fun SpotifyDeviceRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    if (!isActive) {
+                    if (!isActive && isOnline) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
                             contentDescription = null,
