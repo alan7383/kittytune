@@ -32,6 +32,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 import com.alananasss.kittytune.data.DownloadManager
 import com.alananasss.kittytune.ui.library.TrackListItem
 import com.alananasss.kittytune.ui.player.PlayerViewModel
@@ -87,7 +90,7 @@ fun TagScreen(
                     actions = {
                         if (currentTracks.isNotEmpty()) {
                             FilledTonalIconButton(
-                                onClick = {
+                                onClick = hapticAction(HapticKind.UI) {
                                     playerViewModel.prepareBulkAdd(currentTracks)
                                 },
                                 shapes = IconButtonDefaults.shapes(),
@@ -115,12 +118,12 @@ fun TagScreen(
                 ) {
                     Tab(
                         selected = tagViewModel.selectedTabIndex == 0,
-                        onClick = { tagViewModel.onTabSelected(0) },
+                        onClick = hapticAction(HapticKind.UI) { tagViewModel.onTabSelected(0) },
                         text = { Text(stringResource(R.string.profile_tab_popular)) }
                     )
                     Tab(
                         selected = tagViewModel.selectedTabIndex == 1,
-                        onClick = { tagViewModel.onTabSelected(1) },
+                        onClick = hapticAction(HapticKind.UI) { tagViewModel.onTabSelected(1) },
                         text = { Text(stringResource(R.string.profile_latest_tracks)) }
                     )
                 }
@@ -182,10 +185,10 @@ fun TagScreen(
                                         isDownloading = progress != null,
                                         isDownloaded = isDownloaded,
                                         downloadProgress = progress ?: 0,
-                                        onClick = {
+                                        onClick = hapticAction(HapticKind.UI) {
                                             playerViewModel.playPlaylist(currentTracks.toList(), index, context = null)
                                         },
-                                        onOptionClick = { playerViewModel.showTrackOptions(track) }
+                                        onOptionClick = hapticAction(HapticKind.UI) { playerViewModel.showTrackOptions(track) }
                                     )
                                 }
                             }

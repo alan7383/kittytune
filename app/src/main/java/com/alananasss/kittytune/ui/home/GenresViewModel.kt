@@ -20,6 +20,16 @@
             prefs.setExplorerGridLayout(next)
         }
 
+        val officialCategories = homeViewModel.visualCategories
+
+        val manualCategories: List<com.alananasss.kittytune.data.SearchCategory> = run {
+            val officialIds = officialCategories.map { it.id }.toSet()
+            (homeViewModel.moodCategories + homeViewModel.genreCategories)
+                .filter { it.id !in officialIds && it.artworkUrl.isNullOrBlank() }
+                .distinctBy { it.id }
+                .sortedBy { it.title }
+        }
+
         val moodCategories = homeViewModel.moodCategories
         val genreCategories = homeViewModel.genreCategories
     }

@@ -23,6 +23,9 @@
     import androidx.compose.ui.unit.dp
     import androidx.lifecycle.viewmodel.compose.viewModel
     import com.alananasss.kittytune.R
+import com.alananasss.kittytune.ui.common.HapticKind
+import com.alananasss.kittytune.ui.common.hapticAction
+import com.alananasss.kittytune.ui.common.hapticClickable
 
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
     @Composable
@@ -53,7 +56,7 @@
                     },
                     actions = {
                         FilledTonalIconButton(
-                            onClick = { viewModel.toggleLayout() },
+                            onClick = hapticAction(HapticKind.UI) { viewModel.toggleLayout() },
                             shapes = IconButtonDefaults.shapes(),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -84,39 +87,41 @@
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // moods section
+                // Official SoundCloud genres / categories (with official logos)
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Text(
-                        text = stringResource(R.string.search_section_moods),
+                        text = stringResource(R.string.search_section_genres),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.ExtraBold,
                         modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
                     )
                 }
 
-                items(viewModel.moodCategories) { category ->
-                    SearchCategoryCard(category = category, isSquare = viewModel.isGridLayout) {
-                        val encodedTitle = Uri.encode(category.title)
-                        val encodedQuery = Uri.encode(category.query)
-                        onNavigate("genre_playlists/$encodedTitle/$encodedQuery")
-                    }
-                }
-
-                // genres section
-                item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        text = stringResource(R.string.search_section_genres),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
-                    )
-                }
-
-                items(viewModel.genreCategories) { category ->
-                    SearchCategoryCard(category = category, isSquare = viewModel.isGridLayout) {
+                items(viewModel.officialCategories) { category ->
+                    SearchCategoryCard(category = category) {
                         val encodedTitle = Uri.encode(category.title)
                         val encodedQuery = Uri.encode(category.query)
                         onNavigate("genre_detail/$encodedTitle/$encodedQuery")
+                    }
+                }
+
+                // Manual / custom categories (the ones created with icons)
+                if (viewModel.manualCategories.isNotEmpty()) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            text = stringResource(R.string.search_section_other_genres),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+                        )
+                    }
+
+                    items(viewModel.manualCategories) { category ->
+                        SearchCategoryCard(category = category) {
+                            val encodedTitle = Uri.encode(category.title)
+                            val encodedQuery = Uri.encode(category.query)
+                            onNavigate("genre_detail/$encodedTitle/$encodedQuery")
+                        }
                     }
                 }
             }
