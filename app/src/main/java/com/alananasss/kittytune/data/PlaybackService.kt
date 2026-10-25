@@ -316,8 +316,15 @@ class PlaybackService : MediaLibraryService() {
                     .build()
             }
             NotificationExtraButton.HAPTICS -> {
+                // The button is a switch: it says which state it puts the haptics in.
+                val hapticsOn = prefs.getHapticsEnabled()
                 CommandButton.Builder()
-                    .setDisplayName(getString(R.string.notif_btn_haptics))
+                    .setDisplayName(
+                        getString(
+                            if (hapticsOn) R.string.notif_btn_haptics_on
+                            else R.string.notif_btn_haptics_off
+                        )
+                    )
                     .setIconResId(R.drawable.ic_vibration)
                     .setSessionCommand(SessionCommand(CUSTOM_ACTION_HAPTICS, Bundle.EMPTY))
                     .setEnabled(true)
@@ -367,6 +374,7 @@ class PlaybackService : MediaLibraryService() {
             player.stop()
             player.clearMediaItems()
             MusicManager.currentTrack = null
+            MusicManager.updateRainPlayback()
             MusicWidget.update(this)
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -455,11 +463,16 @@ class PlaybackService : MediaLibraryService() {
                         networkFetchAttemptedForMediaId = mediaId
                         withContext(Dispatchers.IO) {
                             try {
-                                val provider = com.alananasss.kittytune.data.lyrics.providers.LyricsProviders.get(
-                                    com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.BETTER_LYRICS
-                                ) ?: com.alananasss.kittytune.data.lyrics.providers.LyricsProviders.get(
-                                    com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.LRCLIB
+                                val automotiveSources = DataSaver.restrictLyricsProviders(
+                                    this@PlaybackService,
+                                    listOf(
+                                        com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.BETTER_LYRICS,
+                                        com.alananasss.kittytune.data.lyrics.providers.PreferredLyricsProvider.LRCLIB,
+                                    ),
                                 )
+                                val provider = automotiveSources.firstOrNull()?.let {
+                                    com.alananasss.kittytune.data.lyrics.providers.LyricsProviders.get(it)
+                                }
                                 val durationSec = ((currentTrack.durationMs ?: 0L) / 1000L).toInt()
                                 val res = provider?.getLyrics(
                                     id = currentTrack.id.toString(),
