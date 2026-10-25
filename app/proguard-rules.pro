@@ -95,6 +95,7 @@
 -keep class com.alananasss.kittytune.data.CachedArtistProfile { *; }
 -keep class com.alananasss.kittytune.data.ArtistProfileCache** { *; }
 -keep class com.alananasss.kittytune.data.search.** { *; }
+-keep enum com.alananasss.kittytune.data.search.RecentVisits$Kind { *; }
 -keep class com.alananasss.kittytune.domain.Safe*Adapter { *; }
 -keep class com.alananasss.kittytune.ui.**.**Model* { *; }
 -keep class com.alananasss.kittytune.audio.providers.** { *; }

@@ -18,22 +18,38 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 object RecentVisits {
 
-    enum class Kind { ARTIST, TRACK, PLAYLIST }
+    enum class Kind {
+        @SerializedName("ARTIST", alternate = ["artist", "Artist"])
+        ARTIST,
+        @SerializedName("TRACK", alternate = ["track", "Track"])
+        TRACK,
+        @SerializedName("PLAYLIST", alternate = ["playlist", "Playlist"])
+        PLAYLIST;
+
+        companion object {
+            fun from(raw: String?): Kind? = when (raw?.trim()?.uppercase()) {
+                "ARTIST" -> ARTIST
+                "TRACK" -> TRACK
+                "PLAYLIST" -> PLAYLIST
+                else -> null
+            }
+        }
+    }
 
     /**
      * @param destination where an artist or a playlist opens, as `navigateToPlaylistId` takes it.
      * @param track the track itself, for a track, played straight from the list.
      */
     data class Visit(
-        @SerializedName("kind") val kind: Kind,
-        @SerializedName("key") val key: String,
-        @SerializedName("title") val title: String,
-        @SerializedName("subtitle") val subtitle: String?,
-        @SerializedName("imageUrl", alternate = ["image_url"]) val imageUrl: String?,
-        @SerializedName("destination") val destination: String?,
-        @SerializedName("track") val track: Track?,
-        @SerializedName("isVerified", alternate = ["is_verified"]) val isVerified: Boolean,
-        @SerializedName("at") val at: Long,
+        @SerializedName("kind") val kind: Kind? = null,
+        @SerializedName("key") val key: String? = null,
+        @SerializedName("title") val title: String? = null,
+        @SerializedName("subtitle") val subtitle: String? = null,
+        @SerializedName("imageUrl", alternate = ["image_url"]) val imageUrl: String? = null,
+        @SerializedName("destination") val destination: String? = null,
+        @SerializedName("track") val track: Track? = null,
+        @SerializedName("isVerified", alternate = ["is_verified"]) val isVerified: Boolean = false,
+        @SerializedName("at") val at: Long = 0L,
     )
 
     private const val PREFS_NAME = "search_memory"
@@ -50,12 +66,20 @@ object RecentVisits {
     val visits: StateFlow<List<Visit>> = _visits.asStateFlow()
 
     fun record(visit: Visit) {
-        val updated = (listOf(visit) + _visits.value.filterNot { it.kind == visit.kind && it.key == visit.key })
+        val kind = visit.kind ?: return
+        val key = visit.key?.takeIf { it.isNotBlank() } ?: return
+        val title = visit.title?.takeIf { it.isNotBlank() } ?: return
+        val sanitized = visit.copy(kind = kind, key = key, title = title)
+        val updated = (listOf(sanitized) + _visits.value.filterNot { it.kind == kind && it.key == key })
             .take(MAX_VISITS)
         save(updated)
     }
 
-    fun forget(visit: Visit) = save(_visits.value.filterNot { it.kind == visit.kind && it.key == visit.key })
+    fun forget(visit: Visit) {
+        val kind = visit.kind ?: return
+        val key = visit.key ?: return
+        save(_visits.value.filterNot { it.kind == kind && it.key == key })
+    }
 
     fun clear() = save(emptyList())
 
@@ -64,13 +88,45 @@ object RecentVisits {
         getPrefs()?.edit()?.putString(KEY, gson.toJson(list))?.apply()
     }
 
-    private fun load(): List<Visit> = runCatching {
-        val raw = getPrefs()?.getString(KEY, null) ?: return emptyList()
-        val visits = gson.fromJson(raw, Array<Visit>::class.java)?.filterNotNull() ?: emptyList()
-        visits.map { v ->
-            if (v.track != null && v.track !is Track) v.copy(track = null) else v
+    internal fun sanitizeVisits(rawVisits: List<Visit>): Pair<List<Visit>, Boolean> {
+        var hadCorrupt = false
+        val clean = rawVisits.mapNotNull { v ->
+            val kind = v.kind ?: run {
+                hadCorrupt = true
+                return@mapNotNull null
+            }
+            val key = v.key?.takeIf { it.isNotBlank() } ?: run {
+                hadCorrupt = true
+                return@mapNotNull null
+            }
+            val title = v.title?.takeIf { it.isNotBlank() } ?: run {
+                hadCorrupt = true
+                return@mapNotNull null
+            }
+            val track = if (v.track != null && v.track is Track) v.track else null
+            v.copy(
+                kind = kind,
+                key = key,
+                title = title,
+                track = track,
+            )
         }
-    }.getOrDefault(emptyList())
+        return clean to hadCorrupt
+    }
+
+    private fun load(): List<Visit> = try {
+        val prefs = getPrefs() ?: return emptyList()
+        val raw = prefs.getString(KEY, null) ?: return emptyList()
+        val rawArray = gson.fromJson(raw, Array<Visit>::class.java)?.filterNotNull() ?: emptyList()
+        val (clean, hadCorrupt) = sanitizeVisits(rawArray)
+        if (hadCorrupt) {
+            prefs.edit().putString(KEY, gson.toJson(clean)).apply()
+        }
+        clean
+    } catch (e: Throwable) {
+        runCatching { getPrefs()?.edit()?.remove(KEY)?.apply() }
+        emptyList()
+    }
 }
 
 /**

@@ -97,7 +97,10 @@ fun SearchLanding(
                         when (visit.kind) {
                             RecentVisits.Kind.TRACK ->
                                 visit.track?.let { playerViewModel.playPlaylist(listOf(it), 0) }
-                            else -> visit.destination?.let { onNavigate(it) }
+                            RecentVisits.Kind.ARTIST,
+                            RecentVisits.Kind.PLAYLIST ->
+                                visit.destination?.let { onNavigate(it) }
+                            null -> visit.destination?.let { onNavigate(it) }
                         }
                     },
                     onForgetVisit = { homeViewModel.forgetVisit(it) },
@@ -405,8 +408,9 @@ private fun RecentSearchesSection(
             action = stringResource(R.string.search_clear_all) to onClearAll,
         )
 
-        val total = visits.size + searches.size
-        val shownVisits = if (expanded) visits else visits.take(COLLAPSED_RECENT_SEARCHES)
+        val validVisits = visits.filter { it.kind != null && !it.title.isNullOrBlank() }
+        val total = validVisits.size + searches.size
+        val shownVisits = if (expanded) validVisits else validVisits.take(COLLAPSED_RECENT_SEARCHES)
         shownVisits.forEach { visit ->
             RecentVisitRow(
                 visit = visit,
@@ -453,12 +457,14 @@ private fun RecentVisitRow(
     onOpen: () -> Unit,
     onForget: () -> Unit,
 ) {
-    val isArtist = visit.kind == RecentVisits.Kind.ARTIST
-    val subtitle = when (visit.kind) {
+    val kind = visit.kind
+    val isArtist = kind == RecentVisits.Kind.ARTIST
+    val subtitle = when (kind) {
         RecentVisits.Kind.ARTIST -> stringResource(R.string.search_kind_artist)
         RecentVisits.Kind.TRACK -> stringResource(R.string.search_kind_track, visit.subtitle.orEmpty())
         RecentVisits.Kind.PLAYLIST ->
             listOfNotNull(stringResource(R.string.search_kind_playlist), visit.subtitle?.takeIf { it.isNotBlank() }).joinToString(" · ")
+        null -> visit.subtitle.orEmpty()
     }
 
     Row(
@@ -484,7 +490,7 @@ private fun RecentVisitRow(
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = visit.title,
+                    text = visit.title.orEmpty(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
